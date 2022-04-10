@@ -1,0 +1,249 @@
+WEBVTT
+1
+00:00:02.140 --> 00:00:07.040
+So this is the same demo that we've used in previous modules.
+
+2
+00:00:07.040 --> 00:00:10.520
+So if you remember, we have a Main class here.
+
+3
+00:00:10.520 --> 00:00:14.710
+So we have com.knowledgespike.Main and Main uses a
+
+4
+00:00:14.710 --> 00:00:17.060
+DataAccess library and a DataService library.
+
+5
+00:00:17.060 --> 00:00:23.820
+On the service it calls write, the service calls write on the DataAccess code,
+
+6
+00:00:23.820 --> 00:00:28.140
+and the DataAccess code writes to the file system.
+
+7
+00:00:28.140 --> 00:00:31.240
+And we have a policy file here which grants write
+
+8
+00:00:31.240 --> 00:00:34.480
+permission to each of these codeBases.
+
+9
+00:00:34.480 --> 00:00:37.420
+So if I run this code from the command line using
+
+10
+00:00:37.420 --> 00:00:40.800
+that policy and security.manager, it all works fine.
+
+11
+00:00:40.800 --> 00:00:45.980
+But suppose that our Service.jar doesn't have permission.
+
+12
+00:00:45.980 --> 00:00:50.400
+But we'd still like to be able to write to the file system because by writing
+
+13
+00:00:50.400 --> 00:00:53.140
+into the file system that's, let's say, our audit message.
+
+14
+00:00:53.140 --> 00:00:55.940
+So I edit the policy file, and I save it.
+
+15
+00:00:55.940 --> 00:00:58.480
+If I go back to my command prompt and run the code again,
+
+16
+00:00:58.480 --> 00:00:59.140
+it fails,
+
+17
+00:00:59.140 --> 00:01:01.380
+and we know it fails because we're doing a full stack
+
+18
+00:01:01.380 --> 00:01:04.440
+walk to check all the permissions.
+
+19
+00:01:04.440 --> 00:01:08.550
+So what we'd like to do here is, inside the data access code,
+
+20
+00:01:08.550 --> 00:01:10.810
+prevent that stack walk.
+
+21
+00:01:10.810 --> 00:01:12.490
+We want this code to be privileged.
+
+22
+00:01:12.490 --> 00:01:16.550
+We want this code to be able to write to the file system,
+
+23
+00:01:16.550 --> 00:01:19.580
+even if other things on the stack frame are not able to.
+
+24
+00:01:19.580 --> 00:01:21.340
+So let me remove this code.
+
+25
+00:01:21.340 --> 00:01:24.060
+So the way we make this thing privileged is by using
+
+26
+00:01:24.060 --> 00:01:25.900
+AccessController.doPrivileged.
+
+27
+00:01:25.900 --> 00:01:32.830
+And we know doPrivileged takes a PrivilegedAction type with a run method.
+
+28
+00:01:32.830 --> 00:01:34.320
+And as we're using Java 8 here,
+
+29
+00:01:34.320 --> 00:01:37.200
+we can use the new lambda syntax to execute this code.
+
+30
+00:01:37.200 --> 00:01:42.330
+So for the lambda syntax, we've going to say something goes to some method,
+
+31
+00:01:42.330 --> 00:01:49.200
+and the thing that's being passed in here is a PrivilegedAction.
+
+32
+00:01:49.200 --> 00:01:51.060
+So we need to add the code in for this method.
+
+33
+00:01:51.060 --> 00:01:57.140
+So the code for this is simply the writer code that we saw previously.
+
+34
+00:01:57.140 --> 00:02:00.310
+So what's going to happen here is that when we call doPrivileged,
+
+35
+00:02:00.310 --> 00:02:01.240
+this method will execute.
+
+36
+00:02:01.240 --> 00:02:02.490
+This is the run method.
+
+37
+00:02:02.490 --> 00:02:06.580
+The run method will execute, and inside this run method,
+
+38
+00:02:06.580 --> 00:02:08.610
+because we're inside a doPrivileged block,
+
+39
+00:02:08.610 --> 00:02:10.430
+we prevent this stack walk.
+
+40
+00:02:10.430 --> 00:02:14.410
+So we don't check what's calling us to see if what's calling us has permission.
+
+41
+00:02:14.410 --> 00:02:16.780
+As long as we have permission, then we're fine.
+
+42
+00:02:16.780 --> 00:02:19.140
+We can execute this code.
+
+43
+00:02:19.140 --> 00:02:20.440
+This is going to throw some exceptions,
+
+44
+00:02:20.440 --> 00:02:22.820
+so we put the appropriate catch clauses in,
+
+45
+00:02:22.820 --> 00:02:24.900
+and we also need to return a value from this.
+
+46
+00:02:24.900 --> 00:02:26.660
+This thing returns an object by default.
+
+47
+00:02:26.660 --> 00:02:29.770
+We'll just return null here to shut the compiler up.
+
+48
+00:02:29.770 --> 00:02:32.360
+So if I build this code and then go back to the
+
+49
+00:02:32.360 --> 00:02:37.700
+command prompt and run this code again, this code should now succeed,
+
+50
+00:02:37.700 --> 00:02:41.480
+as the DataAccess.jar file is privileged.
+
+51
+00:02:41.480 --> 00:02:42.710
+And indeed it does.
+
+52
+00:02:42.710 --> 00:02:46.990
+If I go back to my.policy file and remove permissions from
+
+53
+00:02:46.990 --> 00:02:50.030
+the DataAccess.jar file and then go back to the command
+
+54
+00:02:50.030 --> 00:02:52.340
+prompt and run the code again, it will fail.
+
+55
+00:02:52.340 --> 00:02:53.550
+So even though it's privileged,
+
+56
+00:02:53.550 --> 00:02:56.840
+it's still needs permission to be able to do this.
+
+57
+00:02:56.840 --> 00:03:00.600
+So we see here that even though the DataAccess.jar
+
+58
+00:03:00.600 --> 00:03:05.480
+file can try and claim a privilege, once it's claimed that privilege,
+
+59
+00:03:05.480 --> 00:03:11.240
+anything it tries to do will still be subject to security checks.
+
+60
+00:03:11.240 --> 00:03:14.580
+So the fact that it can claim the privilege doesn't mean it can do anything.
+
+61
+00:03:14.580 --> 00:03:17.320
+It's still then subject to the normal security checks,
+
+62
+00:03:17.320 --> 00:03:26.000
+and we still have to give it permission to write to this file. Otherwise the code will fail.
+

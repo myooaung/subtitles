@@ -1,0 +1,420 @@
+1
+00:00:01,840 --> 00:00:06,600
+To demonstrate how a transaction can help us roll back changes
+
+2
+00:00:06,600 --> 00:00:10,530
+if we're partially through a transaction and want to undo
+
+3
+00:00:10,530 --> 00:00:12,190
+anything because an error occurred,
+
+4
+00:00:12,190 --> 00:00:16,640
+the first thing I'm going to do is start up my server.
+
+5
+00:00:16,640 --> 00:00:20,740
+Then we're going to go through a series of changes inside of our test
+
+6
+00:00:20,740 --> 00:00:23,980
+just to prove out this functionality so that we don't have to write a
+
+7
+00:00:23,980 --> 00:00:27,640
+lot of extra code just to show you this demo.
+
+8
+00:00:27,640 --> 00:00:32,860
+First inside of our test, I'm going to execute our createRide method.
+
+9
+00:00:32,860 --> 00:00:36,030
+So I'm going to right‑click and say Run As,
+
+10
+00:00:36,030 --> 00:00:41,810
+JUnit Test, and once this runs, you'll see that it's ran successfully,
+
+11
+00:00:41,810 --> 00:00:48,040
+I'm going to switch over to our database and run this select * from Ride.
+
+12
+00:00:48,040 --> 00:00:53,000
+You see inside of here I have two rides at the bottom of my database,
+
+13
+00:00:53,000 --> 00:00:55,810
+you may only have one because you just executed it,
+
+14
+00:00:55,810 --> 00:00:59,150
+but notice how they have no ride data in there,
+
+15
+00:00:59,150 --> 00:01:03,960
+and that's because when we created our createRideTest,
+
+16
+00:01:03,960 --> 00:01:09,540
+we didn't have it adding the date, we updated those dates in the batch method.
+
+17
+00:01:09,540 --> 00:01:17,670
+Let's go ahead and go over to our code now and open up our service tier,
+
+18
+00:01:17,670 --> 00:01:24,330
+and inside of our service tier let's find that batchUpdate method.
+
+19
+00:01:24,330 --> 00:01:30,110
+You can see here, we have all of our code in place to get all the rides,
+
+20
+00:01:30,110 --> 00:01:37,240
+pull them back, get a name value pair of the date,
+
+21
+00:01:37,240 --> 00:01:40,200
+ride id,
+
+22
+00:01:40,200 --> 00:01:47,900
+we have this batch method where we grab all the rides and create a list of
+
+23
+00:01:47,900 --> 00:01:52,540
+object array pairs of the date and the ID to update.
+
+24
+00:01:52,540 --> 00:01:59,510
+Let's go to the end of this method and throw a new DataAccessException.
+
+25
+00:01:59,510 --> 00:02:08,070
+And what this would simulate is that as we got partially through our code,
+
+26
+00:02:08,070 --> 00:02:11,570
+something happened and we would want to roll back those changes.
+
+27
+00:02:11,570 --> 00:02:21,740
+So we'll just put in here a string of Testing Exception Handling and save that.
+
+28
+00:02:21,740 --> 00:02:27,040
+And now when we go to execute that batch service,
+
+29
+00:02:27,040 --> 00:02:32,120
+it should go through and roll them back rather than update all of them.
+
+30
+00:02:32,120 --> 00:02:39,020
+So let's scroll down in our application and find that testBatchUpdate,
+
+31
+00:02:39,020 --> 00:02:41,740
+and there's mine.
+
+32
+00:02:41,740 --> 00:02:45,730
+I'm going to right‑click on it and say Run As, JUnit
+
+33
+00:02:45,730 --> 00:02:50,350
+Test. Now if things were set up with transactions, it
+
+34
+00:02:50,350 --> 00:02:53,040
+would roll back all those changes.
+
+35
+00:02:53,040 --> 00:02:55,350
+Let's execute that and see what happens to our
+
+36
+00:02:55,350 --> 00:02:59,010
+database. It's successfully completed.
+
+37
+00:02:59,010 --> 00:03:03,080
+I'm going to switch over to our MySQL Workbench and run that select
+
+38
+00:03:03,080 --> 00:03:08,210
+statement again, and you'll notice that all of my rides have now been
+
+39
+00:03:08,210 --> 00:03:12,740
+updated even though that exception was thrown.
+
+40
+00:03:12,740 --> 00:03:16,140
+Let's go ahead and fix that so that it doesn't do that.
+
+41
+00:03:16,140 --> 00:03:22,410
+The first thing that we want to do is open up our src/main/resources
+
+42
+00:03:22,410 --> 00:03:29,040
+jdbc‑config file, and we're going to do two things in here.
+
+43
+00:03:29,040 --> 00:03:34,320
+First, I'm going to go down to the Namespaces tab and check the tx
+
+44
+00:03:34,320 --> 00:03:40,140
+namespace so that it adds that to the declaration in our XML file. Then
+
+45
+00:03:40,140 --> 00:03:45,120
+I'm going to switch back to the Source tab, and now I can come in here
+
+46
+00:03:45,120 --> 00:03:47,910
+and add two beans inside of here.
+
+47
+00:03:47,910 --> 00:03:51,560
+The first one we're going to use the tx prefix of
+
+48
+00:03:51,560 --> 00:04:00,040
+annotation‑driven, and it has an attribute of transaction‑manager,
+
+49
+00:04:00,040 --> 00:04:03,540
+and we're just going to pass in transactionManager.
+
+50
+00:04:03,540 --> 00:04:11,390
+The second bean I'm going to add is using the bean prefix, and I'm going
+
+51
+00:04:11,390 --> 00:04:19,240
+to say id=transactionManager. And I'm going to type this one out because
+
+52
+00:04:19,240 --> 00:04:22,830
+there's a few things I want to show you in here. And there is a class
+
+53
+00:04:22,830 --> 00:04:25,410
+associated with this that is
+
+54
+00:04:25,410 --> 00:04:41,740
+org.springframework.jdbc.datasource.DataSourceTransactionManager.
+
+55
+00:04:41,740 --> 00:04:47,440
+And then inside of the bean tags, make sure you're in between the angle brackets,
+
+56
+00:04:47,440 --> 00:04:52,440
+there is a property that we're going to add to it, and the property
+
+57
+00:04:52,440 --> 00:04:58,530
+name is dataSource, and we're going to do a reference to our data
+
+58
+00:04:58,530 --> 00:05:07,940
+source, so that is dataSource as well.
+
+59
+00:05:07,940 --> 00:05:13,470
+Now, our tx annotation‑driven and our transactionManager are defined.
+
+60
+00:05:13,470 --> 00:05:17,540
+Yours should automatically try to deploy like mine has here.
+
+61
+00:05:17,540 --> 00:05:24,220
+Now everything is set up inside of our XML file to handle transactions.
+
+62
+00:05:24,220 --> 00:05:29,420
+The only thing we need to go back and add to our code is at the top of
+
+63
+00:05:29,420 --> 00:05:37,340
+our batch we want to say that it is @Transactional.
+
+64
+00:05:37,340 --> 00:05:42,840
+Now you may be wondering why I didn't have to include another JAR or anything
+
+65
+00:05:42,840 --> 00:05:47,250
+like that to get this functionality, and that is because this is automatically
+
+66
+00:05:47,250 --> 00:05:52,270
+included as a transitive dependency in Spring JDBC.
+
+67
+00:05:52,270 --> 00:05:54,510
+So these classes were already available because we
+
+68
+00:05:54,510 --> 00:05:57,450
+are using Maven. Now to test this,
+
+69
+00:05:57,450 --> 00:06:00,540
+I'm going to go through and do the exact same thing again. I'm going to
+
+70
+00:06:00,540 --> 00:06:03,380
+go back in our RestControllerTest and I'm going to scroll up to our
+
+71
+00:06:03,380 --> 00:06:08,000
+testCreateRide because, remember, we don't have a ride now that doesn't
+
+72
+00:06:08,000 --> 00:06:10,370
+have a date associated with it.
+
+73
+00:06:10,370 --> 00:06:15,560
+So I'm going to right‑click on testCreateRide and say Run As, JUnit
+
+74
+00:06:15,560 --> 00:06:24,070
+Test, switch over to my database, run that select statement again, and
+
+75
+00:06:24,070 --> 00:06:27,560
+I should have one at the bottom of here that does not have a ride date,
+
+76
+00:06:27,560 --> 00:06:35,070
+and I do. Then I'm going to switch back and run my batch, but this time
+
+77
+00:06:35,070 --> 00:06:38,900
+that transaction should be rolled back. So I'm going to right‑click on
+
+78
+00:06:38,900 --> 00:06:47,090
+testBatchUpdate and say Run As, JUnit Test, it successfully completed.
+
+79
+00:06:47,090 --> 00:06:50,710
+That is because we have an exception handler in there that caught
+
+80
+00:06:50,710 --> 00:06:53,460
+that exception instead of dumping out a stack trace.
+
+81
+00:06:53,460 --> 00:07:03,000
+But if I go check my database again, we will see that it did not save those
+
+82
+00:07:03,000 --> 00:07:09,100
+changes. So our transaction did in fact roll back. If you question that, you
+
+83
+00:07:09,100 --> 00:07:13,240
+can test that by going back into your RideServiceImpl,
+
+84
+00:07:13,240 --> 00:07:18,280
+going down to your batch, and either comment that transactional up above or
+
+85
+00:07:18,280 --> 00:07:24,040
+comment out that throw new DataAccessException and save that.
+
+86
+00:07:24,040 --> 00:07:27,840
+It will redeploy, and we'll go back to our
+
+87
+00:07:27,840 --> 00:07:35,240
+testBatchUpdate and run that JUnit test again.
+
+88
+00:07:35,240 --> 00:07:38,920
+Now it should have saved those to our database, our test was
+
+89
+00:07:38,920 --> 00:07:43,420
+successful. Because we didn't throw that exception again, it should
+
+90
+00:07:43,420 --> 00:07:48,690
+commit them, and it did. So quite simple.
+
+91
+00:07:48,690 --> 00:07:56,190
+All we had to do was inside of our application we added the name space
+
+92
+00:07:56,190 --> 00:08:01,470
+for tx so that we could put our tx annotation‑driven transaction‑manager
+
+93
+00:08:01,470 --> 00:08:04,470
+in there, and then we added a bean for the
+
+94
+00:08:04,470 --> 00:08:10,480
+org.springframework.jdbc.datasource.DataSourceTransactionManager that we
+
+95
+00:08:10,480 --> 00:08:15,480
+wrap our data source with, and then inside of our code all we had to do
+
+96
+00:08:15,480 --> 00:08:19,120
+was throw a DataAccessException to test it,
+
+97
+00:08:19,120 --> 00:08:24,920
+but add that @Transactional annotation to our code to say anything
+
+98
+00:08:24,920 --> 00:08:28,920
+that takes place in this unit of work, I want to be inside of a
+
+99
+00:08:28,920 --> 00:08:33,030
+transaction. Very easy to do, and now you're starting to see the
+
+100
+00:08:33,030 --> 00:08:36,820
+full power of why you have a service tier that calls multiple
+
+101
+00:08:36,820 --> 00:08:38,540
+functions from inside of it.
+
+102
+00:08:38,540 --> 00:08:41,310
+Think of a more complex application. If I was updating
+
+103
+00:08:41,310 --> 00:08:43,290
+three, four or five database tables,
+
+104
+00:08:43,290 --> 00:08:46,710
+all I have to do is still put that one annotation at the top
+
+105
+00:08:46,710 --> 00:08:54,000
+and it will roll back all of our changes if an exception is thrown somewhere along the way.
+

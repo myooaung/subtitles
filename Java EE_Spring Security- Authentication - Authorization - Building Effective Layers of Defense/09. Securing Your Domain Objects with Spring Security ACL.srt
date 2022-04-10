@@ -1,0 +1,804 @@
+1
+00:00:01,765 --> 00:00:06,692
+With Spring Security, you can also enforce security at the domain level.
+
+2
+00:00:06,692 --> 00:00:11,677
+In our demo application, each user has an instance of a portfolio.
+
+3
+00:00:11,677 --> 00:00:16,546
+You may want to vary the access to these instances in your application.
+
+4
+00:00:16,546 --> 00:00:16,942
+Example,
+
+5
+00:00:16,942 --> 00:00:22,752
+the owner of the instance or an administrator might have full access to view,
+
+6
+00:00:22,752 --> 00:00:26,326
+update a particular portfolio instance.
+
+7
+00:00:26,326 --> 00:00:31,261
+But say the owner wants to allow a friend to also view that portfolio,
+
+8
+00:00:31,261 --> 00:00:33,754
+but not make any changes to it.
+
+9
+00:00:33,754 --> 00:00:36,271
+Now Spring Security provides the hasPermission
+
+10
+00:00:36,271 --> 00:00:39,784
+expression just for such a scenario.
+
+11
+00:00:39,784 --> 00:00:41,735
+And it comes in two flavors.
+
+12
+00:00:41,735 --> 00:00:46,448
+The first can be used if the instance of the object is available.
+
+13
+00:00:46,448 --> 00:00:50,565
+It considers the user requesting permission on the instance,
+
+14
+00:00:50,565 --> 00:00:55,323
+the object instance itself, and the permission required to access it.
+
+15
+00:00:55,323 --> 00:01:00,710
+The second flavor considers the identifier of the object instance,
+
+16
+00:01:00,710 --> 00:01:07,098
+example the portfolio ID and the type, which is usually the Java class name.
+
+17
+00:01:07,098 --> 00:01:09,317
+Now before you can start using these expressions,
+
+18
+00:01:09,317 --> 00:01:14,098
+you need to provide your implementation of the PermissionEvaluator
+
+19
+00:01:14,098 --> 00:01:18,836
+interface and implement both flavors of the hasPermission method to
+
+20
+00:01:18,836 --> 00:01:22,625
+define your domain authorization strategy.
+
+21
+00:01:22,625 --> 00:01:28,083
+As by default, Spring configures the DenyAllPermissionEvaluator implementation,
+
+22
+00:01:28,083 --> 00:01:31,722
+which is not very useful as it just denies everything.
+
+23
+00:01:31,722 --> 00:01:34,580
+Now Spring has an implementation you can configure,
+
+24
+00:01:34,580 --> 00:01:36,718
+the Spring access control list,
+
+25
+00:01:36,718 --> 00:01:42,577
+where you can specify Access Control Entries that comprise of the principal,
+
+26
+00:01:42,577 --> 00:01:46,600
+the domain instance, and a permission like READ,
+
+27
+00:01:46,600 --> 00:01:53,314
+WRITE into a collection forming an access control list for the domain instance.
+
+28
+00:01:53,314 --> 00:01:57,952
+To use this implementation, you need to create a number of tables.
+
+29
+00:01:57,952 --> 00:01:58,433
+Now unfortunately,
+
+30
+00:01:58,433 --> 00:02:01,449
+this means that you can only use it in a data store
+
+31
+00:02:01,449 --> 00:02:04,059
+that is a relational database.
+
+32
+00:02:04,059 --> 00:02:08,387
+Now our demo application uses MongoDB, and as of now,
+
+33
+00:02:08,387 --> 00:02:10,169
+there is no implementation for Mongo.
+
+34
+00:02:10,169 --> 00:02:11,878
+Now in the next section,
+
+35
+00:02:11,878 --> 00:02:16,664
+we'll go over how to create a custom implementation for the demo app.
+
+36
+00:02:16,664 --> 00:02:18,833
+But to demonstrate Spring ACL,
+
+37
+00:02:18,833 --> 00:02:24,476
+I have created a separate REST application that uses the H2 embedded database.
+
+38
+00:02:24,476 --> 00:02:27,718
+You can check the Spring documentation for schemers that
+
+39
+00:02:27,718 --> 00:02:30,311
+are compatible with your database type.
+
+40
+00:02:30,311 --> 00:02:33,738
+The first table is the acl_sid table,
+
+41
+00:02:33,738 --> 00:02:39,144
+or the access control list security identifier table.
+
+42
+00:02:39,144 --> 00:02:45,290
+It stores the principals and authorities used in our application.
+
+43
+00:02:45,290 --> 00:02:48,803
+It has an ID field, the principal boolean,
+
+44
+00:02:48,803 --> 00:02:51,593
+to indicate if it is an authority, like a role,
+
+45
+00:02:51,593 --> 00:02:54,019
+or a principal, like a user.
+
+46
+00:02:54,019 --> 00:02:57,201
+Next is the security identifier.
+
+47
+00:02:57,201 --> 00:03:00,696
+Now if it is a principal, it would be the username.
+
+48
+00:03:00,696 --> 00:03:06,877
+If it an authority, then it would be a string of type role or authority, etc.
+
+49
+00:03:06,877 --> 00:03:10,164
+The second table is the acl_class,
+
+50
+00:03:10,164 --> 00:03:15,531
+and that stores the domain object's fully qualified class names.
+
+51
+00:03:15,531 --> 00:03:17,205
+The third table,
+
+52
+00:03:17,205 --> 00:03:21,146
+the acl_object_identity is where we store the instance information
+
+53
+00:03:21,146 --> 00:03:25,600
+of the domains defined in the acl_class table.
+
+54
+00:03:25,600 --> 00:03:29,469
+It has an ID, the object_id_class,
+
+55
+00:03:29,469 --> 00:03:35,509
+which references the class of the instance defined in the acl_class table.
+
+56
+00:03:35,509 --> 00:03:39,902
+The object_id_identity field is the primary key of the instance.
+
+57
+00:03:39,902 --> 00:03:42,559
+Example, if this was a portfolio instance,
+
+58
+00:03:42,559 --> 00:03:48,815
+it would be the portfolio ID, which is the primary key in the portfolio table.
+
+59
+00:03:48,815 --> 00:03:54,690
+The parent object is if the instance was a child of another instance.
+
+60
+00:03:54,690 --> 00:04:01,057
+The owner is the identifier of the owner that is defined in the acl_sid table.
+
+61
+00:04:01,057 --> 00:04:05,186
+The ACL inheriting defines if the acl entries for this
+
+62
+00:04:05,186 --> 00:04:07,800
+object inherit from the parent object.
+
+63
+00:04:07,800 --> 00:04:10,953
+The final table is the acl_entry table,
+
+64
+00:04:10,953 --> 00:04:14,562
+which contains all the access control entries,
+
+65
+00:04:14,562 --> 00:04:18,695
+which store the individual permission assigned to
+
+66
+00:04:18,695 --> 00:04:22,307
+each sid on the instance object.
+
+67
+00:04:22,307 --> 00:04:24,526
+Your application would populate these tables
+
+68
+00:04:24,526 --> 00:04:27,878
+automatically as users are added and removed,
+
+69
+00:04:27,878 --> 00:04:28,280
+etc.
+
+70
+00:04:28,280 --> 00:04:32,817
+For this demo, we will add these with insert statements.
+
+71
+00:04:32,817 --> 00:04:33,564
+Now don't worry.
+
+72
+00:04:33,564 --> 00:04:38,368
+It will all make more sense once we start to populate these tables.
+
+73
+00:04:38,368 --> 00:04:41,243
+Let's set up our security identifiers.
+
+74
+00:04:41,243 --> 00:04:42,714
+We add our users,
+
+75
+00:04:42,714 --> 00:04:48,599
+setting the principal to true and their usernames in the sid column,
+
+76
+00:04:48,599 --> 00:04:53,456
+incrementing the ID for each new user as it's a surrogate key.
+
+77
+00:04:53,456 --> 00:04:56,954
+Then we add the two roles, admin and user,
+
+78
+00:04:56,954 --> 00:05:01,794
+setting the principal to false to indicate it's not a principal,
+
+79
+00:05:01,794 --> 00:05:03,259
+but an authority.
+
+80
+00:05:03,259 --> 00:05:07,094
+Next we add the portfolio class to the acl_class table.
+
+81
+00:05:07,094 --> 00:05:13,585
+Then for the instances of our portfolio in the portfolio table,
+
+82
+00:05:13,585 --> 00:05:18,639
+we add references to them in the acl_object_identity table.
+
+83
+00:05:18,639 --> 00:05:23,271
+The first field is just a surrogate key, so we increment it for each record.
+
+84
+00:05:23,271 --> 00:05:30,607
+Next is the class ID of the acl_class table, which is 1, the portfolio.
+
+85
+00:05:30,607 --> 00:05:37,365
+Then the object_id_identity, which is the primary key of the instance, i.e.
+
+86
+00:05:37,365 --> 00:05:41,108
+the portfolio identifier from the portfolio table.
+
+87
+00:05:41,108 --> 00:05:43,197
+For the owner_sid,
+
+88
+00:05:43,197 --> 00:05:49,385
+we reference the identifier of the principal from the acl_sid table.
+
+89
+00:05:49,385 --> 00:05:50,264
+And finally,
+
+90
+00:05:50,264 --> 00:05:54,143
+the access control entry table is where we define the
+
+91
+00:05:54,143 --> 00:05:56,225
+permissions to the instance object.
+
+92
+00:05:56,225 --> 00:06:01,350
+First, we give each owner read access to their portfolio.
+
+93
+00:06:01,350 --> 00:06:05,126
+The first entry is the ID from the acl_object_identity that
+
+94
+00:06:05,126 --> 00:06:08,971
+we want to add the access control to.
+
+95
+00:06:08,971 --> 00:06:11,861
+In this case, it's the first instance of the portfolio.
+
+96
+00:06:11,861 --> 00:06:17,796
+The order is 1 in case you have multiple access control entries for an instance
+
+97
+00:06:17,796 --> 00:06:21,873
+and want to define the order they will be evaluated against.
+
+98
+00:06:21,873 --> 00:06:25,778
+Then the sid we want to give access to.
+
+99
+00:06:25,778 --> 00:06:28,107
+In this case, it is Bob.
+
+100
+00:06:28,107 --> 00:06:31,196
+The mask is 1 for read access.
+
+101
+00:06:31,196 --> 00:06:34,658
+You probably would want to give the owner all the access
+
+102
+00:06:34,658 --> 00:06:38,470
+types for CRUD operations like READ, WRITE,
+
+103
+00:06:38,470 --> 00:06:39,690
+CREATE, DELETE,
+
+104
+00:06:39,690 --> 00:06:46,313
+and also the administrator for updating the ACL for that particular entry.
+
+105
+00:06:46,313 --> 00:06:46,781
+Example,
+
+106
+00:06:46,781 --> 00:06:51,311
+if you were providing an interface to users to grant
+
+107
+00:06:51,311 --> 00:06:54,344
+access to their portfolio to other users,
+
+108
+00:06:54,344 --> 00:06:58,045
+then to make the ACL changes to that instance,
+
+109
+00:06:58,045 --> 00:07:02,293
+they would have to have an admin ACE entry.
+
+110
+00:07:02,293 --> 00:07:06,442
+Next, granting is either 0 for denying or 1 for granting, i.e.
+
+111
+00:07:06,442 --> 00:07:11,538
+to define if the expression gives access on returning false or returning true.
+
+112
+00:07:11,538 --> 00:07:14,233
+And the audit flags we set to true,
+
+113
+00:07:14,233 --> 00:07:17,836
+meaning that we want to log all the success and failure events.
+
+114
+00:07:17,836 --> 00:07:23,536
+Now Bob now has read access, but let's also give Bob read access to instance 2,
+
+115
+00:07:23,536 --> 00:07:26,173
+which is the portfolio that belongs to James.
+
+116
+00:07:26,173 --> 00:07:29,043
+Okay, that covers the tables.
+
+117
+00:07:29,043 --> 00:07:34,330
+Now we have to configure the ACL PermissionEvaluator in our application.
+
+118
+00:07:34,330 --> 00:07:34,671
+First,
+
+119
+00:07:34,671 --> 00:07:38,802
+we need to add the spring-security- acl and
+
+120
+00:07:38,802 --> 00:07:40,885
+spring-boot-starter-cache dependencies.
+
+121
+00:07:40,885 --> 00:07:41,331
+Next,
+
+122
+00:07:41,331 --> 00:07:45,169
+we need to create a configuration class that extends the
+
+123
+00:07:45,169 --> 00:07:50,528
+GlobalMethodSecurityConfiguration so that we can override the
+
+124
+00:07:50,528 --> 00:07:55,667
+createExpressionHandler method that returns a MethodSecurityExpressionHandler.
+
+125
+00:07:55,667 --> 00:07:58,624
+The expression handler is responsible for handling
+
+126
+00:07:58,624 --> 00:08:02,210
+security to method invocations.
+
+127
+00:08:02,210 --> 00:08:02,609
+Hence,
+
+128
+00:08:02,609 --> 00:08:08,394
+we return a new DefaultMethodSecurityExpressionHandler and set our
+
+129
+00:08:08,394 --> 00:08:13,774
+AclPermissionEvaluator and the ACL cache optimizer to it.
+
+130
+00:08:13,774 --> 00:08:19,609
+The ACL cache optimizer is used to prime the cache with the access control list,
+
+131
+00:08:19,609 --> 00:08:20,064
+i.e.
+
+132
+00:08:20,064 --> 00:08:23,707
+the data in the ACL tables we configured.
+
+133
+00:08:23,707 --> 00:08:27,129
+And the AclPermissionEvaluator will be performing the
+
+134
+00:08:27,129 --> 00:08:31,022
+permission checks on the domain objects when the expression is
+
+135
+00:08:31,022 --> 00:08:34,428
+added to method security annotations.
+
+136
+00:08:34,428 --> 00:08:37,555
+Now both require the AclService,
+
+137
+00:08:37,555 --> 00:08:43,412
+which is responsible for tasks like translating the ACL data from the database,
+
+138
+00:08:43,412 --> 00:08:43,905
+etc.
+
+139
+00:08:43,905 --> 00:08:50,013
+The implementation is a JdbcMutable, which accepts a datasource,
+
+140
+00:08:50,013 --> 00:08:52,504
+lookupStrategy and a cache.
+
+141
+00:08:52,504 --> 00:08:56,780
+The lookupStrategy is what performs the lookup of the ACL information.
+
+142
+00:08:56,780 --> 00:08:58,755
+In this case, it's a JDBC,
+
+143
+00:08:58,755 --> 00:09:03,725
+which will look up the data in the ACL tables we configured.
+
+144
+00:09:03,725 --> 00:09:07,825
+AclAuthorizationStrategy represents the strategy to determine if
+
+145
+00:09:07,825 --> 00:09:12,373
+the sid has permissions to perform admin actions on the ACL
+
+146
+00:09:12,373 --> 00:09:16,198
+entries of the domain object instances.
+
+147
+00:09:16,198 --> 00:09:20,190
+The constructor accepts the instance- granted authority that
+
+148
+00:09:20,190 --> 00:09:24,936
+specifies the role that can perform the admin tasks.
+
+149
+00:09:24,936 --> 00:09:28,906
+PermissionGrantingStrategy is responsible for checking whether the ACL
+
+150
+00:09:28,906 --> 00:09:33,390
+grants access to a given sid with a permission value.
+
+151
+00:09:33,390 --> 00:09:39,929
+And the EH-based cache will contain the mappings of the object identity to
+
+152
+00:09:39,929 --> 00:09:43,770
+the ACL to reduce the expensive cost of the database.
+
+153
+00:09:43,770 --> 00:09:47,757
+EH cache is an open source cache and is heavily used in Spring.
+
+154
+00:09:47,757 --> 00:09:49,880
+Now that was a lot of configuration,
+
+155
+00:09:49,880 --> 00:09:53,744
+but we now have the PermissionExpressionHandler configured.
+
+156
+00:09:53,744 --> 00:09:59,126
+So let's use the hasPermission expression to secure some domain objects.
+
+157
+00:09:59,126 --> 00:10:02,504
+We can use the hasPermission expression with any of
+
+158
+00:10:02,504 --> 00:10:08,160
+the method-level annotations, like pre and postAuthorize and pre and postFilter.
+
+159
+00:10:08,160 --> 00:10:10,695
+In our portfolio API application,
+
+160
+00:10:10,695 --> 00:10:15,192
+we can request the portfolio of different users via a REST call.
+
+161
+00:10:15,192 --> 00:10:20,381
+The user currently has no restrictions on viewing other users' portfolios.
+
+162
+00:10:20,381 --> 00:10:22,000
+In our ACL tables,
+
+163
+00:10:22,000 --> 00:10:26,384
+we configured each owner to have read access and Bob to also
+
+164
+00:10:26,384 --> 00:10:29,436
+have read access to James's portfolio.
+
+165
+00:10:29,436 --> 00:10:32,728
+So let's add the PermissionExpression to enforce this.
+
+166
+00:10:32,728 --> 00:10:35,386
+In our portfolio repository,
+
+167
+00:10:35,386 --> 00:10:41,999
+we can add the PostAuthorize annotation with the hasPermission expression.
+
+168
+00:10:41,999 --> 00:10:47,499
+The user must have read access to the portfolio instance being returned.
+
+169
+00:10:47,499 --> 00:10:53,876
+If we try again, Bob now has access to his and James's portfolios only.
+
+170
+00:10:53,876 --> 00:10:57,208
+He does not have access to Victoria's or Dave's.
+
+171
+00:10:57,208 --> 00:11:02,465
+However, Bob still can access their portfolios using the portfolio ID.
+
+172
+00:11:02,465 --> 00:11:03,615
+So let's fix this.
+
+173
+00:11:03,615 --> 00:11:09,812
+Let's add the PreAuthorize annotation to the service method, getPortfolio.
+
+174
+00:11:09,812 --> 00:11:10,452
+This time,
+
+175
+00:11:10,452 --> 00:11:13,410
+we will use the hasPermission expression that uses
+
+176
+00:11:13,410 --> 00:11:16,589
+the ID of the portfolio instance.
+
+177
+00:11:16,589 --> 00:11:20,010
+By using the hash ID,
+
+178
+00:11:20,010 --> 00:11:26,024
+it will pass in the ID from the method variable into the hasPermission class.
+
+179
+00:11:26,024 --> 00:11:26,363
+Next,
+
+180
+00:11:26,363 --> 00:11:30,300
+we supply the qualified class name of the portfolio entity
+
+181
+00:11:30,300 --> 00:11:34,842
+and state the user must have read access.
+
+182
+00:11:34,842 --> 00:11:35,964
+If we try again,
+
+183
+00:11:35,964 --> 00:11:40,881
+Bob no longer has permission to access Victoria's or James's portfolio.
+
+184
+00:11:40,881 --> 00:11:41,604
+In the controller,
+
+185
+00:11:41,604 --> 00:11:46,797
+we can use the PostFilter annotation on the method returning all portfolios in
+
+186
+00:11:46,797 --> 00:11:52,824
+the system and add the hasPermission to indicate we only want to return the
+
+187
+00:11:52,824 --> 00:11:56,738
+portfolio instances that a user has read access to.
+
+188
+00:11:56,738 --> 00:12:00,422
+Again, this is useful, but it's not advisable.
+
+189
+00:12:00,422 --> 00:12:05,549
+It's always more preferable and efficient to add the filtering in your queries.
+
+190
+00:12:05,549 --> 00:12:10,246
+In your application, you will want to programmatically update the ACL.
+
+191
+00:12:10,246 --> 00:12:16,318
+The AclService is a mutable ACL service, so you can expose it as a bean.
+
+192
+00:12:16,318 --> 00:12:20,605
+Then we can use it in our application to create a new access control list,
+
+193
+00:12:20,605 --> 00:12:23,669
+and you can also update an existing one.
+
+194
+00:12:23,669 --> 00:12:24,478
+As you can see,
+
+195
+00:12:24,478 --> 00:12:29,114
+there are a lot of ways we can restrict access to our domain objects now.
+
+196
+00:12:29,114 --> 00:12:31,679
+You can even add these on controller methods and get access
+
+197
+00:12:31,679 --> 00:12:35,090
+to objects in the model for interrogation.
+
+198
+00:12:35,090 --> 00:12:39,715
+Spring ACL can be complex to set up, but is very powerful.
+
+199
+00:12:39,715 --> 00:12:42,592
+From my experience though, I have rarely seen in used.
+
+200
+00:12:42,592 --> 00:12:43,934
+In the next section,
+
+201
+00:12:43,934 --> 00:12:52,000
+we'll create a custom implementation of the hasPermission expression for our portfolio web application.
+

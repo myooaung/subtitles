@@ -1,0 +1,289 @@
+WEBVTT
+1
+00:00:01.040 --> 00:00:03.300
+So now that we've reviewed batch transform,
+
+2
+00:00:03.300 --> 00:00:07.940
+we're going to be looking at how we leverage SageMaker Hosting Services.
+
+3
+00:00:07.940 --> 00:00:12.070
+Now SageMaker Hosting Services provides a scalable real‑time
+
+4
+00:00:12.070 --> 00:00:15.420
+inference REST endpoint for your models that can be integrated
+
+5
+00:00:15.420 --> 00:00:18.300
+into your applications and your workflows.
+
+6
+00:00:18.300 --> 00:00:22.240
+So let's, at a high level, understand how this works.
+
+7
+00:00:22.240 --> 00:00:26.220
+So let's say, for example, we have a client mobile application,
+
+8
+00:00:26.220 --> 00:00:31.310
+and it's going to need to interact with our SageMaker model for inference.
+
+9
+00:00:31.310 --> 00:00:31.650
+Well,
+
+10
+00:00:31.650 --> 00:00:35.500
+our client application will need to interact with something, which
+
+11
+00:00:35.500 --> 00:00:38.200
+probably in the beginning will be API Gateway.
+
+12
+00:00:38.200 --> 00:00:41.240
+Now there are multiple ways that we can handle how our client
+
+13
+00:00:41.240 --> 00:00:44.280
+applications interface with our SageMaker model.
+
+14
+00:00:44.280 --> 00:00:47.440
+But for now, we're going to choose a normal case approach.
+
+15
+00:00:47.440 --> 00:00:52.260
+So API Gateway will handle things for us like authentication and authorization,
+
+16
+00:00:52.260 --> 00:00:55.840
+and then it will work with a lambda function.
+
+17
+00:00:55.840 --> 00:00:59.340
+Now this lambda function is not a part of SageMaker Hosting Services,
+
+18
+00:00:59.340 --> 00:01:01.380
+and to be honest, it can be optional.
+
+19
+00:01:01.380 --> 00:01:04.920
+But most implementations that I have worked with have leveraged this
+
+20
+00:01:04.920 --> 00:01:08.390
+integration function. And part of the reason is is that it is going
+
+21
+00:01:08.390 --> 00:01:11.700
+to exist within a virtual private cloud,
+
+22
+00:01:11.700 --> 00:01:15.790
+and we'll talk more a later module about how this factors in to the security
+
+23
+00:01:15.790 --> 00:01:19.340
+approach you're taking for securing your SageMaker models.
+
+24
+00:01:19.340 --> 00:01:22.130
+Now this lambda function will be what ultimately
+
+25
+00:01:22.130 --> 00:01:25.040
+interacts with SageMaker Hosting Services.
+
+26
+00:01:25.040 --> 00:01:29.850
+So first, this lambda function will reach out and invoke the endpoint.
+
+27
+00:01:29.850 --> 00:01:33.120
+And the endpoint is what we have configured to work with
+
+28
+00:01:33.120 --> 00:01:35.740
+any outside application or workflow.
+
+29
+00:01:35.740 --> 00:01:38.780
+Now the endpoint itself is going to reference a load
+
+30
+00:01:38.780 --> 00:01:41.650
+balancer because one of the great benefits of SageMaker
+
+31
+00:01:41.650 --> 00:01:44.520
+Hosting Services is that it can scale.
+
+32
+00:01:44.520 --> 00:01:48.280
+So this load balancer will be able to communicate with many
+
+33
+00:01:48.280 --> 00:01:51.360
+different instances that have been spun up that are able to
+
+34
+00:01:51.360 --> 00:01:53.740
+perform inference on our model.
+
+35
+00:01:53.740 --> 00:01:56.690
+So the load balancer will know how to then integrate with each
+
+36
+00:01:56.690 --> 00:01:59.540
+of those instances that have been spun up.
+
+37
+00:01:59.540 --> 00:02:01.870
+Now each of those instances will need to have
+
+38
+00:02:01.870 --> 00:02:04.260
+access to get to our trained model,
+
+39
+00:02:04.260 --> 00:02:07.750
+which is going to be served within an S3 bucket.
+
+40
+00:02:07.750 --> 00:02:11.350
+Now later within this course, we'll talk about approaches where this can
+
+41
+00:02:11.350 --> 00:02:14.760
+be more tightly integrated into the virtual private cloud that we've
+
+42
+00:02:14.760 --> 00:02:19.070
+created to secure our SageMaker deployment. Now let's talk about some
+
+43
+00:02:19.070 --> 00:02:23.580
+general notes about how we actually deploy to SageMaker Hosting Services
+
+44
+00:02:23.580 --> 00:02:25.940
+and actually make this work.
+
+45
+00:02:25.940 --> 00:02:28.940
+And there are three key steps that we need to take.
+
+46
+00:02:28.940 --> 00:02:33.040
+The first is that we need to create a model within SageMaker.
+
+47
+00:02:33.040 --> 00:02:37.000
+So even if we have trained a model within a Jupyter Notebook,
+
+48
+00:02:37.000 --> 00:02:40.570
+we need to have away to actually register this model so that it can be
+
+49
+00:02:40.570 --> 00:02:43.900
+used from other infrastructure that SageMaker spins up.
+
+50
+00:02:43.900 --> 00:02:45.750
+So we need to give our model a name,
+
+51
+00:02:45.750 --> 00:02:49.640
+and we need to specify where it's stored within Amazon S3.
+
+52
+00:02:49.640 --> 00:02:53.740
+Then, we need to create an endpoint configuration,
+
+53
+00:02:53.740 --> 00:02:57.870
+and this is going to specify details about our endpoint,
+
+54
+00:02:57.870 --> 00:03:01.100
+including things like the model that we're going to be deploying,
+
+55
+00:03:01.100 --> 00:03:05.040
+as well as the instance size and the number of initial instances
+
+56
+00:03:05.040 --> 00:03:07.640
+that need to be launched for that endpoint.
+
+57
+00:03:07.640 --> 00:03:10.610
+And then once we have this configuration in place,
+
+58
+00:03:10.610 --> 00:03:13.200
+we can then go through the process of actually creating
+
+59
+00:03:13.200 --> 00:03:16.240
+an endpoint from that configuration.
+
+60
+00:03:16.240 --> 00:03:18.110
+And once the endpoint is up and running,
+
+61
+00:03:18.110 --> 00:03:21.340
+we can then integrate it in with our applications.
+
+62
+00:03:21.340 --> 00:03:23.130
+Now let's talk about those endpoints.
+
+63
+00:03:23.130 --> 00:03:26.520
+There's a few things we need to note. First, endpoints are
+
+64
+00:03:26.520 --> 00:03:30.130
+secured with HTTPS, and we'll talk more about different
+
+65
+00:03:30.130 --> 00:03:32.640
+security approaches in a later module.
+
+66
+00:03:32.640 --> 00:03:36.850
+Also, endpoints can autoscale based on defined minimums and
+
+67
+00:03:36.850 --> 00:03:39.660
+maximums. So you can set a minimum and a maximum number of
+
+68
+00:03:39.660 --> 00:03:42.940
+instances that it will scale to. Now in addition,
+
+69
+00:03:42.940 --> 00:03:47.020
+endpoints can be updated without downtime. So you can update
+
+70
+00:03:47.020 --> 00:03:50.080
+your endpoint configuration for an endpoint.
+
+71
+00:03:50.080 --> 00:03:53.640
+And it supports A/B testing through using multiple production
+
+72
+00:03:53.640 --> 00:04:00.000
+variants. And in the next clip, we'll walk through what production variants are and how you leverage them.
+

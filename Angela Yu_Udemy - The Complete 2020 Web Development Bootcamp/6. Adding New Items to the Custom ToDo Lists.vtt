@@ -1,0 +1,370 @@
+WEBVTT
+0
+1
+00:00:01.370 --> 00:00:08.570
+So in the last lesson we looked at how we could use these route parameters that Express conveniently
+1
+
+2
+00:00:08.600 --> 00:00:18.050
+provides for us to create new lists off the bat. So we could say for example, / (I don't know) Orange
+2
+
+3
+00:00:18.380 --> 00:00:20.470
+and it would create a list called orange.
+3
+
+4
+00:00:20.570 --> 00:00:28.540
+But if we tried to add a new item in here then it actually doesn't work.
+4
+
+5
+00:00:28.580 --> 00:00:34.680
+It takes us back to the default list called Today and then adds an item there.
+5
+
+6
+00:00:34.700 --> 00:00:35.930
+That's not what we wanted.
+6
+
+7
+00:00:35.930 --> 00:00:39.950
+We want it to add it to the customer list that we were in previously,
+7
+
+8
+00:00:40.190 --> 00:00:44.720
+but now we're somehow redirected to the root route.
+8
+
+9
+00:00:44.720 --> 00:00:46.510
+So what's going on here?
+9
+
+10
+00:00:47.610 --> 00:00:54.120
+Well if you take a look inside your list.ejs you can see that whenever we press the submit
+10
+
+11
+00:00:54.120 --> 00:01:00.430
+button which is that "+" then no matter which list we're inside
+11
+
+12
+00:01:00.450 --> 00:01:07.990
+we're always posting to the root route. And remember because this is an EJS file
+12
+
+13
+00:01:08.050 --> 00:01:14.260
+then it's the same template that we use for the home list, the work list, the shopping list, whatever it
+13
+
+14
+00:01:14.260 --> 00:01:14.850
+may be.
+14
+
+15
+00:01:14.890 --> 00:01:17.400
+So it's being dynamically rendered.
+15
+
+16
+00:01:17.530 --> 00:01:23.600
+We have to figure out how we can handle this inside that root route for the post request.
+16
+
+17
+00:01:23.810 --> 00:01:28.280
+At the moment, all that we do here is we create a new item,
+17
+
+18
+00:01:28.520 --> 00:01:35.930
+we save the item to our database and then we'd redirect to the root route. And that creates the behavior
+18
+
+19
+00:01:35.930 --> 00:01:37.260
+that we saw just now.
+19
+
+20
+00:01:38.270 --> 00:01:46.340
+What we need to do instead is we need to pass over the current list that's being displayed which we
+20
+
+21
+00:01:46.340 --> 00:01:53.770
+have access to fr the listTitle variable up here, and we need to pass it back when this form gets triggered.
+21
+
+22
+00:01:53.780 --> 00:02:00.430
+So the perfect place to do that is of course inside the button which is inside the same form.
+22
+
+23
+00:02:00.470 --> 00:02:07.700
+So you might already have this but make sure we add a new value to our button and the value is going
+23
+
+24
+00:02:07.700 --> 00:02:12.560
+to be created using that same EJS tag,
+24
+
+25
+00:02:12.680 --> 00:02:20.680
+so it's the one where we grab the value of the variable. And the variable we need is of course listTitle.
+25
+
+26
+00:02:20.900 --> 00:02:22.850
+So let's go ahead and add that here.
+26
+
+27
+00:02:23.900 --> 00:02:29.180
+Now whenever we submit our form we should get access to two things:
+27
+
+28
+00:02:29.210 --> 00:02:34.370
+one is the newItem and the second is the list.
+28
+
+29
+00:02:34.370 --> 00:02:37.820
+So now that means if we head back to app.js
+29
+
+30
+00:02:38.060 --> 00:02:47.080
+then inside this post route we should be able to tap into not just the itemName but also the listName.
+30
+
+31
+00:02:47.510 --> 00:02:56.270
+And that's going to be through req.body.list which corresponds to the name of this button
+31
+
+32
+00:02:56.720 --> 00:03:03.010
+and the value is going to be the current list that the user is trying to add an item to.
+32
+
+33
+00:03:03.020 --> 00:03:12.050
+So now it means that if we try to submit a new item to our Today or our default list then we need to handle
+33
+
+34
+00:03:12.050 --> 00:03:16.610
+it a little bit differently than if it was from the custom list.
+34
+
+35
+00:03:16.700 --> 00:03:22.670
+So let's write an IF statement that checks for that. No matter which list the item came from
+35
+
+36
+00:03:22.670 --> 00:03:27.050
+we still need to create it as a new item document.
+36
+
+37
+00:03:27.050 --> 00:03:34.640
+So let's go ahead and create our IF statement down here where we check to see if the list name that
+37
+
+38
+00:03:34.640 --> 00:03:43.160
+triggered the post request is equal to "Today" in which case we're probably in the default list in which
+38
+
+39
+00:03:43.160 --> 00:03:50.660
+case we'll simply just save our item to our items collection and then we'll just redirect to the root
+39
+
+40
+00:03:50.660 --> 00:03:53.760
+route, just as we've done previously.
+40
+
+41
+00:03:53.870 --> 00:04:04.570
+But if the list wasn't today then our newItem comes from a custom list. In that case we'd need to search
+41
+
+42
+00:04:04.660 --> 00:04:12.490
+for that list document in our lists collection in our database and we need to add the item and embed it
+42
+
+43
+00:04:12.580 --> 00:04:16.090
+into the existing array of items.
+43
+
+44
+00:04:16.090 --> 00:04:19.440
+So in order to do that we're going to use findOne.
+44
+
+45
+00:04:19.480 --> 00:04:27.460
+So we're going to say list.findOne and we're going to pass over the condition as we're going
+45
+
+46
+00:04:27.460 --> 00:04:33.970
+to look for a list with the name that's equal to the listName.
+46
+
+47
+00:04:34.330 --> 00:04:41.200
+And then once we've found it we can have the call back with the error and the foundList
+47
+
+48
+00:04:41.660 --> 00:04:51.670
+and now we can tap into this foundList document and try to add our newItem. So we can say foundList
+48
+
+49
+00:04:52.150 --> 00:05:01.990
+.items to tap into the embedded array of items and then we're going to call the Javascript push function
+49
+
+50
+00:05:02.140 --> 00:05:06.420
+to push a new item into the array of items.
+50
+
+51
+00:05:06.520 --> 00:05:11.980
+So the item that we want to push is of course this one that we've just created based off what the user
+51
+
+52
+00:05:11.980 --> 00:05:12.940
+typed,
+52
+
+53
+00:05:12.940 --> 00:05:23.080
+so we'll push item. And now we're going to save our foundList so that we update it with the new data.
+53
+
+54
+00:05:23.160 --> 00:05:30.040
+And finally we have to res.redirect. But instead of redirecting to the root route,
+54
+
+55
+00:05:30.270 --> 00:05:38.170
+in this case we have to redirect to the route where the user came from which is going to be 
+55
+
+56
+00:05:38.500 --> 00:05:42.280
+/listName.
+56
+
+57
+00:05:42.320 --> 00:05:50.240
+Now what should happen is that no matter which list we're in when a user tries to add an input into
+57
+
+58
+00:05:50.240 --> 00:05:57.050
+the text field and then press the submit button, the form will make a post request that's handled through
+58
+
+59
+00:05:57.050 --> 00:06:02.940
+the root route right here and our server will catch it right here.
+59
+
+60
+00:06:04.480 --> 00:06:11.470
+And then we will check to see if the list that the user tried to add the item into was from the default
+60
+
+61
+00:06:11.470 --> 00:06:17.900
+list where the listName is equal to today in which case we're just going to do a simple save item redirect
+61
+
+62
+00:06:17.920 --> 00:06:24.400
+back to the root route. But otherwise, namely if the user came from a custom list, then we're going to
+62
+
+63
+00:06:24.400 --> 00:06:32.350
+find that custom list and then we're going to add this new item to the items in that list.
+63
+
+64
+00:06:32.380 --> 00:06:40.090
+And finally we're going to redirect back to the /listName which should take us into this
+64
+
+65
+00:06:40.120 --> 00:06:45.420
+part and then we can render all of the items that belong in that list.
+65
+
+66
+00:06:45.430 --> 00:06:50.110
+So let's hit save and let's refresh our web page.
+66
+
+67
+00:06:50.200 --> 00:06:59.170
+So let's say that I go over to my Home list and I decide to add a new item. Let's say "clean
+67
+
+68
+00:06:59.170 --> 00:07:00.250
+kitchen"
+68
+
+69
+00:07:00.270 --> 00:07:00.980
+right?
+69
+
+70
+00:07:01.060 --> 00:07:02.950
+And let's go ahead and press add
+70
+
+71
+00:07:03.100 --> 00:07:09.550
+and now it gets added to my list and I can do the same with say for example my work list.
+71
+
+72
+00:07:09.640 --> 00:07:16.210
+Let's say"Read emails" and press + and it gets added to my work list.
+72
+
+73
+00:07:16.330 --> 00:07:24.820
+But now the beauty is if I head back to my home list, it's all still saved under my home list and all
+73
+
+74
+00:07:24.820 --> 00:07:29.550
+of our items are now categorized based off the list where they were added to.

@@ -1,0 +1,196 @@
+WEBVTT
+
+00:02.220 --> 00:05.650
+So in the last lecture, we cached our app.js
+
+00:05.670 --> 00:11.430
+file, still we're not fetching it when loading this page in offline mode.
+
+00:11.450 --> 00:18.000
+The reason for this is that we do cache it but when fetching it and when listening to fetch events, we
+
+00:18.000 --> 00:22.680
+just respond with another fetch event which of course requires the network.
+
+00:23.030 --> 00:30.820
+So if we want to retrieve the item from the cache, we have to alter that code and we can do so now.
+
+00:31.100 --> 00:37.100
+So in the fetch event listener of the service worker, let's make sure we actually fetch the data from
+
+00:37.100 --> 00:44.360
+our cache if available. To do that, I'll go into the respond with function here and there,
+
+00:44.360 --> 00:49.750
+I want to return caches and caches refers to the overall cache storage,
+
+00:49.790 --> 00:54.870
+that's important. Here we too have caches and cache. Caches
+
+00:54.890 --> 00:57.380
+as I just said is the overall cache storage,
+
+00:57.470 --> 00:59.710
+it allows us to open a sub-cache
+
+00:59.870 --> 01:07.850
+and it also allows us to call match, to have a look at all our sub-caches and see if we find a given
+
+01:07.940 --> 01:09.410
+resource there.
+
+01:09.410 --> 01:14.470
+So we match a request here, event request, why a request?
+
+01:14.660 --> 01:17.950
+Because keep in mind, requests are your keys.
+
+01:18.140 --> 01:25.700
+Even though we call cache add here, this behind the scenes reaches out to a server, gets the data and
+
+01:25.700 --> 01:29.430
+stores this request response key-value pair in your cache,
+
+01:29.660 --> 01:34.340
+so the key always is a request object, never a string.
+
+01:34.340 --> 01:41.030
+So therefore here, we see if we find a given request in any of our sub-caches in the cache storage of
+
+01:41.030 --> 01:42.540
+that given page here
+
+01:43.100 --> 01:46.300
+and if we do so, we can continue.
+
+01:46.700 --> 01:54.260
+So this then block will give us back a response if we found this request or not. Important, even if we don't
+
+01:54.260 --> 01:55.140
+find it,
+
+01:55.340 --> 01:57.650
+this will be executed.
+
+01:57.650 --> 02:01.100
+We get the response here and the response will simply be null
+
+02:01.280 --> 02:07.070
+if we don't have the request in our cache. That's important because you could think that you cache any
+
+02:07.070 --> 02:10.880
+error where you don't get a fitting entry in th cache
+
+02:11.060 --> 02:12.380
+but it's actually not an error,
+
+02:12.440 --> 02:14.180
+it's just a null response,
+
+02:14.180 --> 02:21.380
+so we always use that then and in then, we can now simply check if we do have a valid response or not.
+
+02:21.380 --> 02:28.680
+So we can say if response, so if this is not null, then we want to return the response,
+
+02:28.700 --> 02:31.950
+so now we're returning the value from the cache.
+
+02:32.060 --> 02:33.840
+We're not making a network request,
+
+02:33.950 --> 02:34.770
+this is important,
+
+02:34.790 --> 02:38.650
+we're intercepting the request and we're not issuing a new one,
+
+02:38.960 --> 02:44.840
+instead we're just having a look at what we wanted to request and we see if it's in the cache and if
+
+02:44.840 --> 02:46.980
+it is, we return it from there.
+
+02:48.020 --> 02:54.410
+However if we don't find it in the request, then we want to return the fetch request where we
+
+02:54.410 --> 03:00.750
+reach out or where we simply continue with the original request, so return fetch event request.
+
+03:01.010 --> 03:06.530
+So this now allows us to continue with the network request if we want to get something which is not
+
+03:06.540 --> 03:08.950
+cached but get it from the cache,
+
+03:09.080 --> 03:10.860
+well if it is in there.
+
+03:11.120 --> 03:14.240
+So let's save this and let's go back to our application,
+
+03:14.300 --> 03:19.430
+make sure to disable offline mode so that we are online and reload
+
+03:19.850 --> 03:24.660
+and as always under application, you'll see that the new service worker is waiting to get activated,
+
+03:24.710 --> 03:28.510
+for now I'll skip waiting and reload my application here again.
+
+03:29.060 --> 03:31.110
+So now let's go back to
+
+03:31.150 --> 03:36.300
+network or stick on application and tick offline here and reload.
+
+03:36.320 --> 03:40.810
+Now if you go to the network tab, you'll see a lot of requests are sent,
+
+03:41.120 --> 03:45.900
+the interesting request is the app.js file though.
+
+03:46.160 --> 03:50.300
+Here, you see that? It's fetched from service worker.
+
+03:50.320 --> 03:57.070
+Now we see that for all these files here because they're all funneled through our fetch listener
+
+03:57.410 --> 04:01.640
+but you see that in the end all these files are fetched from the internet then here because they have
+
+04:01.640 --> 04:03.350
+file sizes attached to them
+
+04:03.530 --> 04:09.660
+but one file is missing here, the app.js file. Because that never made it to the Internet,
+
+04:09.660 --> 04:12.240
+that request never made it to the Internet,
+
+04:12.290 --> 04:16.050
+it's cached to the service worker and then it's returned from there too,
+
+04:16.200 --> 04:23.120
+so that's super important to keep in mind or to understand. We are fetching app.js directly from
+
+04:23.120 --> 04:24.440
+the service worker here now,
+
+04:24.530 --> 04:28.310
+we're not making a HTTP request. Still our app wouldn't work
+
+04:28.310 --> 04:33.680
+offline though because fetching the app.js file isn't enough and we don't even get to the point
+
+04:33.680 --> 04:38.060
+where we want to fetch it because we didn't cache the index.html file.
+
+04:38.150 --> 04:43.580
+So the network tab is pretty empty here because the first important fetch of the localhost itself,
+
+04:43.670 --> 04:47.750
+so of the HTML file itself already fails here.
+
+04:48.170 --> 04:53.700
+So this is something we'll fix in the next videos when we finally start pre-caching our entire app shell.

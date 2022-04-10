@@ -1,0 +1,216 @@
+1
+00:00:00,940 --> 00:00:04,660
+Now that we're pushing race results messages up to SQS,
+
+2
+00:00:04,660 --> 00:00:08,390
+we need to poll for those messages and update the data sources with
+
+3
+00:00:08,390 --> 00:00:13,720
+those records. We'll make our first changes in the lib/data/lib
+
+4
+00:00:13,720 --> 00:00:18,100
+folder with the sqs.listener.js file.
+
+5
+00:00:18,100 --> 00:00:22,730
+This file will poll for SQS messages every 5 seconds.
+
+6
+00:00:22,730 --> 00:00:28,160
+If messages are received, then it will modify the master record in DynamoDB.
+
+7
+00:00:28,160 --> 00:00:31,020
+If you remember the explanation of long polling,
+
+8
+00:00:31,020 --> 00:00:34,980
+this interval of 5 seconds between polling is likely too
+
+9
+00:00:34,980 --> 00:00:40,340
+short for production applications, since it will incur a fairly high cost.
+
+10
+00:00:40,340 --> 00:00:45,250
+With one instance, it'll make around 500,000 requests a month,
+
+11
+00:00:45,250 --> 00:00:50,720
+so definitely do use a better value if working with real applications.
+
+12
+00:00:50,720 --> 00:00:55,670
+Our first change in this file is to update the region on line 6. The init
+
+13
+00:00:55,670 --> 00:00:59,070
+function is what starts the interval timer for polling,
+
+14
+00:00:59,070 --> 00:01:01,590
+and it calls the poll function online.
+
+15
+00:01:01,590 --> 00:01:02,840
+18.
+
+16
+00:01:02,840 --> 00:01:06,930
+The first step in poll is to again get the queue URL, so
+
+17
+00:01:06,930 --> 00:01:10,540
+let's build the const prams object for that.
+
+18
+00:01:10,540 --> 00:01:13,330
+It'll just have one property QueueName,
+
+19
+00:01:13,330 --> 00:01:19,400
+which will have the value of the global variable RACE_QUEUE. Now
+
+20
+00:01:19,400 --> 00:01:24,420
+on line 27, after the URL's been retrieved, we'll create a
+
+21
+00:01:24,420 --> 00:01:26,890
+params const for retrieving messages.
+
+22
+00:01:26,890 --> 00:01:33,790
+The first argument is QueueURL, which you can set to the value of
+
+23
+00:01:33,790 --> 00:01:37,420
+queueData.QueueUrl. The next argument is MaxNumberOfMessages.
+
+24
+00:01:37,420 --> 00:01:41,320
+This is a value between 1 and 10, and it's basically the maximum
+
+25
+00:01:41,320 --> 00:01:44,080
+number of messages that will be retrieved.
+
+26
+00:01:44,080 --> 00:01:49,940
+The default is 1, but I like to set it to 10 to get as many as possible.
+
+27
+00:01:49,940 --> 00:01:54,740
+The last property is VisibilityTimeOut, which I'm going to set to 15.
+
+28
+00:01:54,740 --> 00:01:59,250
+This is an example of overriding the queue default. There's no secret
+
+29
+00:01:59,250 --> 00:02:03,160
+reason to do it here other than to just show you an example.
+
+30
+00:02:03,160 --> 00:02:06,240
+Now our next change will be online 53.
+
+31
+00:02:06,240 --> 00:02:09,480
+Once we've retrieved the messages and process them,
+
+32
+00:02:09,480 --> 00:02:13,340
+then we need to delete them so they aren't double processed.
+
+33
+00:02:13,340 --> 00:02:17,100
+So this function will be called with the messages, and we'll delete them from
+
+34
+00:02:17,100 --> 00:02:21,840
+the queue. Let's start by creating our paramas const object.
+
+35
+00:02:21,840 --> 00:02:25,740
+The first property needed to delete is QueueUrl,
+
+36
+00:02:25,740 --> 00:02:30,240
+which you can give the value of the queueUrl function argument.
+
+37
+00:02:30,240 --> 00:02:34,180
+The next property is ReceiptHandle, this is basically a unique
+
+38
+00:02:34,180 --> 00:02:37,540
+value provided each time a messages retrieved.
+
+39
+00:02:37,540 --> 00:02:41,510
+We can give it the value of result.ReceiptHandle to
+
+40
+00:02:41,510 --> 00:02:44,340
+reference the message we just received.
+
+41
+00:02:44,340 --> 00:02:47,650
+You may notice this function is being called inside a map,
+
+42
+00:02:47,650 --> 00:02:50,610
+and so each retrieved message will have this
+
+43
+00:02:50,610 --> 00:02:53,040
+deleteMessage function called on it.
+
+44
+00:02:53,040 --> 00:02:57,260
+There's also a deleteMessage batch function in the SDK that would've
+
+45
+00:02:57,260 --> 00:03:01,340
+worked well here, as it deletes many messages.
+
+46
+00:03:01,340 --> 00:03:03,690
+And with that change, our listener is ready,
+
+47
+00:03:03,690 --> 00:03:09,010
+and we just need to enable all of the functionality in the index.js file
+
+48
+00:03:09,010 --> 00:03:14,100
+at our project root. At the bottom of the file online 65, there's a
+
+49
+00:03:14,100 --> 00:03:17,890
+commented line that calls the queueInit function.
+
+50
+00:03:17,890 --> 00:03:23,040
+This is going to turn the listener on basically, so un‑comment this line.
+
+51
+00:03:23,040 --> 00:03:24,450
+Now our changes are done.
+
+52
+00:03:24,450 --> 00:03:25,950
+You could try running them now,
+
+53
+00:03:25,950 --> 00:03:29,300
+but it will probably be easier to wait until we finish
+
+54
+00:03:29,300 --> 00:03:35,000
+the work on our Kinesis Streams, which we're going to do in the rest of this module.
+

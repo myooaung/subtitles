@@ -1,0 +1,176 @@
+1
+00:00:01,940 --> 00:00:05,940
+For development purposes, you can create a self‑signed certificate,
+
+2
+00:00:05,940 --> 00:00:10,640
+but in production only use a certificate from a certified authority.
+
+3
+00:00:10,640 --> 00:00:13,640
+I'll show you how to get one for free in the next section.
+
+4
+00:00:13,640 --> 00:00:19,740
+The easiest way is to use the Java's key ool with the following command.
+
+5
+00:00:19,740 --> 00:00:24,290
+The alias is the unique name/identifier for this certificate.
+
+6
+00:00:24,290 --> 00:00:27,740
+Then you have the key storetype.
+
+7
+00:00:27,740 --> 00:00:30,640
+In this case, it will be RSA.
+
+8
+00:00:30,640 --> 00:00:35,240
+The size of the keystore in this case is 256 bit,
+
+9
+00:00:35,240 --> 00:00:41,140
+and the password for the keystore, and the validity of the certificate in days.
+
+10
+00:00:41,140 --> 00:00:43,120
+Now with Spring Security and Spring Boot,
+
+11
+00:00:43,120 --> 00:00:45,940
+all we need to do is add the following properties to your
+
+12
+00:00:45,940 --> 00:00:49,140
+application properties file or YAML file,
+
+13
+00:00:49,140 --> 00:00:53,340
+the server port 443, which is the default HTTPS port,
+
+14
+00:00:53,340 --> 00:00:57,430
+the key‑store‑password, the location of the keystore,
+
+15
+00:00:57,430 --> 00:01:01,040
+the type of the keystore and the alias of the keystore.
+
+16
+00:01:01,040 --> 00:01:06,220
+If we restart our application, you can see that we can now connect via HTTPS.
+
+17
+00:01:06,220 --> 00:01:09,190
+Now because this is a self‑signed certificate,
+
+18
+00:01:09,190 --> 00:01:12,040
+and not one issued by a certificate authority,
+
+19
+00:01:12,040 --> 00:01:14,960
+the browser complains and warns the user that they cannot
+
+20
+00:01:14,960 --> 00:01:18,540
+verify the server is who they say they are.
+
+21
+00:01:18,540 --> 00:01:21,320
+For now, we will proceed and add the exception.
+
+22
+00:01:21,320 --> 00:01:24,840
+Again, you wouldn't want your users to do this.
+
+23
+00:01:24,840 --> 00:01:29,540
+Generally, users omit the protocol when typing the URL into the browser.
+
+24
+00:01:29,540 --> 00:01:32,260
+Now currently browsers will default to HTTP,
+
+25
+00:01:32,260 --> 00:01:35,210
+so if we do this for our portfolio site,
+
+26
+00:01:35,210 --> 00:01:37,240
+we get the error page,
+
+27
+00:01:37,240 --> 00:01:42,040
+as the application is no longer listening on port 80 for HTTP requests.
+
+28
+00:01:42,040 --> 00:01:45,640
+One way to do this is to send a redirect response to the user,
+
+29
+00:01:45,640 --> 00:01:49,610
+instructing them to redirect to the HTTPS endpoint. Now,
+
+30
+00:01:49,610 --> 00:01:53,450
+Spring Boot will only allow us to configure one connector via the properties,
+
+31
+00:01:53,450 --> 00:01:58,540
+and since we already used the one for port 443 using HTTPS,
+
+32
+00:01:58,540 --> 00:02:02,440
+we need another one for HTTP and port 80, which will
+
+33
+00:02:02,440 --> 00:02:05,220
+do the redirect to the HTTPS one.
+
+34
+00:02:05,220 --> 00:02:09,440
+To do this, we need to access the TomcatServerletWebServerFactory,
+
+35
+00:02:09,440 --> 00:02:13,640
+which is used by Spring Boot to configure the embedded Tomcat server.
+
+36
+00:02:13,640 --> 00:02:18,350
+We will override the postProcessContext method and add these
+
+37
+00:02:18,350 --> 00:02:22,540
+security constraints of CONFIDENTIAL for all requests,
+
+38
+00:02:22,540 --> 00:02:25,740
+meaning that we want HTTPS for everything.
+
+39
+00:02:25,740 --> 00:02:32,380
+We add the connector that will listen on port 80 for HTTP requests and
+
+40
+00:02:32,380 --> 00:02:37,790
+redirect them to HTTPS on port 443, where our other connector configured by
+
+41
+00:02:37,790 --> 00:02:42,550
+Spring is listening to. We then expose this factory as a bean so Spring Boot
+
+42
+00:02:42,550 --> 00:02:46,640
+uses it to create the embedded Tomcat server.
+
+43
+00:02:46,640 --> 00:02:51,220
+Now I have deployed this site on my AWS EC2 server, so it is now
+
+44
+00:02:51,220 --> 00:03:02,000
+accessible through the web via the public hostname. If we now access this site via HTTP, we get redirected to HTTPS.
+

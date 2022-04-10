@@ -1,0 +1,419 @@
+1
+00:00:02,230 --> 00:00:07,620
+So you learned a lot about projection and that there are many many many operators you can use for that
+
+2
+00:00:07,880 --> 00:00:12,690
+in the last lectures, which is super important because that is one of the core things
+
+3
+00:00:12,880 --> 00:00:16,120
+the aggregation pipeline is all about.
+
+4
+00:00:16,150 --> 00:00:21,760
+Now let's project a bit more because this really is an important step of almost any pipeline you're
+
+5
+00:00:21,760 --> 00:00:22,770
+going to build
+
+6
+00:00:23,110 --> 00:00:26,020
+and for that, let's first of all have a look at our input data
+
+7
+00:00:26,020 --> 00:00:26,880
+one more time.
+
+8
+00:00:26,950 --> 00:00:31,470
+Thus far, we basically only included the gender and our transformed name here,
+
+9
+00:00:31,810 --> 00:00:33,500
+now what else could we include?
+
+10
+00:00:34,390 --> 00:00:41,700
+Well for example, the location, we could already prepare the location so that we can later work with it,
+
+11
+00:00:41,710 --> 00:00:49,010
+so what we could do is we could basically turn the location into a geo json object where we have a
+
+12
+00:00:49,010 --> 00:00:54,170
+type which will be a point because we have two coordinates and then we have coordinates but that should
+
+13
+00:00:54,170 --> 00:01:00,200
+then be an array of two numbers instead of an object of latitude and longitude which also are strings
+
+14
+00:01:00,230 --> 00:01:01,630
+and not numbers.
+
+15
+00:01:01,670 --> 00:01:06,920
+So this will again be quite a complex transformation but one which makes sense here and which we will
+
+16
+00:01:06,920 --> 00:01:07,640
+need.
+
+17
+00:01:08,030 --> 00:01:15,770
+I also want to include my email in the output and I want to include my date of birth data but I also
+
+18
+00:01:15,770 --> 00:01:22,310
+want to transform this to basically flatten it to not have a nested document but simply have a birth
+
+19
+00:01:22,310 --> 00:01:27,020
+date which is this and then an age field as a top level field.
+
+20
+00:01:27,020 --> 00:01:32,030
+Now definitely feel free to pause and do this on your own but we will need a couple of operators we
+
+21
+00:01:32,150 --> 00:01:33,430
+haven't touched on yet,
+
+22
+00:01:33,440 --> 00:01:38,210
+so also feel free to follow along with me depending on whether you feel like diving into the official
+
+23
+00:01:38,210 --> 00:01:39,340
+docs or not.
+
+24
+00:01:41,030 --> 00:01:44,940
+So let's start with the location,
+
+25
+00:01:44,960 --> 00:01:50,840
+now what I will do to keep this a bit more manageable, I will add an extra project stage and this already
+
+26
+00:01:50,840 --> 00:01:52,920
+also shows you something else which is important,
+
+27
+00:01:53,030 --> 00:01:58,010
+you can have the same stage multiple times and that's not that uncommon
+
+28
+00:01:58,010 --> 00:02:04,910
+to be honest, often you also do some matching, sorting, grouping and then you project and then maybe you
+
+29
+00:02:04,910 --> 00:02:05,310
+sort
+
+30
+00:02:05,330 --> 00:02:11,460
+again, so often you have some in-between stages, here I split it across two stages to make it easier to read.
+
+31
+00:02:12,080 --> 00:02:12,690
+So I will
+
+32
+00:02:12,710 --> 00:02:18,410
+exclude my ID here already and therefore, I don't have to do it here because remember, this stage will
+
+33
+00:02:18,410 --> 00:02:19,980
+receive the output of this stage,
+
+34
+00:02:20,090 --> 00:02:24,020
+so if I exclude the ID here, it will not be available in the next stage,
+
+35
+00:02:24,260 --> 00:02:31,190
+I should put this between curly braces though. Now I will add the name here,
+
+36
+00:02:31,700 --> 00:02:35,150
+that should be included because the name is something I need in the next stage,
+
+37
+00:02:35,180 --> 00:02:38,390
+so we have to make sure that we pass this embedded document
+
+38
+00:02:38,990 --> 00:02:41,810
+and then I want to work on the location and so on.
+
+39
+00:02:41,810 --> 00:02:46,820
+Now first of all, I'll pass on the e-mail because that will also just be in the next stage without any
+
+40
+00:02:46,820 --> 00:02:53,570
+changes and therefore in the next stage, I'll also keep that email and well output it as a result of
+
+41
+00:02:53,570 --> 00:02:53,860
+this
+
+42
+00:02:53,870 --> 00:02:54,920
+stage too
+
+43
+00:02:55,160 --> 00:02:58,340
+and now let's work on the location.
+
+44
+00:02:58,620 --> 00:03:04,100
+Now the location at the moment is an embedded document with a lot of data that I'm currently not interested
+
+45
+00:03:04,100 --> 00:03:09,980
+in for this operation and where I also well have it in the wrong format,
+
+46
+00:03:10,160 --> 00:03:18,060
+I want to have a type and then coordinates which should be an array. So location should be a document,
+
+47
+00:03:18,110 --> 00:03:19,340
+this is the case
+
+48
+00:03:19,520 --> 00:03:25,860
+and in that document, I want to have a type field which will be point. And that is something we can do,
+
+49
+00:03:25,910 --> 00:03:29,060
+we can add hardcoded values like this.
+
+50
+00:03:29,090 --> 00:03:30,390
+So now I added this,
+
+51
+00:03:30,500 --> 00:03:38,990
+now I also need to add my coordinates, the coordinates right now are a nested document like this,
+
+52
+00:03:38,990 --> 00:03:45,750
+I need an array of coordinates though. And this is relatively simple to achieve,
+
+53
+00:03:45,830 --> 00:03:48,150
+I simply set coordinates to an array
+
+54
+00:03:48,520 --> 00:03:53,810
+and now the first value here will be dollar sign
+
+55
+00:03:53,810 --> 00:03:56,940
+and now I need to access location coordinates
+
+56
+00:03:56,960 --> 00:04:02,330
+longitude because remember, for a geo json object, the first value has to be a longitude.
+
+57
+00:04:02,750 --> 00:04:09,630
+So I access location coordinates longitude here,
+
+58
+00:04:09,680 --> 00:04:13,160
+so this field is getting accessed here,
+
+59
+00:04:13,280 --> 00:04:18,110
+the dollar sign is important to tell mongodb that does this not a hardcoded string value but
+
+60
+00:04:18,110 --> 00:04:22,690
+instead, the value stored in this path here in our document
+
+61
+00:04:23,030 --> 00:04:27,670
+and the second element of the coordinates array is almost the same
+
+62
+00:04:27,680 --> 00:04:31,150
+but of course here, I refer to latitude,
+
+63
+00:04:31,160 --> 00:04:34,930
+so now this is my project phase as it is currently written.
+
+64
+00:04:35,300 --> 00:04:39,640
+So now location should be such a geo json object,
+
+65
+00:04:39,650 --> 00:04:41,860
+let's give this a try. For this,
+
+66
+00:04:41,870 --> 00:04:50,000
+let's also include location which is this location because we get the output of the last stage as an input
+
+67
+00:04:50,000 --> 00:04:50,740
+to this stage,
+
+68
+00:04:50,870 --> 00:04:56,180
+so we will have that location key which is the result of this location transformation and let's include
+
+69
+00:04:56,180 --> 00:04:58,410
+that in our new output.
+
+70
+00:04:58,490 --> 00:05:04,130
+Now again, aggregate has to go on this line and pretty has to go on this line
+
+71
+00:05:04,130 --> 00:05:07,680
+and now let's copy that entire stage here
+
+72
+00:05:09,640 --> 00:05:16,480
+and let's run it. And what we can see is that for every person, we indeed have the full name,
+
+73
+00:05:16,560 --> 00:05:24,300
+we have the email and location indeed is a point or is a geo json object with type point and coordinates.
+
+74
+00:05:24,300 --> 00:05:26,390
+Now one thing you might also see is that
+
+75
+00:05:26,490 --> 00:05:32,340
+this however is a string and not a number which it should be,
+
+76
+00:05:32,340 --> 00:05:39,750
+now to change that, we have to convert this string. Converting data is something you often have to do,
+
+77
+00:05:40,010 --> 00:05:43,220
+we'll have to do it later again for the birth date
+
+78
+00:05:43,230 --> 00:05:47,320
+but now let's do it for our coordinates here.
+
+79
+00:05:47,460 --> 00:05:53,420
+Of course mongodb also has a convert operator we can use,
+
+80
+00:05:53,500 --> 00:05:57,000
+so we want to convert our coordinates here.
+
+81
+00:05:57,460 --> 00:06:03,870
+So the value I store as longitude will be the result of an expression using the $convert
+
+82
+00:06:04,170 --> 00:06:05,830
+operator, the
+
+83
+00:06:05,830 --> 00:06:11,830
+$convert operator takes a document where you configure it, so where you configure its inputs and so on.
+
+84
+00:06:11,860 --> 00:06:14,280
+Now convert needs a couple of fields,
+
+85
+00:06:14,410 --> 00:06:20,630
+the first field is input and there you simply define which value should be converted,
+
+86
+00:06:20,680 --> 00:06:25,370
+this of course is the value which is stored in a longitude field in our case.
+
+87
+00:06:25,420 --> 00:06:26,360
+The second field
+
+88
+00:06:26,380 --> 00:06:33,910
+and this is the last field that you need to pass is the to field, the to field defines the type you want to
+
+89
+00:06:33,910 --> 00:06:35,320
+convert to.
+
+90
+00:06:35,470 --> 00:06:38,040
+Now which types are available?
+
+91
+00:06:38,170 --> 00:06:43,560
+This is of course also something you find in the official docs of the convert method, there
+
+92
+00:06:43,660 --> 00:06:52,510
+you find that the to field takes these string identifiers to convert it to a double or to a decimal
+
+93
+00:06:52,720 --> 00:06:58,130
+which is simply a constant with higher precision than a normal double and so on.
+
+94
+00:06:58,150 --> 00:07:02,150
+You also can define on error and on null values,
+
+95
+00:07:02,200 --> 00:07:07,520
+so default values that should be returned in case the transformation fails.
+
+96
+00:07:07,540 --> 00:07:15,010
+So here I want to convert this to a double which is a floating point value and on error will be 0,
+
+97
+00:07:15,460 --> 00:07:19,330
+on null will also be 0 or a 0.0,
+
+98
+00:07:19,330 --> 00:07:22,040
+so we store or we return just 0
+
+99
+00:07:22,120 --> 00:07:30,530
+if we fail to convert this. Now I can take this entire step here and replace my latitude step with it,
+
+100
+00:07:30,530 --> 00:07:35,240
+of course replacing longitude with latitude down there again.
+
+101
+00:07:35,240 --> 00:07:38,460
+So now these coordinates should be transformed,
+
+102
+00:07:38,480 --> 00:07:42,980
+so let's now bring aggregate and pretty back into line
+
+103
+00:07:44,870 --> 00:07:50,630
+and let's copy the entire stage or the entire pipeline and execute it.
+
+104
+00:07:50,640 --> 00:07:53,420
+And now we see that the coordinates indeed are numbers,
+
+105
+00:07:53,550 --> 00:07:56,700
+they are no longer wrapped in quotation marks.

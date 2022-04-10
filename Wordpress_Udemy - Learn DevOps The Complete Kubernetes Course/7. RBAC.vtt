@@ -1,0 +1,564 @@
+WEBVTT
+1
+1
+
+00:00:00.240  -->  00:00:03.090
+<v Edward>In this lecture, I'm going to talk about RBAC.</v>
+2
+
+2
+
+00:00:04.090  -->  00:00:06.620
+In the previous theory lesson, I explained that
+3
+
+3
+
+00:00:06.620  -->  00:00:10.250
+RBAC is still in alpha for 1.3, but in the meantime,
+4
+
+4
+
+00:00:10.250  -->  00:00:12.060
+there are a few newer competing versions
+5
+
+5
+
+00:00:12.060  -->  00:00:14.593
+that came out, and RBAC is now stable.
+6
+
+6
+
+00:00:15.590  -->  00:00:17.930
+It is also now enabled by default if you
+7
+
+7
+
+00:00:17.930  -->  00:00:20.940
+download and install the latest version of kops.
+8
+
+8
+
+00:00:20.940  -->  00:00:24.230
+So I will now cover RBAC, and then I will do a demo
+9
+
+9
+
+00:00:24.230  -->  00:00:26.840
+to create user on the kops, and then
+10
+
+10
+
+00:00:26.840  -->  00:00:28.593
+configure RBAC for that user.
+11
+
+11
+
+00:00:29.610  -->  00:00:31.750
+Let's talk about authorization.
+12
+
+12
+
+00:00:31.750  -->  00:00:34.010
+After authentication, authorization
+13
+
+13
+
+00:00:34.010  -->  00:00:36.380
+controls what the user can do,
+14
+
+14
+
+00:00:36.380  -->  00:00:38.163
+where does the user have access to.
+15
+
+15
+
+00:00:39.090  -->  00:00:40.526
+The access controls are implemented
+16
+
+16
+
+00:00:40.526  -->  00:00:44.409
+on an API level, using the kube-apiserver.
+17
+
+17
+
+00:00:44.409  -->  00:00:47.290
+When an API request comes in, for example when you enter
+18
+
+18
+
+00:00:47.290  -->  00:00:50.810
+kebectl get nodes, it will be checked to see whether you
+19
+
+19
+
+00:00:50.810  -->  00:00:52.673
+have access to execute this command.
+20
+
+20
+
+00:00:53.570  -->  00:00:56.580
+There are multiple authorization modules available.
+21
+
+21
+
+00:00:56.580  -->  00:00:59.400
+You can use Node, a special purpose authorization mode
+22
+
+22
+
+00:00:59.400  -->  00:01:03.280
+that authorizes API requests made by kubelets.
+23
+
+23
+
+00:01:03.280  -->  00:01:05.740
+Attribute-based access control, access rights
+24
+
+24
+
+00:01:05.740  -->  00:01:08.003
+are controlled by policies that combine attributes.
+25
+
+25
+
+00:01:08.003  -->  00:01:11.090
+For example, the user Alice can do anything
+26
+
+26
+
+00:01:11.090  -->  00:01:13.299
+in the namespace Marketing.
+27
+
+27
+
+00:01:13.299  -->  00:01:16.820
+ABAC does not allow very granular permission control,
+28
+
+28
+
+00:01:16.820  -->  00:01:18.420
+so it's not very interesting to use,
+29
+
+29
+
+00:01:18.420  -->  00:01:20.033
+RBAC is a better choice.
+30
+
+30
+
+00:01:20.970  -->  00:01:24.150
+So then we have RBAC, role based access control,
+31
+
+31
+
+00:01:24.150  -->  00:01:27.740
+regulates access using roles, allows admins
+32
+
+32
+
+00:01:27.740  -->  00:01:30.433
+to dynamically configure permission policies,
+33
+
+33
+
+00:01:31.320  -->  00:01:33.970
+and this is what I will use in the demo.
+34
+
+34
+
+00:01:33.970  -->  00:01:36.790
+And you also have Webhooks, sends authorization request
+35
+
+35
+
+00:01:36.790  -->  00:01:39.380
+to an external REST interface.
+36
+
+36
+
+00:01:39.380  -->  00:01:40.690
+It's an interesting option if you want
+37
+
+37
+
+00:01:40.690  -->  00:01:43.320
+to write your own authorization server.
+38
+
+38
+
+00:01:43.320  -->  00:01:44.930
+You can then parse the incoming payload,
+39
+
+39
+
+00:01:44.930  -->  00:01:46.833
+which is JSON, and reply with the access
+40
+
+40
+
+00:01:46.833  -->  00:01:48.841
+granted or access denied.
+41
+
+41
+
+00:01:48.841  -->  00:01:51.697
+We are going to use RBAC of those options,
+42
+
+42
+
+00:01:51.697  -->  00:01:55.713
+which is now enabled by default on most clusters.
+43
+
+43
+
+00:01:57.120  -->  00:01:59.310
+To enable an authorization mode, you need
+44
+
+44
+
+00:01:59.310  -->  00:02:03.313
+to pass authorization mode to the API server at startup.
+45
+
+45
+
+00:02:04.290  -->  00:02:06.300
+For example, to enable RBAC, you pass
+46
+
+46
+
+00:02:06.300  -->  00:02:09.400
+authorization mode equals RBAC.
+47
+
+47
+
+00:02:09.400  -->  00:02:11.130
+Most tools now provision a cluster
+48
+
+48
+
+00:02:11.130  -->  00:02:15.870
+with RBAC enabled by default, like kops and kubeadm.
+49
+
+49
+
+00:02:15.870  -->  00:02:18.460
+For minikube, it will become default at some point,
+50
+
+50
+
+00:02:18.460  -->  00:02:20.680
+there is an open issue for this.
+51
+
+51
+
+00:02:20.680  -->  00:02:23.963
+In the meantime, to get this authorization mode passed,
+52
+
+52
+
+00:02:25.080  -->  00:02:27.430
+you can use this following parameter,
+53
+
+53
+
+00:02:27.430  -->  00:02:31.310
+minikube start extra config apiserver authorization mode
+54
+
+54
+
+00:02:31.310  -->  00:02:33.490
+equals to RBAC, and then your minikube cluster
+55
+
+55
+
+00:02:33.490  -->  00:02:34.790
+will also be running RBAC.
+56
+
+56
+
+00:02:35.870  -->  00:02:38.060
+Once enabled, you can add RBAC resources
+57
+
+57
+
+00:02:38.060  -->  00:02:40.890
+using kubectl to grant permissions.
+58
+
+58
+
+00:02:40.890  -->  00:02:42.930
+You first describe them in yaml format,
+59
+
+59
+
+00:02:42.930  -->  00:02:44.793
+then you apply them to the cluster.
+60
+
+60
+
+00:02:45.720  -->  00:02:47.520
+First you define a role and then you can
+61
+
+61
+
+00:02:47.520  -->  00:02:50.340
+assign users and groups to that role.
+62
+
+62
+
+00:02:50.340  -->  00:02:52.470
+You can create roles limited to a namespace
+63
+
+63
+
+00:02:52.470  -->  00:02:53.990
+or you can create roles where
+64
+
+64
+
+00:02:53.990  -->  00:02:56.233
+the access applies to all namespaces.
+65
+
+65
+
+00:02:57.562  -->  00:02:59.970
+The object Role is a single namespace,
+66
+
+66
+
+00:02:59.970  -->  00:03:01.610
+and the ClusterRole is cluster-wide.
+67
+
+67
+
+00:03:02.852  -->  00:03:05.440
+The object RoleBinding is a single namespace,
+68
+
+68
+
+00:03:05.440  -->  00:03:08.620
+and the object ClusterRoleBinding is cluster-wide.
+69
+
+69
+
+00:03:08.620  -->  00:03:10.660
+So every time you prefix Cluster,
+70
+
+70
+
+00:03:10.660  -->  00:03:12.143
+it's gonna make cluster-wide.
+71
+
+71
+
+00:03:13.800  -->  00:03:16.410
+So here's an example of an RBAC Role grating read access
+72
+
+72
+
+00:03:16.410  -->  00:03:19.100
+to pods and secrets within the default namespace.
+73
+
+73
+
+00:03:19.100  -->  00:03:21.330
+So this is of kind Role, not ClusterRole,
+74
+
+74
+
+00:03:21.330  -->  00:03:23.980
+so this is specific to one namespace.
+75
+
+75
+
+00:03:23.980  -->  00:03:26.500
+Here we define a namespace default.
+76
+
+76
+
+00:03:26.500  -->  00:03:28.900
+You can then define the main apigroup,
+77
+
+77
+
+00:03:28.900  -->  00:03:31.610
+so if you leave it empty, is the main apigroup.
+78
+
+78
+
+00:03:31.610  -->  00:03:33.070
+Resources are pods and secrets,
+79
+
+79
+
+00:03:33.070  -->  00:03:35.133
+and can get, watch, and list them.
+80
+
+80
+
+00:03:36.580  -->  00:03:40.170
+Once you define a Role, then you can use a RoleBinding
+81
+
+81
+
+00:03:40.170  -->  00:03:44.610
+to say I have a User bob, and that User bob needs
+82
+
+82
+
+00:03:44.610  -->  00:03:47.783
+to get access to the Role pod-reader.
+83
+
+83
+
+00:03:48.670  -->  00:03:50.293
+Still in the namespace default.
+84
+
+84
+
+00:03:51.820  -->  00:03:54.190
+If you want to do the same thing within cluster-wide,
+85
+
+85
+
+00:03:54.190  -->  00:03:57.860
+you just change kind from Role to ClusterRole,
+86
+
+86
+
+00:03:57.860  -->  00:04:00.270
+and then you don't specify namespace, and you have
+87
+
+87
+
+00:04:00.270  -->  00:04:01.770
+a ClusterRole that is cluster-wide,
+88
+
+88
+
+00:04:01.770  -->  00:04:03.543
+that is over all the namespaces.
+89
+
+89
+
+00:04:04.940  -->  00:04:06.190
+And then, instead of RoleBinding,
+90
+
+90
+
+00:04:06.190  -->  00:04:09.230
+use ClusterRoleBinding, everything is still the same
+91
+
+91
+
+00:04:09.230  -->  00:04:11.720
+except that here the namespace attribute is
+92
+
+92
+
+00:04:11.720  -->  00:04:14.250
+not here anymore, so that's it.
+93
+
+93
+
+00:04:14.250  -->  00:04:15.560
+And in next demo, I will show you how
+94
+
+94
+
+00:04:15.560  -->  00:04:18.483
+to add a user in kops and give that user permissions.

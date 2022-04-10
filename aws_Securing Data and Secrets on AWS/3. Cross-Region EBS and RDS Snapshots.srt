@@ -1,0 +1,356 @@
+1
+00:00:00,540 --> 00:00:04,390
+So let's talk a little bit about snapshots and EBS and RDS
+
+2
+00:00:04,390 --> 00:00:07,130
+and how we can copy them across regions.
+
+3
+00:00:07,130 --> 00:00:09,740
+And we may want to do this for any number of reasons,
+
+4
+00:00:09,740 --> 00:00:11,140
+but from a security standpoint,
+
+5
+00:00:11,140 --> 00:00:15,540
+we probably want to do this for backup or disaster recovery purposes.
+
+6
+00:00:15,540 --> 00:00:19,280
+This is another scenario where compliance requirements may come into play.
+
+7
+00:00:19,280 --> 00:00:22,940
+If you're required to keep a backup copy of your data in some area that's
+
+8
+00:00:22,940 --> 00:00:27,570
+geographically separated from where your application or database is hosted, or
+
+9
+00:00:27,570 --> 00:00:30,340
+maybe if there's some sort of AWS regional outage,
+
+10
+00:00:30,340 --> 00:00:32,230
+you may want to be able to quickly spin your
+
+11
+00:00:32,230 --> 00:00:34,840
+application back up in another region.
+
+12
+00:00:34,840 --> 00:00:38,680
+So the way we accomplish this is by taking frequent snapshots of our data
+
+13
+00:00:38,680 --> 00:00:41,620
+and then copying these snapshots to another region.
+
+14
+00:00:41,620 --> 00:00:45,540
+And remember these snapshots all live in S3 behind the scenes.
+
+15
+00:00:45,540 --> 00:00:48,020
+Now when we talk about encryption at rest,
+
+16
+00:00:48,020 --> 00:00:52,000
+when we have a snapshot that is unencrypted, so when we take a snapshot from
+
+17
+00:00:52,000 --> 00:00:56,240
+an unencrypted EBS volume or an unencrypted RDS instance,
+
+18
+00:00:56,240 --> 00:00:58,820
+the process of copying it gives us an opportunity to
+
+19
+00:00:58,820 --> 00:01:02,000
+encrypt that snapshot as part of the process.
+
+20
+00:01:02,000 --> 00:01:04,510
+And we've been talking about copying snapshots across
+
+21
+00:01:04,510 --> 00:01:07,160
+regions, but this would hold true even if we just copied
+
+22
+00:01:07,160 --> 00:01:09,640
+the snapshot within the same region.
+
+23
+00:01:09,640 --> 00:01:12,070
+So as you'll recall earlier in this course,
+
+24
+00:01:12,070 --> 00:01:16,190
+when we created a new EBS volume or a new RDS instance,
+
+25
+00:01:16,190 --> 00:01:19,830
+the only opportunity we had to enable encryption was at the time we
+
+26
+00:01:19,830 --> 00:01:24,620
+created the resource, but this snapshot copy process effectively
+
+27
+00:01:24,620 --> 00:01:28,030
+gives us an opportunity to add encryption to a resource we've
+
+28
+00:01:28,030 --> 00:01:30,750
+already created after the fact.
+
+29
+00:01:30,750 --> 00:01:34,720
+Now, obviously this won't retroactively encrypt the original resource,
+
+30
+00:01:34,720 --> 00:01:37,610
+so we would still need to delete that resource and restore
+
+31
+00:01:37,610 --> 00:01:39,900
+the encrypted snapshot to a new one.
+
+32
+00:01:39,900 --> 00:01:42,940
+So there is still some work involved on our part to do this,
+
+33
+00:01:42,940 --> 00:01:47,940
+but it is possible to add encryption at rest for EBS and RDS in this way.
+
+34
+00:01:47,940 --> 00:01:50,360
+Now if the snapshot is already encrypted,
+
+35
+00:01:50,360 --> 00:01:53,260
+the copied snapshot will always stay encrypted,
+
+36
+00:01:53,260 --> 00:01:57,050
+but, and again, this applies within the same region or across
+
+37
+00:01:57,050 --> 00:02:00,840
+regions, you will be given the opportunity to use a different KMS
+
+38
+00:02:00,840 --> 00:02:04,040
+key to encrypt the copy. And across regions,
+
+39
+00:02:04,040 --> 00:02:07,200
+you'll have to choose a different KMS key because you'll need to choose
+
+40
+00:02:07,200 --> 00:02:11,170
+a key that exists within the destination region. Now let's go ahead and
+
+41
+00:02:11,170 --> 00:02:14,120
+see how this process looks in the console.
+
+42
+00:02:14,120 --> 00:02:15,270
+In this demo,
+
+43
+00:02:15,270 --> 00:02:20,700
+we will copy snapshots of an EBS volume and an RDS instance across regions.
+
+44
+00:02:20,700 --> 00:02:23,170
+We will also see the options for copying snapshots
+
+45
+00:02:23,170 --> 00:02:26,000
+that are encrypted and unencrypted.
+
+46
+00:02:26,000 --> 00:02:31,070
+So let's go to the EC2 console and we'll go to snapshots where
+
+47
+00:02:31,070 --> 00:02:34,530
+you'll see I've already taken snapshots of two EBS volumes that I
+
+48
+00:02:34,530 --> 00:02:39,600
+have here in the US‑East‑1 region, and one is an encrypted snapshot
+
+49
+00:02:39,600 --> 00:02:41,590
+taken from an encrypted volume,
+
+50
+00:02:41,590 --> 00:02:45,240
+and the other one is unencrypted from an unencrypted volume.
+
+51
+00:02:45,240 --> 00:02:48,680
+So I'll start by selecting my encrypted snapshot and
+
+52
+00:02:48,680 --> 00:02:51,220
+I'll go to Actions and then Copy.
+
+53
+00:02:51,220 --> 00:02:54,640
+And here, I can choose a different region so I can copy this from
+
+54
+00:02:54,640 --> 00:03:00,160
+US‑East‑1 to US‑West‑1, and then I can choose the KMS key to use in the
+
+55
+00:03:00,160 --> 00:03:04,140
+destination region to encrypt the snapshot there.
+
+56
+00:03:04,140 --> 00:03:06,460
+And I don't have any of my own CMKs here,
+
+57
+00:03:06,460 --> 00:03:11,370
+but I can always use the default AWS managed key for EBS, and you'll
+
+58
+00:03:11,370 --> 00:03:15,350
+notice the encryption check box is checked and disabled so I can't turn
+
+59
+00:03:15,350 --> 00:03:20,080
+off encryption when copying an encrypted snapshot, and I'll click Copy
+
+60
+00:03:20,080 --> 00:03:22,980
+and that will initiate that process.
+
+61
+00:03:22,980 --> 00:03:23,150
+Now,
+
+62
+00:03:23,150 --> 00:03:28,360
+if I select my unencrypted snapshot and go to Actions and then Copy, here again,
+
+63
+00:03:28,360 --> 00:03:31,670
+I can choose a different destination region, but here you'll see I
+
+64
+00:03:31,670 --> 00:03:35,790
+have the ability to check the encryption box so I can encrypt an
+
+65
+00:03:35,790 --> 00:03:38,700
+unencrypted snapshot when I copy it.
+
+66
+00:03:38,700 --> 00:03:39,960
+And you see here in this region,
+
+67
+00:03:39,960 --> 00:03:43,330
+I do have a CMK, or again, if I choose a different
+
+68
+00:03:43,330 --> 00:03:49,040
+region where I don't have any CMKs, I can still use the default EBS key.
+
+69
+00:03:49,040 --> 00:03:50,260
+So I'll click copy here,
+
+70
+00:03:50,260 --> 00:03:52,870
+and that will encrypt this copy of the snapshot when
+
+71
+00:03:52,870 --> 00:03:55,740
+it's copied to the destination region.
+
+72
+00:03:55,740 --> 00:03:56,330
+Now quickly,
+
+73
+00:03:56,330 --> 00:04:00,400
+let's go to the RDS console, and again, I'll go to Snapshots and here I
+
+74
+00:04:00,400 --> 00:04:05,090
+haven't manually created any snapshots, but I can go to System and choose
+
+75
+00:04:05,090 --> 00:04:09,250
+this one here, and you'll see this is for an RDS instance where I did not
+
+76
+00:04:09,250 --> 00:04:12,140
+enable encryption at the time I created it.
+
+77
+00:04:12,140 --> 00:04:15,160
+But if I go to Actions and Copy Snapshot,
+
+78
+00:04:15,160 --> 00:04:18,530
+you'll see here I can choose my destination region, and again,
+
+79
+00:04:18,530 --> 00:04:22,620
+just like with my unencrypted EBS volumes snapshot when I copy it,
+
+80
+00:04:22,620 --> 00:04:25,990
+I have the option to enable encryption here, and again, to
+
+81
+00:04:25,990 --> 00:04:28,920
+choose a key from the destination region.
+
+82
+00:04:28,920 --> 00:04:31,280
+And I won't show you this separately, but if I had already
+
+83
+00:04:31,280 --> 00:04:34,200
+encrypted this RDS instance when I created it,
+
+84
+00:04:34,200 --> 00:04:37,460
+then my snapshot would be encrypted and I wouldn't have the option to
+
+85
+00:04:37,460 --> 00:04:41,170
+disable that encryption when copying it, but I would still need to
+
+86
+00:04:41,170 --> 00:04:43,810
+choose a key from the destination region.
+
+87
+00:04:43,810 --> 00:04:47,170
+So hopefully this helps you visualize how the snapshot copy process
+
+88
+00:04:47,170 --> 00:04:51,910
+works for EBS volumes and RDS instances and how you have the option to
+
+89
+00:04:51,910 --> 00:04:57,000
+enable encryption as part of that process, even if your snapshot is not already encrypted.
+

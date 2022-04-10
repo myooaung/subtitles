@@ -1,0 +1,420 @@
+WEBVTT
+1
+00:00:04.510 --> 00:00:07.300
+So we've currently got a little bit of undesired behavior.
+
+2
+00:00:07.390 --> 00:00:13.750
+We have put some functionality in place that limits the path length for and navigation.
+
+3
+00:00:13.750 --> 00:00:19.360
+So if I am clicking or trying to click on a very distant place I can't do it and the cursor is giving
+
+4
+00:00:19.360 --> 00:00:23.000
+me the correct a fortnight that I can't do it because it's too far away.
+
+5
+00:00:23.080 --> 00:00:29.650
+However I can hover over an enemy that is very far away and I can click on him and there is the cursor
+
+6
+00:00:29.650 --> 00:00:30.940
+performance for that.
+
+7
+00:00:30.940 --> 00:00:36.100
+And basically that results in a moving action that we didn't want.
+
+8
+00:00:36.100 --> 00:00:38.480
+So how can we go about fixing this bug.
+
+9
+00:00:38.590 --> 00:00:41.710
+First of all let's see why the bug is happening at all.
+
+10
+00:00:41.710 --> 00:00:46.960
+So if we hop over to the code and have a look at our player controller which is responsible for showing
+
+11
+00:00:47.290 --> 00:00:53.680
+those curses then we have look from the top down as revise what's going on here we've got an update
+
+12
+00:00:54.130 --> 00:00:58.530
+we are doing a cascade of interacting with different things.
+
+13
+00:00:58.540 --> 00:01:00.900
+So first we check with the interact with the UI.
+
+14
+00:01:01.030 --> 00:01:02.820
+Then we check whether the player is dead.
+
+15
+00:01:02.950 --> 00:01:08.560
+Then we can interact with that particular component and then we can interact with movement.
+
+16
+00:01:08.590 --> 00:01:15.040
+So what's happening for that cursor to not be interacting with movement must be going on in the interact
+
+17
+00:01:15.040 --> 00:01:15.910
+with movement.
+
+18
+00:01:16.150 --> 00:01:19.190
+And down here we are doing a recast to the NAF mesh.
+
+19
+00:01:19.210 --> 00:01:24.890
+And if you go into the recast nav mesh you can see we're doing all sorts of checks in here.
+
+20
+00:01:25.300 --> 00:01:31.320
+So the first one is that we are trying to sample a nearby position actually on the nav mesh.
+
+21
+00:01:31.330 --> 00:01:34.000
+So if there is no nav mesh here we can't move to it.
+
+22
+00:01:34.000 --> 00:01:35.380
+That sort of makes sense.
+
+23
+00:01:35.650 --> 00:01:43.840
+And then also we have got this nav mesh path length and we're calculating whether the path path length
+
+24
+00:01:44.230 --> 00:01:48.780
+is longer than the max nav path length.
+
+25
+00:01:48.880 --> 00:01:54.040
+This is basically what we would like to be doing when we are calculating whether to interact with the
+
+26
+00:01:54.040 --> 00:01:54.790
+fighter.
+
+27
+00:01:54.790 --> 00:02:01.180
+So the fighter obviously goes via the interact with component systems so go interact with components
+
+28
+00:02:01.570 --> 00:02:04.950
+then it's going to look for all the eye Ray caster balls.
+
+29
+00:02:04.990 --> 00:02:11.650
+Now you may recall that one of the irate caster balls was the combats target script and the way this
+
+30
+00:02:11.650 --> 00:02:17.200
+handles recasting is to call can attack on the fighter.
+
+31
+00:02:17.800 --> 00:02:25.570
+So what ideally we'd like is for can attack to return False if the enemy is too far away.
+
+32
+00:02:25.570 --> 00:02:31.240
+So if we go over to the can attack method we want to have a very similar check to the one that we have
+
+33
+00:02:31.690 --> 00:02:40.080
+in the player controller where we are checking for the path length down here in the recast nav mesh.
+
+34
+00:02:40.120 --> 00:02:43.460
+Now it doesn't make sense to go and copy all of this code.
+
+35
+00:02:43.510 --> 00:02:49.300
+Both of these components are relying on the mover to actually do the movement.
+
+36
+00:02:49.300 --> 00:02:56.080
+So what I would like to do is remove this code and take it over to that and move components.
+
+37
+00:02:56.110 --> 00:03:01.930
+So that's what I'm going to attempt to do by going over to the movies yes and exposing something new
+
+38
+00:03:01.930 --> 00:03:11.910
+and public just above our move to which is going to be a public bool can move to and that's going to
+
+39
+00:03:11.910 --> 00:03:19.420
+take in a vector three destination that we want to move to in order to check whether it is possible
+
+40
+00:03:19.870 --> 00:03:27.520
+to move to that location given our restrictions then it should be possible to use this function once
+
+41
+00:03:27.550 --> 00:03:32.150
+we have actually filled it out by going over to our player controller.
+
+42
+00:03:32.170 --> 00:03:35.840
+And you could put it here but I think that's not the most appropriate place.
+
+43
+00:03:35.860 --> 00:03:42.580
+I think the most appropriate place would be in interact with movements after we have got a recast hit.
+
+44
+00:03:42.640 --> 00:03:49.450
+We just want to put a check in here that says if the let's see get component mover so get component
+
+45
+00:03:49.450 --> 00:03:49.810
+move.
+
+46
+00:03:49.840 --> 00:03:56.060
+DOT can move too and then we're wanting to move to the target.
+
+47
+00:03:56.110 --> 00:04:01.240
+Well then we want to basically negate this statement so if we cannot move to the target then we want
+
+48
+00:04:01.240 --> 00:04:08.320
+to return false out of interactive movement saying that if we can't move to this target we cannot interact
+
+49
+00:04:08.410 --> 00:04:09.490
+with movement.
+
+50
+00:04:09.530 --> 00:04:10.680
+So that sort of makes sense.
+
+51
+00:04:10.750 --> 00:04:15.460
+And that's a similar thing that we want to do in fighter as well where we have can attack.
+
+52
+00:04:15.460 --> 00:04:18.340
+We've got the combat target is no then we return false.
+
+53
+00:04:18.340 --> 00:04:19.010
+We can't attack.
+
+54
+00:04:19.240 --> 00:04:30.690
+Similarly if we were to get hold of mover by doing a get components move again and then calling the
+
+55
+00:04:31.020 --> 00:04:39.000
+can move for the combat target dot transform dot position.
+
+56
+00:04:39.000 --> 00:04:45.150
+So we're just checking whether that position of the target that we're trying to attack is reachable
+
+57
+00:04:45.510 --> 00:04:52.560
+and if we're saying you can not move to that target well then again we're going to want to return false
+
+58
+00:04:52.620 --> 00:04:55.860
+here saying that actually we can't attack that target.
+
+59
+00:04:55.860 --> 00:04:56.840
+It's out of range.
+
+60
+00:04:56.850 --> 00:04:58.880
+The mover can't get us there.
+
+61
+00:04:59.750 --> 00:05:06.360
+So here's a little challenge for you to actually bring over and implement the can move to function so
+
+62
+00:05:06.360 --> 00:05:11.950
+that essentially is doing the same thing as our player controller was this lump of code here.
+
+63
+00:05:11.950 --> 00:05:13.370
+I'm going to comment it out.
+
+64
+00:05:13.430 --> 00:05:21.110
+That's the stuff that I want to bring over to essentially be our can move to suppose a video and have
+
+65
+00:05:21.200 --> 00:05:24.750
+a go at this if you haven't already.
+
+66
+00:05:24.770 --> 00:05:26.000
+Welcome back sir.
+
+67
+00:05:26.000 --> 00:05:33.620
+I'm just gonna cut that code out of there and I'm going to paste it into the can move to an uncommon
+
+68
+00:05:33.620 --> 00:05:36.020
+set and see what breaks.
+
+69
+00:05:36.020 --> 00:05:38.020
+That's always a good place to start isn't it.
+
+70
+00:05:38.030 --> 00:05:42.910
+So we've got our get path length and the max now path length.
+
+71
+00:05:42.920 --> 00:05:45.890
+So those two things are also going to have to come over.
+
+72
+00:05:45.950 --> 00:05:48.520
+So let's find out Max now path length.
+
+73
+00:05:48.530 --> 00:05:54.740
+It's a serialized field on player controller which I'm going to bring over to the mover like so and
+
+74
+00:05:54.740 --> 00:06:00.630
+then I'm going to I've got this get path length function which we also need to call.
+
+75
+00:06:00.680 --> 00:06:06.370
+So let's go and find that it's down here under the has now mesh get path length.
+
+76
+00:06:06.380 --> 00:06:08.420
+So I'm going to cut that out.
+
+77
+00:06:08.450 --> 00:06:10.010
+Don't think it's used anywhere else.
+
+78
+00:06:10.010 --> 00:06:16.190
+I think was just used just a way of splitting down that function into smaller ones.
+
+79
+00:06:16.190 --> 00:06:18.970
+Now I want to leave the public functions at the top of me.
+
+80
+00:06:19.020 --> 00:06:25.160
+I'm actually going to insert this a little bit further down just under the update animator and move.
+
+81
+00:06:25.310 --> 00:06:31.450
+I'm going to have the get path length and given a nav mesh path it's going to find its total length.
+
+82
+00:06:31.760 --> 00:06:37.020
+And so that now seems to be more along the lines of what we want.
+
+83
+00:06:37.040 --> 00:06:41.810
+The problem this the target's actually that needs to be updated to be the destination that we're passing
+
+84
+00:06:41.810 --> 00:06:42.080
+in.
+
+85
+00:06:42.110 --> 00:06:48.620
+So we're calculating the path from our current location to the destination that makes sense.
+
+86
+00:06:48.620 --> 00:06:51.620
+And finally we just need to make sure we're always returning something.
+
+87
+00:06:51.620 --> 00:06:53.250
+So if you haven't got a path it's false.
+
+88
+00:06:53.270 --> 00:06:57.620
+If we have got the path status is not path complete then it's false.
+
+89
+00:06:57.770 --> 00:07:02.150
+The path length is too large then it's false then basically what is complaining about is that we don't
+
+90
+00:07:02.150 --> 00:07:09.350
+have a return true at the end when all these conditions have not succeeded in making us failed to move
+
+91
+00:07:09.350 --> 00:07:10.530
+to this location.
+
+92
+00:07:10.580 --> 00:07:12.590
+So that should hopefully do the trick.
+
+93
+00:07:12.590 --> 00:07:17.360
+Let's go over into the A.C. If we have any remaining build errors from this.
+
+94
+00:07:17.360 --> 00:07:18.200
+Looks like we don't.
+
+95
+00:07:18.200 --> 00:07:19.180
+So fingers crossed.
+
+96
+00:07:19.220 --> 00:07:21.310
+Let's see if it has fixed a bug.
+
+97
+00:07:21.470 --> 00:07:27.160
+So I'm going to dive into the project start playing in loving new level that Rick has created.
+
+98
+00:07:27.290 --> 00:07:33.410
+And if we now hover over that enemy that's far in the distance we cannot click on him because we are
+
+99
+00:07:33.410 --> 00:07:41.450
+using the same distance checks both in The Fighter and in the movement interaction checks.
+
+100
+00:07:41.510 --> 00:07:47.390
+So fix the bug but another undesired behavior is that if I've arranged weapon and I attack an enemy
+
+101
+00:07:47.420 --> 00:07:50.850
+from a distance then they don't react at all.
+
+102
+00:07:50.870 --> 00:07:57.400
+I can just sit here and pick them off like flies without them ever having any aggro and coming towards
+
+103
+00:07:57.400 --> 00:07:57.520
+me.
+
+104
+00:07:57.520 --> 00:07:59.180
+That's what we're gonna fix in the next lecture.
+
+105
+00:07:59.180 --> 00:07:59.810
+I'll see you there.

@@ -1,0 +1,628 @@
+WEBVTT
+1
+00:00:04.790 --> 00:00:05.210
+Welcome.
+
+2
+00:00:05.210 --> 00:00:09.240
+The aim of this lecture is to figure out how we can keep ahead of the server.
+
+3
+00:00:09.380 --> 00:00:14.420
+In spite of lags so we don't have to be resetting ourselves back and going to be drawing diagrams like
+
+4
+00:00:14.420 --> 00:00:19.100
+these and understanding diagrams like these to figure out why we were lagging in the first place and
+
+5
+00:00:19.100 --> 00:00:20.180
+what we can do.
+
+6
+00:00:20.210 --> 00:00:23.420
+What kind of method we can implement to resolve that.
+
+7
+00:00:23.420 --> 00:00:25.910
+So let's dive in and figure that out.
+
+8
+00:00:26.690 --> 00:00:33.770
+So in the last lecture we saw an explanation for why we were experiencing glitching due to lag and this
+
+9
+00:00:33.770 --> 00:00:34.710
+was the diagram you saw.
+
+10
+00:00:34.710 --> 00:00:39.140
+But I'm going to explain it now with another diagram just to give you another way to look at the same
+
+11
+00:00:39.140 --> 00:00:40.050
+problem.
+
+12
+00:00:40.100 --> 00:00:44.720
+So imagine we are trying to accelerate our car which is where the glitching happened.
+
+13
+00:00:45.050 --> 00:00:50.840
+So we've got an acceleration curve that looks like this to step function because at the beginning of
+
+14
+00:00:50.840 --> 00:00:56.990
+time we aren't accelerating suddenly we put down full throttle on the accelerator which in real life
+
+15
+00:00:56.990 --> 00:01:01.460
+doesn't happen but when you're using a keyboard for input does happen well at one particular time you
+
+16
+00:01:01.460 --> 00:01:06.110
+decide to put the key down and it's binary it's either on or off either full acceleration or no acceleration.
+
+17
+00:01:06.110 --> 00:01:11.300
+So we got a full acceleration for a short time and then we remove our finger from the key and it goes
+
+18
+00:01:11.300 --> 00:01:12.530
+back to zero.
+
+19
+00:01:12.530 --> 00:01:15.100
+That's what this graph means.
+
+20
+00:01:15.110 --> 00:01:18.430
+Now what happens to the position of the car over time.
+
+21
+00:01:18.560 --> 00:01:23.160
+Well let's start off with drawing it out in green the position X..
+
+22
+00:01:23.380 --> 00:01:27.530
+I would just assume that we're measuring the position from the starting line and there's no steering
+
+23
+00:01:27.890 --> 00:01:31.740
+there's no x y and z is just going forward.
+
+24
+00:01:31.760 --> 00:01:37.580
+So what happens over time is that the speed is going to be increasing so the position is going to be
+
+25
+00:01:37.580 --> 00:01:42.110
+moving faster and faster as you can see here this isn't a straight line but a curved line that's getting
+
+26
+00:01:42.110 --> 00:01:44.630
+faster and faster as it accelerates.
+
+27
+00:01:44.630 --> 00:01:49.910
+That's what we've got going on on a local simulation because it's as soon as we put the accelerator
+
+28
+00:01:49.910 --> 00:01:53.770
+down instantly We know that we need to be accelerating.
+
+29
+00:01:53.810 --> 00:01:55.750
+There's no lag there.
+
+30
+00:01:55.970 --> 00:02:02.180
+But what is happening is that while this acceleration is going on continuing for this acceleration curve
+
+31
+00:02:02.180 --> 00:02:09.500
+we've also got the replicated version from the server coming back down to was with a round trip time
+
+32
+00:02:09.500 --> 00:02:15.920
+delay because it has to take time for the acceleration information to go up to the server and then it
+
+33
+00:02:15.920 --> 00:02:23.180
+takes time for that information to propagate back down in the form of a replicated location back to
+
+34
+00:02:23.180 --> 00:02:23.880
+us.
+
+35
+00:02:24.200 --> 00:02:24.700
+Okay.
+
+36
+00:02:24.860 --> 00:02:26.090
+So this is what we've got.
+
+37
+00:02:26.090 --> 00:02:32.120
+We've got this same curve no this is exactly the same curve that was going on down here just replicated
+
+38
+00:02:32.210 --> 00:02:36.120
+a little bit later after the round trip time delay.
+
+39
+00:02:36.350 --> 00:02:41.470
+And what happens here obviously is when we receive that update we say hang on a second.
+
+40
+00:02:41.480 --> 00:02:43.180
+We're all the way up here.
+
+41
+00:02:43.400 --> 00:02:45.640
+But the Service says we should be back here.
+
+42
+00:02:45.690 --> 00:02:51.530
+Obviously it's saying that because there's been a round trip time delay but with our current implementation
+
+43
+00:02:51.530 --> 00:02:54.830
+what we say is well a surber MUST be right.
+
+44
+00:02:54.830 --> 00:02:58.580
+So we're going to go and reset our location all the way back here.
+
+45
+00:02:58.580 --> 00:03:04.880
+So what the user experiences is they see their car accelerating accelerating accelerating moving forward
+
+46
+00:03:04.880 --> 00:03:10.280
+moving forward and then suddenly we get an update from the server and whoops boom jump all the way back
+
+47
+00:03:10.580 --> 00:03:12.010
+and carry on moving.
+
+48
+00:03:12.050 --> 00:03:15.860
+Now obviously that is a really bad experience for the user.
+
+49
+00:03:15.860 --> 00:03:22.970
+And what we'd like to be able to do is to keep our moves that we've got ahead of the server on top of
+
+50
+00:03:22.970 --> 00:03:27.710
+what the server has told us so that is the implementation that we're going to be looking at keeping
+
+51
+00:03:27.740 --> 00:03:29.570
+ahead of the server.
+
+52
+00:03:29.570 --> 00:03:30.950
+So how does this work.
+
+53
+00:03:30.950 --> 00:03:38.000
+Well again very much the same acceleration curve and it starts off in very much the same way we have
+
+54
+00:03:38.090 --> 00:03:45.320
+our movement starting off on this gradual curve getting faster and faster and we carry on with X rep
+
+55
+00:03:45.800 --> 00:03:49.130
+and we are getting the replicated movement back from the server.
+
+56
+00:03:49.130 --> 00:03:52.690
+And we're saying okay well that movement is way behind where we are.
+
+57
+00:03:52.910 --> 00:03:58.350
+But instead of resetting back to it we go Okay so if that movement is way behind we are.
+
+58
+00:03:58.550 --> 00:04:02.320
+How does it relate to where we were at the same time.
+
+59
+00:04:02.360 --> 00:04:06.210
+So the server has to tell us what time that movement was recorded at.
+
+60
+00:04:06.230 --> 00:04:13.400
+And we go where were we at that time and if we replay our movements since that time these movements
+
+61
+00:04:13.400 --> 00:04:18.530
+that led us to be here do we end up in the same place now in this case.
+
+62
+00:04:18.740 --> 00:04:22.840
+Yes because we started off in the same place that time ago.
+
+63
+00:04:22.940 --> 00:04:29.920
+So this is the round trip time and we're able to say well the server says that at time X..
+
+64
+00:04:29.990 --> 00:04:31.290
+We were here.
+
+65
+00:04:31.430 --> 00:04:33.140
+And yes at Timex we were here.
+
+66
+00:04:33.170 --> 00:04:34.910
+So we don't have to change anything.
+
+67
+00:04:35.420 --> 00:04:39.480
+Now what happens if we carry on simulating in this fashion here.
+
+68
+00:04:39.710 --> 00:04:45.960
+So now you'll notice that there is a difference between what the server has said and what we are observing.
+
+69
+00:04:46.020 --> 00:04:51.800
+Now imagine this is because we were trying to cheat or in this case as you can see as a sharp knock
+
+70
+00:04:51.800 --> 00:04:56.620
+off it might be because we bumped into a car that we didn't know was there yet.
+
+71
+00:04:56.750 --> 00:04:57.590
+That's fair enough.
+
+72
+00:04:57.590 --> 00:04:59.240
+That might well happen.
+
+73
+00:04:59.240 --> 00:05:01.410
+Well what do we want to happen in this case.
+
+74
+00:05:01.700 --> 00:05:08.960
+Well we want to compare what we've got with what the servers got and we say well is that the same as
+
+75
+00:05:08.960 --> 00:05:12.590
+the position we were at at that time.
+
+76
+00:05:12.590 --> 00:05:17.720
+And if you go and look at it you say no actually because the position we were at at that time was much
+
+77
+00:05:17.720 --> 00:05:18.920
+further ahead.
+
+78
+00:05:18.950 --> 00:05:21.480
+So we're going to have to replay our moves.
+
+79
+00:05:21.500 --> 00:05:22.610
+These are the moves here.
+
+80
+00:05:22.610 --> 00:05:25.410
+Since this time up to this time.
+
+81
+00:05:25.700 --> 00:05:31.400
+We're going to replay them on top of the position that the server has told us about like this dotted
+
+82
+00:05:31.400 --> 00:05:32.000
+line.
+
+83
+00:05:32.000 --> 00:05:34.620
+So that's the replay of the moves on top.
+
+84
+00:05:34.700 --> 00:05:41.030
+And yes we're going to have to reset backwards but we're only notice having to reset backwards because
+
+85
+00:05:41.030 --> 00:05:44.300
+something happened on the server that we didn't know about.
+
+86
+00:05:44.300 --> 00:05:50.870
+Not because the server is delayed in telling us about things we're still keeping this movement that
+
+87
+00:05:50.870 --> 00:05:55.460
+we've made since the last server update when we're applying it on top.
+
+88
+00:05:55.460 --> 00:05:59.690
+So we're still always a little bit ahead of the position of the server and that's what we're seeing
+
+89
+00:05:59.690 --> 00:06:00.460
+here.
+
+90
+00:06:00.680 --> 00:06:05.110
+And that's why this server curve is still looking different to the curve that we've got here.
+
+91
+00:06:05.230 --> 00:06:09.750
+But as we go into the future the server is going to have this information Incorporated.
+
+92
+00:06:09.890 --> 00:06:10.910
+And so on and so on.
+
+93
+00:06:11.240 --> 00:06:16.650
+So you can see we still got the all the benefits of not being able to cheat and having server authority
+
+94
+00:06:17.090 --> 00:06:21.430
+but we are minimizing the times that we have to skip back.
+
+95
+00:06:21.740 --> 00:06:26.810
+Now let's put this in context with the solutions we've been working with previously Let's have a comparison
+
+96
+00:06:27.050 --> 00:06:28.890
+of the previous methods.
+
+97
+00:06:28.940 --> 00:06:31.580
+So in the version one what we've been doing well.
+
+98
+00:06:31.610 --> 00:06:32.560
+We had been.
+
+99
+00:06:32.560 --> 00:06:33.830
+This is the one that wasn't smooth.
+
+100
+00:06:33.850 --> 00:06:41.240
+Remember we've done all the simulation on the server and we basically just sent it inputs and it told
+
+101
+00:06:41.240 --> 00:06:45.230
+us where to place our car we weren't doing any simulation between updates.
+
+102
+00:06:45.410 --> 00:06:50.180
+And the problem here is that we had it very jerky and not very smooth.
+
+103
+00:06:50.180 --> 00:06:54.410
+And that was because the update time might be up to a second.
+
+104
+00:06:54.410 --> 00:06:59.040
+That's what we ended up setting it to to really stress test our method.
+
+105
+00:06:59.120 --> 00:07:00.110
+So that was the problem.
+
+106
+00:07:00.110 --> 00:07:03.950
+But what was the information sent to the server.
+
+107
+00:07:04.430 --> 00:07:10.250
+Well we were sending it the throw information we were sending it both the steering fro and the acceleration
+
+108
+00:07:10.250 --> 00:07:15.350
+throw and between updates we weren't doing anything we weren't doing any local simulation whatsoever
+
+109
+00:07:15.380 --> 00:07:20.810
+even if we were the autonomous proxy and the information received back from the server was the transform
+
+110
+00:07:21.170 --> 00:07:26.440
+and the velocity and we were overwriting our local variables.
+
+111
+00:07:26.550 --> 00:07:32.690
+OK so that was our method one our first very naive implementation of trying to synchronize state with
+
+112
+00:07:32.690 --> 00:07:33.420
+the server.
+
+113
+00:07:33.620 --> 00:07:37.910
+Now in version two we tried to smooth this out.
+
+114
+00:07:37.910 --> 00:07:42.320
+We said okay we've got a problem with it not being smooth.
+
+115
+00:07:42.350 --> 00:07:46.850
+So what we're going to do is we're going send the throw like we were doing before but between updates
+
+116
+00:07:46.850 --> 00:07:52.880
+what were going to change is we are now going to simulate yet we're going to simulate using that the
+
+117
+00:07:52.880 --> 00:07:58.640
+information we've got so we've got a position we've got a velocity and we've got our inputs we are going
+
+118
+00:07:58.640 --> 00:08:04.210
+to use those to try and guess what the server is going to tell us when it comes back.
+
+119
+00:08:04.220 --> 00:08:09.920
+But obviously the problem here was the lag which we've just been talking about we've seen the reason
+
+120
+00:08:10.160 --> 00:08:16.330
+because the server comes back with out of date information and overwrites our local information on receipt.
+
+121
+00:08:16.400 --> 00:08:24.650
+So what I'd like you to do is go ahead for this table and fill it out for the version 3 for the method
+
+122
+00:08:24.650 --> 00:08:31.580
+that I just described where we are replaying our local moves with this server updates.
+
+123
+00:08:31.610 --> 00:08:33.960
+So go ahead and fill out the table.
+
+124
+00:08:33.980 --> 00:08:37.450
+These steps are going to be what information needs to be sent to the server.
+
+125
+00:08:37.460 --> 00:08:41.500
+In this scheme What do you need to do between updates.
+
+126
+00:08:41.600 --> 00:08:47.950
+What information comes back from the server and what do you do on a server update.
+
+127
+00:08:47.960 --> 00:08:49.290
+When information comes back from the server.
+
+128
+00:08:49.370 --> 00:08:51.440
+How do you need to update your own state.
+
+129
+00:08:51.590 --> 00:08:53.860
+So don't worry if you struggle a little bit.
+
+130
+00:08:53.870 --> 00:08:55.460
+I'm just trying to get you thinking.
+
+131
+00:08:55.550 --> 00:09:01.190
+And we will obviously go over the solution to this challenge afterwards but just start thinking based
+
+132
+00:09:01.250 --> 00:09:02.600
+on the explanation I gave you.
+
+133
+00:09:02.600 --> 00:09:05.270
+You can review the explanation I gave you.
+
+134
+00:09:05.330 --> 00:09:10.170
+What do you think needs to be sent back and forth between the seller.
+
+135
+00:09:10.190 --> 00:09:11.470
+For this to happen.
+
+136
+00:09:11.590 --> 00:09:12.990
+Pause the video and have a go.
+
+137
+00:09:14.480 --> 00:09:15.590
+Okay welcome back.
+
+138
+00:09:15.590 --> 00:09:21.980
+Now hopefully you have gone ahead and shared what you think is needed in the forums.
+
+139
+00:09:22.250 --> 00:09:24.620
+Hopefully you got in the habit of doing this by now.
+
+140
+00:09:24.620 --> 00:09:28.650
+So let's have a look at what the solution to that is.
+
+141
+00:09:30.280 --> 00:09:32.320
+So what is the problem.
+
+142
+00:09:32.320 --> 00:09:35.690
+Well we currently don't think there is a problem with this method obviously.
+
+143
+00:09:35.810 --> 00:09:37.600
+You have to reset sometimes.
+
+144
+00:09:37.720 --> 00:09:42.100
+But I think that's pretty much as good as he can get so I'm going to put down that it's no problem.
+
+145
+00:09:42.100 --> 00:09:47.380
+The information that needs to be sent to the server is pretty much still the same information you just
+
+146
+00:09:47.380 --> 00:09:56.050
+need to send the throw of your control to that server and between updates you are still needing to simulate
+
+147
+00:09:56.080 --> 00:09:59.920
+locally to keep that smoothness between updates from the server.
+
+148
+00:10:00.070 --> 00:10:02.820
+Now where it starts to change is on the information received.
+
+149
+00:10:02.820 --> 00:10:04.890
+Were still receiving a transform and a velocity.
+
+150
+00:10:04.900 --> 00:10:11.980
+But now the server tells us yes this is the transform velocity but it was at this particular time in
+
+151
+00:10:11.980 --> 00:10:17.780
+the past so that we can say okay well in that particular time in the past where were we.
+
+152
+00:10:17.860 --> 00:10:22.630
+What were we doing at that time in the past and then when we receive that information what we need to
+
+153
+00:10:22.630 --> 00:10:31.360
+do to update our own state is say let's replay the controls that we've had since that time in the past
+
+154
+00:10:31.390 --> 00:10:34.340
+and that is basically the scheme that we're going for.
+
+155
+00:10:34.510 --> 00:10:38.920
+So we are going to be having a look at their first steps and how we can go about implementing that in
+
+156
+00:10:38.920 --> 00:10:40.390
+the next lecture.
+
+157
+00:10:40.390 --> 00:10:42.150
+Look forward to that not see you there.

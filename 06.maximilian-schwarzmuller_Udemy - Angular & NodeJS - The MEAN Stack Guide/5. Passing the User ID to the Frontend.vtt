@@ -1,0 +1,280 @@
+WEBVTT
+
+00:02.300 --> 00:04.500
+We added server side authorisation
+
+00:04.670 --> 00:10.360
+and that's super important because that actually is the part which can be hacked easily.
+
+00:10.400 --> 00:14.070
+The Angular code is just Javascript code running in the browser,
+
+00:14.210 --> 00:17.230
+it can be edited by the user if he really wants to,
+
+00:17.360 --> 00:21.830
+therefore Angular is always just used to provide a better user experience.
+
+00:22.010 --> 00:27.080
+If we're blocking the user from doing something there, we're just doing it to prevent something which
+
+00:27.080 --> 00:29.430
+will cause an error otherwise
+
+00:29.540 --> 00:32.910
+but on the server side, we're doing the real protection, there
+
+00:32.930 --> 00:37.060
+we really deny actions we don't want to happen on the front-end in Angular,
+
+00:37.070 --> 00:42.010
+we just try to provide a better user experience but still, we should try to do that.
+
+00:42.080 --> 00:45.910
+So in our app right now, every user can click delete,
+
+00:46.070 --> 00:50.150
+even users who are authenticated but did not create a post,
+
+00:50.390 --> 00:55.670
+so we should adjust our front-end code. In the post list component here,
+
+00:55.670 --> 00:58.210
+we actually show these buttons,
+
+00:58.330 --> 01:01.860
+edit and delete to any user who is authenticated. 
+
+01:01.940 --> 01:03.820
+Now that's not correct anymore,
+
+01:03.950 --> 01:06.090
+we want to restrict this a bit further,
+
+01:06.170 --> 01:13.400
+we only want to show these buttons to users who are authenticated and the creator of that post.
+
+01:13.430 --> 01:18.120
+Now that means we need to get that user ID to the front-end first of all.
+
+01:18.410 --> 01:25.730
+So let's go to our server side code and in the user route here, in the login route where we do return that
+
+01:25.760 --> 01:27.030
+token to the front-end,
+
+01:27.290 --> 01:30.870
+I don't just want to return the token and the expiry,
+
+01:30.890 --> 01:42.190
+I also want to return the user ID, so here user ID and we can get that user ID simply from that fetched
+
+01:42.190 --> 01:42.940
+user ID
+
+01:42.970 --> 01:45.210
+which were also encoding in the token.
+
+01:45.490 --> 01:51.790
+And by the way, since it's encoded in the token and that token can be decoded, we actually wouldn't have
+
+01:51.790 --> 01:53.500
+to pass it as an extra field,
+
+01:53.560 --> 02:00.370
+it's already part of the token but decoding the token will impact our performance on the front-end and
+
+02:00.370 --> 02:01.700
+it's really unnecessary
+
+02:01.780 --> 02:07.720
+which is why I'm passing this as an extra field with the response so that we can easily parse it.
+
+02:08.140 --> 02:13.960
+So now we're passing the user ID to the front-end whenever we are logging in.
+
+02:13.960 --> 02:20.230
+This means that we can now store this information on the front-end in the auth folder in the auth service
+
+02:20.440 --> 02:23.500
+where we are sending that login request.
+
+02:23.500 --> 02:27.700
+There we are already storing the authentication status and the token,
+
+02:27.730 --> 02:35.220
+now I will add a new property to our auth service and that will be our user ID.
+
+02:36.080 --> 02:42.380
+Now the user ID will be a string and if we had more information about the user which we use here on
+
+02:42.380 --> 02:46.630
+the front-end, we could of course also create a separate user object,
+
+02:46.820 --> 02:51.390
+so a model in our Angular code to hold that extra information,
+
+02:51.560 --> 02:57.500
+so that we combine ID, e-mail, full name, whatever we might have in one model.
+
+02:57.620 --> 02:59.400
+But here I just have to use the user ID
+
+02:59.480 --> 03:00.810
+so I'm going to stick to that
+
+03:00.830 --> 03:06.090
+but you could create such a separate user model if you needed that for your application.
+
+03:06.110 --> 03:07.900
+Here it's the user ID I'm interested,
+
+03:08.060 --> 03:14.570
+so in the login function here when we do get back to the response and we know that we have a token, then
+
+03:14.570 --> 03:24.440
+I want to set this user ID equal to response user ID and I need to update my Typescript code here to
+
+03:24.440 --> 03:30.230
+tell it that this post request will indeed yield a response which has a token which has the expiresIn
+
+03:30.230 --> 03:35.020
+field and which now also has the user ID field which will hold a string.
+
+03:35.300 --> 03:42.320
+So now we're extracting that user ID here and storing it in this user ID property of our service.
+
+03:42.320 --> 03:48.180
+This means that we can now use that user ID in our application. For that,
+
+03:48.200 --> 03:49.610
+I'll add a new method,
+
+03:50.380 --> 03:56.350
+getUserId and there, I will just return this user ID.
+
+03:56.410 --> 04:03.820
+Now I want to get that user ID from my post list component of course because there, I need to compare
+
+04:03.820 --> 04:06.820
+it against the ID of the post we're looking at.
+
+04:07.710 --> 04:15.750
+So in that post list component here, I will add a user ID field which initially is undefined but of type
+
+04:15.750 --> 04:17.590
+string, so let's define the type here
+
+04:18.850 --> 04:22.250
+and then in constructor, we're already injecting the auth service,
+
+04:22.430 --> 04:25.930
+so in ngOnInit, I can fetch that user ID.
+
+04:26.300 --> 04:34.610
+So here I will say this user ID equals this auth service getUserId.
+
+04:34.610 --> 04:39.950
+Now I also want to fetch the updated user ID in case the authentication did change,
+
+04:40.370 --> 04:46.720
+so that means I will also set user ID in the listener to my auth status change here.
+
+04:46.850 --> 04:50.160
+So there where I reset the user is authenticated status,
+
+04:50.210 --> 04:56.480
+I will also fetch the current user ID. That means that I want to fetch null or undefined here if
+
+04:56.480 --> 04:59.890
+the user is switching from authenticated to unauthenticated,
+
+04:59.900 --> 05:07.800
+so if the user is logging out. Therefore in the auth service, I have to reset the user ID field here whenever
+
+05:07.820 --> 05:09.600
+we are logging out,
+
+05:09.620 --> 05:16.290
+so here in logout, I will actually set this user ID equal to null.
+
+05:16.340 --> 05:19.910
+This is important to ensure that this is reset correctly.
+
+05:20.450 --> 05:27.470
+Additionally we also get our autoAuthUser method here where we sign the user in based on data we have
+
+05:27.470 --> 05:29.490
+stored in local storage.
+
+05:29.510 --> 05:34.370
+Now we're not storing the user ID in local storage yet but we need to do this of course because we need
+
+05:34.370 --> 05:36.370
+that information in the future too.
+
+05:36.820 --> 05:44.860
+So in saveAuthData, I expect to get one extra field which is the user ID which is of type string
+
+05:45.050 --> 05:51.260
+and then I will simply call local storage, set item user ID and store that user ID we're getting as
+
+05:51.260 --> 05:54.310
+an argument. In clearAuthData,
+
+05:54.320 --> 06:02.240
+I of course want to delete that field now with remove item user ID and in getAuthData,
+
+06:02.240 --> 06:03.930
+well there I want to return it,
+
+06:04.040 --> 06:12.860
+so here I will get my user ID, reach out to the local storage and call get item user ID to retrieve that
+
+06:12.860 --> 06:14.340
+from the local storage.
+
+06:14.690 --> 06:17.750
+We now just have to add it to the object which we return here,
+
+06:17.870 --> 06:24.210
+so there I will add my user ID field where I store that user ID fetched from the local storage.
+
+06:24.230 --> 06:31.070
+So now we're getting that data, we're saving it in my authAutoUser field here where I'm fetching the
+
+06:31.070 --> 06:32.300
+auth information,
+
+06:32.330 --> 06:39.380
+this just means that if we have a valid token down there, I also should initialize this user ID with
+
+06:39.380 --> 06:41.280
+my auth information user ID,
+
+06:41.330 --> 06:45.100
+so with the user id fetched from the local storage.
+
+06:45.110 --> 06:46.700
+So now we're also saving this,
+
+06:46.760 --> 06:48.720
+there's just one more thing we have to do,
+
+06:48.950 --> 06:53.830
+we're now expecting user ID as an argument on saveAuthData,
+
+06:53.930 --> 06:59.820
+that means that here where we are calling this, I should store this piece of information of course.
+
+07:00.080 --> 07:10.810
+So there, I will indeed store this user ID, so the user ID which I set here from the response. So now
+
+07:10.820 --> 07:14.040
+the user ID should be managed correctly, in the next lecture,
+
+07:14.040 --> 07:17.950
+we'll use it together with the creator ID attached to the post
+
+07:18.210 --> 07:22.140
+to successfully manipulate the buttons we can click on a post.

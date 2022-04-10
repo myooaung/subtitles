@@ -1,0 +1,524 @@
+WEBVTT
+1
+00:00:00.620 --> 00:00:05.240
+There's one last change we're going to make to our validation logic so if we take a look at our overall
+
+2
+00:00:05.240 --> 00:00:09.800
+sign up request handler right now we've now got a couple of different Middleware is wired up that are
+
+3
+00:00:09.800 --> 00:00:13.820
+going to handle validation of email password and password confirmation.
+
+4
+00:00:13.820 --> 00:00:18.110
+However if we also look inside of our request handler sets the callback function right here.
+
+5
+00:00:18.110 --> 00:00:23.120
+There are still two steps of validation that are occurring inside of here reverse checking to make sure
+
+6
+00:00:23.120 --> 00:00:29.470
+that a user does not exist with that email and they're checking to make sure the password is identical
+
+7
+00:00:29.470 --> 00:00:31.680
+to the password confirmation.
+
+8
+00:00:31.690 --> 00:00:36.250
+So in other words at this point in time we are handling validation in two different locations of our
+
+9
+00:00:36.250 --> 00:00:37.670
+code base.
+
+10
+00:00:37.690 --> 00:00:42.400
+This is generally a very bad approach because now it means that any time we want to see if something
+
+11
+00:00:42.400 --> 00:00:47.830
+went wrong with our validation attempt we have to take a look at two different sources of errors both
+
+12
+00:00:47.860 --> 00:00:52.400
+what is coming out of our middleware and what is coming out of these different if statements.
+
+13
+00:00:52.450 --> 00:00:57.950
+So wherever possible we always prefer to merge or centralize all of our validation logic together.
+
+14
+00:00:58.090 --> 00:01:03.060
+So we only have to do one single check to see if anything went wrong.
+
+15
+00:01:03.300 --> 00:01:09.090
+Let's figure out how we can take these very custom validation checks right here and somehow merge them
+
+16
+00:01:09.120 --> 00:01:15.220
+in to these different validators so we've already set up up here first one to point out something that's
+
+17
+00:01:15.220 --> 00:01:16.900
+probably pretty obvious to you.
+
+18
+00:01:17.050 --> 00:01:22.090
+If we take a look at the different validators so we have access to there's no function inside of here
+
+19
+00:01:22.100 --> 00:01:25.630
+that's something like check to see if email is in use.
+
+20
+00:01:25.620 --> 00:01:30.880
+There's also nothing inside of here that says like check to see if this property equals this other property
+
+21
+00:01:30.970 --> 00:01:33.070
+for the password confirmation.
+
+22
+00:01:33.070 --> 00:01:38.200
+So because of that we're going to have to put together something called a custom validator a custom
+
+23
+00:01:38.200 --> 00:01:43.030
+validator is essentially some custom function that we're going to add into these different validation
+
+24
+00:01:43.030 --> 00:01:43.990
+chains.
+
+25
+00:01:44.080 --> 00:01:48.580
+It's gonna run some custom validation logic that you and I put together and then if something is not
+
+26
+00:01:48.580 --> 00:01:54.550
+quite right with the check that we're doing we're gonna throw an error which express validator is going
+
+27
+00:01:54.550 --> 00:02:00.370
+to interpret as meaning something is wrong with say the email property or password or password confirmation
+
+28
+00:02:01.680 --> 00:02:06.710
+documentation page has a really good example of how to use these different custom validators.
+
+29
+00:02:06.710 --> 00:02:13.510
+So on the left hand side will find it features and then custom validators so if we scroll down just
+
+30
+00:02:13.510 --> 00:02:19.240
+a little bit lo and behold there is actually an exact example of what we're trying to do check to see
+
+31
+00:02:19.240 --> 00:02:21.320
+if an email is in use.
+
+32
+00:02:21.430 --> 00:02:25.980
+There's also an example of checking to see if a password confirmation matches a password.
+
+33
+00:02:26.800 --> 00:02:32.830
+So these are both examples of just about exactly what we need to do so in order to check to see if an
+
+34
+00:02:32.850 --> 00:02:33.670
+email is in use.
+
+35
+00:02:33.670 --> 00:02:39.230
+We're going to chain on a call to a function called Custom when we call custom.
+
+36
+00:02:39.230 --> 00:02:44.720
+We're going to provide a function that is going to be used to validate that particular property.
+
+37
+00:02:44.720 --> 00:02:48.350
+Our function is going to be called with the value that was provided by the user.
+
+38
+00:02:48.650 --> 00:02:54.140
+And then inside of that function it is up to us to figure out whether or not this is a valid input or
+
+39
+00:02:54.140 --> 00:03:01.320
+what if the input is valid then we don't have to return anything but if it's invalid we're going to
+
+40
+00:03:01.350 --> 00:03:03.120
+throw an error message.
+
+41
+00:03:03.120 --> 00:03:05.400
+And I know that that's not quite what you see inside of here.
+
+42
+00:03:05.400 --> 00:03:09.320
+They've got a promise rejection that's because they're using a very promise based approach right.
+
+43
+00:03:09.320 --> 00:03:15.300
+Here we are making use of async await in order to do something equivalent in our setup we have to throw
+
+44
+00:03:15.300 --> 00:03:16.550
+in air.
+
+45
+00:03:16.740 --> 00:03:18.040
+Let's go back over to our editor.
+
+46
+00:03:18.060 --> 00:03:22.170
+We're going to write out some somewhat similar logic to what you see right here and check to see if
+
+47
+00:03:22.170 --> 00:03:26.040
+an email is in use okay.
+
+48
+00:03:26.080 --> 00:03:28.890
+I'm going to find my check for email at the very end.
+
+49
+00:03:28.890 --> 00:03:34.850
+I'm going to chain on custom and then pass in a function.
+
+50
+00:03:34.960 --> 00:03:39.340
+This function is going to be called with the value that we are checking rather than calling it value
+
+51
+00:03:39.340 --> 00:03:40.360
+as the argument side of here.
+
+52
+00:03:40.390 --> 00:03:43.600
+I'm going gonna call it email because that's really what it is.
+
+53
+00:03:43.630 --> 00:03:48.070
+I'm also gonna mark this function has been async because I want to use async await syntax inside of
+
+54
+00:03:48.070 --> 00:03:48.520
+it.
+
+55
+00:03:49.760 --> 00:03:55.010
+Then inside of there we're gonna do exactly what we're doing currently inside of our callback function.
+
+56
+00:03:55.010 --> 00:03:58.070
+We're gonna check to see if there is an existing user and if there is.
+
+57
+00:03:58.070 --> 00:04:00.420
+That means that something just went wrong.
+
+58
+00:04:00.740 --> 00:04:03.390
+So I gonna take that little block of code right there.
+
+59
+00:04:03.680 --> 00:04:08.270
+I'm going to cut it and then paste it into the custom function
+
+60
+00:04:11.000 --> 00:04:13.870
+then instead of trying to return and call a red dot sent.
+
+61
+00:04:13.880 --> 00:04:17.570
+There is no red dot send or even a red variable inside of here.
+
+62
+00:04:17.600 --> 00:04:23.000
+So instead in order to indicate that to express validator that we just failed validation we're going
+
+63
+00:04:23.000 --> 00:04:25.840
+to throw a new error.
+
+64
+00:04:26.030 --> 00:04:29.840
+We're going to provide a string to the error and the string that we put inside of here is going to be
+
+65
+00:04:29.840 --> 00:04:31.880
+the message that eventually gets shown to a user.
+
+66
+00:04:32.450 --> 00:04:36.440
+So in this case I'll say something like email in use
+
+67
+00:04:39.990 --> 00:04:40.230
+okay.
+
+68
+00:04:40.290 --> 00:04:41.760
+That's pretty much it.
+
+69
+00:04:41.790 --> 00:04:42.930
+Let's now save this.
+
+70
+00:04:42.930 --> 00:04:46.790
+We're gonna go back over to our browser and test out our sign up flow again.
+
+71
+00:04:46.820 --> 00:04:54.940
+So I'm going to go back over I'm gonna go to my sign up about I'm going to enter in an email that has
+
+72
+00:04:54.970 --> 00:04:59.140
+already been used before to make sure that I enter a email that's been used.
+
+73
+00:04:59.200 --> 00:05:04.180
+I can always open up my users dot Jason on file and find an email inside of here that I know has been
+
+74
+00:05:04.180 --> 00:05:04.630
+used.
+
+75
+00:05:05.410 --> 00:05:13.710
+So going to use test three at test dot com they'll do test three at test dot com I'll enter whatever
+
+76
+00:05:13.710 --> 00:05:20.540
+passwords and then attempt to sign up I'll then go back over to my terminal and take a look at the era
+
+77
+00:05:20.560 --> 00:05:21.310
+that was thrown.
+
+78
+00:05:21.310 --> 00:05:22.690
+So here it is right here.
+
+79
+00:05:22.690 --> 00:05:27.250
+So I'm being told now that that e-mail is already in use OK.
+
+80
+00:05:27.340 --> 00:05:28.390
+So that's definitely good.
+
+81
+00:05:28.390 --> 00:05:33.160
+So we now know how to kind of take all these custom validation checks and centralize them with all of
+
+82
+00:05:33.160 --> 00:05:35.220
+our other validation logic.
+
+83
+00:05:35.230 --> 00:05:39.730
+So now we're going to have one source of ear information inside of all of our different request handlers
+
+84
+00:05:40.000 --> 00:05:43.760
+which once again makes error handling way easier.
+
+85
+00:05:43.820 --> 00:05:48.050
+We cannot repeat that same process for the other piece of custom validation we have which is to check
+
+86
+00:05:48.050 --> 00:05:54.020
+to see if a password in password confirmation are identical so for this I'm going to go and find where
+
+87
+00:05:54.020 --> 00:05:57.830
+we are doing some validation on the password confirmation.
+
+88
+00:05:57.950 --> 00:05:59.990
+I'm going to add in a custom call
+
+89
+00:06:02.860 --> 00:06:11.230
+that's going to receive a password confirmation on this case in order to validate the password confirmation.
+
+90
+00:06:11.270 --> 00:06:15.720
+We need to get another property or another value out of the incoming request.
+
+91
+00:06:15.890 --> 00:06:19.600
+We need to compare a password confirmation against the password.
+
+92
+00:06:19.670 --> 00:06:24.500
+Unfortunately this function right here is only called with the first argument of the value that we are
+
+93
+00:06:24.500 --> 00:06:26.240
+actually trying to validate.
+
+94
+00:06:26.240 --> 00:06:31.340
+But we do have a little trick or a little escape hatch if we go and take a look at the documentation
+
+95
+00:06:31.340 --> 00:06:38.450
+once again around checking to see if a password confirmation matches the password.
+
+96
+00:06:38.450 --> 00:06:44.180
+You'll see that this custom validation function takes a second argument or receives a second argument.
+
+97
+00:06:44.210 --> 00:06:50.300
+It is an object that contains the request object so we can d structure out that req object and then
+
+98
+00:06:50.360 --> 00:06:54.920
+manually inspect the body property and find the password inside there.
+
+99
+00:06:54.920 --> 00:07:00.620
+We can then use that to do a comparison against the password confirmation so we'll do that back inside
+
+100
+00:07:00.620 --> 00:07:02.170
+of this custom function.
+
+101
+00:07:02.180 --> 00:07:04.250
+I'm going to receive the second argument.
+
+102
+00:07:04.250 --> 00:07:08.960
+It is an object that contains the Rec object under the REC property.
+
+103
+00:07:08.960 --> 00:07:15.590
+So I'm going to d structure out rec just to be really clear if we were not using D structuring here
+
+104
+00:07:15.650 --> 00:07:22.330
+we would have something like Obi J short for object and I would say const Rec is object rec that is
+
+105
+00:07:22.370 --> 00:07:29.680
+100 percent equivalent to just doing the D structuring step like so so that inside of your will say
+
+106
+00:07:29.680 --> 00:07:39.760
+if password confirmation is not equal to rec body password then we need to fail validation and to fail
+
+107
+00:07:39.760 --> 00:07:45.880
+it will throw a new error and in a string it will just explain to the user why this validation just
+
+108
+00:07:45.880 --> 00:07:51.250
+failed so let's say passwords must match
+
+109
+00:07:54.730 --> 00:07:55.840
+Okay that should be it.
+
+110
+00:07:55.910 --> 00:08:02.880
+So let's save this and do a test of the password confirmation as well so I'll go back over go to sign
+
+111
+00:08:02.880 --> 00:08:09.410
+up I'll put in whatever email I'll put in two passwords that definitely don't match and then intend
+
+112
+00:08:09.420 --> 00:08:18.420
+to sign up so now if I check my terminal I'll see passwords must match very good okay.
+
+113
+00:08:18.480 --> 00:08:20.060
+So this is looking pretty good.
+
+114
+00:08:20.070 --> 00:08:26.030
+We have now centralize all of our validation logic into this middleware the set of middleware.
+
+115
+00:08:26.050 --> 00:08:30.000
+Last thing I'm going to do inside of here I'm going to make sure that I remove that little password
+
+116
+00:08:30.090 --> 00:08:32.540
+check right there right away.
+
+117
+00:08:32.540 --> 00:08:37.820
+You can tell just immediately that since we have removed all that validation logic at this request handler
+
+118
+00:08:38.150 --> 00:08:41.330
+the logic inside of here is so much easier to understand.
+
+119
+00:08:41.570 --> 00:08:43.670
+In particular if we remove some of these comments
+
+120
+00:08:46.450 --> 00:08:49.970
+it just gets a lot easier to really figure out what is going on.
+
+121
+00:08:50.060 --> 00:08:55.240
+Nonetheless we have to do is to make sure that if there are any errors that occurred we need to somehow
+
+122
+00:08:55.270 --> 00:09:00.280
+get those into our original form that we showed while the user was filling out the sign up form and
+
+123
+00:09:00.280 --> 00:09:05.350
+somehow show some validation messages inside there and explain to the user hey here's why this mission
+
+124
+00:09:05.350 --> 00:09:08.170
+just failed so we're not quite done yet.
+
+125
+00:09:08.170 --> 00:09:12.790
+The other thing that we need to take care of is if you take a look at our post request handler This
+
+126
+00:09:12.790 --> 00:09:17.120
+is a lot of code and a lot of extra lines to be placing inside of here.
+
+127
+00:09:17.230 --> 00:09:22.030
+And so we kind of nice if we figure out some way to kind of condense all this validation logic because
+
+128
+00:09:22.030 --> 00:09:27.340
+otherwise this attack JSF file is going to be incredibly hard to read and navigate over time especially
+
+129
+00:09:27.340 --> 00:09:31.650
+if we want to validate many different properties in an incoming request.
+
+130
+00:09:31.670 --> 00:09:33.080
+We still have a couple things to figure out.
+
+131
+00:09:33.250 --> 00:09:34.680
+Let's take care of that in the next video.

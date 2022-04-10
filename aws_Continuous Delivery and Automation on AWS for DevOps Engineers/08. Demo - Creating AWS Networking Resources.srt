@@ -1,0 +1,728 @@
+1
+00:00:00,840 --> 00:00:06,040
+In this demo, we'll look at deploying ECS applications using AWS CodeDeploy.
+
+2
+00:00:06,040 --> 00:00:10,310
+We'll start by creating the entire AWS network infrastructure that we need
+
+3
+00:00:10,310 --> 00:00:14,660
+to support ECS applications and also to make sure that we don't step on any
+
+4
+00:00:14,660 --> 00:00:17,840
+toes of anything already in our AWS accounts.
+
+5
+00:00:17,840 --> 00:00:18,410
+After that,
+
+6
+00:00:18,410 --> 00:00:21,040
+we'll look at creating an the ECS cluster by
+
+7
+00:00:21,040 --> 00:00:23,540
+leveraging some of those network resources,
+
+8
+00:00:23,540 --> 00:00:27,060
+and then we'll configure our cluster with CodeDeploy so we can
+
+9
+00:00:27,060 --> 00:00:29,640
+deploy our applications to that cluster.
+
+10
+00:00:29,640 --> 00:00:32,790
+After that, we'll try out two different deployment strategies,
+
+11
+00:00:32,790 --> 00:00:36,830
+first using an all‑at‑once deployment for our first deployment with CodeDeploy.
+
+12
+00:00:36,830 --> 00:00:40,510
+And then we'll use a second deployment to deploy linearly to
+
+13
+00:00:40,510 --> 00:00:43,740
+CodeDeploy by shifting traffic piece by piece.
+
+14
+00:00:43,740 --> 00:00:45,770
+So now that we know what we're up to in this demo,
+
+15
+00:00:45,770 --> 00:00:49,550
+let's jump over to our code in the AWS console and get started.
+
+16
+00:00:49,550 --> 00:00:51,720
+Over here in my code editor,
+
+17
+00:00:51,720 --> 00:00:54,800
+I've downloaded all the materials for this module of the course.
+
+18
+00:00:54,800 --> 00:00:57,070
+There's only one demo that we're working with called
+
+19
+00:00:57,070 --> 00:00:58,550
+demo1‑ecs‑applications‑codedeploy,
+
+20
+00:00:58,550 --> 00:01:01,760
+and I'll break this up into a few different parts,
+
+21
+00:01:01,760 --> 00:01:04,490
+as we'll need to do a lot of networking and ECS
+
+22
+00:01:04,490 --> 00:01:06,840
+setup before we can use CodeDeploy.
+
+23
+00:01:06,840 --> 00:01:09,850
+So in order to use these files in this demo,
+
+24
+00:01:09,850 --> 00:01:13,510
+we'll be going through step by step from p1 through p11.
+
+25
+00:01:13,510 --> 00:01:16,040
+And in this output_values section,
+
+26
+00:01:16,040 --> 00:01:18,360
+we'll be adding different values that we'll need
+
+27
+00:01:18,360 --> 00:01:19,940
+throughout the rest of this demo,
+
+28
+00:01:19,940 --> 00:01:22,560
+so make sure to follow along and copy and paste the
+
+29
+00:01:22,560 --> 00:01:24,970
+values that you get from the outputs of some of these
+
+30
+00:01:24,970 --> 00:01:26,840
+different steps and their commands.
+
+31
+00:01:26,840 --> 00:01:31,200
+And you paste them into the output_values.txt file so you can use them later,
+
+32
+00:01:31,200 --> 00:01:35,330
+as we'll definitely be needing them throughout many of the following steps.
+
+33
+00:01:35,330 --> 00:01:37,500
+So I'm going to go over some of these pretty quickly.
+
+34
+00:01:37,500 --> 00:01:40,890
+But the first step we'll need to do is hop into the commands section and
+
+35
+00:01:40,890 --> 00:01:44,340
+scroll the top of the file and use this first command.
+
+36
+00:01:44,340 --> 00:01:47,890
+Now I'm going to need to copy it and also make sure I'm inside the
+
+37
+00:01:47,890 --> 00:01:51,920
+p1‑service‑role‑setup folder because it's going to be referencing the
+
+38
+00:01:51,920 --> 00:01:55,040
+trust‑policy that you see right here in this folder.
+
+39
+00:01:55,040 --> 00:01:57,770
+I can paste this into the console and hit Enter here,
+
+40
+00:01:57,770 --> 00:01:59,690
+and if you get an error, don't worry.
+
+41
+00:01:59,690 --> 00:02:02,800
+That probably just means that the role itself has already been created.
+
+42
+00:02:02,800 --> 00:02:05,230
+So let's copy this second command here,
+
+43
+00:02:05,230 --> 00:02:09,040
+and this will be attaching a policy to this role.
+
+44
+00:02:09,040 --> 00:02:12,830
+Now, when we created the role initially, we used this trust‑policy.
+
+45
+00:02:12,830 --> 00:02:13,430
+Basically,
+
+46
+00:02:13,430 --> 00:02:16,550
+this trust‑policy says that the role we're creating can be used by
+
+47
+00:02:16,550 --> 00:02:20,360
+CodeDeploy and by ECS to take actions on different services.
+
+48
+00:02:20,360 --> 00:02:25,080
+In the role we actually created, we then associated an AWS‑managed policy,
+
+49
+00:02:25,080 --> 00:02:29,440
+which gives a bunch of permissions on ECS and its subsequent services.
+
+50
+00:02:29,440 --> 00:02:31,150
+So that means that we now have a role that
+
+51
+00:02:31,150 --> 00:02:33,490
+CodeDeploy can use to interact with ECS.
+
+52
+00:02:33,490 --> 00:02:37,220
+So let's get the ARN of that role, because we'll need the ARN value later.
+
+53
+00:02:37,220 --> 00:02:41,590
+I have copied this command from the section in the commands.txt file
+
+54
+00:02:41,590 --> 00:02:44,070
+because it'll just give us the role value that we need.
+
+55
+00:02:44,070 --> 00:02:47,740
+So let's copy that value and then go to output_values.txt,
+
+56
+00:02:47,740 --> 00:02:50,540
+and let's start pasting in values that we're getting,
+
+57
+00:02:50,540 --> 00:02:52,050
+in this case, the ROLE_ARN.
+
+58
+00:02:52,050 --> 00:02:55,470
+You can tell there'll be a few different values that we'll need to set this up,
+
+59
+00:02:55,470 --> 00:02:58,070
+but this is only really one time you need to do it,
+
+60
+00:02:58,070 --> 00:03:00,980
+as you'll get everything for ECS set up once and then use
+
+61
+00:03:00,980 --> 00:03:04,270
+CodeDeploy to continue deploying application versions as you
+
+62
+00:03:04,270 --> 00:03:07,040
+iterate on everything inside of your application.
+
+63
+00:03:07,040 --> 00:03:09,680
+Next, let's go to the alb‑setup section,
+
+64
+00:03:09,680 --> 00:03:14,160
+and let's go to the commands section here and let's start by creating a new VPC.
+
+65
+00:03:14,160 --> 00:03:18,320
+The reason I'm doing this is because this'll help us create a completely
+
+66
+00:03:18,320 --> 00:03:21,940
+fresh slate without having to worry about any other configuration that's
+
+67
+00:03:21,940 --> 00:03:25,850
+in your AWS account or having to worry about anything you're doing to
+
+68
+00:03:25,850 --> 00:03:27,950
+other applications in your AWS account.
+
+69
+00:03:27,950 --> 00:03:31,080
+You'll be creating all the networking resources and ECS
+
+70
+00:03:31,080 --> 00:03:34,160
+resources you need to have a fresh cluster that we can
+
+71
+00:03:34,160 --> 00:03:36,010
+then work with using CodeDeploy.
+
+72
+00:03:36,010 --> 00:03:37,050
+So let's get started.
+
+73
+00:03:37,050 --> 00:03:38,990
+The first thing we'll do is, like I said,
+
+74
+00:03:38,990 --> 00:03:45,150
+create a VPC, and then with this VPC we'll need to go up and grab the VpcId here.
+
+75
+00:03:45,150 --> 00:03:49,260
+We'll grab this value and then go over to output_values.txt and
+
+76
+00:03:49,260 --> 00:03:51,960
+we can paste it in here right below VPC_ID.
+
+77
+00:03:51,960 --> 00:03:54,810
+I don't need the quotes for most of what I'm doing so I'll leave those off.
+
+78
+00:03:54,810 --> 00:03:55,850
+In the next section,
+
+79
+00:03:55,850 --> 00:04:00,340
+we're going to need to paste the VPC_ID in here to the vpc‑id section
+
+80
+00:04:00,340 --> 00:04:03,150
+where it has the two alligators brackets that contain it.
+
+81
+00:04:03,150 --> 00:04:05,520
+And whenever you see those, you can basically say,
+
+82
+00:04:05,520 --> 00:04:08,000
+oh, I already have this value, I'm going to paste that over it,
+
+83
+00:04:08,000 --> 00:04:10,240
+and we can do this throughout the rest of the commands.
+
+84
+00:04:10,240 --> 00:04:12,750
+You'll see there's another command down here with VPC_ID,
+
+85
+00:04:12,750 --> 00:04:16,640
+another one here, and I'll go through the rest of the file and do that.
+
+86
+00:04:16,640 --> 00:04:21,740
+And this will save you some time from copying and pasting later.
+
+87
+00:04:21,740 --> 00:04:24,490
+Now that we've pasted the VPC ID throughout everything else,
+
+88
+00:04:24,490 --> 00:04:26,230
+let's use the next two commands.
+
+89
+00:04:26,230 --> 00:04:29,160
+These are to create two subnets inside of the VPC,
+
+90
+00:04:29,160 --> 00:04:31,810
+so let's paste those into our command line here,
+
+91
+00:04:31,810 --> 00:04:35,190
+and they should run one after the other and give us two different results.
+
+92
+00:04:35,190 --> 00:04:37,060
+We could copy the subnet IDs,
+
+93
+00:04:37,060 --> 00:04:40,210
+but instead I've written a command that's pretty nifty that
+
+94
+00:04:40,210 --> 00:04:41,520
+will help you deal with that instead.
+
+95
+00:04:41,520 --> 00:04:45,350
+And it requires you to paste the VPC ID in here that you just created if you
+
+96
+00:04:45,350 --> 00:04:48,600
+haven't done that already. So let's paste that in there and you'll see now we
+
+97
+00:04:48,600 --> 00:04:50,740
+get our subnets and their availability zones.
+
+98
+00:04:50,740 --> 00:04:54,960
+So let me copy the first subnet, which is related to us‑east‑1a,
+
+99
+00:04:54,960 --> 00:04:58,430
+and let's put that in here at the top, right next to us‑east‑1a.
+
+100
+00:04:58,430 --> 00:05:02,540
+And then we'll do the second one, which is related to us‑east‑1b,
+
+101
+00:05:02,540 --> 00:05:04,450
+and we'll paste it back in here as well.
+
+102
+00:05:04,450 --> 00:05:07,330
+The next step will be to create an internet gateway.
+
+103
+00:05:07,330 --> 00:05:09,730
+In order to create an internet gateway we can run this
+
+104
+00:05:09,730 --> 00:05:11,750
+pretty simple command here to create one,
+
+105
+00:05:11,750 --> 00:05:15,660
+and we'll be attaching that internet gateway to the VPC we created.
+
+106
+00:05:15,660 --> 00:05:16,280
+But first,
+
+107
+00:05:16,280 --> 00:05:19,180
+let's take that internet gateway value and pop it into our
+
+108
+00:05:19,180 --> 00:05:22,030
+output_values.txt file and save that.
+
+109
+00:05:22,030 --> 00:05:24,170
+Then let's go through the rest of this and make sure we paste the
+
+110
+00:05:24,170 --> 00:05:28,030
+internet gateway ID anywhere that we see INTERNET_GATEWAY_ID
+
+111
+00:05:28,030 --> 00:05:30,480
+inside of those alligators brackets.
+
+112
+00:05:30,480 --> 00:05:34,250
+Now that I've pasted the internet gateway throughout this file,
+
+113
+00:05:34,250 --> 00:05:37,410
+let's go ahead and attach the internet gateway to our VPC
+
+114
+00:05:37,410 --> 00:05:40,240
+using the VPC ID and the internet gateway ID.
+
+115
+00:05:40,240 --> 00:05:41,600
+Now that this is attached,
+
+116
+00:05:41,600 --> 00:05:46,240
+we can create a route table using the VPC ID we had from before,
+
+117
+00:05:46,240 --> 00:05:49,310
+and then we're going to populate this route table with some routes.
+
+118
+00:05:49,310 --> 00:05:50,540
+But in order to do this,
+
+119
+00:05:50,540 --> 00:05:54,300
+we'll need to grab the route table ID and then paste it into
+
+120
+00:05:54,300 --> 00:05:57,000
+our file here in the ROUTE_TABEL_ID section.
+
+121
+00:05:57,000 --> 00:05:58,510
+And you're getting the hang on this now,
+
+122
+00:05:58,510 --> 00:06:01,290
+so basically every time you see me put a new value
+
+123
+00:06:01,290 --> 00:06:03,740
+into the output_values.txt section,
+
+124
+00:06:03,740 --> 00:06:06,270
+just know that I'll probably be pasting it somewhere else,
+
+125
+00:06:06,270 --> 00:06:09,440
+either in these commands or later throughout.
+
+126
+00:06:09,440 --> 00:06:13,060
+So now that we've done this we can scroll back down and we can
+
+127
+00:06:13,060 --> 00:06:16,320
+create a new route inside of our route table.
+
+128
+00:06:16,320 --> 00:06:18,140
+So let's paste that here.
+
+129
+00:06:18,140 --> 00:06:19,450
+What this command does is,
+
+130
+00:06:19,450 --> 00:06:22,410
+allows us to tell where the traffic that's coming from
+
+131
+00:06:22,410 --> 00:06:24,920
+our ECS service needs to be routed to.
+
+132
+00:06:24,920 --> 00:06:25,490
+In this case,
+
+133
+00:06:25,490 --> 00:06:28,150
+it allows traffic to come in and out of the actual internet
+
+134
+00:06:28,150 --> 00:06:30,750
+rather than internal networks in AWS.
+
+135
+00:06:30,750 --> 00:06:32,790
+So let's skip ahead here to the next command,
+
+136
+00:06:32,790 --> 00:06:36,540
+which is to associate the route table with our subnets.
+
+137
+00:06:36,540 --> 00:06:38,680
+After pasting all the relevant values in,
+
+138
+00:06:38,680 --> 00:06:42,970
+I can run this command to associate the route table with my first subnet,
+
+139
+00:06:42,970 --> 00:06:47,500
+subnet A, and then I can associate the route with my second subnet,
+
+140
+00:06:47,500 --> 00:06:48,600
+subject B.
+
+141
+00:06:48,600 --> 00:06:51,540
+I don't need to copy these association IDs down.
+
+142
+00:06:51,540 --> 00:06:55,810
+After this we can run this command for subnet 1A to make sure that the subnets
+
+143
+00:06:55,810 --> 00:06:59,120
+will have public IPs if anything's launched inside of them,
+
+144
+00:06:59,120 --> 00:07:01,380
+basically making sure that the open internet would be
+
+145
+00:07:01,380 --> 00:07:06,740
+able to make requests to these IPs, rather than only things inside of our VPC.
+
+146
+00:07:06,740 --> 00:07:08,620
+Once these commands have been run we can jump down and
+
+147
+00:07:08,620 --> 00:07:10,660
+create a security group for the VPC.
+
+148
+00:07:10,660 --> 00:07:13,940
+Let's copy this entire command here, paste it in,
+
+149
+00:07:13,940 --> 00:07:16,460
+and now we have a security group ID here.
+
+150
+00:07:16,460 --> 00:07:17,490
+So you know the drill.
+
+151
+00:07:17,490 --> 00:07:20,620
+We'll put this into output_values, and then we'll end up
+
+152
+00:07:20,620 --> 00:07:23,440
+using it later throughout our commands.
+
+153
+00:07:23,440 --> 00:07:25,430
+Now that we've created the security group,
+
+154
+00:07:25,430 --> 00:07:28,720
+we need to add some rules to it to control how traffic flows through it.
+
+155
+00:07:28,720 --> 00:07:32,620
+By default, it's going to allow traffic to go out on any port to any direction.
+
+156
+00:07:32,620 --> 00:07:36,210
+But we're going to need to see how we authorized the traffic coming in,
+
+157
+00:07:36,210 --> 00:07:38,030
+or the ingress traffic.
+
+158
+00:07:38,030 --> 00:07:40,700
+So let's copy this first rule and paste it in here.
+
+159
+00:07:40,700 --> 00:07:43,450
+What this is doing is allowing traffic from the
+
+160
+00:07:43,450 --> 00:07:51,600
+protocol of TCP going to port 443, anything coming from the CIDR of 0.0.0.0/0,
+
+161
+00:07:51,600 --> 00:07:53,440
+meaning any IPs.
+
+162
+00:07:53,440 --> 00:07:57,200
+What this will allow us to do is allow any HTTPS traffic,
+
+163
+00:07:57,200 --> 00:08:00,970
+and it's going to be more relevant if you're adding SSL certificates to your
+
+164
+00:08:00,970 --> 00:08:04,640
+ECS service or other applications that are working with this.
+
+165
+00:08:04,640 --> 00:08:08,730
+However, in our case, we're going to need to use this second command here,
+
+166
+00:08:08,730 --> 00:08:11,660
+which is the typical port for HTTP traffic,
+
+167
+00:08:11,660 --> 00:08:15,240
+so let's paste that in here and make sure we add that rule too.
+
+168
+00:08:15,240 --> 00:08:16,750
+And now in this last step,
+
+169
+00:08:16,750 --> 00:08:19,830
+we can create the applications load balancer that'll route
+
+170
+00:08:19,830 --> 00:08:22,400
+traffic back and forth between different versions of our
+
+171
+00:08:22,400 --> 00:08:24,440
+application that we're deploying.
+
+172
+00:08:24,440 --> 00:08:25,330
+So once we've done this,
+
+173
+00:08:25,330 --> 00:08:29,910
+let's make sure to scroll up and get the ARN value for this load balancer.
+
+174
+00:08:29,910 --> 00:08:32,450
+It should look something like this here.
+
+175
+00:08:32,450 --> 00:08:35,880
+Let's go back to the output_values and make sure we save that ALB_ARN
+
+176
+00:08:35,880 --> 00:08:38,940
+because we're definitely going to need to use it later.
+
+177
+00:08:38,940 --> 00:08:42,040
+All right, so that was a lot of setup, but trust me,
+
+178
+00:08:42,040 --> 00:08:44,780
+this is going to help you avoid potential issues that you might face
+
+179
+00:08:44,780 --> 00:08:48,700
+when working inside of AWS accounts that have more network configuration
+
+180
+00:08:48,700 --> 00:08:50,320
+than you might otherwise want to deal with.
+
+181
+00:08:50,320 --> 00:08:54,750
+In the next section we'll be creating resources related to our ECS cluster.
+
+182
+00:08:54,750 --> 00:09:00,000
+And after that, we'll be setting up everything to work with CodeDeploy. So let's get to it.
+

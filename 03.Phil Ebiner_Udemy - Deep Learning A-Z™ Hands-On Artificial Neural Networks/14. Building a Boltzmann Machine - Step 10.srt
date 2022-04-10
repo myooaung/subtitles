@@ -1,0 +1,1589 @@
+1
+1
+
+00:00:00,340  -->  00:00:02,900
+<v Instructor>Hello and welcome to this Python tutorial.</v>
+2
+
+2
+
+00:00:02,900  -->  00:00:05,940
+Alright, so we are about to make the last function
+3
+
+3
+
+00:00:05,940  -->  00:00:07,570
+of this class RBM.
+4
+
+4
+
+00:00:07,570  -->  00:00:10,540
+This last function is about the contrastive divergence
+5
+
+5
+
+00:00:10,540  -->  00:00:13,740
+that we will use to approximate the likelihood gradient.
+6
+
+6
+
+00:00:13,740  -->  00:00:15,790
+And so before we implement it
+7
+
+7
+
+00:00:15,790  -->  00:00:17,870
+I think it would be good to remind us what it is
+8
+
+8
+
+00:00:17,870  -->  00:00:21,110
+and to do so we'll go back to that paper
+9
+
+9
+
+00:00:21,110  -->  00:00:23,760
+that I introduced to you in the first tutorial.
+10
+
+10
+
+00:00:23,760  -->  00:00:25,070
+So here is the paper,
+11
+
+11
+
+00:00:25,070  -->  00:00:27,090
+and let's go to section five,
+12
+
+12
+
+00:00:27,090  -->  00:00:30,420
+approximating the RBM log-likelihood gradient.
+13
+
+13
+
+00:00:30,420  -->  00:00:33,900
+Alright, so as you understood, contrastive divergence
+14
+
+14
+
+00:00:33,900  -->  00:00:37,580
+is all about approximating this log-likelihood gradient.
+15
+
+15
+
+00:00:37,580  -->  00:00:41,190
+Because remember, the RBM is an energy-based model.
+16
+
+16
+
+00:00:41,190  -->  00:00:43,050
+That means that we have this energy function
+17
+
+17
+
+00:00:43,050  -->  00:00:44,810
+that we are trying to minimize.
+18
+
+18
+
+00:00:44,810  -->  00:00:46,440
+And since this energy function
+19
+
+19
+
+00:00:46,440  -->  00:00:48,440
+depends on the weight of the model,
+20
+
+20
+
+00:00:48,440  -->  00:00:51,040
+that is, you know, all the weights in this tensor of weights
+21
+
+21
+
+00:00:51,040  -->  00:00:53,070
+that we defined at the beginning.
+22
+
+22
+
+00:00:53,070  -->  00:00:54,770
+Well, we need to optimize these weights
+23
+
+23
+
+00:00:54,770  -->  00:00:56,230
+to minimize the energy.
+24
+
+24
+
+00:00:56,230  -->  00:00:59,460
+And not only it can be seen as an energy-based model
+25
+
+25
+
+00:00:59,460  -->  00:01:02,770
+but it can also be seen as a probability graphical model.
+26
+
+26
+
+00:01:02,770  -->  00:01:04,400
+In that case, the goal,
+27
+
+27
+
+00:01:04,400  -->  00:01:07,330
+and that's the equivalent to minimizing the energy,
+28
+
+28
+
+00:01:07,330  -->  00:01:10,330
+the goal is to maximize the log-likelihood.
+29
+
+29
+
+00:01:10,330  -->  00:01:12,500
+The log-likelihood of the training set.
+30
+
+30
+
+00:01:12,500  -->  00:01:14,650
+And as for any deep learning model,
+31
+
+31
+
+00:01:14,650  -->  00:01:17,470
+or machine learning model, well to minimize the energy
+32
+
+32
+
+00:01:17,470  -->  00:01:19,540
+or to maximize the log-likelihood
+33
+
+33
+
+00:01:19,540  -->  00:01:21,710
+we need to compute the gradient.
+34
+
+34
+
+00:01:21,710  -->  00:01:22,543
+And as you understood,
+35
+
+35
+
+00:01:22,543  -->  00:01:25,630
+the direct computations of the gradient are too heavy
+36
+
+36
+
+00:01:25,630  -->  00:01:28,770
+and therefore, instead of computing it directly,
+37
+
+37
+
+00:01:28,770  -->  00:01:31,530
+we are gonna try to approximate it.
+38
+
+38
+
+00:01:31,530  -->  00:01:34,220
+And thanks to these gradient approximations,
+39
+
+39
+
+00:01:34,220  -->  00:01:37,080
+well each time we make these tiny adjustments
+40
+
+40
+
+00:01:37,080  -->  00:01:37,930
+in the right direction,
+41
+
+41
+
+00:01:37,930  -->  00:01:40,730
+that is the direction of the minimum energy.
+42
+
+42
+
+00:01:40,730  -->  00:01:43,350
+Because you know we're trying to minimize the energy.
+43
+
+43
+
+00:01:43,350  -->  00:01:44,660
+So that's a little bit like before
+44
+
+44
+
+00:01:44,660  -->  00:01:47,350
+where you knew we were trying to minimize a loss function
+45
+
+45
+
+00:01:47,350  -->  00:01:48,970
+and through stochastic gradient descent
+46
+
+46
+
+00:01:48,970  -->  00:01:50,520
+we were updating the waste
+47
+
+47
+
+00:01:50,520  -->  00:01:52,870
+in the direction of this minimum loss.
+48
+
+48
+
+00:01:52,870  -->  00:01:55,220
+Only here the computations are too heavy
+49
+
+49
+
+00:01:55,220  -->  00:01:57,740
+to compute these gradients directly
+50
+
+50
+
+00:01:57,740  -->  00:02:00,060
+and so we need to come up with another solution,
+51
+
+51
+
+00:02:00,060  -->  00:02:02,410
+which is to approximate these gradients.
+52
+
+52
+
+00:02:02,410  -->  00:02:04,950
+And the algorithm that will allow us to this
+53
+
+53
+
+00:02:04,950  -->  00:02:07,160
+is contrastive divergence.
+54
+
+54
+
+00:02:07,160  -->  00:02:10,890
+And we already mentioned it, this comes with Gibbs sampling.
+55
+
+55
+
+00:02:10,890  -->  00:02:14,230
+Gibbs sampling consists of creating this Gibbs chain
+56
+
+56
+
+00:02:14,230  -->  00:02:17,100
+in k-steps and this Gibb chain in created exactly
+57
+
+57
+
+00:02:17,100  -->  00:02:20,800
+by sampling K times the hidden nodes and divisible node.
+58
+
+58
+
+00:02:20,800  -->  00:02:24,000
+That is that, you know, we start with our input vector,
+59
+
+59
+
+00:02:24,000  -->  00:02:27,610
+V zero, then based on the probabilities PH
+60
+
+60
+
+00:02:27,610  -->  00:02:30,930
+given V zero, we sample the first set of nodes
+61
+
+61
+
+00:02:30,930  -->  00:02:32,780
+so that's at the first iteration.
+62
+
+62
+
+00:02:32,780  -->  00:02:36,630
+Then we take these sampled hidden nodes as input.
+63
+
+63
+
+00:02:36,630  -->  00:02:39,690
+Let's call them H one to sample the visible nodes
+64
+
+64
+
+00:02:39,690  -->  00:02:42,740
+with the probabilities PV given H one
+65
+
+65
+
+00:02:42,740  -->  00:02:45,910
+and then again we use these sample visibile nodes.
+66
+
+66
+
+00:02:45,910  -->  00:02:48,860
+Let's call them V one, to sample again the hidden nodes
+67
+
+67
+
+00:02:48,860  -->  00:02:51,950
+with the probabilities PH given V one
+68
+
+68
+
+00:02:51,950  -->  00:02:53,670
+and then again we sample the visible nodes
+69
+
+69
+
+00:02:53,670  -->  00:02:55,100
+and we sample the hidden nodes
+70
+
+70
+
+00:02:55,100  -->  00:02:56,890
+and we do this K times.
+71
+
+71
+
+00:02:56,890  -->  00:03:00,770
+And that's exactly what this CDK algorithm is about.
+72
+
+72
+
+00:03:00,770  -->  00:03:02,440
+The algorithm is just below,
+73
+
+73
+
+00:03:02,440  -->  00:03:05,973
+that's the algorithm of k-step contrastive divergence.
+74
+
+74
+
+00:03:06,929  -->  00:03:08,430
+OK, and so now what we're gonna do
+75
+
+75
+
+00:03:08,430  -->  00:03:11,610
+in this last train function of the RBM class
+76
+
+76
+
+00:03:11,610  -->  00:03:15,060
+is that we will simply implement these three lines here.
+77
+
+77
+
+00:03:15,060  -->  00:03:17,700
+And so in this training function we will simply update
+78
+
+78
+
+00:03:17,700  -->  00:03:20,240
+our tensor of weights, W,
+79
+
+79
+
+00:03:20,240  -->  00:03:21,710
+our bias B,
+80
+
+80
+
+00:03:21,710  -->  00:03:23,550
+and our bias A.
+81
+
+81
+
+00:03:23,550  -->  00:03:26,500
+While here in the paper it is called C, the C Is,
+82
+
+82
+
+00:03:26,500  -->  00:03:28,650
+but in our algorithm we call them A.
+83
+
+83
+
+00:03:28,650  -->  00:03:31,230
+That's the bias of PH given V.
+84
+
+84
+
+00:03:31,230  -->  00:03:34,690
+Alright, so let's do this and let's go back to Python.
+85
+
+85
+
+00:03:34,690  -->  00:03:39,020
+So, we defined this new function that we call train
+86
+
+86
+
+00:03:39,020  -->  00:03:41,850
+and this train function is gonna several arguments.
+87
+
+87
+
+00:03:41,850  -->  00:03:44,500
+So the first one is, as you might have guessed, self,
+88
+
+88
+
+00:03:44,500  -->  00:03:47,330
+because we will update the tensor of weights
+89
+
+89
+
+00:03:47,330  -->  00:03:48,730
+and the bias A and B
+90
+
+90
+
+00:03:48,730  -->  00:03:51,970
+that are variables specifically attached to the object.
+91
+
+91
+
+00:03:51,970  -->  00:03:54,400
+So we need to take our object here with self
+92
+
+92
+
+00:03:54,400  -->  00:03:56,720
+and then we are gonna add four more arguments,
+93
+
+93
+
+00:03:56,720  -->  00:03:59,910
+which are gonna be first our input vector
+94
+
+94
+
+00:03:59,910  -->  00:04:01,590
+that I'm calling V zero,
+95
+
+95
+
+00:04:01,590  -->  00:04:04,190
+so that's our input vector containing the ratings
+96
+
+96
+
+00:04:04,190  -->  00:04:06,600
+of all the movies by one user.
+97
+
+97
+
+00:04:06,600  -->  00:04:09,250
+And then you know we will make a loop over all the users,
+98
+
+98
+
+00:04:09,250  -->  00:04:12,170
+but here we're working with one user so far.
+99
+
+99
+
+00:04:12,170  -->  00:04:15,650
+And then the second more argument is going to be VK,
+100
+
+100
+
+00:04:15,650  -->  00:04:19,240
+so that's the visible nodes obtained after K samplings.
+101
+
+101
+
+00:04:19,240  -->  00:04:21,780
+You know after K round trips from the visible nodes
+102
+
+102
+
+00:04:21,780  -->  00:04:23,150
+to the hidden nodes first
+103
+
+103
+
+00:04:23,150  -->  00:04:24,800
+and then way back from the hidden nodes
+104
+
+104
+
+00:04:24,800  -->  00:04:25,910
+to the visible nodes.
+105
+
+105
+
+00:04:25,910  -->  00:04:27,970
+So that's the visible nodes obtained
+106
+
+106
+
+00:04:27,970  -->  00:04:31,260
+after K iterations and K contrastive divergence.
+107
+
+107
+
+00:04:31,260  -->  00:04:35,230
+And then we're gonna add as argument PH zero
+108
+
+108
+
+00:04:35,230  -->  00:04:37,370
+and that's the vector of probabilities
+109
+
+109
+
+00:04:37,370  -->  00:04:40,700
+that at the first iteration the hidden nodes equal one
+110
+
+110
+
+00:04:40,700  -->  00:04:42,510
+given the values of V zero,
+111
+
+111
+
+00:04:42,510  -->  00:04:45,080
+that is, our input vector of observations.
+112
+
+112
+
+00:04:45,080  -->  00:04:46,890
+And then we're gonna take
+113
+
+113
+
+00:04:46,890  -->  00:04:47,723
+PHK,
+114
+
+114
+
+00:04:49,010  -->  00:04:52,270
+that will correspond to, of course, the probabilities
+115
+
+115
+
+00:04:52,270  -->  00:04:54,570
+of the hidden nodes after K sampling
+116
+
+116
+
+00:04:54,570  -->  00:04:57,730
+given the values of the visible nodes, VK.
+117
+
+117
+
+00:04:57,730  -->  00:05:00,800
+Alright, so that's our five arguments
+118
+
+118
+
+00:05:00,800  -->  00:05:04,500
+and now call in and let's go inside the function.
+119
+
+119
+
+00:05:04,500  -->  00:05:06,970
+So basically now what we have to do is very simple,
+120
+
+120
+
+00:05:06,970  -->  00:05:09,620
+we can just do exactly as what is done
+121
+
+121
+
+00:05:09,620  -->  00:05:12,400
+in these lines eight, nine and ten.
+122
+
+122
+
+00:05:12,400  -->  00:05:15,890
+We will first update our tensor of weights, W
+123
+
+123
+
+00:05:15,890  -->  00:05:17,560
+then our bias B
+124
+
+124
+
+00:05:17,560  -->  00:05:19,660
+and then our bias A
+125
+
+125
+
+00:05:19,660  -->  00:05:21,380
+exactly as what is given here.
+126
+
+126
+
+00:05:21,380  -->  00:05:24,540
+So, let's start with the weight of dates.
+127
+
+127
+
+00:05:24,540  -->  00:05:26,560
+So we have to take our weights again
+128
+
+128
+
+00:05:26,560  -->  00:05:29,820
+and then add the product of VJ zero,
+129
+
+129
+
+00:05:29,820  -->  00:05:32,390
+that is the rating of the movie J
+130
+
+130
+
+00:05:32,390  -->  00:05:35,450
+and the probabilities that the hidden nodes equal one
+131
+
+131
+
+00:05:35,450  -->  00:05:38,060
+given the values of this input vector V zero.
+132
+
+132
+
+00:05:38,060  -->  00:05:40,090
+And then we subtract the probabilities
+133
+
+133
+
+00:05:40,090  -->  00:05:42,688
+that the hidden nodes equal one after K iterations
+134
+
+134
+
+00:05:42,688  -->  00:05:44,910
+given the values of the visible nodes
+135
+
+135
+
+00:05:44,910  -->  00:05:49,090
+still after K iterations that multiply by VJK.
+136
+
+136
+
+00:05:49,090  -->  00:05:50,860
+That is the value of the visible node
+137
+
+137
+
+00:05:50,860  -->  00:05:54,283
+corresponding to the movie J after K iterations.
+138
+
+138
+
+00:05:54,283  -->  00:05:55,820
+Alright, so let's do this.
+139
+
+139
+
+00:05:55,820  -->  00:05:59,410
+We're basically gonna do the same as what is given here.
+140
+
+140
+
+00:05:59,410  -->  00:06:04,410
+Alright, so first we take our tensor of weights, self dot W
+141
+
+141
+
+00:06:05,370  -->  00:06:09,220
+and then since we have to take it again and add something,
+142
+
+142
+
+00:06:09,220  -->  00:06:11,210
+we're gonna use this trick, this shortcut.
+143
+
+143
+
+00:06:11,210  -->  00:06:13,130
+That is plus equals,
+144
+
+144
+
+00:06:13,130  -->  00:06:16,050
+and basically that's the same as doing self dot W
+145
+
+145
+
+00:06:16,050  -->  00:06:18,900
+equals self dot W plus something.
+146
+
+146
+
+00:06:18,900  -->  00:06:21,460
+Only here we just have to add the plus something.
+147
+
+147
+
+00:06:21,460  -->  00:06:23,980
+Alright, so then we have to make the product
+148
+
+148
+
+00:06:23,980  -->  00:06:26,960
+of the probabilities that the hidden nodes equal one
+149
+
+149
+
+00:06:26,960  -->  00:06:28,900
+given the input vector, V zero
+150
+
+150
+
+00:06:28,900  -->  00:06:31,090
+by that input vector V zero.
+151
+
+151
+
+00:06:31,090  -->  00:06:33,700
+And this probability that the hidden nodes equal one
+152
+
+152
+
+00:06:33,700  -->  00:06:35,420
+given the input vector V zero
+153
+
+153
+
+00:06:35,420  -->  00:06:38,060
+is nothing else than PH zero.
+154
+
+154
+
+00:06:38,060  -->  00:06:40,380
+So what we do here is
+155
+
+155
+
+00:06:40,380  -->  00:06:42,890
+we take our torch library
+156
+
+156
+
+00:06:42,890  -->  00:06:44,870
+then dot then MM,
+157
+
+157
+
+00:06:44,870  -->  00:06:47,370
+you know, to make the product of two tensors,
+158
+
+158
+
+00:06:47,370  -->  00:06:49,070
+and in the parenthesis we input
+159
+
+159
+
+00:06:49,070  -->  00:06:51,090
+the two tensors in that product.
+160
+
+160
+
+00:06:51,090  -->  00:06:53,520
+And so that is first V zero,
+161
+
+161
+
+00:06:53,520  -->  00:06:55,770
+the input vector of observations
+162
+
+162
+
+00:06:55,770  -->  00:06:57,780
+and then we have to think to transpose
+163
+
+163
+
+00:06:57,780  -->  00:07:00,310
+just to make things mathematically correct
+164
+
+164
+
+00:07:00,310  -->  00:07:03,600
+and then the second element of this product
+165
+
+165
+
+00:07:03,600  -->  00:07:04,900
+is as we said,
+166
+
+166
+
+00:07:04,900  -->  00:07:06,900
+PH zero.
+167
+
+167
+
+00:07:06,900  -->  00:07:08,030
+Alright, perfect.
+168
+
+168
+
+00:07:08,030  -->  00:07:11,400
+And then we need to substract again
+169
+
+169
+
+00:07:11,400  -->  00:07:14,090
+the torch product
+170
+
+170
+
+00:07:14,090  -->  00:07:17,770
+of the visible nodes obtained after K samplings
+171
+
+171
+
+00:07:17,770  -->  00:07:19,350
+and that is VK
+172
+
+172
+
+00:07:19,350  -->  00:07:21,620
+and again we need to take the transpose
+173
+
+173
+
+00:07:22,760  -->  00:07:25,900
+and the probabilities that the hidden nodes equal one
+174
+
+174
+
+00:07:25,900  -->  00:07:28,050
+given the values of these visible nodes VK.
+175
+
+175
+
+00:07:29,074  -->  00:07:31,970
+And this probability is nothing else than PHK.
+176
+
+176
+
+00:07:31,970  -->  00:07:34,810
+So, we input here as the second argument of the product,
+177
+
+177
+
+00:07:34,810  -->  00:07:36,250
+PHK.
+178
+
+178
+
+00:07:36,250  -->  00:07:40,900
+Alright, and we have our first update in that KCD algorithm
+179
+
+179
+
+00:07:40,900  -->  00:07:43,750
+that is in our contrastive divergence technique.
+180
+
+180
+
+00:07:43,750  -->  00:07:47,380
+Alright, now let's take care of the second update.
+181
+
+181
+
+00:07:47,380  -->  00:07:51,890
+So remember, the second update was about the weight B.
+182
+
+182
+
+00:07:51,890  -->  00:07:56,890
+And remember B is the bias of the probabilities PV given H
+183
+
+183
+
+00:07:56,890  -->  00:07:58,730
+and so let's go back to the paper.
+184
+
+184
+
+00:07:58,730  -->  00:07:59,563
+Here it is.
+185
+
+185
+
+00:07:59,563  -->  00:08:01,730
+So now it's more simple than before.
+186
+
+186
+
+00:08:01,730  -->  00:08:04,020
+First we take our B again, of course,
+187
+
+187
+
+00:08:04,020  -->  00:08:07,290
+and then we add the difference between VJ zero,
+188
+
+188
+
+00:08:07,290  -->  00:08:10,770
+that is the original rating of the movie J by the user
+189
+
+189
+
+00:08:10,770  -->  00:08:12,070
+and VJK.
+190
+
+190
+
+00:08:12,070  -->  00:08:15,460
+That is the visible node obtained after K samplings.
+191
+
+191
+
+00:08:15,460  -->  00:08:18,120
+Alright, so very easy, let's go back to Python.
+192
+
+192
+
+00:08:18,120  -->  00:08:20,830
+So self B, then plus equals
+193
+
+193
+
+00:08:20,830  -->  00:08:22,730
+because we're adding something to B
+194
+
+194
+
+00:08:22,730  -->  00:08:24,710
+and then in here I'm just going to use a trick.
+195
+
+195
+
+00:08:24,710  -->  00:08:28,150
+I'm gonna take the torch sum
+196
+
+196
+
+00:08:28,150  -->  00:08:31,640
+and I'm going to sum what we want to add to B,
+197
+
+197
+
+00:08:31,640  -->  00:08:34,550
+that is, remember it's V zero
+198
+
+198
+
+00:08:34,550  -->  00:08:35,650
+minus VK.
+199
+
+199
+
+00:08:35,650  -->  00:08:37,100
+You know, the difference between
+200
+
+200
+
+00:08:37,100  -->  00:08:38,820
+the input vector of observations
+201
+
+201
+
+00:08:38,820  -->  00:08:41,390
+and the visibile nodes after K samplings.
+202
+
+202
+
+00:08:41,390  -->  00:08:43,070
+V zero minus VK.
+203
+
+203
+
+00:08:43,070  -->  00:08:45,630
+And to that I'm gonna add zero.
+204
+
+204
+
+00:08:45,630  -->  00:08:48,620
+I'm just making the sum of V zero minus VK
+205
+
+205
+
+00:08:48,620  -->  00:08:51,240
+and zero and that, as you might have guessed,
+206
+
+206
+
+00:08:51,240  -->  00:08:53,570
+is just to keep the format of B
+207
+
+207
+
+00:08:53,570  -->  00:08:55,880
+as a tensor of two dimensions.
+208
+
+208
+
+00:08:55,880  -->  00:08:58,450
+Alright, and then the last update
+209
+
+209
+
+00:08:58,450  -->  00:09:01,240
+concerns our other bias, A
+210
+
+210
+
+00:09:01,240  -->  00:09:03,900
+that, remember, contains the bias of
+211
+
+211
+
+00:09:03,900  -->  00:09:06,980
+the probabilities PH given V.
+212
+
+212
+
+00:09:06,980  -->  00:09:10,110
+So let's update that, self dot A.
+213
+
+213
+
+00:09:10,110  -->  00:09:13,400
+Then plus equal because we're gonna add something as well.
+214
+
+214
+
+00:09:13,400  -->  00:09:14,500
+And if we go back to the paper
+215
+
+215
+
+00:09:14,500  -->  00:09:18,520
+we see that, again, we need to add the difference
+216
+
+216
+
+00:09:18,520  -->  00:09:21,490
+of this time, not VJ zero and VJK
+217
+
+217
+
+00:09:21,490  -->  00:09:25,140
+but the probabilities that the hidden nodes equal one
+218
+
+218
+
+00:09:25,140  -->  00:09:28,300
+given the values of V zero, the input vector of observations
+219
+
+219
+
+00:09:28,300  -->  00:09:31,020
+and the probabilities that the hidden nodes equal one
+220
+
+220
+
+00:09:31,020  -->  00:09:33,260
+given the values of VK, that is,
+221
+
+221
+
+00:09:33,260  -->  00:09:36,320
+the values of the visible nodes after K sampling.
+222
+
+222
+
+00:09:36,320  -->  00:09:38,930
+Alright, and we have these guys here because
+223
+
+223
+
+00:09:38,930  -->  00:09:42,081
+these are our arguments of our train function.
+224
+
+224
+
+00:09:42,081  -->  00:09:44,370
+This is PH zero
+225
+
+225
+
+00:09:44,370  -->  00:09:45,303
+and this is PHK.
+226
+
+226
+
+00:09:46,280  -->  00:09:49,360
+So basically what we have to do is just add the difference
+227
+
+227
+
+00:09:49,360  -->  00:09:51,400
+PH zero minus PHK.
+228
+
+228
+
+00:09:51,400  -->  00:09:53,060
+And we are gonna use the same trick
+229
+
+229
+
+00:09:53,060  -->  00:09:54,590
+to take the sum of
+230
+
+230
+
+00:09:55,430  -->  00:09:57,153
+PH zero minus PHK
+231
+
+231
+
+00:09:58,120  -->  00:09:59,200
+and zero.
+232
+
+232
+
+00:09:59,200  -->  00:10:02,720
+So I'm just copying that and pasting it here and here
+233
+
+233
+
+00:10:02,720  -->  00:10:05,440
+instead of having V zero minus VK
+234
+
+234
+
+00:10:05,440  -->  00:10:08,070
+we'll have PH zero
+235
+
+235
+
+00:10:08,070  -->  00:10:09,217
+minus PHK.
+236
+
+236
+
+00:10:10,880  -->  00:10:15,010
+And now congratulations, our RBM class is over.
+237
+
+237
+
+00:10:15,010  -->  00:10:18,230
+We now have what's at the heart of the RBM algorithm,
+238
+
+238
+
+00:10:18,230  -->  00:10:21,990
+that is, our sampling functions, sample H and sample V
+239
+
+239
+
+00:10:21,990  -->  00:10:24,400
+plus our training function that we'll do
+240
+
+240
+
+00:10:24,400  -->  00:10:28,090
+to contrast the divergence solution with Gibbs sampling.
+241
+
+241
+
+00:10:28,090  -->  00:10:29,210
+So congratulations,
+242
+
+242
+
+00:10:29,210  -->  00:10:31,870
+because that was not an easy class to make,
+243
+
+243
+
+00:10:31,870  -->  00:10:34,740
+but now the good news is that we made the most difficult
+244
+
+244
+
+00:10:34,740  -->  00:10:37,180
+because basically what we have left to do is,
+245
+
+245
+
+00:10:37,180  -->  00:10:40,660
+of course to create a object of this RBM class.
+246
+
+246
+
+00:10:40,660  -->  00:10:42,500
+This will be our model in itself
+247
+
+247
+
+00:10:42,500  -->  00:10:45,550
+and then we will train it over several epochs
+248
+
+248
+
+00:10:45,550  -->  00:10:48,400
+so that we find these optimal weights
+249
+
+249
+
+00:10:48,400  -->  00:10:51,250
+that will alow us to predict the ratings of the movies
+250
+
+250
+
+00:10:51,250  -->  00:10:53,660
+that were not originally rated.
+251
+
+251
+
+00:10:53,660  -->  00:10:56,930
+OK, so before we move on to the next tutorial
+252
+
+252
+
+00:10:56,930  -->  00:11:01,930
+let's select all this, which will create our RBM class.
+253
+
+253
+
+00:11:02,120  -->  00:11:05,472
+So let's press command and control plus enter to execute
+254
+
+254
+
+00:11:05,472  -->  00:11:06,890
+and here we go.
+255
+
+255
+
+00:11:06,890  -->  00:11:08,400
+Now we have our class
+256
+
+256
+
+00:11:08,400  -->  00:11:10,690
+and we can use it to create several objects.
+257
+
+257
+
+00:11:10,690  -->  00:11:12,940
+So we can create several RBM models.
+258
+
+258
+
+00:11:12,940  -->  00:11:15,770
+We can test many of them with different configurations,
+259
+
+259
+
+00:11:15,770  -->  00:11:18,610
+that is, with several numbers of hidden nodes
+260
+
+260
+
+00:11:18,610  -->  00:11:21,150
+because that's basically the main parameter.
+261
+
+261
+
+00:11:21,150  -->  00:11:23,990
+But then you can add some more parameters in your class,
+262
+
+262
+
+00:11:23,990  -->  00:11:25,850
+for example, a learning rate
+263
+
+263
+
+00:11:25,850  -->  00:11:28,700
+if you want to improve and tune your model.
+264
+
+264
+
+00:11:28,700  -->  00:11:31,930
+Alright, so let's create this RBM object
+265
+
+265
+
+00:11:31,930  -->  00:11:34,730
+in the next tutorial and until then enjoy deep learning.

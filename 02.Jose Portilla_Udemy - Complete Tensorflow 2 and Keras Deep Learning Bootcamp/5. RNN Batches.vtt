@@ -1,0 +1,420 @@
+WEBVTT
+1
+00:00:05.440 --> 00:00:11.500
+Welcome back everyone to this lecture on basic recurrent neural networks we're now going to explore
+
+2
+00:00:11.770 --> 00:00:15.950
+how to use recurrent neural networks on a basic time series such as a sine wave.
+
+3
+00:00:16.090 --> 00:00:21.130
+Before we jump into the actual notebook of Python however I want to quickly discuss what the actual
+
+4
+00:00:21.130 --> 00:00:27.690
+sequence batches can look like when you're dealing with time series data or just sequence data let's
+
+5
+00:00:27.690 --> 00:00:33.000
+imagine we have a very simple time series just the numbers 0 1 2 3 all the way up to 9.
+
+6
+00:00:33.270 --> 00:00:38.730
+What we end up doing is we want to create an actual data point that we can train on and then predict
+
+7
+00:00:38.820 --> 00:00:41.520
+and compare our prediction to a label.
+
+8
+00:00:41.520 --> 00:00:45.620
+So essentially what we do is we separate this out into two parts.
+
+9
+00:00:45.660 --> 00:00:51.390
+So here we've separated out into a training sequence shown in green for the numbers 0 through 8 and
+
+10
+00:00:51.390 --> 00:00:53.380
+then we want to predict the next sequence value.
+
+11
+00:00:53.400 --> 00:00:57.560
+In this case the sequence value that we're trying to predict is essentially just a label.
+
+12
+00:00:57.570 --> 00:00:59.580
+What's the next number going to be.
+
+13
+00:00:59.580 --> 00:01:05.220
+So we feed the green parts into our network and then we say try to predict and its prediction is then
+
+14
+00:01:05.220 --> 00:01:12.120
+compared to the correct sequence value which is nine so keep in mind we can actually usually decide
+
+15
+00:01:12.360 --> 00:01:14.080
+how long that training sequence should be.
+
+16
+00:01:14.130 --> 00:01:18.090
+And also technically we can also decide how long that predicted label should be.
+
+17
+00:01:18.540 --> 00:01:23.320
+So the sequence doesn't need to be all the numbers right before the very last number.
+
+18
+00:01:23.370 --> 00:01:28.230
+For example here we can see a training sequence of the numbers 0 3 4 and then we're trying to predict
+
+19
+00:01:28.230 --> 00:01:30.610
+the next 5 numbers 5 6 7 8 9.
+
+20
+00:01:30.690 --> 00:01:34.920
+So we have a lot of flexibility here as far as what the training sequence is and what the predicted
+
+21
+00:01:34.920 --> 00:01:42.890
+label should be also keep in mind that we're going to feed in batches of these sort of data points so
+
+22
+00:01:42.890 --> 00:01:47.840
+we can also edit the size of not just the training point but as well as how many sequences to feed per
+
+23
+00:01:47.840 --> 00:01:48.600
+batch.
+
+24
+00:01:48.680 --> 00:01:52.430
+Here we can see a single batch of Time series sequences.
+
+25
+00:01:52.500 --> 00:01:58.370
+And in this batch we have three data point entries where we have a training sequence per data point
+
+26
+00:01:58.370 --> 00:01:59.510
+of four numbers.
+
+27
+00:01:59.540 --> 00:02:04.630
+So the first one is 0 1 2 3 and then the actual label we're trying to predict is just a single value
+
+28
+00:02:04.640 --> 00:02:06.030
+what's the next sequence value.
+
+29
+00:02:06.050 --> 00:02:12.130
+So we're trying to predict for and then given numbers 1 2 3 4 try to predict 5 given numbers 2 3 4 5
+
+30
+00:02:12.140 --> 00:02:14.350
+try to predict 6 and so on.
+
+31
+00:02:14.360 --> 00:02:19.430
+So again lots of flexibility and a lot of things you can edit here you can edit how many times series
+
+32
+00:02:19.430 --> 00:02:24.290
+sequences you're going to provide per batch how long the actual training portion that green portion
+
+33
+00:02:24.290 --> 00:02:30.630
+should be and also how long that red portion the label should be so given how much flexibility we have
+
+34
+00:02:30.630 --> 00:02:35.410
+over this how do we decide how long that actual training sequence should be.
+
+35
+00:02:35.430 --> 00:02:40.470
+Keep in mind there is no definitive answer but it should be at least long enough to capture any useful
+
+36
+00:02:40.470 --> 00:02:45.240
+trend information so what I mean by useful trend information.
+
+37
+00:02:45.260 --> 00:02:50.810
+Well for example let's imagine that we're dealing with seasonal data here we've plotted out a seasonal
+
+38
+00:02:50.830 --> 00:02:56.480
+dataset that shows airline passenger counts through the years 1949 and 1960.
+
+39
+00:02:56.660 --> 00:03:01.280
+And this actual data set is monthly data which means there's twelve points per year.
+
+40
+00:03:01.370 --> 00:03:06.470
+And if we take just a general look at this dataset it definitely appears to have some sort of seasonality
+
+41
+00:03:06.470 --> 00:03:07.580
+component to it.
+
+42
+00:03:07.640 --> 00:03:11.780
+It looks like there's it's going up and down throughout the years.
+
+43
+00:03:11.900 --> 00:03:16.850
+And that's really do if you take a closer look at this data that people have summer vacation and they
+
+44
+00:03:16.850 --> 00:03:22.640
+tend to travel more during the summer months and then we can also see correlated peaks to the kind of
+
+45
+00:03:22.640 --> 00:03:25.310
+winter holidays like Christmas or New Year's.
+
+46
+00:03:25.310 --> 00:03:30.380
+So there's definitely some seasonal trend and that sort of domain knowledge and experience and also
+
+47
+00:03:30.380 --> 00:03:36.050
+just exploring the data set using tools like pandas can lead you to understand the minimum size weight
+
+48
+00:03:36.050 --> 00:03:37.730
+training sequence.
+
+49
+00:03:37.730 --> 00:03:39.320
+So this is monthly data.
+
+50
+00:03:39.320 --> 00:03:42.890
+We should probably include at least 12 months in the training sequence.
+
+51
+00:03:42.950 --> 00:03:47.240
+So our network can learn the pattern of a year of data.
+
+52
+00:03:47.240 --> 00:03:52.160
+So given this data set we would say include at least 12 months of data or more.
+
+53
+00:03:52.160 --> 00:03:56.810
+You wouldn't want to just include five points because then you're not actually being able to learn the
+
+54
+00:03:56.810 --> 00:03:59.990
+entire pattern of a year and the seasonality of a year.
+
+55
+00:04:00.180 --> 00:04:06.400
+Again there's no definitive answer and a lot of this is domain knowledge so this often takes domain
+
+56
+00:04:06.400 --> 00:04:11.530
+knowledge and experience as well it's just simply experimenting with different training sequences different
+
+57
+00:04:11.530 --> 00:04:16.360
+numbers of Time series per batch and using some sort of metric like root mean square error to measure
+
+58
+00:04:16.360 --> 00:04:18.720
+the error of forecasts or predictions.
+
+59
+00:04:18.730 --> 00:04:25.770
+Now typically a really good starting choice for the label is just one data point into the future.
+
+60
+00:04:25.770 --> 00:04:28.230
+Now how do we actually forecast with recurrent neural networks.
+
+61
+00:04:28.560 --> 00:04:33.660
+Let's again imagine our data is 0 1 2 3 all the way up to 9 and we decided that we're going to train
+
+62
+00:04:33.660 --> 00:04:39.210
+it on sequences of four points to predict the next point and what we want to do now is we want to actually
+
+63
+00:04:39.210 --> 00:04:41.280
+forecast into the future.
+
+64
+00:04:41.280 --> 00:04:43.740
+So I want to try to predict points beyond that last.
+
+65
+00:04:43.740 --> 00:04:49.740
+Number nine how do we actually do this since I'm only predicting one time step ahead given my actual
+
+66
+00:04:49.740 --> 00:04:56.680
+training sequences well our forecasting technique is to predict as time step ahead and then incorporate
+
+67
+00:04:56.740 --> 00:04:59.550
+our prediction into the next sequence we predict off of.
+
+68
+00:04:59.830 --> 00:05:02.560
+So let me just walk you through a quick example.
+
+69
+00:05:02.860 --> 00:05:09.190
+The first thing you would do is we look at the very end of our time series and we grab a batch that
+
+70
+00:05:09.190 --> 00:05:11.280
+matches what we actually trained on.
+
+71
+00:05:11.290 --> 00:05:17.470
+So since we trained on four elements in our time series to predict one element into the future we end
+
+72
+00:05:17.470 --> 00:05:24.160
+up grabbing the very last four in our total time series and then the network ends up actually forecasting
+
+73
+00:05:24.160 --> 00:05:26.970
+a prediction into the true unknown future.
+
+74
+00:05:27.070 --> 00:05:32.500
+So no longer are we actually trying to compare to some sort of test set in this case.
+
+75
+00:05:32.500 --> 00:05:38.430
+We don't know whether or not 10 is the right answer since we're now forecasting into the unknown future.
+
+76
+00:05:38.470 --> 00:05:43.270
+So this is different between a train test split and then comparing our test results.
+
+77
+00:05:43.270 --> 00:05:48.370
+Now we're actually forecasting into the unknown future and there's really no way to tell how off we
+
+78
+00:05:48.370 --> 00:05:54.260
+are with the number 10 especially if our data doesn't have some sort of clear pattern to it.
+
+79
+00:05:54.370 --> 00:05:56.510
+You get an intuition of how far off you are.
+
+80
+00:05:56.620 --> 00:06:00.680
+For example here we can clearly see the pattern is at 1 as you go along.
+
+81
+00:06:00.760 --> 00:06:03.770
+So 10 doesn't seem to be a ridiculous prediction.
+
+82
+00:06:03.820 --> 00:06:08.320
+So we can kind of evaluate it that way though we really don't know whether or not 10 is 100 percent
+
+83
+00:06:08.320 --> 00:06:12.460
+correct for the forecast prediction since it is unknown data.
+
+84
+00:06:12.460 --> 00:06:16.030
+And then what we want to do is let's say we want to actually predict maybe four time steps into the
+
+85
+00:06:16.030 --> 00:06:17.070
+future.
+
+86
+00:06:17.260 --> 00:06:23.470
+We keep predicting further by now including our forecast prediction into our batch and essentially dropping
+
+87
+00:06:23.710 --> 00:06:24.710
+that six.
+
+88
+00:06:24.730 --> 00:06:29.860
+So then we take that pass it through our network and grab another forecast prediction and then we grab
+
+89
+00:06:29.860 --> 00:06:36.090
+that one drop what we already know and now we're basically forecasting on our forecast that values should
+
+90
+00:06:36.100 --> 00:06:40.390
+keep repeating this process and you can keep repeating this as far as you want to go.
+
+91
+00:06:40.480 --> 00:06:46.150
+But keep in mind and I've kind of shown here that the further you forecast out and then you're forecasting
+
+92
+00:06:46.240 --> 00:06:51.730
+on forecasted values and you go further and further the higher likelihood you have that your forecast
+
+93
+00:06:51.730 --> 00:06:57.100
+predictions are going to start to deviate or start varying widely.
+
+94
+00:06:57.100 --> 00:06:59.980
+And that's because you're forecasting on forecasts.
+
+95
+00:06:59.980 --> 00:07:04.790
+So any minor error is going to start getting magnified as you go further and further along.
+
+96
+00:07:04.810 --> 00:07:09.400
+I've tried to show that here by instead of getting just 11 that we get eleven point two then twelve
+
+97
+00:07:09.400 --> 00:07:13.900
+point four then 14 instead of what Bush should probably have in 13 etc..
+
+98
+00:07:14.080 --> 00:07:19.810
+Again we don't know for sure if eleven point two is actually wrong since we don't know the true values
+
+99
+00:07:19.810 --> 00:07:23.270
+here since we're forecasting into the future that we don't really know.
+
+100
+00:07:23.350 --> 00:07:28.510
+But essentially here we've completed the forecast and we do this again by grabbing our predicted forecast
+
+101
+00:07:28.600 --> 00:07:32.990
+and including it along with the data we know until we get a complete forecast.
+
+102
+00:07:33.010 --> 00:07:38.280
+And if you want you can repeat this process as far out into the future as you want so let's go ahead
+
+103
+00:07:38.310 --> 00:07:43.260
+and explore this further with Python and we'll do this by opening up Jupiter notebook and running a
+
+104
+00:07:43.260 --> 00:07:47.040
+basic recurrent neural network with a sine wave in the very next lecture.
+
+105
+00:07:47.040 --> 00:07:47.570
+I'll see you there.

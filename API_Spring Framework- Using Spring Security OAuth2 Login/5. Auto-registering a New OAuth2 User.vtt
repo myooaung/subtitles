@@ -1,0 +1,453 @@
+WEBVTT
+1
+00:00:01.740 --> 00:00:03.950
+In the traditional implementation,
+
+2
+00:00:03.950 --> 00:00:07.400
+the user fills in a registration form first with the
+
+3
+00:00:07.400 --> 00:00:09.380
+necessary information required.
+
+4
+00:00:09.380 --> 00:00:13.010
+This then create a new user, links them to a new portfolio,
+
+5
+00:00:13.010 --> 00:00:16.540
+and sets everything up in a database, and then the user signs in.
+
+6
+00:00:16.540 --> 00:00:21.440
+Now, with social login, the idea is to make it as simple and smooth as possible,
+
+7
+00:00:21.440 --> 00:00:24.040
+one‑click registration and sign‑in.
+
+8
+00:00:24.040 --> 00:00:29.240
+So if it's the first time the user signs in via social login,
+
+9
+00:00:29.240 --> 00:00:34.110
+we need to also create a new portfolio for the user and link it
+
+10
+00:00:34.110 --> 00:00:38.710
+to their social provider's identity so that we can retrieve the
+
+11
+00:00:38.710 --> 00:00:40.970
+portfolio each time they sign in.
+
+12
+00:00:40.970 --> 00:00:43.190
+With an OpenID Connect provider,
+
+13
+00:00:43.190 --> 00:00:48.680
+we can be confident that the subject claim will uniquely identify the
+
+14
+00:00:48.680 --> 00:00:53.640
+user as the spec demands that it's a unique identifier.
+
+15
+00:00:53.640 --> 00:00:57.950
+For OAuth 2, however, you would need to check the provider's documents.
+
+16
+00:00:57.950 --> 00:01:02.980
+Now, Facebook have an ID field that we can use for this; however,
+
+17
+00:01:02.980 --> 00:01:04.050
+when using other providers,
+
+18
+00:01:04.050 --> 00:01:07.680
+make sure the identifier you choose is unique as some
+
+19
+00:01:07.680 --> 00:01:10.100
+providers might allow users to change emails,
+
+20
+00:01:10.100 --> 00:01:10.770
+etc.
+
+21
+00:01:10.770 --> 00:01:14.050
+So be aware of that before considering whatever claim you're
+
+22
+00:01:14.050 --> 00:01:16.230
+going to use to uniquely identify the user.
+
+23
+00:01:16.230 --> 00:01:20.280
+You don't want a situation where the user changes their email or changes
+
+24
+00:01:20.280 --> 00:01:24.140
+some sort of identifier and loses track of their portfolio.
+
+25
+00:01:24.140 --> 00:01:28.640
+Now, in our code, we can use the AuthenticationSuccessHandler,
+
+26
+00:01:28.640 --> 00:01:30.490
+which as the name suggests,
+
+27
+00:01:30.490 --> 00:01:34.780
+gets triggered after the user has been successfully authenticated.
+
+28
+00:01:34.780 --> 00:01:37.100
+You can create a class that implements the
+
+29
+00:01:37.100 --> 00:01:40.040
+AuthenticationSuccessHandler interface,
+
+30
+00:01:40.040 --> 00:01:45.620
+overriding the onAuthenticationSuccess method that gives you access to the HTTP
+
+31
+00:01:45.620 --> 00:01:49.820
+request and response objects and the authentication object.
+
+32
+00:01:49.820 --> 00:01:53.130
+I'm going to annotate it with component as I need the
+
+33
+00:01:53.130 --> 00:01:56.240
+following services to be autowired in.
+
+34
+00:01:56.240 --> 00:01:58.990
+Then in our SecurityConfiguration adapter,
+
+35
+00:01:58.990 --> 00:02:02.680
+just plug in the handler via the OAuth 2 builder. Okay,
+
+36
+00:02:02.680 --> 00:02:03.320
+that's it.
+
+37
+00:02:03.320 --> 00:02:05.270
+Let's get back to our success handler.
+
+38
+00:02:05.270 --> 00:02:09.140
+So in this class, we can then check if the user has a portfolio.
+
+39
+00:02:09.140 --> 00:02:09.690
+If not,
+
+40
+00:02:09.690 --> 00:02:13.840
+we'll create one for them and perform any sort of setups we might require.
+
+41
+00:02:13.840 --> 00:02:16.740
+We could even redirect them to different parts of the application.
+
+42
+00:02:16.740 --> 00:02:21.420
+One thing to note is that Spring also supports an AuthenticationFailureHandler,
+
+43
+00:02:21.420 --> 00:02:22.660
+which as the name suggests,
+
+44
+00:02:22.660 --> 00:02:26.130
+is the inverse. It would trigger if an authentication
+
+45
+00:02:26.130 --> 00:02:29.530
+fails. You can also get the authentication that uses
+
+46
+00:02:29.530 --> 00:02:32.540
+details via the Authentication object,
+
+47
+00:02:32.540 --> 00:02:36.800
+which is an interface. as there are many different implementations of this
+
+48
+00:02:36.800 --> 00:02:42.370
+interface depending on how the user was authenticated. Our demo application
+
+49
+00:02:42.370 --> 00:02:47.240
+supports form, OAuth 2, and OpenID Connect.
+
+50
+00:02:47.240 --> 00:02:51.060
+So depending on how the user signed in, the implementation of this
+
+51
+00:02:51.060 --> 00:02:54.680
+authentication object will be different, either a
+
+52
+00:02:54.680 --> 00:02:59.190
+UsernameAndPasswordAuthenticationToken or an OAuth2AuthenticationToken,
+
+53
+00:02:59.190 --> 00:03:03.440
+hence you might need to check the type of this object.
+
+54
+00:03:03.440 --> 00:03:06.580
+Now, I'm going to put a breakpoint here to show you this object.
+
+55
+00:03:06.580 --> 00:03:10.120
+It's authenticated, the authorizedClient is facebook,
+
+56
+00:03:10.120 --> 00:03:11.290
+the principle,
+
+57
+00:03:11.290 --> 00:03:15.740
+which is the object that represents the logged‑in user, you can see it has all
+
+58
+00:03:15.740 --> 00:03:19.230
+the attributes returned back from the user and for endpoint.
+
+59
+00:03:19.230 --> 00:03:22.240
+There is also a nameAttributeKey field,
+
+60
+00:03:22.240 --> 00:03:26.640
+which is the attribute that represents the unique ID for this user.
+
+61
+00:03:26.640 --> 00:03:31.740
+Now, using the ID, we can check if there is a portfolio.
+
+62
+00:03:31.740 --> 00:03:32.280
+If not,
+
+63
+00:03:32.280 --> 00:03:35.270
+we can automatically register the user based on the
+
+64
+00:03:35.270 --> 00:03:37.940
+claims returned from the OAuth 2 provider.
+
+65
+00:03:37.940 --> 00:03:39.560
+Let's start with Facebook.
+
+66
+00:03:39.560 --> 00:03:43.280
+We can use the getAuthorizedClientRegistrationId to determine
+
+67
+00:03:43.280 --> 00:03:46.040
+which provider the user signed in with,
+
+68
+00:03:46.040 --> 00:03:51.580
+and then we can prepopulate the user registration request with
+
+69
+00:03:51.580 --> 00:03:54.620
+the first and lastName, email, username.
+
+70
+00:03:54.620 --> 00:03:57.510
+Now, because Facebook doesn't support OpenID Connect,
+
+71
+00:03:57.510 --> 00:04:00.830
+you have to go through their documentation to find out all the field names,
+
+72
+00:04:00.830 --> 00:04:03.740
+etc., so the relevant information that you need.
+
+73
+00:04:03.740 --> 00:04:07.780
+So let's set the email. Now, for the name, Facebook sends the whole name,
+
+74
+00:04:07.780 --> 00:04:09.890
+so we need to split the string.
+
+75
+00:04:09.890 --> 00:04:11.140
+Job done.
+
+76
+00:04:11.140 --> 00:04:14.640
+The user is now registered without filling in any form,
+
+77
+00:04:14.640 --> 00:04:17.400
+and we don't have to store any of their fields or
+
+78
+00:04:17.400 --> 00:04:22.120
+passwords in a data store; however, if you need additional information,
+
+79
+00:04:22.120 --> 00:04:26.270
+you can always redirect the user to a follow‑up registration
+
+80
+00:04:26.270 --> 00:04:29.640
+form or request form that they need to fill in.
+
+81
+00:04:29.640 --> 00:04:35.920
+Now, Google, it's an OpenID Connect provider, so it's super easy for developers.
+
+82
+00:04:35.920 --> 00:04:39.770
+You will now see the benefits of using OpenID Connect as we can now
+
+83
+00:04:39.770 --> 00:04:43.110
+use the same code for each OpenID Connect provider.
+
+84
+00:04:43.110 --> 00:04:46.650
+The principal object will be of type OidcUser,
+
+85
+00:04:46.650 --> 00:04:49.440
+and it extends the OAuth2 user,
+
+86
+00:04:49.440 --> 00:04:53.440
+which makes sense as OpenID Connect is built on top of OAuth2.
+
+87
+00:04:53.440 --> 00:04:55.290
+Now, for this object,
+
+88
+00:04:55.290 --> 00:04:59.580
+Spring has mapped all the OpenID Connect specification fields
+
+89
+00:04:59.580 --> 00:05:01.850
+and provided getters and setters for you.
+
+90
+00:05:01.850 --> 00:05:03.270
+So for username,
+
+91
+00:05:03.270 --> 00:05:08.190
+we can safely use the subject field, no matter what provider it is as OpenID
+
+92
+00:05:08.190 --> 00:05:10.900
+Connect clearly states that this field must be unique.
+
+93
+00:05:10.900 --> 00:05:16.240
+Now, additionally, the OicdUser also gives you access to the identity token.
+
+94
+00:05:16.240 --> 00:05:18.740
+There, nice and easy.
+
+95
+00:05:18.740 --> 00:05:22.760
+Wouldn't the world be wonderful if we could also have getters for
+
+96
+00:05:22.760 --> 00:05:25.610
+the non‑OpenID Connect providers, like Facebook?
+
+97
+00:05:25.610 --> 00:05:28.740
+Well, the Spring team have kind of made that possible.
+
+98
+00:05:28.740 --> 00:05:32.860
+All you need to do is create a bin class that implements the OAuth2
+
+99
+00:05:32.860 --> 00:05:36.100
+user interface and override the required methods.
+
+100
+00:05:36.100 --> 00:05:39.010
+Now, for all the claims attributes that you need,
+
+101
+00:05:39.010 --> 00:05:42.360
+create setters and getters for them and make sure the names
+
+102
+00:05:42.360 --> 00:05:46.570
+match the attributes. Spring will then map them to these
+
+103
+00:05:46.570 --> 00:05:49.060
+objects for you. For authorities,
+
+104
+00:05:49.060 --> 00:05:53.270
+I'll just return ROLE_USER, which is the default for Spring, and you
+
+105
+00:05:53.270 --> 00:05:56.140
+can also populate the AttributeMap if you want.
+
+106
+00:05:56.140 --> 00:05:59.540
+Now, this is also a very cool security feature as you're limiting
+
+107
+00:05:59.540 --> 00:06:03.850
+the user data your application is exposed to, which then limits the
+
+108
+00:06:03.850 --> 00:06:08.170
+impact of any breaches, say someone decides to log this object and
+
+109
+00:06:08.170 --> 00:06:11.280
+then someone scrapes from your logs, so you should always use the
+
+110
+00:06:11.280 --> 00:06:13.190
+bare minimum required.
+
+111
+00:06:13.190 --> 00:06:16.740
+In fact, that's generally now a requirement by law.
+
+112
+00:06:16.740 --> 00:06:22.640
+Now, let's refactor our AuthenticationSuccessHandler. Much better.
+
+113
+00:06:22.640 --> 00:06:31.000
+Next, let's look at the authentication object in more detail and how you can use it throughout your application.
+

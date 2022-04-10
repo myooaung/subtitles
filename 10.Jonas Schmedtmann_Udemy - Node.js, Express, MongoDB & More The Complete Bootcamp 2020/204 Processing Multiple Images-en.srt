@@ -1,0 +1,1264 @@
+1
+00:00:01,210 --> 00:00:04,730
+<v Jonas>In this second part of uploading tour images,</v>
+
+2
+00:00:04,730 --> 00:00:06,943
+we are now going to process all of them.
+
+3
+00:00:08,670 --> 00:00:10,300
+But before we start doing that,
+
+4
+00:00:10,300 --> 00:00:12,330
+there's actually something that I need to fix
+
+5
+00:00:12,330 --> 00:00:14,500
+in the user controller.
+
+6
+00:00:14,500 --> 00:00:18,530
+And so actually in this resizeUserPhoto,
+
+7
+00:00:18,530 --> 00:00:21,110
+and that is that we actually need
+
+8
+00:00:21,110 --> 00:00:25,210
+to await this whole operation here, all right?
+
+9
+00:00:25,210 --> 00:00:28,940
+So all of this here will actually return a promise,
+
+10
+00:00:28,940 --> 00:00:30,640
+and that makes sense, right,
+
+11
+00:00:30,640 --> 00:00:33,950
+because all of these operations here, they take some time,
+
+12
+00:00:33,950 --> 00:00:36,460
+and so of course they happen in the background.
+
+13
+00:00:36,460 --> 00:00:38,390
+So they are asynchronous code,
+
+14
+00:00:38,390 --> 00:00:41,850
+and so obviously they should not block the event loop.
+
+15
+00:00:41,850 --> 00:00:43,940
+Now the problem here is that right now
+
+16
+00:00:43,940 --> 00:00:46,260
+we're calling this next function here,
+
+17
+00:00:46,260 --> 00:00:49,030
+so the next middleware, without actually waiting
+
+18
+00:00:49,030 --> 00:00:51,330
+that these operations here finish.
+
+19
+00:00:51,330 --> 00:00:53,380
+And that is not a good idea.
+
+20
+00:00:53,380 --> 00:00:55,653
+And so let's simply use await here,
+
+21
+00:00:56,800 --> 00:01:01,483
+and then of course async, and all that stuff.
+
+22
+00:01:02,520 --> 00:01:04,483
+So catchAsync in here.
+
+23
+00:01:07,110 --> 00:01:11,020
+All right, give it a save, and that's much better.
+
+24
+00:01:11,020 --> 00:01:12,930
+And so now we're actually going to do something
+
+25
+00:01:12,930 --> 00:01:15,580
+very similar with our tour images.
+
+26
+00:01:15,580 --> 00:01:18,150
+And so actually let me go ahead and copy this.
+
+27
+00:01:20,850 --> 00:01:22,540
+All right, and although it's not going
+
+28
+00:01:22,540 --> 00:01:26,923
+to be exactly the same, it's good to already have it here.
+
+29
+00:01:28,760 --> 00:01:31,113
+So this one will also be an async function.
+
+30
+00:01:36,440 --> 00:01:39,320
+All right, now just as before,
+
+31
+00:01:39,320 --> 00:01:41,740
+in case there are no images uploaded,
+
+32
+00:01:41,740 --> 00:01:44,390
+then we want to move straight to the next middleware.
+
+33
+00:01:45,770 --> 00:01:50,290
+So if there are no request.files,
+
+34
+00:01:50,290 --> 00:01:52,620
+and actually I'm gonna take it one step further,
+
+35
+00:01:52,620 --> 00:01:55,300
+requiring that there is both the image cover
+
+36
+00:01:55,300 --> 00:01:56,690
+and also images.
+
+37
+00:01:56,690 --> 00:01:59,450
+And so basically we want to move to the next middleware
+
+38
+00:01:59,450 --> 00:02:02,663
+in case there is no request.files.imageCover,
+
+39
+00:02:06,150 --> 00:02:11,150
+or no request.files.images.
+
+40
+00:02:15,240 --> 00:02:18,463
+So in that case, next.
+
+41
+00:02:20,840 --> 00:02:24,003
+Okay, and now let's start by processing the cover image,
+
+42
+00:02:26,860 --> 00:02:31,420
+and then afterwards all of the other images
+
+43
+00:02:31,420 --> 00:02:32,623
+in a loop, basically.
+
+44
+00:02:34,220 --> 00:02:36,170
+So other images.
+
+45
+00:02:36,170 --> 00:02:39,550
+Now where do we actually get the cover image?
+
+46
+00:02:39,550 --> 00:02:44,460
+Well remember how I said that it is at request.files?
+
+47
+00:02:44,460 --> 00:02:47,403
+No longer file, and then .coverImage,
+
+48
+00:02:49,080 --> 00:02:50,610
+or actually imageCover.
+
+49
+00:02:50,610 --> 00:02:52,653
+And then remember how it was an array?
+
+50
+00:02:53,610 --> 00:02:56,113
+So let's take a look at that one more time.
+
+51
+00:02:58,850 --> 00:03:02,170
+Right, so all of this is request.files,
+
+52
+00:03:02,170 --> 00:03:05,161
+and then from there we take imageCover,
+
+53
+00:03:05,161 --> 00:03:07,950
+and that is an array of one element.
+
+54
+00:03:07,950 --> 00:03:11,710
+And so now we want the element number zero,
+
+55
+00:03:11,710 --> 00:03:13,780
+and then .buffer.
+
+56
+00:03:13,780 --> 00:03:17,120
+So this weird looking thing here.
+
+57
+00:03:17,120 --> 00:03:20,750
+Then we want to resize it to a 2/3 ratio,
+
+58
+00:03:20,750 --> 00:03:23,710
+and the width will be 2,000 pixels,
+
+59
+00:03:23,710 --> 00:03:28,090
+and the height 1,333, all right?
+
+60
+00:03:28,090 --> 00:03:31,380
+And so again, that's a nice 3/2 ratio,
+
+61
+00:03:31,380 --> 00:03:33,750
+which is very common in images.
+
+62
+00:03:33,750 --> 00:03:38,687
+Next, we also want to format it as a JPEG with 90% quality,
+
+63
+00:03:38,687 --> 00:03:40,820
+and then save it as a file.
+
+64
+00:03:40,820 --> 00:03:43,763
+But this time it is to image/tours,
+
+65
+00:03:45,828 --> 00:03:49,230
+and here let's actually define our filename separately.
+
+66
+00:03:50,890 --> 00:03:54,480
+All right, because we're actually going to need it again.
+
+67
+00:03:54,480 --> 00:03:56,557
+So imageCoverFilename,
+
+68
+00:04:00,330 --> 00:04:04,110
+and so once more we now need to create a unique filename.
+
+69
+00:04:04,110 --> 00:04:08,070
+So now it's tour, and then let's again put the ID
+
+70
+00:04:08,070 --> 00:04:12,380
+of the tour here, where before it was the ID of the user.
+
+71
+00:04:12,380 --> 00:04:16,010
+And so that is at request.params,
+
+72
+00:04:16,010 --> 00:04:17,770
+so remember that this route
+
+73
+00:04:17,770 --> 00:04:20,140
+will always contain the ID of the tour,
+
+74
+00:04:20,140 --> 00:04:24,393
+and so therefore it's on request.params.id.
+
+75
+00:04:26,290 --> 00:04:31,290
+Then again the timestamp, Date.now,
+
+76
+00:04:33,810 --> 00:04:38,060
+and then let's say that this one is the cover image, okay?
+
+77
+00:04:38,060 --> 00:04:40,720
+And the other ones will then get some numbers.
+
+78
+00:04:40,720 --> 00:04:44,843
+And then of course .jpeg, and so let's use that here.
+
+79
+00:04:45,890 --> 00:04:47,807
+So imageCoverFilename.
+
+80
+00:04:49,130 --> 00:04:52,100
+Okay, and now as one last step,
+
+81
+00:04:52,100 --> 00:04:53,720
+we actually need to make it possible
+
+82
+00:04:53,720 --> 00:04:55,660
+that our update tour handler
+
+83
+00:04:55,660 --> 00:04:59,230
+then picks up this image cover filename to update it
+
+84
+00:04:59,230 --> 00:05:01,680
+in the current tour document, okay?
+
+85
+00:05:01,680 --> 00:05:03,290
+So let's quickly take a look
+
+86
+00:05:03,290 --> 00:05:06,830
+at how the document is actually updated.
+
+87
+00:05:06,830 --> 00:05:08,780
+And so we're very simply using
+
+88
+00:05:08,780 --> 00:05:11,290
+this updateOne factory function.
+
+89
+00:05:11,290 --> 00:05:14,430
+And that one will actually simply update all of the data
+
+90
+00:05:14,430 --> 00:05:17,163
+that's in the body onto the new document.
+
+91
+00:05:18,460 --> 00:05:21,670
+So just to prove that to you right here.
+
+92
+00:05:21,670 --> 00:05:26,670
+So updateOne, it takes in the entire request.body, okay?
+
+93
+00:05:26,730 --> 00:05:29,920
+And so now the secret is to actually put
+
+94
+00:05:29,920 --> 00:05:34,313
+this image cover filename on request.body, all right?
+
+95
+00:05:36,720 --> 00:05:39,760
+So request.body.coverImage.
+
+96
+00:05:41,840 --> 00:05:45,270
+Oh and again, it's called imageCover instead,
+
+97
+00:05:45,270 --> 00:05:49,850
+should be equal to imageCoverFilename, okay, makes sense?
+
+98
+00:05:52,350 --> 00:05:54,350
+And of course it is called imageCover
+
+99
+00:05:54,350 --> 00:05:57,710
+because that is the name we have in our schema definition.
+
+100
+00:05:57,710 --> 00:05:59,730
+And so then when it's doing the update,
+
+101
+00:05:59,730 --> 00:06:02,280
+it will then match this field in the body
+
+102
+00:06:02,280 --> 00:06:04,530
+with the field in our database.
+
+103
+00:06:04,530 --> 00:06:06,920
+And actually we can refactor this a bit
+
+104
+00:06:06,920 --> 00:06:10,950
+because we don't really need this variable name here at all.
+
+105
+00:06:10,950 --> 00:06:15,113
+So we could simply put this filename here right on the body.
+
+106
+00:06:16,040 --> 00:06:20,260
+So put that here, and then use it here right away.
+
+107
+00:06:20,260 --> 00:06:23,390
+So we don't need this line of code at all.
+
+108
+00:06:23,390 --> 00:06:27,430
+Great, and now before moving on to the other images,
+
+109
+00:06:27,430 --> 00:06:29,940
+let's actually test it with what we already have
+
+110
+00:06:29,940 --> 00:06:30,903
+at this point.
+
+111
+00:06:31,980 --> 00:06:35,080
+So let's get just rid of this console.log,
+
+112
+00:06:35,080 --> 00:06:37,170
+and so when we now do the request,
+
+113
+00:06:37,170 --> 00:06:40,100
+then our cover image should already be uploaded
+
+114
+00:06:40,100 --> 00:06:43,950
+and be put in the tour document, okay?
+
+115
+00:06:43,950 --> 00:06:46,870
+So these other three images here of course not,
+
+116
+00:06:46,870 --> 00:06:48,300
+but at least the image cover
+
+117
+00:06:48,300 --> 00:06:50,183
+should now be working at this point,
+
+118
+00:06:51,340 --> 00:06:53,253
+at least if we did everything correct.
+
+119
+00:06:54,410 --> 00:06:56,863
+So let's see if it is somewhere here,
+
+120
+00:06:57,760 --> 00:06:59,963
+and images is still empty obviously.
+
+121
+00:07:00,970 --> 00:07:05,970
+But I'm searching now for the cover image, so where is that?
+
+122
+00:07:06,640 --> 00:07:09,280
+And here it is, so imageCover,
+
+123
+00:07:09,280 --> 00:07:11,843
+and so that looks a lot like the filename
+
+124
+00:07:11,843 --> 00:07:13,970
+that we just specified.
+
+125
+00:07:13,970 --> 00:07:18,970
+And let's actually try to reload our all tours page here,
+
+126
+00:07:21,130 --> 00:07:23,550
+and maybe our new tour's already here.
+
+127
+00:07:23,550 --> 00:07:28,430
+Ah, here we go, so that is the new mountain biker tour.
+
+128
+00:07:28,430 --> 00:07:32,180
+And this here is indeed the image that we just uploaded.
+
+129
+00:07:32,180 --> 00:07:34,090
+So beautiful.
+
+130
+00:07:34,090 --> 00:07:36,300
+Now if we try to open up this page,
+
+131
+00:07:36,300 --> 00:07:40,870
+then the other images are not here, all right?
+
+132
+00:07:40,870 --> 00:07:42,780
+So they are nowhere to be found,
+
+133
+00:07:42,780 --> 00:07:45,513
+and so of course that's what we're gonna do next.
+
+134
+00:07:47,520 --> 00:07:48,353
+All right.
+
+135
+00:07:50,340 --> 00:07:52,820
+So remember that our images here
+
+136
+00:07:52,820 --> 00:07:55,700
+are also an array, which then contain
+
+137
+00:07:55,700 --> 00:07:59,360
+all of these new file uploads.
+
+138
+00:07:59,360 --> 00:08:01,500
+And so let's now actually use a loop
+
+139
+00:08:01,500 --> 00:08:03,833
+to process each of them in one iteration.
+
+140
+00:08:04,900 --> 00:08:09,700
+So request.files.images.foreach.
+
+141
+00:08:14,330 --> 00:08:15,810
+And then our callback function
+
+142
+00:08:15,810 --> 00:08:18,823
+in which we get access to the current file.
+
+143
+00:08:21,200 --> 00:08:23,780
+All right, now here we do actually need
+
+144
+00:08:23,780 --> 00:08:26,560
+to create the current filename,
+
+145
+00:08:26,560 --> 00:08:28,210
+and you will see why in a second.
+
+146
+00:08:29,550 --> 00:08:33,850
+So filename equals, and then something very similar to this.
+
+147
+00:08:35,758 --> 00:08:38,160
+With the difference that now it is not cover,
+
+148
+00:08:38,160 --> 00:08:41,230
+but instead we want to call them one, two and three.
+
+149
+00:08:41,230 --> 00:08:43,040
+And so in our callback function
+
+150
+00:08:43,040 --> 00:08:47,173
+we actually also get access to the current index, okay?
+
+151
+00:08:48,920 --> 00:08:53,920
+So we need file, and I for index.
+
+152
+00:08:54,220 --> 00:08:57,923
+And so here it is not cover, but index plus one.
+
+153
+00:09:00,330 --> 00:09:04,240
+So plus one, and that's just because this index
+
+154
+00:09:04,240 --> 00:09:09,010
+is zero-based, all right?
+
+155
+00:09:09,010 --> 00:09:11,693
+Next up comes the processing step itself,
+
+156
+00:09:13,060 --> 00:09:15,603
+which is again very similar to this one.
+
+157
+00:09:17,400 --> 00:09:21,873
+And now we of course need to mark this as async as well.
+
+158
+00:09:23,660 --> 00:09:27,083
+All right, and down here it is now the filename.
+
+159
+00:09:29,360 --> 00:09:33,570
+Okay, now why do we actually need this filename?
+
+160
+00:09:33,570 --> 00:09:37,250
+Well we need it because now we need to push this filename
+
+161
+00:09:37,250 --> 00:09:42,250
+into request.body.images, and so that's the exact same logic
+
+162
+00:09:42,280 --> 00:09:45,913
+as we had here before on request.body.imageCover.
+
+163
+00:09:47,040 --> 00:09:49,020
+So remember that in our collection,
+
+164
+00:09:49,020 --> 00:09:52,870
+request.body.images is actually an array.
+
+165
+00:09:52,870 --> 00:09:55,610
+And so now we need to create that array
+
+166
+00:09:55,610 --> 00:09:57,343
+and start it as an empty array.
+
+167
+00:09:58,400 --> 00:10:01,430
+So request.body.images
+
+168
+00:10:03,870 --> 00:10:07,150
+as an empty array, and then in each iteration
+
+169
+00:10:07,150 --> 00:10:09,720
+we will then push the current filename
+
+170
+00:10:09,720 --> 00:10:11,770
+to this images array.
+
+171
+00:10:11,770 --> 00:10:15,070
+So request.body.images.push,
+
+172
+00:10:19,580 --> 00:10:23,370
+the filename, all right?
+
+173
+00:10:23,370 --> 00:10:25,100
+And with this we're almost done.
+
+174
+00:10:25,100 --> 00:10:27,020
+There's just one small problem,
+
+175
+00:10:27,020 --> 00:10:28,530
+which is the fact that we're actually
+
+176
+00:10:28,530 --> 00:10:31,710
+not using async await correctly here in this case,
+
+177
+00:10:31,710 --> 00:10:33,200
+so in this loop.
+
+178
+00:10:33,200 --> 00:10:35,560
+And that's because this async await here
+
+179
+00:10:35,560 --> 00:10:38,450
+is only inside of this callback function
+
+180
+00:10:38,450 --> 00:10:40,550
+of the foreach loop.
+
+181
+00:10:40,550 --> 00:10:42,880
+And so that will actually not stop the code
+
+182
+00:10:42,880 --> 00:10:46,300
+from moving right next to this line
+
+183
+00:10:46,300 --> 00:10:49,390
+where we then call the next middleware, okay?
+
+184
+00:10:49,390 --> 00:10:52,510
+So again, right now we are actually not awaiting
+
+185
+00:10:52,510 --> 00:10:55,940
+any of this here, again, because this async await
+
+186
+00:10:55,940 --> 00:10:58,000
+happens inside of the callback function
+
+187
+00:10:58,000 --> 00:11:00,440
+of one of these loop methods.
+
+188
+00:11:00,440 --> 00:11:03,310
+And we run into this kind of problem actually before,
+
+189
+00:11:03,310 --> 00:11:06,040
+but there is fortunately a solution for this,
+
+190
+00:11:06,040 --> 00:11:08,970
+because since this is an async function here,
+
+191
+00:11:08,970 --> 00:11:11,470
+it will return a new promise.
+
+192
+00:11:11,470 --> 00:11:13,610
+And so if we do a map,
+
+193
+00:11:13,610 --> 00:11:17,210
+we can then actually save an array of all of these promises.
+
+194
+00:11:17,210 --> 00:11:18,910
+And then if we have an array
+
+195
+00:11:18,910 --> 00:11:22,190
+we can use promise.all to await all of them.
+
+196
+00:11:22,190 --> 00:11:24,530
+And so with that we will then actually await
+
+197
+00:11:24,530 --> 00:11:27,000
+until all this code, and in this case,
+
+198
+00:11:27,000 --> 00:11:29,340
+until all this image processing is done,
+
+199
+00:11:29,340 --> 00:11:32,180
+and only then move on to the next line,
+
+200
+00:11:32,180 --> 00:11:34,290
+which is calling the next middleware
+
+201
+00:11:34,290 --> 00:11:37,000
+to really update the tour documents.
+
+202
+00:11:37,000 --> 00:11:38,960
+And if we didn't do that in this case,
+
+203
+00:11:38,960 --> 00:11:41,020
+it would really not work at all,
+
+204
+00:11:41,020 --> 00:11:44,090
+because without this pushing here,
+
+205
+00:11:44,090 --> 00:11:48,260
+the request.body.images would still be empty
+
+206
+00:11:48,260 --> 00:11:49,460
+when we call next.
+
+207
+00:11:49,460 --> 00:11:51,880
+And so therefore, none of these image names
+
+208
+00:11:51,880 --> 00:11:55,260
+would then be persisted into the document, okay?
+
+209
+00:11:55,260 --> 00:11:57,630
+So let's now use promise.all,
+
+210
+00:11:57,630 --> 00:12:02,250
+and actually I'm not even saving this array here
+
+211
+00:12:02,250 --> 00:12:06,340
+to any variable, instead I will use promise.all
+
+212
+00:12:06,340 --> 00:12:07,913
+right away on this.
+
+213
+00:12:09,030 --> 00:12:14,030
+So await Promise.all
+
+214
+00:12:15,010 --> 00:12:17,963
+on the array returning from this, okay?
+
+215
+00:12:19,870 --> 00:12:21,906
+So I hope that made sense.
+
+216
+00:12:21,906 --> 00:12:25,093
+So now let's actually log the body here to the console.
+
+217
+00:12:28,390 --> 00:12:32,190
+All right, and so with this we should now be ready
+
+218
+00:12:32,190 --> 00:12:35,560
+to upload all of our images, all right?
+
+219
+00:12:35,560 --> 00:12:40,560
+Let's go down here and try this again.
+
+220
+00:12:44,290 --> 00:12:46,903
+All right, so where is our images array?
+
+221
+00:12:54,440 --> 00:12:57,800
+Well, maybe it was somewhere up here, ah, here it is.
+
+222
+00:12:57,800 --> 00:12:59,660
+So I missed that somehow.
+
+223
+00:12:59,660 --> 00:13:03,300
+And that looks very promising, right?
+
+224
+00:13:03,300 --> 00:13:05,730
+So three nice images,
+
+225
+00:13:05,730 --> 00:13:08,693
+let's now take a look here at our page.
+
+226
+00:13:10,910 --> 00:13:15,910
+Ah, there they are, but not quite correct, right?
+
+227
+00:13:15,980 --> 00:13:18,540
+So it looks as if we simply uploaded
+
+228
+00:13:18,540 --> 00:13:20,943
+the cover image three times.
+
+229
+00:13:22,050 --> 00:13:24,710
+So let's take a look at Postman,
+
+230
+00:13:24,710 --> 00:13:26,840
+but the image names are actually correct,
+
+231
+00:13:26,840 --> 00:13:29,963
+and so there's something wrong in our processing there.
+
+232
+00:13:32,470 --> 00:13:37,050
+Let's take a look also at requests.body, oh,
+
+233
+00:13:37,050 --> 00:13:39,243
+and I forgot to actually put it here.
+
+234
+00:13:41,820 --> 00:13:44,220
+Okay, but I think it's not even necessary
+
+235
+00:13:44,220 --> 00:13:45,700
+because we just saw in Postman
+
+236
+00:13:45,700 --> 00:13:47,763
+that the filenames are actually correct.
+
+237
+00:13:48,630 --> 00:13:50,630
+So we don't need this one anymore.
+
+238
+00:13:50,630 --> 00:13:53,150
+Now let's just take a look at the filenames
+
+239
+00:13:53,150 --> 00:13:58,150
+that we just uploaded, so that's in public and tours.
+
+240
+00:14:00,570 --> 00:14:01,673
+And so here they are.
+
+241
+00:14:04,120 --> 00:14:07,763
+So this was probably the first one from the last test.
+
+242
+00:14:10,980 --> 00:14:13,860
+And so as you see, all of them are, indeed,
+
+243
+00:14:13,860 --> 00:14:15,920
+the exact same image.
+
+244
+00:14:15,920 --> 00:14:20,720
+So cover, one, two, and three
+
+245
+00:14:20,720 --> 00:14:23,760
+are the same images, and so that's not correct.
+
+246
+00:14:23,760 --> 00:14:27,500
+And I can see actually right away what the problem is.
+
+247
+00:14:27,500 --> 00:14:30,980
+So you see that we're actually reading, still,
+
+248
+00:14:30,980 --> 00:14:33,950
+request.files.imageCover,
+
+249
+00:14:33,950 --> 00:14:37,533
+and not the file from the current iteration of this loop.
+
+250
+00:14:39,090 --> 00:14:43,107
+Okay, so instead that should be file.buffer.
+
+251
+00:14:45,930 --> 00:14:48,210
+All right, so let's actually go ahead
+
+252
+00:14:48,210 --> 00:14:50,073
+and delete all of these.
+
+253
+00:14:54,440 --> 00:14:57,253
+All right, and simply try it again now.
+
+254
+00:14:59,490 --> 00:15:00,653
+So let's send that.
+
+255
+00:15:03,220 --> 00:15:05,633
+Names appear still to be correct,
+
+256
+00:15:06,810 --> 00:15:10,310
+but now when we reload this, let's see.
+
+257
+00:15:10,310 --> 00:15:12,680
+Ah, that looks correct.
+
+258
+00:15:12,680 --> 00:15:14,260
+Beautiful, beautiful.
+
+259
+00:15:14,260 --> 00:15:17,120
+You see the images are all nicely formatted,
+
+260
+00:15:17,120 --> 00:15:19,480
+even this one which was, remember,
+
+261
+00:15:19,480 --> 00:15:21,720
+in portrait and not even landscape,
+
+262
+00:15:21,720 --> 00:15:24,913
+but we basically cropped that and it still looks beautiful.
+
+263
+00:15:26,300 --> 00:15:29,473
+Okay, so here we can now confirm that,
+
+264
+00:15:31,000 --> 00:15:34,993
+so that it's actually in the 2,000s by 1,333 pixels.
+
+265
+00:15:37,220 --> 00:15:40,880
+All right, it's still a little bit on the big side here,
+
+266
+00:15:40,880 --> 00:15:44,360
+so maybe we could reduce the quality a little bit more,
+
+267
+00:15:44,360 --> 00:15:46,280
+but that's not really important.
+
+268
+00:15:46,280 --> 00:15:47,943
+What really matters here is that the logic
+
+269
+00:15:47,943 --> 00:15:51,350
+that we just applied here really works.
+
+270
+00:15:51,350 --> 00:15:55,233
+So just to quickly recap what we did in these two lectures.
+
+271
+00:15:56,820 --> 00:16:00,920
+So we created a multer upload using the memory storage
+
+272
+00:16:00,920 --> 00:16:03,183
+and this filter only for images.
+
+273
+00:16:04,330 --> 00:16:07,370
+Then we created the upload tour image middleware
+
+274
+00:16:07,370 --> 00:16:11,490
+by using upload.fields, which takes in one image cover
+
+275
+00:16:11,490 --> 00:16:14,570
+and three images, and then on the request
+
+276
+00:16:14,570 --> 00:16:19,020
+it will put the files property like this, all right?
+
+277
+00:16:19,020 --> 00:16:22,600
+Then in our next middleware we resize these images,
+
+278
+00:16:22,600 --> 00:16:24,170
+and first the cover image,
+
+279
+00:16:24,170 --> 00:16:27,090
+and then the remaining three images.
+
+280
+00:16:27,090 --> 00:16:28,930
+And what's really important to note here
+
+281
+00:16:28,930 --> 00:16:33,380
+is how we put the image filenames on request.body.
+
+282
+00:16:33,380 --> 00:16:35,620
+And we do that so that in the next middleware,
+
+283
+00:16:35,620 --> 00:16:37,570
+which is the actual route handler,
+
+284
+00:16:37,570 --> 00:16:40,230
+it will then put that data onto the new document
+
+285
+00:16:40,230 --> 00:16:42,620
+when it updates it, okay?
+
+286
+00:16:42,620 --> 00:16:44,700
+So we do that with the image cover,
+
+287
+00:16:44,700 --> 00:16:46,940
+and we also do that with the remaining images
+
+288
+00:16:46,940 --> 00:16:50,120
+by pushing it into body.images,
+
+289
+00:16:50,120 --> 00:16:52,510
+which as we know from our tour schema,
+
+290
+00:16:52,510 --> 00:16:54,920
+expects an array of strings.
+
+291
+00:16:54,920 --> 00:16:57,290
+And so in this case, filenames.
+
+292
+00:16:57,290 --> 00:16:58,980
+So about these other images,
+
+293
+00:16:58,980 --> 00:17:03,490
+we had them on request.files.images, so it's an array,
+
+294
+00:17:03,490 --> 00:17:07,150
+and so of course we loop through it using map.
+
+295
+00:17:07,150 --> 00:17:10,130
+And we use map so that we can basically save
+
+296
+00:17:10,130 --> 00:17:12,680
+the three promises which are the result
+
+297
+00:17:12,680 --> 00:17:15,710
+of these three async functions here,
+
+298
+00:17:15,710 --> 00:17:17,920
+so we can then await all of them here
+
+299
+00:17:17,920 --> 00:17:20,860
+using Promise.all, okay?
+
+300
+00:17:20,860 --> 00:17:23,680
+And only after that we then move on
+
+301
+00:17:23,680 --> 00:17:26,950
+to the actual tour update handler, okay?
+
+302
+00:17:26,950 --> 00:17:28,670
+And this part is really important,
+
+303
+00:17:28,670 --> 00:17:30,650
+so it's important that we only move on
+
+304
+00:17:30,650 --> 00:17:33,620
+to the next middleware as soon as this part here
+
+305
+00:17:33,620 --> 00:17:34,940
+is really completed.
+
+306
+00:17:34,940 --> 00:17:38,940
+Because otherwise, request.body.images will be empty,
+
+307
+00:17:38,940 --> 00:17:42,030
+and of course our filenames are then not gonna be saved
+
+308
+00:17:42,030 --> 00:17:44,633
+to the current tour document, all right?
+
+309
+00:17:45,580 --> 00:17:47,710
+And that actually wraps up the image
+
+310
+00:17:47,710 --> 00:17:51,450
+or file uploading part of this section.
+
+311
+00:17:51,450 --> 00:17:53,290
+So I hope that was fun,
+
+312
+00:17:53,290 --> 00:17:55,850
+I know that for me it was really cool.
+
+313
+00:17:55,850 --> 00:17:58,130
+So I really like this kind of stuff,
+
+314
+00:17:58,130 --> 00:18:02,570
+which makes my applications feel like really real world.
+
+315
+00:18:02,570 --> 00:18:04,470
+Anyway, hope you enjoyed it,
+
+316
+00:18:04,470 --> 00:18:06,163
+and I'll see you in the next one.
+

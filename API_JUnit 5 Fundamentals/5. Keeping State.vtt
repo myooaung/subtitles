@@ -1,0 +1,457 @@
+WEBVTT
+1
+00:00:00.940 --> 00:00:05.690
+When working with extensions, there's one important detail to consider.
+
+2
+00:00:05.690 --> 00:00:12.440
+Usually, the JUnit Jupiter engine works with one instance of an extension class.
+
+3
+00:00:12.440 --> 00:00:13.270
+However,
+
+4
+00:00:13.270 --> 00:00:17.290
+there is no guarantee when the engine is going to instantiate
+
+5
+00:00:17.290 --> 00:00:20.640
+the extension and how long it will keep it.
+
+6
+00:00:20.640 --> 00:00:24.940
+For this reason, extensions have to be stateless.
+
+7
+00:00:24.940 --> 00:00:28.350
+If you want to keep some sort of a state from one
+
+8
+00:00:28.350 --> 00:00:30.940
+invocation of an extension to the next,
+
+9
+00:00:30.940 --> 00:00:34.350
+it has to be written to a stored object that is
+
+10
+00:00:34.350 --> 00:00:37.340
+provided by the extension context.
+
+11
+00:00:37.340 --> 00:00:40.920
+This store is a key value structure, and to use it,
+
+12
+00:00:40.920 --> 00:00:43.440
+you have to provide a namespace.
+
+13
+00:00:43.440 --> 00:00:47.940
+You can use either the global namespace or create one,
+
+14
+00:00:47.940 --> 00:00:52.030
+but the context will return the store associated with that
+
+15
+00:00:52.030 --> 00:00:56.430
+namespace to prevent collisions between the different extensions
+
+16
+00:00:56.430 --> 00:01:00.040
+that could be used in the same method or class.
+
+17
+00:01:00.040 --> 00:01:06.240
+Now one thing you need to know is that there's a hierarchy of extension context.
+
+18
+00:01:06.240 --> 00:01:11.340
+There's a context at the method level, at the class level,
+
+19
+00:01:11.340 --> 00:01:13.540
+and at the engine level.
+
+20
+00:01:13.540 --> 00:01:16.440
+A store is created for each of these contexts,
+
+21
+00:01:16.440 --> 00:01:19.870
+and each store has a reference to its parent.
+
+22
+00:01:19.870 --> 00:01:20.860
+For example,
+
+23
+00:01:20.860 --> 00:01:24.930
+the store of a test method has a reference to the store of
+
+24
+00:01:24.930 --> 00:01:28.040
+the class that contains that method.
+
+25
+00:01:28.040 --> 00:01:31.000
+This way, a store can be queried for a value.
+
+26
+00:01:31.000 --> 00:01:33.690
+And if it is not found in that store,
+
+27
+00:01:33.690 --> 00:01:36.850
+the parents will be queried for a value with the
+
+28
+00:01:36.850 --> 00:01:39.740
+same key and in the same namespace.
+
+29
+00:01:39.740 --> 00:01:42.340
+This doesn't happen when you write a value.
+
+30
+00:01:42.340 --> 00:01:46.140
+The value is written at just one level.
+
+31
+00:01:46.140 --> 00:01:48.540
+So the store is a key value structure.
+
+32
+00:01:48.540 --> 00:01:53.540
+It uses a map to hold its values, but it's not a map itself.
+
+33
+00:01:53.540 --> 00:01:59.670
+It has methods to retrieve values like get or getOrComputeIfAbsent to
+
+34
+00:01:59.670 --> 00:02:05.030
+compute the default value if none is found in the current context or one of
+
+35
+00:02:05.030 --> 00:02:08.890
+its parents and methods to save and remove values,
+
+36
+00:02:08.890 --> 00:02:12.440
+like put and remove.
+
+37
+00:02:12.440 --> 00:02:16.130
+So let's implement an extension using the stores and
+
+38
+00:02:16.130 --> 00:02:20.140
+the interface ExecutionCondition.
+
+39
+00:02:20.140 --> 00:02:21.530
+In the previous clip,
+
+40
+00:02:21.530 --> 00:02:25.320
+we implemented an extension to handle exceptions of
+
+41
+00:02:25.320 --> 00:02:28.140
+type IllegalArgumentException.
+
+42
+00:02:28.140 --> 00:02:31.420
+Let's say that if a method throws this exception,
+
+43
+00:02:31.420 --> 00:02:36.940
+we'll want to disable the rest of the method from the test class.
+
+44
+00:02:36.940 --> 00:02:40.620
+So what we can do is save the exception in the context
+
+45
+00:02:40.620 --> 00:02:44.620
+store and disable the execution of the current test if
+
+46
+00:02:44.620 --> 00:02:47.240
+there's an exception in the store.
+
+47
+00:02:47.240 --> 00:02:51.780
+I could modify the exception handler extension to also implement
+
+48
+00:02:51.780 --> 00:02:56.740
+execution condition and have all this logic in one class.
+
+49
+00:02:56.740 --> 00:03:02.340
+But maybe it's better to put the conditional logic in another class.
+
+50
+00:03:02.340 --> 00:03:06.240
+So I'm going to create a class, ExtensionUtils,
+
+51
+00:03:06.240 --> 00:03:09.600
+and I'm going to add a constant,
+
+52
+00:03:09.600 --> 00:03:14.740
+the namespace I'll use to save the exception in the store.
+
+53
+00:03:14.740 --> 00:03:19.040
+Notice that Namespace is an inner class of ExtensionContext,
+
+54
+00:03:19.040 --> 00:03:24.840
+and it has a static method to create a Namespace object.
+
+55
+00:03:24.840 --> 00:03:29.750
+This method takes a variable number of arguments of type object.
+
+56
+00:03:29.750 --> 00:03:35.340
+Here, for example, I'm using some strings to create the namespace,
+
+57
+00:03:35.340 --> 00:03:37.640
+but you can use whatever you want.
+
+58
+00:03:37.640 --> 00:03:41.290
+However, the order of the objects is important.
+
+59
+00:03:41.290 --> 00:03:46.460
+Inside the namespace, these objects are stored in an array list.
+
+60
+00:03:46.460 --> 00:03:49.620
+And to check if two namespaces are the same,
+
+61
+00:03:49.620 --> 00:03:54.090
+the equals method of the array list is used.
+
+62
+00:03:54.090 --> 00:03:59.740
+Also, I'm going to add the key to save the exception in the store.
+
+63
+00:03:59.740 --> 00:04:02.240
+Now in the ExceptionHandler extension,
+
+64
+00:04:02.240 --> 00:04:07.440
+if the exception is an instance of IllegalArgumentException,
+
+65
+00:04:07.440 --> 00:04:11.640
+I'm going to save the exception in the store.
+
+66
+00:04:11.640 --> 00:04:12.940
+Great.
+
+67
+00:04:12.940 --> 00:04:16.740
+Now I'm going to create another extension,
+
+68
+00:04:16.740 --> 00:04:21.240
+DisableTestsIfExceptionThrownExtension.
+
+69
+00:04:21.240 --> 00:04:22.140
+All right,
+
+70
+00:04:22.140 --> 00:04:27.020
+this class implements ExecutionCondition and overwrites
+
+71
+00:04:27.020 --> 00:04:32.310
+the method evaluateExecutionCondition, which takes the ExtensionContext,
+
+72
+00:04:32.310 --> 00:04:38.540
+and it must return an object of type ConditionEvaluationResult.
+
+73
+00:04:38.540 --> 00:04:42.140
+This class has two methods to create results,
+
+74
+00:04:42.140 --> 00:04:47.580
+one for enabled results and another one for disabled results.
+
+75
+00:04:47.580 --> 00:04:52.800
+By default, I'm going to return and enabled result.
+
+76
+00:04:52.800 --> 00:04:57.760
+But I'll try to get from the store the exception using the
+
+77
+00:04:57.760 --> 00:05:02.290
+namespace and the key from the class ExtensionUtils.
+
+78
+00:05:02.290 --> 00:05:05.640
+And if it is different from null,
+
+79
+00:05:05.640 --> 00:05:10.140
+I'm going to return a disabled result with the reason,
+
+80
+00:05:10.140 --> 00:05:14.640
+an exception was thrown and the exception message.
+
+81
+00:05:14.640 --> 00:05:22.040
+Now I need to add this new extension to the annotation TestWithErrorHandler.
+
+82
+00:05:22.040 --> 00:05:27.940
+And if I run the Test class, it didn't work.
+
+83
+00:05:27.940 --> 00:05:31.870
+The exception was thrown, but all the tests were executed.
+
+84
+00:05:31.870 --> 00:05:36.010
+To understand what's wrong in the conditional extension,
+
+85
+00:05:36.010 --> 00:05:40.040
+I'm going to print the context object.
+
+86
+00:05:40.040 --> 00:05:44.240
+Let's run the test again.
+
+87
+00:05:44.240 --> 00:05:49.640
+We can see the types of the context objects, MethodExtensionContext.
+
+88
+00:05:49.640 --> 00:05:54.140
+And by looking at the hexadecimal representation of their hash code,
+
+89
+00:05:54.140 --> 00:05:57.140
+we can say that they are different objects,
+
+90
+00:05:57.140 --> 00:05:59.440
+and that's the reason of the error.
+
+91
+00:05:59.440 --> 00:06:04.840
+We are storing the exception in the context of the method changeAmount.
+
+92
+00:06:04.840 --> 00:06:09.940
+But this context and its store don't apply to the other methods.
+
+93
+00:06:09.940 --> 00:06:12.890
+Remember, the contexts are hierarchical.
+
+94
+00:06:12.890 --> 00:06:17.960
+So what we need to do is store the exception in a context higher in
+
+95
+00:06:17.960 --> 00:06:21.640
+the hierarchy so all the methods can access it.
+
+96
+00:06:21.640 --> 00:06:26.870
+If we store the exception in the class context, it would work for this example.
+
+97
+00:06:26.870 --> 00:06:33.140
+But what if there's a test inside an inner class, like this?
+
+98
+00:06:33.140 --> 00:06:36.840
+It would work for all the tests inside the inner class,
+
+99
+00:06:36.840 --> 00:06:40.360
+but not for the tests of the outer class because they
+
+100
+00:06:40.360 --> 00:06:43.240
+operate in a different context.
+
+101
+00:06:43.240 --> 00:06:47.810
+So in this case, our best bet is to use the engineContext,
+
+102
+00:06:47.810 --> 00:06:51.640
+the highest context in the hierarchy.
+
+103
+00:06:51.640 --> 00:06:55.940
+In ExtensionUtils, I'm going to add a new method.
+
+104
+00:06:55.940 --> 00:07:01.140
+This method is going to get the root context, the engineContext.
+
+105
+00:07:01.140 --> 00:07:04.530
+There's also a getParam method, but in this case,
+
+106
+00:07:04.530 --> 00:07:06.620
+we'll return the class context.
+
+107
+00:07:06.620 --> 00:07:10.740
+This way, in the ExceptionHandlerExtension class,
+
+108
+00:07:10.740 --> 00:07:16.290
+I just have to get the engineContext and use it here to get
+
+109
+00:07:16.290 --> 00:07:19.940
+its store and put the exception there.
+
+110
+00:07:19.940 --> 00:07:22.680
+I don't need to change the code of the conditional
+
+111
+00:07:22.680 --> 00:07:25.640
+extension because when searching for values,
+
+112
+00:07:25.640 --> 00:07:30.740
+the store will query their parents to find the value if needed.
+
+113
+00:07:30.740 --> 00:07:33.840
+And if I run the class,
+
+114
+00:07:33.840 --> 00:07:42.000
+you can see that after the execution of the changeAmount test, the rest of the tests were not executed.
+

@@ -1,0 +1,885 @@
+WEBVTT
+1
+00:00:00.732 --> 00:00:04.126
+MockMvc allows us to execute an HTTP request,
+
+2
+00:00:04.126 --> 00:00:07.818
+which could be a GET, PUT, POST, PATCH, or DELETE.
+
+3
+00:00:07.818 --> 00:00:11.037
+It defines RequestBuilders that help us define the request,
+
+4
+00:00:11.037 --> 00:00:15.706
+set any HTTP headers that we need, and then optionally specify a JSON payload.
+
+5
+00:00:15.706 --> 00:00:18.792
+It provides methods to validate the HTTP response,
+
+6
+00:00:18.792 --> 00:00:22.488
+such as the response code, as well as the content type returned.
+
+7
+00:00:22.488 --> 00:00:26.155
+It defines a set of ResultMatchers that are used in
+
+8
+00:00:26.155 --> 00:00:28.494
+conjunction with expectations about the response.
+
+9
+00:00:28.494 --> 00:00:33.384
+For example, we need to tell MockMvc that we expect a status code of 200 OK,
+
+10
+00:00:33.384 --> 00:00:38.316
+which is accomplished by using the status ResultMatcher and the value is OK.
+
+11
+00:00:38.316 --> 00:00:40.835
+Next, we're able to examine the HTTP headers,
+
+12
+00:00:40.835 --> 00:00:43.804
+such as the entity tag, as well as the location,
+
+13
+00:00:43.804 --> 00:00:45.966
+using the header's ResultMatcher.
+
+14
+00:00:45.966 --> 00:00:48.104
+You have full access to all of the headers,
+
+15
+00:00:48.104 --> 00:00:49.784
+but when testing a RESTful service,
+
+16
+00:00:49.784 --> 00:00:52.452
+the ETag and location are typically the most important.
+
+17
+00:00:52.452 --> 00:00:55.692
+Finally, we're able to validate the response body.
+
+18
+00:00:55.692 --> 00:00:58.556
+In our example, the product controller returns a JSON response,
+
+19
+00:00:58.556 --> 00:01:03.575
+so we're going to leverage the JSON path ResultMatcher to extract fields from
+
+20
+00:01:03.575 --> 00:01:07.135
+the response payload and compare them to our expected values.
+
+21
+00:01:07.135 --> 00:01:09.335
+Before we get started reviewing our unit tests,
+
+22
+00:01:09.335 --> 00:01:14.178
+let's see what a unit test looks like in Spring Boot and how we configure it.
+
+23
+00:01:14.178 --> 00:01:16.944
+First, we need to add the SpringExtension to our class.
+
+24
+00:01:16.944 --> 00:01:20.512
+Recall that in JUnit 4 we used runners to integrate
+
+25
+00:01:20.512 --> 00:01:22.348
+third-party libraries with JUnit.
+
+26
+00:01:22.348 --> 00:01:27.999
+In JUnit 5 we use extensions, which are added using the ExtendWith annotation.
+
+27
+00:01:27.999 --> 00:01:32.322
+Extensions receive callback notifications during the JUnit lifecycle,
+
+28
+00:01:32.322 --> 00:01:35.562
+and the SpringExtension uses these notifications to
+
+29
+00:01:35.562 --> 00:01:37.169
+manage our application context.
+
+30
+00:01:37.169 --> 00:01:39.807
+Next we have the SpringBootTest annotation.
+
+31
+00:01:39.807 --> 00:01:40.214
+Essentially,
+
+32
+00:01:40.214 --> 00:01:43.706
+this annotation is used with any test class that wants to
+
+33
+00:01:43.706 --> 00:01:45.943
+integrate with a Spring Boot application.
+
+34
+00:01:45.943 --> 00:01:49.432
+It searches the class path to find Spring-annotated beans,
+
+35
+00:01:49.432 --> 00:01:51.502
+including configuration classes.
+
+36
+00:01:51.502 --> 00:01:52.043
+In short,
+
+37
+00:01:52.043 --> 00:01:56.311
+it sets up the application context and wires dependencies into your
+
+38
+00:01:56.311 --> 00:01:59.356
+tests so that you can use the classes that you're testing without
+
+39
+00:01:59.356 --> 00:02:00.829
+instantiating and configuring them.
+
+40
+00:02:00.829 --> 00:02:04.761
+Then we have the AutoConfigureMockMvc annotation.
+
+41
+00:02:04.761 --> 00:02:06.344
+As its name suggests,
+
+42
+00:02:06.344 --> 00:02:09.782
+any test annotated with this annotation enables the automatic
+
+43
+00:02:09.782 --> 00:02:12.631
+configuration of a new MockMvc instance.
+
+44
+00:02:12.631 --> 00:02:16.120
+At the bottom, you can see a MockMvc autowired into the test,
+
+45
+00:02:16.120 --> 00:02:18.844
+which is only possible by specifying the
+
+46
+00:02:18.844 --> 00:02:22.360
+AutoConfigureMockMvc annotation on the test class itself.
+
+47
+00:02:22.360 --> 00:02:22.718
+Finally,
+
+48
+00:02:22.718 --> 00:02:27.911
+we can define mock versions of other Spring-annotated beans for use in this
+
+49
+00:02:27.911 --> 00:02:31.321
+test class only by specifying the MockBean annotation.
+
+50
+00:02:31.321 --> 00:02:34.650
+This annotation is defined in Spring Boot's test classes and
+
+51
+00:02:34.650 --> 00:02:37.618
+creates a mock implementation of the product service,
+
+52
+00:02:37.618 --> 00:02:38.250
+using Mockito.
+
+53
+00:02:38.250 --> 00:02:42.180
+The important thing to note here is that this test class will use the mocked
+
+54
+00:02:42.180 --> 00:02:45.237
+version of the product service instead of the real version.
+
+55
+00:02:45.237 --> 00:02:49.161
+Spring will autowire the mocked version into the controller that we're testing,
+
+56
+00:02:49.161 --> 00:02:51.470
+but only for this class.
+
+57
+00:02:51.470 --> 00:02:54.464
+Now that you understand what MockMvc can do and how to
+
+58
+00:02:54.464 --> 00:02:56.051
+set up a Spring Boot test class,
+
+59
+00:02:56.051 --> 00:02:58.397
+let's dive into the source code for the ProductControllerTest
+
+60
+00:02:58.397 --> 00:03:02.451
+class and see how we can test our controller.
+
+61
+00:03:02.451 --> 00:03:06.372
+The ProductControllerTest is annotated with the ExtendWith annotation,
+
+62
+00:03:06.372 --> 00:03:08.885
+specifying the SpringExtension.class.
+
+63
+00:03:08.885 --> 00:03:09.240
+Again,
+
+64
+00:03:09.240 --> 00:03:13.709
+this allows the SpringExtension to listen to JUnit 5 lifecycle
+
+65
+00:03:13.709 --> 00:03:16.038
+notifications and manage your application context.
+
+66
+00:03:16.038 --> 00:03:18.113
+It's annotated with the SpringBootTest annotation,
+
+67
+00:03:18.113 --> 00:03:21.881
+which tells Spring to create an application context and load it with all
+
+68
+00:03:21.881 --> 00:03:25.034
+of the Spring-annotated classes in the class path.
+
+69
+00:03:25.034 --> 00:03:29.308
+And finally, it's annotated with the AutoConfigureMockMvc annotation,
+
+70
+00:03:29.308 --> 00:03:32.336
+which causes spring to create a MockMvc instance for us and
+
+71
+00:03:32.336 --> 00:03:36.044
+autowire it into the MockMvc field in our test class.
+
+72
+00:03:36.044 --> 00:03:40.170
+We've added a ProductService annotated with the MockBean annotation.
+
+73
+00:03:40.170 --> 00:03:42.695
+Spring will use Mockito to create a mock version of the
+
+74
+00:03:42.695 --> 00:03:45.144
+ProductService and wire it into the product controller in
+
+75
+00:03:45.144 --> 00:03:47.338
+the test application's context.
+
+76
+00:03:47.338 --> 00:03:51.629
+Let's begin by looking at the testGetProductByIdFound method.
+
+77
+00:03:51.629 --> 00:03:54.058
+This method is annotated with the Test annotation,
+
+78
+00:03:54.058 --> 00:03:57.177
+which identifies it as a JUnit 5 test case.
+
+79
+00:03:57.177 --> 00:03:59.903
+The DisplayName annotation is used to report the
+
+80
+00:03:59.903 --> 00:04:02.035
+name of the test in test reports.
+
+81
+00:04:02.035 --> 00:04:04.084
+We begin by creating a mockProduct,
+
+82
+00:04:04.084 --> 00:04:07.127
+and then configuring the mockProduct service to return an
+
+83
+00:04:07.127 --> 00:04:10.700
+Optional of this mockProduct when the ProductService's findById
+
+84
+00:04:10.700 --> 00:04:13.377
+method is called with the argument 1.
+
+85
+00:04:13.377 --> 00:04:18.431
+Then we invoke the mockMvc.perform method, passing it the GET RequestBuilder.
+
+86
+00:04:18.431 --> 00:04:22.843
+This example statically imports the GET method from the
+
+87
+00:04:22.843 --> 00:04:24.490
+MockMvcRequestBuilders for readability.
+
+88
+00:04:24.490 --> 00:04:31.209
+We pass the UrlTemplate /product/id, and then bind the URI ID variable to 1.
+
+89
+00:04:31.209 --> 00:04:34.002
+The perform method executes a web request against
+
+90
+00:04:34.002 --> 00:04:35.676
+the Spring MVC servlet container.
+
+91
+00:04:35.676 --> 00:04:39.383
+In this case, it invokes a GET request against /product/1,
+
+92
+00:04:39.383 --> 00:04:43.916
+which resolves to the product controller's get product method.
+
+93
+00:04:43.916 --> 00:04:47.275
+The perform method returns a result actions instance.
+
+94
+00:04:47.275 --> 00:04:50.906
+The important method that result actions provides is andExpect,
+
+95
+00:04:50.906 --> 00:04:53.273
+which accepts a ResultMatcher.
+
+96
+00:04:53.273 --> 00:04:56.065
+A ResultMatcher is an interface with a single method,
+
+97
+00:04:56.065 --> 00:04:56.467
+match,
+
+98
+00:04:56.467 --> 00:04:59.311
+that evaluates an expression and throws an assertion
+
+99
+00:04:59.311 --> 00:05:01.687
+error if the expression fails.
+
+100
+00:05:01.687 --> 00:05:04.108
+In this code, we see several pre-built ResultMatchers,
+
+101
+00:05:04.108 --> 00:05:08.359
+all statically imported from the MockMvcResultMatchers class,
+
+102
+00:05:08.359 --> 00:05:11.629
+such as the status method, which returns a status ResultMatcher,
+
+103
+00:05:11.629 --> 00:05:16.192
+the content method, which returns a content ResultMatcher,
+
+104
+00:05:16.192 --> 00:05:18.619
+the header method, which returns a header ResultMatchers,
+
+105
+00:05:18.619 --> 00:05:23.472
+and the jsonPath method, which returns a JSON path ResultMatchers.
+
+106
+00:05:23.472 --> 00:05:26.880
+Let's take a quick look at the status isOK method.
+
+107
+00:05:26.880 --> 00:05:32.194
+The isOK method returns matcher for HttpStatus.OK.
+
+108
+00:05:32.194 --> 00:05:36.260
+The matcher method executes an assertEquals call against the HTTP
+
+109
+00:05:36.260 --> 00:05:38.721
+response returned by the product controller.
+
+110
+00:05:38.721 --> 00:05:40.259
+If we dive a little deeper,
+
+111
+00:05:40.259 --> 00:05:43.036
+the assertEquals method compares the two values and
+
+112
+00:05:43.036 --> 00:05:45.709
+calls fail if those values don't match.
+
+113
+00:05:45.709 --> 00:05:48.057
+And finally, the fail method throws an assertion error.
+
+114
+00:05:48.057 --> 00:05:52.207
+All of this is to say that if the HTTP status code returned by the
+
+115
+00:05:52.207 --> 00:05:55.440
+product controller's getProduct method is 200 OK,
+
+116
+00:05:55.440 --> 00:05:58.797
+then the processing continues, but if it's not 200 OK,
+
+117
+00:05:58.797 --> 00:06:03.470
+then it throws an assertion error, which fails the test and halts the test case.
+
+118
+00:06:03.470 --> 00:06:05.946
+This is the pattern that all of the ResultMatchers follow,
+
+119
+00:06:05.946 --> 00:06:08.908
+so hopefully now they'll be a little bit easier to read.
+
+120
+00:06:08.908 --> 00:06:11.241
+Getting back to our ProductControllerTest,
+
+121
+00:06:11.241 --> 00:06:14.238
+we can see the following general expectations: The
+
+122
+00:06:14.238 --> 00:06:17.492
+expected HTTP status code should be 200 OK,
+
+123
+00:06:17.492 --> 00:06:19.719
+the expected contentType should be JSON,
+
+124
+00:06:19.719 --> 00:06:23.719
+the expected ETAG header value should be the string 1,
+
+125
+00:06:23.719 --> 00:06:27.755
+and the expected LOCATION header should be /product/1.
+
+126
+00:06:27.755 --> 00:06:31.687
+The jsonPath expectations may take a little bit more explanation.
+
+127
+00:06:31.687 --> 00:06:35.579
+The jsonPath method accepts an expression and a matcher.
+
+128
+00:06:35.579 --> 00:06:39.978
+The expression is a string that ultimately gets compiled to a jsonPath.
+
+129
+00:06:39.978 --> 00:06:42.167
+Pluralsight has an excellent article about JSON
+
+130
+00:06:42.167 --> 00:06:44.074
+paths that I encourage you to read.
+
+131
+00:06:44.074 --> 00:06:46.287
+The URL is shown here on the screen.
+
+132
+00:06:46.287 --> 00:06:47.995
+But for the purposes of this example,
+
+133
+00:06:47.995 --> 00:06:50.931
+the dollar sign represents the root node of the JSON,
+
+134
+00:06:50.931 --> 00:06:54.518
+and the dot notation references the path to a value.
+
+135
+00:06:54.518 --> 00:06:56.886
+So when we write $ .id,
+
+136
+00:06:56.886 --> 00:06:58.953
+we're specifying that we want to examine the ID
+
+137
+00:06:58.953 --> 00:07:01.716
+attribute of the root node of the JSON.
+
+138
+00:07:01.716 --> 00:07:04.011
+The second parameter to jsonPath is a matcher,
+
+139
+00:07:04.011 --> 00:07:06.087
+which in this case is the is method,
+
+140
+00:07:06.087 --> 00:07:10.324
+which is statically imported from the Hamcrest matchers class.
+
+141
+00:07:10.324 --> 00:07:12.703
+This method performs a simple equality comparison,
+
+142
+00:07:12.703 --> 00:07:15.038
+specifying the expected value.
+
+143
+00:07:15.038 --> 00:07:19.249
+The jsonPath method compiles the expression and then executes the matcher,
+
+144
+00:07:19.249 --> 00:07:21.344
+which in this case compares the value of the root
+
+145
+00:07:21.344 --> 00:07:24.089
+node's ID attribute to the value 1.
+
+146
+00:07:24.089 --> 00:07:29.069
+Likewise, $ .name compares the JSON name attribute to product name,
+
+147
+00:07:29.069 --> 00:07:33.487
+the $ .quantity compares the JSON quantity attribute to 10,
+
+148
+00:07:33.487 --> 00:07:37.913
+and the $ .version compares the JSON version attribute to 1.
+
+149
+00:07:37.913 --> 00:07:41.426
+That was a lot of detailed explanation for a relatively small amount of code,
+
+150
+00:07:41.426 --> 00:07:44.168
+but if you understood all of that, the rest will be easy.
+
+151
+00:07:44.168 --> 00:07:47.957
+Now let's look at the testGetProductByIdNotFound method.
+
+152
+00:07:47.957 --> 00:07:49.772
+The purpose of this method is to test the
+
+153
+00:07:49.772 --> 00:07:53.146
+get/product for an ID that does not exist.
+
+154
+00:07:53.146 --> 00:07:56.028
+We configure the mocked product service to return an optional empty
+
+155
+00:07:56.028 --> 00:07:58.930
+when its findById method is called with a value of 1,
+
+156
+00:07:58.930 --> 00:08:04.185
+then we execute a GET request for /product/1 using MockMvc.
+
+157
+00:08:04.185 --> 00:08:08.184
+Finally, we add an expectation of a NotFound HTTP status code.
+
+158
+00:08:08.184 --> 00:08:08.633
+Next,
+
+159
+00:08:08.633 --> 00:08:13.853
+the testCreateProduct method tests posting a new product to the /product URI.
+
+160
+00:08:13.853 --> 00:08:15.249
+We set up two products,
+
+161
+00:08:15.249 --> 00:08:19.360
+one that represents the product that will post to /product and one that will be
+
+162
+00:08:19.360 --> 00:08:21.913
+returned when the product service's save method is called.
+
+163
+00:08:21.913 --> 00:08:25.914
+We use the Mockito doReturn method to specify that when the product
+
+164
+00:08:25.914 --> 00:08:28.492
+service's save method is called with any value,
+
+165
+00:08:28.492 --> 00:08:30.291
+it should return the mock product.
+
+166
+00:08:30.291 --> 00:08:32.982
+We execute the same mockMvc.perform method,
+
+167
+00:08:32.982 --> 00:08:35.659
+but this time we pass a post RequestBuilder.
+
+168
+00:08:35.659 --> 00:08:38.587
+The post RequestBuilder is built in three steps.
+
+169
+00:08:38.587 --> 00:08:41.784
+First, we specify the urlTemplate, which is /product,
+
+170
+00:08:41.784 --> 00:08:44.725
+then we specify the contentType as JSON,
+
+171
+00:08:44.725 --> 00:08:47.922
+and finally, we specify the content, or body,
+
+172
+00:08:47.922 --> 00:08:51.076
+as a JsonString representation of the product we're posting.
+
+173
+00:08:51.076 --> 00:08:53.609
+A RequestBuilder follows the builder design pattern,
+
+174
+00:08:53.609 --> 00:08:57.655
+so we're free to chain these methods together to construct the final request.
+
+175
+00:08:57.655 --> 00:09:01.226
+The asJsonString method is a helper method that I wrote that
+
+176
+00:09:01.226 --> 00:09:04.104
+uses the Jackson JSON library's ObjectMapper to convert a
+
+177
+00:09:04.104 --> 00:09:06.590
+product instance to a JSON string.
+
+178
+00:09:06.590 --> 00:09:09.486
+The testCreateProduct method then validates the response.
+
+179
+00:09:09.486 --> 00:09:13.163
+It expects a 201 created HTTP response code,
+
+180
+00:09:13.163 --> 00:09:17.642
+a return contentType of JSON, an ETAG header value of 1,
+
+181
+00:09:17.642 --> 00:09:20.688
+and a LOCATION header of /product/1.
+
+182
+00:09:20.688 --> 00:09:24.009
+It then uses the jsonPath method to validate that the JSON
+
+183
+00:09:24.009 --> 00:09:26.712
+fields match those in the mock product that the product
+
+184
+00:09:26.712 --> 00:09:28.793
+service's save method returned.
+
+185
+00:09:28.793 --> 00:09:29.068
+Next,
+
+186
+00:09:29.068 --> 00:09:33.235
+we have three different PUT tests that attempt to update an existing product.
+
+187
+00:09:33.235 --> 00:09:37.463
+The first one, testProductPutSuccess, tests a successful update.
+
+188
+00:09:37.463 --> 00:09:40.644
+The second one, testProductPutVersionMismatch,
+
+189
+00:09:40.644 --> 00:09:41.586
+tests a version mismatch,
+
+190
+00:09:41.586 --> 00:09:44.399
+which means that we're passing an IF_MATCH header value that
+
+191
+00:09:44.399 --> 00:09:46.400
+doesn't match the product being updated.
+
+192
+00:09:46.400 --> 00:09:49.407
+And the last one, testProductPutNotFound,
+
+193
+00:09:49.407 --> 00:09:52.636
+tests an attempt to update a product that does not exist.
+
+194
+00:09:52.636 --> 00:09:56.523
+The testProductPutSuccess method creates a product to be used as the
+
+195
+00:09:56.523 --> 00:09:59.925
+body of the PUT and a product to be returned by the Product service
+
+196
+00:09:59.925 --> 00:10:02.772
+when it's findById 1 method is called.
+
+197
+00:10:02.772 --> 00:10:05.343
+After successfully finding the Product with ID 1,
+
+198
+00:10:05.343 --> 00:10:08.251
+we expect the Product controller to call the product
+
+199
+00:10:08.251 --> 00:10:10.545
+service's update method to update the product.
+
+200
+00:10:10.545 --> 00:10:10.869
+Again,
+
+201
+00:10:10.869 --> 00:10:13.762
+we use Mockito to tell the product service to return
+
+202
+00:10:13.762 --> 00:10:15.867
+true when its update method is called.
+
+203
+00:10:15.867 --> 00:10:19.256
+We construct a PUT RequestBuilder that points to the
+
+204
+00:10:19.256 --> 00:10:21.965
+/product/1 urlTemplate with a JSON contentType,
+
+205
+00:10:21.965 --> 00:10:25.949
+a content body that contains a string representation of our putProduct,
+
+206
+00:10:25.949 --> 00:10:29.533
+and an IF_MATCH HTTP header with a value of 1.
+
+207
+00:10:29.533 --> 00:10:33.760
+We expect this request to return a 200 OK HTTP response code,
+
+208
+00:10:33.760 --> 00:10:37.128
+a JSON content type, and a new ETAG value of 2,
+
+209
+00:10:37.128 --> 00:10:41.301
+since we just updated the product, and a LOCATION of /product/1.
+
+210
+00:10:41.301 --> 00:10:45.074
+The values of the payload are then validated as we did in the previous methods.
+
+211
+00:10:45.074 --> 00:10:47.261
+The second PUT test performs the same steps,
+
+212
+00:10:47.261 --> 00:10:50.804
+but passes an ETag value that does not match the version number of the product,
+
+213
+00:10:50.804 --> 00:10:54.398
+so we expect a 409 conflict HTTP response code.
+
+214
+00:10:54.398 --> 00:10:58.172
+The final PUT test configures the mockProduct service to return an
+
+215
+00:10:58.172 --> 00:11:00.399
+Optional.empty when its findById method is called,
+
+216
+00:11:00.399 --> 00:11:03.960
+so we expect a 404 NotFound HTTP response code.
+
+217
+00:11:03.960 --> 00:11:04.572
+Hopefully from this,
+
+218
+00:11:04.572 --> 00:11:07.964
+you can see how we test each possible outcome from executing
+
+219
+00:11:07.964 --> 00:11:10.580
+a PUT request against the PUT controller.
+
+220
+00:11:10.580 --> 00:11:13.170
+Now let's finish up this test by adding a new delete
+
+221
+00:11:13.170 --> 00:11:20.000
+request handler to our product controller using a proper test-driven development methodology.
+

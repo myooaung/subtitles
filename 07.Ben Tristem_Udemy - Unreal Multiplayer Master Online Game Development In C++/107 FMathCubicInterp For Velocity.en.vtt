@@ -1,0 +1,912 @@
+WEBVTT
+1
+00:00:04.810 --> 00:00:06.250
+Hello and welcome in this lecture.
+
+2
+00:00:06.270 --> 00:00:12.310
+We are going to be applying her mite's blinds into one real seeing what functions we can use in the
+
+3
+00:00:12.310 --> 00:00:19.540
+f maths library to actually do that and figure out how we can also calculate the velocity interpolate
+
+4
+00:00:19.540 --> 00:00:24.940
+the velocity as well as the position from that cubic spline.
+
+5
+00:00:24.940 --> 00:00:27.750
+So lots of stuff to learn lots of stuff to implement in this lecture.
+
+6
+00:00:27.750 --> 00:00:31.000
+It's going to be exciting and the result is going to be even more exciting.
+
+7
+00:00:31.000 --> 00:00:35.860
+We've got this really nice smooth movement on the simulated proxy as you're seeing here over on the
+
+8
+00:00:35.860 --> 00:00:36.120
+right.
+
+9
+00:00:36.130 --> 00:00:38.910
+And this is just sending updates once every second.
+
+10
+00:00:38.920 --> 00:00:40.840
+Can you imagine that and it looks so smooth.
+
+11
+00:00:40.840 --> 00:00:41.940
+That's fantastic.
+
+12
+00:00:41.950 --> 00:00:44.340
+Let's dive in and see how we achieve that.
+
+13
+00:00:45.230 --> 00:00:50.480
+So we want to start off by getting an understanding of how we can use cubic interpellation instead of
+
+14
+00:00:50.480 --> 00:00:55.490
+the regular old linear interpolation and to do that we need to understand at least three terms Slope's
+
+15
+00:00:55.880 --> 00:00:58.400
+derivatives and velocity.
+
+16
+00:00:58.400 --> 00:01:00.940
+Now you may have heard of them you may even understand them.
+
+17
+00:01:00.950 --> 00:01:03.040
+We're going to see how they all relate to each other.
+
+18
+00:01:03.040 --> 00:01:06.060
+In our particular context.
+
+19
+00:01:06.350 --> 00:01:10.170
+So to begin with understanding this topic let's have a look at our cover.
+
+20
+00:01:10.220 --> 00:01:16.790
+So we've got these two points we saw in the last lecture and we've got them velocity's as vectors and
+
+21
+00:01:16.790 --> 00:01:24.150
+this is the curve that goes through them now as before our interpolation is done using an outer parameter.
+
+22
+00:01:24.200 --> 00:01:29.690
+And when we put in an alpha parameter into the curve that we have specified.
+
+23
+00:01:30.460 --> 00:01:35.560
+We get a point come out and that's what we wanted so far.
+
+24
+00:01:35.560 --> 00:01:40.270
+Except this time our interpolation doesn't just require two points.
+
+25
+00:01:40.270 --> 00:01:42.580
+It requires a velocity as well.
+
+26
+00:01:42.640 --> 00:01:50.110
+So what we want to get out of this process is a velocity as well as a point because remember we have
+
+27
+00:01:50.110 --> 00:01:54.490
+a look at our code and I'm going to just dive in to your visual studio right away here.
+
+28
+00:01:54.940 --> 00:02:04.090
+I'll go to the replicator dot cbp and you can see that as we when we get our on rep server state in
+
+29
+00:02:04.090 --> 00:02:11.500
+our simulated proxy you can see we're taking this snapshot taking the clients start transform as a snapshot
+
+30
+00:02:12.040 --> 00:02:20.710
+in from the current location basically and this snapshot is what gets used in take when we are doing
+
+31
+00:02:20.710 --> 00:02:26.070
+our Lerp stable because the start location is actually that client transform location.
+
+32
+00:02:26.110 --> 00:02:32.230
+So if we're going to be including the client transform location start location and we're going to be
+
+33
+00:02:32.650 --> 00:02:34.480
+including the start velocity.
+
+34
+00:02:34.720 --> 00:02:39.630
+Were going to need to be able to snapshot the current velocity.
+
+35
+00:02:39.760 --> 00:02:45.730
+So that's a long way of saying that as well as getting the point out of our interpellation we need to
+
+36
+00:02:45.730 --> 00:02:52.690
+be able to get the velocity out every interpellation as well so it's not only worrying about interpolating
+
+37
+00:02:52.690 --> 00:02:58.060
+the point through this curve but also interpolate and velocity and that's fairly easy because actually
+
+38
+00:02:58.060 --> 00:03:03.220
+this velocity is just the slope of this line or related to the slope of this line.
+
+39
+00:03:03.220 --> 00:03:05.500
+I should say because that's the next slide.
+
+40
+00:03:05.500 --> 00:03:10.390
+How do these slopes derivatives and velocities relate to each other well slope and derivative are really
+
+41
+00:03:10.420 --> 00:03:12.520
+just two words for the same thing.
+
+42
+00:03:12.550 --> 00:03:18.880
+And if we had a look at this this is our curve and the slope is the vector that points along the curve
+
+43
+00:03:18.880 --> 00:03:25.740
+and its size is how quickly our we're moving over Alpher during that part of the curve.
+
+44
+00:03:26.050 --> 00:03:33.820
+So put more rigidly what we actually mean is it's the Delta location divided by the Delta alpha.
+
+45
+00:03:33.820 --> 00:03:38.550
+So the change in Alpha the delta and change in location divided by the change in our Earth.
+
+46
+00:03:38.830 --> 00:03:43.030
+And we could have done this over a linear interpolation as well it wouldn't have been very interesting
+
+47
+00:03:43.030 --> 00:03:47.730
+because it would have just been constant and pointing in the direction of the line.
+
+48
+00:03:48.570 --> 00:03:53.080
+Now this is somewhat similar isn't it to our definition of velocity.
+
+49
+00:03:53.090 --> 00:03:59.400
+Have a lost t is equal to if you remember Delta location divided by Delta time.
+
+50
+00:03:59.550 --> 00:04:05.820
+So these two things kind of seem to relate to each other except this delta Alpha and Delta times slightly
+
+51
+00:04:05.820 --> 00:04:06.470
+different.
+
+52
+00:04:06.540 --> 00:04:12.960
+And I've actually colour coded things depending on whether they are location velocity or whether they
+
+53
+00:04:12.960 --> 00:04:13.900
+are alpha.
+
+54
+00:04:13.980 --> 00:04:16.390
+We had our author turn and time.
+
+55
+00:04:16.980 --> 00:04:17.440
+Okay.
+
+56
+00:04:17.550 --> 00:04:24.210
+So Delta Alpha is related to health time in this way Delta Alpha is equal actually to the delta time
+
+57
+00:04:24.510 --> 00:04:32.100
+divided between the time between the last updates because remember it takes that amount of time to move
+
+58
+00:04:32.100 --> 00:04:36.450
+through from 0 to 1 in the althorpe range.
+
+59
+00:04:36.480 --> 00:04:42.070
+So if you're delta time were the whole time between last updates then they are the same thing.
+
+60
+00:04:43.370 --> 00:04:50.770
+So how can we use this knowledge to relate velocity and slope or derivative.
+
+61
+00:04:50.780 --> 00:04:52.870
+We're going to be using the term derivative and stick with that.
+
+62
+00:04:53.060 --> 00:04:55.180
+So how we relate derivative to velocity.
+
+63
+00:04:55.190 --> 00:04:59.300
+Well we've got this equation for derivative being a Delta location times Delta Alpha.
+
+64
+00:04:59.510 --> 00:05:03.570
+Got this equation for Delta Alpha equals Delta time.
+
+65
+00:05:03.800 --> 00:05:10.280
+So if I substitute this equation in to this equation what I'm going to get after a bit of manipulation
+
+66
+00:05:10.580 --> 00:05:18.380
+is that the derivative is actually equal to the velocity multiplied by the time between the last update.
+
+67
+00:05:18.380 --> 00:05:22.240
+So that's a fairly straightforward equation that we can actually work with.
+
+68
+00:05:22.250 --> 00:05:23.530
+And that's what we're going to do.
+
+69
+00:05:23.720 --> 00:05:24.890
+So I'm going to show you.
+
+70
+00:05:24.890 --> 00:05:32.360
+Up next how we can actually use the her might's blinds that we've seen in the previous lecture and in
+
+71
+00:05:32.900 --> 00:05:33.410
+unreal.
+
+72
+00:05:33.410 --> 00:05:39.100
+It's really quite easy because we've actually got a function in F maths to do this and the function.
+
+73
+00:05:39.910 --> 00:05:43.380
+It's called F maths colon colon kubik interp.
+
+74
+00:05:43.600 --> 00:05:45.090
+And what's it take.
+
+75
+00:05:45.250 --> 00:05:47.890
+Well it takes a few more arguments than we used to.
+
+76
+00:05:47.890 --> 00:05:55.780
+It has this piece 0 ampie 1 arguments which are essentially an A and B from the interpolation it's the
+
+77
+00:05:55.780 --> 00:06:01.840
+point the starting point and the ending point and T which is the tangent.
+
+78
+00:06:01.840 --> 00:06:05.230
+Another word for slope or derivative at that point.
+
+79
+00:06:05.230 --> 00:06:11.660
+So we've got the derivative at zero the derivative at one which remember is the rate of change for the
+
+80
+00:06:11.710 --> 00:06:14.720
+vector Alpha not with respect to time.
+
+81
+00:06:14.740 --> 00:06:19.510
+So is the over Delta Alpha not the over Delta time.
+
+82
+00:06:19.720 --> 00:06:22.210
+So and we've still got a which is at Alpha.
+
+83
+00:06:22.450 --> 00:06:29.230
+So we can use this very much as we were using at linear interpolation Except we need to add a couple
+
+84
+00:06:29.230 --> 00:06:35.680
+more things we don't need an F vector to be our start velocity.
+
+85
+00:06:35.830 --> 00:06:41.920
+In fact no astarte derivative because we know that those are different things that start velocity and
+
+86
+00:06:41.920 --> 00:06:47.890
+were going to an F vector for the target derivative as well.
+
+87
+00:06:50.720 --> 00:06:51.420
+Like so.
+
+88
+00:06:51.740 --> 00:06:55.480
+And then we're going to do in maths kubik interp.
+
+89
+00:06:56.300 --> 00:06:57.030
+Like so.
+
+90
+00:06:57.330 --> 00:07:03.950
+And start location is going to be AP 0 then start derivative.
+
+91
+00:07:05.160 --> 00:07:08.600
+I don't find it is going to be our team zero.
+
+92
+00:07:10.100 --> 00:07:10.730
+Like so.
+
+93
+00:07:10.730 --> 00:07:21.530
+And then our team one is going to be a target derivative like so and we keep the Lerp ratio as we had
+
+94
+00:07:21.530 --> 00:07:22.760
+it before.
+
+95
+00:07:22.760 --> 00:07:24.430
+So this seems to make sense.
+
+96
+00:07:24.440 --> 00:07:30.020
+I'm fairly happy with this but what is our start derivative and target derivative going to be.
+
+97
+00:07:30.110 --> 00:07:32.010
+Well the start derivative.
+
+98
+00:07:32.030 --> 00:07:33.080
+We don't know yet.
+
+99
+00:07:33.080 --> 00:07:35.430
+So let's keep that one for later.
+
+100
+00:07:36.220 --> 00:07:41.060
+But let's have a look at the target derivative the targets are to is going to be equal to.
+
+101
+00:07:41.130 --> 00:07:46.710
+We said that derivatives are equal to the velocity multiplied by time between last update.
+
+102
+00:07:46.770 --> 00:07:49.640
+So let's have a little look at this.
+
+103
+00:07:49.680 --> 00:07:53.100
+We have got the edge Drew.
+
+104
+00:07:53.220 --> 00:08:02.480
+We have got our server state and in the server state we send back the velocity.
+
+105
+00:08:02.520 --> 00:08:07.520
+So that's the velocity you're going to be using as the target for this interpellation.
+
+106
+00:08:07.530 --> 00:08:13.480
+We're going to multiply it by the client time between last updates fact I'll just copy that.
+
+107
+00:08:13.890 --> 00:08:19.050
+And there's one more thing we have to do and this is because of the strange quirks of one real Remember
+
+108
+00:08:19.050 --> 00:08:21.330
+that AV a lost he is in meters per second.
+
+109
+00:08:21.330 --> 00:08:24.630
+But our location is in centimetres.
+
+110
+00:08:24.630 --> 00:08:30.360
+So we just need to remember that this needs to be all multiplied by 100 to convert between meters and
+
+111
+00:08:30.360 --> 00:08:31.590
+centimetres.
+
+112
+00:08:32.010 --> 00:08:32.370
+OK.
+
+113
+00:08:32.580 --> 00:08:33.900
+So that's that.
+
+114
+00:08:33.900 --> 00:08:40.030
+Next thing we need to do is have a look at astarte derivative what's astarte derivative going to be.
+
+115
+00:08:40.200 --> 00:08:46.330
+Well that is going to have to be something new because we haven't stored it in our client start transform.
+
+116
+00:08:46.470 --> 00:08:53.550
+We're going to have to create a new variable to store that so let's go up to our replicator H and we're
+
+117
+00:08:53.550 --> 00:09:00.030
+going to create an F vector to store our client start velocity.
+
+118
+00:09:01.260 --> 00:09:07.150
+Like so we're going to do the same conversion process for the start velocity where we multiplied by
+
+119
+00:09:07.150 --> 00:09:10.110
+this client time between our dates and 100.
+
+120
+00:09:10.300 --> 00:09:12.740
+In fact just to make it clear what this is.
+
+121
+00:09:12.970 --> 00:09:17.470
+Let's cut this out and make it into a floating point variable that floatpoint variable.
+
+122
+00:09:17.470 --> 00:09:21.520
+I'm going to call velocity.
+
+123
+00:09:22.600 --> 00:09:24.630
+Two derivative.
+
+124
+00:09:25.490 --> 00:09:26.450
+Like so.
+
+125
+00:09:26.960 --> 00:09:36.170
+And I'm going to declare just above these derivatives free float velocity two derivative equals the
+
+126
+00:09:36.290 --> 00:09:42.800
+this quite time between last dates multiplied by 100 and then I can reuse that variable which is quite
+
+127
+00:09:42.800 --> 00:09:45.310
+self descript for our client.
+
+128
+00:09:45.340 --> 00:09:48.710
+Velocity converted to a start derivative court.
+
+129
+00:09:48.710 --> 00:09:52.820
+So this has done kubik interpolation for us.
+
+130
+00:09:53.210 --> 00:09:59.300
+Now there's one piece of the puzzle that we're missing and that is as snapshotting on rep which I mentioned
+
+131
+00:09:59.330 --> 00:10:00.080
+earlier in the lecture.
+
+132
+00:10:00.080 --> 00:10:05.150
+So if we go and find our simulated proxy on reps over state you can see that we're snapshotting the
+
+133
+00:10:05.180 --> 00:10:06.740
+start transform.
+
+134
+00:10:06.770 --> 00:10:13.700
+We also need to snapshot this start velocity and start velocity is actually going to be from the movement
+
+135
+00:10:13.800 --> 00:10:19.460
+components we're going to grab the velocity of movement component I think you're wondering at the moment
+
+136
+00:10:19.790 --> 00:10:23.570
+whereas that the loss the actually coming from because we haven't set this out well that's going to
+
+137
+00:10:23.570 --> 00:10:24.200
+be your challenge.
+
+138
+00:10:24.200 --> 00:10:29.010
+But for now let's just go ahead and get the velocity.
+
+139
+00:10:29.970 --> 00:10:36.730
+That's going to be how we're snapshotting and let's make sure that our move component is not noll's.
+
+140
+00:10:36.740 --> 00:10:42.810
+I'm going to copy the nulled check from the autonomous proxy on reps of state and put it at the beginning
+
+141
+00:10:42.840 --> 00:10:45.720
+of our simulated proxy on rep server state.
+
+142
+00:10:45.780 --> 00:10:51.630
+So this is almost working now but we do need to be able to set the velocity.
+
+143
+00:10:51.630 --> 00:10:59.070
+As I said with our curve we need to be able to interpret both the location and the new velocity.
+
+144
+00:10:59.070 --> 00:11:05.820
+So let's have a look at your challenge to interpolate the velocity what you can do is you going to research
+
+145
+00:11:05.820 --> 00:11:10.340
+the function called Evan ascalon code on kubic interp derivative.
+
+146
+00:11:10.560 --> 00:11:15.140
+Now the name of that function should kind of give you a hint to what it's doing.
+
+147
+00:11:15.180 --> 00:11:20.900
+And that is basically providing you the slope of that kubic which is what we want.
+
+148
+00:11:20.970 --> 00:11:26.490
+And with that directive using the equations from last night you should be able to convert this in to
+
+149
+00:11:26.520 --> 00:11:33.130
+a velocity and interpolated velocity and from there be able to set the velocity on the movement component.
+
+150
+00:11:33.210 --> 00:11:37.380
+So that's my challenge to you to have a go at that and finally test it once it's done.
+
+151
+00:11:37.380 --> 00:11:38.830
+Pause a video and have a go.
+
+152
+00:11:40.020 --> 00:11:40.890
+Okay welcome back.
+
+153
+00:11:40.890 --> 00:11:45.810
+So this is where we actually get to see where that you understood that stuff I was wittering on about
+
+154
+00:11:46.080 --> 00:11:47.580
+the derivative.
+
+155
+00:11:47.580 --> 00:11:50.050
+So we've calculated and new velocity.
+
+156
+00:11:50.160 --> 00:11:59.500
+The next challenge is to calculate the f vector new velocity like so and how are we going to do that.
+
+157
+00:11:59.500 --> 00:12:04.650
+Well first of all we kind of need to know what the new derivative is.
+
+158
+00:12:04.650 --> 00:12:06.490
+So let's start off with that.
+
+159
+00:12:08.000 --> 00:12:12.710
+The new derivative is going to be the f maths cubic interp.
+
+160
+00:12:13.370 --> 00:12:19.190
+And let's have a look at how it functions laid out actually has exactly the same arguments as the QB
+
+161
+00:12:19.250 --> 00:12:20.040
+interp.
+
+162
+00:12:20.060 --> 00:12:22.700
+So that is what we're going to use.
+
+163
+00:12:22.700 --> 00:12:25.670
+We're going to use exactly the same arguments.
+
+164
+00:12:25.760 --> 00:12:30.200
+Now I'm just going to copy the name of the function to avoid me misspelling derivative like I probably
+
+165
+00:12:30.200 --> 00:12:31.570
+done about million times.
+
+166
+00:12:31.790 --> 00:12:37.850
+And we are going to copy all the arguments from the start location start derivative start target location
+
+167
+00:12:37.850 --> 00:12:38.690
+targets rivet.
+
+168
+00:12:38.720 --> 00:12:40.220
+And the Lerp ratio.
+
+169
+00:12:40.220 --> 00:12:46.280
+So this is going to give us we would have given us exactly the same point if we had put it in to the
+
+170
+00:12:46.280 --> 00:12:47.380
+cubitt interp function.
+
+171
+00:12:47.390 --> 00:12:54.660
+But instead what it does is it gives us the slope or the derivative at that point on that kubek.
+
+172
+00:12:54.950 --> 00:13:02.590
+So with that information in hand this interpolated derivative we can calculate the interpolated velocity.
+
+173
+00:13:02.600 --> 00:13:08.740
+So we've got this f vector new velocity has what we're looking for and how do we calculate it.
+
+174
+00:13:08.750 --> 00:13:13.540
+Well it's just the inverse of calculating the derivative from the velocity.
+
+175
+00:13:13.640 --> 00:13:17.420
+And we've already got a constant for doing a velocity to derivative.
+
+176
+00:13:17.420 --> 00:13:23.540
+So it should be fairly easy we just do new derivatives divided by instead of multiplied by the velocity
+
+177
+00:13:23.690 --> 00:13:26.910
+to derivative which is fairly straightforward.
+
+178
+00:13:26.930 --> 00:13:29.690
+Now we can be fairly sure that this is okay.
+
+179
+00:13:29.690 --> 00:13:33.910
+Usually it's a problem if we're driving by 0 or by very small numbers.
+
+180
+00:13:34.040 --> 00:13:39.530
+But at the beginning of our function we have already checked that the client time between last update
+
+181
+00:13:39.830 --> 00:13:42.700
+is not a very small number.
+
+182
+00:13:42.740 --> 00:13:48.920
+It's a normal sized number which means that when we multiply by 100 it's definitely not going to be
+
+183
+00:13:48.920 --> 00:13:50.060
+a very small number.
+
+184
+00:13:50.300 --> 00:13:56.840
+So Avelox t to derivative has got to be a large enough number to not be getting errors when we divide
+
+185
+00:13:56.870 --> 00:13:57.650
+by it.
+
+186
+00:13:57.650 --> 00:14:02.630
+So we've got this new velocity and with this new velocity as I've already said what we want to do is
+
+187
+00:14:02.630 --> 00:14:04.690
+go to and move components.
+
+188
+00:14:06.820 --> 00:14:09.130
+Arrow set.
+
+189
+00:14:09.830 --> 00:14:10.700
+For losty.
+
+190
+00:14:10.730 --> 00:14:14.010
+And we're going to be setting the new velocity right there.
+
+191
+00:14:14.900 --> 00:14:19.190
+And for your studio corrects my spelling mistakes which is very nice of it.
+
+192
+00:14:19.370 --> 00:14:25.070
+And what we're going to do if we don't have a move component we've got to make sure we've got at nulled
+
+193
+00:14:25.070 --> 00:14:28.140
+check if we weren't able to find a move component.
+
+194
+00:14:28.280 --> 00:14:34.520
+And so what I'm going to do is I'm going to basically abort the function just after it's updated the
+
+195
+00:14:34.520 --> 00:14:36.560
+delta time because that's safe.
+
+196
+00:14:37.010 --> 00:14:41.010
+So and just after it's done the clients time between last dates check.
+
+197
+00:14:41.060 --> 00:14:45.380
+I'm just going to check the Moven component return if we don't have one so that we aren't doing any
+
+198
+00:14:45.440 --> 00:14:51.880
+extra work that won't be useful if we don't have anywhere to set that velocity.
+
+199
+00:14:52.340 --> 00:14:52.660
+Okay.
+
+200
+00:14:52.670 --> 00:14:58.910
+So we're going to go ahead and build that and see what the results are because we are now snapshotting
+
+201
+00:14:58.910 --> 00:15:03.590
+that velocity we're updating that velocity from the derivative of that cubitt Curve which we now know
+
+202
+00:15:03.590 --> 00:15:11.050
+everything about and we are converting quite fluidly between derivatives and velocity's.
+
+203
+00:15:12.750 --> 00:15:16.860
+So let's dive in to the one real Ed and hit play.
+
+204
+00:15:17.280 --> 00:15:19.940
+And I won't put my authority on the right for a change.
+
+205
+00:15:19.950 --> 00:15:27.930
+And the autonomous proxy on the left and arm go drive around in front of it and sure enough we're getting
+
+206
+00:15:27.930 --> 00:15:31.330
+a much smoother movement you can see here where I'm changing directions.
+
+207
+00:15:31.440 --> 00:15:37.830
+It's not suddenly just jolting in a different direction it's smoothly going through a sort of curve
+
+208
+00:15:37.840 --> 00:15:39.300
+through sort of meander.
+
+209
+00:15:39.360 --> 00:15:44.580
+Now you will notice that the movement is slightly different because occasionally the rotation goes a
+
+210
+00:15:44.580 --> 00:15:46.020
+little bit sideways.
+
+211
+00:15:46.020 --> 00:15:49.350
+So we're going slightly sideways to the direction of motion.
+
+212
+00:15:49.380 --> 00:15:55.350
+That's because the motion of rotation rather isn't linked to the velocity and we're actually calculating
+
+213
+00:15:55.350 --> 00:16:00.090
+the velocity in a slightly different way to the way it's being calculate on the server.
+
+214
+00:16:00.090 --> 00:16:05.760
+It's just an interpolation of it's not the actual thing which means that when we are doing this interpolation
+
+215
+00:16:05.760 --> 00:16:08.040
+of rotation it doesn't always match up.
+
+216
+00:16:08.040 --> 00:16:15.420
+Now what we could do is we could point our rotation in the direction of the velocity and that is a legitimate
+
+217
+00:16:15.420 --> 00:16:16.350
+way to do it.
+
+218
+00:16:16.350 --> 00:16:23.100
+The only problem there is that when you reverse you are going to flip your car around 180 degrees and
+
+219
+00:16:23.100 --> 00:16:24.700
+that would look very weird.
+
+220
+00:16:24.780 --> 00:16:30.120
+And as far as I've been able to tell in my prototyping there's no easy way to solve that problem.
+
+221
+00:16:30.120 --> 00:16:32.610
+So for us it looks good enough.
+
+222
+00:16:32.610 --> 00:16:41.010
+The slurping rotation is doing a fairly good job and the Cubic interpolation is doing a phenomenal job
+
+223
+00:16:41.280 --> 00:16:46.520
+at being able to give us a smooth movement through the world.
+
+224
+00:16:46.530 --> 00:16:48.070
+I'm very happy with that.
+
+225
+00:16:48.240 --> 00:16:55.080
+And in the next video we'll be looking at a little problem around our colliders will see that actually
+
+226
+00:16:55.080 --> 00:17:01.920
+the collider is being moved on assimilated proxy and that can lead to collisions and interactions in
+
+227
+00:17:01.920 --> 00:17:05.810
+the world that shouldn't happen because they didn't happen on the server.
+
+228
+00:17:05.820 --> 00:17:08.210
+Were going to figure out what we can do about that problem.

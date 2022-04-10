@@ -1,0 +1,216 @@
+WEBVTT
+1
+00:00:00.570 --> 00:00:03.640
+In this demo, I am going to show you how Namespace Quotas work.
+
+2
+00:00:05.100 --> 00:00:12.720
+In my "Kubernetes-course", I have a folder called a resource called, "resourcequotas", 
+
+3
+00:00:12.720 --> 00:00:14.240
+and then I have the file "resourcequota.yml",
+
+4
+00:00:14.520 --> 00:00:18.450
+and in this file I define a new namespace.
+
+5
+00:00:18.580 --> 00:00:23.350
+I have an object of namespace with "kind: Namespace",
+
+6
+00:00:23.360 --> 00:00:25.260
+with the name, "Namespace".
+
+7
+00:00:25.430 --> 00:00:29.680
+This will create a new namespace, and in this new namespace, I am going to define resource quotass.
+
+8
+00:00:29.900 --> 00:00:37.040
+I'm going to specify hard limits on CPU and memory, and request limits on CPM and memory.
+
+9
+00:00:37.070 --> 00:00:45.640
+I'm also going to apply limits on objects. So let me create these objects.
+
+10
+00:00:48.540 --> 00:00:58.920
+And now, what I'm going to do is I am going to create a deployment. I am going to create "hello" deployment, but
+
+11
+00:00:58.980 --> 00:01:03.280
+I'm not going to specify any quotas, just to see what's going to happen.
+
+12
+00:01:03.300 --> 00:01:08.040
+You see, the same deployment that I used earlier. So, I am going to create this one.
+
+13
+00:01:12.650 --> 00:01:14.270
+This is created.
+
+14
+00:01:14.550 --> 00:01:19.730
+Let's have a look at our deployments.
+
+15
+00:01:19.730 --> 00:01:23.960
+I'm also going to add namespace "myspace".
+
+16
+00:01:24.130 --> 00:01:34.330
+We have "helloworld-deployment", desired 3 pods, but no pods running. 
+
+17
+00:01:34.330 --> 00:01:36.590
+Let's debug this, let's get the replication set, also of "namespace: myspace".
+
+18
+00:01:36.640 --> 00:01:47.260
+And let's described this replication set.
+
+19
+00:01:48.370 --> 00:01:57.090
+And it actually says, "Failed to create these pods because deployment is forbidden: failed quota: compute quota:"
+
+20
+00:01:57.090 --> 00:02:03.310
+"must specify limits.cpu, limits.memory, requests.cpu, requests.memory".
+
+21
+00:02:03.330 --> 00:02:09.540
+So, when we launch our pod, we have to supply those things.
+
+22
+00:02:10.860 --> 00:02:15.930
+So, I'm just going to delete our deploy, "helloworld-deployment"
+
+23
+00:02:18.630 --> 00:02:32.820
+in "--namespace=myspace" and let me now show you another YAML file with quotas.
+
+24
+00:02:33.750 --> 00:02:41.520
+Here, I have a deployment that says, "I want to have 200 millicpu as limit 400 millicpu,
+
+25
+00:02:41.510 --> 00:02:49.000
+and I want at least 0.5 Gi of memory, limit is 1 Gi. Let me create this one.
+
+26
+00:02:49.000 --> 00:02:55.550
+So, again launching in the namespace, "myspace".
+
+27
+00:02:56.200 --> 00:02:57.140
+Let me get the pods.
+
+28
+00:02:59.920 --> 00:03:01.120
+And this is interesting,
+
+29
+00:03:01.120 --> 00:03:09.090
+I asked for tree replicas only got two, so my pods have been created but only two pods.
+
+30
+00:03:09.370 --> 00:03:16.550
+And if you take a look at the resources you will see why. It can only schedule two out of three.
+
+31
+00:03:16.960 --> 00:03:18.560
+So, we now have a current of two,
+
+32
+00:03:18.730 --> 00:03:20.730
+but these are two out of three.
+
+33
+00:03:20.730 --> 00:03:23.530
+So, let me describe this replica sets.
+
+34
+00:03:28.810 --> 00:03:31.290
+And it says, the first two were launched, okay.
+
+35
+00:03:31.470 --> 00:03:36.220
+But, the third one says, "Exceeded quota".
+
+36
+00:03:36.310 --> 00:03:40.990
+It was required to have a limit of 1Gi memory, request of 0.5 Gi.
+
+37
+00:03:41.180 --> 00:03:53.110
+So, let's have a look at our quota usage in the namespace, "myspace", and let's describe the compute quota.
+
+38
+00:03:54.250 --> 00:04:02.300
+Then we see that our limits.memory and our request.memory are already in use.
+
+39
+00:04:02.410 --> 00:04:12.270
+That's why we cannot schedule triples, but only two of them. Let's delete this deployment again.
+
+40
+00:04:13.710 --> 00:04:19.200
+And, I already told you in the theory that we can have defaults.
+
+41
+00:04:19.580 --> 00:04:28.950
+So, let's say that I want not to specify limits during my pod creation, then I can use the defaults.
+
+42
+00:04:28.960 --> 00:04:31.000
+So, we can have limits here.
+
+43
+00:04:31.530 --> 00:04:39.950
+Let's create this "resourcequotas/defaults.yml" and let's describe these limits.
+
+44
+00:04:40.010 --> 00:04:46.640
+Let's describe these limits called just "limits".
+
+45
+00:04:46.670 --> 00:04:52.510
+So, here this default limit is the actual limit for the container.
+
+46
+00:04:52.850 --> 00:04:55.400
+Then we have right here, these limits.
+
+47
+00:04:56.960 --> 00:05:02.690
+This is the request capacity that you put a default for, and this is the limit that you put a default for.
+
+48
+00:05:03.140 --> 00:05:08.810
+And these are of "type: container". You can also choose to have limits on the pod instead of containers that is also possible.
+
+49
+00:05:11.000 --> 00:05:18.620
+So, then we can still create this deployment, "helloworld" with no quotas and what's going to happen now, is that it's going to use the defaults.
+
+50
+00:05:23.330 --> 00:05:34.280
+If you have a look at the pods, in namespace, "myspace" then we see that we have three pods created now,
+
+51
+00:05:34.370 --> 00:05:41.300
+because it is using the lower default limits and now the three pods are fitting within this limit and are being scheduled on the Kubernetes cluster.
+
+52
+00:05:44.830 --> 00:05:46.900
+So, these default is very recommended.
+
+53
+00:05:46.930 --> 00:05:50.950
+Then you don't have to specify your limits for every single pod.
+
+54
+00:05:52.490 --> 00:05:54.550
+That is it for this demo about limits.

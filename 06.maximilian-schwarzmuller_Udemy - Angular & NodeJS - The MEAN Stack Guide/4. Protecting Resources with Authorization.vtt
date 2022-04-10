@@ -1,0 +1,340 @@
+WEBVTT
+
+00:02.470 --> 00:10.240
+So we added our connection between users and posts and we're returning that data to the front-end,
+
+00:10.510 --> 00:17.880
+let's now go back to the back-end and utilize this connection to deny requests for deleting or editing a
+
+00:17.980 --> 00:22.210
+posts if they are made by a user who did not create that post.
+
+00:22.510 --> 00:30.700
+And for that, I'm in the posts.js file here and there, we have the router put method and we get the router delete
+
+00:30.820 --> 00:33.290
+method which I'm interested in protecting.
+
+00:33.670 --> 00:35.920
+Let's start with the update method,
+
+00:35.950 --> 00:43.630
+so the put route here. There we want to make one simple thing or want to do that one simple thing, we want
+
+00:43.630 --> 00:49.630
+to ensure that only the user who created the post can edit it.
+
+00:49.630 --> 00:57.250
+This means that when we're looking for a post and when we want to update it with updateOne, we actually
+
+00:57.250 --> 01:03.800
+want to ensure that this only happens for posts created by that user. One convenient way of doing this
+
+01:04.070 --> 01:10.340
+would be to simply add another argument to the condition we have here and check for the creator field
+
+01:10.670 --> 01:15.820
+which should actually be equal to request user data user ID,
+
+01:15.890 --> 01:22.910
+remember we have that piece of information in our request and this would only update a post which matches
+
+01:22.940 --> 01:29.780
+our post ID but also the given creator ID and it would therefore fail if we have the right post ID
+
+01:29.870 --> 01:33.500
+but if we're not the creator of the post. Let me show this to you.
+
+01:33.500 --> 01:39.300
+If I save this and I go back, let me logout and login with a different user,
+
+01:39.380 --> 01:43.030
+so not the user who created this. If I login again,
+
+01:43.040 --> 01:48.020
+I see that post and I can still click edit because we haven't done anything on the front-end to prevent
+
+01:48.020 --> 01:49.110
+this.
+
+01:49.130 --> 01:55.180
+Now if I add exclamation marks and hit save post, we actually don't see the exclamation marks here,
+
+01:55.190 --> 01:56.980
+we actually also don't get an error,
+
+01:56.990 --> 01:57.930
+that's a problem
+
+01:58.100 --> 02:00.730
+but indeed, the updating failed.
+
+02:00.890 --> 02:08.720
+If I log back in with the user who did create the post and I now edit this and add one exclamation
+
+02:08.720 --> 02:14.240
+mark here, now the exclamation mark is there because now both conditions were met and they have to be
+
+02:14.240 --> 02:16.620
+met both to well, succeed
+
+02:16.940 --> 02:20.630
+but the problem is that we don't give back a meaningful error.
+
+02:20.630 --> 02:23.060
+Now let's check what the result we're getting back
+
+02:23.060 --> 02:30.320
+if we do fail to update. For this I'll again logout and switch my user, go back to the user who did not
+
+02:30.320 --> 02:34.180
+create that post and try this again, edit
+
+02:34.220 --> 02:37.390
+and now let's go to the network tab and actually clear it
+
+02:37.430 --> 02:40.330
+so that we see new outgoing network requests.
+
+02:40.460 --> 02:42.340
+And I'll add an extra exclamation mark,
+
+02:42.350 --> 02:48.350
+hit save post and now we get four requests, these two requests fetched the posts when we were
+
+02:48.350 --> 02:55.490
+navigated, these two requests are related to updating. The second request is an additional options request
+
+02:55.640 --> 03:01.580
+which is always sent back or sent by the browser to your back-end but this one is the actual put
+
+03:01.580 --> 03:06.210
+request we sent and as you see, we got back update successful.
+
+03:06.410 --> 03:07.540
+Now we didn't get an error,
+
+03:07.550 --> 03:09.110
+we also saw that in the console,
+
+03:09.110 --> 03:10.530
+there is no error here,
+
+03:10.640 --> 03:13.270
+so we made it into the then block.
+
+03:13.290 --> 03:16.640
+Now let's have a look at the result we got there,
+
+03:16.640 --> 03:21.960
+maybe this gives us some idea about whether we did successfully update or not.
+
+03:21.980 --> 03:24.720
+So I added result here and saved
+
+03:24.950 --> 03:30.050
+and now if we try to edit this again, still with the user who's not entitled to do so,
+
+03:31.030 --> 03:36.910
+we get the same result as before but on the server if we have a look at our server side terminal here
+
+03:37.570 --> 03:40.780
+and there, we see this strange object,
+
+03:40.910 --> 03:46.560
+now we see something which looks promising and modified which seems to indicate how many entries were
+
+03:46.560 --> 03:49.610
+modified, how many results in the database.
+
+03:49.650 --> 03:53.790
+Let's validate this assumption by logging in to the valid
+
+03:53.850 --> 04:01.120
+user who did create this and then editing this post which of course will succeed now,
+
+04:02.610 --> 04:08.520
+if we now go back and have a look at the server side log again, we see that here we got a log where nModified
+
+04:08.610 --> 04:09.810
+is 1.
+
+04:09.840 --> 04:16.080
+So this seems to be an indicator which helps us determine whether we did successfully modify a post
+
+04:16.260 --> 04:17.010
+or not
+
+04:17.830 --> 04:28.000
+and therefore we can use this. We can check if result nModified is greater than zero, in which case
+
+04:28.000 --> 04:30.730
+we know we did indeed update the post
+
+04:30.730 --> 04:33.290
+and so I will send my old response.
+
+04:33.460 --> 04:35.730
+Else I will send a different response,
+
+04:35.830 --> 04:42.460
+a 400 in one status code to indicate that the user is not authorized to perform this action
+
+04:42.460 --> 04:45.240
+and here I will send back
+
+04:45.280 --> 04:52.500
+not authorized as a message. If we now save this and I do login to the user who is not authorized
+
+04:52.530 --> 04:53.490
+again
+
+04:53.770 --> 04:55.590
+and now I try to edit this again,
+
+04:55.750 --> 04:56.980
+going to edit,
+
+04:57.190 --> 04:59.590
+adding an exclamation mark and saving this,
+
+04:59.620 --> 05:03.180
+now we get this error and we're not handling it on the front-end,
+
+05:03.190 --> 05:05.430
+this is something we'll have to do later
+
+05:05.590 --> 05:12.100
+but we're getting the error and that's a great enhancement of our app actually because this means that
+
+05:12.100 --> 05:19.480
+we are now saving this on the back-end and we're also returning a message about the success of this action
+
+05:19.550 --> 05:21.070
+to the front-end.
+
+05:21.100 --> 05:28.300
+Now let's add that same logic to the deletion route. There we use deleteOne and we can use the same,
+
+05:28.700 --> 05:35.050
+the exact same way of validating that the user who is trying to delete is the right user.
+
+05:35.050 --> 05:39.610
+We can add the creator check here in our condition and check request
+
+05:39.610 --> 05:47.590
+user data user ID and this will therefore only delete that post if we get the right user ID for that
+
+05:47.590 --> 05:48.290
+post.
+
+05:48.930 --> 05:54.210
+This means that here, I can also just copy that result handling
+
+05:54.210 --> 05:57.260
+I got in my update method. Here
+
+05:57.510 --> 06:01.260
+I'll just replace my old response with that,
+
+06:01.350 --> 06:05.660
+here I will say deletion successful or not authorized
+
+06:05.760 --> 06:10.590
+in the other case and now we updated this delete method too,
+
+06:10.630 --> 06:16.510
+let's see if it works. Let's save this, let's reload the Angular app to unbreak it
+
+06:16.940 --> 06:22.550
+and I'm still logged in with the user who's not allowed to edit this and who is not allowed to delete
+
+06:22.550 --> 06:22.910
+this,
+
+06:23.000 --> 06:30.110
+so if I hit delete here, I also correctly get an error and if we reload, the posts still is there. If I
+
+06:30.110 --> 06:33.850
+logout and switch to the user who did create that post,
+
+06:33.860 --> 06:38.300
+I can however delete it successfully or I should at least
+
+06:38.390 --> 06:39.980
+but it still fails,
+
+06:40.010 --> 06:41.670
+so something's wrong here,
+
+06:41.840 --> 06:45.670
+let's reload. Well the post is not there, that succeeded
+
+06:45.920 --> 06:48.000
+but we still got this message,
+
+06:48.170 --> 06:52.580
+so something seems to be different about the result we're getting here in the deletion case,
+
+06:52.670 --> 06:54.560
+so let's have a look at this now.
+
+06:55.040 --> 07:01.490
+For that, let's simply re-add a console log statement here and let's see what the result is for a successful
+
+07:01.490 --> 07:03.320
+deletion. Here
+
+07:03.380 --> 07:10.820
+if I now go to new post and quickly create a new post so that I can delete it, if I do that and then
+
+07:10.820 --> 07:11.810
+pick delete
+
+07:11.810 --> 07:13.630
+here, we get that error
+
+07:13.660 --> 07:20.660
+and on the back-end in the terminal of the server, we see there simply is no modified field and that
+
+07:20.660 --> 07:21.440
+makes sense.
+
+07:21.470 --> 07:25.600
+We're not modifying this result, we're deleting it right.
+
+07:25.880 --> 07:30.860
+So we can just take the n value which was also present for updating by the way, so you could take it
+
+07:30.860 --> 07:31.650
+there too.
+
+07:31.880 --> 07:35.970
+Let's just take n here and check if that is greater than zero
+
+07:36.020 --> 07:39.720
+because it seems to indicate whether this was successful or not.
+
+07:39.740 --> 07:44.690
+So now if we save this and I reload, the post of course is gone,
+
+07:44.690 --> 07:49.460
+now let's add a new post real quick and let's not immediately delete it,
+
+07:50.700 --> 07:56.140
+instead I'll first go into switch the user to see that it does fail for the other user because this
+
+07:56.150 --> 07:59.940
+is not the user who created the post. There if I click delete,
+
+07:59.970 --> 08:04.630
+I still get that error and if I reload the app, post still is there
+
+08:05.040 --> 08:12.340
+and now if I switch to the user who did create that post and I click delete,
+
+08:12.340 --> 08:14.140
+it does the work without an error.
+
+08:14.350 --> 08:16.840
+So now we get the deletion in place too.

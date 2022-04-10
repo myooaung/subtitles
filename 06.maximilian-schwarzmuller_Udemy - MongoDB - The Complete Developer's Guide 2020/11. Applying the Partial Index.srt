@@ -1,0 +1,159 @@
+1
+00:00:02,140 --> 00:00:09,430
+One interesting variation or use case of the partial index can be seen in conjunction with a unique
+
+2
+00:00:09,430 --> 00:00:15,480
+index. For this, I will have to create a little demo here, a short example
+
+3
+00:00:16,710 --> 00:00:25,240
+and I will create a new collection for that, I'll name it users and there I'll insert many documents, two to be precise.
+
+4
+00:00:25,290 --> 00:00:32,630
+The first document is a user with name Max and an email of max@test.com,
+
+5
+00:00:32,700 --> 00:00:37,660
+the second document is a user with name Manu and no e-mail,
+
+6
+00:00:37,680 --> 00:00:38,820
+so just that.
+
+7
+00:00:39,190 --> 00:00:45,050
+So I have two documents in there and they don't both have the e-mail field, only Max has it.
+
+8
+00:00:45,060 --> 00:00:51,840
+Now what I can try is I can create an index on users, create index and let's say I want to index my
+
+9
+00:00:51,840 --> 00:00:53,060
+email field here,
+
+10
+00:00:53,460 --> 00:00:55,800
+so if I index e-mail in ascending order,
+
+11
+00:00:55,890 --> 00:00:58,070
+this works, nice.
+
+12
+00:00:58,080 --> 00:01:08,290
+Now let's drop that index, drop index, e-mail one because what I now want to do is I want to add this index
+
+13
+00:01:08,350 --> 00:01:12,020
+as a unique index, so unique
+
+14
+00:01:12,070 --> 00:01:13,500
+true, whoops not here though
+
+15
+00:01:13,510 --> 00:01:21,130
+but in the second argument to the create index function here, unique true, this also works.
+
+16
+00:01:21,310 --> 00:01:31,230
+But now let me insert some new document, db users insert one and there, I'll insert Anna
+
+17
+00:01:31,410 --> 00:01:38,800
+also without an email. And now I get an error, I get a duplicate key error because that non-existing e-mail
+
+18
+00:01:38,980 --> 00:01:45,790
+for which I have an index is treated as a duplicate key because now I have a no value, so no value stored
+
+19
+00:01:46,000 --> 00:01:47,180
+twice.
+
+20
+00:01:47,230 --> 00:01:52,420
+So that is an interesting behavior but some behavior you just have to be aware of, mongodb treats
+
+21
+00:01:52,650 --> 00:01:59,100
+nonexisting values still as values in your index, so as a not there value
+
+22
+00:01:59,110 --> 00:02:06,340
+you could say, as a null value and therefore if you have two documents with no value for an indexed field
+
+23
+00:02:06,610 --> 00:02:10,690
+and that index is unique, you will get this error.
+
+24
+00:02:10,690 --> 00:02:16,390
+Now if you have that use case and you know yeah but I want to be able to turn this into a unique index
+
+25
+00:02:16,390 --> 00:02:23,170
+and it's ok if some people don't have an e-mail address, if that is what you want to do, then you have
+
+26
+00:02:23,170 --> 00:02:25,140
+to create the index a bit differently.
+
+27
+00:02:25,150 --> 00:02:26,700
+So here I dropped it
+
+28
+00:02:27,040 --> 00:02:34,750
+and now let me recreate that index and not just set unique to true but you can also add a partial filter
+
+29
+00:02:34,750 --> 00:02:42,680
+expression now and add a filter for the email field and simply say exists
+
+30
+00:02:42,690 --> 00:02:50,220
+true, so this filter simply says I only want to add elements into my index where the email field exists
+
+31
+00:02:50,460 --> 00:02:56,450
+and this will avoid the case of having a clash with unique. If I run this, it works,
+
+32
+00:02:56,490 --> 00:02:58,850
+if I now try to insert Anna without an email,
+
+33
+00:02:58,890 --> 00:03:00,140
+this also works.
+
+34
+00:03:00,180 --> 00:03:06,570
+So now in users, we do have our free users and only one of them has a e-mail,
+
+35
+00:03:06,600 --> 00:03:13,290
+if I were to try to add Anna with the same email I already have in there,
+
+36
+00:03:13,290 --> 00:03:21,510
+so with max@test.com, then it would fail because this is indexed, all fields where the e-mail exists
+
+37
+00:03:21,600 --> 00:03:22,840
+are indexed.
+
+38
+00:03:22,860 --> 00:03:29,340
+I just used the combination of unique and partial filter expression to not index fields where no value
+
+39
+00:03:29,340 --> 00:03:32,040
+or where the entire field does not exist
+
+40
+00:03:32,100 --> 00:03:35,220
+and this allows me to still use unique on that field.

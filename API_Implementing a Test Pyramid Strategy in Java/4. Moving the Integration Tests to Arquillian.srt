@@ -1,0 +1,440 @@
+1
+00:00:00,942 --> 00:00:06,055
+So our new demonstration will focus on working with Arquillian into our
+
+2
+00:00:06,055 --> 00:00:10,140
+project and moving our integration tests to Arquillian.
+
+3
+00:00:10,140 --> 00:00:10,643
+Of course,
+
+4
+00:00:10,643 --> 00:00:14,265
+we'll make sure the tested functionality is the same and we'll
+
+5
+00:00:14,265 --> 00:00:19,399
+investigate the code coverage as usually.
+
+6
+00:00:19,399 --> 00:00:22,341
+Into the flightWithPassengersTest,
+
+7
+00:00:22,341 --> 00:00:27,854
+we have this flight variable and we'll annotate it with inject.
+
+8
+00:00:27,854 --> 00:00:30,303
+This is a Java Enterprise edition annotation.
+
+9
+00:00:30,303 --> 00:00:34,426
+This means that the annotated field will be injected by the
+
+10
+00:00:34,426 --> 00:00:38,615
+container in order to be used into the tests.
+
+11
+00:00:38,615 --> 00:00:47,137
+If we run the test now, it is red and we are going to get this error.
+
+12
+00:00:47,137 --> 00:00:52,282
+Unsatisfied dependencies for type flight with qualifiers default.
+
+13
+00:00:52,282 --> 00:00:53,318
+What does it mean?
+
+14
+00:00:53,318 --> 00:00:56,963
+It means that the container is trying to inject the dependency,
+
+15
+00:00:56,963 --> 00:00:59,154
+but it is unsatisified.
+
+16
+00:00:59,154 --> 00:00:59,580
+Why?
+
+17
+00:00:59,580 --> 00:01:03,289
+This happens because the Flight class provides only this
+
+18
+00:01:03,289 --> 00:01:07,105
+constructor and it has no default constructor to be used by the
+
+19
+00:01:07,105 --> 00:01:10,074
+container for the creation of the object.
+
+20
+00:01:10,074 --> 00:01:14,163
+The container design not know how to invoke the constructor with parameters
+
+21
+00:01:14,163 --> 00:01:16,774
+and which parameters and which parameters to pass to it.
+
+22
+00:01:16,774 --> 00:01:18,499
+What is the solution in this case?
+
+23
+00:01:18,499 --> 00:01:21,510
+Java Enterprise edition offers the producer methods,
+
+24
+00:01:21,510 --> 00:01:27,659
+methods designed to inject objects that require custom initialization.
+
+25
+00:01:27,659 --> 00:01:35,035
+We are going to create a new package and we'll name it producers.
+
+26
+00:01:35,035 --> 00:01:38,840
+Here, we are going to create a new producer class.
+
+27
+00:01:38,840 --> 00:01:46,761
+We'll name it FlightProducer and we'll provide a producer method to it.
+
+28
+00:01:46,761 --> 00:01:50,380
+This method will be named createFlight and it is simply
+
+29
+00:01:50,380 --> 00:01:54,686
+invoking FlightBuilderUtil.buildFlightFromCsv.
+
+30
+00:01:54,686 --> 00:01:55,688
+And as we were saying,
+
+31
+00:01:55,688 --> 00:01:59,705
+such a method can be used to inject objects that require
+
+32
+00:01:59,705 --> 00:02:02,508
+custom initialization and this is our case.
+
+33
+00:02:02,508 --> 00:02:05,900
+We are injecting a flight configured based on the csv file.
+
+34
+00:02:05,900 --> 00:02:08,263
+We have annotated this method with producers,
+
+35
+00:02:08,263 --> 00:02:13,092
+which is also a Java Enterprise edition annotation and the container will
+
+36
+00:02:13,092 --> 00:02:17,222
+automatically invoke this method to create the configure flight.
+
+37
+00:02:17,222 --> 00:02:21,516
+Then the container will inject this one into the flight field,
+
+38
+00:02:21,516 --> 00:02:23,452
+annotate it with inject.
+
+39
+00:02:23,452 --> 00:02:29,479
+We also need to insert this FlightProducer into the ShrinkWrap archive.
+
+40
+00:02:29,479 --> 00:02:35,446
+If we run the test now, it will be green.
+
+41
+00:02:35,446 --> 00:02:38,926
+The container is able to inject the correctly configured flight.
+
+42
+00:02:38,926 --> 00:02:43,594
+We are not yet testing anything here, but it is time to do it.
+
+43
+00:02:43,594 --> 00:02:46,584
+So we are going to move the tests that are working with both
+
+44
+00:02:46,584 --> 00:02:49,119
+passenger and flight into this new class,
+
+45
+00:02:49,119 --> 00:02:51,349
+they represent the integration tests.
+
+46
+00:02:51,349 --> 00:02:54,496
+Of course, we are going to remove this test method.
+
+47
+00:02:54,496 --> 00:02:58,617
+It was here just for our convenience because an Arquillian test does not
+
+48
+00:02:58,617 --> 00:03:02,529
+execute without at least one test annotated method.
+
+49
+00:03:02,529 --> 00:03:07,085
+This test sellTicket method will be removed from here and it will
+
+50
+00:03:07,085 --> 00:03:11,403
+be introduced into FlightWithPassengersTest.
+
+51
+00:03:11,403 --> 00:03:13,603
+The flight is no longer created inside the test,
+
+52
+00:03:13,603 --> 00:03:17,071
+it is injected by the container.
+
+53
+00:03:17,071 --> 00:03:21,521
+We eliminate testAddRemovePassengers from here and it will
+
+54
+00:03:21,521 --> 00:03:26,279
+arrive here among the integration tests.
+
+55
+00:03:26,279 --> 00:03:29,562
+TestSetInvalidPlaces will be removed from here and
+
+56
+00:03:29,562 --> 00:03:33,999
+inserted into FlightWithPassengersTest.
+
+57
+00:03:33,999 --> 00:03:37,148
+And the last test that was working with both passenger and flight,
+
+58
+00:03:37,148 --> 00:03:37,648
+TestSetValidPlaces,
+
+59
+00:03:37,648 --> 00:03:43,128
+will be removed from the FlightTest class and we'll
+
+60
+00:03:43,128 --> 00:03:47,743
+introduce it into FlightWithPassengersTest.
+
+61
+00:03:47,743 --> 00:03:50,480
+What must be remarked about these methods?
+
+62
+00:03:50,480 --> 00:03:54,620
+They are all annotated with the JUnit for test annotation and we are using
+
+63
+00:03:54,620 --> 00:03:59,041
+the JUnit for assertEquals and assertThrows methods.
+
+64
+00:03:59,041 --> 00:04:02,617
+We have removed the programmatic creation of the flight as it is injected by
+
+65
+00:04:02,617 --> 00:04:07,253
+the producer and it makes sense to have them here into this class as they
+
+66
+00:04:07,253 --> 00:04:11,786
+test integration between flight and passenger.
+
+67
+00:04:11,786 --> 00:04:16,384
+Let's run all the tests.
+
+68
+00:04:16,384 --> 00:04:17,352
+They are all green,
+
+69
+00:04:17,352 --> 00:04:20,139
+so we have successfully used Arquillian for the integration
+
+70
+00:04:20,139 --> 00:04:25,266
+testing between flight and passenger.
+
+71
+00:04:25,266 --> 00:04:27,648
+Let's have a look at the code coverage.
+
+72
+00:04:27,648 --> 00:04:36,453
+We run mvn test from the command prompt.
+
+73
+00:04:36,453 --> 00:04:37,892
+Into the index.html file,
+
+74
+00:04:37,892 --> 00:04:42,558
+we'll be able to take a look at the code coverage and surprise,
+
+75
+00:04:42,558 --> 00:04:44,732
+it is only 65%.
+
+76
+00:04:44,732 --> 00:04:46,454
+Have we missed anything?
+
+77
+00:04:46,454 --> 00:04:47,880
+Let's take a closer look.
+
+78
+00:04:47,880 --> 00:04:51,612
+The flight class is tested only 71%.
+
+79
+00:04:51,612 --> 00:04:53,678
+A few methods like takeOff, land,
+
+80
+00:04:53,678 --> 00:04:59,083
+and others that we are testing at the unit level are not covered at all.
+
+81
+00:04:59,083 --> 00:05:02,881
+The Passenger class is tested only 56%.
+
+82
+00:05:02,881 --> 00:05:05,642
+A few methods like setIdentifier, setCountryCode,
+
+83
+00:05:05,642 --> 00:05:11,061
+and others that we're testing at the unit level are not covered at all.
+
+84
+00:05:11,061 --> 00:05:12,539
+Why did this happen?
+
+85
+00:05:12,539 --> 00:05:16,983
+If we take a closer look here, we see that only four tests have been run.
+
+86
+00:05:16,983 --> 00:05:20,358
+They all belong to the FlightWithPassengersTest class.
+
+87
+00:05:20,358 --> 00:05:22,304
+The previous unit tests, flight tests,
+
+88
+00:05:22,304 --> 00:05:24,867
+and passengers test haven't been run any longer.
+
+89
+00:05:24,867 --> 00:05:25,286
+Why?
+
+90
+00:05:25,286 --> 00:05:30,936
+Because as we are saying, Arquillian is not well-integrated with JUnit5.
+
+91
+00:05:30,936 --> 00:05:32,615
+So what's to be done now?
+
+92
+00:05:32,615 --> 00:05:34,324
+Anything we can do?
+
+93
+00:05:34,324 --> 00:05:36,591
+Fortunately, we do have some work-a-round.
+
+94
+00:05:36,591 --> 00:05:40,070
+IntelliJ provides the opportunity to run the tests
+
+95
+00:05:40,070 --> 00:05:44,811
+with coverage from inside the IDE.
+
+96
+00:05:44,811 --> 00:05:47,468
+We see that they are separated on JUnit Jupiter tests.
+
+97
+00:05:47,468 --> 00:05:52,820
+These are the unit tests using the new JUnit5 framework and JUnit Vintage tests,
+
+98
+00:05:52,820 --> 00:05:54,889
+the integration test that use JUnit4.
+
+99
+00:05:54,889 --> 00:05:58,304
+And the good news for us is that we have kept our
+
+100
+00:05:58,304 --> 00:06:04,113
+code coverage at the level of 100%.
+
+101
+00:06:04,113 --> 00:06:06,795
+This module has focused on introducing integration
+
+102
+00:06:06,795 --> 00:06:09,833
+testing and adopting it into our project.
+
+103
+00:06:09,833 --> 00:06:13,463
+We have explained the motivation for the integration testing.
+
+104
+00:06:13,463 --> 00:06:17,775
+We have looked at the types and approaches and we have extended
+
+105
+00:06:17,775 --> 00:06:21,352
+the flights management application by revealing integration
+
+106
+00:06:21,352 --> 00:06:25,452
+problems and by building integration tests.
+
+107
+00:06:25,452 --> 00:06:27,871
+We have encountered the Arquillian testing framework,
+
+108
+00:06:27,871 --> 00:06:32,849
+and we have explained how to adopt the integration testing with Arquillian.
+
+109
+00:06:32,849 --> 00:06:35,351
+We are now prepared for the next step, system testing,
+
+110
+00:06:35,351 --> 00:06:43,000
+where we will look at some complete and integrated software. See you in the next module.
+

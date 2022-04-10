@@ -1,0 +1,663 @@
+1
+00:00:02,390 --> 00:00:08,000
+Things can go wrong when we try to sign up with an e-mail that already exists for example and Firebase
+
+2
+00:00:08,030 --> 00:00:14,090
+actually gives us back a message that kind of gives us an idea what might have failed. By the way in the
+
+3
+00:00:14,090 --> 00:00:17,680
+official docs, you also get some example errors you could get back,
+
+4
+00:00:17,690 --> 00:00:25,710
+for example e-mail exists or for signing in, you could also get back e-mail not found, invalid password,
+
+5
+00:00:25,770 --> 00:00:31,470
+things like that. So you might want to handle these errors or at least have some generic error handling
+
+6
+00:00:31,560 --> 00:00:32,790
+process in place
+
+7
+00:00:33,910 --> 00:00:43,110
+and I will handle these errors by throwing my own error if something goes wrong. For that here in the
+
+8
+00:00:43,200 --> 00:00:49,140
+auth.dart file in the providers folder, in authenticate where we send that request, where we do get an
+
+9
+00:00:49,140 --> 00:00:51,630
+error in the end if something fails,
+
+10
+00:00:51,630 --> 00:00:59,980
+I want to wrap that here with try catch and you learned about that before, right? So here, I'll just take
+
+11
+00:00:59,980 --> 00:01:07,850
+this, get rid of the print statement in here actually, wrap this into try and catch any error I might be getting
+
+12
+00:01:07,850 --> 00:01:12,780
+here and in here, simply rethrow that error.
+
+13
+00:01:13,000 --> 00:01:20,500
+Now we would get an error here if Firebase returns us a response with an error status code or if
+
+14
+00:01:20,500 --> 00:01:23,280
+we have no network connection or anything like that.
+
+15
+00:01:23,290 --> 00:01:28,840
+The problem with Firebase here is that this response actually is not an error response,
+
+16
+00:01:28,870 --> 00:01:34,950
+it doesn't have an error status code and therefore, you learned that for post and get, the HTTP
+
+17
+00:01:34,960 --> 00:01:37,140
+package would normally throw an error
+
+18
+00:01:37,180 --> 00:01:39,550
+if your response has an error status code,
+
+19
+00:01:39,550 --> 00:01:45,460
+therefore this does not happen here because our response has a 200 status code but simply contains a
+
+20
+00:01:45,460 --> 00:01:47,690
+body that indicates that we have an error.
+
+21
+00:01:47,750 --> 00:01:49,090
+Now that's not too common,
+
+22
+00:01:49,090 --> 00:01:52,890
+you might be working with an API that actually gives you an error status code
+
+23
+00:01:52,900 --> 00:01:57,820
+if something goes wrong and therefore here, you might end up in the catch block and implement your
+
+24
+00:01:57,820 --> 00:01:58,980
+logic here.
+
+25
+00:01:58,990 --> 00:02:08,680
+Now for me here, I have to check the response inside of try here and see if it, even though it's 200, is
+
+26
+00:02:08,680 --> 00:02:14,560
+a 200 code, if it contains an indicator that we have an error and we see thankfully how an error
+
+27
+00:02:14,560 --> 00:02:15,960
+response would look like
+
+28
+00:02:15,970 --> 00:02:19,140
+regarding the response body, that's what we get here.
+
+29
+00:02:19,210 --> 00:02:26,610
+So here, I want to add an if check and check if my response and there actually, the extracted body, so I'll
+
+30
+00:02:26,610 --> 00:02:33,310
+store this in a separate constant to make my code a bit more readable. So my response data is json.decode
+
+31
+00:02:33,370 --> 00:02:34,910
+response body,
+
+32
+00:02:35,040 --> 00:02:36,630
+we could have done all of that in one line,
+
+33
+00:02:36,640 --> 00:02:39,750
+I just use two lines here to make it easier to read.
+
+34
+00:02:39,790 --> 00:02:47,650
+So I want to check if my response data has an error key because here we see we have an error key if
+
+35
+00:02:47,650 --> 00:02:49,120
+we have an error.
+
+36
+00:02:49,150 --> 00:02:55,390
+So if this is not equal to null or put in other words, if it exists, then we know even though we have
+
+37
+00:02:55,390 --> 00:02:58,540
+a 200 status code, we have a problem.
+
+38
+00:02:58,570 --> 00:03:06,520
+So in here, I want to throw my own exception and thankfully, I built this HTTP exception class here in the
+
+39
+00:03:06,520 --> 00:03:08,230
+last course module.
+
+40
+00:03:08,230 --> 00:03:14,800
+So let's import that from the models folder, there from the http_exception.dart and it's a simple exception
+
+41
+00:03:14,800 --> 00:03:22,330
+class which we can throw here, HttpException and pass in a message. The message I want to pass
+
+42
+00:03:22,330 --> 00:03:27,370
+in can also be extracted from Firebase response. In the error key,
+
+43
+00:03:27,380 --> 00:03:33,530
+we have another nested map and in that map here, we have a message key which contains that identifier
+
+44
+00:03:33,550 --> 00:03:36,060
+that Firebase gives us which is useful.
+
+45
+00:03:36,410 --> 00:03:44,060
+So there, as a message to my exception here, I'll forward response data, then access the error key and then
+
+46
+00:03:44,060 --> 00:03:50,300
+in that inner map, the message key to basically forward that identifier that Firebase gives me as part
+
+47
+00:03:50,300 --> 00:03:52,080
+of the exception I throw.
+
+48
+00:03:52,130 --> 00:03:54,440
+Now what's the idea behind throwing an exception here?
+
+49
+00:03:54,440 --> 00:04:00,110
+Well we can of course now manage or handle that exception in the AuthScreen which is where we're in
+
+50
+00:04:00,110 --> 00:04:06,010
+the widget and where we can present something to the user, show an alert to the user for example.
+
+51
+00:04:06,050 --> 00:04:13,730
+So here on the AuthScreen, we can now wrap our entire if else block here in a try
+
+52
+00:04:13,740 --> 00:04:20,040
+catch block because either of these two actions could fail, both signing up and logging in can
+
+53
+00:04:20,040 --> 00:04:20,430
+fail so 
+
+54
+00:04:20,440 --> 00:04:27,570
+we want to wrap that in a try block and now I'll use a different version of that catch method, instead
+
+55
+00:04:27,570 --> 00:04:29,730
+of catching any error,
+
+56
+00:04:29,730 --> 00:04:36,180
+I'll check if I got a specific kind of error and we do that with the onKeyword here.
+
+57
+00:04:36,180 --> 00:04:37,200
+So on
+
+58
+00:04:37,380 --> 00:04:43,010
+and then you specify the class, the type of class, the type of exception you want to handle.
+
+59
+00:04:43,200 --> 00:04:48,480
+I want to handle my own HTTP exception, so therefore we first of all have to import that from the models
+
+60
+00:04:48,480 --> 00:04:51,330
+folder and the http_exception.dart file
+
+61
+00:04:51,630 --> 00:04:57,500
+and with that import added up there, down here we can check onHttpException,
+
+62
+00:04:57,720 --> 00:04:59,130
+then catch the error,
+
+63
+00:04:59,160 --> 00:05:02,010
+so we still have catch error here but we filter the errors
+
+64
+00:05:02,010 --> 00:05:03,810
+we want to catch basically
+
+65
+00:05:03,810 --> 00:05:09,330
+and then you can still also have a generic catch error after that to catch any errors which are not
+
+66
+00:05:09,330 --> 00:05:10,910
+of type HTTP exception,
+
+67
+00:05:10,920 --> 00:05:17,390
+so for example errors that occur because you lost the network connection or anything like that. But the
+
+68
+00:05:17,400 --> 00:05:25,020
+custom HTTP exception, which in my case, in this scenario here is only thrown if we failed validation of
+
+69
+00:05:25,020 --> 00:05:25,410
+the data
+
+70
+00:05:25,410 --> 00:05:30,990
+basically, that will be handled here in this special catch block.
+
+71
+00:05:30,990 --> 00:05:32,700
+Now why do I do it like that?
+
+72
+00:05:32,700 --> 00:05:35,660
+Why do I have two catch blocks? because I want to show it to you,
+
+73
+00:05:35,660 --> 00:05:40,860
+I want to show you this filtering mechanism and because I want to show a different message based on
+
+74
+00:05:40,860 --> 00:05:41,910
+which error occurred.
+
+75
+00:05:43,020 --> 00:05:55,560
+My error message down there should simply be could not authenticate you, please try again later because
+
+76
+00:05:55,560 --> 00:05:58,830
+maybe we had no Internet connection, maybe Firebase was down,
+
+77
+00:05:58,830 --> 00:05:59,920
+we don't know,
+
+78
+00:05:59,970 --> 00:06:04,620
+so that's the message we'll use there and I'll work on displaying it in a second.
+
+79
+00:06:04,620 --> 00:06:07,290
+The message up here is different, there
+
+80
+00:06:07,320 --> 00:06:15,610
+I also have my default error message where we could also say authentication failed and yes you could
+
+81
+00:06:15,610 --> 00:06:18,700
+of course therefore merge both blocks together kind of
+
+82
+00:06:18,730 --> 00:06:21,620
+but again, I also want to show this filtering.
+
+83
+00:06:21,790 --> 00:06:25,690
+So here that's my default message but now, I want to check what's inside the error
+
+84
+00:06:25,810 --> 00:06:30,800
+and please remember that we pass a message into our exception here.
+
+85
+00:06:30,850 --> 00:06:35,420
+We do that in the auth.dart file in providers, we pass that identifier Firebase gives us,
+
+86
+00:06:35,440 --> 00:06:40,190
+so that's inside of the exception and that's what we catch here in the end.
+
+87
+00:06:40,210 --> 00:06:48,780
+So now we can add a switch statement here and switch on our error message here or simply on error to
+
+88
+00:06:48,790 --> 00:06:53,020
+string which also, thanks to our method here, returns the message.
+
+89
+00:06:54,220 --> 00:06:57,360
+So we want to switch the value that's stored in there
+
+90
+00:06:57,640 --> 00:07:02,500
+and then here, we can define different cases where we want to alter that message.
+
+91
+00:07:02,530 --> 00:07:06,690
+Now the thing is Firebase doesn't always provide a clean identifier like this,
+
+92
+00:07:06,790 --> 00:07:11,680
+sometimes it's also a short sentence where this identifier is included and a switch statement will look
+
+93
+00:07:11,680 --> 00:07:13,240
+for exact matches,
+
+94
+00:07:13,240 --> 00:07:15,850
+so I will actually work with a couple of if statements instead.
+
+95
+00:07:15,880 --> 00:07:21,490
+If you had an API that gives you clear identifiers and always the same structure of identifier, then
+
+96
+00:07:21,490 --> 00:07:24,290
+you could absolutely use a switch statement, here
+
+97
+00:07:24,610 --> 00:07:31,010
+I'll use an if statement instead and check my error to string,
+
+98
+00:07:31,030 --> 00:07:38,290
+so what is stored in here and call contains on that. Every string has the contains method where you can check
+
+99
+00:07:38,290 --> 00:07:44,320
+whether in that string, you have a certain word or a certain term is included and here for example, we
+
+100
+00:07:44,320 --> 00:07:51,420
+can check for e-mail exists and if that is true, then we know that we have that identifier, at least included
+
+101
+00:07:51,430 --> 00:07:53,580
+in a sentence if it's more than one word
+
+102
+00:07:53,890 --> 00:07:59,200
+and then I know that my error message here should actually be overwritten and that's why I use var instead
+
+103
+00:07:59,200 --> 00:08:00,200
+of final
+
+104
+00:08:00,490 --> 00:08:14,380
+and it should now be this e-mail address exists or is already in use maybe. Else if the error to string
+
+105
+00:08:14,440 --> 00:08:21,400
+call here contains let's say invalid e-mail which is another identifier Firebase gives you, you could
+
+106
+00:08:21,400 --> 00:08:31,600
+set the error message to this is not a valid e-mail address. Yet another check we can do here is error
+
+107
+00:08:31,600 --> 00:08:40,060
+to string contains and check for the weak password identifier which would be thrown if you somehow sneak
+
+108
+00:08:40,060 --> 00:08:46,420
+in a password that's shorter than six characters, then you could return a message where you say this
+
+109
+00:08:46,420 --> 00:08:55,070
+password is too weak. Of course by the way, you don't have to implement such a detailed error handling,
+
+110
+00:08:55,130 --> 00:08:59,660
+I just want to demo this, if you want something like this for your app or not is of course for you to
+
+111
+00:08:59,660 --> 00:09:00,200
+decide.
+
+112
+00:09:01,040 --> 00:09:05,840
+So besides the weak password, we can also check for e-mail not found, another identifier Firebase might
+
+113
+00:09:05,840 --> 00:09:08,300
+return for logging in in that case,
+
+114
+00:09:08,450 --> 00:09:19,210
+here we could have an error message of could not find a user with that e-mail and my last else if
+
+115
+00:09:19,260 --> 00:09:28,100
+case here is that I compare or that I check my error message here with contains for invalid password,
+
+116
+00:09:28,110 --> 00:09:39,040
+so in case we entered a wrong password, then we can return invalid password as a message here.
+
+117
+00:09:39,070 --> 00:09:43,930
+Now if we make it into neither of these blocks here because we have some other error, some other identifier,
+
+118
+00:09:44,140 --> 00:09:49,240
+then this default message here will be taken. Now down there, we only have one message and therefore
+
+119
+00:09:49,240 --> 00:09:51,610
+we can actually also turn this into a const,
+
+120
+00:09:51,640 --> 00:09:54,650
+it's a compile time constant, it will never change
+
+121
+00:09:54,790 --> 00:09:58,210
+and now the question is, how do we output that message?
+
+122
+00:09:58,210 --> 00:10:00,370
+For that, we can simply show a dialog.
+
+123
+00:10:00,380 --> 00:10:03,640
+Now of course I only want to show the dialog if we have an error,
+
+124
+00:10:03,730 --> 00:10:10,720
+so here we could add a new method in this class which returns nothing let's say
+
+125
+00:10:13,680 --> 00:10:15,020
+which I name 
+
+126
+00:10:15,060 --> 00:10:21,740
+_showErrorDialog where I expect to get my message that should be shown as an argument and then in
+
+127
+00:10:21,750 --> 00:10:23,730
+here, we can call show dialog.
+
+128
+00:10:23,910 --> 00:10:29,220
+You need to provide a context here and as you learned, context is available everywhere in the state class
+
+129
+00:10:30,030 --> 00:10:35,040
+and you need to provide a builder and in that builder, you get a newly generated context
+
+130
+00:10:35,160 --> 00:10:44,050
+and there you can return your alert dialog and in that alert dialog, you can have a title of which is
+
+131
+00:10:44,050 --> 00:10:50,510
+a text widget actually or should be a text widget of an error occurred,
+
+132
+00:10:50,860 --> 00:10:54,440
+something like this
+
+133
+00:10:54,610 --> 00:10:59,590
+and then of course also have some content in there and the content now simply is a text widget
+
+134
+00:11:00,040 --> 00:11:02,350
+that wraps our message
+
+135
+00:11:02,560 --> 00:11:10,930
+and obviously you can now also add some actions here, some FlatButtons if you want to, where you say OK or
+
+136
+00:11:10,930 --> 00:11:16,540
+you offer more options if you want to, I'll just add an OK button here and if that is pressed, I'll simply
+
+137
+00:11:16,540 --> 00:11:22,210
+call navigator of ctx pop to close that dialog.
+
+138
+00:11:22,210 --> 00:11:27,520
+So now we can call this showErrorDialog method and forward our message to show such a dialog to the
+
+139
+00:11:27,520 --> 00:11:28,600
+user.
+
+140
+00:11:28,600 --> 00:11:34,540
+So here in both onHttpException catch as well as just catch, at the end,
+
+141
+00:11:34,540 --> 00:11:40,110
+I'll call showErrorDialog and forward the error message. With that,
+
+142
+00:11:40,120 --> 00:11:43,990
+we should hopefully show a dialog if we have an error.
+
+143
+00:11:44,140 --> 00:11:49,000
+Now one other thing I of course also want to do, I want to make sure that the loading spinner goes away
+
+144
+00:11:49,330 --> 00:11:55,270
+and that should already happen because we're setting the state to isLoading false after the entire
+
+145
+00:11:55,270 --> 00:11:56,710
+try catch block,
+
+146
+00:11:56,710 --> 00:12:01,630
+so even if we have an error, after all of that, this code will execute and the loading spinner should
+
+147
+00:12:01,630 --> 00:12:03,920
+therefore be removed.
+
+148
+00:12:03,940 --> 00:12:11,500
+Let's maybe do a hot refresh to reload our app entirely here and then let's try signing up a user with
+
+149
+00:12:11,500 --> 00:12:13,540
+an e-mail address that already exists.
+
+150
+00:12:13,600 --> 00:12:17,620
+So let's go to sign up here, confirm the password, click sign up
+
+151
+00:12:19,290 --> 00:12:22,710
+and we see this e-mail address is already in use.
+
+152
+00:12:22,710 --> 00:12:24,540
+Now let's try
+
+153
+00:12:27,020 --> 00:12:28,040
+another e-mail address,
+
+154
+00:12:28,100 --> 00:12:30,520
+so this should now succeed actually if we sign up,
+
+155
+00:12:30,930 --> 00:12:32,310
+yes looks better.
+
+156
+00:12:32,330 --> 00:12:32,960
+Let's try
+
+157
+00:12:32,960 --> 00:12:36,760
+logging in now with a user that exists,
+
+158
+00:12:36,770 --> 00:12:40,610
+we just created it but with a wrong password,
+
+159
+00:12:40,770 --> 00:12:44,880
+actually I should enter a longer password so that my local validation succeeds
+
+160
+00:12:44,880 --> 00:12:47,290
+but now invalid passwords,
+
+161
+00:12:47,300 --> 00:12:50,580
+that's looking good. Let's try
+
+162
+00:12:50,580 --> 00:12:56,670
+maybe a correct password but an e-mail which doesn't exist and login, could not find a user. So that seems
+
+163
+00:12:56,670 --> 00:12:57,150
+to work
+
+164
+00:12:57,150 --> 00:12:59,580
+and with that, we got error handling in place,
+
+165
+00:12:59,730 --> 00:13:05,910
+we can now continue and make sure that if we do succeed with sign up or login, we actually move on to
+
+166
+00:13:05,910 --> 00:13:08,490
+the shop instead of showing this login screen.

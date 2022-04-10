@@ -1,0 +1,448 @@
+1
+00:00:02,840 --> 00:00:07,040
+So what about the tooling provided by the virtual machine itself?
+
+2
+00:00:07,040 --> 00:00:12,670
+Jstat is a command line tool that lets us run various monitoring commands.
+
+3
+00:00:12,670 --> 00:00:15,140
+It lets us look at things like class loading, for example.
+
+4
+00:00:15,140 --> 00:00:19,440
+But the commands we care about here at all to do with a garbage collector.
+
+5
+00:00:19,440 --> 00:00:23,540
+So, for example, we can run commands to look at the garbage collector's capacity.
+
+6
+00:00:23,540 --> 00:00:26,830
+So how much memory has been allocated for each part of the garbage collector?
+
+7
+00:00:26,830 --> 00:00:29,140
+We could run a gcutil command,
+
+8
+00:00:29,140 --> 00:00:31,270
+which gives us various statistics on the garbage collector.
+
+9
+00:00:31,270 --> 00:00:33,990
+And we can run the full gc command,
+
+10
+00:00:33,990 --> 00:00:37,200
+which shows the information about an ongoing garbage collection,
+
+11
+00:00:37,200 --> 00:00:39,160
+such as how many garbage collects have happened and some
+
+12
+00:00:39,160 --> 00:00:41,740
+timings around those garbage collections.
+
+13
+00:00:41,740 --> 00:00:45,570
+There are also other commands around causes of the garbage collection
+
+14
+00:00:45,570 --> 00:00:48,590
+and various other timing commands we could also run.
+
+15
+00:00:48,590 --> 00:00:50,540
+The general form of jstat is something like this.
+
+16
+00:00:50,540 --> 00:00:54,330
+We do a jstat, we pass it an option, we pass it a process ID,
+
+17
+00:00:54,330 --> 00:00:58,640
+and the process ID here we need to find out. This is our Java process ID.
+
+18
+00:00:58,640 --> 00:01:00,820
+So we can pass jstat at interval,
+
+19
+00:01:00,820 --> 00:01:03,440
+and this can be a time in seconds or milliseconds,
+
+20
+00:01:03,440 --> 00:01:06,920
+and that tells jstat to produce this output at that interval.
+
+21
+00:01:06,920 --> 00:01:08,530
+And we can also give it a count.
+
+22
+00:01:08,530 --> 00:01:09,900
+And again, this is optional.
+
+23
+00:01:09,900 --> 00:01:14,540
+If we pass it an interval, but not a count, then the count defaults to infinity.
+
+24
+00:01:14,540 --> 00:01:20,940
+We can basically tell jstat how many lines of output we require here.
+
+25
+00:01:20,940 --> 00:01:24,920
+We'll also find that jstat can work with remote JVMs as well.
+
+26
+00:01:24,920 --> 00:01:29,720
+So we can pass this a URL that identifies the Java VM on a
+
+27
+00:01:29,720 --> 00:01:32,540
+remote machine and monitor that virtual machine.
+
+28
+00:01:32,540 --> 00:01:35,060
+So to demonstrate jstat in action,
+
+29
+00:01:35,060 --> 00:01:38,790
+we have a reasonably simple Java application here.
+
+30
+00:01:38,790 --> 00:01:43,370
+This Java application uses the GCMe class that we've seen previously.
+
+31
+00:01:43,370 --> 00:01:46,040
+This is quite a large class here. So when we allocate an instance
+
+32
+00:01:46,040 --> 00:01:49,360
+of this class, we get a large memory allocation, and it's got 10
+
+33
+00:01:49,360 --> 00:01:51,940
+long variables inside the class.
+
+34
+00:01:51,940 --> 00:01:55,430
+When we allocate an object of this class, we'll store that reference
+
+35
+00:01:55,430 --> 00:01:59,730
+inside an array, and the array holds a million elements, and we store it
+
+36
+00:01:59,730 --> 00:02:03,650
+at some random location inside the array. Initially, we'll be storing new
+
+37
+00:02:03,650 --> 00:02:07,340
+objects at empty slots inside the array,
+
+38
+00:02:07,340 --> 00:02:10,190
+and those obviously will be referenced by the array. So
+
+39
+00:02:10,190 --> 00:02:12,940
+those objects will not be garbage collected.
+
+40
+00:02:12,940 --> 00:02:16,700
+But eventually, as we fill the array up when we start allocating
+
+41
+00:02:16,700 --> 00:02:22,090
+objects, we'll overwrite already existing references, and those existing
+
+42
+00:02:22,090 --> 00:02:25,440
+objects no longer being referenced will be GCed.
+
+43
+00:02:25,440 --> 00:02:27,760
+What we should see are a number of young garbage collections
+
+44
+00:02:27,760 --> 00:02:30,700
+happening and a number of old garbage collections happening and
+
+45
+00:02:30,700 --> 00:02:33,330
+that this memory gets freed. So firstly,
+
+46
+00:02:33,330 --> 00:02:37,090
+if we run this application, we can see the application is running.
+
+47
+00:02:37,090 --> 00:02:39,920
+We're printing out a dot here every so many allocations.
+
+48
+00:02:39,920 --> 00:02:42,270
+I think it's every 100,000 allocations.
+
+49
+00:02:42,270 --> 00:02:45,040
+So we can see this thing is taking over quite happily here.
+
+50
+00:02:45,040 --> 00:02:49,220
+And then what I now want to do from another command prompt is run jstat
+
+51
+00:02:49,220 --> 00:02:52,390
+and gather some information about this application.
+
+52
+00:02:52,390 --> 00:02:53,570
+So before we do that,
+
+53
+00:02:53,570 --> 00:02:56,600
+we need to find the process ID of the application, and we do that by
+
+54
+00:02:56,600 --> 00:03:01,920
+running jps. And jps shows us the current Java applications that are
+
+55
+00:03:01,920 --> 00:03:08,110
+running here, and AllocationOverwrite has a process ID of 5456. So if
+
+56
+00:03:08,110 --> 00:03:16,150
+I run jstat ‑gcutil 5456, then we should get some information about
+
+57
+00:03:16,150 --> 00:03:17,640
+the application.
+
+58
+00:03:17,640 --> 00:03:24,770
+So what we are seeing here are some percentages, so S0, S1, E, O, and M
+
+59
+00:03:24,770 --> 00:03:28,470
+are percentages of the total memory space used by these various spaces,
+
+60
+00:03:28,470 --> 00:03:31,770
+so survivor space 01, Eden space, old space,
+
+61
+00:03:31,770 --> 00:03:33,740
+something called a meta space.
+
+62
+00:03:33,740 --> 00:03:35,000
+So Eden space, for example,
+
+63
+00:03:35,000 --> 00:03:40,760
+is using up 100% of the young generation space at the moment. We're also
+
+64
+00:03:40,760 --> 00:03:45,690
+seeing some counts. So YGC is the number of young garbage collects that
+
+65
+00:03:45,690 --> 00:03:48,930
+have happened, and FGC is the number of full garbage collects that have
+
+66
+00:03:48,930 --> 00:03:52,480
+happened, and then the T values of these are the average times for those
+
+67
+00:03:52,480 --> 00:03:53,890
+garbage collections.
+
+68
+00:03:53,890 --> 00:03:59,240
+If I run gccause rather than gcutil, you'll see similar figures.
+
+69
+00:03:59,240 --> 00:04:01,500
+Time has moved on here, so we can see there have been many
+
+70
+00:04:01,500 --> 00:04:03,550
+more young garbage collection counts, and many were full
+
+71
+00:04:03,550 --> 00:04:05,240
+garbage collection counts.
+
+72
+00:04:05,240 --> 00:04:08,440
+We can also see the causes of the garbage collections as well.
+
+73
+00:04:08,440 --> 00:04:12,650
+And LGCC is the cause of the last garbage collection, and GCC is
+
+74
+00:04:12,650 --> 00:04:15,040
+the cause of the current garbage collection.
+
+75
+00:04:15,040 --> 00:04:15,980
+And in both cases,
+
+76
+00:04:15,980 --> 00:04:18,720
+we see the garbage collector ran because there was an allocation
+
+77
+00:04:18,720 --> 00:04:22,340
+failure, i.e. there was no memory available.
+
+78
+00:04:22,340 --> 00:04:25,170
+If we run gccapacity here,
+
+79
+00:04:25,170 --> 00:04:28,250
+this will give us information about the amount of memory allocated for
+
+80
+00:04:28,250 --> 00:04:31,240
+the various regions inside the garbage collector.
+
+81
+00:04:31,240 --> 00:04:35,100
+So these fall into minimum, maximum, and current for the
+
+82
+00:04:35,100 --> 00:04:37,490
+young generation and for the old generation.
+
+83
+00:04:37,490 --> 00:04:45,430
+So NGCMN is the minimum allocation for the new garbage collector, and NGCMX
+
+84
+00:04:45,430 --> 00:04:51,320
+is the maximum allocation for the new garbage collector. NGC is the amount
+
+85
+00:04:51,320 --> 00:04:56,930
+of memory currently allocated for the new garbage collector. S0C and S1C are
+
+86
+00:04:56,930 --> 00:05:02,640
+the survivor space allocations, and EC is the Eden space allocation. And if
+
+87
+00:05:02,640 --> 00:05:09,220
+you total up EC and the SCs, they should total to the allocation for the new
+
+88
+00:05:09,220 --> 00:05:19,270
+generation. 8704 + 8704 + 69952 comes to 87360. So again, for the old region,
+
+89
+00:05:19,270 --> 00:05:25,380
+we have OGCMN, OGCMX, OGC allocated, and OC, which is
+
+90
+00:05:25,380 --> 00:05:28,340
+the capacity for the old generation.
+
+91
+00:05:28,340 --> 00:05:40,140
+So finally, what about GC stats? So if we run jstat ‑gc against this process,
+
+92
+00:05:40,140 --> 00:05:43,450
+then currently, we get a single row of output. And again, we're
+
+93
+00:05:43,450 --> 00:05:46,910
+showing information about each of the generations here.
+
+94
+00:05:46,910 --> 00:05:50,700
+So S is a survivor, E is Eden, O is old.
+
+95
+00:05:50,700 --> 00:05:56,380
+So we have S0C and S1C are the capacity for the survivor spaces.
+
+96
+00:05:56,380 --> 00:06:02,690
+S0U and S1U are the utilization for survivor spaces. EC and EU are
+
+97
+00:06:02,690 --> 00:06:07,980
+the Eden capacity and the Eden utilization. OC and OU are old
+
+98
+00:06:07,980 --> 00:06:10,840
+capacity and old utilization.
+
+99
+00:06:10,840 --> 00:06:14,570
+And if we look off to the right here, we'll see we have a YGC.
+
+100
+00:06:14,570 --> 00:06:18,590
+That's the number of young generation garbage collects. And YGCT is the
+
+101
+00:06:18,590 --> 00:06:24,950
+type. FGC is the number of full garbage collects. And again, FGC time, the
+
+102
+00:06:24,950 --> 00:06:28,370
+time for the full garbage collects to happen.
+
+103
+00:06:28,370 --> 00:06:30,270
+So here on this at an interval,
+
+104
+00:06:30,270 --> 00:06:34,970
+let's say every second, we'll get it to print out 10 rows here.
+
+105
+00:06:34,970 --> 00:06:39,070
+Then, we should see the number of young garbage collects rising, and we should
+
+106
+00:06:39,070 --> 00:06:42,190
+also see the number of full garbage collects rising as well.
+
+107
+00:06:42,190 --> 00:06:46,750
+You'll notice the young garbage collect count goes from 1837 to 1862, and
+
+108
+00:06:46,750 --> 00:06:52,250
+the full garbage collection count goes from 1825 to 1850. And we notice
+
+109
+00:06:52,250 --> 00:06:55,500
+the times for these things are increasing as well. So we can use this tool
+
+110
+00:06:55,500 --> 00:06:58,840
+to monitor the number of garbage collections that are happening, and we
+
+111
+00:06:58,840 --> 00:07:01,930
+can also use it to monitor how quickly they're happening, and we can use
+
+112
+00:07:01,930 --> 00:07:09,000
+it to check the way our application responds to different garbage collectors.
+

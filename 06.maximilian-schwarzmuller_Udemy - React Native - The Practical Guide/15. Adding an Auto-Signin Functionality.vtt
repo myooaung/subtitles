@@ -1,0 +1,190 @@
+WEBVTT
+
+00:02.520 --> 00:08.070
+So the idea is to automatically log the user in and for this, we of course need to execute something
+
+00:08.070 --> 00:13.500
+in the auth screen which is the screen where I want to check whether I want the user to login.
+
+00:14.250 --> 00:21.990
+I will add a new lifecycle hook, componentDidMount, this will not be executed if I just close the app
+
+00:22.110 --> 00:24.440
+and go back into it without killing it
+
+00:24.660 --> 00:29.570
+but it will be executed if the user did kill the app and relaunches it,
+
+00:29.580 --> 00:33.170
+so it's a good place to check if we have a token.
+
+00:33.180 --> 00:40.050
+So the idea here is to dispatch an action where we check if we have a token and if we do have it, that
+
+00:40.050 --> 00:47.820
+we then set the token and redirect the user. So I will add such a new action here,
+
+00:48.050 --> 00:55.210
+export const auth auto sign in maybe, don't need any arguments here and
+
+00:55.250 --> 01:06.110
+there I want to return dispatch in a function and first of all, dispatch auth get token and then chain
+
+01:06.110 --> 01:14.870
+my then call, I will also of course add a catch block where I get an error and simply console log failed
+
+01:14.900 --> 01:18.410
+to fetch token and I don't really care about the rest,
+
+01:18.500 --> 01:20.010
+I just don't do anything here,
+
+01:20.030 --> 01:22.340
+we just don't automatically sign the user in,
+
+01:22.340 --> 01:23.330
+that's fine.
+
+01:23.570 --> 01:30.830
+But here I will have a token in the then block and that could be from our async storage,
+
+01:30.830 --> 01:32.480
+most likely it's from there.
+
+01:32.810 --> 01:39.390
+So if we do have a token here, then I want to of course sign the user in, now since we called auth get
+
+01:39.440 --> 01:44.880
+token, this token will also already have been set to our redux store,
+
+01:45.110 --> 01:48.220
+so all we need to do here is redirect the user,
+
+01:48.350 --> 01:50.820
+so we need to call start main tabs here.
+
+01:51.110 --> 01:52.550
+Now let's try this out,
+
+01:52.550 --> 01:58.810
+let's save this and let's go to our index.js file here in the action file folder
+
+01:58.820 --> 02:02.210
+first of all and export auth auto sign in
+
+02:02.600 --> 02:06.290
+and then let's go to the auth screen and import it there,
+
+02:06.290 --> 02:13.910
+so we have to add it to our import list from this actions index file, so auth auto sign in and I now
+
+02:13.910 --> 02:18.190
+want to dispatch this in componentDidMount. So for that,
+
+02:18.470 --> 02:25.010
+let's go down to the bottom of the file where we have map dispatch to props, here I'll add a new
+
+02:25.010 --> 02:34.130
+prop, on auto sign in where I don't expect any arguments in that function but where I dispatch auth auto
+
+02:34.130 --> 02:37.190
+sign in without any arguments.
+
+02:37.190 --> 02:40.720
+Now I can access this on the props in this screen component,
+
+02:40.850 --> 02:48.320
+so back in componentDidMount, I can execute this props on auto sign in like this.
+
+02:48.320 --> 02:53.940
+Now let's save all files and reload this app, I get this error,
+
+02:53.950 --> 03:00.250
+now this has to come from our auth action creator file and here, the issue is that auth get token should be
+
+03:00.250 --> 03:03.050
+executed.
+
+03:03.060 --> 03:10.800
+So now with that, let's reload the app and you see we're automatically redirected because we have a valid token.
+
+03:10.920 --> 03:13.210
+Now the interesting thing on Android if we reload,
+
+03:13.430 --> 03:14.590
+I get this error,
+
+03:14.590 --> 03:18.130
+so we also are redirected but we get an error
+
+03:18.470 --> 03:24.440
+and I wouldn't have expected to have a token there because I haven't reloaded the app since we added this
+
+03:24.650 --> 03:28.540
+please store the token in async storage functionality,
+
+03:28.640 --> 03:31.760
+so it really shouldn't be able to get a token there,
+
+03:31.790 --> 03:36.060
+so let's find out what's wrong with our logic for auto signing in.
+
+03:36.120 --> 03:40.540
+The issue is that here in the catch block on get item,
+
+03:40.710 --> 03:47.040
+we actually don't reject if this does not exist but only if we get errors accessing the storage in general,
+
+03:47.040 --> 03:49.750
+if something is blocking that, if it takes too long.
+
+03:50.130 --> 03:58.560
+So even if we don't have that ID, we will make it into the then block and just have a token of null, so
+
+03:58.560 --> 04:08.390
+therefore we should add a check here and simply check if token from storage is not true-ish by adding
+
+04:08.390 --> 04:09.760
+an exclamation mark,
+
+04:09.980 --> 04:17.570
+in that case I'll also call reject because then we have no valid token. Thereafter I return to not execute
+
+04:17.600 --> 04:19.250
+any of that code here
+
+04:19.790 --> 04:25.580
+and now I also need to switch the order here and catch after the first then block so that it's connected
+
+04:25.580 --> 04:30.670
+to this then block and catches any errors there so that then doesn't get executed.
+
+04:30.960 --> 04:38.140
+And now with that if I reload Android, we stay on the login page here and I did connect Android to
+
+04:38.140 --> 04:38.350
+that
+
+04:38.360 --> 04:45.670
+in the meantime, now let me unconnect it again and then connect the iOS one. So with that, we get the ios version where
+
+04:45.670 --> 04:50.350
+we do successfully login because indeed we have a token in async storage,
+
+04:50.350 --> 04:54.010
+on Android however this does not work because we have no token there,
+
+04:54.010 --> 05:00.480
+this also means that if we close the app and reopen it, we're also forwarded.
+
+05:00.670 --> 05:02.260
+So here it's working as it should
+
+05:02.290 --> 05:05.630
+but we'll have an issue with that approach,
+
+05:05.740 --> 05:09.800
+the expiration time of the token which I mentioned that it would be one hour.
+
+05:10.090 --> 05:14.550
+So let's dive into this problem and solve it over the next lectures.

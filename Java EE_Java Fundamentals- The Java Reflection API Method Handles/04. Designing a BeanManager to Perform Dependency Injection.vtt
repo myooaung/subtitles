@@ -1,0 +1,213 @@
+WEBVTT
+1
+00:00:02.088 --> 00:00:06.124
+What we really want to do is create an EntityManager class
+
+2
+00:00:06.124 --> 00:00:10.754
+that will receive using depending injection a JDBC
+
+3
+00:00:10.754 --> 00:00:14.056
+connection to a particular database.
+
+4
+00:00:14.056 --> 00:00:19.669
+And since this connection is created outside of this EntityManager,
+
+5
+00:00:19.669 --> 00:00:25.126
+this EntityManager will be able to talk to exchange data back
+
+6
+00:00:25.126 --> 00:00:29.469
+and forth with any kind of database server.
+
+7
+00:00:29.469 --> 00:00:34.329
+So on the other hand, we need a connection provider,
+
+8
+00:00:34.329 --> 00:00:38.730
+an object that will be able to create this JDBC connection.
+
+9
+00:00:38.730 --> 00:00:44.077
+From a technical point of view, we are going to use a factory method,
+
+10
+00:00:44.077 --> 00:00:44.642
+createConnection,
+
+11
+00:00:44.642 --> 00:00:51.134
+and annotate it with this Provides annotation that we are also going to
+
+12
+00:00:51.134 --> 00:00:56.028
+create that will tell the system that this method,
+
+13
+00:00:56.028 --> 00:00:56.869
+createConnection,
+
+14
+00:00:56.869 --> 00:01:02.832
+should be used to create the connection object this EntityManager needs.
+
+15
+00:01:02.832 --> 00:01:07.820
+So let us see the big picture of the organization of our system.
+
+16
+00:01:07.820 --> 00:01:09.047
+On one hand,
+
+17
+00:01:09.047 --> 00:01:14.619
+we have an EntityManager that needs a connection to a database to work.
+
+18
+00:01:14.619 --> 00:01:15.584
+On the other hand,
+
+19
+00:01:15.584 --> 00:01:18.939
+we have this ConnectionProvider object that is able
+
+20
+00:01:18.939 --> 00:01:22.119
+to create a database connection.
+
+21
+00:01:22.119 --> 00:01:26.900
+The EntityManager does not know anything about this ConnectionProvider,
+
+22
+00:01:26.900 --> 00:01:28.318
+and of course,
+
+23
+00:01:28.318 --> 00:01:33.769
+the ConnectionProvider does not know anything neither about this EntityManager.
+
+24
+00:01:33.769 --> 00:01:37.518
+So those two objects are completely separated.
+
+25
+00:01:37.518 --> 00:01:40.942
+They can live in two different modules of our application,
+
+26
+00:01:40.942 --> 00:01:45.912
+but then we need some kind of glue object that will use the
+
+27
+00:01:45.912 --> 00:01:49.736
+ConnectionProvider to create this database connection and
+
+28
+00:01:49.736 --> 00:01:52.147
+give it to the EntityManager.
+
+29
+00:01:52.147 --> 00:01:56.615
+So we need a third object, and we are going to call it a BeanManager,
+
+30
+00:01:56.615 --> 00:02:01.098
+that will be able to wire those two objects together.
+
+31
+00:02:01.098 --> 00:02:05.921
+BeanManager is the classical name for this kind of glue object that
+
+32
+00:02:05.921 --> 00:02:10.304
+is used in both CDI and the Spring framework.
+
+33
+00:02:10.304 --> 00:02:13.780
+So here is the pattern of code we are going to use.
+
+34
+00:02:13.780 --> 00:02:16.349
+First, we need to create this BeanManager.
+
+35
+00:02:16.349 --> 00:02:20.911
+We can do that using a factory method or any kind of method.
+
+36
+00:02:20.911 --> 00:02:25.656
+And then we are going to ask this BeanManager to create
+
+37
+00:02:25.656 --> 00:02:29.426
+an instance of EntityManager for us.
+
+38
+00:02:29.426 --> 00:02:34.284
+This BeanManager will instantiate this EntityManager the
+
+39
+00:02:34.284 --> 00:02:38.156
+ConnectionProvider and will inject the ConnectionProvider in
+
+40
+00:02:38.156 --> 00:02:41.066
+the write field of this EntityManager.
+
+41
+00:02:41.066 --> 00:02:44.875
+The BeanManager needs to create the connection object.
+
+42
+00:02:44.875 --> 00:02:45.580
+For that,
+
+43
+00:02:45.580 --> 00:02:51.173
+it needs to locate the write factory method annotated with the
+
+44
+00:02:51.173 --> 00:02:54.153
+@Provides annotation we also need to create,
+
+45
+00:02:54.153 --> 00:02:56.651
+but we know how to do that.
+
+46
+00:02:56.651 --> 00:03:01.646
+And then it will need to invoke that method to create the connection object.
+
+47
+00:03:01.646 --> 00:03:05.688
+So it needs to invoke a method using the Reflection API.
+
+48
+00:03:05.688 --> 00:03:08.980
+And this is a technical point we haven't covered yet,
+
+49
+00:03:08.980 --> 00:03:12.747
+so we are going to see that in a few minutes.
+
+50
+00:03:12.747 --> 00:03:16.014
+Once it will have created this database connection object,
+
+51
+00:03:16.014 --> 00:03:21.470
+it will need to set it to the EntityManager in the write field,
+
+52
+00:03:21.470 --> 00:03:25.273
+annotated with this @Inject annotation.
+
+53
+00:03:25.273 --> 00:03:34.000
+This is just setting a field to a given value, and we saw that in the previous modules.
+

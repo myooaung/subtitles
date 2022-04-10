@@ -1,0 +1,366 @@
+WEBVTT
+1
+1
+
+00:00:00.320  -->  00:00:03.323
+<v ->In this lecture, I'm going to talk about ETCD.</v>
+2
+
+2
+
+00:00:04.940  -->  00:00:08.223
+ETCD is used by Kubernetes as data backend.
+3
+
+3
+
+00:00:09.170  -->  00:00:12.380
+ETCD is a distributed and reliable key-value store
+4
+
+4
+
+00:00:12.380  -->  00:00:15.403
+for the most critical data of a distributed system.
+5
+
+5
+
+00:00:16.430  -->  00:00:19.170
+It's meant to be simple and it has a well-defined,
+6
+
+6
+
+00:00:19.170  -->  00:00:22.970
+user facing API using gRPC,
+7
+
+7
+
+00:00:22.970  -->  00:00:24.850
+which is a communication protocol
+8
+
+8
+
+00:00:24.850  -->  00:00:27.413
+that is more efficient that normal HTTP.
+9
+
+9
+
+00:00:28.770  -->  00:00:31.300
+It is secure, with automatic TLS
+10
+
+10
+
+00:00:31.300  -->  00:00:33.603
+and optional client certificate authorization.
+11
+
+11
+
+00:00:35.000  -->  00:00:40.000
+It is fast, it is benchmarked with 10,000 writes per second.
+12
+
+12
+
+00:00:40.280  -->  00:00:42.380
+And it is reliable,
+13
+
+13
+
+00:00:42.380  -->  00:00:45.023
+it is using the Raft Consensus Algorithm.
+14
+
+14
+
+00:00:46.330  -->  00:00:48.780
+All Kubernetes objects that you create
+15
+
+15
+
+00:00:48.780  -->  00:00:51.480
+are persisted to the ETCD backend,
+16
+
+16
+
+00:00:51.480  -->  00:00:54.403
+and this backend is typically running inside your cluster.
+17
+
+17
+
+00:00:55.300  -->  00:00:59.360
+If you have a one-master Kops cluster or a minikube setup,
+18
+
+18
+
+00:00:59.360  -->  00:01:02.363
+you'll typically have a one-node ETCD cluster.
+19
+
+19
+
+00:01:03.400  -->  00:01:06.970
+ETCD uses consensus to persist writes,
+20
+
+20
+
+00:01:06.970  -->  00:01:10.550
+so you need to have three or five ETCD nodes
+21
+
+21
+
+00:01:10.550  -->  00:01:14.970
+to allow for one or two nodes, respectively to fail.
+22
+
+22
+
+00:01:14.970  -->  00:01:17.690
+You have three nodes, you can have one node failure.
+23
+
+23
+
+00:01:17.690  -->  00:01:21.050
+You have five nodes, you can have two node failures.
+24
+
+24
+
+00:01:21.050  -->  00:01:23.630
+The latency between your nodes should be low,
+25
+
+25
+
+00:01:23.630  -->  00:01:26.580
+as heartbeats are sent between the nodes.
+26
+
+26
+
+00:01:26.580  -->  00:01:28.910
+If you have a cluster spanning multiple Data Center's,
+27
+
+27
+
+00:01:28.910  -->  00:01:31.730
+you will need to tune your heartbeat timeouts
+28
+
+28
+
+00:01:31.730  -->  00:01:33.300
+in the ETCD cluster,
+29
+
+29
+
+00:01:33.300  -->  00:01:35.760
+otherwise your heartbeats will timeout
+30
+
+30
+
+00:01:35.760  -->  00:01:37.940
+and you will hit some issues.
+31
+
+31
+
+00:01:37.940  -->  00:01:41.180
+A write to ETCD can only happen by the leader,
+32
+
+32
+
+00:01:41.180  -->  00:01:43.750
+which is elected by an election algorithm
+33
+
+33
+
+00:01:43.750  -->  00:01:46.310
+as part of the Raft Algorithm.
+34
+
+34
+
+00:01:46.310  -->  00:01:48.460
+Which I will explain in a separate lecture.
+35
+
+35
+
+00:01:49.310  -->  00:01:52.290
+If a write goes to one of the other ETCD nodes,
+36
+
+36
+
+00:01:52.290  -->  00:01:54.500
+the write will be routed through the leader,
+37
+
+37
+
+00:01:54.500  -->  00:01:57.833
+because each node also knows who the leader node is.
+38
+
+38
+
+00:01:59.140  -->  00:02:01.880
+ETCD will only persist the write if
+39
+
+39
+
+00:02:01.880  -->  00:02:03.693
+a quorum agrees on the write.
+40
+
+40
+
+00:02:04.710  -->  00:02:06.480
+For example, when you have three nodes,
+41
+
+41
+
+00:02:06.480  -->  00:02:08.450
+a quorum will be two nodes.
+42
+
+42
+
+00:02:08.450  -->  00:02:09.660
+When you have five nodes,
+43
+
+43
+
+00:02:09.660  -->  00:02:12.263
+then you will need three nodes for a quorum.
+44
+
+44
+
+00:02:13.360  -->  00:02:15.890
+This is to have consistency of the data,
+45
+
+45
+
+00:02:15.890  -->  00:02:18.513
+for example, when a network split occurs.
+46
+
+46
+
+00:02:19.790  -->  00:02:21.560
+All Kubernetes object data
+47
+
+47
+
+00:02:21.560  -->  00:02:23.760
+is stored within the ETCD cluster,
+48
+
+48
+
+00:02:23.760  -->  00:02:25.930
+so you'll want to have a backup of this data
+49
+
+49
+
+00:02:25.930  -->  00:02:27.630
+when running a production cluster.
+50
+
+50
+
+00:02:28.680  -->  00:02:30.870
+ETCD supports snapshots,
+51
+
+51
+
+00:02:30.870  -->  00:02:33.450
+to take a backup of your ETCD cluster,
+52
+
+52
+
+00:02:33.450  -->  00:02:36.003
+which can store all the data into a snapshot file.
+53
+
+53
+
+00:02:36.840  -->  00:02:40.750
+So here's an example, you can use ETCDCTL,
+54
+
+54
+
+00:02:40.750  -->  00:02:42.130
+you have to pass endpoints
+55
+
+55
+
+00:02:42.130  -->  00:02:45.980
+and you can then execute snapshot save to snapshotdb
+56
+
+56
+
+00:02:45.980  -->  00:02:50.200
+or you can then also use restore to restore snapshots.
+57
+
+57
+
+00:02:50.200  -->  00:02:51.780
+So these are commands that you could enter
+58
+
+58
+
+00:02:51.780  -->  00:02:53.840
+to communicate with the ETCD cluster
+59
+
+59
+
+00:02:53.840  -->  00:02:57.173
+and take a snapshot for backup or restore one.
+60
+
+60
+
+00:02:58.250  -->  00:03:00.090
+Then in the next lecture I will explain
+61
+
+61
+
+00:03:00.090  -->  00:03:02.293
+a bit more about the Raft Algorithm.

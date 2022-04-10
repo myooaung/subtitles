@@ -1,0 +1,904 @@
+WEBVTT
+1
+00:00:04.540 --> 00:00:05.440
+Hello and welcome.
+
+2
+00:00:05.440 --> 00:00:11.140
+In this lecture we're gonna be working on getting our responsibility for saving devolved to the actual
+
+3
+00:00:11.140 --> 00:00:15.790
+game objects that want to be saved so that for example this enemy he wants to be saved.
+
+4
+00:00:15.820 --> 00:00:22.750
+So he has got a saved Bill entity script on him which the save system will recognize and use to capture
+
+5
+00:00:22.750 --> 00:00:27.460
+his individual state and put it in a dictionary that then gets serialized.
+
+6
+00:00:27.460 --> 00:00:33.890
+Let's dive in and see how those components work so our saving system at the moment has a bit of a glaring
+
+7
+00:00:33.980 --> 00:00:41.630
+glaring problem which is that it knows too much at the moment it is has to know very specifically about
+
+8
+00:00:41.630 --> 00:00:46.490
+the fact that we have a player and the tag that this player has and we have a look in our saving system
+
+9
+00:00:46.490 --> 00:00:47.540
+class.
+
+10
+00:00:47.540 --> 00:00:51.650
+You can see that it's got this find with tag and it knows about the player tag so you couldn't just
+
+11
+00:00:51.650 --> 00:00:53.280
+drop this into another game.
+
+12
+00:00:53.300 --> 00:00:59.000
+If for example you didn't have a player tagged with tag and you wanted to save its position it knows
+
+13
+00:00:59.060 --> 00:01:04.190
+too much about your specific game and this becomes evident when we have to start remembering where all
+
+14
+00:01:04.190 --> 00:01:05.780
+the enemies were in the world.
+
+15
+00:01:05.840 --> 00:01:10.730
+For example like this suddenly your savings system has to know about all the enemies all the players
+
+16
+00:01:10.730 --> 00:01:13.370
+maybe all the doors or chests that you've opened.
+
+17
+00:01:13.370 --> 00:01:17.240
+All that information is just too much for one class to be handling.
+
+18
+00:01:17.240 --> 00:01:20.870
+So I wanted to change this into a you know nothing kind of system.
+
+19
+00:01:20.870 --> 00:01:28.340
+And the idea here is that the players and the enemies will on their game objects on their prefabs.
+
+20
+00:01:28.340 --> 00:01:30.530
+They will include something from the saving system.
+
+21
+00:01:30.530 --> 00:01:36.260
+They'll include a saleable entity which is a flag to the system saying hey I can be saved I'm an entity
+
+22
+00:01:36.260 --> 00:01:39.480
+in the world that knows how to be saved and will go a little bit further than this.
+
+23
+00:01:39.500 --> 00:01:42.820
+Even by making the individual components responsible for their own state.
+
+24
+00:01:42.830 --> 00:01:48.490
+So we don't have to worry about when we add a new piece of functionality how that's going to be saved
+
+25
+00:01:48.500 --> 00:01:52.700
+we don't have to go and change these several entities but that's for a later lecture.
+
+26
+00:01:52.820 --> 00:01:58.460
+For now we're just dealing with this how do we tag things as wanting to be saved in the scene and Lao
+
+27
+00:01:58.550 --> 00:02:01.510
+allowing those things to have their own responsibility for saving.
+
+28
+00:02:01.600 --> 00:02:05.800
+And this means that now the save system only has to rely on one thing these saved blend.
+
+29
+00:02:05.810 --> 00:02:11.510
+It can find all the safe balances in the scene ask them to save themselves and then store the values
+
+30
+00:02:11.570 --> 00:02:19.220
+into a big data structure basically sorted by some sort of identifier so it can say hey you identify
+
+31
+00:02:19.220 --> 00:02:25.760
+one you identify two three four and I know how to restore you when we come back into the scene I can
+
+32
+00:02:25.760 --> 00:02:29.250
+find you again and restore your specific state.
+
+33
+00:02:29.300 --> 00:02:35.470
+Now that part of the puzzle which I just explained requires us to revise the idea of a dictionary.
+
+34
+00:02:35.480 --> 00:02:39.140
+You may have come across a dictionary before you may not have come across a dictionary before it's very
+
+35
+00:02:39.140 --> 00:02:39.830
+simple.
+
+36
+00:02:39.830 --> 00:02:43.020
+It's basically a look up or an index of a book.
+
+37
+00:02:43.070 --> 00:02:49.940
+So the idea being that we've got some keys and some values and we want to find a value by giving it
+
+38
+00:02:49.940 --> 00:02:54.320
+a key very much like in the index of a book we've got a keyword and we want to find the page that it
+
+39
+00:02:54.320 --> 00:02:56.010
+refers to in this case with a book.
+
+40
+00:02:56.090 --> 00:03:01.020
+The key would be the keyword and the value would be the page in the book.
+
+41
+00:03:01.160 --> 00:03:04.580
+So the way we use a dictionary is with this long winded type.
+
+42
+00:03:04.580 --> 00:03:08.360
+You can see it has these angled brackets because it is a generic type.
+
+43
+00:03:08.570 --> 00:03:12.800
+And the idea is that we've got a dictionary that goes from the key type.
+
+44
+00:03:12.800 --> 00:03:14.660
+So this could be any type you like.
+
+45
+00:03:14.660 --> 00:03:20.640
+Often it is a smaller less information type so it could be a string and end a float something like that.
+
+46
+00:03:20.660 --> 00:03:23.740
+And then the value type which could be say a mono behavior.
+
+47
+00:03:23.750 --> 00:03:26.360
+Or it could be a saleable entity.
+
+48
+00:03:26.450 --> 00:03:31.730
+It could be the state of the same bland state for example and then dictionary is going to be the variable
+
+49
+00:03:31.730 --> 00:03:32.840
+name.
+
+50
+00:03:32.840 --> 00:03:33.730
+How do we use it.
+
+51
+00:03:33.740 --> 00:03:40.220
+Well the main things we do with a dictionary is we assign into the dictionary which is to set a new
+
+52
+00:03:40.220 --> 00:03:42.140
+key value relationship.
+
+53
+00:03:42.140 --> 00:03:49.820
+In this case we are setting the value key on the key to be pointing to this value over on the right
+
+54
+00:03:49.820 --> 00:03:54.890
+hand side and then the inverse of that is to look up in a dictionary where we just provide the key and
+
+55
+00:03:54.890 --> 00:03:57.290
+the value gets given back to us.
+
+56
+00:03:57.320 --> 00:04:00.980
+So that's the shape of the dictionary that we're going to be using.
+
+57
+00:04:00.980 --> 00:04:06.630
+Now let's have a look at how we can create this saleable entity as a starting point.
+
+58
+00:04:06.680 --> 00:04:09.030
+It's going to be under the saving system namespace.
+
+59
+00:04:09.030 --> 00:04:15.080
+So I'm gonna create a new file called saleable entity dot c s and then I can create a model behavior
+
+60
+00:04:15.380 --> 00:04:22.910
+and I'm going to stick that model behavior in a namespace called RPG dot saving the same namespace as
+
+61
+00:04:22.910 --> 00:04:26.490
+our saving system and then we've got a saleable entity.
+
+62
+00:04:26.600 --> 00:04:32.300
+Now as I said the saleable entity wants to react to stuff coming in from the saving system.
+
+63
+00:04:32.300 --> 00:04:36.620
+But first let's go over and see where we want to add it.
+
+64
+00:04:36.680 --> 00:04:40.930
+We've already said that we want it on all the enemies and we've already said we want it on the player.
+
+65
+00:04:41.000 --> 00:04:47.260
+So the logical place to put this is at the root of both those which is the character prefab in the character
+
+66
+00:04:47.270 --> 00:04:48.050
+prefab.
+
+67
+00:04:48.050 --> 00:04:51.940
+We can go ahead and add a saleable entity as a component on here.
+
+68
+00:04:51.950 --> 00:04:57.200
+And this just means that now every character that we plonk into the scene is going to be saleable all
+
+69
+00:04:57.230 --> 00:05:01.820
+the same system cares about it and wants to know what state it has so that it could restore it at a
+
+70
+00:05:01.820 --> 00:05:02.840
+later stage.
+
+71
+00:05:02.870 --> 00:05:04.270
+So let's have a look from the outside.
+
+72
+00:05:04.280 --> 00:05:09.100
+Then we can work out what methods we're going to need on the saleable entity at the top level.
+
+73
+00:05:09.170 --> 00:05:11.350
+We've got our savings a small loading system.
+
+74
+00:05:11.420 --> 00:05:17.150
+First of all let's think about saving what we want to do is we want to get some state that we can serialize
+
+75
+00:05:17.360 --> 00:05:18.740
+into our format.
+
+76
+00:05:18.950 --> 00:05:26.270
+So for that I am going to create a new function in here that is going to be capture state like so and
+
+77
+00:05:26.270 --> 00:05:31.010
+I'm just gonna go ahead and create it generate the method and you can see that it is generated it with
+
+78
+00:05:31.010 --> 00:05:34.250
+a return type of object and I think that's okay for now.
+
+79
+00:05:34.250 --> 00:05:38.950
+Let's go and put this a little bit further down the file and I'm going to get rid of the get.
+
+80
+00:05:38.960 --> 00:05:43.430
+Player transfer because we don't want to know this much information and at this stage we're going to
+
+81
+00:05:43.430 --> 00:05:47.530
+be removing the functionality to be able to save the location of the player.
+
+82
+00:05:47.540 --> 00:05:48.010
+That's all right.
+
+83
+00:05:48.010 --> 00:05:50.290
+We're going to reintroduce it in upcoming lectures.
+
+84
+00:05:50.300 --> 00:05:55.130
+But in the new architecture we also don't want to serialize and serialized vectors and hence we can
+
+85
+00:05:55.130 --> 00:05:58.310
+get rid of some of this dead code which is always good stuff.
+
+86
+00:05:58.310 --> 00:05:59.470
+You can get rid of dead code.
+
+87
+00:05:59.480 --> 00:06:00.400
+Amazing.
+
+88
+00:06:00.410 --> 00:06:04.810
+So now we don't need to capture our player transform we don't need to do this.
+
+89
+00:06:05.270 --> 00:06:10.100
+Converting of the serialized will position in that at all.
+
+90
+00:06:10.100 --> 00:06:12.530
+We just want to capture the state.
+
+91
+00:06:12.560 --> 00:06:12.860
+Okay.
+
+92
+00:06:12.920 --> 00:06:13.850
+That's pretty straightforward.
+
+93
+00:06:13.850 --> 00:06:22.100
+And the same goes on loading instead of loading in from and doing all this casting of the serialized
+
+94
+00:06:22.100 --> 00:06:23.060
+ball vector.
+
+95
+00:06:23.060 --> 00:06:30.910
+Well I'm just going to do is I am going to create a restore state function and that's going to take
+
+96
+00:06:30.910 --> 00:06:35.440
+on all the responsibility for restoring the state of the whole shebang.
+
+97
+00:06:35.440 --> 00:06:40.300
+The whole game and I'm gonna go ahead and generate that function to generate the restore state and I'm
+
+98
+00:06:40.300 --> 00:06:48.820
+just going to stick that below capture state and I'm going to rename its variable to state like so now
+
+99
+00:06:48.880 --> 00:06:54.120
+I want to wanted to throw and we try and run these so I'm just going to put in a return.
+
+100
+00:06:54.130 --> 00:06:54.610
+No.
+
+101
+00:06:54.610 --> 00:06:59.830
+At the moment for the capture state what we actually want to return here to the state of our entire
+
+102
+00:06:59.830 --> 00:07:07.960
+game is going to be a dictionary as I just said a look up table from the identifier of a particular
+
+103
+00:07:07.960 --> 00:07:10.930
+game object to the state.
+
+104
+00:07:10.930 --> 00:07:15.160
+Now we'll talk about identifiers in just a second but for us for now let's assume that they are going
+
+105
+00:07:15.160 --> 00:07:16.120
+to be strings.
+
+106
+00:07:16.210 --> 00:07:19.870
+So we want to create a new diction not directory but a dictionary.
+
+107
+00:07:19.870 --> 00:07:26.290
+And for that you may need a namespace which is going to be using sys collections dot generic like so
+
+108
+00:07:27.070 --> 00:07:32.170
+and then we are going to use this syntax that we've learnt on this slide so the key type is going to
+
+109
+00:07:32.170 --> 00:07:37.900
+be a string for the unique identifier and then the value type is just going to be object.
+
+110
+00:07:38.020 --> 00:07:45.910
+We don't care how the what what kind of object is the state that comes back from a saleable entity it's
+
+111
+00:07:45.910 --> 00:07:49.950
+just an object as long as we can serialize it which we'd find out at runtime.
+
+112
+00:07:49.950 --> 00:07:56.140
+Anyway we can't find out from the system at compile time so we're gonna create a dictionary that's going
+
+113
+00:07:56.140 --> 00:08:02.860
+to be a state and I'm just going to use a new dictionary String objects automatically giving me the
+
+114
+00:08:03.130 --> 00:08:05.900
+suggestion given I knew what type it was.
+
+115
+00:08:05.920 --> 00:08:10.990
+So this has created a new dictionary and I could store state into it by doing a state and then saying
+
+116
+00:08:10.990 --> 00:08:12.140
+like Hello.
+
+117
+00:08:12.190 --> 00:08:16.390
+That is my key and then I can store some value in which is like I don't know.
+
+118
+00:08:16.390 --> 00:08:21.910
+5 that's my state and then I can return this state and that's what's gonna go into the file because
+
+119
+00:08:21.910 --> 00:08:28.600
+the dictionary is a serial liable thing by C sharp standards so that will go into our save file just
+
+120
+00:08:28.600 --> 00:08:34.440
+fine but it's not very interesting is it the fact that we've got this state which is always the same.
+
+121
+00:08:34.450 --> 00:08:35.460
+No that's not interesting.
+
+122
+00:08:35.470 --> 00:08:42.730
+What we want to do is find all the serialized bow objects in the file and take their states and store
+
+123
+00:08:42.730 --> 00:08:43.810
+that in the dictionary.
+
+124
+00:08:43.900 --> 00:08:54.550
+So I'm going to do a for each and it's gonna be over the save all entities and I'll call it the saleable
+
+125
+00:08:55.080 --> 00:08:56.840
+like so and it's going to be in the collection.
+
+126
+00:08:56.860 --> 00:08:58.960
+What collection how we going to find these.
+
+127
+00:08:58.960 --> 00:09:07.430
+Well we're going to do a find objects of type saleable entity and then we are going to just call that
+
+128
+00:09:07.500 --> 00:09:09.630
+so all the saleable entities in the scene.
+
+129
+00:09:09.630 --> 00:09:11.380
+Remember this is only happening every time we save.
+
+130
+00:09:11.400 --> 00:09:17.330
+So I don't mind that finding all the objects can be not very fast so that's okay.
+
+131
+00:09:17.340 --> 00:09:21.120
+Saving in general is not very fast because we're going to the desk and that is quite slow operation
+
+132
+00:09:21.130 --> 00:09:25.440
+so in general saving is an expensive thing to do which is why we don't do it at every second of our
+
+133
+00:09:25.440 --> 00:09:26.040
+game.
+
+134
+00:09:26.040 --> 00:09:31.050
+So what we've got here is a for loop that goes over all the salable entities and what we want to do
+
+135
+00:09:31.050 --> 00:09:33.800
+is capture their state and stick it in the dictionary.
+
+136
+00:09:33.810 --> 00:09:37.190
+So let's go back to our save plenty and create some API for that.
+
+137
+00:09:37.220 --> 00:09:42.640
+The first thing we're going to want to know is what is the unique identifier of this site.
+
+138
+00:09:42.660 --> 00:09:49.080
+Let's see so on create a getter that's going to return a String and get unique identifier and we'll
+
+139
+00:09:49.080 --> 00:09:55.240
+worry in a second about how we're gonna get that unique identifier for now and is going to return something.
+
+140
+00:09:55.390 --> 00:09:56.400
+It's an empty string.
+
+141
+00:09:56.700 --> 00:10:01.290
+And the other thing we need is to get the state to capture the state of the stable entity.
+
+142
+00:10:01.290 --> 00:10:04.470
+So it's going to return an object because that state is an object.
+
+143
+00:10:04.470 --> 00:10:10.520
+And I'm just gonna call it capture state exactly the same as we had at the higher level and at the moment
+
+144
+00:10:10.540 --> 00:10:11.370
+it's going to return.
+
+145
+00:10:11.370 --> 00:10:18.000
+No but I'm also going to put a print statement in here saying capturing State 4 and then the unique
+
+146
+00:10:18.000 --> 00:10:22.950
+identifier so that we can see that this is working that all our state is getting captured.
+
+147
+00:10:22.980 --> 00:10:28.730
+So now I can call on the salable entity I can call several dots capture state.
+
+148
+00:10:28.740 --> 00:10:33.830
+And that's going to return my state object and I want to store that state object into the dictionary.
+
+149
+00:10:34.080 --> 00:10:40.800
+So it's going to be state then these square brackets and then the key which we've said is going to be
+
+150
+00:10:40.800 --> 00:10:41.940
+our unique identifier.
+
+151
+00:10:41.970 --> 00:10:50.560
+So salable dots unique identity dot get unique identifier is equal to and then the capture state so
+
+152
+00:10:50.620 --> 00:10:55.920
+in this way we have captured all the state in our scene in one fell swoop.
+
+153
+00:10:55.960 --> 00:11:01.450
+It's up to now the saleable entity to do the heavy lifting of figuring out what the state on its particular
+
+154
+00:11:01.480 --> 00:11:03.030
+entity actually is.
+
+155
+00:11:03.190 --> 00:11:06.360
+But that we are going to deal with in a later lecture for now.
+
+156
+00:11:06.370 --> 00:11:07.170
+This is enough.
+
+157
+00:11:07.180 --> 00:11:12.940
+We are storing it in to the dictionary and we want to go back the other way.
+
+158
+00:11:12.940 --> 00:11:17.860
+So for that to happen we're going to need a restore state on the single entity as well.
+
+159
+00:11:17.860 --> 00:11:26.080
+So this is going to say hey save bell and say here's your your object so restore state takes a object
+
+160
+00:11:26.410 --> 00:11:32.320
+or which is going to be our state like so and we don't know what type that object is but hopefully this
+
+161
+00:11:32.320 --> 00:11:34.180
+able entity will work it out.
+
+162
+00:11:34.180 --> 00:11:38.750
+So the it's going to restore the state needs to be a void return type of missing that.
+
+163
+00:11:38.830 --> 00:11:45.010
+And at the moment we're just going to again print out that instead of capturing the state we are restoring
+
+164
+00:11:45.250 --> 00:11:46.620
+the state for this unique identifier.
+
+165
+00:11:46.630 --> 00:11:49.750
+So that's all we're going to do in this lecture is getting them printing out.
+
+166
+00:11:49.750 --> 00:11:50.920
+That's going to be the challenge.
+
+167
+00:11:51.370 --> 00:11:57.220
+But first let me show you that because we in this restore state we are taking in an object because we
+
+168
+00:11:57.220 --> 00:11:58.110
+don't know yet.
+
+169
+00:11:58.180 --> 00:12:02.410
+It's a dictionary but we do know that what we're civilizing here is a dictionary.
+
+170
+00:12:02.410 --> 00:12:04.690
+So what we need to do is we need to a cast.
+
+171
+00:12:04.840 --> 00:12:10.480
+So we're going to have the dictionary and I can't call it the same thing as what's coming in here.
+
+172
+00:12:10.600 --> 00:12:14.020
+So I'm going to call this the the dictionary.
+
+173
+00:12:14.020 --> 00:12:22.080
+I'm going to call the state dict short for dictionary and then I am going to set it equal to the state.
+
+174
+00:12:22.090 --> 00:12:24.910
+But I'm going to have to cast it like we've done before.
+
+175
+00:12:24.910 --> 00:12:33.220
+So I'm going to have to use these round brackets to cast the state to a dictionary of key string and
+
+176
+00:12:33.220 --> 00:12:34.840
+return type object.
+
+177
+00:12:34.990 --> 00:12:40.060
+So that's going to make sure that in our state dictionary we can actually access it and look it up so
+
+178
+00:12:40.060 --> 00:12:46.360
+we can do stuff like state dict and then the square brackets and then look up some particular key in
+
+179
+00:12:46.360 --> 00:12:52.600
+there to get the object back that we are then going to call restore state on the saved Bill entity.
+
+180
+00:12:52.600 --> 00:12:56.410
+Now remember that the saved Bill entities already exist in the scene you don't have to create them all
+
+181
+00:12:56.410 --> 00:13:01.020
+we've got to do is update them so you can very much use a for loop that's like this.
+
+182
+00:13:01.030 --> 00:13:03.370
+It's just going to be the bill inside the for loop.
+
+183
+00:13:03.460 --> 00:13:09.810
+That is the interesting bit So your challenge is to call restore on although several entities.
+
+184
+00:13:09.840 --> 00:13:14.670
+So first of all check how many entities are being captured by going to the logs and printing it out
+
+185
+00:13:14.670 --> 00:13:15.520
+for example.
+
+186
+00:13:15.570 --> 00:13:18.380
+For me that would be done like basic over and hit play.
+
+187
+00:13:18.570 --> 00:13:27.450
+And then I go to hit save and I can see that in my console If I collapse my logs that it has called
+
+188
+00:13:27.450 --> 00:13:29.360
+Save on how many things.
+
+189
+00:13:29.370 --> 00:13:30.930
+Funnily enough it's not giving me a number.
+
+190
+00:13:30.960 --> 00:13:35.600
+If I collapse it's probably too large to fit on my particular scaling ratio.
+
+191
+00:13:35.610 --> 00:13:44.100
+But if I can just count them so I got 1 2 3 4 5 6 7 7 items in the scene that I want it to be restoring.
+
+192
+00:13:44.100 --> 00:13:48.210
+So that you can check for your own seeing how many entities are you capturing.
+
+193
+00:13:48.210 --> 00:13:53.880
+Fill out the restore method by this I mean the restore method at the saving system level.
+
+194
+00:13:53.880 --> 00:13:55.620
+So here we haven't got very much.
+
+195
+00:13:55.650 --> 00:13:57.550
+This is what you've got to do.
+
+196
+00:13:57.550 --> 00:13:57.940
+Like so.
+
+197
+00:13:58.290 --> 00:14:02.790
+And then you should ensure that you're getting the right number of restored namely that it is going
+
+198
+00:14:02.790 --> 00:14:07.800
+through all the saver Bill entities in the scene and restoring them so pose a video and have a go at
+
+199
+00:14:07.800 --> 00:14:10.750
+this challenge okay.
+
+200
+00:14:10.750 --> 00:14:11.410
+Welcome back.
+
+201
+00:14:11.410 --> 00:14:12.930
+So let's give this a shot.
+
+202
+00:14:13.030 --> 00:14:16.870
+As I said basically we're doing the same for each because the stable entities already exist.
+
+203
+00:14:16.870 --> 00:14:18.750
+We don't have to go about creating them.
+
+204
+00:14:19.210 --> 00:14:24.880
+So I am just going to be finding a stable entity and then I want to look it up in our dictionary look
+
+205
+00:14:24.880 --> 00:14:27.550
+it up in our index.
+
+206
+00:14:27.700 --> 00:14:34.780
+So we've got a date dict which is a dictionary and I can look it up by using the unique identifier of
+
+207
+00:14:34.780 --> 00:14:38.770
+our saver bill which we're going to fill out at a later date in the next lecture.
+
+208
+00:14:39.010 --> 00:14:46.240
+And then from this unique identifier we are going to go and look it up and basically restore it.
+
+209
+00:14:46.270 --> 00:14:51.100
+So you're going to do a saleable dot restore state and the state is going to take.
+
+210
+00:14:51.100 --> 00:14:54.900
+Is this state dict state like so.
+
+211
+00:14:55.120 --> 00:14:59.280
+Okay so let's see whether that's going to be calling restore state enough times.
+
+212
+00:14:59.290 --> 00:15:00.390
+Go ahead and hit play.
+
+213
+00:15:00.400 --> 00:15:02.270
+I'm going to save.
+
+214
+00:15:02.350 --> 00:15:07.870
+I'm going to hit restore with the load and you can see it's doing restore state forward lots of things
+
+215
+00:15:07.870 --> 00:15:11.890
+that see one two three four five six seven seven times.
+
+216
+00:15:11.930 --> 00:15:16.180
+Okay so that's basically saying it's going through the right number of times now is it restoring to
+
+217
+00:15:16.180 --> 00:15:17.050
+the right thing.
+
+218
+00:15:17.050 --> 00:15:17.680
+Probably not.
+
+219
+00:15:17.770 --> 00:15:23.110
+It's probably going to be taking the same state each time from the state dictionary because our unique
+
+220
+00:15:23.110 --> 00:15:25.240
+identifier isn't very unique at all.
+
+221
+00:15:25.240 --> 00:15:31.300
+So we could actually fix that a little bit but we not without knowing a little bit more about unique
+
+222
+00:15:31.300 --> 00:15:31.830
+identifier.
+
+223
+00:15:31.840 --> 00:15:36.010
+So that's gonna be the subject of the next lecture to see how we can actually generate these unique
+
+224
+00:15:36.010 --> 00:15:41.440
+identifiers and make them make sure that they are the same between loadings of a game so they don't
+
+225
+00:15:41.440 --> 00:15:46.930
+get regenerated every time we load our game because obviously that wouldn't help us with restoring.
+
+226
+00:15:46.930 --> 00:15:48.400
+Okay I'll see you in the next lecture.

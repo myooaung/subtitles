@@ -1,0 +1,421 @@
+WEBVTT
+1
+00:00:01.540 --> 00:00:03.430
+So now that we have a pretty good understanding of
+
+2
+00:00:03.430 --> 00:00:08.040
+how Kinesis Data Streams work, let's try our hands at using them in the demo.
+
+3
+00:00:08.040 --> 00:00:09.880
+But first, be warned.
+
+4
+00:00:09.880 --> 00:00:13.130
+This demo is touching AWS services that are not included in the
+
+5
+00:00:13.130 --> 00:00:15.740
+AWS free tier at the time of the recording.
+
+6
+00:00:15.740 --> 00:00:20.010
+This means you may end up paying for the resources that you spin up.
+
+7
+00:00:20.010 --> 00:00:23.910
+So, be sure to remove the resources after you're done playing with this demo
+
+8
+00:00:23.910 --> 00:00:26.860
+and stop the Python script that I'll have you run when you're finished with
+
+9
+00:00:26.860 --> 00:00:31.150
+everything. In this demo, we'll imagine that we're working for Globomantics
+
+10
+00:00:31.150 --> 00:00:35.390
+to process a bunch of sales data for our customers who pay us to manage
+
+11
+00:00:35.390 --> 00:00:36.980
+ecommerce sites for them.
+
+12
+00:00:36.980 --> 00:00:39.110
+We'll need to process sales data coming in from our
+
+13
+00:00:39.110 --> 00:00:41.580
+web API back ends at large scales.
+
+14
+00:00:41.580 --> 00:00:45.170
+When doing this, we'll want to search for the most popular products by
+
+15
+00:00:45.170 --> 00:00:48.840
+looking at live analytics on top of the streaming sales data.
+
+16
+00:00:48.840 --> 00:00:50.450
+In order to make this happen,
+
+17
+00:00:50.450 --> 00:00:54.330
+we'll first create a Kinesis Data Stream in the AWS Console.
+
+18
+00:00:54.330 --> 00:00:58.300
+Then, we'll send the data into the stream using a Python script in
+
+19
+00:00:58.300 --> 00:01:03.100
+Boto3, the AWS SDK for Python. From there, we'll create a Kinesis
+
+20
+00:01:03.100 --> 00:01:06.870
+Data Analytics application using the AWS Console, and we'll write
+
+21
+00:01:06.870 --> 00:01:10.760
+some SQL queries in the console in order to interact with the data in
+
+22
+00:01:10.760 --> 00:01:12.640
+our Kinesis Data Stream.
+
+23
+00:01:12.640 --> 00:01:15.340
+So, let's move over to the AWS Console and get
+
+24
+00:01:15.340 --> 00:01:18.790
+started. Over here in the AWS Console,
+
+25
+00:01:18.790 --> 00:01:21.760
+we can navigate to the Kinesis section if we click the
+
+26
+00:01:21.760 --> 00:01:25.010
+Services drop‑down and look for Kinesis.
+
+27
+00:01:25.010 --> 00:01:27.460
+Now this should take us to the management panes for
+
+28
+00:01:27.460 --> 00:01:31.100
+multiple different Kinesis services, including Kinesis Data Streams,
+
+29
+00:01:31.100 --> 00:01:35.290
+Kinesis Data Firehose, and Kinesis Data Analytics.
+
+30
+00:01:35.290 --> 00:01:36.410
+For right now, though,
+
+31
+00:01:36.410 --> 00:01:38.990
+we're going to click on the left side of the screen here so we can
+
+32
+00:01:38.990 --> 00:01:41.970
+click into any of these individual services.
+
+33
+00:01:41.970 --> 00:01:42.340
+Now,
+
+34
+00:01:42.340 --> 00:01:44.810
+this might look a little bit different for you if you've already
+
+35
+00:01:44.810 --> 00:01:48.260
+created something inside of Kinesis. Over all though, we're going to
+
+36
+00:01:48.260 --> 00:01:52.070
+eventually navigate to the Data streams section. Now, in this section,
+
+37
+00:01:52.070 --> 00:01:53.680
+I'm going to close the window out.
+
+38
+00:01:53.680 --> 00:01:57.660
+We could create a data stream directly inside of the AWS Console by clicking
+
+39
+00:01:57.660 --> 00:02:00.880
+Create data stream and setting some information for it.
+
+40
+00:02:00.880 --> 00:02:04.270
+But, I want to get us started using Python and interacting with the
+
+41
+00:02:04.270 --> 00:02:08.400
+data stream we create using Python 2, so let's do that first. I'm
+
+42
+00:02:08.400 --> 00:02:10.690
+going to go over to my VS Code editor here,
+
+43
+00:02:10.690 --> 00:02:13.510
+and there should be three different files that we'll be using in
+
+44
+00:02:13.510 --> 00:02:16.020
+order to interact with the Kinesis Data Stream.
+
+45
+00:02:16.020 --> 00:02:19.810
+Now, to get started, I have a setup.sh file here.
+
+46
+00:02:19.810 --> 00:02:23.150
+If you wanted to, you could run this on a Linux or a Mac machine,
+
+47
+00:02:23.150 --> 00:02:24.810
+and it would be able to set up everything,
+
+48
+00:02:24.810 --> 00:02:27.540
+assuming you've already installed Python 3.
+
+49
+00:02:27.540 --> 00:02:27.940
+However,
+
+50
+00:02:27.940 --> 00:02:30.570
+if you're running on a Windows machine and using a terminal
+
+51
+00:02:30.570 --> 00:02:34.920
+like the command prompt or PowerShell, you might need to run a different command.
+
+52
+00:02:34.920 --> 00:02:38.140
+So, let's go ahead and follow through with this step by step.
+
+53
+00:02:38.140 --> 00:02:40.330
+Now inside my terminal here, I'm going to start by running
+
+54
+00:02:40.330 --> 00:02:42.810
+the first command inside of setup.sh.
+
+55
+00:02:42.810 --> 00:02:44.570
+This is python3.
+
+56
+00:02:44.570 --> 00:02:48.370
+In this case, I'm making sure that I'm using the 3 version of Python.
+
+57
+00:02:48.370 --> 00:02:51.920
+It might be that that's already associated with just the word Python here,
+
+58
+00:02:51.920 --> 00:02:55.570
+but I want to make sure, so I'll keep the 3 ‑m, which stands for
+
+59
+00:02:55.570 --> 00:02:59.140
+module, and then I want to use the venv, or virtual environment,
+
+60
+00:02:59.140 --> 00:03:01.930
+module to create a new virtual environment.
+
+61
+00:03:01.930 --> 00:03:04.280
+In this case, I'm not going to be very imaginative,
+
+62
+00:03:04.280 --> 00:03:08.190
+and I'm just going to call it venv for virtual environment.
+
+63
+00:03:08.190 --> 00:03:08.840
+Now when I do this,
+
+64
+00:03:08.840 --> 00:03:10.890
+you'll notice that we get a new folder on the left
+
+65
+00:03:10.890 --> 00:03:12.680
+side of the screen here that appears,
+
+66
+00:03:12.680 --> 00:03:15.580
+and it has a bunch of different stuff inside of it that'll be a
+
+67
+00:03:15.580 --> 00:03:19.490
+completely brand‑new Python environment for us to use and also install
+
+68
+00:03:19.490 --> 00:03:22.440
+our dependencies in to keep everything separate from the global
+
+69
+00:03:22.440 --> 00:03:25.900
+installations of packages we might otherwise have.
+
+70
+00:03:25.900 --> 00:03:29.550
+So next, I'm going to close that back out, and let's run the next command,
+
+71
+00:03:29.550 --> 00:03:31.920
+which is to source this virtual environment.
+
+72
+00:03:31.920 --> 00:03:35.040
+Now this command is one that's going to vary depending on the operating system
+
+73
+00:03:35.040 --> 00:03:39.290
+you're using. Inside of my Mac machine or inside of many of Linux machines, you
+
+74
+00:03:39.290 --> 00:03:43.910
+could run the source venv/bin/activate command,
+
+75
+00:03:43.910 --> 00:03:46.590
+and this would turn on the virtual environment.
+
+76
+00:03:46.590 --> 00:03:48.440
+However, if you're in PowerShell,
+
+77
+00:03:48.440 --> 00:03:51.570
+you're going to need to run a file called Activate.ps1
+
+78
+00:03:51.570 --> 00:03:54.620
+inside of your PowerShell terminal.
+
+79
+00:03:54.620 --> 00:03:56.980
+And if you run cmd​.exe on Windows,
+
+80
+00:03:56.980 --> 00:04:00.680
+you're going to run another file called activate.bat.
+
+81
+00:04:00.680 --> 00:04:02.810
+So just type out that entire path there.
+
+82
+00:04:02.810 --> 00:04:05.590
+And if you have any questions about how either of these things work,
+
+83
+00:04:05.590 --> 00:04:09.230
+I've also included a link on line 6 about how you can use the
+
+84
+00:04:09.230 --> 00:04:11.770
+virtual environment library with Python 3.
+
+85
+00:04:11.770 --> 00:04:15.950
+So, now that we've turned on our virtual environment, in any environment,
+
+86
+00:04:15.950 --> 00:04:20.110
+we should see this (venv) in parentheses on the left of our terminal.
+
+87
+00:04:20.110 --> 00:04:23.840
+This means that we're using the activated virtual environment. So,
+
+88
+00:04:23.840 --> 00:04:26.080
+we can install some dependencies inside of it.
+
+89
+00:04:26.080 --> 00:04:26.850
+In this case,
+
+90
+00:04:26.850 --> 00:04:32.150
+I'm going to install Boto3 with pip install boto3. Now I'm going to hit Enter,
+
+91
+00:04:32.150 --> 00:04:35.010
+and this will collect all the packages that I need for it.
+
+92
+00:04:35.010 --> 00:04:37.510
+Boto3 is the AWS SDK for Python,
+
+93
+00:04:37.510 --> 00:04:40.760
+and we'll be using it to interact with Kinesis, and we could use
+
+94
+00:04:40.760 --> 00:04:43.540
+it to interact with many other AWS services.
+
+95
+00:04:43.540 --> 00:04:47.410
+So now that this is all installed, let me clear this out. And we can
+
+96
+00:04:47.410 --> 00:04:51.500
+open up Boto3 inside of Python by typing in python.
+
+97
+00:04:51.500 --> 00:04:55.510
+And in this case, I'm going to use python3 again just so I can get into Python 3,
+
+98
+00:04:55.510 --> 00:04:58.130
+even though you might be able to type in just python without
+
+99
+00:04:58.130 --> 00:04:59.980
+the 3 on the end and still get in there.
+
+100
+00:04:59.980 --> 00:05:04.690
+So, inside of here, let's try importing boto3.
+
+101
+00:05:04.690 --> 00:05:05.780
+If this works,
+
+102
+00:05:05.780 --> 00:05:08.620
+this means that we've successfully installed Boto3, and we're able
+
+103
+00:05:08.620 --> 00:05:10.810
+to use it inside of our virtual environment.
+
+104
+00:05:10.810 --> 00:05:14.090
+So, now we don't need the setup.sh file anymore.
+
+105
+00:05:14.090 --> 00:05:24.000
+Instead, we're going to go over to the data.py file. And in the next video, we'll look at how we can use the data.py file to start streaming our data.
+

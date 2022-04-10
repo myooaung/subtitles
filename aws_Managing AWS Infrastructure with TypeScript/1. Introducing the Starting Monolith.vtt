@@ -1,0 +1,677 @@
+WEBVTT
+1
+00:00:02.040 --> 00:00:04.440
+As we're now a few courses into this learning path,
+
+2
+00:00:04.440 --> 00:00:06.740
+I'm sure you're anxious to get started.
+
+3
+00:00:06.740 --> 00:00:07.410
+With that in mind,
+
+4
+00:00:07.410 --> 00:00:09.800
+I'm going to assume that you're at least a moderately capable
+
+5
+00:00:09.800 --> 00:00:12.450
+TypeScript developer and have run through the beginning and
+
+6
+00:00:12.450 --> 00:00:16.440
+intermediate concepts in the AWS CDK universe.
+
+7
+00:00:16.440 --> 00:00:19.040
+I promise I'll try to keep the teaching slides to a minimum
+
+8
+00:00:19.040 --> 00:00:21.950
+and focus more on the demos and code that you're most likely
+
+9
+00:00:21.950 --> 00:00:25.140
+here for in the first place.
+
+10
+00:00:25.140 --> 00:00:29.340
+So this module is all about beginning to break up monolith CDK stacks.
+
+11
+00:00:29.340 --> 00:00:31.160
+The first thing I'm going to do is quickly show you the
+
+12
+00:00:31.160 --> 00:00:33.010
+baseline version of the monolith,
+
+13
+00:00:33.010 --> 00:00:36.740
+as well as a neat diagramming tool called infviz.io that you
+
+14
+00:00:36.740 --> 00:00:39.340
+can use to view your deployed infrastructure.
+
+15
+00:00:39.340 --> 00:00:42.650
+David's done a great job so far on teaching the basics and beyond,
+
+16
+00:00:42.650 --> 00:00:46.100
+so most of the constructs and patterns should look familiar to you.
+
+17
+00:00:46.100 --> 00:00:49.310
+In that regard, I'll go over stacks, constructs,
+
+18
+00:00:49.310 --> 00:00:53.920
+and abstraction levels, only very briefly as they pertain to my code refactoring.
+
+19
+00:00:53.920 --> 00:00:56.880
+As always, if you're looking for a deeper refresher,
+
+20
+00:00:56.880 --> 00:00:59.190
+head back to David's first course in the path and look
+
+21
+00:00:59.190 --> 00:01:00.960
+for the construct and stack overviews.
+
+22
+00:01:00.960 --> 00:01:03.060
+He's got some great fundamentals in there.
+
+23
+00:01:03.060 --> 00:01:05.320
+I'll then dive in and talk about the mystery of stack
+
+24
+00:01:05.320 --> 00:01:08.470
+patterns and why you might not find as much information out
+
+25
+00:01:08.470 --> 00:01:10.440
+there in the wild about this subject.
+
+26
+00:01:10.440 --> 00:01:12.470
+Before we start our refactoring deep dive,
+
+27
+00:01:12.470 --> 00:01:15.320
+I'll take a few moments to consider the direction being taken by
+
+28
+00:01:15.320 --> 00:01:18.440
+Josh and Ellen on the TechStream acquisition.
+
+29
+00:01:18.440 --> 00:01:18.910
+Finally,
+
+30
+00:01:18.910 --> 00:01:22.970
+I'll take a comprehensive approach to refactoring our monolithic application to
+
+31
+00:01:22.970 --> 00:01:26.540
+fit the needs of Globomantics and the TechStream developers.
+
+32
+00:01:26.540 --> 00:01:27.570
+And with full disclosure,
+
+33
+00:01:27.570 --> 00:01:30.300
+I won't really live‑write every line of code or we might be
+
+34
+00:01:30.300 --> 00:01:31.980
+here for a lot longer than you'd like.
+
+35
+00:01:31.980 --> 00:01:34.420
+However, I'll stick to some copying and pasting,
+
+36
+00:01:34.420 --> 00:01:36.710
+as well as some fast forwards that'll help you fully
+
+37
+00:01:36.710 --> 00:01:39.140
+follow along with the course progress.
+
+38
+00:01:39.140 --> 00:01:40.750
+As we progress through the refactoring,
+
+39
+00:01:40.750 --> 00:01:44.190
+you'll quickly see that we get stuck on the need to communicate between stacks.
+
+40
+00:01:44.190 --> 00:01:47.400
+I'll talk about the handful of ways you can achieve this and then go
+
+41
+00:01:47.400 --> 00:01:50.150
+forward with building these techniques into our application.
+
+42
+00:01:50.150 --> 00:01:51.640
+And to summarize,
+
+43
+00:01:51.640 --> 00:01:55.640
+we'll exit the module by reviewing what Josh and Ellen were looking for and how
+
+44
+00:01:55.640 --> 00:01:59.140
+our newly refactored code begins to meet these challenges.
+
+45
+00:01:59.140 --> 00:01:59.960
+By the end of the module,
+
+46
+00:01:59.960 --> 00:02:04.240
+you should be starting to see the light at the end of the tunnel.
+
+47
+00:02:04.240 --> 00:02:06.380
+At this point, you've seen the demo application,
+
+48
+00:02:06.380 --> 00:02:09.640
+and I explained that I, and by I, I mean Josh,
+
+49
+00:02:09.640 --> 00:02:13.410
+disassembled it with the CDK disassembler from CloudFormation JSON
+
+50
+00:02:13.410 --> 00:02:16.740
+into one big multi‑thousand line beast file.
+
+51
+00:02:16.740 --> 00:02:19.620
+As the disassembler generates level 0 constructs,
+
+52
+00:02:19.620 --> 00:02:23.100
+I'd recommend against using it for anything meaningful in your enterprise.
+
+53
+00:02:23.100 --> 00:02:23.640
+To that end,
+
+54
+00:02:23.640 --> 00:02:28.140
+I've essentially rewritten it almost from scratch into level 1 AWS constructs.
+
+55
+00:02:28.140 --> 00:02:29.940
+Let's take a look.
+
+56
+00:02:29.940 --> 00:02:30.450
+All right,
+
+57
+00:02:30.450 --> 00:02:35.540
+so if we go ahead and open Visual Studio Code to the folder that
+
+58
+00:02:35.540 --> 00:02:38.520
+would be created from the ZIP file in the course materials for the
+
+59
+00:02:38.520 --> 00:02:40.470
+baseline version of the application,
+
+60
+00:02:40.470 --> 00:02:42.790
+you should be seeing approximately what I'm seeing.
+
+61
+00:02:42.790 --> 00:02:44.350
+Now, a couple of things to note.
+
+62
+00:02:44.350 --> 00:02:47.780
+First and foremost, you'll want to dive down into the cdk directory.
+
+63
+00:02:47.780 --> 00:02:50.980
+If you remember, this was a fork from the AWS Labs repository,
+
+64
+00:02:50.980 --> 00:02:55.340
+so all the work that we're going to do is going to be inside the cdk folder.
+
+65
+00:02:55.340 --> 00:02:58.250
+And then obviously, you're going to want to run an npm install or even better,
+
+66
+00:02:58.250 --> 00:03:02.940
+an npm update so that you've got all the latest construct libraries.
+
+67
+00:03:02.940 --> 00:03:05.710
+So really, for this early version of the application,
+
+68
+00:03:05.710 --> 00:03:08.520
+there's really only a couple of files that you're going to be concerned with.
+
+69
+00:03:08.520 --> 00:03:12.470
+First and foremost, the dasm file, that's the file that was created when we ran
+
+70
+00:03:12.470 --> 00:03:15.270
+the disassembler that created all the level 0 constructs.
+
+71
+00:03:15.270 --> 00:03:18.250
+Now the master‑fullstack‑single‑stack TypeScript file,
+
+72
+00:03:18.250 --> 00:03:19.940
+that's our main code file.
+
+73
+00:03:19.940 --> 00:03:23.340
+Obviously, in our bin directory, we have our master‑full‑stack‑single,
+
+74
+00:03:23.340 --> 00:03:25.940
+which is where our app is going to be instantiated.
+
+75
+00:03:25.940 --> 00:03:26.600
+But for now,
+
+76
+00:03:26.600 --> 00:03:30.460
+let's go ahead and open the main TypeScript code file and let's look through it.
+
+77
+00:03:30.460 --> 00:03:31.710
+As you can see here at the top,
+
+78
+00:03:31.710 --> 00:03:35.110
+we have a very simple class called MasterFullStackSingleStack,
+
+79
+00:03:35.110 --> 00:03:37.940
+which has all the constructs inside of it.
+
+80
+00:03:37.940 --> 00:03:41.300
+Now, if I go ahead and scroll down, you'll see that there is a Dynamo Object,
+
+81
+00:03:41.300 --> 00:03:43.930
+and if I open that up that is the goalsTable.
+
+82
+00:03:43.930 --> 00:03:48.840
+We know exactly what that's for, storing all the data from the CRUD operations.
+
+83
+00:03:48.840 --> 00:03:51.120
+Here are the S3 Objects, the source buckets,
+
+84
+00:03:51.120 --> 00:03:53.130
+the website bucket, and the assets bucket.
+
+85
+00:03:53.130 --> 00:03:55.820
+There's also an S3 deployment in here as well.
+
+86
+00:03:55.820 --> 00:03:57.510
+This is where everything is going to be stored as far
+
+87
+00:03:57.510 --> 00:03:59.550
+as S3 is concerned for our website.
+
+88
+00:03:59.550 --> 00:04:02.020
+Below that is the CloudFront Distribution,
+
+89
+00:04:02.020 --> 00:04:04.840
+which I'll go ahead and skip over for now.
+
+90
+00:04:04.840 --> 00:04:06.940
+And then the Lambda functions are below that.
+
+91
+00:04:06.940 --> 00:04:09.240
+Now, I haven't made any changes to the Lambda functions.
+
+92
+00:04:09.240 --> 00:04:11.280
+And if you remember from the original distribution,
+
+93
+00:04:11.280 --> 00:04:13.910
+they just perform the CRUD operations and they
+
+94
+00:04:13.910 --> 00:04:16.580
+still live in the functions folder.
+
+95
+00:04:16.580 --> 00:04:19.900
+And then we have our Cognito constructs.
+
+96
+00:04:19.900 --> 00:04:22.530
+Now, there's a lot of code in here, so I'm not going to go through it.
+
+97
+00:04:22.530 --> 00:04:23.300
+And keep in mind,
+
+98
+00:04:23.300 --> 00:04:27.090
+this course isn't necessarily intended to teach you how to write CDK constructs.
+
+99
+00:04:27.090 --> 00:04:30.690
+It's more geared towards teaching how to better organize constructs and stacks.
+
+100
+00:04:30.690 --> 00:04:35.240
+So I'm not going to dive as deeply on individual constructs and CDK concepts.
+
+101
+00:04:35.240 --> 00:04:38.670
+After that, we have our API Gateway, which sits in front of our Lambdas,
+
+102
+00:04:38.670 --> 00:04:42.040
+and then we have all of our CodeBuild objects.
+
+103
+00:04:42.040 --> 00:04:43.640
+You can see that I output a couple of things.
+
+104
+00:04:43.640 --> 00:04:46.520
+I output the WebsiteBucketUrl and the CDN URL.
+
+105
+00:04:46.520 --> 00:04:50.470
+Now I didn't lock the website bucket down itself because the CDN
+
+106
+00:04:50.470 --> 00:04:52.980
+takes a lot longer to deploy with a CDK deploy,
+
+107
+00:04:52.980 --> 00:04:55.600
+so you might want to actually comment that out and
+
+108
+00:04:55.600 --> 00:04:57.590
+literally just hit the WebsiteBucketUrl,
+
+109
+00:04:57.590 --> 00:04:59.230
+if you're actually following along.
+
+110
+00:04:59.230 --> 00:05:03.640
+So for our purposes, let's go ahead and compile it with a tsc.
+
+111
+00:05:03.640 --> 00:05:05.180
+And now that everything's compiled,
+
+112
+00:05:05.180 --> 00:05:09.240
+let's go ahead and list our stacks with a cdk ls.
+
+113
+00:05:09.240 --> 00:05:13.010
+And sure enough, there's our stack called FullStackCdkStack,
+
+114
+00:05:13.010 --> 00:05:15.020
+and it's ready to be deployed at this point.
+
+115
+00:05:15.020 --> 00:05:17.760
+So I'll go ahead and run a cdk deploy,
+
+116
+00:05:17.760 --> 00:05:23.640
+hit yes on the question that asks me if I want to create resources,
+
+117
+00:05:23.640 --> 00:05:28.880
+and what I'll do is pause the video from there because this deployment,
+
+118
+00:05:28.880 --> 00:05:32.570
+especially including the asset CDN, takes about 8 to 10 minutes,
+
+119
+00:05:32.570 --> 00:05:33.960
+so I'll be right back.
+
+120
+00:05:33.960 --> 00:05:38.600
+And sure enough, about 8 or 9 minutes later our deploy is finished.
+
+121
+00:05:38.600 --> 00:05:41.290
+And you can see some of the outputs that I created.
+
+122
+00:05:41.290 --> 00:05:44.960
+You can see that you can click on the CloudFrontCDNUrl,
+
+123
+00:05:44.960 --> 00:05:46.940
+and you can click on the WebsiteBucketUrl,
+
+124
+00:05:46.940 --> 00:05:47.500
+as well.
+
+125
+00:05:47.500 --> 00:05:51.440
+so let's go ahead and Ctrl+click that guy and Open,
+
+126
+00:05:51.440 --> 00:05:55.240
+and our website is running exactly as we expect it to be.
+
+127
+00:05:55.240 --> 00:05:58.270
+And if I flip over to the CloudFormation console we
+
+128
+00:05:58.270 --> 00:06:00.740
+can see that this stack is complete.
+
+129
+00:06:00.740 --> 00:06:02.660
+But what I wanted to show you really quickly is,
+
+130
+00:06:02.660 --> 00:06:05.060
+I don't necessarily like just an exhaustive view of
+
+131
+00:06:05.060 --> 00:06:08.440
+resources under the CloudFormation console.
+
+132
+00:06:08.440 --> 00:06:11.090
+So the wonderful folks that at infviz, which is that
+
+133
+00:06:11.090 --> 00:06:15.210
+infviz.io, have created a very affordable diagramming tool
+
+134
+00:06:15.210 --> 00:06:17.350
+that you can connect to your AWS account.
+
+135
+00:06:17.350 --> 00:06:19.410
+Now they've also created a promo code with the word
+
+136
+00:06:19.410 --> 00:06:21.550
+Pluralsight, so if you go ahead and type that in,
+
+137
+00:06:21.550 --> 00:06:23.380
+you can get a discount for a couple of months.
+
+138
+00:06:23.380 --> 00:06:26.370
+But suffice it to say you, can use the free account, you can connect a
+
+139
+00:06:26.370 --> 00:06:30.140
+workspace directly to AWS, and then you can have your infrastructure
+
+140
+00:06:30.140 --> 00:06:32.230
+refreshed every single time you come in here.
+
+141
+00:06:32.230 --> 00:06:34.920
+So right at the moment we're not looking at any infrastructure.
+
+142
+00:06:34.920 --> 00:06:37.840
+So let me go ahead and hit CONFIGURATION,
+
+143
+00:06:37.840 --> 00:06:40.640
+General, and I'm going to hit Reimport Data.
+
+144
+00:06:40.640 --> 00:06:45.240
+And that takes a half a minute or so, so I'll pause it and move forward.
+
+145
+00:06:45.240 --> 00:06:48.510
+And it pulled back all the infrastructure that we just deployed.
+
+146
+00:06:48.510 --> 00:06:53.740
+Now if I go back over to the CONFIGURATION tab and I go to Services,
+
+147
+00:06:53.740 --> 00:06:56.700
+I can select all, then I can go down and I can clear some of
+
+148
+00:06:56.700 --> 00:06:59.340
+the control tower‑created objects in the account that aren't
+
+149
+00:06:59.340 --> 00:07:01.440
+really applicable to this course,
+
+150
+00:07:01.440 --> 00:07:05.640
+and I can filter them out and update the diagram.
+
+151
+00:07:05.640 --> 00:07:06.710
+And once it loads,
+
+152
+00:07:06.710 --> 00:07:09.970
+you can see that we have the exact infrastructure that we just
+
+153
+00:07:09.970 --> 00:07:13.720
+deployed. Our API gateway is there, our Cognito and buckets are
+
+154
+00:07:13.720 --> 00:07:19.640
+there, our Lambdas are all there, and our stack is listed there as well.
+
+155
+00:07:19.640 --> 00:07:20.930
+There's a lot of neat tools in here.
+
+156
+00:07:20.930 --> 00:07:22.010
+I can click Connectivity,
+
+157
+00:07:22.010 --> 00:07:26.500
+and it shows the connection paths through all the resources. I can click Report,
+
+158
+00:07:26.500 --> 00:07:30.840
+and it shows a nice executive summary with estimated costs,
+
+159
+00:07:30.840 --> 00:07:34.840
+resources, and a node list.
+
+160
+00:07:34.840 --> 00:07:37.720
+You can click Security, and if you have GuardDuty turned on,
+
+161
+00:07:37.720 --> 00:07:40.440
+it'll show you some red flags.
+
+162
+00:07:40.440 --> 00:07:46.240
+And then one of the nicest tools is, you can actually say Edit in draw.io,
+
+163
+00:07:46.240 --> 00:07:49.340
+and if you have a draw.io account,
+
+164
+00:07:49.340 --> 00:07:53.690
+it will instantly open this in a console in draw.io that you can actually edit.
+
+165
+00:07:53.690 --> 00:07:56.180
+It's a really nice tool while you're actually learning CDK or
+
+166
+00:07:56.180 --> 00:07:59.100
+where you're developing CDK, and it saves a lot of time on having
+
+167
+00:07:59.100 --> 00:08:01.140
+to create diagrams on infrastructure.
+
+168
+00:08:01.140 --> 00:08:01.920
+So at this point,
+
+169
+00:08:01.920 --> 00:08:09.000
+let's move forward and see how we can't start breaking this monolith up into distributed stacks.
+

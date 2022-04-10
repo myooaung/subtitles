@@ -1,0 +1,296 @@
+1
+00:00:01,090 --> 00:00:01,380
+Hi.
+
+2
+00:00:01,380 --> 00:00:04,970
+My name is Danny Jessee, and I would like to welcome you to this module,
+
+3
+00:00:04,970 --> 00:00:08,540
+data replication using AWS services.
+
+4
+00:00:08,540 --> 00:00:12,450
+Let's learn how we can make copies and backups of our data for protection using
+
+5
+00:00:12,450 --> 00:00:18,120
+AWS services starting with cross‑region replication in S3.
+
+6
+00:00:18,120 --> 00:00:21,050
+As the name suggests, cross‑region replication,
+
+7
+00:00:21,050 --> 00:00:23,860
+or CRR in S3,
+
+8
+00:00:23,860 --> 00:00:27,660
+allows you to automatically make copies of your data between S3
+
+9
+00:00:27,660 --> 00:00:31,400
+buckets in different regions and these are exact copies of the
+
+10
+00:00:31,400 --> 00:00:35,180
+original objects all the way down to the object keys,
+
+11
+00:00:35,180 --> 00:00:39,340
+version IDs, metadata, and creation times.
+
+12
+00:00:39,340 --> 00:00:41,460
+As an added layer of protection, though,
+
+13
+00:00:41,460 --> 00:00:44,150
+objects you delete from the source bucket do not get
+
+14
+00:00:44,150 --> 00:00:47,130
+automatically deleted in the destination.
+
+15
+00:00:47,130 --> 00:00:50,560
+Replication is done asynchronously typically within 15
+
+16
+00:00:50,560 --> 00:00:52,850
+minutes of creating or updating an object,
+
+17
+00:00:52,850 --> 00:00:57,390
+and data is always encrypted in transit as it is replicated.
+
+18
+00:00:57,390 --> 00:00:57,590
+Now,
+
+19
+00:00:57,590 --> 00:01:01,180
+there are a lot of reasons why you might want to do this perhaps for
+
+20
+00:01:01,180 --> 00:01:06,190
+efficiency or to minimize latency if users are accessing objects in S3 from
+
+21
+00:01:06,190 --> 00:01:09,310
+disparate geographic locations around the world.
+
+22
+00:01:09,310 --> 00:01:11,340
+But from a security standpoint,
+
+23
+00:01:11,340 --> 00:01:15,470
+the most common use case for this is to meet compliance requirements.
+
+24
+00:01:15,470 --> 00:01:18,570
+So If you're storing critical log data in S3,
+
+25
+00:01:18,570 --> 00:01:21,910
+maybe you have to have copies of this data maintained for 5 years at
+
+26
+00:01:21,910 --> 00:01:25,470
+locations that are at least 500 miles apart, so outside the
+
+27
+00:01:25,470 --> 00:01:29,060
+boundaries of a single region. And these buckets can be within the
+
+28
+00:01:29,060 --> 00:01:31,690
+same account or different accounts.
+
+29
+00:01:31,690 --> 00:01:32,600
+In either case,
+
+30
+00:01:32,600 --> 00:01:37,060
+setting this up will require an IAM role for S3 that has permission to
+
+31
+00:01:37,060 --> 00:01:40,750
+replicate objects from the source bucket on your behalf, and if the
+
+32
+00:01:40,750 --> 00:01:43,220
+destination bucket is in a different account,
+
+33
+00:01:43,220 --> 00:01:47,240
+you also need to make sure that bucket has a bucket policy that allows the
+
+34
+00:01:47,240 --> 00:01:51,320
+owner of the source bucket to replicate objects there.
+
+35
+00:01:51,320 --> 00:01:53,920
+Now, since this course is focused on security,
+
+36
+00:01:53,920 --> 00:01:56,840
+it's important to point out one big caveat here,
+
+37
+00:01:56,840 --> 00:02:02,140
+which is how CRR is handled for objects encrypted with server‑side encryption.
+
+38
+00:02:02,140 --> 00:02:03,360
+For unencrypted objects,
+
+39
+00:02:03,360 --> 00:02:06,230
+replication is easy and only requires what we've already
+
+40
+00:02:06,230 --> 00:02:09,720
+discussed, but for objects that are encrypted server‑side
+
+41
+00:02:09,720 --> 00:02:11,900
+with customer provided keys.
+
+42
+00:02:11,900 --> 00:02:14,370
+So remember for SSEC,
+
+43
+00:02:14,370 --> 00:02:17,190
+when we had to specify our own encryption key in the request
+
+44
+00:02:17,190 --> 00:02:20,740
+header, those objects cannot be replicated at all.
+
+45
+00:02:20,740 --> 00:02:24,950
+Same goes for objects encrypted using client‑side encryption since replication
+
+46
+00:02:24,950 --> 00:02:30,730
+obviously takes place server‑side, and by default, S3 will also not replicate
+
+47
+00:02:30,730 --> 00:02:37,970
+objects that are encrypted at rest with SSE S3 or SSE KMS so that's what the AWS
+
+48
+00:02:37,970 --> 00:02:41,300
+provided or with customer managed keys.
+
+49
+00:02:41,300 --> 00:02:43,940
+And this makes sense if you think about it because remember that
+
+50
+00:02:43,940 --> 00:02:47,010
+these keys exist within a particular region.
+
+51
+00:02:47,010 --> 00:02:53,190
+So if I'm in US‑West‑1 and I encrypt my object with a key in US‑West‑1,
+
+52
+00:02:53,190 --> 00:02:56,870
+I'm not going to be able to replicate this encrypted object as‑is to
+
+53
+00:02:56,870 --> 00:03:02,300
+US‑East‑1 because I won't have access to the key from US‑West‑1 to be able
+
+54
+00:03:02,300 --> 00:03:06,320
+to decrypt it there, but we can work around this and still replicate
+
+55
+00:03:06,320 --> 00:03:10,920
+objects encrypted with SSE S3 or SSE KMS.
+
+56
+00:03:10,920 --> 00:03:15,360
+So what we need to do in these cases is actually specify a different key
+
+57
+00:03:15,360 --> 00:03:18,590
+that does exist within the destination region, and again,
+
+58
+00:03:18,590 --> 00:03:22,790
+this can be the AWS provided key or a customer managed one,
+
+59
+00:03:22,790 --> 00:03:26,310
+and AWS will then re encrypt the replicated object in the
+
+60
+00:03:26,310 --> 00:03:29,900
+destination region using that key instead of the one that
+
+61
+00:03:29,900 --> 00:03:33,100
+encrypted the original object in the source region.
+
+62
+00:03:33,100 --> 00:03:38,190
+Now keep in mind that each of these replications will use KMS API calls and you
+
+63
+00:03:38,190 --> 00:03:42,280
+do pay for those and you may even get throttled by KMS depending on the volume
+
+64
+00:03:42,280 --> 00:03:46,420
+of objects you are replicating, but you can always request a limit increase if
+
+65
+00:03:46,420 --> 00:03:48,820
+you do. And don't forget beyond that,
+
+66
+00:03:48,820 --> 00:03:52,270
+we also need to grant the IAM role that S3 is assuming for
+
+67
+00:03:52,270 --> 00:03:56,520
+replication, the ability to decrypt our objects using the CMK from
+
+68
+00:03:56,520 --> 00:04:00,290
+the source region, as well as the ability to encrypt objects using
+
+69
+00:04:00,290 --> 00:04:03,180
+the CMK in the destination region.
+
+70
+00:04:03,180 --> 00:04:06,040
+And if the destination bucket is in a different account,
+
+71
+00:04:06,040 --> 00:04:09,320
+we also have to specify the account associated with the source
+
+72
+00:04:09,320 --> 00:04:13,840
+bucket in the destination accounts key policy for the KMS key
+
+73
+00:04:13,840 --> 00:04:16,830
+used to encrypt data in the destination.
+
+74
+00:04:16,830 --> 00:04:22,000
+Now let's go ahead and walk through setting up cross‑region replication in the console.
+

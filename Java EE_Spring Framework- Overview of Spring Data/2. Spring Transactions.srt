@@ -1,0 +1,328 @@
+1
+00:00:01,247 --> 00:00:03,838
+Imagine we had an application that allows a customer
+
+2
+00:00:03,838 --> 00:00:06,106
+to book a ticket for an event.
+
+3
+00:00:06,106 --> 00:00:07,666
+When the customer books a ticket,
+
+4
+00:00:07,666 --> 00:00:10,675
+we will first allocate a seat within the venue to them and
+
+5
+00:00:10,675 --> 00:00:12,859
+also take a payment for the transaction.
+
+6
+00:00:12,859 --> 00:00:15,295
+Once both these things have taken place,
+
+7
+00:00:15,295 --> 00:00:17,328
+then the customer's booking will be completed,
+
+8
+00:00:17,328 --> 00:00:19,698
+and we can send them their ticket.
+
+9
+00:00:19,698 --> 00:00:23,512
+However, if the payment request failed without transactions,
+
+10
+00:00:23,512 --> 00:00:24,905
+we would have a problem.
+
+11
+00:00:24,905 --> 00:00:27,103
+This is because the first step, seat allocation,
+
+12
+00:00:27,103 --> 00:00:28,713
+would still be successful,
+
+13
+00:00:28,713 --> 00:00:32,822
+meaning the seat would be taken up when there's no ticket associated with it.
+
+14
+00:00:32,822 --> 00:00:36,452
+If we wrapped queries in a transaction, then things would be different.
+
+15
+00:00:36,452 --> 00:00:39,256
+This is because a single transaction contains multiple queries,
+
+16
+00:00:39,256 --> 00:00:43,070
+which either all take place or do not take place at all.
+
+17
+00:00:43,070 --> 00:00:46,670
+So if our payment request failed, the whole transaction would fail,
+
+18
+00:00:46,670 --> 00:00:51,589
+rolling back the seat's allocation so there's no longer one allocated in error.
+
+19
+00:00:51,589 --> 00:00:53,917
+We describe a transaction as having asset guarantees,
+
+20
+00:00:53,917 --> 00:00:58,264
+meaning it's atomic so it either all happens or does not happen at all,
+
+21
+00:00:58,264 --> 00:00:58,984
+it's consistent,
+
+22
+00:00:58,984 --> 00:01:03,253
+meaning the data written is valid according to the various constraints,
+
+23
+00:01:03,253 --> 00:01:04,124
+isolated,
+
+24
+00:01:04,124 --> 00:01:06,874
+meaning another transaction cannot see the results of
+
+25
+00:01:06,874 --> 00:01:08,293
+the transaction until it's committed,
+
+26
+00:01:08,293 --> 00:01:12,752
+and it's durable meaning the results of the transaction are written to disk.
+
+27
+00:01:12,752 --> 00:01:15,812
+We won't go into much more detail about this as this course is not
+
+28
+00:01:15,812 --> 00:01:18,711
+for learning the inner workings of a transaction.
+
+29
+00:01:18,711 --> 00:01:21,915
+But what's important to understand here is that the majority of
+
+30
+00:01:21,915 --> 00:01:25,243
+enterprise applications will be dependent on transactions at some
+
+31
+00:01:25,243 --> 00:01:29,172
+point in order to function as they need to.
+
+32
+00:01:29,172 --> 00:01:29,402
+Okay,
+
+33
+00:01:29,402 --> 00:01:32,608
+let's take a look at how we might execute our code
+
+34
+00:01:32,608 --> 00:01:34,880
+in a transaction without Spring.
+
+35
+00:01:34,880 --> 00:01:39,478
+Here's our method, bookTicket, which will allocate the seat and make the payment.
+
+36
+00:01:39,478 --> 00:01:43,903
+Wrapping it in a transaction, first of all, introduces a ton of boilerplate.
+
+37
+00:01:43,903 --> 00:01:46,474
+In this case, the boilerplate is Hibernate.
+
+38
+00:01:46,474 --> 00:01:49,488
+We need to start the transaction, commit the transaction,
+
+39
+00:01:49,488 --> 00:01:52,822
+remember to wrap it in a try-catch block so we can roll the
+
+40
+00:01:52,822 --> 00:01:55,051
+transaction back if there's an exception,
+
+41
+00:01:55,051 --> 00:01:58,691
+and also add a finally block so we always close the
+
+42
+00:01:58,691 --> 00:02:01,448
+session after our transaction completes.
+
+43
+00:02:01,448 --> 00:02:04,473
+Now wouldn't it be great if we could make our bookTicket method
+
+44
+00:02:04,473 --> 00:02:07,850
+transactional without having to write any of that code.
+
+45
+00:02:07,850 --> 00:02:08,104
+Well,
+
+46
+00:02:08,104 --> 00:02:11,353
+with Core Spring we can do this simply by annotating
+
+47
+00:02:11,353 --> 00:02:13,313
+our method with @Transactional.
+
+48
+00:02:13,313 --> 00:02:16,540
+This declarative annotation does all of the boilerplate for us.
+
+49
+00:02:16,540 --> 00:02:20,509
+The exact specifics of how this works by leveraging AOP
+
+50
+00:02:20,509 --> 00:02:22,915
+is beyond the scope of this course.
+
+51
+00:02:22,915 --> 00:02:25,870
+But an oversimplified explanation is that at runtime,
+
+52
+00:02:25,870 --> 00:02:27,522
+Spring will create a proxy,
+
+53
+00:02:27,522 --> 00:02:30,948
+which intercepts calls to @Transactional methods and executes
+
+54
+00:02:30,948 --> 00:02:34,970
+the transaction boilerplate for us eventually calling the real
+
+55
+00:02:34,970 --> 00:02:36,995
+method during this transaction.
+
+56
+00:02:36,995 --> 00:02:40,084
+So you can be confident that declaring something is @Transactional will
+
+57
+00:02:40,084 --> 00:02:43,732
+mean that transaction will be started before the method is called and
+
+58
+00:02:43,732 --> 00:02:47,392
+then committed a row back after the method is called as long as the
+
+59
+00:02:47,392 --> 00:02:49,715
+annotation is on a Spring managed bean.
+
+60
+00:02:49,715 --> 00:02:52,253
+It's also important to note that Spring transaction
+
+61
+00:02:52,253 --> 00:02:54,888
+management technically comes from Core Spring,
+
+62
+00:02:54,888 --> 00:02:56,383
+not from Spring Data.
+
+63
+00:02:56,383 --> 00:03:00,218
+However, as transactions and Spring Data are so heavily used together,
+
+64
+00:03:00,218 --> 00:03:05,419
+it makes logical sense to cover them both in an overview course.
+
+65
+00:03:05,419 --> 00:03:07,881
+So just to be clear about the benefits of transaction
+
+66
+00:03:07,881 --> 00:03:09,717
+management with Spring or Spring Data,
+
+67
+00:03:09,717 --> 00:03:12,414
+the first is that we remove a ton of boilerplate.
+
+68
+00:03:12,414 --> 00:03:16,100
+What was once rings of code is now a simple annotation on a method,
+
+69
+00:03:16,100 --> 00:03:18,958
+which means developers can focus on writing their queries
+
+70
+00:03:18,958 --> 00:03:22,132
+instead of the scaffolding for those queries.
+
+71
+00:03:22,132 --> 00:03:24,703
+It's also declarative and non-invasive.
+
+72
+00:03:24,703 --> 00:03:26,947
+The annotation isn't even part of the code.
+
+73
+00:03:26,947 --> 00:03:30,187
+It's metadata meaning the code will contain only query logic.
+
+74
+00:03:30,187 --> 00:03:30,875
+In turn,
+
+75
+00:03:30,875 --> 00:03:34,181
+this makes bugs a lot less likely because the transaction
+
+76
+00:03:34,181 --> 00:03:36,979
+code is now managed for us by Spring.
+
+77
+00:03:36,979 --> 00:03:39,711
+And the main advantage from the point of view of Spring
+
+78
+00:03:39,711 --> 00:03:41,813
+Data is that it's data-store agnostic.
+
+79
+00:03:41,813 --> 00:03:44,687
+If you're working with a database that supports transactions,
+
+80
+00:03:44,687 --> 00:03:47,464
+the corresponding Spring Data module will know how to
+
+81
+00:03:47,464 --> 00:03:49,027
+generate the corresponding transaction code.
+
+82
+00:03:49,027 --> 00:03:56,000
+If you're working with a non-transactional database, like Cassandra, then this annotation will do nothing.
+

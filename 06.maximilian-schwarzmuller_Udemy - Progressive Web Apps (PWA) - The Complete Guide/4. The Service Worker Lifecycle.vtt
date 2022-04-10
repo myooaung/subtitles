@@ -1,0 +1,208 @@
+WEBVTT
+
+00:02.180 --> 00:06.350
+Let's understand how a service worker is registered.
+
+00:06.590 --> 00:11.070
+We have an index.html file which probably loads an app.js file,
+
+00:11.090 --> 00:16.520
+so this is all a traditional web application, nothing server worker-ish about it.
+
+00:16.730 --> 00:19.010
+Now in the app.js file,
+
+00:19.010 --> 00:26.150
+we can execute some code to register a service worker which lives in its own Javascript file, I'll show
+
+00:26.150 --> 00:27.560
+you this code in the next lecture,
+
+00:27.560 --> 00:29.660
+it's super simple.
+
+00:29.720 --> 00:36.710
+This is some code which tells the browser, hey the content of the sw.js file is Javascript
+
+00:37.040 --> 00:41.290
+but don't execute it right now as you do with all the other Javascript files,
+
+00:41.480 --> 00:49.640
+instead please take it and register it as a background process, as a service worker. During that registration,
+
+00:49.940 --> 00:52.060
+two lifecycle phases are reached -
+
+00:52.130 --> 00:59.420
+first, the browser installs the service worker. During that it emits an install event which we can
+
+00:59.420 --> 01:03.590
+hook into to execute some code inside of the service worker
+
+01:03.620 --> 01:09.570
+whilst it is getting installed. You will later see how we use that to cache some assets,
+
+01:09.590 --> 01:15.920
+some initial caching we want to do. There is another event which is executed as soon as installation finishes,
+
+01:16.220 --> 01:18.750
+once the service worker is activated.
+
+01:19.010 --> 01:23.260
+Now it's not necessarily activated right after the installation finishes,
+
+01:23.390 --> 01:28.850
+it's activated as soon as it can be activated which depends on the question whether there is an old
+
+01:28.850 --> 01:31.310
+version of the service worker running or not.
+
+01:31.310 --> 01:36.880
+Service workers will only get active if there is no old service worker instance running,
+
+01:37.040 --> 01:43.220
+so you might need to close existing tabs and re-open them to install a new version of the service worker
+
+01:43.310 --> 01:45.490
+and I will show you how that works.
+
+01:45.500 --> 01:51.020
+This is required because the service worker is not attached to a single page but to an overall domain
+
+01:51.020 --> 01:52.040
+or scope
+
+01:52.280 --> 01:54.560
+and as I said it lives on
+
+01:54.560 --> 02:00.320
+even if you close the tab, so you have to make sure that at least no tab is open to be able to replace
+
+02:00.320 --> 02:05.010
+it because then Chrome or whichever browser you use basically knows
+
+02:05.030 --> 02:11.090
+OK it's now safe to switch it because no page is actively communicating with the service worker at least.
+
+02:11.090 --> 02:17.660
+So then once the browser decides that it can be activated, the activate event will be fired
+
+02:17.660 --> 02:23.150
+and in case it's not clear how that exactly works, we'll go through all the steps in the next lectures.
+
+02:23.210 --> 02:29.170
+Once the service worker was activated, it now controls all pages of a given scope.
+
+02:29.180 --> 02:30.110
+I'll come back to scope
+
+02:30.120 --> 02:36.470
+too, it basically means that you can decide which parts of your application are controlled by a service
+
+02:36.470 --> 02:38.600
+worker, put in other words,
+
+02:38.600 --> 02:42.910
+which pages of your application can work with the service worker.
+
+02:42.920 --> 02:45.650
+So for example if we want to listen to fetch events,
+
+02:45.830 --> 02:52.190
+well if a page is outside of the scope of the service worker, the fetch listener in the service worker won't
+
+02:52.220 --> 02:56.690
+trigger up on fetched requests of the pages outside of the service worker scope,
+
+02:57.080 --> 03:01.460
+I'll show you how to set the scope in the next lectures too. Now
+
+03:01.490 --> 03:07.170
+one important note about the install event or about how the browser installs a service worker,
+
+03:07.310 --> 03:13.130
+you might wonder whether it always installs it whenever our application basically executes,
+
+03:13.130 --> 03:17.570
+so if we refresh the page, does it then install our service worker again?
+
+03:17.600 --> 03:19.910
+The answer is it depends.
+
+03:19.940 --> 03:25.460
+It always executes this registration code which we're about to see in the next lectures but it doesn't
+
+03:25.460 --> 03:27.840
+necessarily install the service worker,
+
+03:27.950 --> 03:31.260
+it will only do that if your service worker file,
+
+03:31.340 --> 03:38.300
+so the file housing your service worker Javascript code change by one byte or more, so if it changed
+
+03:38.360 --> 03:41.270
+at all, it will install the updated version,
+
+03:41.270 --> 03:47.010
+if it's the same file, if it is unchanged, then it will not install it.
+
+03:47.120 --> 03:49.090
+It will still execute that registration code
+
+03:49.100 --> 03:54.890
+but in the registration step, it will basically make this check, recognize that the file might not have
+
+03:54.890 --> 03:59.070
+changed at all and then not trigger the install event here.
+
+03:59.240 --> 04:01.050
+So that is something you have to keep in mind,
+
+04:01.130 --> 04:07.850
+the browser will only install a service worker if it is an updated version or if it's for the first
+
+04:07.850 --> 04:09.580
+time ever that you have one,
+
+04:09.710 --> 04:18.490
+not on every page refresh. Once we have an activated service worker, it enters idle mode which means
+
+04:18.490 --> 04:23.920
+it's basically just sitting there because I told you it's a background process handling events and
+
+04:23.920 --> 04:29.910
+if no events are coming in, it's doing nothing. After a time of idling around, it will terminate,
+
+04:29.920 --> 04:35.880
+this does not mean that it is uninstalled or unregistered, it just means it's kind of sleeping.
+
+04:35.980 --> 04:42.160
+You can wake it up though or actually it will wake up automatically as soon as events are coming in,
+
+04:42.430 --> 04:47.950
+so for example a fetch event and all the other events of course also apply, the events I showed you on the
+
+04:47.950 --> 04:50.360
+previous slide. If a fetch
+
+04:50.380 --> 04:56.720
+occurs, either due to an HTML file requesting a resource or you actively sending a fetch
+
+04:56.720 --> 05:02.950
+request in your Javascript code, the service worker is woken up and put back into idle mode
+
+05:03.130 --> 05:06.640
+and of course the fetch event listener is triggered there.
+
+05:06.700 --> 05:09.430
+This is the service worker lifecycle,
+
+05:09.430 --> 05:11.400
+now let's have a look at this in our code
+
+05:11.530 --> 05:17.290
+and let's see how we actually register, install and activate the service worker and what we have to watch
+
+05:17.290 --> 05:17.970
+out for.

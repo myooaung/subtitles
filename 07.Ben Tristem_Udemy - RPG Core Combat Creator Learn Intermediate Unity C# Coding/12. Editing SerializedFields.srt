@@ -1,0 +1,807 @@
+1
+00:00:04,440 --> 00:00:05,280
+Hello and welcome.
+
+2
+00:00:05,280 --> 00:00:11,320
+In this lecture we are going to be generating new ideas such that if we are in a prefab the EU idea
+
+3
+00:00:11,340 --> 00:00:16,770
+does not get generated so that we don't accidentally end up with duplicate EU ideas when we drop things
+
+4
+00:00:16,770 --> 00:00:17,640
+into the sea.
+
+5
+00:00:17,670 --> 00:00:23,460
+But when we are in the same file they do get generated and you can see that they show up as modifications
+
+6
+00:00:23,490 --> 00:00:30,390
+and they will get saved correctly into the scene file so that every enemy every player every entity
+
+7
+00:00:30,390 --> 00:00:36,090
+that we want to save in the scene has got its unique identifier so it can be correctly restored from
+
+8
+00:00:36,090 --> 00:00:36,690
+the save file.
+
+9
+00:00:36,690 --> 00:00:42,960
+Let's dive in and see how we can edit these properties in a scene file so in the last lecture we got
+
+10
+00:00:42,960 --> 00:00:48,330
+to the stage of being able to run stuffer edit time but not actually updating this unique identifier.
+
+11
+00:00:48,330 --> 00:00:53,460
+Now you might think it's as easy as saying hey why don't I just change the value of the unique identifier
+
+12
+00:00:53,460 --> 00:00:56,900
+here where and I go unique identifier equals system.
+
+13
+00:00:56,910 --> 00:01:01,350
+Dots go is dot new grid and then turn that into a string.
+
+14
+00:01:01,350 --> 00:01:02,790
+Why didn't I do that here.
+
+15
+00:01:02,790 --> 00:01:08,790
+Or even if I am astute I might say Hey I only want to do this if we don't already have a value for this
+
+16
+00:01:08,790 --> 00:01:13,890
+unique identifier so that we aren't regenerating them remember that we said one of the requirements
+
+17
+00:01:13,920 --> 00:01:15,920
+was that they are persistent.
+
+18
+00:01:15,950 --> 00:01:20,400
+So if we were to regenerate them every time in this update loop they're not persistent are they.
+
+19
+00:01:20,400 --> 00:01:26,580
+So again say if it's actually equal to the empty string which is the default value then hey why don't
+
+20
+00:01:26,580 --> 00:01:28,260
+you go ahead and do this.
+
+21
+00:01:28,290 --> 00:01:34,620
+Well this is the pseudocode if you like but not the correct way of doing it because if we go and change
+
+22
+00:01:34,620 --> 00:01:41,070
+properties like this it's only changing them in memory in unity and unity has got no way of knowing
+
+23
+00:01:41,130 --> 00:01:47,550
+that you've changed this property at edit time so it can't keep track of the changes to the save file
+
+24
+00:01:47,550 --> 00:01:53,150
+and it can't say that this has been overriding a prefab and all that good stuff that it needs to know.
+
+25
+00:01:53,160 --> 00:01:58,860
+So this stuff doesn't necessarily get saved to the file or it gets saved to the scene file on reliably
+
+26
+00:01:59,160 --> 00:02:01,260
+which is definitely not what you want.
+
+27
+00:02:01,260 --> 00:02:09,210
+We don't want unreliable code so the correct way to access the serialized information that is in this
+
+28
+00:02:09,210 --> 00:02:13,620
+unique identifier is to use a different API.
+
+29
+00:02:13,620 --> 00:02:20,400
+And the API is called a serialized object.
+
+30
+00:02:20,420 --> 00:02:25,500
+Now for this we need to include the using Unity Editor namespace.
+
+31
+00:02:25,610 --> 00:02:32,330
+Now just a quick gotcha with this namespace because the editor namespace is not available when you build
+
+32
+00:02:32,420 --> 00:02:32,900
+the game.
+
+33
+00:02:33,200 --> 00:02:38,140
+So if you try to build the game you will get errors because it has no access to this.
+
+34
+00:02:38,180 --> 00:02:43,490
+So we are going to fix this but later on and so just for now until the end of the section don't try
+
+35
+00:02:43,490 --> 00:02:45,860
+and build a game it won't work.
+
+36
+00:02:45,860 --> 00:02:53,630
+And with this serialized objects we can create the object far which is going to represent the serialization
+
+37
+00:02:53,690 --> 00:02:55,790
+of this mono behavior.
+
+38
+00:02:55,790 --> 00:03:03,830
+To do that we do a new serialized object and we need to pass in the objects that we want to find a serialized
+
+39
+00:03:03,830 --> 00:03:04,820
+object for.
+
+40
+00:03:04,820 --> 00:03:06,570
+So just this.
+
+41
+00:03:06,620 --> 00:03:07,960
+So what does this line do.
+
+42
+00:03:08,000 --> 00:03:17,110
+It goes and finds the serialization of this mono behavior and gives us this in a property called B and
+
+43
+00:03:17,240 --> 00:03:23,000
+in a variable called the object now it gives me an error here because I can't use object so I'm going
+
+44
+00:03:23,000 --> 00:03:28,610
+to call this serialized object like so and then the errors go away.
+
+45
+00:03:28,750 --> 00:03:33,850
+So you might then think OK well we've got the serialized object I can do serialize objects dots unique
+
+46
+00:03:33,850 --> 00:03:35,730
+identifier no slowdown.
+
+47
+00:03:35,890 --> 00:03:41,590
+We can't do it like that because the serialized object is a generic thing for all types of serialization.
+
+48
+00:03:41,590 --> 00:03:47,350
+So if we want to find a particular field in this particular serialized object then we need to a find
+
+49
+00:03:47,440 --> 00:03:52,200
+property like so and then we do it by string reference unfortunately.
+
+50
+00:03:52,230 --> 00:03:55,520
+But hey that is how we need to work with it in unity.
+
+51
+00:03:55,600 --> 00:04:01,950
+So what comes back from the find property is a new type again called a serialized property.
+
+52
+00:04:02,380 --> 00:04:08,140
+So we create a new variable for that serialized property and just gonna call this from the property
+
+53
+00:04:08,140 --> 00:04:11,710
+and I think there's no C sharp key word for that hopefully.
+
+54
+00:04:11,800 --> 00:04:17,950
+So that is going to be our property that we want to edit now because we don't know the type of this
+
+55
+00:04:17,950 --> 00:04:19,000
+property again.
+
+56
+00:04:19,140 --> 00:04:23,830
+There's a problem with it being dynamic and at runtime you have a few options.
+
+57
+00:04:23,980 --> 00:04:31,140
+You can do for example dots and then you could have the double value or the float value.
+
+58
+00:04:31,210 --> 00:04:37,690
+So if this were a floating point variable then we could set its value with a float value you could say
+
+59
+00:04:37,690 --> 00:04:42,410
+Hey set this to point to F for example but it's not a float value.
+
+60
+00:04:42,400 --> 00:04:46,450
+So I think this would just give you errors or if it doesn't give you error has it's at least going to
+
+61
+00:04:46,450 --> 00:04:49,040
+not make sense when it loads it in it's gonna say Hey.
+
+62
+00:04:49,210 --> 00:04:50,040
+This needs to be a string.
+
+63
+00:04:50,050 --> 00:04:55,150
+But what I've got in my scene file is a float value what's going on and things will not work or it just
+
+64
+00:04:55,150 --> 00:04:56,430
+won't load the end.
+
+65
+00:04:56,560 --> 00:04:58,330
+So that's not how we want to do it.
+
+66
+00:04:58,390 --> 00:05:02,500
+That's right correct code where we're going to use the string value instead.
+
+67
+00:05:02,680 --> 00:05:07,330
+So instead of using the unique identifier here I can go ahead and use the string value.
+
+68
+00:05:07,360 --> 00:05:13,180
+So I'm going to cut this out and paste it in here instead so I can say hey is this string value empty
+
+69
+00:05:13,210 --> 00:05:15,660
+in which case generate a new unity.
+
+70
+00:05:15,670 --> 00:05:22,870
+Now this in and of itself isn't going to just work because after you've made a change to the serialized
+
+71
+00:05:22,960 --> 00:05:26,520
+object you have to tell unity that you've made that change.
+
+72
+00:05:26,530 --> 00:05:32,230
+So what you do is with your serialized object you do a dot apply modify properties now notes I'm doing
+
+73
+00:05:32,230 --> 00:05:39,640
+this inside the if statement because we've only modified the property if the value was empty so otherwise
+
+74
+00:05:39,640 --> 00:05:44,020
+we don't have to notify unity about any changes because we haven't made any.
+
+75
+00:05:44,020 --> 00:05:49,950
+So if I go over to unity now what we should be seeing apart from the log messages going away hopefully
+
+76
+00:05:49,950 --> 00:05:51,170
+if I've got rid of the log.
+
+77
+00:05:51,430 --> 00:06:00,010
+Then if I go and find my player for example and look at his inspector you can see that his unique identifier
+
+78
+00:06:00,040 --> 00:06:05,710
+is showing up and that unique identifier is now an override.
+
+79
+00:06:05,710 --> 00:06:10,570
+So it has actually noticed that some override it's also noticed that my scene file has got changes in
+
+80
+00:06:10,570 --> 00:06:12,700
+it that haven't been saved.
+
+81
+00:06:12,700 --> 00:06:18,040
+And if I go and have a look at any of my enemies you will notice that they have got different unique
+
+82
+00:06:18,040 --> 00:06:19,510
+identifies as well.
+
+83
+00:06:19,510 --> 00:06:21,520
+So you might be thinking Hey fantastic.
+
+84
+00:06:21,550 --> 00:06:24,330
+We have got a job well done.
+
+85
+00:06:24,460 --> 00:06:26,180
+Yes and no.
+
+86
+00:06:26,190 --> 00:06:34,810
+Unfortunately what the problem is that we have got if I go up to an enemy prefab for example you can
+
+87
+00:06:34,810 --> 00:06:41,080
+see that it has generated a unique identifier our code has faithfully said hey I'm an update I'm not
+
+88
+00:06:41,080 --> 00:06:43,960
+playing I'm gonna get the serialized object here.
+
+89
+00:06:43,990 --> 00:06:49,240
+I mean a specific scene just for the prefab editing but that's okay.
+
+90
+00:06:49,420 --> 00:06:51,960
+And I'm just gonna check whether it's got a value.
+
+91
+00:06:51,970 --> 00:06:52,540
+No it hasn't.
+
+92
+00:06:52,540 --> 00:06:53,440
+I'm gonna set one.
+
+93
+00:06:53,440 --> 00:06:54,590
+So it set one.
+
+94
+00:06:54,940 --> 00:07:01,750
+Which means that if I save this I've made a change to the prefab and if I go and drop new enemies into
+
+95
+00:07:01,750 --> 00:07:02,380
+my scene.
+
+96
+00:07:02,380 --> 00:07:09,310
+So if I go to game characters and drop a couple of enemies in here and have a look at those enemies
+
+97
+00:07:09,310 --> 00:07:15,400
+you will notice that they already have unique identifiers and they are the same because they took their
+
+98
+00:07:15,400 --> 00:07:22,390
+value from that unique identifier in the prefab and our code being very faithful that it is has said
+
+99
+00:07:22,390 --> 00:07:27,310
+hey let me get the serialized object for this thing in the scene for this instantiation of the prefab
+
+100
+00:07:27,790 --> 00:07:32,460
+and hey this string value has already got a value so I don't have to do any work.
+
+101
+00:07:32,590 --> 00:07:39,480
+Now obviously this is not wrong this statement should do that but in our case we don't.
+
+102
+00:07:39,490 --> 00:07:46,360
+Well basically what we want to avoid is the prefabs trying to generate unique identifiers that they
+
+103
+00:07:46,420 --> 00:07:51,250
+should not get unique identifiers they are not unique entities until they have been placed in the scene.
+
+104
+00:07:51,250 --> 00:07:57,520
+We only want these unique identifiers to crop up if we have manually put them in a prefab or they should
+
+105
+00:07:57,550 --> 00:08:01,370
+automatically be generated and saved into the scene file only.
+
+106
+00:08:01,390 --> 00:08:04,960
+So how do we make sure that we are in the scene file.
+
+107
+00:08:04,960 --> 00:08:09,670
+Well here is a little challenge for you I'm just gonna give you a hint and there's no challenge slide
+
+108
+00:08:09,670 --> 00:08:17,950
+for this but if you were to have a look at the game object dot scene have a look and see if there are
+
+109
+00:08:17,950 --> 00:08:25,590
+any properties on this that give you an inkling and tell you whether you are in a scene file or whether
+
+110
+00:08:25,590 --> 00:08:30,960
+you are in a prefab you can do that by just printing out some of these properties and seeing whether
+
+111
+00:08:31,320 --> 00:08:33,540
+there's anything that's helpful in here.
+
+112
+00:08:33,840 --> 00:08:40,670
+So post a video and have a go at that challenge Okay so let's see as a few candidates there is the name
+
+113
+00:08:41,420 --> 00:08:42,650
+that could be useful.
+
+114
+00:08:42,680 --> 00:08:47,440
+There's another one I think the path maybe the path will be useful.
+
+115
+00:08:47,440 --> 00:08:48,950
+There is also the build index.
+
+116
+00:08:48,950 --> 00:08:52,430
+But if we haven't got something in the build index that's not going to be very helpful so I'm not gonna
+
+117
+00:08:52,460 --> 00:08:54,610
+go with that route count.
+
+118
+00:08:54,630 --> 00:09:00,350
+Mm not particularly helpful might be if we do a hacky thing that says if there's only one route then
+
+119
+00:09:00,350 --> 00:09:03,290
+it's a prefab but you could have one route in a scene as well.
+
+120
+00:09:03,410 --> 00:09:07,940
+So let's just print these out and let's see if I go back into the scene.
+
+121
+00:09:07,940 --> 00:09:09,980
+Hip well don't you need to hit play.
+
+122
+00:09:10,010 --> 00:09:12,100
+We just need to be doing this at edit time right.
+
+123
+00:09:12,110 --> 00:09:15,980
+So I want to see as any of these useful.
+
+124
+00:09:15,980 --> 00:09:18,190
+So it's saying the name is sandbox.
+
+125
+00:09:18,200 --> 00:09:21,560
+The path is assets seen sandbox unity.
+
+126
+00:09:21,560 --> 00:09:23,260
+What if I go into the prefab.
+
+127
+00:09:23,260 --> 00:09:24,660
+What's it saying then.
+
+128
+00:09:24,700 --> 00:09:30,180
+Okay then we've got the enemy is the name of the scene and there's no path.
+
+129
+00:09:30,200 --> 00:09:37,380
+Is that true generally of all prefabs it seems like if we're going to the character level it's trying
+
+130
+00:09:37,380 --> 00:09:43,930
+to say that this is a sandbox scene but I think we're not actually on the sandbox scene.
+
+131
+00:09:43,940 --> 00:09:46,420
+I think character here is giving me empty.
+
+132
+00:09:46,940 --> 00:09:50,260
+So for some reason it had the sandbox they're open has it open as well.
+
+133
+00:09:50,270 --> 00:09:56,360
+But the character it's saying that it's still empty so I'm noticing that an empty path tends to mean
+
+134
+00:09:56,690 --> 00:09:59,060
+that we are actually in a prefab.
+
+135
+00:09:59,240 --> 00:10:08,240
+So let's try that as our criteria we're going to say if the application seemed up path is equal to empty
+
+136
+00:10:08,630 --> 00:10:12,940
+then we should return maybe it's empty maybe it's no I'm not sure about that.
+
+137
+00:10:12,950 --> 00:10:14,560
+We've got to test that out.
+
+138
+00:10:14,780 --> 00:10:24,430
+So let's go back into the editor and if I go to my enemy and just clear out its unique identifier what's
+
+139
+00:10:24,430 --> 00:10:27,450
+going to happen there is it going to try and reload it.
+
+140
+00:10:27,550 --> 00:10:30,910
+Let's go back to the scene back to the prefab.
+
+141
+00:10:30,900 --> 00:10:32,800
+See if it tried to reload.
+
+142
+00:10:32,800 --> 00:10:33,030
+No.
+
+143
+00:10:33,030 --> 00:10:34,540
+That seemed to have done the trick.
+
+144
+00:10:34,570 --> 00:10:41,070
+And if we wanted to be sure just in case what I'm going to do here is have as a special cool little
+
+145
+00:10:41,080 --> 00:10:47,500
+method called string dot if is null or empty.
+
+146
+00:10:47,500 --> 00:10:55,750
+And this basically allows us to say hey is this string now all empty it's all in one go and it's so
+
+147
+00:10:55,750 --> 00:10:59,110
+common that you want to do that that they've just rolled it up into one.
+
+148
+00:10:59,500 --> 00:11:05,080
+So what we're saying is if the path is empty then we're in a prefab so we'll return and not try and
+
+149
+00:11:05,080 --> 00:11:06,630
+do any of our logic.
+
+150
+00:11:06,790 --> 00:11:13,240
+And just to be super safe I'm going to use the same is null or empty for if the properties string is
+
+151
+00:11:13,270 --> 00:11:14,110
+empty.
+
+152
+00:11:14,110 --> 00:11:19,550
+So if it were null for some reason as well that is when we'll also update the good.
+
+153
+00:11:19,670 --> 00:11:20,130
+OK.
+
+154
+00:11:20,170 --> 00:11:24,360
+So hopefully now we have not got a unique identifier for the enemy.
+
+155
+00:11:24,580 --> 00:11:29,890
+And I want to cancel the unique identifier that we've got here for the character and save that.
+
+156
+00:11:29,980 --> 00:11:32,800
+So the enemy should now not be we can just revert it.
+
+157
+00:11:32,800 --> 00:11:34,710
+So it's not got a unique identifier.
+
+158
+00:11:34,840 --> 00:11:40,360
+And I want to go to the player and make sure he's not got a unique identifier so that now if we look
+
+159
+00:11:40,360 --> 00:11:44,650
+at either of these two enemies in the scene you can see that they get generated these new ones that
+
+160
+00:11:44,650 --> 00:11:47,590
+we dropped in they get generated new unique identifiers.
+
+161
+00:11:47,620 --> 00:11:52,200
+If I were to drop in a few more enemies you can see this one's got a different unique identifier.
+
+162
+00:11:52,210 --> 00:11:54,150
+And this one's got another unique identifier.
+
+163
+00:11:54,160 --> 00:11:59,270
+I'm going to remove these and so that Rick doesn't get angry with me for messing up his scene.
+
+164
+00:11:59,320 --> 00:11:59,830
+So there we go.
+
+165
+00:11:59,830 --> 00:12:03,060
+So we've added enemies they've all got different unique identifiers.
+
+166
+00:12:03,220 --> 00:12:04,850
+And it's changed the sandbox.
+
+167
+00:12:04,990 --> 00:12:09,550
+In fact I want to show you that it has changed the sandbox you can have a look and get for yourself
+
+168
+00:12:10,180 --> 00:12:15,310
+here that basically the sandbox is the only thing that's changed by look at the character as an enemy
+
+169
+00:12:15,340 --> 00:12:20,350
+prefabs you can see the characters just got this empty unique identifier just of a scene to have done
+
+170
+00:12:20,350 --> 00:12:25,800
+that but maybe we can go and just completely set that back to default.
+
+171
+00:12:25,870 --> 00:12:30,680
+If I right click on the unique identifier No it just wants to have it as empty as fine.
+
+172
+00:12:31,000 --> 00:12:38,560
+But we've got no change to the enemy really it's done some other change here not to our unique identifier.
+
+173
+00:12:38,760 --> 00:12:43,960
+There's no unique identifier for the player and all the changes are actually in the sandbox scene exactly
+
+174
+00:12:43,960 --> 00:12:45,660
+where we wanted them to be.
+
+175
+00:12:45,760 --> 00:12:51,880
+As you can see against each of the different entities it has got a different unique identifier so that
+
+176
+00:12:51,880 --> 00:12:57,460
+is going to be unique across scenes but it's also persistent because it's saved in the sandbox scene
+
+177
+00:12:57,820 --> 00:13:02,290
+which means that when we close and reload the game it's going to get them back from the sandbox scene
+
+178
+00:13:02,320 --> 00:13:07,360
+and we're going to be able to match that up with our save file and restore the correct state which is
+
+179
+00:13:07,360 --> 00:13:10,700
+exactly what we want to be happening so phew.
+
+180
+00:13:10,750 --> 00:13:13,060
+That was quite a lot in that lecture.
+
+181
+00:13:13,090 --> 00:13:13,860
+What we covered.
+
+182
+00:13:13,870 --> 00:13:21,010
+Well we've found that in order to change the values that are being stored into the scene file or prefab
+
+183
+00:13:21,400 --> 00:13:27,550
+we need to use a serialized object and serialized property in tandem and modify those rather than modifying
+
+184
+00:13:27,550 --> 00:13:30,030
+the values directly on our objects.
+
+185
+00:13:30,040 --> 00:13:33,990
+We've seen how we can do that by creating a new serialized object from this.
+
+186
+00:13:34,150 --> 00:13:41,680
+We have also seen how we can check whether we are in a scene file versus being in a prefab as well as
+
+187
+00:13:41,680 --> 00:13:43,990
+in the previous lecture we saw how we could check whether we were playing.
+
+188
+00:13:44,290 --> 00:13:51,010
+So this is basically where we've got up to we have able to generate new gourds for things in the scene
+
+189
+00:13:51,010 --> 00:13:58,550
+file so they get saved reliably in to that file however we have introduced a little bit of a bug in
+
+190
+00:13:58,550 --> 00:14:06,200
+that if you try to package your project at this point you will find that it will give you a weird error
+
+191
+00:14:06,230 --> 00:14:08,450
+about not being able to find the serialized object.
+
+192
+00:14:08,450 --> 00:14:13,030
+And that's because this code is not available to package projects.
+
+193
+00:14:13,100 --> 00:14:16,190
+Makes sense right because this has stuff to do with the editor.
+
+194
+00:14:16,190 --> 00:14:25,690
+So what you need to do if you want to package this is to wrap it all in this if Unity Editor little
+
+195
+00:14:25,700 --> 00:14:32,870
+macro so hash if then Unity Editor with The underscores in all caps and then at the end you have this
+
+196
+00:14:32,870 --> 00:14:39,500
+hash end F and basically what this does it says everything between these two statements is not going
+
+197
+00:14:39,500 --> 00:14:46,280
+to be included in the C shop build for a project that is not being built for the editor.
+
+198
+00:14:46,280 --> 00:14:53,690
+So if you go and packages projects up this code is essentially removed entirely which is just what we
+
+199
+00:14:53,690 --> 00:14:55,900
+want cool stuff in the next lecture.
+
+200
+00:14:55,910 --> 00:15:00,620
+We're going to be concentrating on getting these capture and restore state methods to actually work
+
+201
+00:15:00,680 --> 00:15:01,900
+and do their job again.
+
+202
+00:15:01,910 --> 00:15:02,380
+See you there.

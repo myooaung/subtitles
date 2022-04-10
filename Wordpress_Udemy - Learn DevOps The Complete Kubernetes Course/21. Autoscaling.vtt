@@ -1,0 +1,160 @@
+WEBVTT
+1
+00:00:00.330 --> 00:00:08.230
+Let's talk about Autoscaling. Horizontal Pod Autoscaling. Kubernetes has the possibility to automatically
+
+2
+00:00:08.260 --> 00:00:16.340
+autoscale pods based on metrics Kubernetes can automatically scale a deployment, a replication controller,
+
+3
+00:00:16.520 --> 00:00:23.510
+or a replica set, in the Kubernetes 1.3, scaling based on the CPU usage is possible out of the box.
+
+4
+00:00:24.920 --> 00:00:31.920
+With alpha support application based metrics are also available, like queries per second or average latency.
+
+5
+00:00:33.900 --> 00:00:36.760
+You need to make some modifications to enable this.
+
+6
+00:00:36.930 --> 00:00:42.120
+The cluster has to be started with the environment variable and "ENABLE_CUSTOM_METRICS" to true.
+
+7
+00:00:42.180 --> 00:00:47.010
+This is probably going to change in the future, because this is still the alpha stage and they are going to make some improvements.
+
+8
+00:00:49.120 --> 00:00:54.730
+And scaling will periodically query the utilization for targeted pods,
+
+9
+00:00:54.730 --> 00:01:01.840
+by default this is every 30 seconds, but that can be changed using the "--horizontal-pod-autoscaler-sync-period" when launching the controller-manager.
+
+10
+00:01:01.840 --> 00:01:08.100
+If you would want to change the default value you can, but it needs to be done in the initialization script,
+
+11
+00:01:08.100 --> 00:01:14.840
+when the control manager starts on the master node.
+
+12
+00:01:14.900 --> 00:01:20.140
+Autoscaling will use heapster, the monitoring tool, to gather its metrics and make scaling decisions.
+
+13
+00:01:20.990 --> 00:01:25.150
+Heapster must be installed and running before autoscaling will work.
+
+14
+00:01:25.180 --> 00:01:31.230
+So, make sure that you followed demo that it will enable heapster.
+
+15
+00:01:31.240 --> 00:01:32.910
+So, here is an example.
+
+16
+00:01:33.100 --> 00:01:42.490
+You run a deployment with a pod, with a CPU resource request of 200 m. 200m means, 200 millicpu.
+
+17
+00:01:42.490 --> 00:01:52.180
+Also, sometimes called, 200 millicourse. 200m is actually 0.2 which is 20% of a CPU core of the running node.
+
+18
+00:01:53.820 --> 00:01:58.060
+If the node has 2 cores, it is still 20% of a single core.
+
+19
+00:01:58.380 --> 00:02:00.690
+So, it is absolute numbers.
+
+20
+00:02:00.690 --> 00:02:05.150
+You can introduce, for instance, auto-scaling at 50% of the CPU usage,
+
+21
+00:02:05.370 --> 00:02:13.650
+which is 100 millicpu. Horizontal Pod Autoscaling will increase or decrease force to maintain a target CPU 
+
+22
+00:02:13.820 --> 00:02:21.570
+utilization of this 50% percent, or 100 millicpu, or 10% of a core within these pods.
+
+23
+00:02:21.600 --> 00:02:25.490
+So, a core on this node.
+
+24
+00:02:25.560 --> 00:02:29.590
+This is a pod that you can use to test autoscaling.
+
+25
+00:02:29.700 --> 00:02:34.920
+Here, we have deployment and in the specification we are going to use a Google image.
+
+26
+00:02:34.920 --> 00:02:38.990
+It is an image that has a web server that is going to do some calculations if you visit the Web site.
+
+27
+00:02:39.030 --> 00:02:46.830
+To make this work we are going to specify resources and we are going to request, the request CPU, 200 millicpu. 
+
+28
+00:02:46.920 --> 00:02:53.700
+This means that we are requesting that our pod can use 200 millicpu.
+
+29
+00:02:53.770 --> 00:03:01.920
+We can use more but Kubernetes can use this 200 millicpu for its killing purposes.
+
+30
+00:03:01.920 --> 00:03:09.560
+It will not pod this pod on a node that don't have 200% of a core available anymore.
+
+31
+00:03:10.850 --> 00:03:17.440
+For us, in this example, these 200m are also needed for autoscaling.
+
+32
+00:03:17.490 --> 00:03:25.850
+So, this is an example of autoscaling specifications. This object is of "kind: HorizontalPodAutoscaler".
+
+33
+00:03:27.200 --> 00:03:32.930
+It has a name, also a specification, and here we are going to say that we are going to use a deployment
+
+34
+00:03:33.140 --> 00:03:39.620
+that needs to scale. The minimum on the replicas is going to be one and the maxReplicas is ten.
+
+35
+00:03:39.620 --> 00:03:44.450
+The "targetCPUUtilizationPercentage" is 50%, 50% off-- 
+
+36
+00:03:44.450 --> 00:03:51.550
+If you go back to the previous slide, then this 50% off this CPU that we requested.
+
+37
+00:03:51.800 --> 00:03:58.250
+So, the target is going to be 100 millicpu whether it goes higher than 100 millicpu more instances
+
+38
+00:03:58.460 --> 00:04:02.210
+will be launched until we reach 10 replicas.
+
+39
+00:04:02.240 --> 00:04:08.630
+If it is less than 50 percent then pods will be removed until we hit the minimum, which in this case is one.
+
+40
+00:04:11.990 --> 00:04:13.670
+In the next demo, I will show you how that works.

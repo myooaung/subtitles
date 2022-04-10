@@ -1,0 +1,323 @@
+1
+00:00:02,240 --> 00:00:07,610
+This error is related to a little specialty regarding fields.
+
+2
+00:00:07,640 --> 00:00:15,170
+In the end it's just a case that these fields are created as properties automatically when the constructor
+
+3
+00:00:15,200 --> 00:00:23,240
+gets called but only after the parent constructor which you call with super has been executed and by
+
+4
+00:00:23,240 --> 00:00:29,720
+the way, you would also not be able to create your own properties here in the constructor with this something
+
+5
+00:00:29,810 --> 00:00:34,320
+equals something before super has been executed.
+
+6
+00:00:34,460 --> 00:00:41,630
+So all your fields are basically translated to this this field name equals field value syntax here in
+
+7
+00:00:41,630 --> 00:00:46,760
+the constructor but they're magically added after the super call
+
+8
+00:00:46,760 --> 00:00:47,530
+so to say
+
+9
+00:00:47,630 --> 00:00:54,260
+which is why inside of the parent constructor or inside of methods triggered by the parent constructor,
+
+10
+00:00:54,500 --> 00:00:57,010
+you can't access any of these fields
+
+11
+00:00:57,470 --> 00:01:03,500
+but as I just explained, you also wouldn't be able to access any of the other properties of this subclass
+
+12
+00:01:03,500 --> 00:01:11,240
+here because you can only add properties, you can only use the this keyword in your subclass constructor
+
+13
+00:01:11,570 --> 00:01:17,120
+after the parent class constructor finished execution and that includes any methods that might have
+
+14
+00:01:17,120 --> 00:01:23,820
+been invoked by that parent class constructor. So that's the problem we're facing here with this render
+
+15
+00:01:23,820 --> 00:01:29,790
+method being called by the parent class constructor. In a constructor, we already go ahead and we execute
+
+16
+00:01:29,790 --> 00:01:34,350
+render and we rely on data which hasn't been created yet.
+
+17
+00:01:34,410 --> 00:01:36,240
+Now it's just important to be aware of that,
+
+18
+00:01:36,250 --> 00:01:38,700
+there's no huge issue with that,
+
+19
+00:01:38,700 --> 00:01:41,970
+it's just something we have to fix here and here,
+
+20
+00:01:41,970 --> 00:01:47,450
+we can fix that by taking that array and let's say we initialize products to be an empty array,
+
+21
+00:01:47,460 --> 00:01:52,740
+we could also remove it and instead set this products equal to the array here then
+
+22
+00:01:52,740 --> 00:01:57,230
+which means we create this instance property during the constructor.
+
+23
+00:01:57,240 --> 00:02:01,560
+Now with that if we save that, it would still fail because the order is wrong,
+
+24
+00:02:01,590 --> 00:02:06,240
+I'm calling super before I do that and inside of super, we call render.
+
+25
+00:02:06,240 --> 00:02:12,840
+So here is a case where we should move super after we initialize our local data which we know the parent
+
+26
+00:02:12,840 --> 00:02:19,120
+component will in the end depend on because it will call render for us which then needs that data.
+
+27
+00:02:19,170 --> 00:02:23,790
+So after we switch that order, you see that is gone.
+
+28
+00:02:23,790 --> 00:02:27,220
+Now the problem just is that we're not allowed to call super there,
+
+29
+00:02:27,270 --> 00:02:33,300
+indeed we have to call it first or at least before we do anything with this in our subclass,
+
+30
+00:02:33,540 --> 00:02:35,310
+so that's not allowed.
+
+31
+00:02:35,310 --> 00:02:36,930
+So how can we solve that issue then?
+
+32
+00:02:40,400 --> 00:02:42,450
+Well this is a quite common use case,
+
+33
+00:02:42,590 --> 00:02:49,390
+you might wanna do something with some data which might just not be there yet when you get started
+
+34
+00:02:51,150 --> 00:02:57,120
+and indeed, the products data would probably not be hardcoded into our code here but we might be fetching
+
+35
+00:02:57,120 --> 00:02:58,070
+it from a database,
+
+36
+00:02:58,080 --> 00:03:04,920
+so indeed it might really not be loaded when we try to render everything here. So to simulate that, I'll
+
+37
+00:03:04,920 --> 00:03:12,240
+cut that code and add a new method here, fetch products
+
+38
+00:03:12,300 --> 00:03:17,760
+and here we could be reaching out to a server, we'll learn how that works in a separate module later when
+
+39
+00:03:17,760 --> 00:03:20,330
+we learn how to make HTTP requests,
+
+40
+00:03:20,430 --> 00:03:25,560
+for now I'll just set my products there. So I simulate that in this method, I then have access to these
+
+41
+00:03:25,560 --> 00:03:27,650
+products before I didn't.
+
+42
+00:03:27,690 --> 00:03:32,460
+So here I want to call this fetch products inside of the constructor.
+
+43
+00:03:32,460 --> 00:03:39,300
+Now of course, render will also be called but here we simply know our render method depends on something
+
+44
+00:03:39,300 --> 00:03:41,310
+where we don't know yet if it's there.
+
+45
+00:03:42,740 --> 00:03:51,290
+So we could add another method here, render products and move that code where we go through all products into
+
+46
+00:03:51,290 --> 00:03:52,660
+render products
+
+47
+00:03:52,760 --> 00:04:01,250
+and here in the main render method, we can check if this product, if it is set and if this product's length
+
+48
+00:04:03,920 --> 00:04:09,920
+is greater than zero, so if we have something to render, then we call this render products and in our example
+
+49
+00:04:09,920 --> 00:04:14,630
+here, this will not be the case when render is called for the first time and that's fine, we'll just
+
+50
+00:04:14,630 --> 00:04:16,360
+create that root element and we're done
+
+51
+00:04:17,210 --> 00:04:20,480
+but I also want to call render products here in fetch products,
+
+52
+00:04:20,480 --> 00:04:27,490
+so also call it here once I got my products. And now with that we have a setup for a solution which
+
+53
+00:04:27,490 --> 00:04:33,640
+solves a problem you'll encounter quite often, that data arrives after you want to render some initial
+
+54
+00:04:33,640 --> 00:04:34,320
+content
+
+55
+00:04:34,360 --> 00:04:36,790
+and here we do render that initial content,
+
+56
+00:04:36,790 --> 00:04:38,830
+we do render that list,
+
+57
+00:04:38,830 --> 00:04:44,140
+it's just an empty list initially but then we add the product as soon as we have them.
+
+58
+00:04:44,150 --> 00:04:48,010
+So now if you save that and we reload, we'll find a similar problem,
+
+59
+00:04:48,070 --> 00:04:54,670
+now it's stemming from line 97 and this is from inside the product item. There we also call render in
+
+60
+00:04:54,670 --> 00:05:01,870
+the end as part of the constructor and we only store our product thereafter and we need that product
+
+61
+00:05:01,870 --> 00:05:09,920
+to render it right. Now we can employ a similar solution there or to show you an alternative, go to the
+
+62
+00:05:09,920 --> 00:05:16,910
+base class and since we have problems with it rendering too early, maybe accept a second argument, render
+
+63
+00:05:17,030 --> 00:05:20,000
+or should render and set this to true,
+
+64
+00:05:20,030 --> 00:05:26,810
+so use a default argument and then here we check if should render is true and if it is, we call render
+
+65
+00:05:26,810 --> 00:05:33,050
+but now we can override this when we call the parent class constructor and that's an alternative strategy.
+
+66
+00:05:33,080 --> 00:05:39,950
+So here where we know I want to call render myself, like in the product item, we could pass in false
+
+67
+00:05:39,980 --> 00:05:45,920
+as a default value for or as a new value for that default argument, so for should render so that
+
+68
+00:05:45,920 --> 00:05:52,190
+the parent component will not render and we instead call render manually after we know that the product
+
+69
+00:05:52,190 --> 00:05:55,900
+was set. Of course this is an approach we could have used down there as well
+
+70
+00:05:55,970 --> 00:06:00,830
+but here I also wanted to show how you could deal with data that actually is loaded at a later point
+
+71
+00:06:00,830 --> 00:06:01,420
+of time,
+
+72
+00:06:01,460 --> 00:06:07,610
+so where we don't just talk about different sequence steps but where we might have a bigger delay if
+
+73
+00:06:07,610 --> 00:06:13,370
+we are reaching out to real server. Here it's just this sequence which is wrong and with this approach,
+
+74
+00:06:13,370 --> 00:06:18,140
+we could fix that and therefore get rid of that and now we would render everything and we get the same
+
+75
+00:06:18,140 --> 00:06:19,850
+behavior as before.
+
+76
+00:06:19,910 --> 00:06:24,950
+So that was quite a lot of work with the base class and with the subclasses and some different use
+
+77
+00:06:24,950 --> 00:06:28,060
+cases you could encounter and how you can work around them,
+
+78
+00:06:28,130 --> 00:06:32,960
+overall it just takes some practice and of course experience to get a feeling for how you split your
+
+79
+00:06:32,960 --> 00:06:35,180
+code and when you use which approach.
+
+80
+00:06:35,240 --> 00:06:40,520
+The great thing about programming is that you can be flexible and that there are different solutions,
+
+81
+00:06:40,520 --> 00:06:44,170
+different approaches you can take as I hopefully showed you thus far.

@@ -1,0 +1,476 @@
+1
+00:00:00,040 --> 00:00:05,000
+Now let's look at how we can build inbound and outbound gateways for RabbitMQ.
+
+2
+00:00:05,000 --> 00:00:08,180
+Recall that inbound gateways allow you to receive a
+
+3
+00:00:08,180 --> 00:00:10,480
+message and return a response.
+
+4
+00:00:10,480 --> 00:00:14,740
+And outbound gateways allow you to send a message and receive a response.
+
+5
+00:00:14,740 --> 00:00:16,720
+To Integrate with AMQP,
+
+6
+00:00:16,720 --> 00:00:21,260
+the AmqpInboundGateway provides inbound gateway capabilities.
+
+7
+00:00:21,260 --> 00:00:26,230
+And the AmqpOutboundEndpoint, which we saw in the last section,
+
+8
+00:00:26,230 --> 00:00:30,900
+provides outbound gateway capabilities with one small modification,
+
+9
+00:00:30,900 --> 00:00:33,370
+namely, telling it that we expect a response.
+
+10
+00:00:33,370 --> 00:00:38,340
+In order to create an inbound gateway, we first create a new channel.
+
+11
+00:00:38,340 --> 00:00:41,500
+Then we create a SimpleMessageListenerContainer,
+
+12
+00:00:41,500 --> 00:00:43,410
+as we did in the previous section.
+
+13
+00:00:43,410 --> 00:00:47,590
+Recall that the container handles the active responsibilities of
+
+14
+00:00:47,590 --> 00:00:52,220
+interacting with RabbitMQ so that listeners can remain passive.
+
+15
+00:00:52,220 --> 00:00:56,410
+It uses the provided ConnectionFactory to connect to RabbitMQ and
+
+16
+00:00:56,410 --> 00:00:59,120
+listen for messages on the specified queue.
+
+17
+00:00:59,120 --> 00:01:02,840
+Finally, we create an AmqpInboundGateway,
+
+18
+00:01:02,840 --> 00:01:06,560
+setting the request channel to the channel we just created and
+
+19
+00:01:06,560 --> 00:01:09,220
+providing it with the name of a reply channel.
+
+20
+00:01:09,220 --> 00:01:13,180
+Spring Integration will provide the reply queue configuration
+
+21
+00:01:13,180 --> 00:01:15,590
+to route the message back to the sender.
+
+22
+00:01:15,590 --> 00:01:18,930
+Creating the outbound gateway is almost identical to
+
+23
+00:01:18,930 --> 00:01:20,980
+creating the outbound channel adaptor.
+
+24
+00:01:20,980 --> 00:01:23,700
+We create a channel and an outbound endpoint,
+
+25
+00:01:23,700 --> 00:01:27,990
+but this time we set the AMQP outbound endpoint's
+
+26
+00:01:27,990 --> 00:01:31,350
+expectReply setting to true this way,
+
+27
+00:01:31,350 --> 00:01:36,020
+the outbound endpoint will wait for a response to the message that it's sending.
+
+28
+00:01:36,020 --> 00:01:36,770
+Finally,
+
+29
+00:01:36,770 --> 00:01:40,210
+we create a MessagingGateway that publishes a message to our
+
+30
+00:01:40,210 --> 00:01:42,960
+channel when the getAddress method is called.
+
+31
+00:01:42,960 --> 00:01:46,140
+It accepts a Long, which is the userId,
+
+32
+00:01:46,140 --> 00:01:50,840
+and returns the response from the AMQP call as a message.
+
+33
+00:01:50,840 --> 00:01:55,210
+Here's our example, which is in addition to the example in the previous section.
+
+34
+00:01:55,210 --> 00:01:59,420
+After the foo reservation service publishes a reservation to our
+
+35
+00:01:59,420 --> 00:02:04,700
+FooReservationListener through a RabbitMQ queue, the FooReservationListener
+
+36
+00:02:04,700 --> 00:02:07,740
+requests the address of the user in the reservation.
+
+37
+00:02:07,740 --> 00:02:11,000
+The idea is that while the foo reservation service
+
+38
+00:02:11,000 --> 00:02:13,940
+publishes information about the reservation,
+
+39
+00:02:13,940 --> 00:02:17,920
+the Globomantics Registration Service needs more information,
+
+40
+00:02:17,920 --> 00:02:19,790
+namely the user's address.
+
+41
+00:02:19,790 --> 00:02:23,690
+So it publishes a message requesting the address to the
+
+42
+00:02:23,690 --> 00:02:28,040
+AmqpOutboundEndpoint through the foo address channel.
+
+43
+00:02:28,040 --> 00:02:31,980
+The outbound endpoint publishes a message to Rabbit MQ's
+
+44
+00:02:31,980 --> 00:02:35,140
+exchange with a routing key of getAddress,
+
+45
+00:02:35,140 --> 00:02:37,360
+which is routed to the getAddress queue.
+
+46
+00:02:37,360 --> 00:02:41,380
+The AmqpInboundGateway receives the message,
+
+47
+00:02:41,380 --> 00:02:44,520
+invokes the AddressService to retrieve the address,
+
+48
+00:02:44,520 --> 00:02:46,460
+and returns it back to us.
+
+49
+00:02:46,460 --> 00:02:50,580
+So let's take a look at the code and run it to see the message
+
+50
+00:02:50,580 --> 00:02:53,640
+exchange between the two Java processes.
+
+51
+00:02:53,640 --> 00:02:57,410
+I updated the listener app by adding a new Spring configuration
+
+52
+00:02:57,410 --> 00:03:00,160
+class named RabbitMQOutboundGatewayConfig.
+
+53
+00:03:00,160 --> 00:03:06,100
+This class defines a new mMessageChannel named fooAddressChannel and then
+
+54
+00:03:06,100 --> 00:03:11,720
+creates an AmqpOutboundEndpoint that is invoked by a ServiceActivator when a
+
+55
+00:03:11,720 --> 00:03:15,090
+message is published to the foo address channel.
+
+56
+00:03:15,090 --> 00:03:17,530
+It accepts an amqpTemplate,
+
+57
+00:03:17,530 --> 00:03:20,160
+which again is created automatically when Spring
+
+58
+00:03:20,160 --> 00:03:22,570
+finds RabbitMQ in our class path,
+
+59
+00:03:22,570 --> 00:03:26,530
+and it creates the AmqpOutboundEndpoint with that template.
+
+60
+00:03:26,530 --> 00:03:29,620
+We then set ExpectReply to true,
+
+61
+00:03:29,620 --> 00:03:33,190
+which is the difference between using the endpoint as an outbound
+
+62
+00:03:33,190 --> 00:03:36,160
+gateway rather than as an outbound channel adaptor.
+
+63
+00:03:36,160 --> 00:03:40,040
+We set the routing key to the name of the address queue,
+
+64
+00:03:40,040 --> 00:03:44,710
+and then we create a new MessagingGateway that will publish messages to the
+
+65
+00:03:44,710 --> 00:03:48,200
+foo address channel when its getAddress method is called.
+
+66
+00:03:48,200 --> 00:03:50,700
+Notice that it will return a message.
+
+67
+00:03:50,700 --> 00:03:53,420
+This message will contain the response from the foo
+
+68
+00:03:53,420 --> 00:03:55,640
+reservation publisher application.
+
+69
+00:03:55,640 --> 00:04:00,060
+Next, the FooReservationListener wires in the addressGateway,
+
+70
+00:04:00,060 --> 00:04:02,510
+and when it receives a new reservation,
+
+71
+00:04:02,510 --> 00:04:06,150
+it makes a call to the addressGateway to retrieve the address
+
+72
+00:04:06,150 --> 00:04:08,870
+for this user and prints it out to the logs.
+
+73
+00:04:08,870 --> 00:04:12,590
+Switching over to the foo reservation publisher application,
+
+74
+00:04:12,590 --> 00:04:17,160
+I added a new Spring configuration class named FooAddressConfig
+
+75
+00:04:17,160 --> 00:04:21,310
+that creates a new MessageChannel to handle address requests and
+
+76
+00:04:21,310 --> 00:04:24,430
+then creates an AmqpInboundGateway bean.
+
+77
+00:04:24,430 --> 00:04:26,350
+Just as before, we create a
+
+78
+00:04:26,350 --> 00:04:30,000
+SimpleMessageListenerContainer that listens for messages,
+
+79
+00:04:30,000 --> 00:04:32,120
+but this time on the address queue.
+
+80
+00:04:32,120 --> 00:04:36,070
+The AmqpInboundGateway is configured to use that
+
+81
+00:04:36,070 --> 00:04:39,560
+SimpleMessageListenerContainer and publish the messages
+
+82
+00:04:39,560 --> 00:04:41,800
+that it receives to the RequestChannel,
+
+83
+00:04:41,800 --> 00:04:44,940
+which in this case is the getAddressInputChannel.
+
+84
+00:04:44,940 --> 00:04:49,440
+It sets the DefaultReplyTo to a new get address reply queue,
+
+85
+00:04:49,440 --> 00:04:54,000
+and Spring Integration will see this and route the response back to our client.
+
+86
+00:04:54,000 --> 00:04:57,040
+Finally, we create a new get address queue,
+
+87
+00:04:57,040 --> 00:05:01,020
+which will cause the creation of the queue in Rabbit MQ.
+
+88
+00:05:01,020 --> 00:05:03,880
+The AddressService is a Spring service with a
+
+89
+00:05:03,880 --> 00:05:06,700
+ServiceActivator listening for messages on the
+
+90
+00:05:06,700 --> 00:05:10,120
+getAddressInputChannel that simply returns the string,
+
+91
+00:05:10,120 --> 00:05:11,840
+this is my address.
+
+92
+00:05:11,840 --> 00:05:14,790
+In practice, we'd probably take the reservation ID,
+
+93
+00:05:14,790 --> 00:05:17,700
+look up the reservation in our database,
+
+94
+00:05:17,700 --> 00:05:19,950
+and return the corresponding address.
+
+95
+00:05:19,950 --> 00:05:24,460
+But the point of this exercise is to get the communication pathways working.
+
+96
+00:05:24,460 --> 00:05:29,270
+So let's run both applications and see the new gateway callback from the
+
+97
+00:05:29,270 --> 00:05:32,940
+reservation listener to the reservation publisher.
+
+98
+00:05:32,940 --> 00:05:36,760
+If we look at the reservation publisher logs we can see
+
+99
+00:05:36,760 --> 00:05:41,450
+each reservation being published, followed by a request for an address.
+
+100
+00:05:41,450 --> 00:05:43,460
+And in the reservation listener logs,
+
+101
+00:05:43,460 --> 00:05:47,630
+we see that the reservation is received and we see
+
+102
+00:05:47,630 --> 00:05:50,240
+the "this is my address" response.
+
+103
+00:05:50,240 --> 00:05:51,230
+In this section,
+
+104
+00:05:51,230 --> 00:05:57,140
+we reviewed AMQP and integrating a Spring Integration application with RabbitMQ.
+
+105
+00:05:57,140 --> 00:05:57,600
+First,
+
+106
+00:05:57,600 --> 00:06:01,690
+we saw how the AmqpInboundChannelAdapter is used to
+
+107
+00:06:01,690 --> 00:06:06,110
+implement an inbound channel adaptor and receive messages
+
+108
+00:06:06,110 --> 00:06:08,550
+that are published to a RabbitMQ queue.
+
+109
+00:06:08,550 --> 00:06:11,840
+Then we reviewed the AmqpOutboundEndpoint,
+
+110
+00:06:11,840 --> 00:06:15,930
+which can be used as both an outbound channel adapter to publish a
+
+111
+00:06:15,930 --> 00:06:20,140
+message to a RabbitMQ queue and as an outbound gateway,
+
+112
+00:06:20,140 --> 00:06:24,930
+which can be used to send a message to RabbitMQ and receive a response.
+
+113
+00:06:24,930 --> 00:06:29,350
+The only difference between the two uses is that we set the ExpectReply
+
+114
+00:06:29,350 --> 00:06:33,340
+value to true when using it as an outbound gateway.
+
+115
+00:06:33,340 --> 00:06:37,440
+Finally, we discussed the AmqpInboundGateway,
+
+116
+00:06:37,440 --> 00:06:40,600
+which is an inbound gateway that receives messages
+
+117
+00:06:40,600 --> 00:06:43,540
+published to a queue and returns a response.
+
+118
+00:06:43,540 --> 00:06:44,570
+Next up,
+
+119
+00:06:44,570 --> 00:06:51,000
+we're going to review integrating with ActiveMQ using Spring Integration's JMS support.
+

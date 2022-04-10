@@ -1,0 +1,437 @@
+WEBVTT
+1
+00:00:09.838 --> 00:00:10.043
+Today,
+
+2
+00:00:10.043 --> 00:00:13.766
+we're going to look a little bit at starting off with kind of a
+
+3
+00:00:13.766 --> 00:00:16.888
+deeper dive on the front-end part of our application.
+
+4
+00:00:16.888 --> 00:00:17.268
+So,
+
+5
+00:00:17.268 --> 00:00:21.068
+we've sort of handwaved at the primary tools in the
+
+6
+00:00:21.068 --> 00:00:22.657
+front-end toolchain a little bit,
+
+7
+00:00:22.657 --> 00:00:26.334
+but I wanted to dive in a little bit further and kind of
+
+8
+00:00:26.334 --> 00:00:29.037
+explain some of the things that are going on there and some
+
+9
+00:00:29.037 --> 00:00:31.112
+of the tools you'll bring into bear.
+
+10
+00:00:31.112 --> 00:00:32.771
+Did you have question, Mark?
+
+11
+00:00:32.771 --> 00:00:33.250
+Yeah,
+
+12
+00:00:33.250 --> 00:00:38.513
+Phil asked to see an example of how to properly store
+
+13
+00:00:38.513 --> 00:00:42.540
+credentials in S3 like what was suggested yesterday.
+
+14
+00:00:42.540 --> 00:00:44.189
+Yeah, yeah definitely.
+
+15
+00:00:44.189 --> 00:00:48.037
+I don't have that in the materials,
+
+16
+00:00:48.037 --> 00:00:54.555
+but maybe like over lunch I can whip something up to show that.
+
+17
+00:00:54.555 --> 00:00:58.469
+It's really just a matter of like creating a S3 bucket,
+
+18
+00:00:58.469 --> 00:01:00.560
+uploading a credential file there,
+
+19
+00:01:00.560 --> 00:01:04.999
+and then accessing that S3 bucket from your instances.
+
+20
+00:01:04.999 --> 00:01:08.858
+But that's essentially what it is,
+
+21
+00:01:08.858 --> 00:01:13.453
+and that's --- there are different ways to accomplish that,
+
+22
+00:01:13.453 --> 00:01:17.117
+but having an S3 bucket with restricted access such
+
+23
+00:01:17.117 --> 00:01:21.478
+that only members of a certain, kind of like we do with RDS,
+
+24
+00:01:21.478 --> 00:01:26.204
+such that only members of a certain group can have access to that bucket.
+
+25
+00:01:26.204 --> 00:01:28.041
+So like in theory,
+
+26
+00:01:28.041 --> 00:01:32.853
+you can configure it such that an administrator creates credentials,
+
+27
+00:01:32.853 --> 00:01:34.641
+creates the connection strings.
+
+28
+00:01:34.641 --> 00:01:38.696
+That administrator uploads those values to an S3 bucket,
+
+29
+00:01:38.696 --> 00:01:42.165
+and only the instances running in production have
+
+30
+00:01:42.165 --> 00:01:44.240
+access to actually read that S3 bucket.
+
+31
+00:01:44.240 --> 00:01:47.305
+So me as the developer, like I never know what those values are,
+
+32
+00:01:47.305 --> 00:01:49.202
+but when I deploy my application,
+
+33
+00:01:49.202 --> 00:01:53.049
+I read in those values from S3 because I only have
+
+34
+00:01:53.049 --> 00:01:55.499
+access to that bucket in production.
+
+35
+00:01:55.499 --> 00:01:59.818
+And that's kind of what we do with our production environment in our ops team.
+
+36
+00:01:59.818 --> 00:02:01.175
+They provision the credentials,
+
+37
+00:02:01.175 --> 00:02:04.484
+and they give our production instances access to that bucket,
+
+38
+00:02:04.484 --> 00:02:07.351
+and then we read in those credentials from there.
+
+39
+00:02:07.351 --> 00:02:11.899
+So at a high level, that's how it works.
+
+40
+00:02:11.899 --> 00:02:16.976
+But yeah, so I'll see if I can do a specific example,
+
+41
+00:02:16.976 --> 00:02:19.130
+but that's essentially what it would be,
+
+42
+00:02:19.130 --> 00:02:21.979
+provisioning an S3 bucket and giving permissions to the
+
+43
+00:02:21.979 --> 00:02:28.524
+Node app to read from that bucket, but only in production.
+
+44
+00:02:28.524 --> 00:02:29.558
+So again,
+
+45
+00:02:29.558 --> 00:02:36.280
+I think what we're going to lead off with today is diving a
+
+46
+00:02:36.280 --> 00:02:38.261
+little bit more into the front-end toolchain.
+
+47
+00:02:38.261 --> 00:02:42.047
+We'll start off with a little look at Browserify and Sass,
+
+48
+00:02:42.047 --> 00:02:46.595
+kind of the two primary tools we're using for our
+
+49
+00:02:46.595 --> 00:02:49.107
+JavaScript and CSS code preprocessing.
+
+50
+00:02:49.107 --> 00:02:51.649
+We'll dive into a few of those features,
+
+51
+00:02:51.649 --> 00:02:58.413
+do a few little tweaks to our todomvc-plusplus application with those tools.
+
+52
+00:02:58.413 --> 00:03:01.909
+And then we'll spend a good amount of time this morning,
+
+53
+00:03:01.909 --> 00:03:04.470
+we might extend the workshop time a little bit since
+
+54
+00:03:04.470 --> 00:03:07.955
+it'll be a new framework for most of you,
+
+55
+00:03:07.955 --> 00:03:09.431
+talking about Vue.
+
+56
+00:03:09.431 --> 00:03:09.923
+js.
+
+57
+00:03:09.923 --> 00:03:11.765
+Maybe it's voo, maybe it's vue.
+
+58
+00:03:11.765 --> 00:03:12.686
+I don't know.
+
+59
+00:03:12.686 --> 00:03:13.940
+I always said vue.
+
+60
+00:03:13.940 --> 00:03:17.388
+I thought it was just a cleaver way of saying vue.
+
+61
+00:03:17.388 --> 00:03:19.275
+But we'll be extending Vue.
+
+62
+00:03:19.275 --> 00:03:24.738
+js with a few more features that we've been lacking in the todo
+
+63
+00:03:24.738 --> 00:03:29.496
+application like actually persisting the state of a todo item to
+
+64
+00:03:29.496 --> 00:03:33.007
+the database and also playing a little bit with some of the
+
+65
+00:03:33.007 --> 00:03:37.049
+capabilities Vue has on the Vue model and hopefully getting a
+
+66
+00:03:37.049 --> 00:03:38.172
+little bit more familiar there.
+
+67
+00:03:38.172 --> 00:03:39.070
+We'll also do a,
+
+68
+00:03:39.070 --> 00:03:42.846
+kind of an extended live code walkthrough some of the key features of the
+
+69
+00:03:42.846 --> 00:03:47.971
+framework just to give people a taste of how it works.
+
+70
+00:03:47.971 --> 00:03:53.980
+After that, we'll dive into adding some real-time features to our application.
+
+71
+00:03:53.980 --> 00:03:57.305
+Again, we'll do a little bit of a code walkthrough on how Socket.
+
+72
+00:03:57.305 --> 00:03:58.948
+IO works at high level,
+
+73
+00:03:58.948 --> 00:04:03.005
+and then we'll add a specific real-time feature into the todomvc
+
+74
+00:04:03.005 --> 00:04:09.499
+application so we can see how we can maybe update that todo list in real
+
+75
+00:04:09.499 --> 00:04:13.938
+time as folks are adding more items to the list.
+
+76
+00:04:13.938 --> 00:04:15.214
+We'll take a little break.
+
+77
+00:04:15.214 --> 00:04:17.000
+We may or may not start Socket.
+
+78
+00:04:17.000 --> 00:04:18.168
+IO or finish Socket.
+
+79
+00:04:18.168 --> 00:04:19.155
+IO before break.
+
+80
+00:04:19.155 --> 00:04:21.458
+We'll kind of play that by ear.
+
+81
+00:04:21.458 --> 00:04:26.496
+Then this afternoon we'll talk about a couple of tools that we use
+
+82
+00:04:26.496 --> 00:04:30.276
+in our production applications for load testing.
+
+83
+00:04:30.276 --> 00:04:33.454
+We'll take a quick look at a tool called Locust,
+
+84
+00:04:33.454 --> 00:04:38.741
+which'll help you do some load testing on your web applications.
+
+85
+00:04:38.741 --> 00:04:41.562
+And then we'll have you, in the exercise,
+
+86
+00:04:41.562 --> 00:04:45.746
+actually integrate a tool that we found really useful called Rollbar,
+
+87
+00:04:45.746 --> 00:04:49.497
+which is a service which tracks exceptions that are raised
+
+88
+00:04:49.497 --> 00:04:53.417
+by your application and allows you to send out
+
+89
+00:04:53.417 --> 00:04:55.812
+notifications with that information.
+
+90
+00:04:55.812 --> 00:05:01.696
+So, we'll actually integrate that into our todomvc application as well.
+
+91
+00:05:01.696 --> 00:05:05.585
+Then we'll wrap up with some web analytics basics.
+
+92
+00:05:05.585 --> 00:05:08.949
+Google Analytics is a tool we use all the time,
+
+93
+00:05:08.949 --> 00:05:12.412
+and I think it's sometimes poorly understood by developers,
+
+94
+00:05:12.412 --> 00:05:16.257
+or maybe developers feel there's nothing you can that
+
+95
+00:05:16.257 --> 00:05:19.269
+you glean that useful from this tool,
+
+96
+00:05:19.269 --> 00:05:21.970
+so we'll talk a little bit about some of the
+
+97
+00:05:21.970 --> 00:05:24.272
+information that you can get from the tool.
+
+98
+00:05:24.272 --> 00:05:28.255
+We'll look at --- I'll try to equip you with a couple skills
+
+99
+00:05:28.255 --> 00:05:31.676
+within the Google Analytics UI that you can use to track
+
+100
+00:05:31.676 --> 00:05:33.406
+effectiveness of your web applications,
+
+101
+00:05:33.406 --> 00:05:37.888
+and then we'll look at the technical implementation side and add a couple
+
+102
+00:05:37.888 --> 00:05:41.080
+Analytics tracking features to our todo application.
+
+103
+00:05:41.080 --> 00:05:44.891
+And then we'll wrap up with some Q&A,
+
+104
+00:05:44.891 --> 00:05:48.832
+and if there are specific topics that we want to dive deeper on,
+
+105
+00:05:48.832 --> 00:05:51.605
+maybe we can look at that.
+
+106
+00:05:51.605 --> 00:05:57.074
+Yeah, maybe we can look at the S3 bucket bit there,
+
+107
+00:05:57.074 --> 00:06:01.003
+maybe do some live coding there.
+
+108
+00:06:01.003 --> 00:06:04.439
+But yeah, that's kind of what we're going to do here on day two,
+
+109
+00:06:04.439 --> 00:06:10.000
+and it's going to be a lot of code, and I hope you enjoy doing it as much as I do.
+

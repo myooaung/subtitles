@@ -1,0 +1,268 @@
+1
+00:00:03,240 --> 00:00:06,700
+So when a user wants to find an instance inside the
+
+2
+00:00:06,700 --> 00:00:09,190
+map, they'll call the resolve method.
+
+3
+00:00:09,190 --> 00:00:13,530
+This resolve method takes the type to resolve and returns the type it's
+
+4
+00:00:13,530 --> 00:00:17,680
+mapped to. So the type to resolve will typically be an abstract type, and
+
+5
+00:00:17,680 --> 00:00:21,800
+the type to map to will be the concrete type. And this resolve method
+
+6
+00:00:21,800 --> 00:00:26,630
+goes through five steps and has to find the type we've been asked for in
+
+7
+00:00:26,630 --> 00:00:28,440
+the registrations map.
+
+8
+00:00:28,440 --> 00:00:32,370
+It looks inside that type, and it finds the constructor
+
+9
+00:00:32,370 --> 00:00:34,940
+with the largest number of parameters.
+
+10
+00:00:34,940 --> 00:00:37,480
+So we need some rules to which constructor to use.
+
+11
+00:00:37,480 --> 00:00:41,390
+So if the type is multiple constructors, basically it will be pick the
+
+12
+00:00:41,390 --> 00:00:45,000
+largest one. That has to resolve all of those constructor parameters,
+
+13
+00:00:45,000 --> 00:00:49,260
+and they will do that by calling resolve on the type, so we come back
+
+14
+00:00:49,260 --> 00:00:53,180
+into this method until we have all the constructor parameters that we
+
+15
+00:00:53,180 --> 00:00:59,700
+need. It then looks at the mapping and the constructor parameter mapping
+
+16
+00:00:59,700 --> 00:01:03,210
+from the configuration and looks for any arguments defined in that
+
+17
+00:01:03,210 --> 00:01:08,340
+mapping, and it will use those to fill in any gaps inside the constructor,
+
+18
+00:01:08,340 --> 00:01:10,970
+and, finally, we can use this constructor to recreate the
+
+19
+00:01:10,970 --> 00:01:16,540
+type and return that from this call.
+
+20
+00:01:16,540 --> 00:01:18,560
+So this is the container code.
+
+21
+00:01:18,560 --> 00:01:24,140
+So the container gets passed the name of the path that contains our config file.
+
+22
+00:01:24,140 --> 00:01:29,440
+It creates a loader, and it asks that loader to load up the registrations
+
+23
+00:01:29,440 --> 00:01:32,320
+from the config file, and it calls this helper method called
+
+24
+00:01:32,320 --> 00:01:35,940
+registerConverters that we'll come back to a little later.
+
+25
+00:01:35,940 --> 00:01:41,840
+What we look at now is the resolve class.
+
+26
+00:01:41,840 --> 00:01:45,750
+So the first steps of the resolve method are pretty straightforward.
+
+27
+00:01:45,750 --> 00:01:49,150
+The first thing we do is to reach into the registrations and
+
+28
+00:01:49,150 --> 00:01:51,800
+check that the type is registered and then get back the
+
+29
+00:01:51,800 --> 00:01:54,250
+registration object for that type.
+
+30
+00:01:54,250 --> 00:01:57,930
+The registration object also contains a list of the constructor
+
+31
+00:01:57,930 --> 00:02:01,220
+parameters for the type that's being registered.
+
+32
+00:02:01,220 --> 00:02:05,110
+So once we have the registration information for the type,
+
+33
+00:02:05,110 --> 00:02:08,300
+we can use that to get the constructor parameters.
+
+34
+00:02:08,300 --> 00:02:09,850
+Once we have this information,
+
+35
+00:02:09,850 --> 00:02:12,890
+we now want to try and create an instance of the type.
+
+36
+00:02:12,890 --> 00:02:15,050
+What we have here is something like this.
+
+37
+00:02:15,050 --> 00:02:17,800
+We have a registration that says I want to map
+
+38
+00:02:17,800 --> 00:02:21,290
+IMeetingService to MeetingService.
+
+39
+00:02:21,290 --> 00:02:24,620
+So the application has asked for an IMeetingService and our
+
+40
+00:02:24,620 --> 00:02:28,330
+configuration says map IMeetingService to MeetingService.
+
+41
+00:02:28,330 --> 00:02:33,480
+So we need to get the class object for whatever the mapTo is and
+
+42
+00:02:33,480 --> 00:02:37,200
+then find the largest constructor that this MeetingService type
+
+43
+00:02:37,200 --> 00:02:41,940
+here actually has, and then we create an instance of that type.
+
+44
+00:02:41,940 --> 00:02:43,940
+So one step at a time,
+
+45
+00:02:43,940 --> 00:02:49,140
+our config.json contains a mapTo field that gives us the
+
+46
+00:02:49,140 --> 00:02:50,770
+name of the type that we are mapping to.
+
+47
+00:02:50,770 --> 00:02:54,700
+This is the concrete type we want to create. And our registration
+
+48
+00:02:54,700 --> 00:03:00,840
+helper has a registration.getMapTo call, and that getMapTo call
+
+49
+00:03:00,840 --> 00:03:03,250
+returns the name of the class here.
+
+50
+00:03:03,250 --> 00:03:04,860
+Once I have that,
+
+51
+00:03:04,860 --> 00:03:10,000
+I can then get the class object for that class. So I can say a Class.forName on
+
+52
+00:03:10,000 --> 00:03:15,010
+the registration.getMapTo value. Given the class, I'm now going to call a helper
+
+53
+00:03:15,010 --> 00:03:19,030
+function called getLongestConstructor. GetLongestConstructor will return me a
+
+54
+00:03:19,030 --> 00:03:24,360
+constructor object that references the constructor of this class returned by
+
+55
+00:03:24,360 --> 00:03:30,340
+getMapTo. It's the constructor that has the largest number of parameters.
+
+56
+00:03:30,340 --> 00:03:35,680
+GetLongestConstructor is pretty straightforward. It gets the constructors from
+
+57
+00:03:35,680 --> 00:03:39,870
+the class, by default, sets the longestConstructor to be the first one from that
+
+58
+00:03:39,870 --> 00:03:45,410
+list, it writes over all the constructors, getting the parameter count for them,
+
+59
+00:03:45,410 --> 00:03:51,510
+and if the parameter count of the one it's currently selecting is larger than
+
+60
+00:03:51,510 --> 00:03:55,160
+the parameter count of the current longestConstructor, then it simply resets
+
+61
+00:03:55,160 --> 00:03:59,640
+longestConstructor, and just returns that value to us.
+
+62
+00:03:59,640 --> 00:04:01,330
+So back here at this point,
+
+63
+00:04:01,330 --> 00:04:05,280
+we now know what the longestConstructor for this class is. Now what we
+
+64
+00:04:05,280 --> 00:04:10,480
+need to do is to go away and resolve all the parameters for that
+
+65
+00:04:10,480 --> 00:04:13,380
+constructor, and we need to do this iteratively.
+
+66
+00:04:13,380 --> 00:04:16,240
+So if we find a parameter that's being registered,
+
+67
+00:04:16,240 --> 00:04:24,000
+it's a registered type in our config, we need then to resolve that and then do the same thing for its constructor and so on and so forth.
+

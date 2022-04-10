@@ -1,0 +1,788 @@
+WEBVTT
+1
+00:00:05.840 --> 00:00:11.780
+Welcome back everyone to this lecture on a pipeline example we've already learned how pipeline works.
+
+2
+00:00:11.790 --> 00:00:16.650
+In the last section but we haven't really explored any deeper examples specifically actually implementing
+
+3
+00:00:16.650 --> 00:00:18.960
+a pipeline in the ID.
+
+4
+00:00:19.200 --> 00:00:23.820
+Remember that our main approach will be to select some sort of universe of stocks to trade from and
+
+5
+00:00:23.820 --> 00:00:29.860
+then either go long or short depending on some sort of factor or filter from the pipeline we'll go ahead
+
+6
+00:00:29.860 --> 00:00:35.290
+and start in the research note environment and then switch over to I-T and Quanto open for implementation.
+
+7
+00:00:35.290 --> 00:00:40.550
+So I'll have two tabs open one with a new research notebook and one of a new algorithm in the ID.
+
+8
+00:00:40.620 --> 00:00:42.410
+OK let's hop over to the browser now.
+
+9
+00:00:43.250 --> 00:00:43.550
+OK.
+
+10
+00:00:43.550 --> 00:00:46.950
+Here we have a research notebook open called pipelined example.
+
+11
+00:00:46.970 --> 00:00:49.160
+And then in another tab I have an.
+
+12
+00:00:49.190 --> 00:00:52.200
+Ready to go but we're going to start off just with the notebook itself.
+
+13
+00:00:52.490 --> 00:01:00.950
+Let's go ahead and review the main imports for a pipeline we'll say from Quanto in the pipeline import
+
+14
+00:01:01.880 --> 00:01:13.520
+pipeline and then we'll also say from Quanto in research in poor run pipeline and from Quanto in the
+
+15
+00:01:13.520 --> 00:01:19.500
+pipeline data built in will import the U.S. equity pricing.
+
+16
+00:01:19.550 --> 00:01:21.260
+So those are some really common imports.
+
+17
+00:01:21.380 --> 00:01:26.240
+When you're using pipelines Now the next thing I want to introduce to you which you'll see used a lot
+
+18
+00:01:26.240 --> 00:01:32.870
+in Quanto in examples as you see other people's algorithms are the Q and US or Q 15:00.
+
+19
+00:01:32.870 --> 00:01:37.310
+Q Three thousand or Q 500 US filters that Quanto provides for you.
+
+20
+00:01:37.310 --> 00:01:41.160
+Our first show you how to import them and they will discuss what they actually are.
+
+21
+00:01:41.270 --> 00:01:47.680
+Say from Quanto up in pipeline that filter's import.
+
+22
+00:01:47.830 --> 00:01:50.360
+And if you type q here and then hit TAB notice here.
+
+23
+00:01:50.380 --> 00:01:53.870
+Q 15:00 Q Three thousand and q 500.
+
+24
+00:01:53.920 --> 00:01:57.140
+So typically Q Fifteen hundred US is the most common one.
+
+25
+00:01:57.160 --> 00:01:58.770
+But it really depends on your algorithm.
+
+26
+00:01:58.930 --> 00:02:03.970
+But first let me describe what these fifteen hundred three thousand five hundred universes of stocks
+
+27
+00:02:03.970 --> 00:02:05.560
+are actually doing.
+
+28
+00:02:05.590 --> 00:02:12.100
+The point of this sort of universe of stocks is to try to avoid that sort of not traded error that you
+
+29
+00:02:12.100 --> 00:02:17.080
+sometimes get maybe your trades aren't being fulfilled and that may mess around your algorithm.
+
+30
+00:02:17.080 --> 00:02:22.810
+So these are default universes that contain respectively either 50 100 U.S. stocks 500 U.S. stocks or
+
+31
+00:02:22.810 --> 00:02:28.360
+three thousand U.S. stocks and the constituents of the actual group of stocks are chosen at the start
+
+32
+00:02:28.360 --> 00:02:34.780
+of each month by selecting what they call the top 1100 tradable stocks and they're the most tradeable
+
+33
+00:02:34.780 --> 00:02:38.470
+based off their 200 day average dollar volume that is.
+
+34
+00:02:38.470 --> 00:02:43.900
+What are the top 50 100 stocks that are being traded around based on how much money is being traded
+
+35
+00:02:43.900 --> 00:02:45.010
+up these stocks.
+
+36
+00:02:45.010 --> 00:02:49.730
+And they're also capped at 30 percent of equities allocated to any single sector.
+
+37
+00:02:49.750 --> 00:02:53.810
+So there's a bunch of other factors that go into choosing these 15 stocks.
+
+38
+00:02:53.950 --> 00:02:57.330
+Things like the stock must be the primary share class for its company.
+
+39
+00:02:57.490 --> 00:03:03.040
+So really large companies such as for instance alphabet sometimes they have multiple shares of stock
+
+40
+00:03:03.040 --> 00:03:06.710
+so they have like a class A share a class B share etc..
+
+41
+00:03:06.880 --> 00:03:11.100
+So to make sure that your algorithm is not getting confused by these multiple classes.
+
+42
+00:03:11.350 --> 00:03:14.210
+Each company has a primary share and.
+
+43
+00:03:14.230 --> 00:03:18.340
+Q Fifteen hundred US has already done the work for you of figuring out what's the primary share for
+
+44
+00:03:18.340 --> 00:03:19.420
+that company.
+
+45
+00:03:19.420 --> 00:03:23.880
+There's also other factors such as the stock must not be the positive receipt.
+
+46
+00:03:24.010 --> 00:03:27.040
+It can't be traded what's known as over-the-counter TC.
+
+47
+00:03:27.160 --> 00:03:29.250
+It can't be part of a limited partnership.
+
+48
+00:03:29.380 --> 00:03:34.750
+It must have a known previous day close price and it must have a non-zero volume on the previous trading
+
+49
+00:03:34.750 --> 00:03:35.460
+day.
+
+50
+00:03:35.470 --> 00:03:40.570
+So basically these are the kind of top fifteen hundred stocks and Quanto Open's already done a lot of
+
+51
+00:03:40.570 --> 00:03:44.290
+the filtering work that you would normally do to make sure you don't get any errors.
+
+52
+00:03:44.320 --> 00:03:49.360
+As far as not being able to trade the stocks so check out the resource link would actually Shoji all
+
+53
+00:03:49.360 --> 00:03:51.110
+the filters that are being used here.
+
+54
+00:03:51.160 --> 00:03:55.210
+But you're going to see this used a lot in algorithms especially that are used in the pipeline.
+
+55
+00:03:55.420 --> 00:03:59.340
+So we'll go ahead and import that and then move onto the next step.
+
+56
+00:03:59.350 --> 00:04:04.990
+So again the two main benefits of using either 15:00 us or five US or three thousand us is that they
+
+57
+00:04:04.990 --> 00:04:09.730
+really greatly reduce the risk of an order not being filled and they also allow for more meaningful
+
+58
+00:04:09.730 --> 00:04:14.860
+comparisons between strategies as now that can be used as standard universes for various algorithms
+
+59
+00:04:15.160 --> 00:04:22.040
+so it makes a lot easier to compare two different strategies on the same universe of stocks so now as
+
+60
+00:04:22.040 --> 00:04:27.950
+we continue let me just collapse this header click on that little icon and other we have basically our
+
+61
+00:04:27.950 --> 00:04:30.720
+basic universe of stocks inside our make a pipeline.
+
+62
+00:04:30.740 --> 00:04:36.980
+We're going to have something that looks like this will say universe is equal to chips.
+
+63
+00:04:37.080 --> 00:04:39.630
+Q Fifteen hundred U.S. executed.
+
+64
+00:04:39.800 --> 00:04:42.450
+So that will basically show you the actual filter.
+
+65
+00:04:42.470 --> 00:04:45.890
+Again this will actually go inside or make pipelined But this is essentially what it's going to look
+
+66
+00:04:45.890 --> 00:04:46.700
+like.
+
+67
+00:04:46.700 --> 00:04:51.200
+Now let's go ahead and quickly review how to filter the universe further with classifiers such as those
+
+68
+00:04:51.200 --> 00:04:54.050
+Morningstar classifiers So we went over last time.
+
+69
+00:04:54.080 --> 00:04:59.090
+So let's go ahead and try to grab stocks that are only in the energy sector and there's a link in the
+
+70
+00:04:59.090 --> 00:05:02.870
+notebook provided as far as how to actually get these sector codes.
+
+71
+00:05:02.870 --> 00:05:09.060
+But the way we do this is the following method will say from Quanto in pipeline that data import.
+
+72
+00:05:09.190 --> 00:05:16.530
+And we're gonna import Morningstar and then off of Morningstar this is really similar to the get fundamentals
+
+73
+00:05:16.530 --> 00:05:18.300
+so we covered a lot earlier.
+
+74
+00:05:19.060 --> 00:05:26.080
+The basic idea being that if you hit tab here you have basically 13 types of fundamental data.
+
+75
+00:05:26.080 --> 00:05:32.410
+So let's go ahead and grab assett classification and then we'll say here and then there's the various
+
+76
+00:05:32.410 --> 00:05:38.230
+things that are kind of sub sections of asset classification as well as just some methods that are more
+
+77
+00:05:38.230 --> 00:05:39.310
+Python related.
+
+78
+00:05:39.490 --> 00:05:45.060
+But we're going to go ahead and grab Morningstar sector code and then we're off of this.
+
+79
+00:05:45.060 --> 00:05:50.560
+We'll say latest and we can set that equal to sector.
+
+80
+00:05:50.580 --> 00:05:56.280
+Now if you remember back to our previous lectures on pipeline we actually showed you kind of a quick
+
+81
+00:05:56.280 --> 00:06:01.110
+shortcut to doing this sector because it's such a common classifier and the way you did that is you
+
+82
+00:06:01.110 --> 00:06:06.810
+just did these two lines you could say from Quanto opened up pipeline that classifiers Morningstar import
+
+83
+00:06:06.810 --> 00:06:12.120
+sector and then you would say Morningstar sector or sector is equal to actually implementing or ex-king
+
+84
+00:06:12.120 --> 00:06:12.960
+sector.
+
+85
+00:06:12.960 --> 00:06:16.590
+This is the exact same thing as what we appear.
+
+86
+00:06:16.780 --> 00:06:19.900
+Now while this code is actually probably more efficient.
+
+87
+00:06:20.050 --> 00:06:24.730
+My personal preference is to actually go through the full steps of choosing the category and then choosing
+
+88
+00:06:24.730 --> 00:06:26.760
+the subcategory and then calling the latest.
+
+89
+00:06:26.770 --> 00:06:33.370
+Because here I can see where I am actually grabbing sector code from what actual 13 Group classing is
+
+90
+00:06:33.400 --> 00:06:34.100
+in.
+
+91
+00:06:34.120 --> 00:06:35.800
+So I prefer this method.
+
+92
+00:06:35.830 --> 00:06:40.810
+This method is a little more efficient but just kind of personal preference there.
+
+93
+00:06:40.880 --> 00:06:43.720
+So I'm going to delete that because we essentially already have that here.
+
+94
+00:06:43.990 --> 00:06:47.560
+And then the sector we want is the energy sector.
+
+95
+00:06:47.560 --> 00:06:52.010
+So again check out the link in the notebook to see the different sector codes.
+
+96
+00:06:52.390 --> 00:06:59.480
+But the way you would do this is if you want the energy sector you would call sector and then do that.
+
+97
+00:06:59.480 --> 00:07:05.600
+Q So basically asking where the sector is equal to and you type in the sector code which is a numerical
+
+98
+00:07:05.600 --> 00:07:08.390
+code and for the energy sector is 3 or 9.
+
+99
+00:07:08.390 --> 00:07:12.450
+Again there's a link for the different sector codes in the notebook.
+
+100
+00:07:12.470 --> 00:07:17.260
+So now this is a classifier because it's going to classify the assets into their sectors.
+
+101
+00:07:17.390 --> 00:07:23.700
+And from this classifier using the stock ECU for equals I made a filter filtering for the energy sector.
+
+102
+00:07:23.720 --> 00:07:25.240
+So now essentially I have two filters.
+
+103
+00:07:25.250 --> 00:07:29.960
+One is this giant filter already provided from Quanto in which gives me the top fifteen hundred tradable
+
+104
+00:07:29.960 --> 00:07:30.800
+stocks.
+
+105
+00:07:30.800 --> 00:07:36.210
+And then this filter from a classifier that gives back stocks that are only in the energy sector.
+
+106
+00:07:36.260 --> 00:07:41.630
+So let's quickly review masking filters so masks can be applied to methods that return filters like
+
+107
+00:07:41.690 --> 00:07:44.330
+top bottom and percentile between.
+
+108
+00:07:44.450 --> 00:07:50.600
+And masks are most useful when we want to apply a filter in the earlier steps of a combined computation.
+
+109
+00:07:50.600 --> 00:07:54.790
+Remember what we discussed that masking can really help make your code a lot more efficient.
+
+110
+00:07:55.010 --> 00:08:00.050
+So for example suppose we want to get the I don't know 50 securities with the highest open price that
+
+111
+00:08:00.050 --> 00:08:02.660
+are also in the top 10 percent of dollar volume.
+
+112
+00:08:02.660 --> 00:08:04.190
+Masking is a good way to do that.
+
+113
+00:08:04.430 --> 00:08:10.130
+And then we can also do things like Rab's stocks that are in the 19th to 100 percentile based on close
+
+114
+00:08:10.130 --> 00:08:11.540
+price.
+
+115
+00:08:11.550 --> 00:08:17.330
+So let's go ahead and import some factors and show you how we can actually execute those we'll say from
+
+116
+00:08:17.330 --> 00:08:20.240
+Quanto in the pipeline.
+
+117
+00:08:20.570 --> 00:08:22.260
+Factors import.
+
+118
+00:08:22.580 --> 00:08:23.960
+And we've done these imports before.
+
+119
+00:08:23.960 --> 00:08:28.100
+Things like simple moving average and then there's another one average dollar volume.
+
+120
+00:08:28.100 --> 00:08:32.760
+So we're going to zoom out just a little bit so we can see it simply moving average average dollar volume.
+
+121
+00:08:32.780 --> 00:08:35.240
+Those are two really common factors you'll see all the time.
+
+122
+00:08:35.570 --> 00:08:40.160
+So let's go ahead and kind of create instances of these factors.
+
+123
+00:08:40.190 --> 00:08:44.270
+So the way that would look is essentially just a bunch of steps and these steps would be implemented
+
+124
+00:08:44.360 --> 00:08:46.490
+inside your make pipeline function.
+
+125
+00:08:46.490 --> 00:08:51.740
+So a lot of these things that we're doing such as the cell number three and the cell number 6 as well
+
+126
+00:08:51.740 --> 00:08:53.400
+as all the imports related to them.
+
+127
+00:08:53.510 --> 00:08:57.890
+Those would actually go in relation to that make pipeline function right now since we're in the research
+
+128
+00:08:57.890 --> 00:09:03.050
+now but we're doing it sell by so but later on when you actually go to the idea we'll have a giant function
+
+129
+00:09:03.050 --> 00:09:04.260
+that does all this.
+
+130
+00:09:04.400 --> 00:09:09.380
+As far as grabbing the sort of masking filters the way this will work is we'll create something called
+
+131
+00:09:09.830 --> 00:09:15.460
+dollar volume and set that equal to the average dollar volume.
+
+132
+00:09:15.530 --> 00:09:20.330
+And then this is going to take some sort of window length so you can see it takes a bunch of other arguments
+
+133
+00:09:20.360 --> 00:09:28.200
+but really it's is when the length so I'll say window length window underscore length is equal to 30
+
+134
+00:09:28.200 --> 00:09:29.110
+days.
+
+135
+00:09:29.160 --> 00:09:30.150
+So this gives me back.
+
+136
+00:09:30.180 --> 00:09:33.030
+Hey what was the average dollar volume for the past 30 days.
+
+137
+00:09:33.850 --> 00:09:41.540
+Then once you have dollar volume what you can do is well let me just run this so we can see this ourselves.
+
+138
+00:09:41.650 --> 00:09:46.570
+Once you have dollar volume you can say dots and you notice there's a bunch of different methods some
+
+139
+00:09:46.570 --> 00:09:49.210
+of them basically kind of totally useless to us.
+
+140
+00:09:49.210 --> 00:09:53.830
+But the really common ones that you'll be using are things like top.
+
+141
+00:09:54.040 --> 00:09:59.550
+So this returns wups sort of turns back essentially the top and asset values of self.
+
+142
+00:09:59.770 --> 00:10:05.950
+So if I wanted the top five based off average dollar volumes the top five securities based on the average
+
+143
+00:10:05.950 --> 00:10:10.260
+dollar volume traded for the past 30 days I can say top and then pass five.
+
+144
+00:10:10.270 --> 00:10:14.050
+So that's a really common one to use if you want the bottom.
+
+145
+00:10:14.050 --> 00:10:15.770
+Then you just do that bottom.
+
+146
+00:10:15.940 --> 00:10:20.260
+And if you look at this it's going to construct a filter matching the bottom and assets values for each
+
+147
+00:10:20.260 --> 00:10:21.430
+self day.
+
+148
+00:10:21.640 --> 00:10:26.030
+And then finally the last really common one is percentile between.
+
+149
+00:10:26.080 --> 00:10:31.370
+So if you don't want the top 10 or the top let's say you don't want to top 10 or the bottom 10 Instead
+
+150
+00:10:31.390 --> 00:10:33.670
+you want the top 15 percent.
+
+151
+00:10:33.670 --> 00:10:38.100
+So you actually want to do as a percentage base instead of just an actual number of securities based
+
+152
+00:10:38.110 --> 00:10:41.780
+you can just use percentile between the past and two arguments.
+
+153
+00:10:41.800 --> 00:10:47.400
+So if you want the top 10 percent of stocks based on average dollar volume you're going to say give
+
+154
+00:10:47.400 --> 00:10:51.610
+me between the top 90th percentile and the 100 percent tile.
+
+155
+00:10:51.640 --> 00:10:56.930
+So you would call this something like dollar volume.
+
+156
+00:10:57.250 --> 00:11:02.800
+So again all we're doing here is we're asking hey give me the average dollar volume factor and then
+
+157
+00:11:02.920 --> 00:11:07.960
+based on the past 30 days that's the volume of dollars traded based in the past three days.
+
+158
+00:11:08.110 --> 00:11:10.390
+And give me the top 10 percent of stocks.
+
+159
+00:11:10.570 --> 00:11:15.040
+So that's those are high dollar volume stocks basically stocks that are being traded a lot.
+
+160
+00:11:15.040 --> 00:11:19.570
+So since these are high dollar volume stocks we know that we're always going to be able to execute our
+
+161
+00:11:19.570 --> 00:11:22.870
+trades and we also know implicitly that these are very popular stocks.
+
+162
+00:11:22.870 --> 00:11:25.450
+So there are a lot more liquid than other stocks.
+
+163
+00:11:25.450 --> 00:11:30.730
+And then another thing we can do is actually combine these sort of mass skiing's with filters.
+
+164
+00:11:30.730 --> 00:11:38.530
+So for example we want a top open price filter so we can do something like U.S. equity pricing the open
+
+165
+00:11:38.530 --> 00:11:39.850
+price.
+
+166
+00:11:39.850 --> 00:11:48.840
+Give me the latest open price and then ask for the top 50 and I will say these are the top open prices
+
+167
+00:11:50.500 --> 00:11:55.420
+but what I'm going to also add onto this is a mask based off of this filter this high dollar volume
+
+168
+00:11:55.420 --> 00:11:56.120
+filter.
+
+169
+00:11:56.230 --> 00:12:01.620
+So basically kind of combining these and I'll say umask is equal to high dollar volume.
+
+170
+00:12:01.630 --> 00:12:03.090
+So now what is actually going on.
+
+171
+00:12:03.280 --> 00:12:10.420
+Well I'm basically saying go ahead and grab the top 10 percent of securities based off their dollar
+
+172
+00:12:10.420 --> 00:12:16.660
+volume traded over the past 30 days and then from that only giving back the top 50 based off the open
+
+173
+00:12:16.660 --> 00:12:17.500
+price.
+
+174
+00:12:17.500 --> 00:12:19.680
+So I'm kind of doing the top 50.
+
+175
+00:12:19.810 --> 00:12:22.390
+But before that I'm applying this mask.
+
+176
+00:12:22.510 --> 00:12:25.020
+So now I have this kind of top open prices.
+
+177
+00:12:25.150 --> 00:12:30.480
+Another example of doing this would be something like let's say high close price.
+
+178
+00:12:30.700 --> 00:12:37.750
+I could say grab U.S. equity pricing the latest close price for that and then maybe something like percentile
+
+179
+00:12:37.750 --> 00:12:38.830
+between where.
+
+180
+00:12:38.830 --> 00:12:42.240
+Give me the top 10 percent off the close price.
+
+181
+00:12:42.490 --> 00:12:47.290
+And then I could do something like another mask and I can actually then apply this mask to it so I can
+
+182
+00:12:47.560 --> 00:12:52.540
+kind of keep piling these on top of each other and then say top open prices.
+
+183
+00:12:52.540 --> 00:12:57.130
+So now essentially what I'm doing is saying OK every dollar volume past three days top 10 percent of
+
+184
+00:12:57.130 --> 00:13:03.610
+that the top 50 of those softer open price and then off those top 10 percent based off their clothes
+
+185
+00:13:03.610 --> 00:13:04.830
+price.
+
+186
+00:13:04.930 --> 00:13:09.430
+So you can see how we can kind of continually filter these and applying these factors as filters and
+
+187
+00:13:09.680 --> 00:13:10.690
+masks.
+
+188
+00:13:10.750 --> 00:13:12.180
+So that's all we're going to do for now.
+
+189
+00:13:12.190 --> 00:13:16.570
+Well we're going to do it in the next lecture is actually put all of these things to work inside of
+
+190
+00:13:16.570 --> 00:13:22.000
+a nice make pipeline function then off of that and then lecture after that we're going to go ahead and
+
+191
+00:13:22.000 --> 00:13:24.860
+show you how you can implement that in the ID.
+
+192
+00:13:24.910 --> 00:13:25.330
+OK.
+
+193
+00:13:25.330 --> 00:13:27.790
+Do you have any questions feel free to post the Q&amp;A forums.
+
+194
+00:13:27.790 --> 00:13:29.030
+But definitely check out the notebook.
+
+195
+00:13:29.030 --> 00:13:32.130
+There's a lot more explanatory text and helpful links there.
+
+196
+00:13:32.140 --> 00:13:32.870
+Thanks everyone.
+
+197
+00:13:32.880 --> 00:13:33.730
+I'll see you at the next lecture.

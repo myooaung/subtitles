@@ -1,0 +1,769 @@
+WEBVTT
+
+00:00.780 --> 00:03.420
+Hello and welcome back to the course on machine learning.
+
+00:03.420 --> 00:08.690
+Today we've got a very interesting topic today we're talking about Thompson sampling and the algorithms
+
+00:08.810 --> 00:09.640
+intuition.
+
+00:09.690 --> 00:16.100
+And again we're going to be using this algorithm to solve the multi armed bandit problem.
+
+00:16.110 --> 00:16.420
+All right.
+
+00:16.440 --> 00:18.030
+So let's get started.
+
+00:18.030 --> 00:20.790
+A quick refresher on that multi armed bandit problem.
+
+00:20.790 --> 00:25.590
+We have several slot machines each one of them has a distribution behind it.
+
+00:25.590 --> 00:27.060
+Do you want to do five.
+
+00:27.090 --> 00:32.760
+We don't know what these distributions are and we need to start playing these machines and at the same
+
+00:32.760 --> 00:39.630
+time figure out which one has the best distribution so that we then exploit that best distribution.
+
+00:39.810 --> 00:45.720
+And what it'll take us some time to figure it out so we need to maximize our return during the process
+
+00:45.720 --> 00:46.240
+of figuring.
+
+00:46.240 --> 00:53.810
+So we have to find that ideal balance or tradeoff between exploration and exploitation.
+
+00:53.820 --> 00:59.430
+We had a few tutorials previously on these things so we talked about the multi armed bandit problem
+
+00:59.450 --> 01:03.490
+you know a lot of details you haven't watched the tutorial highly recommend jumping into the previous
+
+01:03.490 --> 01:04.630
+section and watching it there.
+
+01:04.770 --> 01:13.620
+Also understanding of the upper confidence bound algorithm will really help you grasp the concepts of
+
+01:13.770 --> 01:21.090
+Thompson sampling so if you haven't seen the upper confidence bound tutorial then I highly recommend
+
+01:21.090 --> 01:24.210
+checking that out before proceeding with today's lecture.
+
+01:24.210 --> 01:24.690
+All right.
+
+01:24.690 --> 01:26.710
+So let's get started.
+
+01:26.730 --> 01:34.740
+A quick summary of the mulcher armband problem is as follows We have d arms for example arms are ads
+
+01:34.800 --> 01:35.930
+that we display to users.
+
+01:35.940 --> 01:43.590
+Each time they connect to a web page so by the way yes indeed a modern application of the MA or modern
+
+01:43.770 --> 01:50.970
+representation of a multi armed bandit problem is advertising so when you display ads that is very similar
+
+01:51.470 --> 01:57.930
+or the algorithms are going to be applying can learning can be applied to solving a problem where you
+
+01:57.920 --> 01:59.160
+are displaying ads.
+
+01:59.160 --> 02:04.350
+If you go back here instead of having these slot machines each one of these is a different add and you
+
+02:04.350 --> 02:09.210
+want to figure out which one of these ads is the best performing ad but you don't have time to do an
+
+02:09.210 --> 02:09.690
+AB test.
+
+02:09.690 --> 02:13.150
+You don't have the funds or the resources to do an AB test.
+
+02:13.170 --> 02:15.030
+You want to figure it out on the fly.
+
+02:15.030 --> 02:21.570
+That's when you apply one of these algorithms are we talking about in this part of the course of courses
+
+02:21.660 --> 02:27.300
+of or other lots of other modern problems that are very similar to the Motown band The problem there
+
+02:27.300 --> 02:31.160
+for these algorithms are valid for them too.
+
+02:31.170 --> 02:36.750
+All right so moving back here so we've got DRM arms for example arms are ads that we just place uses
+
+02:36.750 --> 02:42.810
+a share of the Connect to web page each time a user connects to this page that is considered as a round
+
+02:42.900 --> 02:49.350
+at each round and we choose which ad is displayed to the user at each round and the ad gives us a reward
+
+02:49.380 --> 02:54.020
+either 0 or 1 1 if the ad is clogs or if the ad is not clicks.
+
+02:54.060 --> 03:01.590
+In the case of the actual bandits it'll be a monetary war so which is 0 what will be of some value.
+
+03:01.590 --> 03:06.220
+Our goal is to Maxxis maximize the total reward we get over many runs.
+
+03:06.240 --> 03:11.190
+All right so that's a quick overview of the problem though is solving.
+
+03:11.220 --> 03:20.010
+Then here we've got some very complex looking mathematics and Bayesian inference and all these distributions
+
+03:21.130 --> 03:28.790
+and Syria operability and other prior distributions and bebetter dispositions and so on.
+
+03:28.900 --> 03:34.720
+We're not going to delve deep into this right now so hard line will take some time to walk through this
+
+03:34.720 --> 03:43.180
+line with you in the practical tutorials because we are going to be coding this from scratch.
+
+03:43.410 --> 03:44.460
+This in our.
+
+03:44.680 --> 03:49.150
+And therefore he will actually walk you through this slide.
+
+03:49.330 --> 03:56.170
+Our goal for today is to understand the intuition behind all these things so we're going to skip skip
+
+03:56.170 --> 03:58.650
+the slide and get to the intuition part.
+
+03:58.660 --> 04:04.510
+And this is the actual steps that you're going to be using in the practical tutorial.
+
+04:04.510 --> 04:07.880
+So again had Ludmer walk you through this slide as well.
+
+04:08.380 --> 04:10.290
+And today we're talking about intuition.
+
+04:10.450 --> 04:12.280
+So this is going to be fun.
+
+04:12.280 --> 04:14.130
+This is some interesting slides coming up.
+
+04:14.140 --> 04:16.900
+And get ready for a fun ride.
+
+04:16.900 --> 04:22.900
+So grab a cup of coffee or a cup of tea and some popcorn and let's get started.
+
+04:22.900 --> 04:23.170
+All right.
+
+04:23.170 --> 04:26.170
+So here we've got a scale.
+
+04:26.510 --> 04:33.080
+Why or the horizontal axis is the return the return that we expected to get from a band.
+
+04:33.100 --> 04:37.620
+So we're going to look at a simplified problem we're going to look at more than five or even 10 we can
+
+04:37.640 --> 04:41.940
+just get three bandits because they're going to a lot of stuff going on on this chart.
+
+04:41.950 --> 04:43.910
+And I don't want to clutter it up.
+
+04:44.110 --> 04:48.340
+And we want to keep it as simple as possible just so that we can understand the concept and then the
+
+04:48.340 --> 04:53.940
+same thing applies for five or 10 or however many machines that you'd be looking at.
+
+04:54.370 --> 05:01.240
+So here we've got the return and these vertical lines just like in the case of the upper confidence
+
+05:01.240 --> 05:08.230
+bar and we had the horizontal lines these vertical lines were present and the expected return for each
+
+05:08.230 --> 05:12.670
+of the machines so each of the machines out of the three machines that we have each of the machines
+
+05:12.670 --> 05:17.890
+has a distribution behind it so that's the result.
+
+05:17.890 --> 05:24.560
+The amount of money that you win per game is picked as a random value from that distribution.
+
+05:24.590 --> 05:31.210
+And when you get a draw decision but basically just imagine distribution behind each one of these expected
+
+05:31.210 --> 05:31.720
+values.
+
+05:31.720 --> 05:38.640
+So this is this is just the center of distribution or the actual expected return from that machine.
+
+05:38.650 --> 05:47.110
+And we're just visualizing it here but this is as kind of like looking into it into the actual machine
+
+05:47.110 --> 05:49.900
+itself like pulling it apart and knowing how it works.
+
+05:49.900 --> 05:53.680
+Being the designer of the machine in reality when you're playing these machines of course you don't
+
+05:53.680 --> 05:53.980
+know.
+
+05:53.980 --> 06:00.460
+So this is some additional information that will guide us that will help us understand how the algorithm
+
+06:00.460 --> 06:03.390
+actually works the algorithm itself doesn't know this information right.
+
+06:03.420 --> 06:07.730
+So this is hidden but it's just there for us so that we can better understand what's going on.
+
+06:07.960 --> 06:11.620
+So these are the expected returns the actual expected returns of each of the machines.
+
+06:11.620 --> 06:15.820
+And obviously if you knew this right away you would say that machine number three or the yellow machine
+
+06:15.850 --> 06:19.950
+is the best one because it has the highest return right.
+
+06:19.960 --> 06:23.000
+It has the highest success rate of return you'd always just bet on this.
+
+06:23.020 --> 06:25.940
+But again you don't know this yet.
+
+06:26.080 --> 06:28.730
+All right so what happens with this.
+
+06:28.750 --> 06:34.380
+Well at the start just like without pre-conference bond algorithm you don't know anything right.
+
+06:34.420 --> 06:41.950
+You have no prior knowledge of the current situation or status of things and therefore all the machines
+
+06:41.950 --> 06:47.830
+are identical to you and you have to have at least one or even a couple of trial rounds just to get
+
+06:47.830 --> 06:49.420
+some data tantalised.
+
+06:49.420 --> 06:50.550
+And so let's see.
+
+06:50.560 --> 06:57.440
+Let's say that has happened and there's some trial runs for some machine about one or the blue machine.
+
+06:57.670 --> 07:05.140
+And based on those trial runs the algorithm the Tompson something algorithm this is where it starts
+
+07:05.140 --> 07:10.470
+getting different to the upper conference but we'll construct a distribution right.
+
+07:10.480 --> 07:11.980
+So we'll get this distribution.
+
+07:11.980 --> 07:13.110
+A second what means.
+
+07:13.240 --> 07:17.390
+But for now let's just do the same thing for machine in the green machine.
+
+07:17.460 --> 07:23.830
+And so again we're just pulling the arm several times like four times for instance and we're getting
+
+07:24.040 --> 07:31.610
+some values and that are going to be somewhere around obviously the actual expected return.
+
+07:31.630 --> 07:37.360
+And based on those values of course we're going to be a bit more than four hours and stroking some sort
+
+07:37.360 --> 07:42.310
+of distribution or some sort of perception of the current state of things.
+
+07:42.340 --> 07:44.520
+And this is the part where it gets interesting.
+
+07:44.680 --> 07:50.650
+So the actual meaning of these distributions is not what you might think at first.
+
+07:50.650 --> 08:00.920
+So these distributions are actually showing us or they're representing not to the we're not trying to
+
+08:00.920 --> 08:03.360
+guess the distributions behind the machine.
+
+08:03.360 --> 08:05.930
+So the first thing that might come to mind is that.
+
+08:06.080 --> 08:12.500
+All right so we've constructed distribution and so the blue distribution is our attempt at guessing
+
+08:12.500 --> 08:15.240
+the actual distribution behind the blue machine right.
+
+08:15.260 --> 08:20.260
+The distribution that this is expected to turn for and the green is for the green machine the yellow.
+
+08:20.360 --> 08:22.400
+Your machine will actually not.
+
+08:22.400 --> 08:23.180
+That's not the case.
+
+08:23.210 --> 08:28.190
+We are constructing something completely different something completely out of this world.
+
+08:28.280 --> 08:36.310
+We're constructing distributions of where we think the actual expected value might lie.
+
+08:37.170 --> 08:44.670
+It's very important to understand that so we are creating kind of a if you want to think of it that
+
+08:44.670 --> 08:48.770
+way we're creating an auxiliary mechanism for us to solve the problem.
+
+08:48.780 --> 08:56.520
+So we're not we're not trying to recreate these machines we're recreating the possible way these machines
+
+08:56.520 --> 09:03.900
+could have been created kind of in that sense so let's let's just solidify that this is where we think
+
+09:04.140 --> 09:09.180
+that expected the actual expected values will be so let's look at the blue one for instance.
+
+09:09.270 --> 09:15.780
+We've got four values and based on those four values we've constructed this distribution which will
+
+09:15.780 --> 09:21.230
+show up which is showing us where is that value star.
+
+09:21.240 --> 09:23.930
+So this is mystar the actual new but we don't know it.
+
+09:23.940 --> 09:24.960
+So the algorithm doesn't know.
+
+09:24.990 --> 09:29.100
+So it's constructed the distribution trying to guess where this value is.
+
+09:29.100 --> 09:34.050
+And of course cancer say it's here is over there it's over there it's saying OK this is a very high
+
+09:34.050 --> 09:37.220
+likelihood here but it also could be here and could be here could be here.
+
+09:37.260 --> 09:42.170
+And as you move away the likelihood drops but it still could be anywhere in the blue space.
+
+09:42.180 --> 09:45.000
+Same thing for the green distribution.
+
+09:45.000 --> 09:50.430
+So based on the values that we've seen there are animals that have been selected in the for for around
+
+09:52.610 --> 10:02.210
+the algorithm has created this distribution which is saying that this actual actual expected return
+
+10:02.450 --> 10:08.390
+from machine from the green machine is somewhere in this area and it's most likely to be here but it
+
+10:08.390 --> 10:11.230
+could be here could be here could be here it could be anyway it could be.
+
+10:11.330 --> 10:17.900
+So is it more likely to be here then could be here could be here and as you move away the likelihood
+
+10:17.900 --> 10:21.050
+of it actually been there drops off something for the oil.
+
+10:21.060 --> 10:26.970
+So it's very important in the stand so just to reiterate we are not trying to guess the distributions
+
+10:26.990 --> 10:28.290
+behind machines right.
+
+10:28.400 --> 10:32.200
+We are doing like kind of a little magic trick.
+
+10:32.240 --> 10:34.970
+You had Patrick.
+
+10:34.970 --> 10:45.250
+PATRICK But we're trying to do this and create this perception of the world we're trying to mathematically
+
+10:45.250 --> 10:49.730
+explain what we think is actually going on or what could be going on.
+
+10:50.020 --> 10:58.870
+And that is very important also important thing because this demonstrates that the Tomsen sampling is
+
+10:58.870 --> 11:05.530
+a probabilistic algorithm the pre-conference Bond was a deterministic algorithm where everything was
+
+11:05.530 --> 11:11.290
+strict you know everything was OK so whichever one has a PI some pre-conference Vaness on we're going
+
+11:11.290 --> 11:12.560
+to choose and so on.
+
+11:12.640 --> 11:18.000
+But here we are creating a probabilistic perception of the world we're saying.
+
+11:18.100 --> 11:21.210
+So it's likely to be here but it could be anywhere in this blue area.
+
+11:21.280 --> 11:26.050
+And this one could be new in history and so on and you'll see exactly why we've done this in the next
+
+11:26.050 --> 11:27.830
+slide we'll understand how this works.
+
+11:27.940 --> 11:29.580
+And let's jump straight into that.
+
+11:29.580 --> 11:35.710
+Let's understand now that this is probably the hardest part to kind of get your head around what we've
+
+11:35.710 --> 11:43.030
+created and now that we've created it let's see how the algorithm is going to utilize this auxilary
+
+11:43.060 --> 11:44.500
+mechanism that we have.
+
+11:44.560 --> 11:46.010
+Right so as well.
+
+11:46.450 --> 11:49.330
+So there are our distributions that's where we think.
+
+11:49.330 --> 11:53.570
+So these are the actual expected returns for each of the machines.
+
+11:53.710 --> 11:57.340
+But the algorithm doesn't know that the old algorithm has created is.
+
+11:57.370 --> 12:04.860
+Are these distributions where we allow it to kind of guess where the actual distribution might lie.
+
+12:05.440 --> 12:07.080
+For each for each of these machines.
+
+12:07.160 --> 12:13.160
+So what is going to do is it's actually going to trigger each of these distributions so like we're in
+
+12:13.160 --> 12:16.400
+the we're in a new round we have to choose a machine to use.
+
+12:16.430 --> 12:23.310
+So what Dahlgren will do is it will go and call this distribution and it will pull out of value out
+
+12:23.310 --> 12:27.830
+of the suspicion and let's say pull that value then all pull a value out of the grid distribution.
+
+12:27.830 --> 12:33.160
+So pulled that values out of the grinch vision and let's say and then pulls the value out of yellow.
+
+12:33.200 --> 12:35.460
+And this is that's the solution or that value.
+
+12:35.660 --> 12:39.200
+And again it's pulling them so according to the distribution right.
+
+12:39.220 --> 12:44.930
+So this is a distribution of values so basically it's most likely to pull a value somewhere in this
+
+12:44.930 --> 12:48.040
+area then less likely in the way you go.
+
+12:48.050 --> 12:53.980
+It's more or less less and less likely but still it can happen that you can see that this yellow value
+
+12:53.990 --> 12:58.490
+is actually quite far from the center but it's still can happen that it pulled this Valier distribution
+
+12:58.850 --> 13:01.710
+and it can happen and pick this green of value out of the green distribution.
+
+13:01.790 --> 13:06.020
+Tony can happen in the long term of course going to be picking somewhere close to the center like over
+
+13:06.020 --> 13:07.680
+the long run.
+
+13:07.850 --> 13:11.340
+But on a one off basis this can totally happen.
+
+13:11.450 --> 13:14.980
+And so now let's pick these values and guess what that means.
+
+13:14.990 --> 13:18.980
+Well what this actually means is that we have.
+
+13:18.980 --> 13:23.510
+By doing that we have generated our own branded configuration.
+
+13:23.780 --> 13:30.380
+So we have created a this hypothetical or imaginary
+
+13:33.250 --> 13:40.730
+batch of mush or not batched imaginary set of machines in our own virtual world where we are saying
+
+13:40.760 --> 13:45.780
+OK so the expected actual expected return for the blue machine.
+
+13:45.800 --> 13:50.690
+Is this value the astral expected return for the green machine is this value and the actual expected
+
+13:50.690 --> 13:52.400
+return for the yellow machine is this value.
+
+13:52.400 --> 14:01.550
+So we've created this Sub-Zero sayto world or hypothetical virtual reality in which we have all our
+
+14:01.550 --> 14:04.900
+own three bandits and how we're going to solve this problem.
+
+14:05.640 --> 14:07.620
+And is this a problem is very easy to solve.
+
+14:07.640 --> 14:09.710
+It's obvious how to solve this problem.
+
+14:09.740 --> 14:15.560
+You just pick this machine right because this machine has the highest expected return out of the street.
+
+14:15.890 --> 14:20.660
+And I was just going to go with this machine in the virtual world in the search.
+
+14:20.690 --> 14:29.240
+So do your reality and what that means is that now we translate this result into the actual world in
+
+14:29.240 --> 14:32.100
+the virtual hypothetical world.
+
+14:32.090 --> 14:37.370
+We've selected the green machine so in the actual world then the algorithm will also select the green
+
+14:37.370 --> 14:41.540
+machine and what that will do so basically pull the lever for this machine.
+
+14:41.540 --> 14:42.020
+Right.
+
+14:42.110 --> 14:48.080
+And what that will do is actually it will give us a value so the machine will spit it out or spit out
+
+14:48.080 --> 14:53.630
+a value but that value is going to be based on the distribution behind this machine where this is the
+
+14:53.630 --> 14:55.660
+actual expected value of that distribution.
+
+14:55.820 --> 15:01.460
+So the value is going to be somewhere here probably close to the actual expected value doesn't have
+
+15:01.460 --> 15:01.760
+to be.
+
+15:01.760 --> 15:05.540
+Again there's a distribution behind all this and be you good because but let's say in this case it's
+
+15:05.540 --> 15:06.290
+this one.
+
+15:06.380 --> 15:06.710
+All right.
+
+15:06.710 --> 15:10.620
+So now this information this is new information to the algorithm.
+
+15:10.730 --> 15:16.400
+What is going to do is it's going to say Aha OK so the I pull the green lever.
+
+15:16.410 --> 15:18.810
+The lever for the green machine I got this value.
+
+15:18.950 --> 15:21.980
+So now I have to adjust my perception of the world.
+
+15:21.980 --> 15:28.810
+Right so I have a prior probability So these are all for the Green Machine This is my prior distribution
+
+15:28.820 --> 15:33.140
+This is where the Beijing conference comes into play or is it's already been in play and this is we're
+
+15:33.140 --> 15:34.770
+adding to the Beijing inference.
+
+15:34.820 --> 15:37.320
+So that's our prior product.
+
+15:37.340 --> 15:39.370
+Now we've got some new information.
+
+15:39.440 --> 15:40.630
+This is our new formation.
+
+15:40.670 --> 15:45.710
+We're going to add it in and see where see how that changes our perception of the world our perception
+
+15:45.710 --> 15:52.190
+of the world has changed the distribution has shifted a bit and it's become narrower because we have
+
+15:52.190 --> 15:54.980
+more information we are sample sizes and creeds of course.
+
+15:56.370 --> 16:00.630
+Excuse me of course it's not going to increase that that much.
+
+16:00.630 --> 16:06.070
+This is just an example to demonstrate what we're talking about to get the point across.
+
+16:06.330 --> 16:11.880
+But that's that's the point that every time we add new information our distribution becomes more and
+
+16:11.880 --> 16:12.860
+more refined.
+
+16:13.110 --> 16:18.180
+All right so now we have a new perception in the world now what happens next is a new round.
+
+16:18.180 --> 16:18.450
+Right.
+
+16:18.450 --> 16:20.940
+Same thing we're going to do the same thing again for a Iran.
+
+16:21.180 --> 16:28.410
+Again we generate or we pick some values out of our distributions that they are now we've constructed
+
+16:28.470 --> 16:36.360
+a or we've generated our own branded configuration in our virtual virtual reality or in our hypothetical
+
+16:36.360 --> 16:41.250
+world out of these three we have to pick the best bandit which is of course the one here the yellow
+
+16:41.260 --> 16:49.070
+bandit and we're going to now puled actually pool in the real world pull that lever of the yellow bandit.
+
+16:49.140 --> 16:50.260
+All algorithms can do that.
+
+16:50.280 --> 16:56.040
+That's going to trigger the distribution behind the yellow bandit and that will give us some sort of
+
+16:56.040 --> 16:56.520
+value.
+
+16:56.520 --> 17:00.070
+So this is the actual value that we received in the real world.
+
+17:00.270 --> 17:05.790
+Now we're going to incorporate that value into our perception of the world and our perception of the
+
+17:05.790 --> 17:08.170
+world is going to change and adjust.
+
+17:08.210 --> 17:09.130
+There we go.
+
+17:09.150 --> 17:10.860
+Now we're into debt again.
+
+17:10.860 --> 17:11.240
+All right.
+
+17:11.240 --> 17:16.490
+So let's do this one more time just so we practice the logic behind all of this.
+
+17:16.680 --> 17:27.860
+So neuron's generates the generous banded configuration right so this is what we think that our expected
+
+17:27.890 --> 17:31.400
+actual expected returns are going to be Alban's confession.
+
+17:31.400 --> 17:37.820
+This is obviously the best one we're going to use puled the yellow machines are a lever that's going
+
+17:37.820 --> 17:43.550
+to trigger the distribution behind the old machine is going to spit out a value in the real world.
+
+17:43.600 --> 17:49.790
+There is a value and then we're going to have to adjust our perception of the world again to match that
+
+17:49.850 --> 17:57.020
+or to incorporate the new information and so on we're going to keep doing that until we get to a point
+
+17:57.110 --> 18:01.530
+where we've refined the distributions substantially and the picture looks like.
+
+18:01.530 --> 18:03.980
+So they might be refined even more.
+
+18:04.010 --> 18:08.810
+This one might be more fun this one might be more refined but as you could see from there we slowly
+
+18:08.810 --> 18:15.230
+will start generating more and more rounds based on the yellow machine will be in the machine So these
+
+18:15.230 --> 18:21.110
+ones might not even get that refined in the long run which is totally fine because our point is to get
+
+18:21.110 --> 18:24.890
+to the best machine to find it and exploit it as much as we can.
+
+18:25.310 --> 18:30.460
+So there we go that is pretty much how the Tomsen sampling algorithm works.
+
+18:30.530 --> 18:39.740
+And as you can see it is a listing algorithm and every time we're generating these values they are kind
+
+18:39.740 --> 18:49.250
+of creating this hypothetical set up of the bandits and then we're solving that and then we're applying
+
+18:49.250 --> 18:50.380
+the results to the real world.
+
+18:50.480 --> 18:54.380
+We're adjusting our perception of reality based on the new information that that generates and then
+
+18:54.380 --> 18:55.520
+we're doing that again.
+
+18:55.520 --> 18:59.650
+So hopefully this was a interesting tutorial.
+
+18:59.660 --> 19:01.960
+I find this algorithm very very cool.
+
+19:02.090 --> 19:08.300
+And in the next tutorial we're going to compare a little bit of a confidence bond and the Thompson sampling
+
+19:08.300 --> 19:12.140
+algorithm and I can't wait to see there until next I'm happy analyzing.

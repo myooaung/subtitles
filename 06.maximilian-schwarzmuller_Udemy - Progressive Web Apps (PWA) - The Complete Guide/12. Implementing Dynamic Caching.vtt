@@ -1,0 +1,289 @@
+WEBVTT
+
+00:02.110 --> 00:05.400
+So thus far, we're pre-caching in the install step,
+
+00:05.440 --> 00:08.710
+now let's say we want to cache dynamically too.
+
+00:09.250 --> 00:15.640
+Now for that, we have to go to the fetch listener because dynamic caching means we have a fetch event
+
+00:15.700 --> 00:20.970
+anyways and we want to store the response which comes back in our cache.
+
+00:21.580 --> 00:27.370
+So to do that, of course we have to respond with something in the end
+
+00:27.700 --> 00:32.200
+but the thing we want to respond with in the end could still be fetched from our cache
+
+00:32.350 --> 00:39.430
+but if we do make a network request because it's not in the cache yet, we want to make sure that we store
+
+00:39.430 --> 00:41.560
+whatever comes back.
+
+00:41.580 --> 00:45.430
+So here onto this fetch event, I'll chain another
+
+00:45.430 --> 00:52.210
+then call and in case you're wondering why I'm not adding it here in our main promise chain because this
+
+00:52.210 --> 00:55.780
+would then also handle this return statement here,
+
+00:55.900 --> 00:58.980
+I don't want to do anything if I return a response from cache though,
+
+00:59.110 --> 01:03.680
+I only want to do something if I return a response from this fetch request which is why I'm chaining it
+
+01:03.730 --> 01:05.460
+directly behind that.
+
+01:05.920 --> 01:12.460
+So in there, we have a function where we get a response and I'm naming this res because we already used
+
+01:12.460 --> 01:13.560
+response here,
+
+01:13.600 --> 01:20.960
+so this is now the response from the actual server and we want to add this response to the cache now
+
+01:21.010 --> 01:24.490
+dynamically. We didn't pre-cache it but now that we got it,
+
+01:24.490 --> 01:25.760
+why don't we add it?
+
+01:26.140 --> 01:34.810
+So what I can do here is I can simply caches call caches and open a new cache and here, I'll name this
+
+01:34.810 --> 01:35.770
+dynamic,
+
+01:35.950 --> 01:37.370
+the name is totally up to you,
+
+01:37.420 --> 01:44.100
+I just want to store it in a separate place, not in our static cache. So I'll name it dynamic here
+
+01:44.650 --> 01:49.380
+and in this cache, I now want to store this response. Well nothing easier than that,
+
+01:49.390 --> 01:55.420
+let's chain a then call here to caches open and in this function, we get the cache which was opened
+
+01:55.540 --> 01:57.980
+or created if it didn't exist yet
+
+01:58.570 --> 02:02.390
+and in there, I now want to call cache put.
+
+02:02.470 --> 02:06.070
+So this cache we opened, there I want to put a new resource.
+
+02:06.460 --> 02:13.870
+Remember that I showed you add and put on this MDN article earlier, add takes a URL, a string,
+
+02:14.170 --> 02:20.860
+sends a request and automatically stores the request response key-value pair. Put doesn't do that, put
+
+02:20.950 --> 02:26.930
+requires you to provide a request and response key-value pair. So put doesn't send any request,
+
+02:27.040 --> 02:29.880
+it just stores data you have.
+
+02:30.250 --> 02:37.040
+So the first argument you pass to put is the event request URL, the identifier,
+
+02:37.060 --> 02:43.440
+so the request object here, though only the URL by which we identify that request.
+
+02:43.530 --> 02:50.070
+The second argument is the response or res is the name here.
+
+02:50.070 --> 02:52.080
+Now here's a gotcha,
+
+02:52.080 --> 02:57.160
+I want to return the response thereafter of course and therefore I want to return this whole caches
+
+02:57.200 --> 03:01.820
+open operation because if I wouldn't return both, then
+
+03:02.010 --> 03:03.450
+well what would happen?
+
+03:03.450 --> 03:09.270
+We make a network request, we intercept it here, we store it in the cache but we never give the response
+
+03:09.270 --> 03:11.190
+back to the HTML file,
+
+03:11.190 --> 03:12.340
+so it would fail.
+
+03:12.480 --> 03:17.670
+It would succeed on the next time we try it because then it would be in cache but directly loading it
+
+03:17.670 --> 03:19.730
+from the network would never work,
+
+03:19.740 --> 03:24.280
+so we have to make sure to also return the response and therefore we return this whole operation
+
+03:24.330 --> 03:29.970
+so that in our promise chain which we return something which then is returned to the original requester
+
+03:30.030 --> 03:36.570
+which is coming from our HTML page or our Javascript files. There is another important thing to watch
+
+03:36.570 --> 03:43.860
+out for, the response if we store it here is basically consumed which means it's empty,
+
+03:43.860 --> 03:45.680
+this is how responses work,
+
+03:45.840 --> 03:52.890
+you can only consume which means use them once and storing them here in the cache uses the response.
+
+03:52.920 --> 03:55.370
+So we should call response clone here,
+
+03:55.520 --> 04:00.010
+this is the method provided on the response object which does what it sounds like,
+
+04:00.090 --> 04:01.550
+it creates a clone.
+
+04:01.740 --> 04:07.500
+So we're storing an exact clone which is all we need, it contains all the response data but we're returning
+
+04:07.500 --> 04:09.160
+the original response.
+
+04:09.180 --> 04:14.190
+Of course we could return a clone and store the original response, that doesn't matter,
+
+04:14.190 --> 04:16.170
+just make sure to use clone.
+
+04:16.800 --> 04:23.610
+So with that if we now save this, we have a set up where we reach out to the network if we don't find
+
+04:23.610 --> 04:30.450
+an item in the cache and then we store it in the cache once we got it and we still return it to the original
+
+04:30.450 --> 04:31.690
+requester.
+
+04:32.220 --> 04:34.940
+Let's save this and see if it works.
+
+04:35.220 --> 04:41.970
+If we go back to our application here, let's reload and go to application, news service worker is
+
+04:42.030 --> 04:42.840
+activating,
+
+04:42.930 --> 04:47.300
+so let's do this and load again.
+
+04:47.400 --> 04:49.550
+Let's try if it now already works,
+
+04:49.560 --> 04:57.210
+if we go to offline mode and reload, you see the icons are there because now in the network tab, we see
+
+04:57.210 --> 05:03.540
+that even that cryptic icon request is served from the service worker because if we inspect our cache storage
+
+05:03.540 --> 05:13.760
+here, refresh it, you see the new dynamic entry and there, you see that the material icon in the end
+
+05:13.780 --> 05:17.830
+are stored here too, this request we were missing.
+
+05:18.080 --> 05:24.650
+It also stored the San Francisco boat request here and the get request which is why we even see the
+
+05:24.650 --> 05:30.770
+card here though that's dynamic content because it fetched it and therefore now when it fails, it
+
+05:30.770 --> 05:37.840
+returns both from the cache and can therefore render this because our network request no longer fails,
+
+05:37.850 --> 05:39.630
+we just get it from the cache.
+
+05:39.650 --> 05:49.690
+If we go to help, this of course fails but if we enable the network again, load this one time and disable it
+
+05:49.690 --> 05:58.160
+now, now this page works too because again if we refresh the cache and inspect it, you see the help page
+
+05:58.160 --> 06:00.190
+now was added too.
+
+06:00.200 --> 06:01.610
+So this is how that works and
+
+06:01.610 --> 06:07.850
+now we can even navigate around though we're offline and that is already adding offline capabilities
+
+06:07.850 --> 06:09.010
+to our application.
+
+06:09.050 --> 06:15.770
+We have no internet access here and still we can use our application, we can navigate around and this
+
+06:15.770 --> 06:17.000
+failed.
+
+06:17.000 --> 06:23.470
+Now why did this fail? Just for the same reason we had a problem with index.html earlier.
+
+06:23.720 --> 06:31.730
+If we inspect our cache here, make sure to do this on a page which actually loads, there we see we store 
+
+06:31.730 --> 06:33.560
+/help/.
+
+06:33.830 --> 06:38.230
+Now the failing page is just /help without a slash,
+
+06:38.300 --> 06:41.780
+it's a different request but that's no issue.
+
+06:42.080 --> 06:43.440
+It fails in this case
+
+06:43.490 --> 06:50.130
+but at some point of time, the user will come back, will navigate around and will navigate to help here
+
+06:50.410 --> 06:53.090
+probably with the appropriate URL
+
+06:53.240 --> 07:00.480
+and now if we go back to offline mode, you will see that going back here works too now because now both
+
+07:00.480 --> 07:03.120
+is stored, /help and /help/.
+
+07:03.290 --> 07:05.550
+So we got basic offline functionality
+
+07:05.550 --> 07:07.330
+added to our application here.
+
+07:07.430 --> 07:09.040
+It seems to work great,
+
+07:09.050 --> 07:11.580
+it does have a couple of issues though.
+
+07:11.870 --> 07:17.310
+Let's have a look at these and let's see how we can improve our solution over the next lectures.

@@ -1,0 +1,300 @@
+WEBVTT
+1
+00:00:02.110 --> 00:00:07.090
+Now another typical use case would be the opposite, that you have an application where you want to
+
+2
+00:00:07.090 --> 00:00:09.620
+find out whether the user is in a certain area,
+
+3
+00:00:09.820 --> 00:00:17.740
+so we don't want to find all places in an area but we want to store a couple of different areas potentially
+
+4
+00:00:17.860 --> 00:00:19.330
+in the database,
+
+5
+00:00:19.360 --> 00:00:25.030
+let's say the neighborhoods of a city and then your user sends some coordinates because he located
+
+6
+00:00:25.030 --> 00:00:28.660
+himself and you want to find out in which neighborhood the user is.
+
+7
+00:00:28.660 --> 00:00:32.420
+So essentially the same query as before, just the other way around.
+
+8
+00:00:32.560 --> 00:00:38.620
+Now to keep things simple, I will work with the same area but I will now store it in the database and
+
+9
+00:00:38.620 --> 00:00:44.890
+I then want to find out if a user let's say is here, if this user is inside this area and we'll also
+
+10
+00:00:44.920 --> 00:00:47.290
+check this with a point outside of the area then.
+
+11
+00:00:47.650 --> 00:00:54.700
+So let's first of all store our nice polygon which we used here and therefore, I will just copy this geo
+
+12
+00:00:54.760 --> 00:00:57.810
+json object, let's store this in the database.
+
+13
+00:00:57.940 --> 00:01:01.020
+For that I'll add a new collection, areas,
+
+14
+00:01:01.150 --> 00:01:03.140
+of course you can name this however you want
+
+15
+00:01:03.260 --> 00:01:11.410
+where I will insert one area and that area will have a name of let's say Golden Gate Park and then I'll
+
+16
+00:01:11.410 --> 00:01:12.200
+add a field,
+
+17
+00:01:12.220 --> 00:01:12.780
+I could name it
+
+18
+00:01:12.780 --> 00:01:15.330
+polygon but I'll just name it area,
+
+19
+00:01:15.340 --> 00:01:16.910
+that name is totally up to you,
+
+20
+00:01:16.930 --> 00:01:24.110
+the value will be my geo json polygon object with the coordinates I stored before.
+
+21
+00:01:24.360 --> 00:01:31.500
+So this added this object and we can have a quick look into our areas to confirm that we have all the
+
+22
+00:01:31.500 --> 00:01:33.140
+coordinates for the corners here,
+
+23
+00:01:33.210 --> 00:01:38.600
+first and last coordinate pair have to match. Ok now, so we got that place in here,
+
+24
+00:01:38.610 --> 00:01:42.990
+now with that place added, let's find out if this user is inside of that area.
+
+25
+00:01:42.990 --> 00:01:45.660
+Now how can we do that?
+
+26
+00:01:45.750 --> 00:01:48.050
+First of all we need to create an index again,
+
+27
+00:01:48.180 --> 00:01:56.790
+so let's run db areas create index and then the index should be created on the area key which I added
+
+28
+00:01:57.100 --> 00:02:00.520
+and should be a 2D sphere index of course.
+
+29
+00:02:01.380 --> 00:02:09.030
+So with the index added, we can write our query and there we want to find out basically if the user is
+
+30
+00:02:09.100 --> 00:02:12.770
+inside of this area,
+
+31
+00:02:12.910 --> 00:02:18.600
+we can do this by checking for geoIntersects.
+
+32
+00:02:18.610 --> 00:02:25.510
+Now what does geoIntersects do? geoWithin allowed us to find out which places are inside of an area,
+
+33
+00:02:26.210 --> 00:02:32.970
+geoIntersects simply returns all areas that have a common point or a common area.
+
+34
+00:02:32.980 --> 00:02:39.190
+Now why don't I use geoWithin because I can't find areas that are within the point where the user is,
+
+35
+00:02:39.370 --> 00:02:40.560
+the user is just a point
+
+36
+00:02:40.690 --> 00:02:43.540
+and the area will never be within that point.
+
+37
+00:02:43.660 --> 00:02:47.290
+The other way around is what I want to see and I get this by simply checking
+
+38
+00:02:47.290 --> 00:02:50.170
+does this point intersect with the area?
+
+39
+00:02:50.170 --> 00:02:51.270
+If the answer is yes,
+
+40
+00:02:51.280 --> 00:02:56.920
+so if I do get an area returned, I know that the user is well in that area which is returned because
+
+41
+00:02:56.920 --> 00:02:59.820
+that is what I'm trying to find out, in which area is the user.
+
+42
+00:03:00.190 --> 00:03:06.280
+So geoIntersects is what I need to use there and as before, we can simply pass a geometry here with
+
+43
+00:03:06.280 --> 00:03:10.720
+$geometry which is now again a geo json object,
+
+44
+00:03:10.770 --> 00:03:16.690
+this is now just a point, the coordinates of the user and the coordinates here are a simple array of
+
+45
+00:03:16.690 --> 00:03:18.520
+the longitude and the latitude.
+
+46
+00:03:18.670 --> 00:03:20.890
+So let's grab the longitude of that user here,
+
+47
+00:03:22.040 --> 00:03:25.180
+like this and let's grab the latitude,
+
+48
+00:03:25.190 --> 00:03:33.410
+so this first value here. If I hit enter, I get an error because of course geoIntersects is generally
+
+49
+00:03:33.410 --> 00:03:34.090
+all right
+
+50
+00:03:34.100 --> 00:03:41.930
+but the field for which I'm looking is the area field and then this geoIntersects operator gets used on
+
+51
+00:03:41.930 --> 00:03:43.040
+the area field,
+
+52
+00:03:43.040 --> 00:03:44.690
+so my mistake. Just as before,
+
+53
+00:03:44.720 --> 00:03:45.830
+this doesn't change,
+
+54
+00:03:45.950 --> 00:03:52.630
+we need to let mongodb know hey in which field is the data I want to compare and that of course is the
+
+55
+00:03:52.640 --> 00:03:58.490
+area field in our database because the area field is where do I store the area I'm looking for
+
+56
+00:03:58.640 --> 00:04:00.940
+and then I use geoIntersects.
+
+57
+00:04:00.940 --> 00:04:05.930
+So with this fixed, now we do get a place here and that is looking good.
+
+58
+00:04:06.050 --> 00:04:11.990
+I'm getting the only place I have in that database but I'm getting the place with which my point intersects
+
+59
+00:04:12.300 --> 00:04:17.810
+and if my point would be in multiple areas, I would of course get all these areas which intersect with
+
+60
+00:04:17.810 --> 00:04:18.550
+my point.
+
+61
+00:04:18.800 --> 00:04:24.350
+You can also not just intersect points with areas, you could also intersect areas with areas and see
+
+62
+00:04:24.350 --> 00:04:29.780
+if two areas touch. Let's say we want to find out which neighborhood contains the Golden Gate Park, the Golden
+
+63
+00:04:29.780 --> 00:04:34.700
+Gate Park could be a polygon and the neighborhood around it could be one too and you could find out
+
+64
+00:04:34.790 --> 00:04:40.760
+if they intersect and if yes, which neighborhood intersects with the Golden Gate Park. Here we just looked
+
+65
+00:04:40.760 --> 00:04:41.600
+at a point
+
+66
+00:04:41.870 --> 00:04:47.860
+and now to complete this, let's also look at a point which is not inside the Golden Gate Park.
+
+67
+00:04:47.930 --> 00:04:54.950
+So I'll add a new point outside of it, here and definitely feel free to pause the video at this point and do this
+
+68
+00:04:54.980 --> 00:04:55.820
+on your own,
+
+69
+00:04:57.330 --> 00:04:59.340
+I will do it together with you.
+
+70
+00:04:59.340 --> 00:05:01.580
+Here are the coordinates
+
+71
+00:05:01.830 --> 00:05:07.900
+and in the end, we just have to repeat the last query, this time add the new coordinates,
+
+72
+00:05:07.950 --> 00:05:13.050
+so the new coordinates of this new point for the point we want to see if it intersects with the Golden
+
+73
+00:05:13.050 --> 00:05:21.620
+Gate Park and hit enter and we don't get back a result because in our areas collection, we have no areas
+
+74
+00:05:21.800 --> 00:05:23.600
+that would contain this point.
+
+75
+00:05:23.600 --> 00:05:25.160
+This is the answer this gives us.

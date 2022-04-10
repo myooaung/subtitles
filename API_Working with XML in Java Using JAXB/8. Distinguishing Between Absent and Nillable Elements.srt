@@ -1,0 +1,444 @@
+1
+00:00:02,057 --> 00:00:03,246
+In this clip,
+
+2
+00:00:03,246 --> 00:00:07,198
+you will learn about a slightly more advanced subject that
+
+3
+00:00:07,198 --> 00:00:09,886
+will take you to the ObjectFactory class,
+
+4
+00:00:09,886 --> 00:00:14,032
+which is important in other areas of JAXB as well,
+
+5
+00:00:14,032 --> 00:00:17,076
+as you'll see later in this course.
+
+6
+00:00:17,076 --> 00:00:18,653
+For the most part,
+
+7
+00:00:18,653 --> 00:00:23,142
+the correspondence between Java and XML Schema is clear and obvious.
+
+8
+00:00:23,142 --> 00:00:27,944
+Classes map to complex types; fields in a class map to
+
+9
+00:00:27,944 --> 00:00:31,890
+elements in the complex type of their containing class; value
+
+10
+00:00:31,890 --> 00:00:34,498
+types such as Java's primitive types, strings,
+
+11
+00:00:34,498 --> 00:00:40,804
+and a few other types, and also enums map to simple types.
+
+12
+00:00:40,804 --> 00:00:45,126
+The XML Schema features that we've seen in the previous clips
+
+13
+00:00:45,126 --> 00:00:47,559
+also have obvious counterparts in Java,
+
+14
+00:00:47,559 --> 00:00:52,108
+even though there are some subtle issues that make JAXB behave
+
+15
+00:00:52,108 --> 00:00:55,716
+differently than you might have expected at first sight.
+
+16
+00:00:55,716 --> 00:00:57,525
+There are some cases, however,
+
+17
+00:00:57,525 --> 00:01:00,763
+where there is not an exact one-to-one
+
+18
+00:01:00,763 --> 00:01:05,050
+correspondence between XML Schema and Java.
+
+19
+00:01:05,050 --> 00:01:08,696
+We are going to look at one such case now.
+
+20
+00:01:08,696 --> 00:01:14,658
+In XML there are different ways in which an element can have no value.
+
+21
+00:01:14,658 --> 00:01:18,002
+The element can be completely missing from the XML,
+
+22
+00:01:18,002 --> 00:01:21,300
+the element can be present but without a value,
+
+23
+00:01:21,300 --> 00:01:23,474
+or if the element is nillable,
+
+24
+00:01:23,474 --> 00:01:30,671
+it can be explicitly set to nil using the XMLSchema-instance nil attribute,
+
+25
+00:01:30,671 --> 00:01:33,488
+as we saw in the previous clip.
+
+26
+00:01:33,488 --> 00:01:38,549
+In Java, however, there's only one way in which a field can have no value,
+
+27
+00:01:38,549 --> 00:01:41,895
+and that is when the field is set to null.
+
+28
+00:01:41,895 --> 00:01:46,524
+There's no distinction in Java between an object not having a
+
+29
+00:01:46,524 --> 00:01:50,351
+field and having a field that is set to null.
+
+30
+00:01:50,351 --> 00:01:55,838
+In fact, it is not possible for an object to not have a field.
+
+31
+00:01:55,838 --> 00:01:59,915
+An object always has all the fields that are declared
+
+32
+00:01:59,915 --> 00:02:02,362
+in its class and its superclasses.
+
+33
+00:02:02,362 --> 00:02:03,112
+For example,
+
+34
+00:02:03,112 --> 00:02:06,862
+there's no way to have an item object which does
+
+35
+00:02:06,862 --> 00:02:09,644
+not have a comment field at all.
+
+36
+00:02:09,644 --> 00:02:14,635
+The only way to indicate that an item object has no comment
+
+37
+00:02:14,635 --> 00:02:18,194
+is by setting the comment field to null.
+
+38
+00:02:18,194 --> 00:02:20,636
+This leads to the following problem.
+
+39
+00:02:20,636 --> 00:02:23,467
+If you've just unmarshalled an item element,
+
+40
+00:02:23,467 --> 00:02:28,557
+then how can you see in your Java item object if the item
+
+41
+00:02:28,557 --> 00:02:31,379
+element did not have a comment element at all,
+
+42
+00:02:31,379 --> 00:02:35,276
+or if it had a comment element that was set to nil.
+
+43
+00:02:35,276 --> 00:02:43,068
+There is a way to do this which I will show you in the
+
+44
+00:02:43,068 --> 00:02:44,779
+example ps-jaxb-18-objectfactory.
+
+45
+00:02:44,779 --> 00:02:47,365
+This will involve using class JAXBElement,
+
+46
+00:02:47,365 --> 00:02:52,794
+which we already saw in the beginning of this course when you
+
+47
+00:02:52,794 --> 00:02:55,636
+first learned about marshalling and unmarshalling.
+
+48
+00:02:55,636 --> 00:02:57,844
+Remember what JAXBElement is.
+
+49
+00:02:57,844 --> 00:03:01,647
+It's JAXB's representation of an XML element,
+
+50
+00:03:01,647 --> 00:03:07,557
+which consists of the qualified name and the value of the element.
+
+51
+00:03:07,557 --> 00:03:10,327
+It also contains a Boolean property nil,
+
+52
+00:03:10,327 --> 00:03:14,404
+which is the value of the element's nil attribute.
+
+53
+00:03:14,404 --> 00:03:20,082
+Let's go to the IDE and look at the example.
+
+54
+00:03:20,082 --> 00:03:24,403
+The first step is that we will change the type of the comment field in
+
+55
+00:03:24,403 --> 00:03:30,197
+class Item from String to JAXBElement of String.
+
+56
+00:03:30,197 --> 00:03:34,667
+Of course, we also have to modify the getter and setter method.
+
+57
+00:03:34,667 --> 00:03:38,844
+The idea is that if we can get JAXB to marshal and unmarshal
+
+58
+00:03:38,844 --> 00:03:43,251
+this field as a JAXBElement instead of a string that contains
+
+59
+00:03:43,251 --> 00:03:45,448
+just the value of the element,
+
+60
+00:03:45,448 --> 00:03:49,249
+we will be able to see the difference between the element
+
+61
+00:03:49,249 --> 00:03:53,077
+not being present and the element being present but set to
+
+62
+00:03:53,077 --> 00:03:55,170
+nil in the following way.
+
+63
+00:03:55,170 --> 00:03:58,937
+If the element is not present in the XML,
+
+64
+00:03:58,937 --> 00:04:03,111
+then the field will be set to null so there will be
+
+65
+00:04:03,111 --> 00:04:07,866
+no JAXBElement object at all, and if the element is present but nil,
+
+66
+00:04:07,866 --> 00:04:10,656
+then we will get a JAXBElement object,
+
+67
+00:04:10,656 --> 00:04:15,034
+and it will have its nil property set to true.
+
+68
+00:04:15,034 --> 00:04:17,034
+That was the first step,
+
+69
+00:04:17,034 --> 00:04:22,092
+but just making the field a JAXBElement is not enough to make this work.
+
+70
+00:04:22,092 --> 00:04:27,416
+The next step is that we have to create a special factory method to let
+
+71
+00:04:27,416 --> 00:04:33,202
+JAXB know how it should create the JAXBElement object and wrap the
+
+72
+00:04:33,202 --> 00:04:36,595
+element value during marshaling and unmarshalling.
+
+73
+00:04:36,595 --> 00:04:42,024
+To do this, we are going to create a class named ObjectFactory.
+
+74
+00:04:42,024 --> 00:04:48,165
+This class has to be annotated with the XmlRegistry annotation to indicate that
+
+75
+00:04:48,165 --> 00:04:52,898
+this is a class that contains factory methods for elements.
+
+76
+00:04:52,898 --> 00:04:57,032
+Then we create the factory method for the comment
+
+77
+00:04:57,032 --> 00:04:58,869
+element in class ObjectFactory.
+
+78
+00:04:58,869 --> 00:05:03,283
+This method takes one argument which is the value of the element,
+
+79
+00:05:03,283 --> 00:05:05,910
+which is a String in this case,
+
+80
+00:05:05,910 --> 00:05:09,383
+and returns a JAXBElement object that contains the value.
+
+81
+00:05:09,383 --> 00:05:14,573
+The last step we have to take is to associate the factory method
+
+82
+00:05:14,573 --> 00:05:19,516
+with the field so that JAXB knows that it should use this factory
+
+83
+00:05:19,516 --> 00:05:23,585
+method for the comment field in class Item.
+
+84
+00:05:23,585 --> 00:05:31,801
+We do this by using two new annotations, XmlElementDecl and XmlElementRef.
+
+85
+00:05:31,801 --> 00:05:37,198
+We put the XmlElementDecl annotation on the factory method.
+
+86
+00:05:37,198 --> 00:05:40,659
+This annotation has attributes that specify the XML
+
+87
+00:05:40,659 --> 00:05:43,702
+element that this method is for, which is,
+
+88
+00:05:43,702 --> 00:05:44,749
+in this case,
+
+89
+00:05:44,749 --> 00:05:51,294
+a comment element in our example namespace in the scope of class Item.
+
+90
+00:05:51,294 --> 00:05:58,133
+Finally, we put the XmlElementRef annotation on the comment field in class Item.
+
+91
+00:05:58,133 --> 00:06:04,098
+With this annotation, we also specify the namespace and the name of the element.
+
+92
+00:06:04,098 --> 00:06:07,800
+Because the namespace and the name refer to the same element
+
+93
+00:06:07,800 --> 00:06:10,478
+as the annotation on the factory method,
+
+94
+00:06:10,478 --> 00:06:15,288
+the field and the factory method are now associated with each other.
+
+95
+00:06:15,288 --> 00:06:20,292
+There's one last change we need to make in the marshalling example.
+
+96
+00:06:20,292 --> 00:06:25,860
+Since the comment field is now a JAXBElement instead of just a string,
+
+97
+00:06:25,860 --> 00:06:29,927
+we need to change the line in the createPurchaseOrder
+
+98
+00:06:29,927 --> 00:06:33,983
+method where we create the comment field.
+
+99
+00:06:33,983 --> 00:06:37,718
+We need to pass a JAXBElement to the setComment
+
+100
+00:06:37,718 --> 00:06:40,446
+method there instead of just a string.
+
+101
+00:06:40,446 --> 00:06:46,057
+To make it easy, we can use the ObjectFactory to create the JAXBElement.
+
+102
+00:06:46,057 --> 00:06:49,232
+Now we've reached the goal.
+
+103
+00:06:49,232 --> 00:06:53,920
+Let's see how we can now distinguish between no element and a nil
+
+104
+00:06:53,920 --> 00:06:58,040
+element during marshalling and unmarshalling.
+
+105
+00:06:58,040 --> 00:07:02,610
+For marshalling, we can choose to either set the comment of an item to null,
+
+106
+00:07:02,610 --> 00:07:06,682
+which means that there will be no comment element at all,
+
+107
+00:07:06,682 --> 00:07:10,868
+or we can set it to a JAXBElement which has its nil property
+
+108
+00:07:10,868 --> 00:07:14,983
+set to true so that there will be an element with its nil
+
+109
+00:07:14,983 --> 00:07:18,316
+attribute set to true in the output XML.
+
+110
+00:07:18,316 --> 00:07:19,270
+For unmarshalling,
+
+111
+00:07:19,270 --> 00:07:33,000
+we can see the difference by checking if the comment field itself is null, or if it does contain a JAXBElement with its nil property set to true.
+

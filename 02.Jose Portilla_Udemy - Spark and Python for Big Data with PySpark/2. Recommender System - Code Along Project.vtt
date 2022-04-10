@@ -1,0 +1,708 @@
+WEBVTT
+1
+00:00:06.010 --> 00:00:10.650
+Hello everyone and welcome to the recommender system code along lecture in this lecture we're going
+
+2
+00:00:10.650 --> 00:00:15.370
+to take the famous movie lends dataset which is a really common data set when learning about recommender
+
+3
+00:00:15.370 --> 00:00:21.070
+systems and we are going to build our own recommendation engine using Python and spark in alternating
+
+4
+00:00:21.070 --> 00:00:23.090
+least squares matrix factorization.
+
+5
+00:00:23.290 --> 00:00:26.170
+So let's open a new Jupiter notebook and get started.
+
+6
+00:00:26.590 --> 00:00:31.300
+OK so here you have my new notebook open and they've created a spark session and I started the spark
+
+7
+00:00:31.310 --> 00:00:32.060
+session.
+
+8
+00:00:32.290 --> 00:00:37.360
+Now we're going to do is import the main models we're going to be using in this case we'll say from
+
+9
+00:00:37.360 --> 00:00:41.010
+Paice Burke sequel.
+
+10
+00:00:41.080 --> 00:00:49.940
+Scuse me M-L da recommendation import and we're going to import HLS for alternating least squares and
+
+11
+00:00:49.940 --> 00:00:56.570
+I also want to evaluate this later on and we'll show you how with Imelda's evaluation I'm going to import
+
+12
+00:00:56.660 --> 00:01:03.660
+a regression evaluator Now the next step is to actually import our data and we're again going to be
+
+13
+00:01:03.660 --> 00:01:06.780
+using that movie lends data set to really feminist's dataset.
+
+14
+00:01:06.810 --> 00:01:13.230
+And you can actually Google search movie lens and it's movie lines and score ratings I see as V for
+
+15
+00:01:13.290 --> 00:01:18.090
+our particular case and you can find this under the recommender systems folder under Sparke for machine
+
+16
+00:01:18.090 --> 00:01:18.880
+learning.
+
+17
+00:01:19.170 --> 00:01:23.230
+And this is a kind of the smallest chunk of the dataset you can actually get.
+
+18
+00:01:23.340 --> 00:01:28.350
+There is much much larger versions of this but they're the largest version large enough that it probably
+
+19
+00:01:28.350 --> 00:01:33.210
+wouldn't fit on a single computer or single ram you would have to open up a cluster and operate that.
+
+20
+00:01:33.210 --> 00:01:38.370
+But again that will cost you money will do its little small data set so it can run it for free locally
+
+21
+00:01:39.460 --> 00:01:41.770
+and at most we're going to say header's true.
+
+22
+00:01:41.800 --> 00:01:44.200
+So the first game is true header's true.
+
+23
+00:01:44.300 --> 00:01:45.370
+After that that's loaded up.
+
+24
+00:01:45.370 --> 00:01:46.690
+So take a look at the data.
+
+25
+00:01:46.890 --> 00:01:51.750
+So we'll say data that show and the basic idea is that there's a movie ID.
+
+26
+00:01:51.790 --> 00:01:53.300
+So that's a particular number.
+
+27
+00:01:53.500 --> 00:01:56.020
+There's a rating and then there's a user ID.
+
+28
+00:01:56.020 --> 00:01:58.230
+So what this means is user id zero.
+
+29
+00:01:58.240 --> 00:02:05.390
+So Person number zero Saw movie ID number two and gave it a rating of three stars out of five stars.
+
+30
+00:02:05.530 --> 00:02:11.800
+And then the same users zero saw a movie ID number three and gave it a rating of 1 star.
+
+31
+00:02:11.800 --> 00:02:12.240
+OK.
+
+32
+00:02:12.490 --> 00:02:18.100
+So the other thing to note is that the movie lends they say kind of has these two data frames or two
+
+33
+00:02:18.100 --> 00:02:22.740
+such as the FBI files the data set we're working with uses movie ID.
+
+34
+00:02:22.760 --> 00:02:28.090
+There's another data set that goes along with it that connects the movie ID to the actual movie names
+
+35
+00:02:28.100 --> 00:02:31.770
+so for instance movie ID number two can be Star Wars movie.
+
+36
+00:02:31.900 --> 00:02:35.960
+Number three can be Indiana Jones 5 or Jurassic Park etc..
+
+37
+00:02:36.130 --> 00:02:38.150
+That's not really important for our recommendation system.
+
+38
+00:02:38.200 --> 00:02:43.030
+So we'll just keep them as an American movie idea since that's really the only information we care about.
+
+39
+00:02:43.090 --> 00:02:48.370
+All we need to know is the relationship between the user the item and this case the movie and then the
+
+40
+00:02:48.370 --> 00:02:50.130
+rating or review given.
+
+41
+00:02:50.290 --> 00:02:51.950
+So we'll continue on.
+
+42
+00:02:52.180 --> 00:02:59.120
+And now we can check out the data with Describe just to see how many points we have.
+
+43
+00:02:59.110 --> 00:03:01.340
+So all the top pros were for user zero.
+
+44
+00:03:01.360 --> 00:03:07.750
+But if we scroll down after the scribe we can see we have users zero 3:29 in this dataset and we actually
+
+45
+00:03:07.750 --> 00:03:13.270
+have 1500 entries and this is still considered pretty small for a recommendation engine especially if
+
+46
+00:03:13.270 --> 00:03:17.310
+just 30 people here will continue along.
+
+47
+00:03:17.320 --> 00:03:22.390
+And now the next step is to actually split our data into a training set and a test set because later
+
+48
+00:03:22.390 --> 00:03:25.440
+on we're going to be able to evaluate how well our model performed.
+
+49
+00:03:25.540 --> 00:03:30.970
+But keep in mind it's actually really hard to know conclusively how well a recommender system did especially
+
+50
+00:03:30.970 --> 00:03:33.910
+for certain topics that subjectivity is involved.
+
+51
+00:03:33.910 --> 00:03:39.820
+For example not everyone that loves Star Wars is going to love Star Trek even if they're Bouffes science
+
+52
+00:03:39.820 --> 00:03:45.610
+fiction certain users or certain people just aren't going to like the same things especially when subjectivity
+
+53
+00:03:45.610 --> 00:03:49.990
+is involved with creative items like books or movies etc..
+
+54
+00:03:50.380 --> 00:03:51.340
+So keep that in mind.
+
+55
+00:03:51.370 --> 00:03:57.160
+It's always really hard to kind of evaluate these things conclusively but I'm going to create training
+
+56
+00:03:57.190 --> 00:04:03.550
+and test sets from data ran them split and because we're dealing with kind of a smaller data set we'll
+
+57
+00:04:03.550 --> 00:04:07.930
+say 0.8 for the training and 0.2 for the test.
+
+58
+00:04:07.930 --> 00:04:10.900
+Now remember this is a random split meaning you're not going to get the same results.
+
+59
+00:04:10.930 --> 00:04:12.450
+I do.
+
+60
+00:04:12.530 --> 00:04:16.670
+So now it's time to create our alternate at least squares model.
+
+61
+00:04:16.670 --> 00:04:21.810
+So if you do shift tab there is a ton of parameters here that you can adjust rank.
+
+62
+00:04:21.820 --> 00:04:26.170
+Max adorations regularisation parameters number of user blocks cetera.
+
+63
+00:04:26.390 --> 00:04:32.150
+So what we're going to do is just basically do some of the defaults that the documentation shows.
+
+64
+00:04:32.150 --> 00:04:35.710
+So we can say Max iterations five documentation shows that as well.
+
+65
+00:04:35.960 --> 00:04:40.460
+And we kind of have a regular zation parameter of 0.01.
+
+66
+00:04:40.680 --> 00:04:44.870
+And if you want to know more about these things you can check up that book on recommender systems that
+
+67
+00:04:44.870 --> 00:04:50.790
+we mentioned during the kind of theory lecture that we have our three main columns so these are the
+
+68
+00:04:50.910 --> 00:04:52.230
+absolutely critical columns.
+
+69
+00:04:52.240 --> 00:04:59.350
+There's the user column and then there's the item column and then there's the rating column.
+
+70
+00:04:59.400 --> 00:05:01.700
+So these are the three columns that are always going to need.
+
+71
+00:05:01.710 --> 00:05:06.530
+And like I mentioned a big part of building a recommendation system that is intended to work with Python
+
+72
+00:05:06.530 --> 00:05:11.240
+and SPARC is that you actually get your data into a format where you essentially just have the user
+
+73
+00:05:11.280 --> 00:05:13.050
+the item and the rating.
+
+74
+00:05:13.050 --> 00:05:18.310
+So in this case our user is just user ID or item is the movie Id.
+
+75
+00:05:18.810 --> 00:05:26.040
+And if I enter here our rating is reading so low run that.
+
+76
+00:05:26.200 --> 00:05:27.490
+And now let's create a model.
+
+77
+00:05:27.500 --> 00:05:33.890
+So a model is equal to AOS and then to fit it to the training data.
+
+78
+00:05:34.070 --> 00:05:39.260
+And now that I have that model I'm going to create something called predictions to see how that model
+
+79
+00:05:39.260 --> 00:05:40.440
+performs.
+
+80
+00:05:40.490 --> 00:05:46.000
+So it'll say model and we will transform our test set there we go.
+
+81
+00:05:46.310 --> 00:05:51.700
+And now we have predictions so if I take a look at what predictions actually looks like and let it run
+
+82
+00:05:53.010 --> 00:05:54.940
+I have four columns now.
+
+83
+00:05:55.020 --> 00:05:57.420
+So this from the test data set remember that.
+
+84
+00:05:57.510 --> 00:06:02.270
+So I have the movie Id the rating and then the user id and then I have the prediction.
+
+85
+00:06:02.550 --> 00:06:10.140
+So for example in real life user number four Saw movie number 31 and gave it a rating of 1 star.
+
+86
+00:06:10.140 --> 00:06:14.280
+My prediction was that the user would have given it a rating of 1.6 5 stars.
+
+87
+00:06:14.340 --> 00:06:16.320
+So that's not so bad.
+
+88
+00:06:16.350 --> 00:06:19.140
+There's other predictions that are quite worse.
+
+89
+00:06:19.140 --> 00:06:25.500
+So for example 87 saw a movie ID number 31 the rating they actually gave was three stars.
+
+90
+00:06:25.500 --> 00:06:30.540
+However I would have predicted based off other people's viewing habits that this was a negative one
+
+91
+00:06:30.540 --> 00:06:31.020
+star.
+
+92
+00:06:31.020 --> 00:06:36.510
+Now keep in mind since we are essentially treating the prediction that is that star rating as a continuous
+
+93
+00:06:36.510 --> 00:06:40.220
+value we can get negative prediction values.
+
+94
+00:06:40.230 --> 00:06:41.490
+Now that's OK for us.
+
+95
+00:06:41.490 --> 00:06:47.030
+Basically what a negative score indicates is a real dislike for the movie so definitely don't suggest
+
+96
+00:06:47.030 --> 00:06:47.720
+it to them.
+
+97
+00:06:47.850 --> 00:06:51.070
+But even with this small dataset we can still be off.
+
+98
+00:06:51.120 --> 00:06:57.780
+So let's look at for example this one we have four stars here from 11 to movie 81 and we predicted one
+
+99
+00:06:57.780 --> 00:07:01.700
+and a half stars so it looks like we're going a little low and we've got some that are high.
+
+100
+00:07:01.920 --> 00:07:07.230
+So we have a user ID to give this movie one star and then we have 4.7.
+
+101
+00:07:07.230 --> 00:07:10.600
+So it looks like a movie 85 and gen's was a total bomb.
+
+102
+00:07:10.770 --> 00:07:12.450
+So we're kind of all over the place with it.
+
+103
+00:07:12.450 --> 00:07:16.770
+And that has to do with the fact that we're dealing for pretty small dataset for a recommender engine
+
+104
+00:07:17.070 --> 00:07:19.580
+spacesuit with just 30 users on it.
+
+105
+00:07:19.840 --> 00:07:20.340
+OK.
+
+106
+00:07:20.640 --> 00:07:27.040
+So we're going to continue along and see if we can kind of more formally actually evaluate this model.
+
+107
+00:07:27.270 --> 00:07:33.900
+So not to have predictions I'm going to create an evaluator object called the evaluator and then I'm
+
+108
+00:07:33.900 --> 00:07:36.530
+going to say regression evaluator.
+
+109
+00:07:36.750 --> 00:07:41.960
+And the metric name we're going to use is whatever metric you want to use for a continuous prediction.
+
+110
+00:07:41.970 --> 00:07:46.710
+So we're treating the star rating as a continuous value which means I can do something like root mean
+
+111
+00:07:46.710 --> 00:07:56.230
+squared error and then I'll say label column is rating and then my prediction column is equal to prediction
+
+112
+00:07:57.760 --> 00:07:58.590
+run that.
+
+113
+00:07:59.020 --> 00:08:04.530
+And then I can say my root mean squared error is equal to this evaluator object.
+
+114
+00:08:04.540 --> 00:08:06.120
+So evaluator.
+
+115
+00:08:06.370 --> 00:08:09.040
+And then I will evaluate my predictions.
+
+116
+00:08:09.890 --> 00:08:12.930
+So it's going to see overall on these continuous values.
+
+117
+00:08:13.020 --> 00:08:15.420
+How far off was the rating from the prediction.
+
+118
+00:08:15.420 --> 00:08:17.820
+What's the root mean squared error there.
+
+119
+00:08:17.820 --> 00:08:18.710
+So we will run that.
+
+120
+00:08:18.900 --> 00:08:24.920
+And then let's print out root mean squared error and then print out our missy.
+
+121
+00:08:25.040 --> 00:08:25.280
+All right.
+
+122
+00:08:25.280 --> 00:08:29.770
+So for this particular Ramme split our routine squirter was one point.
+
+123
+00:08:29.770 --> 00:08:32.080
+A That's not so great.
+
+124
+00:08:32.270 --> 00:08:36.860
+In fact it's actually pretty bad given that it's only from zero to five stars or excuse me even one
+
+125
+00:08:36.860 --> 00:08:41.010
+to five stars that will be a root mean squared error of 1.8.
+
+126
+00:08:41.330 --> 00:08:46.340
+That kind of means or predictions are all over the place which is to be expected given how small this
+
+127
+00:08:46.340 --> 00:08:47.430
+dataset was.
+
+128
+00:08:47.660 --> 00:08:51.020
+So keep that in mind that's not too bad given what we had to work with.
+
+129
+00:08:51.080 --> 00:08:54.310
+There are much much larger versions of that movie lens dataset.
+
+130
+00:08:54.320 --> 00:08:59.030
+So if you're looking to kind of boost this our embassy I would encourage you to do a google search for
+
+131
+00:08:59.030 --> 00:09:00.280
+those larger data sets.
+
+132
+00:09:00.440 --> 00:09:04.670
+However they are large enough where they may not fit on your computer.
+
+133
+00:09:04.670 --> 00:09:08.620
+OK so now the question arises What if we have a single user.
+
+134
+00:09:08.640 --> 00:09:12.030
+How can we actually use this on a fresh user.
+
+135
+00:09:12.060 --> 00:09:18.930
+So I'll say this single user is equal to the test data and I'm going to filter out for just the typical
+
+136
+00:09:18.930 --> 00:09:19.780
+user.
+
+137
+00:09:19.980 --> 00:09:30.040
+So will say user ID and I said equal to 11 and then I'm going to select just two columns the movie Id
+
+138
+00:09:30.780 --> 00:09:36.530
+And then the user itself.
+
+139
+00:09:36.570 --> 00:09:44.340
+OK so if I take a look at my single user and show this for this single user I have all the movies that
+
+140
+00:09:44.340 --> 00:09:47.610
+user number 11 watched in the test data set.
+
+141
+00:09:47.610 --> 00:09:52.450
+So movie Id 18 19 user ID there all 11.
+
+142
+00:09:52.470 --> 00:09:56.600
+So these are all the movies that user ID number 11 saw in the test data set.
+
+143
+00:09:56.640 --> 00:10:02.160
+And what I'm going to do is kind of show you how we would use this to predict whether or not user ID
+
+144
+00:10:02.160 --> 00:10:07.650
+is going to enjoy these movies that you can basically think of this as if user id just open up their
+
+145
+00:10:07.650 --> 00:10:12.200
+Netflix and they've already seen a couple of movies and then they want to know hey I haven't seen a
+
+146
+00:10:12.200 --> 00:10:13.140
+movie 18.
+
+147
+00:10:13.170 --> 00:10:14.320
+Do you think I'm going to like it.
+
+148
+00:10:14.520 --> 00:10:15.210
+Yes or no.
+
+149
+00:10:15.360 --> 00:10:18.130
+And then what do you think would be my star rating for it.
+
+150
+00:10:18.210 --> 00:10:20.570
+So that's essentially the problem we're solving here.
+
+151
+00:10:21.560 --> 00:10:26.940
+So let's make something called recommendations and that's going to be equal to our model.
+
+152
+00:10:27.110 --> 00:10:31.670
+And we are going to transform the single user.
+
+153
+00:10:31.830 --> 00:10:38.960
+And then once that's done I can check out my recommendations and then say order by the prediction column
+
+154
+00:10:40.870 --> 00:10:49.680
+and we'll say sending is sequel to false and show the results here.
+
+155
+00:10:49.890 --> 00:10:54.340
+And that may take a little bit of time with the order by and the actual grabbing of the data but here
+
+156
+00:10:54.340 --> 00:10:55.140
+it is.
+
+157
+00:10:55.150 --> 00:11:00.240
+So the basic premise here is hey number 18 are user number 11.
+
+158
+00:11:00.400 --> 00:11:06.310
+I think you'll enjoy movie number 18 based off your previous viewing habits and the viewing habits of
+
+159
+00:11:06.310 --> 00:11:10.640
+other users that have seen movie 18 and are kind of similar to you.
+
+160
+00:11:10.660 --> 00:11:15.130
+So here we have our prediction and then we can say hey I really don't watch movie 99.
+
+161
+00:11:15.130 --> 00:11:16.610
+I think you're going to hate it.
+
+162
+00:11:16.810 --> 00:11:21.670
+And it's essentially the basic premise of how you would recommend this stuff to a user that's already
+
+163
+00:11:21.670 --> 00:11:25.530
+seen movies on your platform and is interested in more movies.
+
+164
+00:11:25.540 --> 00:11:30.640
+Now there's also something called a cold start problem and the cold start problem is what do you do
+
+165
+00:11:30.640 --> 00:11:35.280
+with users that are new to your platform and haven't seen any movies whatsoever.
+
+166
+00:11:35.530 --> 00:11:40.090
+Well there's different ways of trying to solve that you could give them a quick survey on what movies
+
+167
+00:11:40.090 --> 00:11:40.810
+have you watched.
+
+168
+00:11:40.810 --> 00:11:42.990
+Can you quickly rate them for us.
+
+169
+00:11:43.030 --> 00:11:46.240
+You can also just say Hey are you similar to user or X Y or Z.
+
+170
+00:11:46.360 --> 00:11:48.240
+Which is typical profile etc..
+
+171
+00:11:48.460 --> 00:11:53.130
+So those are more domain knowledge issues than actual algorithmic issues.
+
+172
+00:11:53.140 --> 00:11:54.210
+But keep that in mind.
+
+173
+00:11:54.300 --> 00:11:58.410
+Cold start is definitely a problem of recommendation systems in general.
+
+174
+00:11:58.420 --> 00:11:59.110
+All right.
+
+175
+00:11:59.140 --> 00:12:00.200
+Hope you enjoy this lecture.
+
+176
+00:12:00.220 --> 00:12:05.480
+You can check out the notebook for a lot more explanatory text especially concerning Aliase.
+
+177
+00:12:05.500 --> 00:12:07.120
+Thanks and I'll see you at the next section.

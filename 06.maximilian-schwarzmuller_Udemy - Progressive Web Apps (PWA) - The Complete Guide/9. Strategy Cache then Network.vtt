@@ -1,0 +1,379 @@
+WEBVTT
+
+00:02.180 --> 00:06.970
+We saw a couple of strategies which are only useful in edge cases,
+
+00:07.010 --> 00:11.970
+now let's have a look at a strategy which is really useful in a lot of cases.
+
+00:12.000 --> 00:15.270
+This is the cache, then network strategy.
+
+00:15.290 --> 00:19.400
+The idea is to get an asset as quickly as possible from the cache
+
+00:19.640 --> 00:24.470
+and then also try to fetch a more up-to-date version from the network,
+
+00:24.470 --> 00:29.840
+this way we can always present something to the user quickly and still get an updated version if the
+
+00:29.840 --> 00:31.080
+network is available.
+
+00:31.280 --> 00:36.710
+It's the improved version of the network first fallback to cache version because here we don't need to wait for
+
+00:36.710 --> 00:38.120
+the network to timeout.
+
+00:38.240 --> 00:42.390
+If it does timeout, doesn't matter, we already served something from the cache,
+
+00:42.530 --> 00:46.300
+if it is successful, we override whatever we fetched from the cache.
+
+00:46.310 --> 00:51.050
+So this is how it works, the page directly reaches out to the cache,
+
+00:51.150 --> 00:52.100
+this is important,
+
+00:52.220 --> 00:54.630
+we directly access the cache from the page,
+
+00:54.770 --> 01:00.910
+we already did so when we added the save button to allow the user to save something on demand.
+
+01:01.070 --> 01:04.550
+So we directly accessed the cache and we get the value back,
+
+01:04.640 --> 01:07.190
+no service worker involved here.
+
+01:07.190 --> 01:13.610
+We also use some variable to see if a network response is already there because in case the network
+
+01:13.610 --> 01:18.950
+is faster than us retrieving data from the cache, we don't want to override the network response with
+
+01:18.950 --> 01:20.140
+the cache response,
+
+01:20.150 --> 01:24.520
+I will show you how to do this in a practical example in a second.
+
+01:24.620 --> 01:25.830
+So this is the first step,
+
+01:25.910 --> 01:27.500
+we're not done though,
+
+01:27.650 --> 01:34.040
+we also reach out to the service worker or to be precise, we send a network request which is intercepted
+
+01:34.100 --> 01:35.280
+by the service worker
+
+01:35.510 --> 01:39.800
+and this happens simultaneously to us reaching out to the cache actually,
+
+01:39.800 --> 01:46.130
+that is why both have a one here next to the arrows. The service worker will then reach out to the network
+
+01:46.550 --> 01:48.950
+and try to get a response from there.
+
+01:48.950 --> 01:52.860
+Now this network response goes back to the service worker,
+
+01:53.090 --> 01:55.910
+there we then also store that in the cache,
+
+01:55.910 --> 02:01.130
+now this is of course optional, we're using dynamic caching here again but it makes sense and is often
+
+02:01.130 --> 02:02.600
+used in the strategy
+
+02:03.110 --> 02:06.490
+and then we also return the fetch data to the page.
+
+02:06.500 --> 02:11.960
+So step four is optional here, only if you want to use dynamic caching and dynamically add new items
+
+02:11.960 --> 02:13.090
+to the cache.
+
+02:13.280 --> 02:15.180
+The other steps are important though
+
+02:15.320 --> 02:18.480
+and whilst this diagram might look a bit scary,
+
+02:18.500 --> 02:24.050
+it's actually easy to implement and it's a powerful strategy because it allows us to get something on
+
+02:24.050 --> 02:28.460
+the screen quickly but update it whenever a new version is available.
+
+02:28.460 --> 02:30.160
+Let's see how we implement that.
+
+02:30.470 --> 02:36.470
+As I said for this strategy, we actually have to work in both our normal Javascript files and the service
+
+02:36.470 --> 02:37.060
+worker,
+
+02:37.070 --> 02:40.610
+let's start in the normal files, maybe in the feed.js
+
+02:40.670 --> 02:42.090
+file here,
+
+02:42.500 --> 02:47.750
+there we reach out to the network here for example, to fetch some data.
+
+02:48.110 --> 02:53.810
+Now I did mention that JSON data actually shouldn't be stored in the cache and we will improve this
+
+02:53.810 --> 02:57.450
+later in the course when we also use an actual data source
+
+02:57.500 --> 03:04.750
+but for now, this is a good example because we can only use the cache, then network strategy here
+
+03:05.060 --> 03:11.420
+if we issue the request manually from Javascript. The reason for this is that we first of all manually
+
+03:11.420 --> 03:13.280
+have to access our cache,
+
+03:13.670 --> 03:19.860
+so for that, I'll copy that cache code from above, from that unsave button clicked and add it down there.
+
+03:20.030 --> 03:25.150
+So first of all let's check if we can access the cache in the given user browser
+
+03:25.220 --> 03:27.690
+because maybe in older browsers, we can't do that
+
+03:27.920 --> 03:30.400
+and then in there, I'll get rid of that code.
+
+03:30.650 --> 03:36.600
+I'll see if in the caches, I can find the URL I'm trying to access,
+
+03:36.620 --> 03:38.600
+so this URL here.
+
+03:38.720 --> 03:40.340
+So I'm trying to access this,
+
+03:40.390 --> 03:44.030
+I can even store it in a variable here, to save some lines.
+
+03:44.030 --> 03:49.310
+So this is the URL I in the end want to get data from and I can pass it here to the match function to see
+
+03:49.310 --> 03:53.150
+if I do have data about this in my cache.
+
+03:53.180 --> 04:02.900
+Now if I do have data in there, I of course want to use it, then I handle the result of that,
+
+04:02.940 --> 04:08.340
+so in that function, I get a response and this can be null in case I don't find it in the cache.
+
+04:08.340 --> 04:14.640
+In that case, I don't want to do anything but if response is set, so if it's not null, then I want to continue.
+
+04:15.200 --> 04:15.910
+Here
+
+04:15.960 --> 04:19.230
+I then want to parse it and use it,
+
+04:19.380 --> 04:23.160
+so basically what I'm also doing here because it is a valid response,
+
+04:23.160 --> 04:28.990
+always keep this in mind, we stored the full response. So I can call response.json here too
+
+04:29.160 --> 04:32.940
+and I can return that. Now in the next then block,
+
+04:33.270 --> 04:35.130
+I get my data,
+
+04:35.130 --> 04:40.930
+of course this is only true if we're in this if case, otherwise I'm not returning anything here.
+
+04:40.950 --> 04:47.520
+So here I get back my data and that is where I can for one print it to the console maybe to see it but
+
+04:47.520 --> 04:50.990
+then also call create card, this is
+
+04:51.000 --> 04:55.450
+basically you call the code where you update your page, this is what you do here,
+
+04:55.770 --> 05:02.970
+we also make the normal fetch request though. I'll make it first before I reach out to the cache but it
+
+05:02.970 --> 05:08.230
+won't be finished until I have a response from the cache most likely, I'll come back to that issue.
+
+05:08.520 --> 05:10.700
+So here, I'll send a fetch request to
+
+05:10.710 --> 05:12.950
+that URL too, fetching my data here.
+
+05:13.050 --> 05:15.140
+Here the code stays as it is
+
+05:15.240 --> 05:22.500
+but the one issue we now have is I fetch data from the web and I can actually log this here, console
+
+05:22.500 --> 05:23.150
+log
+
+05:24.850 --> 05:33.420
+from web data and down there, it's from cache.
+
+05:33.420 --> 05:39.300
+Now let's see what the issue is by saving this and updating the static cache number here in the service
+
+05:39.300 --> 05:45.750
+worker because we changed the way we changed this file basically, let's reload the application
+
+05:46.350 --> 05:48.820
+and let's reopen this tab.
+
+05:50.680 --> 05:53.310
+Now we get two cards here,
+
+05:54.060 --> 06:00.390
+the issue is I got from cache first and then from web which is pretty much default. It could be the other
+
+06:00.390 --> 06:06.330
+way around though and it could possibly override our existing data with the cache data,
+
+06:06.330 --> 06:11.670
+so if the web was faster than the cache which can happen if you have a very fast server and a very slow
+
+06:11.670 --> 06:18.490
+cache, then you would first load the web data and then the cache comes back and overrides your data.
+
+06:18.690 --> 06:20.940
+Now that is not what you want.
+
+06:20.940 --> 06:26.190
+Now the problem that we see two cards here is a different one, that is simply related the way I update
+
+06:26.190 --> 06:32.310
+my UI because I append a new card every time so the new data doesn't replace the old one in my
+
+06:32.670 --> 06:33.980
+application here yet.
+
+06:34.290 --> 06:37.740
+Let's fix both problems and let's start with the more important one,
+
+06:37.740 --> 06:41.410
+preventing ourselves from overriding our data.
+
+06:41.490 --> 06:47.310
+So we want to have another variable here where I say network data received,
+
+06:47.340 --> 06:51.130
+give it any name you like and it's false at the beginning.
+
+06:51.210 --> 06:52.530
+I'll set it to true
+
+06:52.530 --> 06:54.300
+once I get the data though,
+
+06:54.480 --> 07:01.180
+so here once I get the data, I'll set it to true and I only want to use my cache response
+
+07:01.260 --> 07:07.410
+if that is false because if network data received is true, it means the network request was faster
+
+07:07.470 --> 07:11.060
+and in this case, I certainly don't want to use my cache data.
+
+07:11.100 --> 07:20.400
+So here in the cache, I only want to create a card if network data received is false because otherwise
+
+07:20.400 --> 07:23.890
+it means the network already gave me an up-to-date answer,
+
+07:23.900 --> 07:25.240
+an up-to-date response,
+
+07:25.290 --> 07:31.860
+I don't want to use the cache one. Now still the issue with us appending it even though we already have
+
+07:31.860 --> 07:32.330
+data,
+
+07:32.370 --> 07:36.990
+well that is something we can easily fix here. In create card,
+
+07:36.990 --> 07:43.290
+we create a card and append it, we probably should call another method first where we clear
+
+07:43.290 --> 07:44.980
+everything. For that,
+
+07:45.010 --> 07:50.250
+I'll quickly create another helper function here, I name it
+
+07:50.250 --> 07:57.630
+clearCards and in here, I want to take my sharedMomentsArea which is where I append these cards in
+
+07:57.630 --> 08:06.950
+this line and there, I can now simply use a little while loop where I check if in this area,
+
+08:07.220 --> 08:10.620
+I still have child nodes with hasChildNodes,
+
+08:10.630 --> 08:16.800
+this returns true as long as you guessed it, I have child nodes and then I simply remove one.
+
+08:16.880 --> 08:22.110
+So I remove a child here, remove child and I remove the last one,
+
+08:22.340 --> 08:24.520
+so simply last child.
+
+08:24.830 --> 08:27.590
+So for every loop iteration, this will remove one child
+
+08:27.650 --> 08:30.230
+and once all are removed, it's done.
+
+08:30.500 --> 08:38.810
+So all I have to do here is I have to call clear cards first before I create my new card and we'll later
+
+08:38.810 --> 08:44.150
+work on this once we fetch more data because right now, we can only create one card with that code.
+
+08:44.150 --> 08:47.410
+That being said, let's go back and bump this version number up again
+
+08:48.430 --> 08:55.870
+and now if I load this, you see we got from web, we got from cache earlier and we only have one card,
+
+08:55.930 --> 08:56.970
+so that is fixed.
+
+08:56.970 --> 08:59.090
+We're not done with the strategy though,
+
+08:59.100 --> 09:03.110
+more about that in the next lecture where we work on the service worker side.

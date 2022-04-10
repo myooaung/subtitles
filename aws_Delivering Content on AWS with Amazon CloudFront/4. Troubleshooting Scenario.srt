@@ -1,0 +1,180 @@
+1
+00:00:00,693 --> 00:00:03,339
+Here's a story we all know too well.
+
+2
+00:00:03,339 --> 00:00:06,696
+You've just drifted off to sleep only to be woken up by your
+
+3
+00:00:06,696 --> 00:00:09,488
+phone screaming and lighting up the room.
+
+4
+00:00:09,488 --> 00:00:11,754
+You wipe the sleep from your eyes as you try to read
+
+5
+00:00:11,754 --> 00:00:14,158
+your phone and you see website is down.
+
+6
+00:00:14,158 --> 00:00:17,469
+You grumble as you get up out of bed and go find your
+
+7
+00:00:17,469 --> 00:00:19,932
+laptop and begin investigating the alert.
+
+8
+00:00:19,932 --> 00:00:22,478
+Since we set up our alarm at CloudFront,
+
+9
+00:00:22,478 --> 00:00:25,973
+we know the issue somehow involves the service.
+
+10
+00:00:25,973 --> 00:00:30,095
+We open up AWS and head to the CloudFront console.
+
+11
+00:00:30,095 --> 00:00:35,010
+We click on Alarms and see that red active alarm.
+
+12
+00:00:35,010 --> 00:00:38,141
+Next, we look at the error rate dashboard in CloudWatch,
+
+13
+00:00:38,141 --> 00:00:40,825
+and after clicking on View in CloudWatch,
+
+14
+00:00:40,825 --> 00:00:44,026
+we see the spike in 500 errors.
+
+15
+00:00:44,026 --> 00:00:48,578
+And from there, we should check what error we get when we visit the site,
+
+16
+00:00:48,578 --> 00:00:51,523
+504 gateway timeout.
+
+17
+00:00:51,523 --> 00:00:53,995
+Here is where it's important to understand why CloudFront
+
+18
+00:00:53,995 --> 00:00:57,254
+typically returns a particular error code.
+
+19
+00:00:57,254 --> 00:01:02,822
+An easy way to remember where an issue might be is if it's a 500 error,
+
+20
+00:01:02,822 --> 00:01:08,443
+the issue lies with CloudFront not being able to communicate with your origin.
+
+21
+00:01:08,443 --> 00:01:09,624
+If it's a 400 error,
+
+22
+00:01:09,624 --> 00:01:12,662
+you'll see these when your origin is communicating
+
+23
+00:01:12,662 --> 00:01:15,928
+with CloudFront to pass on an error.
+
+24
+00:01:15,928 --> 00:01:19,119
+Since this is a 504-gateway timeout,
+
+25
+00:01:19,119 --> 00:01:22,553
+which means for some reason CloudFront can't reach our origin,
+
+26
+00:01:22,553 --> 00:01:26,990
+it's timing out while attempting to connect to our origin to pull the
+
+27
+00:01:26,990 --> 00:01:30,129
+latest content and serve it from the edge caches.
+
+28
+00:01:30,129 --> 00:01:33,383
+We should be able to cross-check this with our access logs.
+
+29
+00:01:33,383 --> 00:01:39,129
+If we hop into Athena and pull our CloudFront access logs,
+
+30
+00:01:39,129 --> 00:01:42,333
+we should be able to run a limited search to detect if any
+
+31
+00:01:42,333 --> 00:01:45,826
+504s were logged and what times they were at.
+
+32
+00:01:45,826 --> 00:01:48,072
+Well, there you have it.
+
+33
+00:01:48,072 --> 00:01:52,086
+Our access logs are showing the 504s and the timestamps are matching
+
+34
+00:01:52,086 --> 00:01:55,288
+what we have seen in our monitoring dashboards.
+
+35
+00:01:55,288 --> 00:02:00,600
+So the issue lies with our origin not allowing CloudFront to talk to it.
+
+36
+00:02:00,600 --> 00:02:04,160
+Now to bring this back to the point, after a short investigation,
+
+37
+00:02:04,160 --> 00:02:08,711
+we see that a typo in our configuration management allowed our
+
+38
+00:02:08,711 --> 00:02:11,872
+security gateway to block port 443 on the ALB.
+
+39
+00:02:11,872 --> 00:02:17,535
+A quick fix of the security group and we are able to reach our origin again,
+
+40
+00:02:17,535 --> 00:02:22,689
+504s have stopped and our alert has returned to an OK status.
+
+41
+00:02:22,689 --> 00:02:25,836
+Check the website again and we have our fully
+
+42
+00:02:25,836 --> 00:02:29,214
+rendered website with a 200-status code.
+
+43
+00:02:29,214 --> 00:02:33,030
+I hope this quick example of how to investigate an issue has helped bring
+
+44
+00:02:33,030 --> 00:02:35,405
+together the module regarding how we enable logging,
+
+45
+00:02:35,405 --> 00:02:45,000
+as well as how we set up monitoring and alerting, and how we can really help shave time off of the troubleshooting process.
+

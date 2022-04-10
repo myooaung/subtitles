@@ -1,0 +1,839 @@
+1
+00:00:04,390 --> 00:00:05,490
+Hello and welcome in this lecture.
+
+2
+00:00:05,500 --> 00:00:09,130
+We're going to be learning how we can discard parts that are just too long.
+
+3
+00:00:09,130 --> 00:00:10,840
+So for example I'm up here on the Hill.
+
+4
+00:00:10,900 --> 00:00:12,660
+I wanted to go down into the valley.
+
+5
+00:00:12,730 --> 00:00:19,390
+You can see that even though I'm hovering over a nav mesh I can't actually move to that tract of marriage
+
+6
+00:00:19,420 --> 00:00:22,060
+because the path to get there is too far.
+
+7
+00:00:22,060 --> 00:00:24,990
+Basically saying try and tell me which path you want to go down.
+
+8
+00:00:25,030 --> 00:00:27,300
+I'm not going to do all the work for you.
+
+9
+00:00:27,310 --> 00:00:33,640
+This is consistent with games like Diablo that don't let you try and come down from a very obscure location
+
+10
+00:00:33,970 --> 00:00:37,960
+into a valley and let the nav mesh do all the work for you.
+
+11
+00:00:37,960 --> 00:00:43,040
+The player has to remember the way down to the Valley it's more fun that way is more manual.
+
+12
+00:00:43,120 --> 00:00:47,950
+We're also going to look at how we can make certain portions of the nav mesh that are basically unreachable
+
+13
+00:00:48,400 --> 00:00:51,430
+also not react to having the cursor over them.
+
+14
+00:00:51,430 --> 00:00:53,410
+So here we've got a nav mesh on top of a building.
+
+15
+00:00:53,650 --> 00:00:57,920
+But seeing as I can actually walk there there's no point me showing the walking cursor so I don't let's
+
+16
+00:00:58,090 --> 00:00:59,350
+dive in and see how that's done.
+
+17
+00:01:00,550 --> 00:01:04,780
+So the end of the last lecture I gave you pretty rubbish example of the kind of routes we don't want
+
+18
+00:01:04,780 --> 00:01:05,710
+to take.
+
+19
+00:01:05,710 --> 00:01:11,620
+Imagine we are here on Long this river bank and what I want to do is get over to the other side of the
+
+20
+00:01:11,620 --> 00:01:12,690
+river bank.
+
+21
+00:01:12,770 --> 00:01:17,040
+Now it's not completely obvious what route I'm going to take and I'm going to get back on myself and
+
+22
+00:01:17,040 --> 00:01:21,940
+I'm going to go round here in these situations in the game really what we want to do is have the player
+
+23
+00:01:21,940 --> 00:01:25,430
+decide the route by going and taking us there.
+
+24
+00:01:25,480 --> 00:01:30,120
+If you play a game like Diablo won't let you do big round about loops like this.
+
+25
+00:01:30,130 --> 00:01:36,090
+So what we have to do is exclude certain lengths of routes because what happens if I click here is it.
+
+26
+00:01:36,130 --> 00:01:41,860
+It's kind of go and take me a very long way round because the nav mesh can find the way you can see
+
+27
+00:01:41,860 --> 00:01:42,450
+the way there.
+
+28
+00:01:42,450 --> 00:01:45,760
+And in fact I shouldn't have taken me there because of this gate.
+
+29
+00:01:45,850 --> 00:01:51,070
+So let's remove the gate or have the gate there but actually have it blocking the way.
+
+30
+00:01:51,100 --> 00:01:54,730
+I think the reason the gate wasn't blocking away is because it wasn't set to static.
+
+31
+00:01:54,730 --> 00:01:59,760
+So if we set it to static and then bake you can see it cuts off that little bit of the route.
+
+32
+00:01:59,770 --> 00:02:02,400
+And now the situation is even worse.
+
+33
+00:02:02,400 --> 00:02:08,580
+So if I go and stand by the edge of the river and then I click on this bit of river over here it's going
+
+34
+00:02:08,580 --> 00:02:12,050
+to take me I might have thought that there was a route there but there isn't because of the gate.
+
+35
+00:02:12,070 --> 00:02:17,430
+So it's going to take me right through all the enemies probably in the process getting me killed nearly
+
+36
+00:02:17,440 --> 00:02:21,340
+get me killed as I get to this particular little patch of land.
+
+37
+00:02:21,790 --> 00:02:27,110
+So what we want to do is exclude routes of more than a certain length.
+
+38
+00:02:27,370 --> 00:02:34,300
+Now to do that we have to query the nav mesh for the path that is calculating for a particular point.
+
+39
+00:02:35,200 --> 00:02:43,950
+Now the bit of documentation for this is under nav mesh dots calculate path the way it works is as follows.
+
+40
+00:02:44,020 --> 00:02:49,630
+You give it a source position and a target position and it's in return calculates a path.
+
+41
+00:02:49,630 --> 00:02:54,880
+Now I know this is a bit weird because essentially what we've got here is a path that is an outer parameter
+
+42
+00:02:54,910 --> 00:02:56,770
+but it's not labeled as an outer parameter.
+
+43
+00:02:56,770 --> 00:02:59,860
+The reason being is a little bit complicated.
+
+44
+00:03:00,100 --> 00:03:04,660
+If you want to look into this for yourself the reason is that the nav mesh path is actually a reference
+
+45
+00:03:04,660 --> 00:03:08,610
+type rather than a value type it's essentially a class rather than a struct.
+
+46
+00:03:08,680 --> 00:03:15,760
+So it is actually points the same thing and the method can modify it's a bit ugly and I don't like this
+
+47
+00:03:15,760 --> 00:03:19,330
+way of doing things but it is one possible valid way.
+
+48
+00:03:19,330 --> 00:03:25,090
+So anyway the point is that what you do is you create a nav mesh path and then you pass it into calculate
+
+49
+00:03:25,090 --> 00:03:27,190
+path which then modifies it.
+
+50
+00:03:27,340 --> 00:03:32,590
+Again we have that area mask thing which we can treat as before and calculate path is going to return
+
+51
+00:03:32,590 --> 00:03:33,400
+a boolean.
+
+52
+00:03:33,400 --> 00:03:38,750
+So it is going to be saying whether or not it has managed to calculate a path or not.
+
+53
+00:03:39,190 --> 00:03:44,260
+And in fact here it says true if either a complete or partial path is found.
+
+54
+00:03:44,330 --> 00:03:47,220
+Now we don't want partial paths.
+
+55
+00:03:47,290 --> 00:03:51,180
+So we are going to have to find out a way of discarding those.
+
+56
+00:03:51,460 --> 00:03:54,940
+But let's dive in to our code and see where we want this in the first place.
+
+57
+00:03:55,270 --> 00:03:59,860
+So we'll do this in the player control where we are right casting to the nav mesh because what we want
+
+58
+00:03:59,860 --> 00:04:07,720
+to do is basically avoid certain things we want to avoid certain positions from being returned here.
+
+59
+00:04:07,720 --> 00:04:12,670
+So what I'm gonna do is I'm going to add in another condition just after we have checked for sampling
+
+60
+00:04:12,670 --> 00:04:16,640
+the position on the nav mesh we have this position that we could move to.
+
+61
+00:04:16,750 --> 00:04:22,630
+But now what we want to do is essentially work out whether or not we want to use that position based
+
+62
+00:04:22,720 --> 00:04:25,100
+on the path that we have got.
+
+63
+00:04:25,120 --> 00:04:30,810
+So I'm going to keep the target as that position because we might want to use that later on.
+
+64
+00:04:30,820 --> 00:04:37,000
+So I'm just gonna put the code in between the target and the return and potential gonna return False
+
+65
+00:04:37,000 --> 00:04:39,010
+if the path is too long.
+
+66
+00:04:39,010 --> 00:04:43,900
+So we want to calculate the path so it's gonna be a nav mesh dot calculate path and we're gonna have
+
+67
+00:04:43,900 --> 00:04:45,570
+to take our current position.
+
+68
+00:04:45,580 --> 00:04:53,200
+So transform dot position we're going to calculate a path to the target position then we're going to
+
+69
+00:04:53,200 --> 00:04:58,960
+use the area mass like we've used before the nav mesh dot all areas and then we're going to have to
+
+70
+00:04:58,960 --> 00:05:01,530
+pass in a nav mesh path.
+
+71
+00:05:01,540 --> 00:05:03,550
+So let's create a nav mesh path.
+
+72
+00:05:03,550 --> 00:05:10,650
+Now unlike the other stuff so nav mesh path is what I want I'm going to call it path.
+
+73
+00:05:10,660 --> 00:05:15,150
+Now you might be tempted because it's an out prance just to pass it in like this.
+
+74
+00:05:15,220 --> 00:05:20,970
+I believe it's going to give you an issue here it's going to say use of unassigned local variable path.
+
+75
+00:05:21,100 --> 00:05:25,890
+So saying hey you haven't assigned it and actually we do need to assign this.
+
+76
+00:05:25,930 --> 00:05:32,040
+It's just a different way of doing out parameters which in my opinion as I said is not as nice.
+
+77
+00:05:32,080 --> 00:05:39,230
+So we have to do a new nav mesh path like so.
+
+78
+00:05:39,440 --> 00:05:45,690
+And for those few interested basically a reference type in C sharp can be no in the sense that it is
+
+79
+00:05:46,040 --> 00:05:53,450
+sometimes not actually an object at that location whereas something like a struct which is not a reference
+
+80
+00:05:53,450 --> 00:05:55,790
+type it is a value type can never be known.
+
+81
+00:05:55,790 --> 00:05:57,820
+It always has some default value.
+
+82
+00:05:57,830 --> 00:06:01,920
+So if you create a NAF mesh hit there is always a nav mesh hit.
+
+83
+00:06:01,940 --> 00:06:04,220
+There can never be null it has a default value.
+
+84
+00:06:04,220 --> 00:06:09,590
+If I create enough their path however that could be set to null and that's the difference here.
+
+85
+00:06:09,590 --> 00:06:15,890
+Basically I want to give it a value it needs to give it an object so the calculate path can modify that
+
+86
+00:06:15,950 --> 00:06:18,050
+object and that's what's going on.
+
+87
+00:06:18,050 --> 00:06:24,410
+So here what we can do is take a boolean and it's going to be has path basically and if we do not have
+
+88
+00:06:24,410 --> 00:06:25,040
+a path.
+
+89
+00:06:25,370 --> 00:06:31,340
+If not has path then indeed we are going to do what we've done all the time before here and do a return
+
+90
+00:06:31,340 --> 00:06:32,330
+false.
+
+91
+00:06:32,450 --> 00:06:35,380
+But there is another situation in which we might return false.
+
+92
+00:06:35,380 --> 00:06:42,650
+And this is if the path that has been calculated so it's going to be path dot status here.
+
+93
+00:06:42,650 --> 00:06:48,130
+Path dot status has a few potential values as we can see here.
+
+94
+00:06:48,140 --> 00:06:49,560
+It's a nav mesh.
+
+95
+00:06:49,580 --> 00:06:51,980
+Path status which I believe is an enum.
+
+96
+00:06:52,010 --> 00:06:52,710
+Yes.
+
+97
+00:06:52,880 --> 00:06:54,420
+And it could be complete.
+
+98
+00:06:54,740 --> 00:06:57,160
+Could be partial or it could be invalid.
+
+99
+00:06:57,200 --> 00:07:02,420
+The only case we are interested in is if there is a complete path to this.
+
+100
+00:07:02,420 --> 00:07:04,780
+So we want a nav mesh.
+
+101
+00:07:05,090 --> 00:07:13,610
+Path status dot path complete based that's what we want it to be equal to and if it is not equal to
+
+102
+00:07:13,610 --> 00:07:17,120
+a complete path then again we return false.
+
+103
+00:07:17,120 --> 00:07:25,280
+So if not a complete path then return false and we're not going to use the result of this recast and
+
+104
+00:07:25,280 --> 00:07:30,230
+we're not going to be able to move to this location if we can't make a path to it which makes sense.
+
+105
+00:07:30,230 --> 00:07:35,810
+So now what's going to happen is if you've got two bits of NAV mesh that are completely separated from
+
+106
+00:07:35,810 --> 00:07:43,490
+each other and that there is no way between these two bits of nav mesh then you are not going to see
+
+107
+00:07:43,490 --> 00:07:48,890
+the cursor to be able to move to that nav mesh which is basically what we want that where would you
+
+108
+00:07:48,890 --> 00:07:49,700
+be seeing this.
+
+109
+00:07:49,700 --> 00:07:56,210
+It might seem like an odd thing to be suggesting but for example here on top of these buildings we've
+
+110
+00:07:56,210 --> 00:08:01,940
+got a little bit of nav mesh because hey if my player was on top of there he could walk around it but
+
+111
+00:08:01,940 --> 00:08:08,180
+there is no way from this nav mesh onto the top of the building so we shouldn't show a cursor that says
+
+112
+00:08:08,180 --> 00:08:11,780
+that you can move to the top of the building even though there's an avalanche there and this bit of
+
+113
+00:08:11,780 --> 00:08:14,540
+code just here achieves that.
+
+114
+00:08:14,540 --> 00:08:20,930
+So the final test we want here is to see whether the length of this path is too long.
+
+115
+00:08:20,930 --> 00:08:26,020
+Now there's not actually a method for calculating the length of this path.
+
+116
+00:08:26,090 --> 00:08:30,320
+You have to basically make your own which is kind of funny I find.
+
+117
+00:08:30,320 --> 00:08:36,830
+So the way we're gonna do this is I'm gonna write a get path length method and we're going to pass in
+
+118
+00:08:36,830 --> 00:08:45,800
+the path and we're going to say if this is greater than the max nav path length which I'm also going
+
+119
+00:08:45,800 --> 00:08:49,430
+to define then we're going to return false.
+
+120
+00:08:49,490 --> 00:08:55,730
+Now let's first of all create that variable that's gonna be yet another configuration variable on our
+
+121
+00:08:55,730 --> 00:09:05,150
+player controller and we're going to do a serialized field again it's gonna be a float Max path length.
+
+122
+00:09:05,150 --> 00:09:09,470
+And through experimentation I've found that 40 is a good value in my game.
+
+123
+00:09:09,470 --> 00:09:14,440
+In your game might be different depending on how far out your camera is and what you feel is right.
+
+124
+00:09:14,450 --> 00:09:18,860
+But you can obviously tweak that as Eat to your heart's content.
+
+125
+00:09:18,860 --> 00:09:24,140
+And finally what I want to do is create this get path length to generate the method.
+
+126
+00:09:24,140 --> 00:09:31,310
+Indeed it has correctly intuited that it should return a float and that we're going to look at how we
+
+127
+00:09:31,310 --> 00:09:34,840
+might want to implement this get path length.
+
+128
+00:09:35,030 --> 00:09:39,830
+So to understand how we can calculate this length we actually need to understand a little bit better
+
+129
+00:09:40,220 --> 00:09:42,020
+how a path is stored.
+
+130
+00:09:42,010 --> 00:09:43,520
+What is that path.
+
+131
+00:09:43,520 --> 00:09:50,180
+So if I go ahead and hit I might need to actually return something from the path length.
+
+132
+00:09:50,210 --> 00:09:57,680
+So initially I am going to return in a really short path to zero so that we're always a correct path
+
+133
+00:09:58,160 --> 00:10:01,010
+if we go ahead and hit play now.
+
+134
+00:10:01,340 --> 00:10:08,740
+Then what I would expect is I want to see actually is how that path looks I'm going to select our player
+
+135
+00:10:08,780 --> 00:10:16,700
+so we can see his nav mesh element and I'm going to click off in that really distant location over here
+
+136
+00:10:16,700 --> 00:10:17,830
+if I get bit closer.
+
+137
+00:10:17,850 --> 00:10:24,710
+That would go and then I'm gonna pause OK and we can have a look at his path elements in the scene.
+
+138
+00:10:24,710 --> 00:10:30,880
+So what you've got here is it's calculating a path in a straight line segments.
+
+139
+00:10:30,890 --> 00:10:33,190
+So it's saying move from here to here.
+
+140
+00:10:33,290 --> 00:10:38,740
+Then there's a corner then it is going in another straight lines to hear where there is another corner
+
+141
+00:10:39,250 --> 00:10:43,420
+and it's trying to take the shortest route through these corners then it gets a corner here and now
+
+142
+00:10:43,420 --> 00:10:49,150
+it's not quite calculated to the end but presumably it would draw another corner to here and then a
+
+143
+00:10:49,150 --> 00:10:52,570
+corner to this target location at the end.
+
+144
+00:10:52,570 --> 00:10:58,310
+So this is actually what unity stores in its NAV mesh patter.
+
+145
+00:10:58,330 --> 00:11:01,270
+We have a look at the nav mesh path where is that.
+
+146
+00:11:01,270 --> 00:11:07,750
+Here's the nav mesh path you can see that it has this corner's property in the nav mesh path and it's
+
+147
+00:11:07,750 --> 00:11:09,390
+a read only property if you have a look at it.
+
+148
+00:11:09,460 --> 00:11:12,960
+It is basically just a list of vector 3s.
+
+149
+00:11:12,970 --> 00:11:17,410
+So you've basically got a list of all these points along the path.
+
+150
+00:11:18,160 --> 00:11:23,260
+So what you have to do is find the distance between each of these individual points and then some of
+
+151
+00:11:23,260 --> 00:11:27,280
+them together and you have got yourself the path length.
+
+152
+00:11:27,280 --> 00:11:28,260
+I know it's a bit involved.
+
+153
+00:11:28,270 --> 00:11:30,120
+Why didn't unity provide a method for that.
+
+154
+00:11:30,130 --> 00:11:31,440
+I don't know but they didn't.
+
+155
+00:11:31,460 --> 00:11:34,900
+So it gives us a little bit of an opportunity to flex our muscles.
+
+156
+00:11:34,900 --> 00:11:40,420
+It is a bit more of an advanced challenge so if you don't feel like you're able to do that something
+
+157
+00:11:40,420 --> 00:11:42,760
+of the path corners then don't worry.
+
+158
+00:11:42,760 --> 00:11:44,500
+Just watch me do it instead.
+
+159
+00:11:44,500 --> 00:11:49,540
+But for those of you who are feeling like a challenge and want to see if you can whip out your for loop
+
+160
+00:11:49,540 --> 00:11:54,550
+skills and total up the total length of all those different corners then give it a shot.
+
+161
+00:11:54,580 --> 00:11:56,750
+Now KAYE Welcome back.
+
+162
+00:11:56,750 --> 00:12:00,920
+So what I'm going to do is I'm gonna to start with an accumulator variable which is going to be our
+
+163
+00:12:00,920 --> 00:12:06,290
+float total and it's going to start off at zero.
+
+164
+00:12:06,290 --> 00:12:12,710
+The accumulator is going to be what we actually return here at the end and something we have to first
+
+165
+00:12:12,710 --> 00:12:18,650
+of all cancel I basically consider is the case where we have got a path that it's got fewer than two
+
+166
+00:12:18,650 --> 00:12:20,570
+corners which is not very useful.
+
+167
+00:12:20,600 --> 00:12:29,810
+So if the path dot corners dot length is a less than two well we can't calculate the distance between
+
+168
+00:12:29,810 --> 00:12:34,190
+anything that is less than two so we're just gonna go ahead and return the total which is zero at this
+
+169
+00:12:34,190 --> 00:12:35,270
+point.
+
+170
+00:12:35,270 --> 00:12:41,840
+Now on the other hand we might want to do a full loop over all the bits between the corners now because
+
+171
+00:12:41,840 --> 00:12:45,230
+we are always going to be comparing two corners in the array.
+
+172
+00:12:45,230 --> 00:12:52,700
+I'm going to do a for loop which includes the index rather than a for each loop so that we can be comparing
+
+173
+00:12:52,700 --> 00:12:56,840
+two elements from the array at the same time to find the distance between them.
+
+174
+00:12:57,080 --> 00:13:04,430
+Now as it happens we don't want to go up to the full length of the corners that length because if we
+
+175
+00:13:04,430 --> 00:13:12,350
+were to go up to the full length we are going to basically over run because we want the gaps between
+
+176
+00:13:12,350 --> 00:13:12,530
+them.
+
+177
+00:13:12,530 --> 00:13:18,740
+Imagine if you are looking at a fence post for example and you are trying to count the gaps you're always
+
+178
+00:13:18,740 --> 00:13:22,880
+going to have one less gap than you have the fence posts themselves.
+
+179
+00:13:22,880 --> 00:13:29,210
+So now what we're going to do is try and calculate the distance first of all so float distance here
+
+180
+00:13:29,240 --> 00:13:37,280
+between these two points is going to be a vector three dot distance and it calculates the distance between
+
+181
+00:13:37,280 --> 00:13:39,430
+two different variables.
+
+182
+00:13:39,440 --> 00:13:49,740
+So we're going to calculate the distance between the path dot corners of eye and the path dot corners
+
+183
+00:13:50,100 --> 00:13:52,180
+of eye plus one.
+
+184
+00:13:52,260 --> 00:13:54,150
+Now is eye plus one safe.
+
+185
+00:13:54,150 --> 00:13:58,490
+You can have a little think about this do you think that's safe to do.
+
+186
+00:13:58,500 --> 00:14:02,240
+I plus 1 I think it is because what we're going to do.
+
+187
+00:14:02,280 --> 00:14:06,780
+I've actually talked about it but didn't actually do it is that we're going the eyes only going up to
+
+188
+00:14:06,780 --> 00:14:13,020
+the length minus one in fact one less than the length minus one which means that we should always be
+
+189
+00:14:13,020 --> 00:14:14,250
+safe to do this.
+
+190
+00:14:14,310 --> 00:14:19,800
+I plus one here because we're always going to one less and that's part of the reason why at the beginning
+
+191
+00:14:19,830 --> 00:14:25,890
+we did that check to see whether the length is less than two in which case this wouldn't this loop basically
+
+192
+00:14:25,890 --> 00:14:27,210
+wouldn't work.
+
+193
+00:14:27,210 --> 00:14:33,090
+So we have got the distance and with that distance we basically want to sum to the total.
+
+194
+00:14:33,090 --> 00:14:41,200
+So actually I think it's going to be easier if I just do total plus equals that distance and I think
+
+195
+00:14:41,200 --> 00:14:41,860
+that should be it.
+
+196
+00:14:41,890 --> 00:14:48,550
+If you want to try and tweak your distances then I do recommend at this point to put it in a print statement
+
+197
+00:14:48,550 --> 00:14:52,210
+of your total I'm not going to do that because I've already tweaked my distance I know that 40 is a
+
+198
+00:14:52,210 --> 00:14:56,150
+good one for me and we should go ahead and try it out now.
+
+199
+00:14:56,170 --> 00:15:03,310
+So if I go ahead and hit play and I want to see that basically I can't try and navigate across the river
+
+200
+00:15:03,370 --> 00:15:04,450
+as I was doing there.
+
+201
+00:15:04,480 --> 00:15:10,060
+So it's basically giving me an X when I'm trying to navigate too far here I can navigate too because
+
+202
+00:15:10,060 --> 00:15:11,060
+that's quite close.
+
+203
+00:15:11,140 --> 00:15:16,470
+Here is already too far so I can't get there and you can see that basically if I try and navigate up
+
+204
+00:15:16,470 --> 00:15:19,780
+hills and things like this then that's also not going to work.
+
+205
+00:15:19,810 --> 00:15:25,420
+If I try and navigate across the river from up here the top of the hill you can see it's all basically
+
+206
+00:15:25,450 --> 00:15:31,630
+got the little cross saying I can't move there because it's just too far and it can't really see the
+
+207
+00:15:31,630 --> 00:15:34,630
+route there that we the player might want to take.
+
+208
+00:15:34,630 --> 00:15:39,400
+So it's been quite an in-depth lecture we've seen a few things we've seen how to calculate or force
+
+209
+00:15:39,400 --> 00:15:45,490
+the nav mesh to calculate a path between two points and also how that path is constructed so that we
+
+210
+00:15:45,490 --> 00:15:49,590
+can calculate the path length I'll see you in the next lecture.

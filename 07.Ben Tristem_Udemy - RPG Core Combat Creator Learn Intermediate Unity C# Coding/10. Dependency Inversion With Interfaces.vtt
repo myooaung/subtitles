@@ -1,0 +1,584 @@
+WEBVTT
+1
+00:00:04.650 --> 00:00:09.310
+Hello and welcome in this lecture we're gonna get it back to working so that we can come back.
+
+2
+00:00:09.330 --> 00:00:15.540
+We can cancel our combat and all of that good stuff and we're gonna be doing this using a new language
+
+3
+00:00:15.540 --> 00:00:17.040
+feature you may not come across before.
+
+4
+00:00:17.040 --> 00:00:23.790
+Call the interface we're going to be implementing an interface and figuring out how that helps us to
+
+5
+00:00:23.820 --> 00:00:29.640
+call from the action scheduler to the mover and fighter depending on which one it is without having
+
+6
+00:00:29.640 --> 00:00:31.500
+to introduce more dependency cycle.
+
+7
+00:00:31.500 --> 00:00:33.150
+So this is quite cool quite interesting.
+
+8
+00:00:33.150 --> 00:00:40.780
+Let's dive in and see how it's done so we're in a bit of a conundrum here where we've got printing cancellation
+
+9
+00:00:40.900 --> 00:00:48.960
+working correctly but it can't possibly call the functions of cancel on mover and fighter because they're
+
+10
+00:00:48.970 --> 00:00:50.450
+of different types.
+
+11
+00:00:50.470 --> 00:00:56.440
+If I were to change this mono behavior to fighter then it wouldn't work for mover if I changed it to
+
+12
+00:00:56.440 --> 00:00:58.650
+move then it wouldn't work for fighter.
+
+13
+00:00:58.720 --> 00:01:05.380
+So one way I could try and solve this is by casting I could say in here for example if you know something
+
+14
+00:01:05.380 --> 00:01:16.160
+along the lines of if it's a fighter type then we can do something if it's move then we're going to
+
+15
+00:01:16.160 --> 00:01:21.950
+call a different function but there is a problem with this at the moment we've got a dependency set
+
+16
+00:01:21.950 --> 00:01:27.890
+up this way but if I were to try and call it a movement in combat I would be also creating dependencies
+
+17
+00:01:27.890 --> 00:01:32.420
+from the scheduler down to the movement in combat modules which means that we've got dependency cycles
+
+18
+00:01:32.480 --> 00:01:35.930
+again which is absolutely no good whatsoever.
+
+19
+00:01:35.930 --> 00:01:43.430
+So what we can do to solve this problem is introduce something called an interface to invert the dependencies
+
+20
+00:01:43.490 --> 00:01:47.540
+where we had dependencies that would go down from scheduler to movement so we could call from schedule
+
+21
+00:01:47.540 --> 00:01:48.160
+to movement.
+
+22
+00:01:48.290 --> 00:01:53.660
+We can invert these dependencies so then instead there's a dependency going from movement to these scheduler
+
+23
+00:01:53.660 --> 00:02:02.300
+to the AI action in fact what is an AI action it is an interface it is a contract between the implementer
+
+24
+00:02:02.300 --> 00:02:07.220
+of the contract this would be movement and combat are the implementers and the caller of the contract
+
+25
+00:02:07.250 --> 00:02:11.090
+which is gonna be the scheduler which is gonna depend on AI action.
+
+26
+00:02:11.090 --> 00:02:12.490
+So how does an interface work.
+
+27
+00:02:12.500 --> 00:02:13.360
+Let's have a look.
+
+28
+00:02:13.370 --> 00:02:19.770
+I'm going to create a new file for our interface and call it AI action and we'll see why in a sec.
+
+29
+00:02:19.820 --> 00:02:24.280
+I'm also going to put it in a namespace of RPG or core.
+
+30
+00:02:24.860 --> 00:02:31.970
+And then we can use the interface syntax which I've got a snippet for the unity snippet will automatically
+
+31
+00:02:31.970 --> 00:02:36.680
+add the name for me and it's very much like a class except instead of using the keyword class we use
+
+32
+00:02:36.680 --> 00:02:38.530
+the key word interface.
+
+33
+00:02:38.540 --> 00:02:39.770
+Now what does that mean.
+
+34
+00:02:39.770 --> 00:02:47.840
+Well it is a contract so we can say that anything that implements this interface that's movement and
+
+35
+00:02:47.840 --> 00:02:51.560
+combat has to have a certain method.
+
+36
+00:02:51.560 --> 00:02:54.560
+So I can say that it needs to have void cancel.
+
+37
+00:02:54.590 --> 00:02:56.970
+For example notice I don't have to say that it's public.
+
+38
+00:02:56.990 --> 00:03:02.270
+Everything in an interface is public because there is no implementation in the interface.
+
+39
+00:03:02.270 --> 00:03:07.460
+You can't have any bodies to these cancel for example notice I put a semicolon on the end.
+
+40
+00:03:07.460 --> 00:03:11.420
+I can't actually put any kind of implementation in here.
+
+41
+00:03:11.420 --> 00:03:13.820
+I can't put any variables I can't do anything like that.
+
+42
+00:03:13.820 --> 00:03:19.850
+I can only be methods or properties things that can be implemented in other classes.
+
+43
+00:03:19.940 --> 00:03:21.680
+So it is just a contract.
+
+44
+00:03:21.680 --> 00:03:22.720
+There's nothing more to it.
+
+45
+00:03:22.730 --> 00:03:25.420
+It doesn't actually implements anything itself.
+
+46
+00:03:25.520 --> 00:03:33.930
+So the point of this is that now when I have this I action and I've told it that it must implement cancel.
+
+47
+00:03:33.980 --> 00:03:39.350
+Well I can go to the action scheduler and say instead of a mono behavior let's take in this cool I action
+
+48
+00:03:39.350 --> 00:03:46.610
+thing and I can because I know that end of anything that implements I action has to implement cancel
+
+49
+00:03:47.000 --> 00:03:50.900
+I can call action or cancel the eagle eyed among you might notice.
+
+50
+00:03:50.900 --> 00:03:57.140
+This actually introduces a bug what I wanted to do was call current action dot cancel and I will correct
+
+51
+00:03:57.140 --> 00:04:02.510
+that later on in the video but just say this doesn't trip you up when you come to do the challenge that's
+
+52
+00:04:02.570 --> 00:04:04.160
+what you need to change.
+
+53
+00:04:04.160 --> 00:04:05.380
+Now let me demonstrate this.
+
+54
+00:04:05.390 --> 00:04:07.610
+This is how you would implement my action.
+
+55
+00:04:07.610 --> 00:04:11.570
+You go over to something that you want to implement I action.
+
+56
+00:04:11.570 --> 00:04:17.180
+For example we go to the mover and we know that we want it to implement I action because it's giving
+
+57
+00:04:17.180 --> 00:04:22.850
+us this error here that if I try and pass in this to start action it's saying hey I can't convert mover
+
+58
+00:04:22.850 --> 00:04:28.400
+into an AI action it should make sense because it doesn't implement that interface so I can get to implement
+
+59
+00:04:28.400 --> 00:04:33.200
+the interface to obey the contract and you can sit by basically putting comma and then the interface
+
+60
+00:04:33.650 --> 00:04:36.790
+after the things that are inherited at the top here.
+
+61
+00:04:36.800 --> 00:04:42.260
+So notice you can't inherit from more than one class but you can inherit from as many interfaces as
+
+62
+00:04:42.260 --> 00:04:43.960
+you like now.
+
+63
+00:04:44.390 --> 00:04:50.290
+Now it's saying to me the error is move or does not implement interface member cancel.
+
+64
+00:04:50.300 --> 00:04:58.340
+So what I am saying is I need to have a function here a public function called cancel right.
+
+65
+00:04:58.340 --> 00:05:00.750
+So that should be public void.
+
+66
+00:05:00.770 --> 00:05:01.710
+Cancel.
+
+67
+00:05:01.850 --> 00:05:06.320
+It has to be the same in all respects the same number of arguments the same type of the arguments the
+
+68
+00:05:06.320 --> 00:05:07.590
+same return value.
+
+69
+00:05:07.790 --> 00:05:08.840
+And once I've done that.
+
+70
+00:05:08.840 --> 00:05:13.940
+Notice that era has gone away because now move implements I action.
+
+71
+00:05:14.150 --> 00:05:19.990
+And that means I can safely pass it into the start action because when I.
+
+72
+00:05:20.060 --> 00:05:25.100
+Because then in start action I can treat it like a start action I can call cancel I know it must have
+
+73
+00:05:25.130 --> 00:05:27.140
+a cancel implementation.
+
+74
+00:05:27.140 --> 00:05:32.990
+This is basically why it allows us to invert the dependencies when the scheduler wants to call cancel
+
+75
+00:05:32.990 --> 00:05:33.920
+on EI action.
+
+76
+00:05:34.100 --> 00:05:41.810
+It actually gets redirected to the movement to the movers implementation of cancel.
+
+77
+00:05:41.990 --> 00:05:48.080
+If instead it was an instance of combat if it was an instance of fighter instead of movement then what
+
+78
+00:05:48.080 --> 00:05:52.830
+we would get is it would call cancel on the fighter instead.
+
+79
+00:05:52.880 --> 00:05:58.640
+So that's what I'm going to want you to do is to implement the interface on both the fighter and the
+
+80
+00:05:58.640 --> 00:06:00.050
+mover.
+
+81
+00:06:00.170 --> 00:06:05.690
+The moving should stop attacking very much as we've had it doing before.
+
+82
+00:06:05.690 --> 00:06:11.750
+But I'd also like you to have a go to see if you are actually able to cancel movement by attacking.
+
+83
+00:06:11.750 --> 00:06:17.330
+Now this presents a bit of a problem because by default attacking does some movement.
+
+84
+00:06:17.360 --> 00:06:22.010
+So if you clicked on an enemy while you were moving somewhere else it would start moving towards the
+
+85
+00:06:22.010 --> 00:06:24.470
+enemy whether or not it has cancelled the move.
+
+86
+00:06:24.860 --> 00:06:29.290
+So one way you can check that the movement is actually being cancelled.
+
+87
+00:06:29.300 --> 00:06:34.510
+When you start an attack action would be it's a comment out this block of code here.
+
+88
+00:06:34.520 --> 00:06:37.410
+So the combat action does no movement.
+
+89
+00:06:37.460 --> 00:06:39.180
+We'd only do this temporarily.
+
+90
+00:06:39.300 --> 00:06:45.470
+So then what you'd be able to see is that if you're moving along the ground towards a certain location
+
+91
+00:06:45.920 --> 00:06:51.380
+and you click on an enemy the movement is disabled for the fighter so it won't do any movement but it
+
+92
+00:06:51.380 --> 00:06:53.010
+should cancel the move.
+
+93
+00:06:53.030 --> 00:06:54.930
+That's the behavior we want to see.
+
+94
+00:06:55.160 --> 00:06:58.810
+And then you can comment the code again and everything should work.
+
+95
+00:06:58.810 --> 00:07:02.870
+Again you should then cancel stop in its tracks but then move towards a target.
+
+96
+00:07:03.230 --> 00:07:08.060
+I'm just saying too common out this code so that you can test this independently to see that the cancel
+
+97
+00:07:08.420 --> 00:07:10.390
+is coming through and working as you'd expect.
+
+98
+00:07:10.420 --> 00:07:15.050
+If you find your struggling with the second part of the challenge do attempt the first part first and
+
+99
+00:07:15.050 --> 00:07:17.630
+see how far you get with the second part.
+
+100
+00:07:17.630 --> 00:07:22.730
+So pause the video and have a go if you can wrap your head around how these interfaces are working and
+
+101
+00:07:22.790 --> 00:07:28.150
+try and implement that knowledge through this challenge okay.
+
+102
+00:07:28.150 --> 00:07:28.660
+Welcome back.
+
+103
+00:07:28.660 --> 00:07:30.520
+Hopefully you didn't find that too tricky.
+
+104
+00:07:30.520 --> 00:07:33.130
+Hopefully you've got the right building blocks in place.
+
+105
+00:07:33.130 --> 00:07:35.040
+If not it's my fault and I'm sorry.
+
+106
+00:07:35.050 --> 00:07:37.780
+Hopefully you will get it from their solution.
+
+107
+00:07:37.780 --> 00:07:43.030
+So first of all we want to implement let's say the AI action move.
+
+108
+00:07:43.090 --> 00:07:46.480
+We've got that and we got cancer.
+
+109
+00:07:46.480 --> 00:07:47.360
+What should cancel do.
+
+110
+00:07:47.360 --> 00:07:50.060
+Well I think it should probably be synonymous with stop.
+
+111
+00:07:50.110 --> 00:07:54.080
+So I'm going to I should remove this cancel function and I'm going to just rename.
+
+112
+00:07:54.080 --> 00:08:00.250
+Stop using F2 to rename across multiple files to be called cancel instead which should rename across
+
+113
+00:08:00.280 --> 00:08:04.390
+the project including where it's called in fighter now in fighter.
+
+114
+00:08:04.390 --> 00:08:07.060
+I want to implement AI action as well.
+
+115
+00:08:07.060 --> 00:08:07.510
+There we go.
+
+116
+00:08:07.510 --> 00:08:08.920
+Like so.
+
+117
+00:08:08.920 --> 00:08:10.850
+And you notice that we already have a cancel.
+
+118
+00:08:10.870 --> 00:08:13.830
+So I don't have to implement it and I think it does the right thing.
+
+119
+00:08:14.860 --> 00:08:20.600
+And if I go to the mover there's one thing that we can now remove is this fighter dot cancel we don't
+
+120
+00:08:20.600 --> 00:08:22.310
+want it doing that anymore.
+
+121
+00:08:22.310 --> 00:08:29.830
+We want it to be entirely via the action scheduler so I can remove this dependency on combat which removes
+
+122
+00:08:29.830 --> 00:08:32.360
+our circular dependency so we're happy.
+
+123
+00:08:32.360 --> 00:08:34.910
+Let's go over and hit play and UTC.
+
+124
+00:08:34.910 --> 00:08:38.980
+If I missed any to build errors.
+
+125
+00:08:38.990 --> 00:08:39.490
+No.
+
+126
+00:08:39.580 --> 00:08:43.410
+So I can move around if I click on here to combat.
+
+127
+00:08:43.430 --> 00:08:49.430
+Then we are seeing that bug I mentioned earlier in the video where we are actually calling action instead
+
+128
+00:08:49.610 --> 00:08:55.370
+of current actions so let's go ahead and change that so let's try that again.
+
+129
+00:08:56.700 --> 00:09:01.800
+Hopefully you noticed that managed to pick up on that so I moved towards this guy and then I move away.
+
+130
+00:09:01.800 --> 00:09:03.900
+Yeah that seems to have canceled it all right.
+
+131
+00:09:03.900 --> 00:09:06.450
+And if I'm moving I should be able to cancel half way.
+
+132
+00:09:06.450 --> 00:09:12.480
+Let's see if that's actually working whether we're actually canceling movement by as I said going to
+
+133
+00:09:12.480 --> 00:09:21.650
+fight this Yes and just commenting out that movement behavior that we're doing so if I'd done that correctly.
+
+134
+00:09:21.730 --> 00:09:27.890
+Now what I expect to see is we're moving and as soon as I click here it stops.
+
+135
+00:09:27.940 --> 00:09:35.250
+So just to convince you that this is actually the case let's click as far away as we can go.
+
+136
+00:09:35.350 --> 00:09:38.200
+I clicked on the capsule I'm clicking over here near the shed.
+
+137
+00:09:38.200 --> 00:09:42.760
+I didn't get to the shed because I clicked on the cat's capsule and that canceled the movement.
+
+138
+00:09:42.880 --> 00:09:45.430
+So I'm going to uncommon that again.
+
+139
+00:09:45.750 --> 00:09:50.350
+And we've got the right behavior that we're expecting with no dependency cycles whatsoever where we
+
+140
+00:09:50.350 --> 00:09:55.250
+can attack an enemy then cancel the action move on to something else.
+
+141
+00:09:55.270 --> 00:10:00.520
+So I'm chuffed that that is working as we wanted to we've covered interfaces we've covered dependency
+
+142
+00:10:00.520 --> 00:10:01.260
+inversion.
+
+143
+00:10:01.260 --> 00:10:05.170
+And I'll see you in the next video will actually be adding some animation in fact it probably won't
+
+144
+00:10:05.170 --> 00:10:05.440
+be me.
+
+145
+00:10:05.450 --> 00:10:07.390
+It'll probably be Rick doing that.
+
+146
+00:10:07.510 --> 00:10:08.380
+So hand you over to him.

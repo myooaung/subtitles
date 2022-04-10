@@ -1,0 +1,388 @@
+1
+00:00:00,240 --> 00:00:04,140
+The application.properties file configures our datasource.
+
+2
+00:00:04,140 --> 00:00:09,410
+We specify the datasource.url, the username, and the password.
+
+3
+00:00:09,410 --> 00:00:16,040
+Then, we define the driver‑class, which in this case is the mariadb.jdbc.Driver.
+
+4
+00:00:16,040 --> 00:00:16,750
+Finally,
+
+5
+00:00:16,750 --> 00:00:20,680
+we set the initialization mode to always so that Spring will
+
+6
+00:00:20,680 --> 00:00:23,700
+read our schema.sql file and execute it.
+
+7
+00:00:23,700 --> 00:00:28,660
+The schema.sql file creates the reservation table if it does not exist,
+
+8
+00:00:28,660 --> 00:00:32,090
+and then deletes all rows from the reservation table.
+
+9
+00:00:32,090 --> 00:00:34,890
+We do this just to clean up any data that may be
+
+10
+00:00:34,890 --> 00:00:37,460
+lingering around from a previous run.
+
+11
+00:00:37,460 --> 00:00:43,500
+The JdbcInboundConfig is a Spring configuration file that creates two channels.
+
+12
+00:00:43,500 --> 00:00:46,390
+The newReservationChannel is the channel to which
+
+13
+00:00:46,390 --> 00:00:49,340
+individual reservations will be published,
+
+14
+00:00:49,340 --> 00:00:53,790
+and the newReservationListChannel is the channel to which the results of
+
+15
+00:00:53,790 --> 00:00:58,800
+our query will be published as a list. We define a MessageSource Bean
+
+16
+00:00:58,800 --> 00:01:02,280
+with an InboundChannelAdapter that publishes messages to the
+
+17
+00:01:02,280 --> 00:01:06,180
+newReservationListChannel and has a poller that triggers the
+
+18
+00:01:06,180 --> 00:01:09,740
+MessageSource every 1 second. Inside the method,
+
+19
+00:01:09,740 --> 00:01:14,390
+we created a JdbcPollingChannelAdapter, passing it a dataSource that
+
+20
+00:01:14,390 --> 00:01:18,260
+Spring automatically creates for us, and the SELECT statement to
+
+21
+00:01:18,260 --> 00:01:21,340
+execute every time it's invoked by the poller.
+
+22
+00:01:21,340 --> 00:01:22,400
+In this case,
+
+23
+00:01:22,400 --> 00:01:28,000
+we select all rows from the reservation table with a status value of 0. Because
+
+24
+00:01:28,000 --> 00:01:33,530
+this query will return a JDBC result set, we define a RowMapper that receives
+
+25
+00:01:33,530 --> 00:01:37,950
+the result set in the index of the row in the list and returns a new
+
+26
+00:01:37,950 --> 00:01:41,040
+reservation with the values in the result set.
+
+27
+00:01:41,040 --> 00:01:41,760
+Finally,
+
+28
+00:01:41,760 --> 00:01:47,000
+we set the JdbcPollingChannelAdapter's UpdateSql property with a SQL
+
+29
+00:01:47,000 --> 00:01:51,170
+statement to execute after the SELECT has completed. We update all
+
+30
+00:01:51,170 --> 00:01:55,140
+rows in the reservation table with the IDs returned in the SELECT
+
+31
+00:01:55,140 --> 00:01:58,120
+statement, setting the status to 1.
+
+32
+00:01:58,120 --> 00:02:01,070
+This is an optional step, but if we don't do it,
+
+33
+00:02:01,070 --> 00:02:03,540
+then we'll process those rows again.
+
+34
+00:02:03,540 --> 00:02:08,130
+The JdbcPollingChannelAdapter will return a list of reservations, so
+
+35
+00:02:08,130 --> 00:02:11,280
+we publish that to a newReservationListChannel,
+
+36
+00:02:11,280 --> 00:02:13,370
+which is handled by a splitter.
+
+37
+00:02:13,370 --> 00:02:16,580
+Recall that a splitter is responsible for receiving one
+
+38
+00:02:16,580 --> 00:02:19,310
+message and returning multiple messages.
+
+39
+00:02:19,310 --> 00:02:21,310
+We extract the message payload,
+
+40
+00:02:21,310 --> 00:02:25,340
+which is a list of reservations, and return that list of reservations.
+
+41
+00:02:25,340 --> 00:02:29,610
+The splitter will create new messages with those reservations as the message
+
+42
+00:02:29,610 --> 00:02:33,440
+payload and publish them to the newReservationChannel.
+
+43
+00:02:33,440 --> 00:02:35,930
+This way, the ReservationListener class,
+
+44
+00:02:35,930 --> 00:02:38,720
+which will be listening on the newReservationChannel,
+
+45
+00:02:38,720 --> 00:02:42,740
+will receive one message for each reservation in the list.
+
+46
+00:02:42,740 --> 00:02:48,380
+A reservation is a plain old Java object that manages id and name properties.
+
+47
+00:02:48,380 --> 00:02:52,690
+The ReservationListener is a Spring service with a ServiceActivator that
+
+48
+00:02:52,690 --> 00:02:55,840
+listens for messages on the newReservationChannel.
+
+49
+00:02:55,840 --> 00:03:00,060
+They handle Reservation method, receives a reservation, and logs it.
+
+50
+00:03:00,060 --> 00:03:03,130
+Now let's look at how to write data to MariaDB
+
+51
+00:03:03,130 --> 00:03:05,130
+using an outbound channel adaptor.
+
+52
+00:03:05,130 --> 00:03:09,120
+The JdbcOutboundConfig is a Spring configuration class.
+
+53
+00:03:09,120 --> 00:03:13,100
+We create a new DirectChannel named createReservationChannel, and
+
+54
+00:03:13,100 --> 00:03:16,500
+then a message handler with a ServiceActivator that listens for
+
+55
+00:03:16,500 --> 00:03:19,340
+messages on the createReservationChannel.
+
+56
+00:03:19,340 --> 00:03:24,290
+For this implementation, we created JdbcMessageHandler, passing it a data
+
+57
+00:03:24,290 --> 00:03:28,960
+source that Spring creates for us using the dataSource properties in our
+
+58
+00:03:28,960 --> 00:03:33,930
+application.properties file when it sees the MySQL JDBC connector in our
+
+59
+00:03:33,930 --> 00:03:38,810
+class path. We also pass the INSERT SQL statement that we want to execute
+
+60
+00:03:38,810 --> 00:03:42,050
+when a message arrives on the createReservationChannel to the
+
+61
+00:03:42,050 --> 00:03:44,420
+jdbcMessageHandler constructor.
+
+62
+00:03:44,420 --> 00:03:49,650
+Because the message will contain a reservation and the jdbcMessageHandler will
+
+63
+00:03:49,650 --> 00:03:53,240
+create a prepared statement to execute the INSERT statement,
+
+64
+00:03:53,240 --> 00:03:56,830
+we set its PreparedStatementSetter to translate a
+
+65
+00:03:56,830 --> 00:03:59,840
+Reservations field to the prepared statement.
+
+66
+00:03:59,840 --> 00:04:05,060
+The setPreparedStatementSetter method accepts a message PreparedStatementSetter,
+
+67
+00:04:05,060 --> 00:04:08,180
+which we can implement with the lambda expression that
+
+68
+00:04:08,180 --> 00:04:10,750
+accepts a PreparedStatement instance.
+
+69
+00:04:10,750 --> 00:04:15,460
+We extract the Payload of the action, casting it to a Reservation.
+
+70
+00:04:15,460 --> 00:04:19,140
+Then we set the two values called out in the INSERT statement.
+
+71
+00:04:19,140 --> 00:04:23,540
+The first is the reservation ID, and the second is the reservation name.
+
+72
+00:04:23,540 --> 00:04:24,340
+Finally,
+
+73
+00:04:24,340 --> 00:04:28,650
+we create a MessagingGateway named CreateReservationGateway that
+
+74
+00:04:28,650 --> 00:04:32,110
+publishes messages to the createReservationChannel when its
+
+75
+00:04:32,110 --> 00:04:35,840
+createReservation method is called with a reservation.
+
+76
+00:04:35,840 --> 00:04:38,810
+The ReservationService is a Spring service with a
+
+77
+00:04:38,810 --> 00:04:42,890
+CreateReservationGateway wired into it that publishes a
+
+78
+00:04:42,890 --> 00:04:46,630
+reservation to the createReservationChannel through the gateway
+
+79
+00:04:46,630 --> 00:04:50,040
+when its createReservation method is called.
+
+80
+00:04:50,040 --> 00:04:50,870
+Finally,
+
+81
+00:04:50,870 --> 00:04:55,810
+the JdbcExampleApplication is a command‑line Spring boot application with the
+
+82
+00:04:55,810 --> 00:05:01,130
+ReservationService wired into it that creates five reservations and publishes
+
+83
+00:05:01,130 --> 00:05:04,900
+them to the ReservationService with a 1‑second delay.
+
+84
+00:05:04,900 --> 00:05:09,510
+Let's run the code and review the logs. From the logs, we can see the
+
+85
+00:05:09,510 --> 00:05:12,840
+ReservationService publishing each reservation,
+
+86
+00:05:12,840 --> 00:05:16,940
+and we can see the ReservationListener receiving each reservation.
+
+87
+00:05:16,940 --> 00:05:18,000
+In this section,
+
+88
+00:05:18,000 --> 00:05:21,200
+we learned how to integrate databases into Spring integration
+
+89
+00:05:21,200 --> 00:05:25,240
+application using its JDBC support. We saw that the
+
+90
+00:05:25,240 --> 00:05:30,070
+JdbcPollingChannelAdapter fills the role of an InboundChannelAdapter.
+
+91
+00:05:30,070 --> 00:05:33,570
+It executes a query using a poller and publishes the
+
+92
+00:05:33,570 --> 00:05:36,640
+results of that query to a message channel.
+
+93
+00:05:36,640 --> 00:05:41,920
+The JdbcMessageHandler fills the role of an OutboundChannelAdapter.
+
+94
+00:05:41,920 --> 00:05:46,190
+It receives a message through a ServiceActivator and executes a
+
+95
+00:05:46,190 --> 00:05:49,750
+SQL statement with the contents of the message.
+
+96
+00:05:49,750 --> 00:05:50,910
+In the next section,
+
+97
+00:05:50,910 --> 00:05:56,000
+we're going to review how to integrate MongoDB into our Spring integration applications.
+

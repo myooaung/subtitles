@@ -1,0 +1,418 @@
+WEBVTT
+
+00:02.100 --> 00:06.910
+With all our code added, let's head over to the index.js file in the functions folder.
+
+00:07.060 --> 00:13.000
+Keep in mind, that's our NodeJS code running on the Firebase server and you could of course also run
+
+00:13.000 --> 00:15.850
+it on your own node web server.
+
+00:16.050 --> 00:17.300
+This code here,
+
+00:17.350 --> 00:22.540
+that's basically the core meat, you can of course reach out to your own database there, MongoDB, whatever
+
+00:22.540 --> 00:23.370
+you want,
+
+00:23.470 --> 00:25.450
+you want to store your data here,
+
+00:25.480 --> 00:31.840
+now we will add more code though to make sure we not only store data on new posts but also that once
+
+00:31.840 --> 00:39.170
+we did so, we can successfully send a push message to all subscribed clients. To do that,
+
+00:39.220 --> 00:46.200
+I first of all will import a new package in my server side code, I'll name it web push and require the
+
+00:46.210 --> 00:47.430
+web push package
+
+00:47.440 --> 00:48.750
+we just imported.
+
+00:48.810 --> 00:55.560
+Then I want to do something here when we know that we stored something successfully in the database,
+
+00:55.630 --> 00:58.880
+I want to start sending my push notification here.
+
+00:59.170 --> 01:05.230
+So first of all, we need to use the web push package and call set vapid details because there's one
+
+01:05.230 --> 01:06.140
+thing missing,
+
+01:06.220 --> 01:08.810
+we never added our private key to our app.
+
+01:09.070 --> 01:14.050
+As I mentioned, we certainly shouldn't do this in our front-end code but here on the server, we're safe,
+
+01:14.620 --> 01:16.780
+at least relatively safe.
+
+01:16.780 --> 01:21.310
+Now let's open up the console and grab that private key,
+
+01:21.310 --> 01:23.440
+not the public one, the private one.
+
+01:23.740 --> 01:24.790
+Copy it
+
+01:25.090 --> 01:31.720
+and now here you don't need to transform it, you just pass it to this method though not as only argument,
+
+01:31.780 --> 01:33.820
+there are more arguments you pass,
+
+01:33.820 --> 01:39.050
+you actually also pass an identifier of yourselves and the public key.
+
+01:39.400 --> 01:44.980
+So let's start with the identifier of yourself, that should be a valid e-mail address and you pass it
+
+01:44.980 --> 01:46.100
+in a mailto:
+
+01:46.290 --> 01:48.880
+and then your address format.
+
+01:48.930 --> 01:51.270
+Now of course, you could pass a wrong one here
+
+01:51.400 --> 01:57.670
+but if you're serious about your business and you don't have anything to hide, you're running a valid
+
+01:57.670 --> 02:01.510
+business here, you want to pass your real e-mail address here,
+
+02:01.510 --> 02:05.720
+so I'll pass business@academind.com,
+
+02:05.770 --> 02:08.170
+our business address. Now
+
+02:08.200 --> 02:12.510
+the next argument is your public key, I'll leave this out for now.
+
+02:12.550 --> 02:15.740
+The third one is the private key, as a string.
+
+02:15.850 --> 02:18.470
+Now the public key, we have that in our front-end code,
+
+02:18.640 --> 02:25.770
+it's that key, not the transformed array, it's just the key, the original public key and you store this
+
+02:26.190 --> 02:26.970
+here too. You
+
+02:26.980 --> 02:30.720
+don't need to transform this into this Uint8Array here on the back-end.
+
+02:30.720 --> 02:37.540
+So now we set up the vapid details on this web push package which does something with that information
+
+02:37.540 --> 02:39.210
+behind the scenes of course
+
+02:39.210 --> 02:44.890
+and now the web push package has all the information it needs to send a new push request.
+
+02:45.130 --> 02:46.930
+Well almost,
+
+02:46.990 --> 02:49.430
+we of course also need our subscriptions
+
+02:49.450 --> 02:52.900
+we have in the database, right? Here, subscriptions,
+
+02:53.080 --> 02:57.320
+we want to send a push request to all our subscriptions. For that,
+
+02:57.340 --> 03:02.550
+I first of all need to fetch them and I can do this by returning admin database,
+
+03:02.560 --> 03:09.760
+so to access the database, ref and then here it's subscriptions. That was our node name we set up if you
+
+03:09.760 --> 03:15.220
+use a different one, use a different one here to of course and then we can chain the once command to
+
+03:15.220 --> 03:22.240
+only fetch data once and not set up a permanent listener and pass value as a string to once to basically
+
+03:22.240 --> 03:26.220
+identify or clarify that you want to get the value of that node.
+
+03:26.410 --> 03:28.210
+Now we return something here,
+
+03:28.270 --> 03:32.730
+hence this will never get executed, so let's cut it and let's chain another
+
+03:32.740 --> 03:38.340
+then call here. In that function here, we'll actually get our subscriptions,
+
+03:38.380 --> 03:43.450
+so maybe you name it subscriptions. Here at the end,
+
+03:43.450 --> 03:46.540
+I want to set my response still, so I'll add it here
+
+03:46.600 --> 03:52.840
+but before I do that, I want to send out my push messages. For that, we can access the subscriptions object
+
+03:53.260 --> 04:00.760
+and keep in mind, Firebase retrieves this from the database as a Javascript object not as an array but Firebase,
+
+04:00.790 --> 04:08.530
+if you use the SDK for retrieving as we do here, gives you a convenience method call, forEach which allows
+
+04:08.530 --> 04:11.880
+you to loop through all the properties in your Javascript object,
+
+04:11.890 --> 04:18.430
+so basically through all the elements in the subscriptions node. There it executes a function on each item
+
+04:18.430 --> 04:19.240
+in there,
+
+04:19.330 --> 04:27.630
+so the individual subscription and sub will therefore just be this part here, endpoint and keys,
+
+04:27.700 --> 04:29.780
+that's your sub object.
+
+04:30.040 --> 04:33.900
+Firebase loops through all these keys you have here, only one in this case
+
+04:33.910 --> 04:38.690
+but if you had more it will loop through all of them and give you back that object which is nested inside
+
+04:38.690 --> 04:39.320
+it.
+
+04:39.790 --> 04:42.430
+So subholds, endpoint and keys,
+
+04:42.680 --> 04:46.250
+that's the information we need to send a new push request.
+
+04:46.270 --> 04:54.310
+So what I'll do here inside this function is I'll create a new variable which I'll name pushConfig
+
+04:55.360 --> 05:02.000
+and pushConfig will be a Javascript object which has to have the following structure
+
+05:02.010 --> 05:04.140
+because you will later pass it on to web push,
+
+05:04.140 --> 05:12.580
+so the structure is given. pushConfig has a structure where we need to define the endpoint. So we
+
+05:12.580 --> 05:18.310
+can extract this from sub, though here since we get it through the Firebase SDK, we have to call the
+
+05:18.340 --> 05:26.770
+val method to extract the real core Javascript value and that will then have an endpoint property because
+
+05:26.770 --> 05:30.930
+again, sub refers to this whole Javascript object,
+
+05:31.000 --> 05:36.670
+so this object basically and there with an endpoint, the keys property and now we access endpoint
+
+05:36.670 --> 05:38.860
+to get this URL.
+
+05:38.860 --> 05:41.990
+So that's the first thing we extract, the endpoint
+
+05:42.190 --> 05:48.590
+and of course the web push, the package needs that information to send our push request there.
+
+05:48.840 --> 05:51.540
+The second argument is keys,
+
+05:51.960 --> 06:00.200
+so here I will simply set up auth and pass sub.val keys auth
+
+06:00.480 --> 06:04.610
+and yes you could overall just set pushConfig equal to sub.val
+
+06:04.620 --> 06:07.620
+since it has exactly the same structure,
+
+06:07.620 --> 06:12.110
+I just want to really emphasize the values, the configuration
+
+06:12.120 --> 06:17.760
+you need to pass to pushConfig because of course in your server, you might store this differently and
+
+06:17.760 --> 06:21.980
+therefore it's important to see the final config you pass to web push.
+
+06:22.350 --> 06:29.210
+So auth which you retrieve from the keys property and then the auth property and the p256dh
+
+06:29.210 --> 06:39.790
+key which is also sub.val keys and then it's p256dh. This is the set up, the pushConfig.
+
+06:40.140 --> 06:44.530
+Now still inside this forEach loop because I want to do it for every subscription,
+
+06:44.580 --> 06:46.240
+I will send the notification.
+
+06:46.530 --> 06:49.300
+So I will use the web push package here,
+
+06:49.580 --> 06:50.180
+whoops,
+
+06:50.220 --> 06:52.510
+I'm inside the pushConfig though,
+
+06:52.560 --> 06:59.270
+so after setting up the pushConfig, I'll use web push and call send notification here.
+
+06:59.790 --> 07:06.510
+And now we will pass pushConfig as the first argument and a second can be any payload we want to
+
+07:06.510 --> 07:08.420
+pass along,
+
+07:08.430 --> 07:14.100
+this is of course very important because for most messages, we want to send some payload.
+
+07:14.100 --> 07:20.190
+This should be a string and I will use JSON.stringify to convert a Javascript object into
+
+07:20.190 --> 07:22.560
+JSON, so into a string therefore
+
+07:22.780 --> 07:30.650
+and I will pass a title where I say new post, I will pass a content property where I will say new post added
+
+07:31.410 --> 07:33.150
+and that's it for now.
+
+07:33.150 --> 07:36.620
+So this is the notification I want to send with the payload
+
+07:36.630 --> 07:40.430
+I want to send, this actually returns a promise.
+
+07:40.440 --> 07:45.020
+Now I don't need to listen to the then block, I want to catch any errors though,
+
+07:45.150 --> 07:47.800
+so here I will provide a catch listener,
+
+07:47.940 --> 07:50.930
+this function will get executed in case of errors.
+
+07:50.950 --> 07:55.600
+and I want to log it to the console to see if we got any error.
+
+07:55.680 --> 07:56.900
+That's actually it,
+
+07:56.940 --> 08:06.360
+that's the server side setup. With that, let's deploy the solution by running Firebase deploy in our project
+
+08:06.360 --> 08:11.940
+folder which is managed by the Firebase CLI as we set it up in the last course module and this will
+
+08:11.940 --> 08:19.110
+now upload the updated function to Firebase, takes a couple of seconds up to minutes. Once it did so, we
+
+08:19.110 --> 08:24.980
+should be able to successfully click enable notifications to create a new subscription,
+
+08:24.990 --> 08:31.950
+we already have that even and then start creating new posts and hopefully send push notifications upon
+
+08:31.950 --> 08:34.420
+the creation of every new post.
+
+08:34.560 --> 08:37.040
+The deploy process finished for me,
+
+08:37.340 --> 08:38.770
+so let's now try it out,
+
+08:38.790 --> 08:40.740
+we get a subscription stored.
+
+08:40.740 --> 08:44.920
+Now the cool thing is we can even use our application without clearing the storage
+
+08:45.010 --> 08:49.250
+and actually you shouldn't do that because you render your old subscription useless,
+
+08:49.260 --> 08:54.090
+you would then have to create enable notifications again and best clean up your existing one.
+
+08:54.360 --> 08:56.030
+So I won't clear the data,
+
+08:56.100 --> 09:02.230
+just click on plus and send a new message with push from anywhere and
+
+09:02.450 --> 09:03.880
+let's see if that works.
+
+09:04.020 --> 09:05.770
+So I'm sending this,
+
+09:05.820 --> 09:08.440
+how do we find out? Well we can't,
+
+09:08.460 --> 09:11.170
+we're not listening to push messages from the server.
+
+09:11.380 --> 09:13.080
+However we can do something,
+
+09:13.080 --> 09:19.290
+we can go to the functions tab here and see if we got any errors or if it did send it. So we can view the
+
+09:19.290 --> 09:21.090
+logs on this function here
+
+09:22.120 --> 09:26.220
+and we see that here, this is the last time I executed it,
+
+09:26.460 --> 09:33.910
+store post, that the function execution finished with 201 and we can confirm that we added this new
+
+09:33.910 --> 09:35.860
+post to the database,
+
+09:36.190 --> 09:39.500
+so this one, anywhere with push.
+
+09:39.820 --> 09:41.440
+So it seems like it worked,
+
+09:41.440 --> 09:47.380
+we probably also got this push message off but of course we don't see it because we're not listening
+
+09:47.380 --> 09:48.760
+to it in our application,
+
+09:48.760 --> 09:51.470
+we don't do anything with the incoming push messages.
+
+09:51.490 --> 09:53.980
+Time to change this in the next lecture.

@@ -1,0 +1,460 @@
+1
+00:00:01,840 --> 00:00:06,490
+If you look at our controllers, such as the PortfolioQueryController,
+
+2
+00:00:06,490 --> 00:00:10,140
+when the user requests their portfolio,
+
+3
+00:00:10,140 --> 00:00:14,380
+the controller uses the following annotation to retrieve the
+
+4
+00:00:14,380 --> 00:00:18,160
+principal object in the method argument,
+
+5
+00:00:18,160 --> 00:00:21,240
+and Spring will map the principal object to it.
+
+6
+00:00:21,240 --> 00:00:23,750
+You can then use it to getUsername, the id,
+
+7
+00:00:23,750 --> 00:00:26,220
+or any other data you want about the user.
+
+8
+00:00:26,220 --> 00:00:30,970
+In this case, we get the username, and look up the portfolio for the user,
+
+9
+00:00:30,970 --> 00:00:35,640
+and return it; however, now there are three different ways of authenticating,
+
+10
+00:00:35,640 --> 00:00:40,240
+there's form login, OAuth 2, and OpenID Connect,
+
+11
+00:00:40,240 --> 00:00:47,040
+so this won't work as the CustomUserDetails object is for form login.
+
+12
+00:00:47,040 --> 00:00:51,740
+If we were to try to retrieve the portfolio for an oauth2User,
+
+13
+00:00:51,740 --> 00:00:55,790
+it will throw and null pointer as it will be a different type of object.
+
+14
+00:00:55,790 --> 00:01:00,440
+This is because when the authentication request goes through the filter chain,
+
+15
+00:01:00,440 --> 00:01:03,920
+it gets intercepted by an authentication filter.
+
+16
+00:01:03,920 --> 00:01:05,750
+Now, our application has two,
+
+17
+00:01:05,750 --> 00:01:08,980
+the UsernameAndPasswordAuthenticationFilter that deals with the
+
+18
+00:01:08,980 --> 00:01:13,810
+traditional form login and OAuth2LoginAuthenticationFilter,
+
+19
+00:01:13,810 --> 00:01:17,990
+which deals with the authorization requests sent back from the
+
+20
+00:01:17,990 --> 00:01:20,640
+authorization server to the following path.
+
+21
+00:01:20,640 --> 00:01:23,200
+And after the user is authenticated,
+
+22
+00:01:23,200 --> 00:01:29,020
+the filter places the AuthenticationToken in the security context object,
+
+23
+00:01:29,020 --> 00:01:30,820
+which is a thread local,
+
+24
+00:01:30,820 --> 00:01:34,510
+making it accessible in your application anywhere
+
+25
+00:01:34,510 --> 00:01:35,920
+in the same thread of execution.
+
+26
+00:01:35,920 --> 00:01:40,880
+You can get access to this authentication object and the principal within
+
+27
+00:01:40,880 --> 00:01:45,000
+it using the SecurityContextHolder in the following way,
+
+28
+00:01:45,000 --> 00:01:47,650
+and this is effectively what the AuthenticationPrincipal
+
+29
+00:01:47,650 --> 00:01:52,410
+annotation is doing for us and conveniently casting it to
+
+30
+00:01:52,410 --> 00:01:55,240
+the CustomUserDetails object.
+
+31
+00:01:55,240 --> 00:01:58,230
+If you just need the unique identifier for the user,
+
+32
+00:01:58,230 --> 00:02:02,090
+then you can just simply use the GetName method on the authentication object,
+
+33
+00:02:02,090 --> 00:02:04,940
+and this will work for all types; however,
+
+34
+00:02:04,940 --> 00:02:07,170
+if you need specific attributes,
+
+35
+00:02:07,170 --> 00:02:10,410
+then you need to cast the principal to the correct type.
+
+36
+00:02:10,410 --> 00:02:12,460
+This is where things can get messy.
+
+37
+00:02:12,460 --> 00:02:14,700
+Let's try and get the user's first and last name.
+
+38
+00:02:14,700 --> 00:02:17,840
+The principal object can be one of three types,
+
+39
+00:02:17,840 --> 00:02:24,170
+so first, check if it's an instance of CustomUserDetails for form login users,
+
+40
+00:02:24,170 --> 00:02:26,140
+and here, we can retrieve the name.
+
+41
+00:02:26,140 --> 00:02:39,040
+Next, we have to check if it's an OidcUser, and extract the name.
+
+42
+00:02:39,040 --> 00:02:42,160
+Finally, we can check if it's an oauth2User.
+
+43
+00:02:42,160 --> 00:02:45,340
+Now, our oauth2User is Facebook,
+
+44
+00:02:45,340 --> 00:02:50,540
+so we need to check the docs to find out the name of the fields.
+
+45
+00:02:50,540 --> 00:02:52,510
+Now, as you can see, this is quite messy,
+
+46
+00:02:52,510 --> 00:02:58,210
+so what I like to do is create a user principal interface for the
+
+47
+00:02:58,210 --> 00:03:01,870
+application with the getter and setters fields that we require,
+
+48
+00:03:01,870 --> 00:03:04,830
+and I also like to match the names as much as possible
+
+49
+00:03:04,830 --> 00:03:07,160
+to the OpenID Connect specification.
+
+50
+00:03:07,160 --> 00:03:10,920
+Then I can make the CustomUserDetails and FacebookUser
+
+51
+00:03:10,920 --> 00:03:14,040
+class implement this new interface.
+
+52
+00:03:14,040 --> 00:03:17,850
+For OpenID Connect, it's a little bit more complicated.
+
+53
+00:03:17,850 --> 00:03:18,980
+Let me explain why.
+
+54
+00:03:18,980 --> 00:03:21,220
+As stated before, there are many ways to authenticate,
+
+55
+00:03:21,220 --> 00:03:25,590
+so each way will have its own flavor of an authentication filter,
+
+56
+00:03:25,590 --> 00:03:29,570
+which knows how to intercept and pass that specific authentication request.
+
+57
+00:03:29,570 --> 00:03:32,960
+The filter will create an authentication request token.
+
+58
+00:03:32,960 --> 00:03:36,190
+At this stage, tokens are not authenticated.
+
+59
+00:03:36,190 --> 00:03:39,090
+An auth filter will then delegate the
+
+60
+00:03:39,090 --> 00:03:43,140
+authentication to the AuthenticationManager,
+
+61
+00:03:43,140 --> 00:03:47,240
+which, as the name suggests, manages authentication.
+
+62
+00:03:47,240 --> 00:03:50,070
+Now, there are many ways to authenticate.
+
+63
+00:03:50,070 --> 00:03:52,670
+In our application, we're using three ways,
+
+64
+00:03:52,670 --> 00:03:55,950
+form, username and password, OAuth 2 for Facebook,
+
+65
+00:03:55,950 --> 00:03:57,650
+and OpenID Connect for Google.
+
+66
+00:03:57,650 --> 00:03:59,090
+For each implementation,
+
+67
+00:03:59,090 --> 00:04:03,440
+Spring will configure an appropriate authentication provider
+
+68
+00:04:03,440 --> 00:04:06,440
+and add it to the AuthenticationManager.
+
+69
+00:04:06,440 --> 00:04:10,500
+The manager will simply delegate the authentication token to the
+
+70
+00:04:10,500 --> 00:04:14,990
+appropriate provider that deals with that type of authentication.
+
+71
+00:04:14,990 --> 00:04:18,040
+Now, in debug, you can see all these components,
+
+72
+00:04:18,040 --> 00:04:21,440
+the UsernameAndPassword and our OAuth2AuthenticationFilters.
+
+73
+00:04:21,440 --> 00:04:24,470
+Each have a reference to the AuthenticationManager,
+
+74
+00:04:24,470 --> 00:04:26,580
+which has three providers configured.
+
+75
+00:04:26,580 --> 00:04:30,370
+The OAuth2 and OpenID Connect providers will swap the
+
+76
+00:04:30,370 --> 00:04:33,540
+authorization code for an access token and then call the
+
+77
+00:04:33,540 --> 00:04:35,940
+/userinfo endpoint to retrieve the user's data,
+
+78
+00:04:35,940 --> 00:04:40,940
+while the form user details provider will retrieve this data from the database.
+
+79
+00:04:40,940 --> 00:04:44,270
+Now, the providers do this by using a user service,
+
+80
+00:04:44,270 --> 00:04:47,140
+which returns the principal object.
+
+81
+00:04:47,140 --> 00:04:48,770
+Now, after the user is authenticated,
+
+82
+00:04:48,770 --> 00:04:52,260
+a new authentication token is created with the
+
+83
+00:04:52,260 --> 00:04:55,470
+authenticated principal added to it.
+
+84
+00:04:55,470 --> 00:05:01,740
+That token will go up the chain and find its way to the security context.
+
+85
+00:05:01,740 --> 00:05:06,470
+The OidcUser service returns and OidcUser implementation.
+
+86
+00:05:06,470 --> 00:05:10,540
+We need to create our own version that implements this interface.
+
+87
+00:05:10,540 --> 00:05:15,170
+First, let's create a wrapper, CryptoOidcUser, that extends,
+
+88
+00:05:15,170 --> 00:05:17,840
+brings default implementation,
+
+89
+00:05:17,840 --> 00:05:21,890
+and now make this new wrapper implement our interface.
+
+90
+00:05:21,890 --> 00:05:26,240
+Next, we create a wrapper around the OidcUserService,
+
+91
+00:05:26,240 --> 00:05:28,690
+overriding the loadUser method.
+
+92
+00:05:28,690 --> 00:05:29,060
+This time,
+
+93
+00:05:29,060 --> 00:05:36,740
+we'll call the parent class' load user and wrap the OidcUser with our new class.
+
+94
+00:05:36,740 --> 00:05:43,280
+Finally, we can plug the OidcUserService via the OidcUserService login builder.
+
+95
+00:05:43,280 --> 00:05:46,580
+So now, each principal object will be of type CryptoPrincipal,
+
+96
+00:05:46,580 --> 00:05:49,720
+and we can extract the fields we require regardless of
+
+97
+00:05:49,720 --> 00:05:52,240
+which way the user was authenticated.
+
+98
+00:05:52,240 --> 00:06:08,240
+So let's also refactor our AuthenticationSuccessHandler.
+
+99
+00:06:08,240 --> 00:06:10,140
+There, much neater.
+
+100
+00:06:10,140 --> 00:06:15,740
+Again, you could also achieve something similar with using utility classes, etc.
+
+101
+00:06:15,740 --> 00:06:17,880
+You're probably starting to notice that things are
+
+102
+00:06:17,880 --> 00:06:20,340
+broken up into these endpoints.
+
+103
+00:06:20,340 --> 00:06:22,740
+The redirectionEndpoint, as the name suggests,
+
+104
+00:06:22,740 --> 00:06:24,960
+handles redirecting the user's browser to the
+
+105
+00:06:24,960 --> 00:06:28,000
+authorization server to authenticate the user and
+
+106
+00:06:28,000 --> 00:06:30,670
+authorize the client to access the user details,
+
+107
+00:06:30,670 --> 00:06:36,640
+the tokenEndpoint where the auth code can be exchanged for the access token,
+
+108
+00:06:36,640 --> 00:06:37,260
+and finally,
+
+109
+00:06:37,260 --> 00:06:41,010
+the /userinfo endpoint where the access token can be used
+
+110
+00:06:41,010 --> 00:06:43,940
+to access to user's protected resources.
+
+111
+00:06:43,940 --> 00:06:44,190
+Now,
+
+112
+00:06:44,190 --> 00:06:47,580
+all these endpoints are customizable via the builder in
+
+113
+00:06:47,580 --> 00:06:50,440
+the web security configuration adapter.
+
+114
+00:06:50,440 --> 00:06:51,180
+Next,
+
+115
+00:06:51,180 --> 00:06:58,000
+let's look at how we can customize the default configuration by adding additional scopes to the request.
+

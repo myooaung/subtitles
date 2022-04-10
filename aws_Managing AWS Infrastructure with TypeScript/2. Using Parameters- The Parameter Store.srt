@@ -1,0 +1,1228 @@
+1
+00:00:02,040 --> 00:00:03,460
+At this point in the course,
+
+2
+00:00:03,460 --> 00:00:07,040
+the SSM Parameter Store shouldn't be a new concept to you.
+
+3
+00:00:07,040 --> 00:00:10,690
+I waited to refactor our application so as to pair that effort with
+
+4
+00:00:10,690 --> 00:00:14,340
+the concept of building loosely coupled systems.
+
+5
+00:00:14,340 --> 00:00:17,430
+One of the greatest choices in recent years on promoting loose coupling
+
+6
+00:00:17,430 --> 00:00:19,940
+is already built into our application architecture.
+
+7
+00:00:19,940 --> 00:00:21,580
+That's a serverless design.
+
+8
+00:00:21,580 --> 00:00:25,030
+Now, again, this isn't using a serverless framework in this course,
+
+9
+00:00:25,030 --> 00:00:28,340
+but we certainly haven't spent any time yet building complex VPCs,
+
+10
+00:00:28,340 --> 00:00:31,040
+EC2 instances, or autoscaling groups.
+
+11
+00:00:31,040 --> 00:00:34,130
+Our application design uses Lambdas with an API Gateway
+
+12
+00:00:34,130 --> 00:00:36,090
+to perform CRUD operations on Dynamo.
+
+13
+00:00:36,090 --> 00:00:40,340
+Right out of the box, the design is already very loosely coupled.
+
+14
+00:00:40,340 --> 00:00:42,080
+These components all communicate to each other
+
+15
+00:00:42,080 --> 00:00:44,740
+through some semblance of an interface,
+
+16
+00:00:44,740 --> 00:00:48,340
+all essentially glued together with CodePipeline deployments.
+
+17
+00:00:48,340 --> 00:00:50,550
+Thanks to our distributed designs with the CDK,
+
+18
+00:00:50,550 --> 00:00:52,530
+any one of these components can be replaced or
+
+19
+00:00:52,530 --> 00:00:54,700
+improved independently of the rest.
+
+20
+00:00:54,700 --> 00:00:57,320
+Now we truly won't be able to set up a fully decoupled and
+
+21
+00:00:57,320 --> 00:01:01,010
+dynamic platform until we get to the next module where we move
+
+22
+00:01:01,010 --> 00:01:03,740
+constructs into a construct library.
+
+23
+00:01:03,740 --> 00:01:04,200
+For now,
+
+24
+00:01:04,200 --> 00:01:06,990
+we'll build as many dynamic concepts as we can through
+
+25
+00:01:06,990 --> 00:01:11,140
+context and deploy time SSM parameters.
+
+26
+00:01:11,140 --> 00:01:13,770
+If you remember this slide from a few modules ago,
+
+27
+00:01:13,770 --> 00:01:17,640
+we demonstrated how to create and reference SSM parameters.
+
+28
+00:01:17,640 --> 00:01:20,370
+Just about every aspect of our application can be dynamic,
+
+29
+00:01:20,370 --> 00:01:22,640
+which is precisely what we want.
+
+30
+00:01:22,640 --> 00:01:25,170
+I also showed a view of the seven or eight parameters that I
+
+31
+00:01:25,170 --> 00:01:27,660
+manually created in the Systems Manager as well.
+
+32
+00:01:27,660 --> 00:01:30,460
+So as to make our deployment self‑contained and immutable,
+
+33
+00:01:30,460 --> 00:01:34,110
+let's build a new stack that seeds those parameters for our application.
+
+34
+00:01:34,110 --> 00:01:37,840
+One point of factor that's slightly different from the slide In the last module,
+
+35
+00:01:37,840 --> 00:01:40,350
+I mentioned that SSM parameters can be acquired at
+
+36
+00:01:40,350 --> 00:01:42,840
+synthesize or deployment time, depending on your needs.
+
+37
+00:01:42,840 --> 00:01:46,040
+Note that the fromStringParameterAttributes method exchanges
+
+38
+00:01:46,040 --> 00:01:48,940
+tokens for real values during deployment.
+
+39
+00:01:48,940 --> 00:01:52,440
+Since we'll need these values at synthesis time to build properties,
+
+40
+00:01:52,440 --> 00:01:54,850
+we'll be using the valueFromLookup method instead,
+
+41
+00:01:54,850 --> 00:01:56,490
+like this.
+
+42
+00:01:56,490 --> 00:02:00,960
+In this demo we'll create a brand‑new stack that allows us to
+
+43
+00:02:00,960 --> 00:02:04,040
+seed SSM values with needed parameters.
+
+44
+00:02:04,040 --> 00:02:07,160
+I'll go ahead and keep the stack in the same distribution so that you
+
+45
+00:02:07,160 --> 00:02:10,840
+can deploy and destroy it independently as you need.
+
+46
+00:02:10,840 --> 00:02:11,170
+All right,
+
+47
+00:02:11,170 --> 00:02:14,690
+so if we roll back over into Visual Studio Code and we open our
+
+48
+00:02:14,690 --> 00:02:18,240
+little handy‑dandy refactor‑steps text file,
+
+49
+00:02:18,240 --> 00:02:21,710
+we can see that I've added step 14 and 15.
+
+50
+00:02:21,710 --> 00:02:22,650
+And what we're going to do is,
+
+51
+00:02:22,650 --> 00:02:25,360
+we're going to create a seeder stack for SSM parameters to
+
+52
+00:02:25,360 --> 00:02:28,440
+make our lives a little bit easier here.
+
+53
+00:02:28,440 --> 00:02:30,400
+So the first thing I'm going to do is,
+
+54
+00:02:30,400 --> 00:02:32,150
+I'm going to go ahead and create an ssmseeder
+
+55
+00:02:32,150 --> 00:02:35,240
+directory and then the typescript file.
+
+56
+00:02:35,240 --> 00:02:36,260
+Now what we're going to do is,
+
+57
+00:02:36,260 --> 00:02:38,930
+we're going to go ahead and use the SSM Parameter Store,
+
+58
+00:02:38,930 --> 00:02:41,500
+and we're going to seed all of our demo parameters,
+
+59
+00:02:41,500 --> 00:02:44,540
+and then we're going to deploy them to the Systems Manager.
+
+60
+00:02:44,540 --> 00:02:47,240
+So if I go over to the seeder TypeScript file,
+
+61
+00:02:47,240 --> 00:02:50,470
+you can see again that this is just a very simple CDK stack.
+
+62
+00:02:50,470 --> 00:02:54,470
+And in this case, we're using the aws‑ssm package.
+
+63
+00:02:54,470 --> 00:02:57,140
+I don't really have any properties I've injected,
+
+64
+00:02:57,140 --> 00:03:02,440
+but what I've done inside the class is, I've created an array called envList,
+
+65
+00:03:02,440 --> 00:03:05,960
+which, for the sake of demo purposes, includes two demo environments,
+
+66
+00:03:05,960 --> 00:03:08,510
+our Dev‑local environment and our Dev‑integration environment.
+
+67
+00:03:08,510 --> 00:03:12,140
+Now you may have 20 environments here to create parameters for,
+
+68
+00:03:12,140 --> 00:03:14,580
+and since all of our parameters have to exist in the form
+
+69
+00:03:14,580 --> 00:03:20,150
+of a hierarchy to represent an object, my top‑level parent is called CdkEnvs,
+
+70
+00:03:20,150 --> 00:03:22,340
+for CDK environments.
+
+71
+00:03:22,340 --> 00:03:25,640
+And what that's going to do is, my top level will be a /CdkEnvs,
+
+72
+00:03:25,640 --> 00:03:28,580
+and then my environment will be below that,
+
+73
+00:03:28,580 --> 00:03:30,030
+and my parameter will be below that,
+
+74
+00:03:30,030 --> 00:03:32,440
+as we'll see in just a second in the Parameter Store.
+
+75
+00:03:32,440 --> 00:03:35,110
+So first and foremost, the first thing I've done is,
+
+76
+00:03:35,110 --> 00:03:38,180
+I'm creating the defaultEnv parameter,
+
+77
+00:03:38,180 --> 00:03:40,590
+and that's going to represent the default environment if no
+
+78
+00:03:40,590 --> 00:03:42,880
+environment is chosen during the synthesis process.
+
+79
+00:03:42,880 --> 00:03:44,640
+And as we've learned,
+
+80
+00:03:44,640 --> 00:03:47,350
+we're going to use the StringParameter command to create the parameter.
+
+81
+00:03:47,350 --> 00:03:50,140
+Let me go ahead and free up a little more space here.
+
+82
+00:03:50,140 --> 00:03:52,840
+So we're calling ssm‑StringParameter.
+
+83
+00:03:52,840 --> 00:03:53,510
+And in this case,
+
+84
+00:03:53,510 --> 00:03:57,010
+the second parameter as we know in constructs is just the construct ID,
+
+85
+00:03:57,010 --> 00:03:59,620
+but naturally I can't have forward slashes in that, so
+
+86
+00:03:59,620 --> 00:04:03,940
+all I've done is create an envParent‑, and then the value.
+
+87
+00:04:03,940 --> 00:04:07,640
+And if I scroll over just a little bit further and see the rest,
+
+88
+00:04:07,640 --> 00:04:11,210
+we can see that what I've done is, my parameter name is going to be /envParent,
+
+89
+00:04:11,210 --> 00:04:14,820
+and in this case, that's going to be CdkEnvs.
+
+90
+00:04:14,820 --> 00:04:17,230
+And then the parameter name is going to be Default‑env,
+
+91
+00:04:17,230 --> 00:04:20,970
+and the string value as we know now is going to be Dev‑local.
+
+92
+00:04:20,970 --> 00:04:24,640
+So that's our default parameter as far as environments is concerned.
+
+93
+00:04:24,640 --> 00:04:26,310
+And if I go down now what I've done is,
+
+94
+00:04:26,310 --> 00:04:29,070
+I loop through the envList to create parameters for
+
+95
+00:04:29,070 --> 00:04:31,640
+both Dev‑local and Dev‑integration.
+
+96
+00:04:31,640 --> 00:04:34,780
+Now, obviously, that's going to create the exact same parameters for each,
+
+97
+00:04:34,780 --> 00:04:36,230
+so you may duplicate this.
+
+98
+00:04:36,230 --> 00:04:38,310
+But remember, this is just a seeder stack.
+
+99
+00:04:38,310 --> 00:04:39,280
+So in theory,
+
+100
+00:04:39,280 --> 00:04:42,640
+you could go ahead and seed these into your Systems Manager and
+
+101
+00:04:42,640 --> 00:04:44,970
+then go in and change values as you see fit.
+
+102
+00:04:44,970 --> 00:04:47,300
+And just as you would imagine, again,
+
+103
+00:04:47,300 --> 00:04:52,080
+we're creating the construct ID with the envParent and then the env,
+
+104
+00:04:52,080 --> 00:04:53,530
+which is our for loop variable.
+
+105
+00:04:53,530 --> 00:04:56,280
+And in this case, it's going to be Dev‑local and Dev‑integration.
+
+106
+00:04:56,280 --> 00:05:00,240
+And then our parameters are going to get created with parent,
+
+107
+00:05:00,240 --> 00:05:02,750
+the name of the environment, and the parameter name and value.
+
+108
+00:05:02,750 --> 00:05:07,740
+So here is the apiName parameter, and that's going to be set to apiGw.
+
+109
+00:05:07,740 --> 00:05:15,140
+So this will be CdkEnvs/Dev‑local/apiName, with the value of apiGw.
+
+110
+00:05:15,140 --> 00:05:18,840
+So now if I go back over to the full stack file,
+
+111
+00:05:18,840 --> 00:05:24,540
+I've gone ahead already and pulled the seeder stack in at the top.
+
+112
+00:05:24,540 --> 00:05:27,940
+And then from there I create a version of the seeder stack.
+
+113
+00:05:27,940 --> 00:05:28,780
+And again,
+
+114
+00:05:28,780 --> 00:05:31,090
+we didn't have any properties and I don't need to create any
+
+115
+00:05:31,090 --> 00:05:33,330
+local variables specifically for the stack,
+
+116
+00:05:33,330 --> 00:05:36,940
+so we can actually go ahead and deploy this independently of the rest.
+
+117
+00:05:36,940 --> 00:05:42,040
+Now, one thing you'll notice is, I've put a little bit of error handling in here.
+
+118
+00:05:42,040 --> 00:05:42,810
+So for example,
+
+119
+00:05:42,810 --> 00:05:47,150
+if you actually go in here and you fail to provide an environment on context,
+
+120
+00:05:47,150 --> 00:05:48,370
+it's actually going to throw an error.
+
+121
+00:05:48,370 --> 00:05:50,640
+And one challenge here with using the CDK is,
+
+122
+00:05:50,640 --> 00:05:53,620
+any one of the CDK commands will actually reveal that error.
+
+123
+00:05:53,620 --> 00:05:57,380
+So this will still execute even with a cdk ls or a cdk synth.
+
+124
+00:05:57,380 --> 00:06:00,910
+And as an example, if I just run a cdk ls,
+
+125
+00:06:00,910 --> 00:06:03,420
+that error handling is basically going to tell me that I didn't
+
+126
+00:06:03,420 --> 00:06:05,910
+choose one of the two appropriate environment types,
+
+127
+00:06:05,910 --> 00:06:07,140
+which it did.
+
+128
+00:06:07,140 --> 00:06:08,740
+And you can see that those two are available right
+
+129
+00:06:08,740 --> 00:06:12,140
+here at the top in an envList array.
+
+130
+00:06:12,140 --> 00:06:18,940
+So now if I do a cdk ls using the context flag and I set env to Dev‑local,
+
+131
+00:06:18,940 --> 00:06:21,740
+we know that this line of code right here is going to
+
+132
+00:06:21,740 --> 00:06:24,140
+pull that right off of context,
+
+133
+00:06:24,140 --> 00:06:26,500
+and it's going to jump over to that error handling appropriately,
+
+134
+00:06:26,500 --> 00:06:27,600
+which it did.
+
+135
+00:06:27,600 --> 00:06:29,570
+We can see every one of our stacks in the list.
+
+136
+00:06:29,570 --> 00:06:33,440
+So if I go back up and do exactly the same thing,
+
+137
+00:06:33,440 --> 00:06:38,020
+but in this case I deploy only the SsmSeederAppStack,
+
+138
+00:06:38,020 --> 00:06:40,670
+we see that our stack deployed.
+
+139
+00:06:40,670 --> 00:06:43,110
+And now if we head over to the Parameter Store in the
+
+140
+00:06:43,110 --> 00:06:46,240
+Systems Manager and I refresh the page,
+
+141
+00:06:46,240 --> 00:06:50,540
+we can see that all of our parameters have been created and now exist
+
+142
+00:06:50,540 --> 00:06:53,140
+exactly as we would have expected in the Parameter Store.
+
+143
+00:06:53,140 --> 00:06:56,150
+And using the simple example we looked at a second ago in code,
+
+144
+00:06:56,150 --> 00:07:01,040
+here's the apiName, which is set to apiGw.
+
+145
+00:07:01,040 --> 00:07:03,180
+And we know that we have Dev‑integration versions of the
+
+146
+00:07:03,180 --> 00:07:07,140
+parameters and Dev‑local versions of the parameters.
+
+147
+00:07:07,140 --> 00:07:11,050
+So one nice feature of using a stack to seed with is if you
+
+148
+00:07:11,050 --> 00:07:13,640
+change any parameters in your SSM seeder stack,
+
+149
+00:07:13,640 --> 00:07:16,480
+it'll do a simple update and change those values for you.
+
+150
+00:07:16,480 --> 00:07:18,490
+And secondarily, every single time you deploy,
+
+151
+00:07:18,490 --> 00:07:21,500
+even if you deploy just with a *wildcard,
+
+152
+00:07:21,500 --> 00:07:24,940
+it's going to simply ignore the seeder stack with no changes.
+
+153
+00:07:24,940 --> 00:07:27,210
+So you don't have to worry about it overwriting any variables or
+
+154
+00:07:27,210 --> 00:07:32,240
+parameters unless you intentionally change values.
+
+155
+00:07:32,240 --> 00:07:34,180
+Now that we have all of our parameters fully
+
+156
+00:07:34,180 --> 00:07:37,140
+dynamically available in the SSM store,
+
+157
+00:07:37,140 --> 00:07:41,010
+let's contribute to our goal of loose coupling by building property objects and
+
+158
+00:07:41,010 --> 00:07:46,340
+required interfaces for each stack using these parameters.
+
+159
+00:07:46,340 --> 00:07:49,810
+So now that we have all of our parameters in the SSM Parameter Store,
+
+160
+00:07:49,810 --> 00:07:51,440
+let's take advantage of these.
+
+161
+00:07:51,440 --> 00:07:53,640
+So I'm back in our refactor‑steps text file here
+
+162
+00:07:53,640 --> 00:07:55,150
+and I've added a couple of tasks.
+
+163
+00:07:55,150 --> 00:07:58,260
+First, what we're going to do is,
+
+164
+00:07:58,260 --> 00:08:00,450
+we're going to go build a set of property objects and then
+
+165
+00:08:00,450 --> 00:08:03,390
+ultimately interfaces for our SSM parameters.
+
+166
+00:08:03,390 --> 00:08:07,640
+So properties will be represented by objects in our main application file,
+
+167
+00:08:07,640 --> 00:08:09,450
+and then interfaces will be designated in each
+
+168
+00:08:09,450 --> 00:08:13,140
+class file for each physical stack.
+
+169
+00:08:13,140 --> 00:08:17,540
+So if I go back to our full‑stack application file,
+
+170
+00:08:17,540 --> 00:08:22,340
+the first thing that we can see is, I take in our projectName on context.
+
+171
+00:08:22,340 --> 00:08:22,530
+Now,
+
+172
+00:08:22,530 --> 00:08:26,070
+the projectName itself is the one variable or one piece of data
+
+173
+00:08:26,070 --> 00:08:28,510
+that I can't store because that's what you're going to use to
+
+174
+00:08:28,510 --> 00:08:30,340
+create this entire application.
+
+175
+00:08:30,340 --> 00:08:32,560
+And if you had the chance to deploy the CloudFormation
+
+176
+00:08:32,560 --> 00:08:35,180
+stack from the AWS Labs distribution,
+
+177
+00:08:35,180 --> 00:08:38,060
+you saw that the projectName was one primary parameter.
+
+178
+00:08:38,060 --> 00:08:39,820
+And since almost every other parameter name is
+
+179
+00:08:39,820 --> 00:08:41,780
+somehow a root of that projectName,
+
+180
+00:08:41,780 --> 00:08:46,240
+it's required that that only be 12 characters long.
+
+181
+00:08:46,240 --> 00:08:48,420
+So there's a little bit of error handling here just to make sure
+
+182
+00:08:48,420 --> 00:08:51,990
+that your projectName is less than 13 characters.
+
+183
+00:08:51,990 --> 00:08:55,520
+We just saw in the last module how the seeder stack works.
+
+184
+00:08:55,520 --> 00:08:57,790
+We can ignore that for now.
+
+185
+00:08:57,790 --> 00:09:01,740
+And now what we have is, we have a new deployment stack.
+
+186
+00:09:01,740 --> 00:09:04,940
+Now, DeploymentStack has absolutely nothing in it.
+
+187
+00:09:04,940 --> 00:09:06,460
+It really doesn't do anything.
+
+188
+00:09:06,460 --> 00:09:10,730
+But SSM parameters have to be retrieved in the context of a stack.
+
+189
+00:09:10,730 --> 00:09:13,630
+So we have a deployment stack that we could take advantage of in the future if
+
+190
+00:09:13,630 --> 00:09:17,040
+we need to from which all of our SSM parameters will derive.
+
+191
+00:09:17,040 --> 00:09:19,840
+Now, I showed this line just a little bit in the last clip.
+
+192
+00:09:19,840 --> 00:09:22,970
+I set a value of bizEnv, or business environment,
+
+193
+00:09:22,970 --> 00:09:25,890
+and what I do is, I try to grab that from context,
+
+194
+00:09:25,890 --> 00:09:27,830
+which you saw briefly in the last module.
+
+195
+00:09:27,830 --> 00:09:30,440
+And if that is not on context,
+
+196
+00:09:30,440 --> 00:09:37,240
+I grab it from our new default value of Default‑env from the Parameter Store.
+
+197
+00:09:37,240 --> 00:09:39,190
+And then as I also briefly explained,
+
+198
+00:09:39,190 --> 00:09:41,060
+I put a little bit of error handling in here,
+
+199
+00:09:41,060 --> 00:09:41,980
+nothing fancy,
+
+200
+00:09:41,980 --> 00:09:44,120
+to require that any environment designation that you
+
+201
+00:09:44,120 --> 00:09:46,030
+actually pull in is in the list.
+
+202
+00:09:46,030 --> 00:09:53,140
+So if you type in env=abc123, this will bail out when you run a cdk, anything.
+
+203
+00:09:53,140 --> 00:09:57,000
+So now what we're doing is, we're expounding on our property pattern.
+
+204
+00:09:57,000 --> 00:09:57,860
+So what I've done is,
+
+205
+00:09:57,860 --> 00:10:00,500
+I've created about seven or eight different objects, all
+
+206
+00:10:00,500 --> 00:10:04,000
+intended to store and be used for property management and
+
+207
+00:10:04,000 --> 00:10:06,640
+facilitate our interfaces and our class stacks.
+
+208
+00:10:06,640 --> 00:10:09,920
+So the first thing I've done is, I've created an envProps object,
+
+209
+00:10:09,920 --> 00:10:11,810
+in which case the only thing I could really think of
+
+210
+00:10:11,810 --> 00:10:16,240
+environmentally for demo purposes was the useCdn value.
+
+211
+00:10:16,240 --> 00:10:18,570
+I've created a projProps object,
+
+212
+00:10:18,570 --> 00:10:22,240
+in which case I store the projectName which was provided at the top,
+
+213
+00:10:22,240 --> 00:10:24,300
+and then we go through our stack properties.
+
+214
+00:10:24,300 --> 00:10:28,570
+So the first object here are our API Gateway Properties, or our ApiProps.
+
+215
+00:10:28,570 --> 00:10:33,150
+And in this case now, I am actually pulling these out of SSM parameters.
+
+216
+00:10:33,150 --> 00:10:38,790
+So the apiName value itself comes out of the ApiName parameter.
+
+217
+00:10:38,790 --> 00:10:40,600
+Now, this is a very long line of code,
+
+218
+00:10:40,600 --> 00:10:42,940
+so I apologize for scrolling back and forth.
+
+219
+00:10:42,940 --> 00:10:43,980
+But essentially what I've done is,
+
+220
+00:10:43,980 --> 00:10:46,510
+I've prepended it with the projectName because if you remember,
+
+221
+00:10:46,510 --> 00:10:50,120
+this value was apiGw in the SSM Parameter Store.
+
+222
+00:10:50,120 --> 00:10:52,200
+At least we can get the projectName on it to give
+
+223
+00:10:52,200 --> 00:10:54,540
+it some semblance of uniqueness.
+
+224
+00:10:54,540 --> 00:10:55,670
+Now you can see what I'm doing is,
+
+225
+00:10:55,670 --> 00:10:59,140
+I'm simply concatenating the value of the parameter
+
+226
+00:10:59,140 --> 00:11:00,880
+that comes out of the SSM store,
+
+227
+00:11:00,880 --> 00:11:04,040
+and I am adding the projectName to the front of it.
+
+228
+00:11:04,040 --> 00:11:05,550
+And then if we go down a little bit further,
+
+229
+00:11:05,550 --> 00:11:07,970
+there's a few properties similarly that are created
+
+230
+00:11:07,970 --> 00:11:10,840
+for the content delivery network.
+
+231
+00:11:10,840 --> 00:11:14,770
+We have a suite of parameters that are created for the code objects
+
+232
+00:11:14,770 --> 00:11:18,140
+or the code stack for CodePipeline and CodeBuild.
+
+233
+00:11:18,140 --> 00:11:19,850
+We have a set of cognitoProps,
+
+234
+00:11:19,850 --> 00:11:22,620
+which are used for our user pool and our identity pool.
+
+235
+00:11:22,620 --> 00:11:26,250
+There are properties created specifically for the Dynamo database,
+
+236
+00:11:26,250 --> 00:11:28,590
+including the name of the table that gets created and the
+
+237
+00:11:28,590 --> 00:11:31,040
+partition key and the sort key used in the table.
+
+238
+00:11:31,040 --> 00:11:35,880
+I didn't really have any Lambda props to add, but I included it just for now.
+
+239
+00:11:35,880 --> 00:11:40,860
+And then we have a suite of properties associated with our S3 buckets.
+
+240
+00:11:40,860 --> 00:11:43,860
+Now what I've done from there is, I've simply use the spread operator,
+
+241
+00:11:43,860 --> 00:11:47,020
+and I've combined all the properties together into a props object,
+
+242
+00:11:47,020 --> 00:11:49,860
+and I pass that into each stack instantiation.
+
+243
+00:11:49,860 --> 00:11:52,630
+Now, realize you're going to get a lot of extra properties from each stack,
+
+244
+00:11:52,630 --> 00:11:55,440
+but keep in mind, these objects are not very heavy.
+
+245
+00:11:55,440 --> 00:11:57,470
+So it's not the worst thing in the world to have access to
+
+246
+00:11:57,470 --> 00:11:59,540
+each one of these properties in each stack.
+
+247
+00:11:59,540 --> 00:12:01,960
+And if I go over to one of the stack files,
+
+248
+00:12:01,960 --> 00:12:04,540
+the database file in this case,
+
+249
+00:12:04,540 --> 00:12:08,440
+you remember now that we have interfaces in each class.
+
+250
+00:12:08,440 --> 00:12:12,030
+So the database stack requires the projectName in the tableName.
+
+251
+00:12:12,030 --> 00:12:15,360
+And in this case, we just talked about the partition key and the sort key,
+
+252
+00:12:15,360 --> 00:12:19,240
+all now coming in from the SSM Parameter Store,
+
+253
+00:12:19,240 --> 00:12:20,840
+used right here.
+
+254
+00:12:20,840 --> 00:12:23,340
+So everything is completely dynamic at this point.
+
+255
+00:12:23,340 --> 00:12:25,920
+And if I go back to the full‑stack file and I
+
+256
+00:12:25,920 --> 00:12:28,940
+uncomment the properties themselves,
+
+257
+00:12:28,940 --> 00:12:32,620
+I'm going to show you a few interesting things associated with SSM parameters,
+
+258
+00:12:32,620 --> 00:12:34,800
+as far as the CDK lifecycle is concerned.
+
+259
+00:12:34,800 --> 00:12:37,540
+So let me save that and recompile.
+
+260
+00:12:37,540 --> 00:12:40,820
+So these SSM parameters will be pulled when the cloud assembly is created,
+
+261
+00:12:40,820 --> 00:12:44,370
+and that happens during an ls, a synth, or a deploy. And what will happen is,
+
+262
+00:12:44,370 --> 00:12:46,280
+it will pull the properties out of store and it will
+
+263
+00:12:46,280 --> 00:12:48,550
+store them locally in the context file.
+
+264
+00:12:48,550 --> 00:12:52,540
+So now that I've uncommented that line of code that logs all the properties,
+
+265
+00:12:52,540 --> 00:12:57,340
+let me go ahead and do a cdk ls.
+
+266
+00:12:57,340 --> 00:12:59,330
+And now, if I go back and look at that output,
+
+267
+00:12:59,330 --> 00:13:02,340
+you can see that all the properties were synthesized.
+
+268
+00:13:02,340 --> 00:13:06,840
+Now what's a little strange here is, they were already in my context.json file.
+
+269
+00:13:06,840 --> 00:13:09,440
+So if I go ahead and open that up,
+
+270
+00:13:09,440 --> 00:13:10,980
+you can see that all of my properties were
+
+271
+00:13:10,980 --> 00:13:13,940
+essentially cached and stored locally.
+
+272
+00:13:13,940 --> 00:13:20,080
+So let's empty that out and start from scratch with a cdk context ‑‑clear flag,
+
+273
+00:13:20,080 --> 00:13:24,540
+and now you just saw, all of those parameters in the context just disappeared.
+
+274
+00:13:24,540 --> 00:13:29,940
+So now if I rerun that command, watch what happens.
+
+275
+00:13:29,940 --> 00:13:34,100
+The cloud assembly creation process goes through a few passes of attempting
+
+276
+00:13:34,100 --> 00:13:36,480
+to pull those parameters back from the Parameter Store.
+
+277
+00:13:36,480 --> 00:13:38,150
+And the first time it goes through and says,
+
+278
+00:13:38,150 --> 00:13:39,660
+hey, I don't know where these parameters are,
+
+279
+00:13:39,660 --> 00:13:43,020
+you'll notice what it does is, it puts a dummy‑value‑for,
+
+280
+00:13:43,020 --> 00:13:45,060
+which is a very obscure placeholder,
+
+281
+00:13:45,060 --> 00:13:48,440
+in place of the value that it hasn't pulled back yet.
+
+282
+00:13:48,440 --> 00:13:50,020
+And if I scroll down a little bit further,
+
+283
+00:13:50,020 --> 00:13:54,840
+you can see that there was a second pass here where everything was resolved.
+
+284
+00:13:54,840 --> 00:13:56,410
+Now that creates a few problems,
+
+285
+00:13:56,410 --> 00:13:59,150
+because while it's trying to pull those parameters back,
+
+286
+00:13:59,150 --> 00:14:02,350
+it's substituting their targets with values of dummy‑for,
+
+287
+00:14:02,350 --> 00:14:04,920
+which causes problems in certain resources like S3
+
+288
+00:14:04,920 --> 00:14:07,940
+bucket names and CodePipeline objects.
+
+289
+00:14:07,940 --> 00:14:10,290
+Now as long as you understand exactly what's happening here,
+
+290
+00:14:10,290 --> 00:14:13,940
+it's not that big of a deal, and just as you would expect,
+
+291
+00:14:13,940 --> 00:14:19,440
+all my parameters are appropriately listed.
+
+292
+00:14:19,440 --> 00:14:22,170
+So now if I go back and run a cdk deploy,
+
+293
+00:14:22,170 --> 00:14:25,140
+everything will deploy exactly as we expect it to
+
+294
+00:14:25,140 --> 00:14:27,940
+using the Dev‑local set of parameters.
+
+295
+00:14:27,940 --> 00:14:31,300
+So now we have an application where everything is completely and
+
+296
+00:14:31,300 --> 00:14:34,140
+dynamically pulled from the SSM Parameter Store.
+
+297
+00:14:34,140 --> 00:14:34,700
+In theory,
+
+298
+00:14:34,700 --> 00:14:37,950
+now you could go back to the Dev‑integration set of parameters or create a
+
+299
+00:14:37,950 --> 00:14:42,210
+production or test set of parameters and completely change the values and
+
+300
+00:14:42,210 --> 00:14:44,670
+deploy these entirely independently of each other.
+
+301
+00:14:44,670 --> 00:14:45,110
+In fact,
+
+302
+00:14:45,110 --> 00:14:50,240
+if I go ahead and go back and change this value and change it
+
+303
+00:14:50,240 --> 00:14:53,840
+from what deployed just back to an ls for now,
+
+304
+00:14:53,840 --> 00:14:56,440
+we simulated that exact process.
+
+305
+00:14:56,440 --> 00:15:00,340
+Now, if I go back to the context.json file and show you those values,
+
+306
+00:15:00,340 --> 00:15:05,040
+these values are all coming out of the Dev‑integration set of variables.
+
+307
+00:15:05,040 --> 00:15:12,000
+Pretty neat, huh? You can go in just about any direction you want here, being fully dynamic.
+

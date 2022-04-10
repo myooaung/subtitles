@@ -1,0 +1,712 @@
+1
+00:00:01,150 --> 00:00:03,310
+<v Man>In this video, we're now going to implement</v>
+
+2
+00:00:03,310 --> 00:00:06,080
+the global error handling middleware that we
+
+3
+00:00:06,080 --> 00:00:07,483
+just talked about before.
+
+4
+00:00:09,020 --> 00:00:11,280
+So remember that the goal is to write a
+
+5
+00:00:11,280 --> 00:00:13,650
+middleware function, which is gonna be able
+
+6
+00:00:13,650 --> 00:00:17,690
+to handle operational errors like this one.
+
+7
+00:00:17,690 --> 00:00:22,010
+Okay, so when a user hits a URL that doesn't exist,
+
+8
+00:00:22,010 --> 00:00:24,890
+while we can consider that an operational error,
+
+9
+00:00:24,890 --> 00:00:27,590
+and we in this case handle it by sending back
+
+10
+00:00:27,590 --> 00:00:29,630
+this response here, right?
+
+11
+00:00:29,630 --> 00:00:33,320
+But again, the goal is to do that in one central place.
+
+12
+00:00:33,320 --> 00:00:37,200
+For example, we have similar stuff up here.
+
+13
+00:00:37,200 --> 00:00:39,870
+So all over the place here we have these snippets
+
+14
+00:00:39,870 --> 00:00:41,950
+here, which handle the errors.
+
+15
+00:00:41,950 --> 00:00:45,270
+So we have to strike etch block here,
+
+16
+00:00:45,270 --> 00:00:47,460
+and if there is an error, well, then we handle it
+
+17
+00:00:47,460 --> 00:00:50,083
+by sending that error to the client.
+
+18
+00:00:51,290 --> 00:00:53,520
+And so again, in the end, we want to get rid
+
+19
+00:00:53,520 --> 00:00:56,170
+of all of this and handle the error in one
+
+20
+00:00:56,170 --> 00:00:57,900
+central middleware.
+
+21
+00:00:57,900 --> 00:01:00,556
+And so let's now start by actually building
+
+22
+00:01:00,556 --> 00:01:02,800
+that middleware function.
+
+23
+00:01:02,800 --> 00:01:05,470
+And in Express, it's actually very easy.
+
+24
+00:01:05,470 --> 00:01:07,580
+Remember how I told you that Express
+
+25
+00:01:07,580 --> 00:01:09,540
+already comes with middleware handlers
+
+26
+00:01:09,540 --> 00:01:10,880
+out of the box.
+
+27
+00:01:10,880 --> 00:01:15,720
+So as always, we start by using app.use,
+
+28
+00:01:15,720 --> 00:01:19,210
+okay, and then in here we define our middleware function.
+
+29
+00:01:19,210 --> 00:01:21,880
+So, to define an error handling middleware,
+
+30
+00:01:21,880 --> 00:01:24,870
+all we need to do is to give the middleware function
+
+31
+00:01:24,870 --> 00:01:27,980
+four arguments and Express will then automatically
+
+32
+00:01:27,980 --> 00:01:30,740
+recognize it as an error handling middleware.
+
+33
+00:01:30,740 --> 00:01:33,653
+And therefore, only call it when there is an error.
+
+34
+00:01:34,556 --> 00:01:38,220
+And so just like in many other cases, this middleware
+
+35
+00:01:38,220 --> 00:01:41,740
+function is an error first function,
+
+36
+00:01:41,740 --> 00:01:43,330
+which means that the first argument
+
+37
+00:01:43,330 --> 00:01:44,483
+is the error,
+
+38
+00:01:45,930 --> 00:01:50,563
+and then we have request, response, and next.
+
+39
+00:01:51,975 --> 00:01:55,280
+So by specifying four parameters,
+
+40
+00:01:55,280 --> 00:01:57,750
+Express automatically knows that this entire
+
+41
+00:01:57,750 --> 00:02:00,150
+function here is an error handling middleware.
+
+42
+00:02:00,150 --> 00:02:04,150
+So let's now implement the code for this function here
+
+43
+00:02:04,150 --> 00:02:06,400
+and after that I will show you how we can actually
+
+44
+00:02:06,400 --> 00:02:09,000
+create an error so that this middleware function
+
+45
+00:02:09,000 --> 00:02:09,930
+is actually caught.
+
+46
+00:02:09,930 --> 00:02:13,450
+So two steps, first we create the middleware,
+
+47
+00:02:13,450 --> 00:02:15,130
+then in the second step we will actually
+
+48
+00:02:15,130 --> 00:02:18,700
+create an error so that this function will get caught.
+
+49
+00:02:18,700 --> 00:02:20,943
+And for now, let's keep it really simple here.
+
+50
+00:02:20,943 --> 00:02:23,590
+So all we really want to do in order to handle
+
+51
+00:02:23,590 --> 00:02:27,100
+this error is to send back a response to the client.
+
+52
+00:02:27,100 --> 00:02:29,893
+So res.status,
+
+53
+00:02:31,170 --> 00:02:35,100
+but now we don't really know which status code it is, right?
+
+54
+00:02:35,100 --> 00:02:38,420
+So for example, in this case here it's a 404,
+
+55
+00:02:38,420 --> 00:02:41,650
+but we have some errors here, which have other status codes.
+
+56
+00:02:41,650 --> 00:02:46,020
+Like we have a 400 for example for bad request,
+
+57
+00:02:46,020 --> 00:02:48,823
+or really all kinds of other codes.
+
+58
+00:02:50,903 --> 00:02:53,142
+And so we actually want to read that status code
+
+59
+00:02:53,142 --> 00:02:56,113
+from the error object, all right?
+
+60
+00:02:57,480 --> 00:02:59,650
+So when we create that error a bit later
+
+61
+00:02:59,650 --> 00:03:01,143
+in the second step, as I told you,
+
+62
+00:03:01,143 --> 00:03:04,504
+we will define this status code on the error.
+
+63
+00:03:04,504 --> 00:03:08,943
+So let's say status code,
+
+64
+00:03:10,533 --> 00:03:11,962
+and now I want to define a default here.
+
+65
+00:03:11,962 --> 00:03:14,620
+Because there will be errors that are not
+
+66
+00:03:14,620 --> 00:03:17,090
+coming from us because there are gonna be errors
+
+67
+00:03:17,090 --> 00:03:19,590
+without a status code, so errors that are not
+
+68
+00:03:19,590 --> 00:03:22,750
+created by us, but for example some other places
+
+69
+00:03:22,750 --> 00:03:24,240
+in the note application.
+
+70
+00:03:24,240 --> 00:03:26,640
+And I know that sounds a bit confusing for now,
+
+71
+00:03:26,640 --> 00:03:28,770
+but you will see throughout this section.
+
+72
+00:03:28,770 --> 00:03:31,790
+For now let's just really define this default
+
+73
+00:03:31,790 --> 00:03:32,623
+status code.
+
+74
+00:03:33,550 --> 00:03:36,959
+So we say that the error.statuscode is equal
+
+75
+00:03:36,959 --> 00:03:40,446
+to err.statuscode basically if it is defined
+
+76
+00:03:40,446 --> 00:03:45,230
+or the code 500, which means again,
+
+77
+00:03:45,230 --> 00:03:48,140
+internal server error, and so that's usually
+
+78
+00:03:48,140 --> 00:03:49,763
+the standard that we use.
+
+79
+00:03:50,660 --> 00:03:54,820
+And in the same way, we also define the status,
+
+80
+00:03:54,820 --> 00:03:59,820
+so let's say error.status is equal to error.status
+
+81
+00:04:01,350 --> 00:04:03,713
+if it is defined, and if not,
+
+82
+00:04:04,670 --> 00:04:05,760
+it's error.
+
+83
+00:04:05,760 --> 00:04:10,120
+So error, remember, is when we have a 500 status code
+
+84
+00:04:10,120 --> 00:04:13,033
+and if it's a 400 status code, then it's a fail.
+
+85
+00:04:13,926 --> 00:04:16,723
+So for example here in this 404 , status is fail.
+
+86
+00:04:18,597 --> 00:04:20,960
+And so now here we can then use that,
+
+87
+00:04:20,960 --> 00:04:25,960
+so error.statuscode, and then send some json,
+
+88
+00:04:27,100 --> 00:04:29,363
+so very similar to what we did before.
+
+89
+00:04:30,320 --> 00:04:34,830
+So we start with the status and read that from error.status
+
+90
+00:04:37,010 --> 00:04:40,473
+and the message will be coming from the error as well.
+
+91
+00:04:41,380 --> 00:04:44,970
+So err.message and I'm gonna show you in a second
+
+92
+00:04:44,970 --> 00:04:48,223
+how that err.message property here is created.
+
+93
+00:04:49,750 --> 00:04:52,700
+All right, but for now, this is our very simple
+
+94
+00:04:52,700 --> 00:04:54,000
+error handling middleware.
+
+95
+00:04:55,400 --> 00:04:58,190
+So very simple, but for now it works.
+
+96
+00:04:58,190 --> 00:05:00,200
+And so now the second step, where we actually
+
+97
+00:05:00,200 --> 00:05:01,830
+create an error.
+
+98
+00:05:01,830 --> 00:05:03,680
+And so let's do that here.
+
+99
+00:05:03,680 --> 00:05:06,270
+So right here in that function, which handles
+
+100
+00:05:06,270 --> 00:05:08,820
+all the unhandled routes, so let me comment this
+
+101
+00:05:08,820 --> 00:05:11,833
+one out here and instead we want to create an error.
+
+102
+00:05:12,973 --> 00:05:16,850
+So let's say const err
+
+103
+00:05:18,080 --> 00:05:21,700
+and it's a new error.
+
+104
+00:05:21,700 --> 00:05:24,840
+So we basically use the built in error constructor
+
+105
+00:05:24,840 --> 00:05:26,600
+in order to create an error.
+
+106
+00:05:26,600 --> 00:05:29,320
+And now we can pass in a string and that string
+
+107
+00:05:29,320 --> 00:05:31,900
+will then be the error message property.
+
+108
+00:05:31,900 --> 00:05:35,163
+So what we just talked about down here.
+
+109
+00:05:37,350 --> 00:05:40,113
+So that message should be this message.
+
+110
+00:05:42,920 --> 00:05:43,753
+All right?
+
+111
+00:05:45,600 --> 00:05:49,600
+And then it ought to say err.status
+
+112
+00:05:51,680 --> 00:05:52,693
+which is fail,
+
+113
+00:05:55,830 --> 00:06:00,450
+and then err.statusCode is equal to 404.
+
+114
+00:06:00,450 --> 00:06:03,610
+So that's what I mentioned before that we can define
+
+115
+00:06:03,610 --> 00:06:06,770
+the status code and the status on the error object.
+
+116
+00:06:06,770 --> 00:06:09,010
+And so that's exactly what we're doing here.
+
+117
+00:06:09,010 --> 00:06:10,950
+We're creating an error and we then
+
+118
+00:06:10,950 --> 00:06:14,220
+define the status and status code properties on it
+
+119
+00:06:14,220 --> 00:06:15,930
+so that our error handling middleware
+
+120
+00:06:15,930 --> 00:06:18,150
+can then use them in the next step.
+
+121
+00:06:18,150 --> 00:06:20,840
+But now, how do we actually read that next step?
+
+122
+00:06:20,840 --> 00:06:23,390
+So that next middleware.
+
+123
+00:06:23,390 --> 00:06:26,650
+Well, as always, we use next.
+
+124
+00:06:26,650 --> 00:06:29,430
+But this time we use next in a special way.
+
+125
+00:06:29,430 --> 00:06:32,100
+Because now we need to actually pass that error
+
+126
+00:06:32,100 --> 00:06:35,190
+into next, so if the next function receives
+
+127
+00:06:35,190 --> 00:06:37,460
+an argument, no matter what it is,
+
+128
+00:06:37,460 --> 00:06:40,680
+Express will automatically know that there was an error
+
+129
+00:06:40,680 --> 00:06:43,620
+so it will assume that whatever we pass into next
+
+130
+00:06:43,620 --> 00:06:44,950
+is gonna be an error.
+
+131
+00:06:44,950 --> 00:06:48,300
+And that applies to every next function in every
+
+132
+00:06:48,300 --> 00:06:50,803
+single middleware anywhere in our application.
+
+133
+00:06:51,950 --> 00:06:54,800
+So again, whenever we pass anything into next,
+
+134
+00:06:54,800 --> 00:06:57,250
+it will assume that it is an error, and it will
+
+135
+00:06:57,250 --> 00:06:59,670
+then skip all the other middlewares in the middleware
+
+136
+00:06:59,670 --> 00:07:02,250
+stack and sent the error that we passed in
+
+137
+00:07:02,250 --> 00:07:04,680
+to our global error handling middleware,
+
+138
+00:07:04,680 --> 00:07:06,680
+which will then, of course, be executed.
+
+139
+00:07:08,030 --> 00:07:10,090
+And so let's now pass in the error
+
+140
+00:07:10,090 --> 00:07:12,350
+which will skip again, all other middlewares
+
+141
+00:07:12,350 --> 00:07:15,393
+in the stack and go straight to this one.
+
+142
+00:07:16,850 --> 00:07:18,430
+Now in this case, there is actually
+
+143
+00:07:18,430 --> 00:07:21,210
+no other middleware in the middle, okay?
+
+144
+00:07:21,210 --> 00:07:23,060
+So it's really just the next one here,
+
+145
+00:07:23,060 --> 00:07:25,950
+but if we were to use next and pass in an error
+
+146
+00:07:25,950 --> 00:07:28,603
+somewhere else, then of course it will work the same.
+
+147
+00:07:29,720 --> 00:07:31,940
+And so let's now test all of this simply by
+
+148
+00:07:31,940 --> 00:07:35,077
+trying to access a route that was not defined.
+
+149
+00:07:35,077 --> 00:07:38,460
+And so that will then trigger all of this code here,
+
+150
+00:07:38,460 --> 00:07:41,190
+jump to the error handling middleware,
+
+151
+00:07:41,190 --> 00:07:43,700
+and then send back the response based on all
+
+152
+00:07:43,700 --> 00:07:44,773
+of this logic here.
+
+153
+00:07:47,420 --> 00:07:52,130
+So, here we still have our wrong or non-existing route
+
+154
+00:07:52,130 --> 00:07:55,220
+and let's start by actually calling this one,
+
+155
+00:07:55,220 --> 00:07:57,023
+which should still be working,
+
+156
+00:07:59,850 --> 00:08:01,650
+okay so just to confirm
+
+157
+00:08:01,650 --> 00:08:05,050
+that everything works just fine and it does,
+
+158
+00:08:05,050 --> 00:08:06,810
+and now this one.
+
+159
+00:08:06,810 --> 00:08:11,250
+And indeed we get can't find API slash tours on this server,
+
+160
+00:08:11,250 --> 00:08:13,810
+and so our global error handling middleware is
+
+161
+00:08:13,810 --> 00:08:15,560
+actually doing its job.
+
+162
+00:08:15,560 --> 00:08:19,560
+Perfect, that's the first step in really implementing
+
+163
+00:08:19,560 --> 00:08:22,370
+a way better error handling mechanism
+
+164
+00:08:22,370 --> 00:08:24,200
+in our application.
+
+165
+00:08:24,200 --> 00:08:26,830
+So we could now go ahead and try to implement
+
+166
+00:08:26,830 --> 00:08:29,460
+this kind of stuff here, everywhere in all
+
+167
+00:08:29,460 --> 00:08:30,310
+our handlers.
+
+168
+00:08:30,310 --> 00:08:34,160
+For example, over here in all of these functions
+
+169
+00:08:34,160 --> 00:08:35,060
+that we have here.
+
+170
+00:08:35,060 --> 00:08:37,410
+So replacing everything that we have here
+
+171
+00:08:37,410 --> 00:08:38,850
+with this kind of error.
+
+172
+00:08:38,850 --> 00:08:41,460
+But what I want to do for now is to actually create
+
+173
+00:08:41,460 --> 00:08:42,920
+our own error class.
+
+174
+00:08:42,920 --> 00:08:46,330
+So that we don't have to write all of this code here
+
+175
+00:08:46,330 --> 00:08:49,280
+and instead have a more like streamlined class
+
+176
+00:08:49,280 --> 00:08:50,113
+of ourself.
+
+177
+00:08:50,113 --> 00:08:53,350
+So that's a common practice, and so let's do that
+
+178
+00:08:53,350 --> 00:08:54,283
+in the next video.
+

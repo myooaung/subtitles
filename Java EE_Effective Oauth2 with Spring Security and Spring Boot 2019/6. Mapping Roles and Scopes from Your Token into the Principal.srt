@@ -1,0 +1,156 @@
+1
+00:00:01,950 --> 00:00:04,462
+In Spring Security OAuth,
+
+2
+00:00:04,462 --> 00:00:08,858
+the authentication providers are responsible for validating the
+
+3
+00:00:08,858 --> 00:00:14,773
+access token and converting it into an authentication.
+
+4
+00:00:14,773 --> 00:00:20,013
+Now there are different flavors of authentication providers.
+
+5
+00:00:20,013 --> 00:00:21,084
+On the client side,
+
+6
+00:00:21,084 --> 00:00:26,118
+we have different flavors of providers depending on if you are using
+
+7
+00:00:26,118 --> 00:00:32,100
+OAuth2 or OpenID Connect and what grant type was chosen.
+
+8
+00:00:32,100 --> 00:00:34,514
+There you will use a GrantedAuthoritiesMapper to
+
+9
+00:00:34,514 --> 00:00:37,609
+customize your granted authorities.
+
+10
+00:00:37,609 --> 00:00:40,533
+Check out module 2, which goes over that.
+
+11
+00:00:40,533 --> 00:00:48,029
+For our resource server, the default provider is the JwtAuthenticationProvider.
+
+12
+00:00:48,029 --> 00:00:53,149
+If we look at its implementation, it first uses a JwtDecoder,
+
+13
+00:00:53,149 --> 00:00:55,582
+which validates the token.
+
+14
+00:00:55,582 --> 00:01:01,001
+You customized this in module 7 to add additional validation.
+
+15
+00:01:01,001 --> 00:01:03,246
+Once the token is validated,
+
+16
+00:01:03,246 --> 00:01:09,920
+it is converted into an authentication object with all the claims,
+
+17
+00:01:09,920 --> 00:01:12,358
+scopes, and granted authorities.
+
+18
+00:01:12,358 --> 00:01:12,906
+Hence,
+
+19
+00:01:12,906 --> 00:01:18,309
+you need to customize the converter to add roles to the
+
+20
+00:01:18,309 --> 00:01:21,431
+authentication principals authorities.
+
+21
+00:01:21,431 --> 00:01:27,186
+The default implementation for the converter is the JwtAuthenticationConverter.
+
+22
+00:01:27,186 --> 00:01:32,554
+You see it has the getScopes and extractAuthorities methods.
+
+23
+00:01:32,554 --> 00:01:33,341
+For scopes,
+
+24
+00:01:33,341 --> 00:01:38,596
+it uses the WELL_KNOWN_SCOPE_ATTRIBUTE_NAMES to find them in
+
+25
+00:01:38,596 --> 00:01:42,282
+the JWT and adds them with the SCOPE_PREFIX.
+
+26
+00:01:42,282 --> 00:01:42,903
+Hence,
+
+27
+00:01:42,903 --> 00:01:48,924
+we can create a class that extends the JwtAuthenticationConverter
+
+28
+00:01:48,924 --> 00:01:52,637
+and override the extractAuthorities method.
+
+29
+00:01:52,637 --> 00:01:56,389
+Here we can call the parent to get the scopes.
+
+30
+00:01:56,389 --> 00:01:59,802
+If you wanted to, you could get the scopes and map them yourself.
+
+31
+00:01:59,802 --> 00:02:04,570
+You could get additional ones from a database or other location or even add
+
+32
+00:02:04,570 --> 00:02:07,771
+them to the granted authorities without the SCOPE prefix.
+
+33
+00:02:07,771 --> 00:02:14,097
+Now for our use case, we'll extract the roles claim from the JWT.
+
+34
+00:02:14,097 --> 00:02:18,510
+And if the user has a portfolio-admin role,
+
+35
+00:02:18,510 --> 00:02:23,428
+we will add an admin role to the granted authorities and return it.
+
+36
+00:02:23,428 --> 00:02:31,546
+Now in our SecurityConfiguration class, we can just add it to the JWT endpoint,
+
+37
+00:02:31,546 --> 00:02:34,582
+which will now plug in our version of the converter
+
+38
+00:02:34,582 --> 00:02:38,084
+into the JWT authentication provider.
+
+39
+00:02:38,084 --> 00:02:48,000
+Now the state of the user is coming from the JWT and not the database. Next, let's look at a more finer-grained authorization at the method level.
+

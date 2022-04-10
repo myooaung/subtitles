@@ -1,0 +1,344 @@
+WEBVTT
+1
+00:00:02.190 --> 00:00:04.550
+Now we had our first look at indexes,
+
+2
+00:00:04.890 --> 00:00:12.290
+now let's again look at a single document in our contacts database and we created an index for the age
+
+3
+00:00:12.290 --> 00:00:12.930
+here,
+
+4
+00:00:12.960 --> 00:00:16.390
+now we dropped that in the last lecture but previously we did.
+
+5
+00:00:16.410 --> 00:00:19.450
+Now of course you can not just create indexes on fields that have a number,
+
+6
+00:00:19.620 --> 00:00:25.200
+you can also create indexes on fields that have some text and that makes a lot of sense because well,
+
+7
+00:00:25.230 --> 00:00:31.800
+text is also something you regularly search for and it can perfectly be sorted. Booleans on the other hand are something
+
+8
+00:00:31.820 --> 00:00:35.090
+that don't make too much sense because since you only got two kinds of values,
+
+9
+00:00:35.100 --> 00:00:36.280
+true or false,
+
+10
+00:00:36.480 --> 00:00:40.170
+chances are that the index will not speed up your queries too much.
+
+11
+00:00:40.200 --> 00:00:44.870
+Now let's create a second index or actually a first one because I dropped one
+
+12
+00:00:45.150 --> 00:00:53.320
+and let's now use a text index and for that, I'll try creating an index on the gender, male here.
+
+13
+00:00:54.610 --> 00:01:03.820
+I'll do this on my collection with create index and I'll look for the gender field to be sorted ascendingly.
+
+14
+00:01:03.830 --> 00:01:08.140
+Now of course one problem you might already think of is that for gender,
+
+15
+00:01:08.240 --> 00:01:13.060
+just like for a boolean, we typically only have two values and indeed
+
+16
+00:01:13.250 --> 00:01:24.800
+if I do run explain command with execution stats on my contacts and I try to find all contacts where
+
+17
+00:01:24.800 --> 00:01:30.520
+gender is equal to male, I should get back a lot of keys right,
+
+18
+00:01:30.550 --> 00:01:35.770
+I should get back like half the documents because this random collection of persons is pretty evenly
+
+19
+00:01:35.770 --> 00:01:36.570
+distributed
+
+20
+00:01:36.670 --> 00:01:41.070
+and indeed of my 5000 documents, 2400 are male.
+
+21
+00:01:41.350 --> 00:01:46.900
+So this again is probably an example for an index that doesn't make too much sense or that doesn't really
+
+22
+00:01:46.930 --> 00:01:52.570
+speed up our queries because we fetched a majority or a large chunk of our collection every time,
+
+23
+00:01:52.570 --> 00:01:54.990
+still we use the index here of course.
+
+24
+00:01:55.120 --> 00:02:00.220
+This also tells us something about the winning plans and rejected plans by the way, you see that mongodb
+
+25
+00:02:00.220 --> 00:02:05.040
+didn't seem to consider a collection scan because we have never checked the plans,
+
+26
+00:02:05.070 --> 00:02:12.570
+so for the rejected plans, it also looks at other indexes but not really at the collection scan as an alternative.
+
+27
+00:02:12.640 --> 00:02:18.880
+So this index alone doesn't make too much sense but there is another kind of index we can use because
+
+28
+00:02:18.880 --> 00:02:26.670
+let's say we want to find all persons who are older than 30 and male or older than 40 and male
+
+29
+00:02:26.830 --> 00:02:30.370
+and for this, we can create a so-called compound index.
+
+30
+00:02:30.370 --> 00:02:31.690
+Now let me drop this index
+
+31
+00:02:31.690 --> 00:02:43.630
+first of all, db contacts drop index and I'll drop my gender ascending index here and let's create
+
+32
+00:02:43.660 --> 00:02:44.590
+a new one here
+
+33
+00:02:44.860 --> 00:02:50.200
+and this index will not just have the gender but actually as a first key, let's say I want to look for
+
+34
+00:02:50.210 --> 00:02:53.880
+dob.age and that sorts this in ascending order too.
+
+35
+00:02:53.930 --> 00:02:58.810
+Now the order of these two fields here does matter because a compound index simply is an index with
+
+36
+00:02:58.810 --> 00:03:00.420
+more than one field, like here
+
+37
+00:03:00.460 --> 00:03:06.930
+we got two fields and this will essentially store one index where each entry in the index is now not on
+
+38
+00:03:06.940 --> 00:03:12.580
+a single value but two combined values. So it does not create two indexes, that's important,
+
+39
+00:03:12.610 --> 00:03:19.540
+it creates one index but one index where every element is a well, connected value. So now it will simply
+
+40
+00:03:19.540 --> 00:03:29.080
+create pairs of ages and genders, so we'll have 30 male, 30 male, 30 female, 31 male, 31 female and so on
+
+41
+00:03:29.200 --> 00:03:36.230
+in the index list and the order here defines which kind of pairs mongodb creates,
+
+42
+00:03:36.240 --> 00:03:49.440
+does it create let's say 31 male field or a male 31 or 33 field and this will be important for your
+
+43
+00:03:49.440 --> 00:03:50.780
+queries as you will see.
+
+44
+00:03:50.820 --> 00:03:57.900
+So let's create that index, created the index successfully and now we can utilize such a compound
+
+45
+00:03:57.900 --> 00:04:01.040
+index with two different queries.
+
+46
+00:04:01.080 --> 00:04:05.550
+The obvious query that takes advantage of the index is that
+
+47
+00:04:05.550 --> 00:04:11.130
+if I explain without execution steps here, I find
+
+48
+00:04:12.330 --> 00:04:13.470
+query where
+
+49
+00:04:13.560 --> 00:04:24.900
+I try to find all people where, whoops, the age is let's say 35 and all the people are males,
+
+50
+00:04:25.020 --> 00:04:29.610
+so I can also set gender to male.
+
+51
+00:04:29.610 --> 00:04:32.450
+So I got two elements in my filter here,
+
+52
+00:04:32.550 --> 00:04:36.630
+the age and the gender and these are the two elements I also have in my index, here
+
+53
+00:04:36.660 --> 00:04:37.760
+the order does not matter
+
+54
+00:04:37.760 --> 00:04:45.450
+by the way. If I hit enter, you see it actually did an index scan with our index name and this name is
+
+55
+00:04:45.450 --> 00:04:46.350
+auto-generated,
+
+56
+00:04:46.430 --> 00:04:51.870
+it indicates that this is a compound index because the name is generated from the values that are placed
+
+57
+00:04:51.930 --> 00:04:53.270
+in the index.
+
+58
+00:04:53.280 --> 00:05:01.470
+So this is a compound index and this speeds up our queries for requests that are well, going to these
+
+59
+00:05:01.470 --> 00:05:08.100
+two fields because we have these two in an index. Another query that is sped up by that same index
+
+60
+00:05:08.350 --> 00:05:10.690
+is if I just look for the age,
+
+61
+00:05:10.920 --> 00:05:12.880
+if I do that, you'll see here
+
+62
+00:05:13.020 --> 00:05:19.590
+it also used an index scan and it used that same compound index even though I never specified the gender
+
+63
+00:05:19.590 --> 00:05:20.860
+in this request here.
+
+64
+00:05:21.180 --> 00:05:26.310
+But the compound index can be used from left to right so to say,
+
+65
+00:05:26.460 --> 00:05:31.710
+so if you have age and gender in there and the leftmost value as you created the index was age and then
+
+66
+00:05:31.710 --> 00:05:39.670
+the second value was gender, then you can use this index either for all finds that look just for the age,
+
+67
+00:05:39.690 --> 00:05:45.810
+so for the left part or left and gender. Gender alone won't work though,
+
+68
+00:05:45.810 --> 00:05:54.980
+so if I try to look for all males with gender male, you'll see that of course works but it uses a collection
+
+69
+00:05:54.980 --> 00:06:00.110
+scan and not an index scan because it can't look into that second value standalone
+
+70
+00:06:00.110 --> 00:06:06.200
+and that makes a lot of sense because if you got a couple of pairs of values in that index, 33 male,
+
+71
+00:06:06.260 --> 00:06:13.640
+33 male, 33 female and so on, then you can obviously use that index if you just look for 33
+
+72
+00:06:13.730 --> 00:06:19.100
+because you just have to go through all the values because they are sorted by these key value pairs and the
+
+73
+00:06:19.100 --> 00:06:22.660
+first value of course defines the sorting for the overall index,
+
+74
+00:06:22.670 --> 00:06:30.080
+so 33, 33 comes before 34. The male and female parts are then also sorted but only within
+
+75
+00:06:30.080 --> 00:06:30.990
+their category,
+
+76
+00:06:31.010 --> 00:06:34.510
+so only for 33, 34, 35,
+
+77
+00:06:34.520 --> 00:06:38.480
+of course the male and female parts are not sorted on the overall list,
+
+78
+00:06:38.480 --> 00:06:41.960
+makes sense right, because they're grouped together with the age numbers.
+
+79
+00:06:42.170 --> 00:06:46.030
+So therefore, you can utilize a compound index from left to right,
+
+80
+00:06:46.040 --> 00:06:52.070
+so if you had a compound index with three or four elements, you can have up to 31, then you could also
+
+81
+00:06:52.070 --> 00:06:53.200
+just use the first two,
+
+82
+00:06:53.240 --> 00:06:56.060
+the first three or all four or just the first
+
+83
+00:06:56.120 --> 00:06:59.590
+but you can't use the fourth one or the third one.
+
+84
+00:06:59.600 --> 00:07:05.030
+These are some restrictions you have on compound indexes but compound indexes in general allow you
+
+85
+00:07:05.030 --> 00:07:08.400
+to speed up queries that use multiple values
+
+86
+00:07:08.510 --> 00:07:11.780
+if you create a compound index on these multiple values.

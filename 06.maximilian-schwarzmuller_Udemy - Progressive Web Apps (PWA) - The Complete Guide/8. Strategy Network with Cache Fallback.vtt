@@ -1,0 +1,268 @@
+WEBVTT
+
+00:02.220 --> 00:06.550
+Another interesting strategy is network with cache fallback.
+
+00:06.630 --> 00:09.060
+Now this seems to make a lot of sense,
+
+00:09.090 --> 00:15.060
+we catch a request in a service worker and then we try to reach out to the network and only if that
+
+00:15.060 --> 00:16.220
+fetch fails,
+
+00:16.290 --> 00:21.150
+only in this case we reach out to the cache and return the asset from the cache,
+
+00:21.150 --> 00:26.100
+otherwise if the network access would have been successful, we would have returned the network response
+
+00:26.130 --> 00:27.960
+and ignored the cache.
+
+00:27.960 --> 00:30.470
+Now this seems to make a lot of sense, doesn't it?
+
+00:30.600 --> 00:33.590
+Because here, we take the best from both worlds,
+
+00:33.780 --> 00:39.330
+we have assets stored in the cache but we only use it if we have no network access.
+
+00:39.330 --> 00:44.810
+Now one downside is that we don't take advantage of the faster response with the cache which is also
+
+00:44.850 --> 00:47.070
+good even if we have Internet connection
+
+00:47.400 --> 00:50.470
+but the major problem is the way that the network behaves
+
+00:50.490 --> 00:54.120
+if a fetch fails, it doesn't happen instantly.
+
+00:54.120 --> 01:00.420
+Now this is hard to simulate because here I either can turn my network on or off and if that network is totally
+
+01:00.420 --> 01:02.400
+off, the request fails instantly
+
+01:02.670 --> 01:08.730
+but imagine a very poor connection where the request times out after maybe 60 seconds, then you would
+
+01:08.730 --> 01:14.270
+have to wait for the full 60 seconds until you reach out to the cache as a backup,
+
+01:14.430 --> 01:16.920
+that's a horrible user experience of course.
+
+01:16.920 --> 01:21.900
+Let me still show you how this would look like because we're going to build up on this and improve it
+
+01:22.050 --> 01:24.710
+to find a really good caching strategy
+
+01:24.750 --> 01:26.920
+you actually want to use in a lot of cases.
+
+01:27.030 --> 01:28.870
+So how would you implement this one?
+
+01:29.040 --> 01:36.660
+Back in the service worker file, I'm going to copy our old service worker strategy again and I'm going
+
+01:36.660 --> 01:44.580
+to comment it in down here because I want to basically fine tune this a little bit. Now a network
+
+01:44.580 --> 01:49.350
+first, then cache strategy would actually look a bit differently.
+
+01:49.530 --> 01:52.300
+We wouldn't cache match at the beginning here,
+
+01:52.620 --> 02:02.100
+instead what we would do, we would fetch first. We would send event request as a fetch request and then
+
+02:02.550 --> 02:05.010
+we would handle any errors.
+
+02:05.070 --> 02:10.710
+We don't need to add a then block because if the request is successful, that's great because then we
+
+02:10.710 --> 02:13.930
+just use that response and don't care about caching
+
+02:14.280 --> 02:21.630
+but if it fails here in this function where we get an error, we could even parse that error and see
+
+02:21.630 --> 02:22.900
+why it fails
+
+02:22.950 --> 02:28.540
+but in all cases, in there we could then reach out to our cache,
+
+02:28.800 --> 02:33.420
+so basically grab that code here and put it in that catch block.
+
+02:33.630 --> 02:38.610
+So now we have a look, if we find that request anywhere in our cache
+
+02:38.940 --> 02:44.000
+and if we do, then we simply return that response.
+
+02:44.010 --> 02:48.750
+Now if we don't do, we don't need to do anything else because reaching out to the network doesn't make sense,
+
+02:48.750 --> 02:49.940
+we've been there before,
+
+02:49.950 --> 02:51.170
+it didn't work.
+
+02:51.270 --> 02:58.760
+So in the end what we can do is we can get rid even rid of this then block, we simply return caches match here
+
+02:59.040 --> 03:01.440
+because we only care about what we get back from the cache
+
+03:01.530 --> 03:03.240
+and if that is null, so be it,
+
+03:03.240 --> 03:05.450
+we tried to go to the network first,
+
+03:05.490 --> 03:06.320
+it failed
+
+03:06.450 --> 03:09.950
+so now the cache is our best chance if that fails too,
+
+03:10.080 --> 03:11.680
+that's how it is.
+
+03:11.760 --> 03:13.680
+Let's see how that works like.
+
+03:13.710 --> 03:21.300
+So now if I save this, I refresh the page to install the new service worker and then I will open a new
+
+03:21.390 --> 03:29.850
+tab and close the old one of course to activate the new service worker and now in there, you will see
+
+03:30.000 --> 03:31.380
+this all works fine,
+
+03:31.380 --> 03:37.950
+I have internet connection so I can use all of that. In the network tab, you also see that we load everything
+
+03:37.950 --> 03:39.210
+from the internet here,
+
+03:39.240 --> 03:40.740
+you can tell by the file sizes,
+
+03:40.770 --> 03:46.350
+so nothing is coming from the service workers cache here which makes sense because we have a network first
+
+03:46.350 --> 03:47.230
+strategy.
+
+03:47.400 --> 03:52.810
+Now if I go offline and I reload here, you should see that generally, it still works,
+
+03:52.860 --> 03:57.630
+the icons are missing, everything which was in dynamic cache before is missing because we're not doing
+
+03:57.630 --> 03:59.210
+dynamic caching here
+
+03:59.520 --> 04:01.590
+but in general, it works.
+
+04:01.590 --> 04:07.710
+However it works so good here because I turned off the connection, which simply is a signal that there
+
+04:07.740 --> 04:09.090
+is no connection.
+
+04:09.120 --> 04:16.170
+As I said, I can't simulate a connection which fails after 60 seconds here but if I would have such
+
+04:16.170 --> 04:21.660
+a connection here, this would be a super bad solution because there, we would really have to wait for
+
+04:21.660 --> 04:24.430
+it to fail before we reach this catch block
+
+04:24.450 --> 04:26.960
+and that is a bad user experience.
+
+04:26.970 --> 04:30.160
+So using this is not that common,
+
+04:30.300 --> 04:36.490
+you might find some cases where you can wait that long, maybe some background fetching you are doing
+
+04:36.630 --> 04:42.390
+but in general if it's critical to present something to the user quickly, don't use this strategy, use
+
+04:42.390 --> 04:47.700
+it again for assets which you can fetch in the background which don't need to be there immediately where
+
+04:47.690 --> 04:56.040
+this might be a nice way of getting them. As a side note, you can of course also connect this with a dynamic
+
+04:56.040 --> 05:01.500
+caching strategy, so you return a dynamic by adding a then block to the successful
+
+05:01.840 --> 05:08.210
+fetch, here you of course get your response and this is only called if the fetch is successful,
+
+05:08.210 --> 05:16.450
+so if we do have Internet connection and that in there, you can basically copy the code from our other strategy
+
+05:16.450 --> 05:17.420
+up there,
+
+05:17.650 --> 05:25.090
+so you basically just open the cache, the dynamic cache and then you put the request you made and the
+
+05:25.090 --> 05:27.510
+response in there and return the response.
+
+05:27.700 --> 05:33.250
+So now we're combining this network first strategy with dynamic caching,
+
+05:33.310 --> 05:36.980
+still not the best strategy due to the reasons mentioned.
+
+05:37.030 --> 05:38.600
+Let's see if that works though,
+
+05:38.680 --> 05:44.330
+let's go back to the application and load it, make sure that this is registered and that the service
+
+05:44.330 --> 05:49.840
+worker is installed, it is and with it installed, close the tab, open a new one
+
+05:50.090 --> 05:52.160
+and there you should see that
+
+05:52.160 --> 06:01.140
+now if I go offline, this page here still works with the icons because we have dynamic caching in place,
+
+06:01.290 --> 06:02.540
+help won't work.
+
+06:02.790 --> 06:09.450
+If I go online again though and navigate around to load both help URLs
+
+06:09.500 --> 06:12.220
+and now I go offline again, this works too.
+
+06:12.380 --> 06:15.570
+So now again, we got network first with dynamic caching,
+
+06:15.570 --> 06:19.430
+still not the best solution due to the timeout problem.

@@ -1,0 +1,416 @@
+WEBVTT
+0
+1
+00:00:00.750 --> 00:00:05.670
+In this lesson, we're going to update our user interface with the live weather data from OpenWeather
+1
+
+2
+00:00:05.670 --> 00:00:06.270
+Map.
+2
+
+3
+00:00:06.480 --> 00:00:09.090
+And in the process, we're going to learn about the DispatchQueue.
+3
+
+4
+00:00:09.080 --> 00:00:18.630
+Now, that we are able to get hold of the live weather data, inside our didUpdateWeather method in
+4
+
+5
+00:00:18.630 --> 00:00:24.930
+our WeatherViewController which, of course, is able to command the conditionImageView and the temperatureLabel,
+5
+
+6
+00:00:24.930 --> 00:00:30.460
+let's go ahead and use some of this data to set our user interface.
+6
+
+7
+00:00:30.570 --> 00:00:33.540
+The first thing I want to set is the temperatureLabel.
+7
+
+8
+00:00:34.020 --> 00:00:41.130
+And I'm going set its text property to equal the weather.temperatureString.
+8
+
+9
+00:00:41.130 --> 00:00:48.660
+So remember, this was the temperature that's rounded down to one decimal places and turned into a string,
+9
+
+10
+00:00:49.020 --> 00:00:51.920
+perfect for putting inside a label.
+10
+
+11
+00:00:51.990 --> 00:00:53.420
+So let's add that here.
+11
+
+12
+00:00:54.120 --> 00:01:01.090
+And right now if we go ahead and run our app, it will actually crash.
+12
+
+13
+00:01:01.390 --> 00:01:04.260
+So let's again search for the weather in Paris.
+13
+
+14
+00:01:04.450 --> 00:01:08.620
+And as you can see, we've got some messages down here.
+14
+
+15
+00:01:08.620 --> 00:01:11.870
+We've got our red line right here.
+15
+
+16
+00:01:12.100 --> 00:01:18.150
+And in our debug console, we're seeing the error: "Terminating with unquote exception."
+16
+
+17
+00:01:18.280 --> 00:01:20.050
+So what's happening here?
+17
+
+18
+00:01:21.600 --> 00:01:28.470
+Well, notice how if we go back into our WeatherViewController, we've got this error that's occurred
+18
+
+19
+00:01:28.710 --> 00:01:31.630
+at runtime, so while our app was running.
+19
+
+20
+00:01:31.830 --> 00:01:38.060
+And it tells us that UILabel.text must be used from the main thread only.
+20
+
+21
+00:01:38.240 --> 00:01:39.540
+Well, what does that mean?
+21
+
+22
+00:01:39.540 --> 00:01:42.510
+Well, let's click on the question mark.
+22
+
+23
+00:01:42.750 --> 00:01:49.410
+That question mark takes us to the documentation and tells us what the problem is.
+23
+
+24
+00:01:49.470 --> 00:01:55.760
+Now, the problem is that we're trying to update our user interface from inside a Completion Handler.
+24
+
+25
+00:01:55.770 --> 00:01:56.550
+What does that mean?
+25
+
+26
+00:01:57.090 --> 00:02:03.000
+Well, the reason why the completion handler is a completion handler is because it tends to be carrying
+26
+
+27
+00:02:03.000 --> 00:02:08.200
+out long running tasks such as networking which is exactly what we were doing.
+27
+
+28
+00:02:08.370 --> 00:02:13.300
+And these long running tasks are executed in the background.
+28
+
+29
+00:02:13.320 --> 00:02:20.580
+This means that the execution no matter how long it takes to network with OpenWeather Map to ask it
+29
+
+30
+00:02:20.580 --> 00:02:24.800
+for data, and then get the data back, and then travel all the way across the world.
+30
+
+31
+00:02:24.840 --> 00:02:32.850
+This execution happens in the background, so that we don't block the UI because, otherwise, if we said,
+31
+
+32
+00:02:33.120 --> 00:02:40.290
+"Well, let's wait for this process to finish before we let the user use any of the buttons or interact
+32
+
+33
+00:02:40.290 --> 00:02:45.210
+with the app," then the app is going to look like it's completely frozen.
+33
+
+34
+00:02:45.210 --> 00:02:54.810
+So in this case, if we are trying to update a user interface elements, such as a label from within a completion
+34
+
+35
+00:02:54.810 --> 00:02:56.430
+handler like this,
+35
+
+36
+00:02:56.430 --> 00:03:05.610
+so our closure will then we have to call the main thread to update our user interface in the background.
+36
+
+37
+00:03:05.610 --> 00:03:11.060
+This is exactly the problem that we're facing in our weather manager.
+37
+
+38
+00:03:11.250 --> 00:03:18.720
+In order to get our weather data we're having to perform this session task and we're waiting for the
+38
+
+39
+00:03:18.720 --> 00:03:20.640
+task to complete.
+39
+
+40
+00:03:20.910 --> 00:03:23.640
+And this is our completion handler.
+40
+
+41
+00:03:23.640 --> 00:03:29.820
+Once it does complete, however, we call didUpdateWeather and send over that weather data.
+41
+
+42
+00:03:30.240 --> 00:03:37.320
+So that data that we're getting over here in our WeatherViewController is completely dependent upon
+42
+
+43
+00:03:37.320 --> 00:03:41.100
+the completion of that networking session.
+43
+
+44
+00:03:41.100 --> 00:03:48.600
+So, now if we're saying update the temperatureLabel.text with the data from that weather object,
+44
+
+45
+00:03:48.780 --> 00:03:54.870
+which might take a few seconds to a few minutes to get back, well, before we get it back, then there's
+45
+
+46
+00:03:54.870 --> 00:03:58.020
+nothing for our temperatureLabel to set, right?
+46
+
+47
+00:03:58.020 --> 00:04:05.460
+So then, our UI would be completely frozen and our user will think that our app has crashed, even though
+47
+
+48
+00:04:05.460 --> 00:04:09.150
+it is actually because they have really bad network conditions.
+48
+
+49
+00:04:09.150 --> 00:04:18.120
+So instead, what Apple tells us to do is we have to wrap our UI update code within a block called 
+49
+
+50
+00:04:18.120 --> 00:04:20.730
+DispatchQueue.main.async.
+50
+
+51
+00:04:21.330 --> 00:04:23.000
+So let's do that.
+51
+
+52
+00:04:23.160 --> 00:04:32.070
+Let's go ahead and paste that and put our code that updates the UI inside a Dispatch.main.async
+52
+
+53
+00:04:32.280 --> 00:04:32.970
+closure.
+53
+
+54
+00:04:33.420 --> 00:04:39.320
+And, of course, because it's a closure, we have to add the word "self" in front again.
+54
+
+55
+00:04:39.420 --> 00:04:49.250
+And now if you run the app, you'll see that our temperature from Paris is able to be updated into our
+55
+
+56
+00:04:49.250 --> 00:04:51.960
+temperatureLabel without any issues.
+56
+
+57
+00:04:54.390 --> 00:04:59.970
+Now that we've solved that problem, we can go ahead and update the other thing which is our 
+57
+
+58
+00:04:59.970 --> 00:05:07.500
+conditionImageView. And our conditionImageView is going to have its image properties set and we're going to
+58
+
+59
+00:05:07.500 --> 00:05:14.550
+set it to a user interface image that comes from UIKit.
+And the way that we're going to initialize
+59
+
+60
+00:05:14.550 --> 00:05:18.610
+it is through using something called a system name.
+60
+
+61
+00:05:18.630 --> 00:05:24.170
+So this expects a string that matches a system symbol image.
+61
+
+62
+00:05:24.180 --> 00:05:28.770
+So those are the names of our SF Symbols.
+62
+
+63
+00:05:28.770 --> 00:05:35.040
+And remember that in our WeatherModel, we've already got this condition name which takes the conditionId
+63
+
+64
+00:05:35.040 --> 00:05:42.060
+that we get back from OpenWeather Map and converted into a String depending on which weather condition
+64
+
+65
+00:05:42.060 --> 00:05:43.500
+code it was.
+65
+
+66
+00:05:43.500 --> 00:05:49.830
+And then we return a name of the SF Symbol that we're going to use.
+66
+
+67
+00:05:49.830 --> 00:05:59.160
+So we can simply tap into this conditionName in our WeatherViewController in order to create our
+67
+
+68
+00:05:59.250 --> 00:06:03.190
+user interface image to put into the conditionImageView.
+68
+
+69
+00:06:03.360 --> 00:06:06.310
+And again, let's add "self" in front just to be clear.
+69
+
+70
+00:06:06.480 --> 00:06:07.950
+And when we run our app,
+70
+
+71
+00:06:10.980 --> 00:06:16.830
+we can now tap into the live weather data in any city we're interested in.
+71
+
+72
+00:06:16.830 --> 00:06:20.500
+So currently in London, it's kind of a thunderstormy
+72
+
+73
+00:06:20.820 --> 00:06:23.630
+and it's about 18.5 degrees.
+73
+
+74
+00:06:23.760 --> 00:06:24.960
+What about somewhere nice?
+74
+
+75
+00:06:24.960 --> 00:06:25.920
+What about Bali?
+75
+
+76
+00:06:25.920 --> 00:06:27.620
+What's it like over there?
+76
+
+77
+00:06:27.780 --> 00:06:29.550
+Also thunderstorms, apparently,
+77
+
+78
+00:06:29.550 --> 00:06:31.090
+but it's much warmer.
+78
+
+79
+00:06:31.410 --> 00:06:37.150
+So have a play with that. And you can try and add the code to update the city name as well.
+79
+
+80
+00:06:37.230 --> 00:06:43.110
+I'll be adding this a little bit later when we're requesting the device location. And in the next lesson,
+80
+
+81
+00:06:43.470 --> 00:06:50.400
+we're going to learn about Swift extensions in a Swift Deep Dive in order to be able to tidy up our
+81
+
+82
+00:06:50.400 --> 00:06:53.240
+WeatherViewController and refactor it.
+82
+
+83
+00:06:53.310 --> 00:06:56.430
+So if you want to learn more about that, I'll see you on the next lesson.

@@ -1,0 +1,192 @@
+1
+00:00:02,026 --> 00:00:04,345
+For non-OpenID Connect providers,
+
+2
+00:00:04,345 --> 00:00:08,839
+the OAuth2User object is created by the OAuth2UserService and then
+
+3
+00:00:08,839 --> 00:00:13,776
+packaged up as the principal in the authentication object.
+
+4
+00:00:13,776 --> 00:00:16,589
+By default, Spring uses the default OAuth2UserService,
+
+5
+00:00:16,589 --> 00:00:20,515
+which creates a default OAuth2User.
+
+6
+00:00:20,515 --> 00:00:25,910
+Hence, we need an OAuth2UserService that can return a custom OAuth2 user,
+
+7
+00:00:25,910 --> 00:00:30,123
+and it just so happens that Spring has an implementation we can use,
+
+8
+00:00:30,123 --> 00:00:34,138
+the CustomUserTypesOAuth2UserService.
+
+9
+00:00:34,138 --> 00:00:36,908
+Now let's first create our custom user type for Facebook,
+
+10
+00:00:36,908 --> 00:00:41,065
+which is the only non-OpenID Connect provider at the moment.
+
+11
+00:00:41,065 --> 00:00:44,333
+We override the getName authorities and attributes method.
+
+12
+00:00:44,333 --> 00:00:48,400
+Next, we add the claims we want to extract.
+
+13
+00:00:48,400 --> 00:00:53,552
+We saw previously Facebook provided the id, name, and email claims.
+
+14
+00:00:53,552 --> 00:00:55,861
+So we can add these as fields.
+
+15
+00:00:55,861 --> 00:00:58,117
+We add the accesses for these fields.
+
+16
+00:00:58,117 --> 00:01:01,059
+The setters need to match the exact name of the claim.
+
+17
+00:01:01,059 --> 00:01:04,701
+The CustomUserTypeService will then resolve them from what is
+
+18
+00:01:04,701 --> 00:01:08,557
+returned by Facebook's userinfo endpoint response.
+
+19
+00:01:08,557 --> 00:01:11,483
+For authorities, we will default to user for now,
+
+20
+00:01:11,483 --> 00:01:15,247
+but you could add additional ones here based off the claims.
+
+21
+00:01:15,247 --> 00:01:17,560
+We can now customize our attributes.
+
+22
+00:01:17,560 --> 00:01:20,205
+Let's return the attributes Facebook provides.
+
+23
+00:01:20,205 --> 00:01:21,126
+And in addition,
+
+24
+00:01:21,126 --> 00:01:24,344
+let's also return the given name and family name in
+
+25
+00:01:24,344 --> 00:01:28,064
+the same format as OpenID Connect.
+
+26
+00:01:28,064 --> 00:01:34,113
+Okay, now in our configuration adapter, using the OAuth login builder,
+
+27
+00:01:34,113 --> 00:01:35,410
+under the UserInfoEndpoint,
+
+28
+00:01:35,410 --> 00:01:40,751
+we add our new class under customUserType for Facebook
+
+29
+00:01:40,751 --> 00:01:43,898
+using its provider registration ID.
+
+30
+00:01:43,898 --> 00:01:44,529
+That's it.
+
+31
+00:01:44,529 --> 00:01:48,366
+Spring will now plug in the customUserTypes service into
+
+32
+00:01:48,366 --> 00:01:52,240
+the OAuth2LoginAuthenticationProvider,
+
+33
+00:01:52,240 --> 00:01:55,497
+and this provider will now return our custom OAuth2
+
+34
+00:01:55,497 --> 00:01:58,501
+user implementation for Facebook.
+
+35
+00:01:58,501 --> 00:02:01,462
+Back at our OAuth2AuthenticationSuccess handler,
+
+36
+00:02:01,462 --> 00:02:07,805
+after refactoring, we no longer have separate code to handle Facebook.
+
+37
+00:02:07,805 --> 00:02:10,717
+We can also refactor our controller.
+
+38
+00:02:10,717 --> 00:02:13,522
+This is cleaner, but we can do better.
+
+39
+00:02:13,522 --> 00:02:15,555
+Let's create our own CryptoAuthenticatedPrincipal
+
+40
+00:02:15,555 --> 00:02:20,161
+interface and the fields we care about, so FirstName,
+
+41
+00:02:20,161 --> 00:02:24,117
+LastName, and FirstAndLastName combined.
+
+42
+00:02:24,117 --> 00:02:27,123
+If we force our Facebook Connect user to implement
+
+43
+00:02:27,123 --> 00:02:30,949
+it and also our MFAUser class,
+
+44
+00:02:30,949 --> 00:02:35,708
+we now no longer have to cast between the two types in our AccountController.
+
+45
+00:02:35,708 --> 00:02:39,136
+Now there is no custom user implementation for OpenID Connect
+
+46
+00:02:39,136 --> 00:02:42,115
+as OpenID Connect is already a standard.
+
+47
+00:02:42,115 --> 00:02:47,613
+So, to also force the OpenID Connect user object to implement our new interface,
+
+48
+00:02:47,613 --> 00:02:55,000
+we have to create a custom OpenID Connect user service. So, let's do that next.
+

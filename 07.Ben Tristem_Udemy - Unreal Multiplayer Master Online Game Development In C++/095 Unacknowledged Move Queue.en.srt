@@ -1,0 +1,991 @@
+1
+00:00:04,590 --> 00:00:06,000
+Hello and welcome in this lecture.
+
+2
+00:00:06,000 --> 00:00:10,140
+Yet some more invisible changes I'm afraid still haven't been able to get rid of this lag.
+
+3
+00:00:10,230 --> 00:00:12,680
+But we're going to be doing it in the next lecture hopefully.
+
+4
+00:00:12,750 --> 00:00:15,990
+But we've got the say stage completely set at this point as you can see in the logs.
+
+5
+00:00:15,990 --> 00:00:20,690
+We've got this queue length that's being printed out and it's doing some interesting things.
+
+6
+00:00:20,690 --> 00:00:26,160
+We're going to be seeing what it's actually doing because it's going up it's going up and up from up
+
+7
+00:00:26,160 --> 00:00:30,620
+to about 100 and then suddenly resetting down to 15 not down to zero.
+
+8
+00:00:30,930 --> 00:00:32,340
+And it's going up again.
+
+9
+00:00:32,370 --> 00:00:37,770
+And this queue is basically the thing that is going to be making sure we're always as a client able
+
+10
+00:00:37,770 --> 00:00:43,150
+to stay ahead of the server even though it's sending us out of date updates with the lag situation.
+
+11
+00:00:43,380 --> 00:00:49,200
+And we're going to be figuring out basically how we can implement such a queue using a T array and how
+
+12
+00:00:49,290 --> 00:00:52,650
+we are going to make sure that queue doesn't grow unboundedly.
+
+13
+00:00:52,650 --> 00:00:55,410
+So let's dive in and have a look.
+
+14
+00:00:56,620 --> 00:01:02,350
+Okay so in last lecture we saw that we still have a problem with our lag by set my lag to one second
+
+15
+00:01:02,350 --> 00:01:03,660
+then go and accelerate away.
+
+16
+00:01:03,660 --> 00:01:09,250
+I'm getting lots of those resets which makes it incredibly frustrating and hard to control my car even
+
+17
+00:01:09,250 --> 00:01:10,960
+though I'm sending moves up to the server.
+
+18
+00:01:10,960 --> 00:01:16,050
+That's because the servers delay is meaning that I get reset to a move somewhere in the past.
+
+19
+00:01:16,120 --> 00:01:16,790
+No good.
+
+20
+00:01:16,810 --> 00:01:18,480
+We're going to have to implement this.
+
+21
+00:01:19,480 --> 00:01:24,430
+Now finally this means that we are getting on to the interesting bit of our pseudo code.
+
+22
+00:01:24,430 --> 00:01:29,170
+We're going to be looking at saving list of unacknowledged moves and removing all moves that are already
+
+23
+00:01:29,170 --> 00:01:33,610
+included in the state or tiding up that list of unacknowledged moves not only looking at replay just
+
+24
+00:01:33,610 --> 00:01:35,650
+yet that's going be the subject of the next lecture.
+
+25
+00:01:35,650 --> 00:01:39,460
+But we're going to be looking at making sure this queue of moves is in place.
+
+26
+00:01:39,490 --> 00:01:43,860
+So the first thing we'll do is ask ourselves what is this queue going to be made out.
+
+27
+00:01:43,900 --> 00:01:45,190
+What is it going to be.
+
+28
+00:01:45,190 --> 00:01:49,630
+Well the obvious answer for this is that we know that collections have objects in unreal typically are
+
+29
+00:01:49,630 --> 00:01:51,010
+best served with a T array.
+
+30
+00:01:51,010 --> 00:01:53,540
+Now there are other data structures available such as t.
+
+31
+00:01:53,540 --> 00:02:00,610
+Q You can try and use a T Q But you'll find that it's rather impoverished in terms of the methods available
+
+32
+00:02:00,610 --> 00:02:01,100
+to it.
+
+33
+00:02:01,180 --> 00:02:07,840
+Array is by far the most complete data structure and real supports for collections of objects so that's
+
+34
+00:02:07,840 --> 00:02:09,170
+what we're going to go for.
+
+35
+00:02:09,340 --> 00:02:11,610
+It's going to be the easiest one to use.
+
+36
+00:02:11,740 --> 00:02:18,920
+So let's go in to the header of our go cart and we're going to add in some data about this.
+
+37
+00:02:19,030 --> 00:02:24,010
+Now I'm going to add it right to the bottom because it is closer to being about the throttle and steering
+
+38
+00:02:24,010 --> 00:02:25,080
+throw than anything else.
+
+39
+00:02:25,300 --> 00:02:27,250
+Is data that is only being stored after all.
+
+40
+00:02:27,250 --> 00:02:28,270
+On the client.
+
+41
+00:02:28,390 --> 00:02:34,900
+So I am going to go ahead and create a T array with angle brackets of f.
+
+42
+00:02:34,900 --> 00:02:43,270
+Go cart move close angle brackets and then we are going to call this on a knowledged move like so and
+
+43
+00:02:44,010 --> 00:02:44,990
+end it with a semicolon.
+
+44
+00:02:45,040 --> 00:02:52,390
+Okay so unacknowledged moves is a T array of f a go cart move type So it's a list essentially if you
+
+45
+00:02:52,390 --> 00:02:54,340
+like or whatever.
+
+46
+00:02:54,580 --> 00:02:55,120
+So what is it.
+
+47
+00:02:55,120 --> 00:02:57,140
+We need to do with this data.
+
+48
+00:02:57,310 --> 00:03:00,440
+Well we're going to have to save to a list of unacknowledged moves.
+
+49
+00:03:00,640 --> 00:03:03,570
+So as we know we can use the t array.
+
+50
+00:03:03,640 --> 00:03:08,800
+And to do that if you don't know then do go and refresh your knowledge with this documentation page
+
+51
+00:03:08,800 --> 00:03:10,190
+all about teh arrays.
+
+52
+00:03:10,240 --> 00:03:16,690
+It's available in the links from this lecture but if you do know about it then you can follow along
+
+53
+00:03:16,690 --> 00:03:17,560
+with me.
+
+54
+00:03:17,560 --> 00:03:22,680
+So the array of ADD is what we're going to be looking for as go into AC plus plus and find where this
+
+55
+00:03:22,690 --> 00:03:23,700
+is happening.
+
+56
+00:03:23,710 --> 00:03:25,790
+In fact this forecast pseudocode says on tick.
+
+57
+00:03:25,840 --> 00:03:28,360
+Create a new move and then save a list save to the list.
+
+58
+00:03:28,370 --> 00:03:29,430
+Well that knowledge moves.
+
+59
+00:03:29,590 --> 00:03:34,920
+So if we follow that then we can see that in Tich we've got this is locally controlled and a half.
+
+60
+00:03:34,930 --> 00:03:37,690
+This is where it's getting a little bit complicated here.
+
+61
+00:03:37,690 --> 00:03:41,290
+The creation of the move is a multi line process.
+
+62
+00:03:41,410 --> 00:03:43,710
+So what I actually want to do is go ahead and extract this out.
+
+63
+00:03:43,710 --> 00:03:48,460
+I'm going to go right click quick actions you can do this manually of course and extract a function
+
+64
+00:03:48,640 --> 00:03:51,950
+and it won't let me extract function so I'm going to create it myself.
+
+65
+00:03:52,150 --> 00:03:54,880
+And I am going to create it.
+
+66
+00:03:54,880 --> 00:03:56,410
+Let's see just below simulate.
+
+67
+00:03:56,410 --> 00:03:56,920
+Move.
+
+68
+00:03:56,920 --> 00:03:58,720
+That's kind of the order it's happening in.
+
+69
+00:03:58,720 --> 00:04:00,490
+It's going to return f.
+
+70
+00:04:00,820 --> 00:04:01,950
+Go cart move.
+
+71
+00:04:01,960 --> 00:04:10,060
+I'm going to create call it create move like so and I'm going to go ahead and implement it in the C++
+
+72
+00:04:10,060 --> 00:04:11,050
+file.
+
+73
+00:04:11,200 --> 00:04:15,230
+Do right above right below simulate move.
+
+74
+00:04:16,530 --> 00:04:17,270
+So.
+
+75
+00:04:17,720 --> 00:04:23,850
+And then I am going to implement its body and give it a namespace to the class.
+
+76
+00:04:24,530 --> 00:04:29,140
+And what are we going to do in that belt we're going to just do this bit of code.
+
+77
+00:04:29,150 --> 00:04:35,300
+Basically I'm going to cut that and instantly write its replacement which is going to be an F go cart
+
+78
+00:04:35,520 --> 00:04:36,400
+move.
+
+79
+00:04:36,440 --> 00:04:39,830
+Move is equal to create move.
+
+80
+00:04:39,830 --> 00:04:43,920
+Like so cake and then create move.
+
+81
+00:04:43,970 --> 00:04:48,830
+It's going to do that and at the end of it return the move.
+
+82
+00:04:48,830 --> 00:04:51,920
+By that I mean the thing that I just copied paste it now.
+
+83
+00:04:51,950 --> 00:04:57,320
+You'll notice that it doesn't have a delta time so we're going to have to pass that in as an argument.
+
+84
+00:04:57,320 --> 00:05:01,080
+So let's go up to the head of file and do float.
+
+85
+00:05:02,650 --> 00:05:08,650
+Delta type and copy that over in to the C++.
+
+86
+00:05:09,010 --> 00:05:10,670
+I've got a create move.
+
+87
+00:05:11,110 --> 00:05:17,520
+They go delf times out there and we can pass delta time in that tick.
+
+88
+00:05:18,480 --> 00:05:19,840
+And that's all hunky dory.
+
+89
+00:05:19,840 --> 00:05:27,450
+Okay so now is just a little bit of tidying that we were doing to be able to add what they see then
+
+90
+00:05:27,510 --> 00:05:31,720
+have our code look exactly like the footsteps of our pseudo code.
+
+91
+00:05:31,830 --> 00:05:36,220
+So let's go ahead and add to the unacknowledged moves.
+
+92
+00:05:36,240 --> 00:05:40,260
+So going to have an acknowledged moves dot add.
+
+93
+00:05:40,760 --> 00:05:48,250
+Move out with adaran move into the list of on acknowledge moves later to be tidied up.
+
+94
+00:05:48,500 --> 00:05:50,710
+But why do we need to tidy it up at all.
+
+95
+00:05:50,720 --> 00:05:52,830
+Well that is what we're going to be finding out.
+
+96
+00:05:52,840 --> 00:06:01,090
+Let's print the Q length just as a debug thing so Im going to do a eui underscore log log temp warning.
+
+97
+00:06:02,320 --> 00:06:11,080
+And its going to have the text queue length and it is going to take an argument to that which is going
+
+98
+00:06:11,080 --> 00:06:13,220
+to be a decimal so percent.
+
+99
+00:06:13,420 --> 00:06:17,060
+And were going to get the length of the acknowledged.
+
+100
+00:06:17,060 --> 00:06:18,590
+Do you remember how to do this.
+
+101
+00:06:18,790 --> 00:06:26,380
+You can have a look in the documentation if you dont acknowledged moves Dot and I believe its going
+
+102
+00:06:26,380 --> 00:06:29,650
+to be numb which is a method.
+
+103
+00:06:29,650 --> 00:06:31,750
+So were going to call it with the brackets.
+
+104
+00:06:31,970 --> 00:06:34,370
+Then semicha on the end of the line go ahead and build it.
+
+105
+00:06:34,390 --> 00:06:39,040
+And lets see when we play whats going to happen this queue length is are going to keep growing and growing
+
+106
+00:06:39,040 --> 00:06:39,670
+and growing.
+
+107
+00:06:39,670 --> 00:06:42,100
+And if so what can we do about it.
+
+108
+00:06:42,430 --> 00:06:49,420
+Well the good sign is that the build has succeeded Let's go over into one real hit play and go over
+
+109
+00:06:49,420 --> 00:06:52,660
+to our autonomous proxy in fact we don't even have to do anything.
+
+110
+00:06:52,690 --> 00:06:58,660
+We can already see that in the logs AQ length is just growing and growing with every sextus subsequent
+
+111
+00:06:58,660 --> 00:07:00,460
+tick which is no good.
+
+112
+00:07:00,460 --> 00:07:06,280
+Eventually we will run out of memory so we need to make sure that that Q is going to be properly pruned
+
+113
+00:07:06,580 --> 00:07:13,370
+down to just the difference between what the server has seen and what we have created locally.
+
+114
+00:07:13,390 --> 00:07:14,900
+Thats the whole point of this kit.
+
+115
+00:07:15,010 --> 00:07:18,320
+So its going to be your challenge to prune the queue.
+
+116
+00:07:18,610 --> 00:07:25,450
+So right they clear acknowledged moves methot that's going to be basically the main work.
+
+117
+00:07:25,450 --> 00:07:30,940
+This challenge is going to be called from on rep server States and forget to do that and use the trv
+
+118
+00:07:31,030 --> 00:07:37,900
+documentation to help you in terms of what levers you have to pull around a teaser rate and think about
+
+119
+00:07:37,990 --> 00:07:42,150
+this question thats kind of a central question and what makes a move stale.
+
+120
+00:07:42,940 --> 00:07:48,460
+And see how you can update the T array to remove the things that are stale and keep the things that
+
+121
+00:07:48,520 --> 00:07:50,930
+are not stale because of Theyll have a go.
+
+122
+00:07:52,300 --> 00:07:52,610
+Okay.
+
+123
+00:07:52,630 --> 00:07:53,290
+Welcome back.
+
+124
+00:07:53,290 --> 00:07:55,270
+So the approach Im going to take.
+
+125
+00:07:55,270 --> 00:07:59,460
+Well actually first of all let's just go ahead and create the signature for clearing the moves.
+
+126
+00:07:59,470 --> 00:08:03,360
+I'm going to do it right after create move so we keep things more licence in place.
+
+127
+00:08:03,370 --> 00:08:09,200
+It's going to be void and it's going to be clear acknowledged moves clear.
+
+128
+00:08:09,440 --> 00:08:10,460
+Knowledged.
+
+129
+00:08:13,680 --> 00:08:15,470
+What's it going to take.
+
+130
+00:08:15,480 --> 00:08:16,590
+That's a very good question.
+
+131
+00:08:16,590 --> 00:08:18,550
+Well think about that in just a second.
+
+132
+00:08:18,810 --> 00:08:20,280
+So I won't put it in there just yet.
+
+133
+00:08:20,340 --> 00:08:21,570
+But actually I will.
+
+134
+00:08:21,720 --> 00:08:25,980
+I think what we need to have is it takes the last move.
+
+135
+00:08:26,040 --> 00:08:27,200
+So that's what I'm going to do.
+
+136
+00:08:27,210 --> 00:08:30,620
+I'm going to do an F. go cart move.
+
+137
+00:08:31,350 --> 00:08:39,450
+Last move and that's going to tell us whether moves older than this move or including this move or actually
+
+138
+00:08:39,450 --> 00:08:40,050
+stale.
+
+139
+00:08:40,050 --> 00:08:43,460
+So I'm going to go ahead and implement this now going over into the C++.
+
+140
+00:08:43,590 --> 00:08:48,780
+Let's go and find a good place to do this and do it right after create move.
+
+141
+00:08:48,800 --> 00:08:54,780
+I'm going to have a clear acknowledge moves give it body give it a class name space.
+
+142
+00:08:55,640 --> 00:08:58,180
+And then we've got this last move.
+
+143
+00:08:58,500 --> 00:08:58,790
+Okay.
+
+144
+00:08:58,820 --> 00:09:00,170
+So what we going to do in here.
+
+145
+00:09:00,170 --> 00:09:05,450
+Well my basic premise is going to be that we're going to build a new t array.
+
+146
+00:09:05,450 --> 00:09:09,830
+I think there's going to be just the easiest way it may not be the most efficient way although I think
+
+147
+00:09:09,830 --> 00:09:11,800
+it might also be the most efficient way.
+
+148
+00:09:11,840 --> 00:09:14,870
+But the thing is it's quite simple.
+
+149
+00:09:14,870 --> 00:09:19,970
+So what we can do is we can iterate through the current array we can check which ones are stale and
+
+150
+00:09:19,970 --> 00:09:24,170
+which ones are current and we can populate the new T race so it's going to be fairly straightforward
+
+151
+00:09:24,170 --> 00:09:31,520
+so we're going to do a TI array of F go cart moves new Let's see new moves is what I'm going to call
+
+152
+00:09:31,520 --> 00:09:32,040
+it.
+
+153
+00:09:32,270 --> 00:09:34,630
+And then we can do a simple for loop.
+
+154
+00:09:35,000 --> 00:09:42,950
+So I'm going to do a full loop over the unacknowledged moves and it's going to be a bunch of constant
+
+155
+00:09:44,150 --> 00:09:45,120
+moves.
+
+156
+00:09:45,140 --> 00:09:47,570
+Let's see if go cart moves the type.
+
+157
+00:09:48,740 --> 00:09:54,050
+They're going to be references so I don't have to copy them around all the time and I'm putting cots
+
+158
+00:09:54,050 --> 00:09:56,180
+in front because I don't want to edit them.
+
+159
+00:09:56,390 --> 00:10:00,190
+I don't want to be able to edit them and I'm going to be taking iterating.
+
+160
+00:10:00,230 --> 00:10:07,100
+The UN acknowledged moves array which we can just do like this handly with the T arrays.
+
+161
+00:10:07,100 --> 00:10:07,510
+Great.
+
+162
+00:10:07,580 --> 00:10:12,190
+So we've got four loop we've got a full body we've got the move the last move.
+
+163
+00:10:12,350 --> 00:10:15,890
+Got a new moves array we're iterating at for it.
+
+164
+00:10:15,890 --> 00:10:16,970
+Fantastic.
+
+165
+00:10:16,970 --> 00:10:20,810
+So we've got these moves how are we going to check if they are valid.
+
+166
+00:10:20,810 --> 00:10:21,870
+Well you've guessed it.
+
+167
+00:10:21,890 --> 00:10:25,790
+It is about that time that we haven't yet set.
+
+168
+00:10:25,940 --> 00:10:31,370
+So what we want to do is be able to differentiate between these things based on the time at which they
+
+169
+00:10:31,410 --> 00:10:32,350
+were created.
+
+170
+00:10:32,480 --> 00:10:36,700
+Well actually this is going to be fairly easy to replace this to do in create move.
+
+171
+00:10:36,710 --> 00:10:38,480
+Now we're just going to move dot.
+
+172
+00:10:38,510 --> 00:10:44,810
+Time is equal to and remember that time is available on the Get world.
+
+173
+00:10:44,810 --> 00:10:46,950
+So on the world it's got time.
+
+174
+00:10:47,060 --> 00:10:51,020
+So we're going to just search for what things are available for time and there's time.
+
+175
+00:10:51,020 --> 00:10:52,150
+Seconds is the one we want.
+
+176
+00:10:52,150 --> 00:10:56,060
+There are a few different types of time but time seconds is one we want because that's pause and the
+
+177
+00:10:56,060 --> 00:10:58,970
+game is paused it's dilatant clamped and so on and so forth.
+
+178
+00:10:59,040 --> 00:11:01,790
+It's basically the game simulation time.
+
+179
+00:11:01,910 --> 00:11:04,600
+So we are going to go ahead and set the time stamp from the head.
+
+180
+00:11:04,640 --> 00:11:08,810
+So we've got a time in our move and it is constantly incremental.
+
+181
+00:11:08,960 --> 00:11:15,470
+So if it's constantly incrementing that means anything that is less than or equal to the time of the
+
+182
+00:11:15,470 --> 00:11:21,260
+last move is now stale so we only want to put new moves in new moves the ones that are greater than
+
+183
+00:11:21,590 --> 00:11:23,150
+the last moves time.
+
+184
+00:11:23,180 --> 00:11:24,260
+That's very straightforward.
+
+185
+00:11:24,290 --> 00:11:32,500
+Do an if statement that says that the move dot time is greater than the last move time.
+
+186
+00:11:32,720 --> 00:11:39,210
+Then we can take a copy of this move and we can add it in two new moves.
+
+187
+00:11:39,230 --> 00:11:42,870
+So there are new moves to add and we're going add that move.
+
+188
+00:11:43,070 --> 00:11:49,550
+So and then at the end of this method we need to not forget who we want to replace our t array with
+
+189
+00:11:49,550 --> 00:11:50,970
+this new moves hit rate.
+
+190
+00:11:51,050 --> 00:11:59,890
+So what we're going to do we're going to say that the unacknowledged moves on now the new moves like
+
+191
+00:11:59,900 --> 00:12:02,700
+so that should pretty much do the trick.
+
+192
+00:12:02,780 --> 00:12:07,070
+So all we have to do now is make sure we clear acknowledged moves.
+
+193
+00:12:07,220 --> 00:12:12,200
+Where do we say we're going to do it from Let's Go and have a look it says on reps for state which is
+
+194
+00:12:12,200 --> 00:12:18,440
+basically when we receive the new state from the server so it will find our on rep wears out on rep
+
+195
+00:12:18,440 --> 00:12:20,030
+hears on reps of state.
+
+196
+00:12:20,090 --> 00:12:22,880
+We are overwriting our service state as it is.
+
+197
+00:12:23,060 --> 00:12:29,600
+And then what we want to do is after we've over in that state we want to clear the acknowledged moves
+
+198
+00:12:30,020 --> 00:12:32,160
+with the server.
+
+199
+00:12:33,000 --> 00:12:33,790
+State.
+
+200
+00:12:34,740 --> 00:12:41,400
+Dot last move as the argument so that it knows which was the last move applied and we can clear all
+
+201
+00:12:41,400 --> 00:12:42,360
+the unacknowledged move.
+
+202
+00:12:42,360 --> 00:12:48,930
+Let's go ahead and build this play it see if the queue length is now going to be keeping to a manageable
+
+203
+00:12:48,930 --> 00:12:50,210
+amount.
+
+204
+00:12:50,220 --> 00:12:50,510
+Okay.
+
+205
+00:12:50,520 --> 00:12:51,710
+So build succeeded.
+
+206
+00:12:51,710 --> 00:12:53,350
+Let's give it a play.
+
+207
+00:12:53,640 --> 00:12:58,730
+Go and play and if we go and have a look at our log.
+
+208
+00:12:59,760 --> 00:13:02,650
+It does seem to be growing constantly.
+
+209
+00:13:03,620 --> 00:13:09,530
+But this actually might be because we have had the authority only and it looks like the client hasn't
+
+210
+00:13:09,530 --> 00:13:09,980
+spawned.
+
+211
+00:13:09,980 --> 00:13:11,940
+But that still seems to be a problem.
+
+212
+00:13:12,020 --> 00:13:15,060
+Maybe there is a problem there let's go ahead hit play again.
+
+213
+00:13:15,320 --> 00:13:21,440
+Now what we're seeing here is something like differently in the logs we go and quit and have a look
+
+214
+00:13:21,440 --> 00:13:22,640
+at what happened in the logs.
+
+215
+00:13:22,640 --> 00:13:24,050
+We've got two sets of queue length.
+
+216
+00:13:24,050 --> 00:13:25,580
+One is happening on the server.
+
+217
+00:13:25,580 --> 00:13:27,180
+One is happening on the client.
+
+218
+00:13:27,350 --> 00:13:30,930
+Okay so that has revealed a little bug what we have got.
+
+219
+00:13:30,930 --> 00:13:35,400
+Here's the we're adding move to the queue even if we are the server obviously with the server.
+
+220
+00:13:35,400 --> 00:13:38,260
+We don't need to be adding things to the queue.
+
+221
+00:13:38,480 --> 00:13:41,960
+So let's just make sure that we do it.
+
+222
+00:13:42,940 --> 00:13:45,300
+And we want to basically say we don't have authority.
+
+223
+00:13:45,310 --> 00:13:52,460
+So if not has authority then we're going to be adding to the queue.
+
+224
+00:13:52,480 --> 00:13:57,730
+Otherwise don't bother adding to the queue and don't bother printing out the queue either because we
+
+225
+00:13:57,730 --> 00:14:00,160
+don't need to go ahead and build.
+
+226
+00:14:00,700 --> 00:14:02,870
+Okay then give it another shot.
+
+227
+00:14:03,860 --> 00:14:04,780
+Hit Play.
+
+228
+00:14:05,900 --> 00:14:07,400
+Have a look at the law.
+
+229
+00:14:07,430 --> 00:14:13,760
+Let's go over to the ultimate proxy a little drive around we seem to be driving around Okay let's go
+
+230
+00:14:13,910 --> 00:14:15,030
+to the logs.
+
+231
+00:14:15,050 --> 00:14:23,960
+And sure enough here you can see that we are going from one up to about forty six and then resetting.
+
+232
+00:14:23,960 --> 00:14:27,170
+That is probably because we're getting an update once a second.
+
+233
+00:14:27,290 --> 00:14:31,510
+What happens if we had some land let's go and try to emulate some lag.
+
+234
+00:14:31,550 --> 00:14:40,520
+Go to our autonomous proxy and open up the console and do a packet lag of 1000 and quits after a little
+
+235
+00:14:40,520 --> 00:14:43,190
+bit of waiting and go and have a look at the queue lengths.
+
+236
+00:14:43,610 --> 00:14:45,490
+Okay so what's happening in these queue lengths.
+
+237
+00:14:45,500 --> 00:14:49,610
+You can see we are going all the way up to 100 and then we're resetting.
+
+238
+00:14:49,610 --> 00:14:53,870
+We're not resetting down to one you'll notice were resetting down to 50 which means that there have
+
+239
+00:14:53,870 --> 00:14:59,090
+been 50 moves since the servers update that came back to us.
+
+240
+00:14:59,120 --> 00:15:04,370
+So we're keeping this queue length ahead of the server which is exactly what we wanted.
+
+241
+00:15:04,370 --> 00:15:09,050
+If you go all the way back and have a look at your slides you remember that is there bitly dot com.
+
+242
+00:15:09,050 --> 00:15:10,910
+Let's have a look at your else.
+
+243
+00:15:10,910 --> 00:15:17,120
+Bitly because l y forwards slash multiplayer slide you can go and have a look at the old slides and
+
+244
+00:15:17,120 --> 00:15:22,670
+see make sure you understand why this queue length is being reset in this way from 100 down to 50 when
+
+245
+00:15:22,670 --> 00:15:28,810
+we have about a second of lag pause a video well then pause video actually that's the end of the video.
+
+246
+00:15:29,030 --> 00:15:33,170
+Our see you in the next lecture where we'll actually be restimulating these moves to make sure that
+
+247
+00:15:33,170 --> 00:15:34,910
+we aren't getting the resetting.
+
+248
+00:15:35,000 --> 00:15:36,930
+That is still present and I'll see you there.

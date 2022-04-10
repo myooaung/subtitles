@@ -1,0 +1,541 @@
+WEBVTT
+1
+00:00:02.740 --> 00:00:05.560
+Let's go through an implementation following the strategies
+
+2
+00:00:05.560 --> 00:00:08.650
+we just talked about. We'll add some additional properties to
+
+3
+00:00:08.650 --> 00:00:10.470
+make the app production ready,
+
+4
+00:00:10.470 --> 00:00:15.180
+then create a branch for v1 and make the breaking changes for v2.
+
+5
+00:00:15.180 --> 00:00:19.530
+We'll deploy both versions to a server and set up a load balancer to
+
+6
+00:00:19.530 --> 00:00:23.120
+route traffic to the appropriate application based on the version in
+
+7
+00:00:23.120 --> 00:00:27.340
+the URI. Finally, we'll go through what fixing a bug in version 1
+
+8
+00:00:27.340 --> 00:00:31.480
+looks like and see how easy it is to build and deploy updates to your
+
+9
+00:00:31.480 --> 00:00:33.340
+application.
+
+10
+00:00:33.340 --> 00:00:36.420
+Let's go through an add a few things to get our application
+
+11
+00:00:36.420 --> 00:00:40.040
+ready to run in a production environment with a load balancer
+
+12
+00:00:40.040 --> 00:00:42.440
+or proxy server in front of it.
+
+13
+00:00:42.440 --> 00:00:46.440
+First, we'll add Spring Boot Actuator to the POM.
+
+14
+00:00:46.440 --> 00:00:50.330
+This will allow us to have a health check so that the load balancer or
+
+15
+00:00:50.330 --> 00:00:53.440
+proxy knows that it's a healthy running instance.
+
+16
+00:00:53.440 --> 00:00:55.990
+Next, we'll define a few other properties in our
+
+17
+00:00:55.990 --> 00:01:01.540
+application.properties file. We'll specify the port for clarity
+
+18
+00:01:01.540 --> 00:01:04.630
+and will enable only the health check endpoint.
+
+19
+00:01:04.630 --> 00:01:08.320
+Now when we start up the application,
+
+20
+00:01:08.320 --> 00:01:12.950
+we can hit the application at the health endpoint and get a response if
+
+21
+00:01:12.950 --> 00:01:16.320
+it is up. When we hit the actuator health endpoint,
+
+22
+00:01:16.320 --> 00:01:20.930
+we get a status: UP message. At this point, version 1 is good
+
+23
+00:01:20.930 --> 00:01:24.740
+to go, so we'll package it up as an executable JAR to be able
+
+24
+00:01:24.740 --> 00:01:27.440
+to transfer over to our server.
+
+25
+00:01:27.440 --> 00:01:28.420
+I'm running Maven,
+
+26
+00:01:28.420 --> 00:01:36.890
+so I'll do a quick package command, and this will build the employee‑1.0.0.jar.
+
+27
+00:01:36.890 --> 00:01:38.870
+When I transfer this up to the server,
+
+28
+00:01:38.870 --> 00:01:44.040
+I'll go ahead and run the command, and version 1 will be running on port 8080.
+
+29
+00:01:44.040 --> 00:01:46.760
+We can hit the health endpoint on the server to confirm
+
+30
+00:01:46.760 --> 00:01:49.740
+that the application is up and running.
+
+31
+00:01:49.740 --> 00:01:51.540
+Sure enough, it's up.
+
+32
+00:01:51.540 --> 00:01:52.690
+At this point,
+
+33
+00:01:52.690 --> 00:01:56.690
+I'm going to go ahead and create a branch called uriv1 to
+
+34
+00:01:56.690 --> 00:02:00.180
+preserve the state of version 1 of the application that is
+
+35
+00:02:00.180 --> 00:02:03.000
+currently running in production.
+
+36
+00:02:03.000 --> 00:02:07.700
+This will have all the information of what we just did, so if I need to
+
+37
+00:02:07.700 --> 00:02:10.910
+go back and do any bug fixes or anything like that,
+
+38
+00:02:10.910 --> 00:02:14.400
+I can switch to this branch and make those changes in isolation.
+
+39
+00:02:14.400 --> 00:02:18.150
+This also makes it easy to automate deployments of version 1
+
+40
+00:02:18.150 --> 00:02:21.540
+and not get anything mixed up with version 2.
+
+41
+00:02:21.540 --> 00:02:24.170
+I'll go ahead and switch back to the master branch to
+
+42
+00:02:24.170 --> 00:02:27.440
+make the changes for version 2.
+
+43
+00:02:27.440 --> 00:02:27.910
+First,
+
+44
+00:02:27.910 --> 00:02:31.120
+we'll change the artifact from version 1 to version 2,
+
+45
+00:02:31.120 --> 00:02:34.890
+so when we deploy to the server, we can tell the difference.
+
+46
+00:02:34.890 --> 00:02:35.380
+Next,
+
+47
+00:02:35.380 --> 00:02:41.740
+we'll change the base URI from v1 to v2, and we'll also go ahead and change the
+
+48
+00:02:41.740 --> 00:02:47.120
+server port so that we can deploy both of these on the same machines. In the
+
+49
+00:02:47.120 --> 00:02:52.100
+Employee entity, we've added another property called department and modified the
+
+50
+00:02:52.100 --> 00:02:54.840
+constructor to handle that new property.
+
+51
+00:02:54.840 --> 00:02:56.860
+And just to make things interesting,
+
+52
+00:02:56.860 --> 00:02:59.990
+we'll make it required with the @NotNull attribute.
+
+53
+00:02:59.990 --> 00:03:03.740
+Let's go ahead and change the schedule as well. Instead of Monday to
+
+54
+00:03:03.740 --> 00:03:08.640
+Friday 9‑5, let's make it Monday to Wednesday 6‑6.
+
+55
+00:03:08.640 --> 00:03:10.240
+With those changes in place,
+
+56
+00:03:10.240 --> 00:03:18.140
+let's go ahead and build our 2.0 artifact and deploy it to the server.
+
+57
+00:03:18.140 --> 00:03:20.240
+We'll fire it up on the server.
+
+58
+00:03:20.240 --> 00:03:20.690
+Remember,
+
+59
+00:03:20.690 --> 00:03:28.440
+this will run on port 8081 because version 1.0.0 is running on port 8080.
+
+60
+00:03:28.440 --> 00:03:33.590
+We'll hit the health check, and version 2.0 is up.
+
+61
+00:03:33.590 --> 00:03:36.340
+At this point, we're not quite there yet.
+
+62
+00:03:36.340 --> 00:03:39.370
+We have two different versions running, and while we could go
+
+63
+00:03:39.370 --> 00:03:42.940
+ahead and hit the endpoints using v1 and v2,
+
+64
+00:03:42.940 --> 00:03:46.280
+we've got the problem that we're running on different ports.
+
+65
+00:03:46.280 --> 00:03:48.040
+If you deployed to different machines,
+
+66
+00:03:48.040 --> 00:03:50.950
+you could get around that, but we can do better than that with
+
+67
+00:03:50.950 --> 00:03:53.870
+the help of a load balancer or proxy server.
+
+68
+00:03:53.870 --> 00:03:56.340
+I'm using AWS for this example,
+
+69
+00:03:56.340 --> 00:04:01.140
+but the general principles could apply to any load balancer or proxy server.
+
+70
+00:04:01.140 --> 00:04:06.140
+I've defined application 1 and 2 so that the load balancer knows
+
+71
+00:04:06.140 --> 00:04:09.340
+what applications are running on what machine.
+
+72
+00:04:09.340 --> 00:04:10.190
+In this case,
+
+73
+00:04:10.190 --> 00:04:15.340
+both applications are running on the same machine, just on different ports.
+
+74
+00:04:15.340 --> 00:04:16.810
+In a production scenario,
+
+75
+00:04:16.810 --> 00:04:20.740
+you would have multiple machines if you needed high availability.
+
+76
+00:04:20.740 --> 00:04:24.740
+On the load balancer, it's listening on port 80, and I've defined
+
+77
+00:04:24.740 --> 00:04:27.310
+a couple of rules for that listener.
+
+78
+00:04:27.310 --> 00:04:32.530
+If the path has v1 in it, then it will forward to application v1.
+
+79
+00:04:32.530 --> 00:04:37.430
+This is our 1.0 JAR running on port 8080 on the instance. If the path
+
+80
+00:04:37.430 --> 00:04:41.630
+has v2 in it, then it will forward to application v2.
+
+81
+00:04:41.630 --> 00:04:47.560
+This is our 2.0 JAR running on port 8081 on the instance. Let's go
+
+82
+00:04:47.560 --> 00:04:51.970
+through and hit version 1 and version two through the load balancer
+
+83
+00:04:51.970 --> 00:04:57.820
+address on port 80. First, we'll check the schedule message and see the
+
+84
+00:04:57.820 --> 00:05:00.240
+version 1 schedule, Monday through Friday,
+
+85
+00:05:00.240 --> 00:05:02.020
+9‑5.
+
+86
+00:05:02.020 --> 00:05:06.040
+Next, let's hit the version 2 schedule,
+
+87
+00:05:06.040 --> 00:05:08.650
+and we can see the change, Monday through Wednesday,
+
+88
+00:05:08.650 --> 00:05:10.200
+6‑6.
+
+89
+00:05:10.200 --> 00:05:13.380
+We just started the app, so there are no employees yet,
+
+90
+00:05:13.380 --> 00:05:17.240
+so let's go ahead and add an employee.
+
+91
+00:05:17.240 --> 00:05:20.240
+We'll double check that it added correctly,
+
+92
+00:05:20.240 --> 00:05:25.240
+and we can see one employee with the correct information, craig, developer.
+
+93
+00:05:25.240 --> 00:05:28.840
+Now let's check out the v2 employees.
+
+94
+00:05:28.840 --> 00:05:33.190
+Nothing there yet. We'll add a v2 employee that must include the
+
+95
+00:05:33.190 --> 00:05:39.820
+department attribute, and verify that it was added.
+
+96
+00:05:39.820 --> 00:05:44.260
+We can see one element with the correct information, steve,
+
+97
+00:05:44.260 --> 00:05:47.400
+developer, in the research department.
+
+98
+00:05:47.400 --> 00:05:50.700
+Let's see what happens when we try to add a version 2
+
+99
+00:05:50.700 --> 00:05:55.700
+employee without the required attribute.
+
+100
+00:05:55.700 --> 00:05:58.850
+We get an error that it could not commit the transaction.
+
+101
+00:05:58.850 --> 00:06:01.040
+We're missing a required attribute.
+
+102
+00:06:01.040 --> 00:06:02.940
+If we add that back in,
+
+103
+00:06:02.940 --> 00:06:09.380
+then we can see that it was successful, and now we have two employees,
+
+104
+00:06:09.380 --> 00:06:14.340
+karina and steve.
+
+105
+00:06:14.340 --> 00:06:17.330
+With this simple example with only one entity,
+
+106
+00:06:17.330 --> 00:06:22.240
+you may not fully appreciate how easy Spring Data makes this for you.
+
+107
+00:06:22.240 --> 00:06:28.260
+This one property spring.data.rest.basePath, covers all of the entities. Here
+
+108
+00:06:28.260 --> 00:06:33.310
+we only had one Employee entity, but imagine if you had 50 entities. Would you
+
+109
+00:06:33.310 --> 00:06:38.210
+rather custom define all of the paths for all 50 of those or change one
+
+110
+00:06:38.210 --> 00:06:42.860
+property? Anywhere you do have custom services, simply adding the
+
+111
+00:06:42.860 --> 00:06:48.430
+@BasePathAwareController annotation to the class will add the base URI to all
+
+112
+00:06:48.430 --> 00:06:51.640
+of the request mappings in that class.
+
+113
+00:06:51.640 --> 00:06:57.010
+With this model, you can continue working on the 2.0 version in master,
+
+114
+00:06:57.010 --> 00:07:01.840
+then release and deploy as needed without touching version 1.0.
+
+115
+00:07:01.840 --> 00:07:07.090
+If you ever did need to create a bug fix in 1.0, it's as simple as switching
+
+116
+00:07:07.090 --> 00:07:13.810
+to the 1.0 branch, making the change, let's just make a simple change from
+
+117
+00:07:13.810 --> 00:07:18.250
+5‑9, change whatever you need to on the version,
+
+118
+00:07:18.250 --> 00:07:23.230
+or have your build do it for you, I'll just do 1.0.1, build the
+
+119
+00:07:23.230 --> 00:07:30.950
+artifact with the fix, deploy it to the server, then once it's up
+
+120
+00:07:30.950 --> 00:07:33.640
+and the health check is returning positive,
+
+121
+00:07:33.640 --> 00:07:37.440
+then we can hit it through the load balancer and see the change.
+
+122
+00:07:37.440 --> 00:07:42.210
+There's our bug fix, 9‑9. Again, we didn't have to touch version
+
+123
+00:07:42.210 --> 00:07:45.000
+2 at all, this was completely independent,
+
+124
+00:07:45.000 --> 00:07:49.310
+so you would only have to test version 1 of your API when you were making
+
+125
+00:07:49.310 --> 00:07:56.170
+changes to version 1. Way to go! You've seen how easy Spring makes it to
+
+126
+00:07:56.170 --> 00:08:01.980
+add a version to the URI. Just set the spring.data.rest.basePath property
+
+127
+00:08:01.980 --> 00:08:04.210
+in your application.properties file.
+
+128
+00:08:04.210 --> 00:08:07.160
+You've also seen how to incorporate that version into your
+
+129
+00:08:07.160 --> 00:08:10.860
+other endpoints that aren't managed by Spring Data by using the
+
+130
+00:08:10.860 --> 00:08:13.540
+@BasePathAwareController annotation.
+
+131
+00:08:13.540 --> 00:08:18.460
+We've covered strategies for managing API versions and deployment so you
+
+132
+00:08:18.460 --> 00:08:22.040
+can leverage tools like source control branching and load balancers or
+
+133
+00:08:22.040 --> 00:08:27.450
+proxy servers to simplify your application code and maximize the benefit
+
+134
+00:08:27.450 --> 00:08:30.070
+that Spring provides to you.
+
+135
+00:08:30.070 --> 00:08:37.000
+Join me in the next module where we will look at using a custom header for versioning your API.
+

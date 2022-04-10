@@ -1,0 +1,516 @@
+WEBVTT
+1
+00:00:05.270 --> 00:00:07.170
+Welcome back everyone in this lecture.
+
+2
+00:00:07.190 --> 00:00:14.300
+We're going to explain how face detection works with the viola Jones algorithm of Haar Cascades so we
+
+3
+00:00:14.300 --> 00:00:19.670
+can explore face detection using Haar cascades which is a key component of the VLA Jones object detection
+
+4
+00:00:19.670 --> 00:00:20.370
+framework.
+
+5
+00:00:20.540 --> 00:00:25.160
+And if you're interested in the Wikipedia article on this general topic just look up VLA Jones object
+
+6
+00:00:25.160 --> 00:00:27.830
+detection framework and Ill explain the process.
+
+7
+00:00:27.860 --> 00:00:31.580
+We've also linked as a resource the original paper which I really encourage you to read.
+
+8
+00:00:31.580 --> 00:00:33.620
+It's a really well-written paper.
+
+9
+00:00:33.620 --> 00:00:39.620
+Now keep in mind what we're covering here is face detection not face recognition.
+
+10
+00:00:39.620 --> 00:00:44.260
+We're going to be able to very quickly detect if a face is in an image and actually locate it.
+
+11
+00:00:44.480 --> 00:00:47.040
+However we don't really know whose face it belongs to.
+
+12
+00:00:47.060 --> 00:00:51.950
+We'll just be able to say yes that is the face we would need a really large data set and deep learning
+
+13
+00:00:52.010 --> 00:00:54.170
+for actual facial recognition.
+
+14
+00:00:54.200 --> 00:00:58.680
+Being able to not only detect the face but then say it belongs to for example Jose.
+
+15
+00:00:58.700 --> 00:01:07.140
+So right now we're keeping things simple and just talking about face detection this arose in 2001 with
+
+16
+00:01:07.140 --> 00:01:12.000
+Paul VLA and Michael Jones when they published their method of face detection based on the really simple
+
+17
+00:01:12.000 --> 00:01:15.470
+concept of just analyzing a few key features.
+
+18
+00:01:15.540 --> 00:01:20.760
+Now what's really cool is they also came up with this idea of pre-computed an integral image to save
+
+19
+00:01:20.760 --> 00:01:24.700
+time on calculations to actually find these features.
+
+20
+00:01:24.730 --> 00:01:30.250
+So let's first understand the main feature types that Viola and Jones proposed how we can actually calculate
+
+21
+00:01:30.280 --> 00:01:35.270
+them and then how we can use an integral image to really speed up the computational process.
+
+22
+00:01:36.530 --> 00:01:42.350
+So the main feature types are edge features where you have white against black either in horizontal
+
+23
+00:01:42.350 --> 00:01:44.130
+or vertical directions.
+
+24
+00:01:44.540 --> 00:01:46.210
+And then you also have line features.
+
+25
+00:01:46.230 --> 00:01:52.070
+Again here we have dark with white on the sides horizontal or vertical.
+
+26
+00:01:52.310 --> 00:01:57.210
+And then you also have four rectangle features that look like this.
+
+27
+00:01:57.260 --> 00:02:03.090
+Now each feature is a single value obtained by subtracting the sum of pixels under the white rectangle
+
+28
+00:02:03.150 --> 00:02:05.490
+from the sum of pixels under the black rectangle.
+
+29
+00:02:05.580 --> 00:02:08.670
+That would be specifically for the edge example.
+
+30
+00:02:08.670 --> 00:02:12.300
+So realistically our images aren't going to be perfect edges or lines.
+
+31
+00:02:12.300 --> 00:02:18.560
+We're not going to have a perfect zero to one edge so let's see what that would actually look like as
+
+32
+00:02:18.560 --> 00:02:20.330
+far as Kuchel these features.
+
+33
+00:02:20.330 --> 00:02:25.070
+If you have a perfect edge it's on the left hand side where you're going to do is take the average in
+
+34
+00:02:25.070 --> 00:02:28.820
+the dark region and then subtract that from the average in the light region.
+
+35
+00:02:28.820 --> 00:02:31.570
+And for a perfect edge that would be one.
+
+36
+00:02:31.580 --> 00:02:32.320
+Mine is zero.
+
+37
+00:02:32.330 --> 00:02:38.640
+So 1 but for our realistic example have something that looks more like this on the right hand side.
+
+38
+00:02:40.180 --> 00:02:42.940
+So let's go ahead and explore the calculation.
+
+39
+00:02:43.060 --> 00:02:49.160
+So the closer the result is to 1 the better the feature if we actually explore the coloration for our
+
+40
+00:02:49.160 --> 00:02:53.300
+more realistic image on the right hand side we can kind of tell there's an edge there.
+
+41
+00:02:53.330 --> 00:02:58.760
+So what we end up doing is we first sum that dark region and then some delite region.
+
+42
+00:02:59.090 --> 00:03:04.430
+Then we take the average of them and we calculate the average to be 0.8 one for that dark region and
+
+43
+00:03:04.430 --> 00:03:12.770
+then 0.1 5 for the lighter region which means their overall Delta is going to be 0.1 to 5 is 0.1 5 which
+
+44
+00:03:12.770 --> 00:03:15.330
+is equal to zero point six six to five.
+
+45
+00:03:15.410 --> 00:03:19.530
+And recall that if this was absolutely perfect the score would be one.
+
+46
+00:03:19.550 --> 00:03:24.130
+So the closer we are to one then the better the actual feature.
+
+47
+00:03:24.200 --> 00:03:29.390
+And you can then decide on a threshold value to essentially throw away this feature and say that it
+
+48
+00:03:29.390 --> 00:03:32.590
+didn't pass and then have this feature or that it did pass.
+
+49
+00:03:32.630 --> 00:03:39.490
+So we could say something like above 0.5 there is an edge there.
+
+50
+00:03:39.660 --> 00:03:45.390
+Now keep in mind calculator in those sums for the entire image will be computationally expensive because
+
+51
+00:03:45.390 --> 00:03:51.150
+you basically have to check for every single possibility of every feature that you have in your set.
+
+52
+00:03:51.150 --> 00:03:55.790
+So what the viola Jones algorithm does is it solves this by using the integral image.
+
+53
+00:03:55.920 --> 00:03:59.450
+And this results in an order one running time of the algorithm.
+
+54
+00:03:59.460 --> 00:04:01.270
+So it's really quite clever what they did here.
+
+55
+00:04:01.530 --> 00:04:08.310
+So what you do is you pre-calculate an integral image which is also known as a summed area table over
+
+56
+00:04:08.310 --> 00:04:10.550
+here on the left hand side.
+
+57
+00:04:10.650 --> 00:04:13.650
+We have our original image and the original pixel values.
+
+58
+00:04:13.650 --> 00:04:18.810
+Over here on the right hand side we have the some area table or the integral image.
+
+59
+00:04:18.810 --> 00:04:22.040
+The way you calculate this integral image is actually pretty straightforward.
+
+60
+00:04:22.050 --> 00:04:26.460
+All you do is you go along these pixel values and then you sum them up.
+
+61
+00:04:26.460 --> 00:04:33.450
+So for example I have 31 here so I have 31 here then my next value is 33 which is just the sum of 31
+
+62
+00:04:33.570 --> 00:04:34.470
+plus two.
+
+63
+00:04:34.590 --> 00:04:37.070
+Then if I want to keep going then I add four to that.
+
+64
+00:04:37.080 --> 00:04:40.140
+So 33 plus four is then 37.
+
+65
+00:04:40.140 --> 00:04:43.780
+If I add 33 to 37 then I get 70 and so on.
+
+66
+00:04:44.010 --> 00:04:51.300
+And what that allows us to do is it allows us to quickly calculate the sum of any rectangle on the actual
+
+67
+00:04:51.300 --> 00:04:54.700
+image so we can see here as we go along.
+
+68
+00:04:54.720 --> 00:05:01.140
+To sum up a sub rectangle of its values from the original image each color spot highlights the sum inside
+
+69
+00:05:01.140 --> 00:05:06.630
+the rectangle of that color which is essentially just the bottom right hand corner of that particular
+
+70
+00:05:06.630 --> 00:05:07.640
+rectangle.
+
+71
+00:05:07.650 --> 00:05:13.350
+So notice if I wanted to take the some of this red rectangle here which is three by two then I just
+
+72
+00:05:13.350 --> 00:05:17.730
+need to locate its bottom right hand corner in reference to the top left.
+
+73
+00:05:17.730 --> 00:05:24.390
+So that sum is 101 and if I actually want to then perform calculations such as subtracting a light region
+
+74
+00:05:24.390 --> 00:05:28.920
+from a dark region I'd be able to do it really fast if I had access to this integral table.
+
+75
+00:05:28.920 --> 00:05:30.890
+Which is why we pre-calculate it before him.
+
+76
+00:05:31.080 --> 00:05:34.950
+So this allows the algorithm to actually run very very fast.
+
+77
+00:05:35.450 --> 00:05:35.940
+OK.
+
+78
+00:05:36.240 --> 00:05:38.680
+So let's go ahead and move along.
+
+79
+00:05:38.790 --> 00:05:45.300
+So after that the algorithm also saves time by going through a cascade of classifiers which are essentially
+
+80
+00:05:45.300 --> 00:05:46.380
+the features.
+
+81
+00:05:46.380 --> 00:05:51.120
+And this means we're going to treat the image to a series or a cascade of classifiers based off the
+
+82
+00:05:51.120 --> 00:05:54.400
+simple feature shown earlier those edges and lines.
+
+83
+00:05:54.480 --> 00:05:59.470
+Once an image fails the classifier we can stop attempting to try to detect the face there.
+
+84
+00:06:00.730 --> 00:06:05.740
+A common misconception behind face detection specifically of this algorithm is that the algorithm is
+
+85
+00:06:05.740 --> 00:06:10.410
+slowly scanning the entire image looking for a face that would actually be really efficient.
+
+86
+00:06:10.420 --> 00:06:13.570
+Instead we're passing this cascade of classifiers.
+
+87
+00:06:13.570 --> 00:06:16.110
+So let's work through a very simple example.
+
+88
+00:06:16.300 --> 00:06:21.730
+First what we need is a person looking front towards the camera that can be looking slightly off front
+
+89
+00:06:21.820 --> 00:06:26.430
+but more or less they should be recognizable from the front of their face.
+
+90
+00:06:26.470 --> 00:06:28.880
+That's what this algorithm was trained to do.
+
+91
+00:06:28.900 --> 00:06:35.230
+So once we have that we turn it into a greyscale image because for our use case we're only really interested
+
+92
+00:06:35.320 --> 00:06:37.590
+in light versus dark regions of features.
+
+93
+00:06:37.660 --> 00:06:39.510
+So we just need the greyscale image.
+
+94
+00:06:40.510 --> 00:06:43.570
+Then we begin in our search for the haar cascade features.
+
+95
+00:06:43.600 --> 00:06:48.400
+So what we do here is we start with one of the very first features and I believe one of the very first
+
+96
+00:06:48.400 --> 00:06:52.700
+ones that searched for is the indication between the eyes and the cheeks.
+
+97
+00:06:52.780 --> 00:06:57.400
+So we can see that the eyes will probably be darker than the light cheek region.
+
+98
+00:06:57.400 --> 00:07:04.060
+So that means we have this first feature and we scan the image for it and see if it passes this test
+
+99
+00:07:04.420 --> 00:07:06.960
+if it doesn't pass this feature right away.
+
+100
+00:07:07.000 --> 00:07:11.200
+So if the image were to fail for the search of this particular feature then we can quickly say that
+
+101
+00:07:11.200 --> 00:07:14.840
+there is no face there we would have to search the other thousands of features.
+
+102
+00:07:14.950 --> 00:07:21.040
+Instead we just have this cascade or series of features otherwise known as classifiers to classify whether
+
+103
+00:07:21.040 --> 00:07:23.350
+or not we have a face there.
+
+104
+00:07:23.590 --> 00:07:28.700
+Now if that one passed then we search for the next classifier or a feature which is usually I think
+
+105
+00:07:28.700 --> 00:07:29.890
+the bridge of the nose.
+
+106
+00:07:30.050 --> 00:07:34.040
+And this just keeps going and going until you pass the majority of them and you can have some sort of
+
+107
+00:07:34.040 --> 00:07:40.530
+threshold as far as what you indicate as a feature pass or a classifier pass.
+
+108
+00:07:40.540 --> 00:07:45.010
+So again you continue this maybe the eyebrows you do the mouth and so on just using these really simple
+
+109
+00:07:45.010 --> 00:07:50.200
+ideas of edge features and line features until the outgrown the sides.
+
+110
+00:07:50.230 --> 00:07:55.470
+Yes I've detected a face here because it kept passing all these classifiers.
+
+111
+00:07:55.480 --> 00:08:00.010
+Now theoretically this approach can be used for a variety of objects or the sections not just faces
+
+112
+00:08:00.730 --> 00:08:05.150
+for example will also work for the pre-trained detector.
+
+113
+00:08:05.160 --> 00:08:09.930
+The downside to this algorithm is that you would actually need a very large dataset in order to create
+
+114
+00:08:09.930 --> 00:08:12.630
+your own features or classifiers.
+
+115
+00:08:12.640 --> 00:08:16.560
+However luckily many pre-trained sets of features already exist.
+
+116
+00:08:16.560 --> 00:08:23.070
+So we'll be able to use pre-trained classifiers open if he comes of a lot of these pre-trained SML files
+
+117
+00:08:23.070 --> 00:08:26.870
+for various Haar Cascades later on in the deep learning section of the course.
+
+118
+00:08:27.000 --> 00:08:31.400
+We're going to see how to create our own classification algorithms for any distinct group of images.
+
+119
+00:08:31.410 --> 00:08:37.230
+So because this actual algorithm requires such huge data sets it's a little more efficient to show you
+
+120
+00:08:37.260 --> 00:08:39.180
+how to create your own recognition.
+
+121
+00:08:39.180 --> 00:08:44.040
+Classifiers an object detection classifiers using deep learning instead of trying to build out your
+
+122
+00:08:44.040 --> 00:08:45.300
+own hard Cascades.
+
+123
+00:08:45.300 --> 00:08:50.190
+So instead we'll be using pre-trained Haar Cascades for this section of the course but later on we will
+
+124
+00:08:50.190 --> 00:08:52.270
+show you how to train on your own images.
+
+125
+00:08:53.310 --> 00:08:58.710
+OK so we've placed pre-trained ex-MIL files in the data folder and you're also going to be using a pre-trained
+
+126
+00:08:58.710 --> 00:09:01.560
+file for your upcoming project assessment which is a really cool project.
+
+127
+00:09:01.560 --> 00:09:02.780
+I'm super excited for it.
+
+128
+00:09:02.880 --> 00:09:08.150
+But first let's explore how to use facial detection with open C-v and these pre-trained ex-MIL files.
+
+129
+00:09:08.160 --> 00:09:11.550
+I'll see you in the next lecture where we actually open Jupiter and get started.

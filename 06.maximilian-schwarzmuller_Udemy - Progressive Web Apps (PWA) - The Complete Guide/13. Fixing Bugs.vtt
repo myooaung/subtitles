@@ -1,0 +1,349 @@
+WEBVTT
+
+00:02.070 --> 00:04.900
+So first of all, let's take care that when we close this modal,
+
+00:04.920 --> 00:11.970
+the camera starts sending, so that it isn't kept on which costs resources and is not really
+
+00:11.970 --> 00:13.370
+a good user experience.
+
+00:13.770 --> 00:15.790
+It's easy to control, in feed.js
+
+00:15.860 --> 00:24.150
+where we have this method to close the modal, close create post modal, here we simply have to stop
+
+00:24.150 --> 00:25.550
+the camera stream.
+
+00:25.770 --> 00:31.290
+So what I'll do is I'll simply check if we have the video player source object set which is only
+
+00:31.290 --> 00:40.840
+set if we set a stream to it, then I want to access my video player source object, get all video tracks,
+
+00:41.020 --> 00:45.330
+we use that before and for each, I want to stop it,
+
+00:45.490 --> 00:52.590
+so I'll execute a function on each running track and I will set or call track stop.
+
+00:52.800 --> 00:54.560
+Now that's the first thing,
+
+00:54.580 --> 00:58.910
+now let me quickly bump up the static cache version to see if it works,
+
+00:59.050 --> 01:00.660
+reload the application
+
+01:01.310 --> 01:06.430
+and then open it again to activate.
+
+01:06.470 --> 01:12.950
+Now we see we start recording, you can see it here on this tiny red recording icon, if I now close this,
+
+01:14.340 --> 01:15.500
+it stops.
+
+01:15.510 --> 01:18.090
+So this is now working as it should,
+
+01:18.240 --> 01:23.470
+stopping the recording. Now the animation was a bit clunky there though,
+
+01:23.670 --> 01:29.400
+that simply is due to the case that this takes a lot of resources and blocks the main UI thread for a
+
+01:29.400 --> 01:33.680
+second, a quick fix is to use a timeout here
+
+01:34.680 --> 01:42.450
+where we only wait for one millisecond and then we do actually animate out.
+
+01:42.840 --> 01:47.200
+So there, we can then execute this animation
+
+01:47.430 --> 01:53.840
+and now this should work, if we bump up that static cache version after moving
+
+01:53.940 --> 01:58.380
+this transformation where we slide that down into that timeout with one millisecond,
+
+01:58.740 --> 02:04.900
+if we set it up like this, let's again reload and reopen as you already know it,
+
+02:05.070 --> 02:07.140
+if we do this,
+
+02:07.140 --> 02:10.580
+now we should have a smooth animation again for closing it,
+
+02:10.600 --> 02:14.220
+yes that looks much better. Now for opening it,
+
+02:14.280 --> 02:18.940
+it's a bit clunky from time to time, sometimes it's nice, sometimes it's also clunky,
+
+02:18.960 --> 02:25.590
+now let's fix that animation. There we can have a look at the open create post modal form and what I want to
+
+02:25.590 --> 02:30.460
+do here is I'll wrap the animation into a timeout here too,
+
+02:30.680 --> 02:37.550
+so for the same logic as before, to not run it simultaeneously with the other UI blocking threads,
+
+02:38.130 --> 02:38.860
+add it there,
+
+02:39.710 --> 02:45.380
+save this and bump up that cache version of course since we changed something.
+
+02:46.240 --> 02:50.060
+Reload and reopen the tab as you know it and
+
+02:50.170 --> 02:51.690
+now let's see if that works,
+
+02:52.910 --> 02:57.550
+that looks better. Now with the animations fixed easily,
+
+02:57.890 --> 03:02.050
+let's go back to offline geolocation. For that,
+
+03:02.060 --> 03:05.750
+I'll really go offline by disabling my Wi-Fi
+
+03:06.930 --> 03:09.870
+and now let me open this,
+
+03:09.930 --> 03:13.720
+take a picture and get the geolocation.
+
+03:13.740 --> 03:16.830
+Now I already get an alert that I can't fetch it,
+
+03:16.830 --> 03:17.750
+that's good,
+
+03:17.970 --> 03:20.670
+so now I can manually enter test, yes
+
+03:21.120 --> 03:21.590
+thank you,
+
+03:21.590 --> 03:23.370
+it comes back after a while,
+
+03:23.370 --> 03:29.840
+so after the seven seconds, so we have to fix that. Here I'll enter a test in Munich
+
+03:30.160 --> 03:33.620
+and now if I post this, it should be stored for syncing
+
+03:33.780 --> 03:40.560
+and if I come back online by re-enabling Wi-Fi, it should of course synchronize this as it did in the
+
+03:40.560 --> 03:41.370
+past.
+
+03:41.400 --> 03:43.000
+So here it's working,
+
+03:43.380 --> 03:46.350
+we got a network error here though.
+
+03:47.150 --> 03:50.760
+Now I have an idea what went wrong there,
+
+03:51.710 --> 03:53.880
+we did add a new post though,
+
+03:54.200 --> 03:58.910
+the problem is this here probably because everything worked fine
+
+03:59.890 --> 04:02.200
+including the image upload, I guess.
+
+04:03.660 --> 04:07.060
+You can check this by simply reloading,
+
+04:07.090 --> 04:08.270
+we got the test here,
+
+04:08.290 --> 04:09.940
+so that did work.
+
+04:09.940 --> 04:15.630
+Now the thing that failed is simply that rawLocation was null twice,
+
+04:15.640 --> 04:22.410
+so when we tried to send this, we simply tried to access something which is null in the service worker.
+
+04:22.510 --> 04:29.270
+So here in the sync event when we tried to append latitude and longitude in rawLocation,
+
+04:29.410 --> 04:30.940
+that of course was null.
+
+04:31.120 --> 04:40.210
+So what we can do is we can either add a check here or in the place where we get the geolocation and set
+
+04:40.210 --> 04:41.110
+it to null,
+
+04:41.110 --> 04:44.570
+we can also use zero here so that it is valid
+
+04:44.620 --> 04:46.810
+and with that, it should work.
+
+04:46.880 --> 04:55.960
+Now another issue with this was the alert here. The alert had the problem that we saw it twice because
+
+04:56.020 --> 04:58.070
+it timed out after seven seconds
+
+04:58.300 --> 05:01.690
+but it also threw this error immediately because it recognized yes,
+
+05:01.930 --> 05:04.300
+you don't have an internet connection.
+
+05:04.300 --> 05:14.960
+Now one thing we can do is, we can simply add a variable to control this, maybe here, variable sawAlert
+
+05:15.620 --> 05:24.060
+is false initially, then here we simply check if sawAlert is true.
+
+05:24.570 --> 05:30.750
+If it's not true, then we want to throw it again
+
+05:31.120 --> 05:37.630
+and now set the sawAlert to true and we only want to show the alert inside there,
+
+05:37.830 --> 05:40.150
+so we only show it once hopefully now.
+
+05:40.500 --> 05:46.740
+So with that, let's quickly go back to the service worker, bump up the static version one more time,
+
+05:46.860 --> 05:52.270
+reload our page and close the tab and reopen it to activate.
+
+05:52.290 --> 06:01.940
+So now let's try this error again regarding the connectivity, let's turn off Wi-Fi, capture emit and
+
+06:01.940 --> 06:04.810
+get the location, doesn't work,
+
+06:04.830 --> 06:05.770
+that's good.
+
+06:05.770 --> 06:12.980
+So test in Munich, test offline maybe
+
+06:13.140 --> 06:15.020
+and now let's post the data
+
+06:15.770 --> 06:18.180
+and go back online now
+
+06:22.100 --> 06:23.640
+and this seems to work now.
+
+06:23.810 --> 06:26.070
+So send the data, deleted that
+
+06:26.300 --> 06:28.670
+and we also have it on the database,
+
+06:28.820 --> 06:32.380
+test offline, let's confirm one final time if the images is there too,
+
+06:32.390 --> 06:33.020
+there it is,
+
+06:33.050 --> 06:34.700
+so that's looking good.
+
+06:34.700 --> 06:40.230
+One other thing I noticed though, if we do is send something here, doesn't really matter,
+
+06:41.250 --> 06:45.260
+we do send this, yes I haven't got the latitude,
+
+06:45.270 --> 06:47.250
+so that's something we should also fix.
+
+06:48.850 --> 06:52.470
+If I now reopen the modal, there is no capture button,
+
+06:52.570 --> 06:57.190
+so we have to make sure we add the capture button again and we have to make sure that we have a default
+
+06:57.250 --> 07:02.670
+implementation of the rawLocation with the latitude so that we don't get this error.
+
+07:03.070 --> 07:09.310
+So back in the project and these should be the last issues to fix, here fetchedLocation can by default
+
+07:09.310 --> 07:15.970
+be an object where we have latitude of zero or null, longitude of zero,
+
+07:15.970 --> 07:22.740
+I also change the latitude and longitude to zero down there in our error handler for get current position.
+
+07:22.750 --> 07:23.860
+You could use null too,
+
+07:23.890 --> 07:26.170
+doesn't really matter whatever you want to use as a default,
+
+07:26.200 --> 07:28.480
+could of course be a real address too.
+
+07:29.110 --> 07:32.440
+And regarding the capture button we don't see,
+
+07:32.540 --> 07:40.270
+for that we have to go to the capture button up there, to the open create post modal listener and make
+
+07:40.270 --> 07:47.920
+sure we do see it or actually since we do all our initialization for the next time in the close listener,
+
+07:48.580 --> 07:57.040
+we should go there, close create post modal, I should get the capture button here and set the style to
+
+07:57.130 --> 07:58.660
+inline again,
+
+07:58.660 --> 08:04.500
+so that with that, we make sure that when we close the modal, the button is definitely there again.
+
+08:04.510 --> 08:10.210
+So with that, these should be the last changes, the last tiny fixes we need to implement to really
+
+08:10.210 --> 08:12.230
+have a good project here,
+
+08:12.490 --> 08:15.510
+let's now reload this to get a new service worker installation
+
+08:15.520 --> 08:24.970
+and as you know, re-open it too and now with that, if we open the modal, take a picture, don't enter a location
+
+08:25.000 --> 08:32.830
+but something here and something here and click post, it should store it for synchronization and eventually
+
+08:32.830 --> 08:33.530
+do that
+
+08:33.640 --> 08:39.270
+but if I reopen this, it now gives us the capture button again which of course is good.
+
+08:39.490 --> 08:44.160
+Now in the last lecture of this video, I want to test test this on a real device.

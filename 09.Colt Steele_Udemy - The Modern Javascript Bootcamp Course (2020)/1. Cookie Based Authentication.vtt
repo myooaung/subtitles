@@ -1,0 +1,772 @@
+WEBVTT
+1
+00:00:00.910 --> 00:00:05.180
+Well we finished writing out some code to check to see if the email is in use and to make sure that
+
+2
+00:00:05.180 --> 00:00:08.000
+the password and password confirmation match.
+
+3
+00:00:08.000 --> 00:00:13.520
+So now we need to start to actually understand how we're going to handle authentication inside of application.
+
+4
+00:00:13.550 --> 00:00:18.230
+So in this diagram I said Create an account for this user but there's some really deeper considerations
+
+5
+00:00:18.230 --> 00:00:24.370
+here in understanding how we really consider a user to be authenticated or signed into our application.
+
+6
+00:00:24.380 --> 00:00:29.120
+So in this video we're going to have a pretty long discussion about how the vast majority of authentication
+
+7
+00:00:29.120 --> 00:00:30.760
+works online.
+
+8
+00:00:30.830 --> 00:00:35.480
+Now I say vast majority because there are technically several different ways to handle authentication
+
+9
+00:00:35.480 --> 00:00:37.050
+inside of a web application.
+
+10
+00:00:37.130 --> 00:00:41.900
+But we're going to look at what is undoubtedly the vastly most popular way to handle authentication
+
+11
+00:00:41.900 --> 00:00:43.370
+in general.
+
+12
+00:00:43.370 --> 00:00:48.490
+The first thing we're going to have to understand is a little side topic called request cookies.
+
+13
+00:00:48.650 --> 00:00:54.380
+Once we understand how cookies work will then have a better idea of how we actually handle authentication
+
+14
+00:00:54.380 --> 00:00:54.980
+in general.
+
+15
+00:00:54.980 --> 00:00:56.180
+So just a quick side topic.
+
+16
+00:00:57.110 --> 00:00:57.340
+OK.
+
+17
+00:00:57.380 --> 00:01:01.420
+So in this diagram we've got our browser that is making requests to some server.
+
+18
+00:01:01.520 --> 00:01:07.490
+So here's the first request that occurs right here whenever a server responds back to our browser.
+
+19
+00:01:07.490 --> 00:01:12.140
+The server can optionally include or decide inside the request to include something called a cookie
+
+20
+00:01:12.850 --> 00:01:20.520
+it cookie is a very small string of characters that the server wants the browser to store so the server
+
+21
+00:01:20.580 --> 00:01:25.350
+is going to send over this very small string of characters and it's going to tell the browser please
+
+22
+00:01:25.350 --> 00:01:31.020
+include that small string of characters with every follow up request that has ever made it to that exact
+
+23
+00:01:31.020 --> 00:01:32.250
+same server.
+
+24
+00:01:32.370 --> 00:01:37.160
+When I use the term exact same server I mean any server at this particular domain.
+
+25
+00:01:37.170 --> 00:01:43.950
+So in other words like the server at Google dot com or the server at Airbnb Viacom or Facebook or wherever
+
+26
+00:01:43.950 --> 00:01:50.730
+else whenever the browser then makes a request to that same domain the browser is going to automatically
+
+27
+00:01:50.730 --> 00:01:55.830
+include that little small string of characters with the request that is being issued to that server
+
+28
+00:01:56.900 --> 00:02:01.250
+so the only thing you have to understand here about cookies is that the server can provide a cookie
+
+29
+00:02:01.580 --> 00:02:06.920
+a cookie is a small string of characters and the server can require that the browser sends that cookie
+
+30
+00:02:07.280 --> 00:02:13.670
+whenever it is making a followup request back to the server and this cookie is the absolute core of
+
+31
+00:02:13.820 --> 00:02:15.890
+the vast majority of authentication.
+
+32
+00:02:16.020 --> 00:02:21.110
+It is what is going to allow us inside of our application and many other applications out there in general
+
+33
+00:02:21.470 --> 00:02:27.600
+to identify users who are coming to an application and making some series of requests.
+
+34
+00:02:27.650 --> 00:02:29.560
+Let's take a look at a follow up diagram.
+
+35
+00:02:29.570 --> 00:02:36.340
+That's kind of built going to build on this idea there's kind of a core problem in handling authentication.
+
+36
+00:02:36.530 --> 00:02:42.170
+The whole idea of signing up and signing into an application really evolve revolves around a server
+
+37
+00:02:42.200 --> 00:02:45.940
+being able to identify who is making requests to that server.
+
+38
+00:02:45.980 --> 00:02:52.040
+Normally when your browser makes a request the server doesn't really have any inherent idea of who is
+
+39
+00:02:52.040 --> 00:02:53.470
+making requests.
+
+40
+00:02:53.480 --> 00:02:58.070
+Think about Google or Facebook or Airbnb and be Amazon or whoever else out there.
+
+41
+00:02:58.100 --> 00:03:03.800
+These companies have servers that have millions or else thousands of different requests being made to
+
+42
+00:03:03.800 --> 00:03:06.230
+each of these servers every single second.
+
+43
+00:03:06.260 --> 00:03:11.810
+And so these servers need to be able to positively and 100 percent identify exactly who is making the
+
+44
+00:03:11.810 --> 00:03:13.200
+request.
+
+45
+00:03:13.280 --> 00:03:21.710
+So in order to identify the person making a request a cookie is used here's what goes on when someone
+
+46
+00:03:21.710 --> 00:03:27.710
+signs into the application be at Rs or Facebook whoever else the server is going to compare that email
+
+47
+00:03:27.710 --> 00:03:33.500
+and password that is being provided if the email and password match a user account that is stored inside
+
+48
+00:03:33.500 --> 00:03:39.890
+the database the server is then going to send a cookie down to the browser that contains in a very encrypted
+
+49
+00:03:39.890 --> 00:03:46.790
+format the ID or some identifying token about the person who just signed in to the cookie you might
+
+50
+00:03:46.790 --> 00:03:52.490
+store some information like this cookie belongs to a user with an I.D. of one that is stored inside
+
+51
+00:03:52.490 --> 00:03:53.800
+of our database.
+
+52
+00:03:53.990 --> 00:03:59.210
+So then whenever the browser makes a follow up request to the server it's going to include that cookie
+
+53
+00:03:59.270 --> 00:04:03.290
+that has that little identifying piece of information inside of it.
+
+54
+00:04:03.290 --> 00:04:08.390
+So the server can read that piece of information see that the request is being made by a person with
+
+55
+00:04:08.390 --> 00:04:14.090
+an idea of one and then go look up inside of their data store or database whatever else and find the
+
+56
+00:04:14.090 --> 00:04:20.240
+user with I.D. one and so they then have some identifying piece of information from the database that
+
+57
+00:04:20.240 --> 00:04:25.790
+has all the relevant details about this very particular user.
+
+58
+00:04:25.790 --> 00:04:28.190
+So again it's all about the cookie.
+
+59
+00:04:28.210 --> 00:04:29.980
+Now a couple of things for you to understand.
+
+60
+00:04:30.110 --> 00:04:35.990
+The cookie is going to contain this user I.D. or some otherwise identifying piece of information inside
+
+61
+00:04:36.020 --> 00:04:37.960
+of an encrypted format.
+
+62
+00:04:38.000 --> 00:04:43.940
+So in general we never want users to exchange their cookies because if you got someone else's cookies
+
+63
+00:04:43.940 --> 00:04:49.130
+for say Google you would be able to very easily fake as though you were that other person and essentially
+
+64
+00:04:49.160 --> 00:04:55.510
+assume their identity or sign in with their account the cookies that are being assigned are always unique
+
+65
+00:04:55.750 --> 00:04:57.040
+for each domain.
+
+66
+00:04:57.040 --> 00:05:02.380
+So in other words if Google sends you a cookie to store inside of your browser that is a unique and
+
+67
+00:05:02.380 --> 00:05:06.560
+very different cookie than one that is being sent to you from Air B and B.
+
+68
+00:05:06.670 --> 00:05:12.420
+So for every different domain you visit you're going to have a different set of cookies.
+
+69
+00:05:12.440 --> 00:05:16.910
+Now the next day I want to do is show you this entire process in action so you can kind of see exactly
+
+70
+00:05:16.910 --> 00:05:21.450
+what is going on behind the scenes to give you a very simple demonstration.
+
+71
+00:05:21.470 --> 00:05:24.590
+I'm going to use a Web site called base camp.
+
+72
+00:05:24.590 --> 00:05:27.640
+Base camp is a free project management service.
+
+73
+00:05:27.650 --> 00:05:29.580
+I'd pick this Web site at random.
+
+74
+00:05:29.630 --> 00:05:30.840
+Nothing special about them.
+
+75
+00:05:30.860 --> 00:05:32.690
+I just figured Hey here's base camp.
+
+76
+00:05:32.690 --> 00:05:35.860
+Let's take a look at how they handle authentication.
+
+77
+00:05:35.950 --> 00:05:40.990
+I've already created an account for base camp so I'm gonna go ahead and sign in and we'll take a look
+
+78
+00:05:40.990 --> 00:05:45.000
+at the kind of cookies being exchanged along that process.
+
+79
+00:05:45.070 --> 00:05:49.860
+You do not have to create a base camp account or go through any of the steps that I'm about to go through.
+
+80
+00:05:49.990 --> 00:05:51.430
+Instead just take a look.
+
+81
+00:05:51.430 --> 00:05:57.480
+Sit back watch and I'll show you some of things we just discussed right in action OK.
+
+82
+00:05:57.510 --> 00:06:04.230
+So first off I'm gonna open up my network request lug and then going to attempt to sign in to base camp
+
+83
+00:06:04.230 --> 00:06:07.490
+with an account that I already created.
+
+84
+00:06:07.740 --> 00:06:09.900
+It's all enter in my email.
+
+85
+00:06:10.110 --> 00:06:11.920
+That is a random email right there.
+
+86
+00:06:11.990 --> 00:06:15.740
+I'm going to enter my password as well.
+
+87
+00:06:15.890 --> 00:06:20.690
+Now when I hit log in right here I'm essentially submitting this form in the exact same way that you
+
+88
+00:06:20.690 --> 00:06:24.180
+and I are submitting a form right now on our application.
+
+89
+00:06:24.260 --> 00:06:29.270
+So the email or that input right there and the password input the information inside that form is going
+
+90
+00:06:29.270 --> 00:06:36.670
+to be collected by the browser and submitted inside of a post request to the base camp servers so as
+
+91
+00:06:36.670 --> 00:06:41.780
+soon as I click log in I should see a request being issued with my form information right away.
+
+92
+00:06:41.780 --> 00:06:42.530
+OK so here we go.
+
+93
+00:06:42.590 --> 00:06:48.230
+And click log in and then right there very briefly you'll see a request to a router called session.
+
+94
+00:06:48.250 --> 00:06:50.570
+It looks like I mistyped my password.
+
+95
+00:06:50.680 --> 00:06:52.870
+We do that again.
+
+96
+00:06:52.950 --> 00:06:54.060
+That's better.
+
+97
+00:06:54.060 --> 00:06:58.770
+So anyways the very first request though is being issued was to an end point called session.
+
+98
+00:06:58.830 --> 00:07:02.190
+This is what logs you in to the base camp servers.
+
+99
+00:07:02.340 --> 00:07:09.660
+If I click on that request I can scroll down to the very bottom and see the information that was included
+
+100
+00:07:09.690 --> 00:07:11.180
+inside the forum.
+
+101
+00:07:11.190 --> 00:07:13.100
+You'll notice that I've got my user name right there.
+
+102
+00:07:13.110 --> 00:07:15.660
+That's the e-mail and my password.
+
+103
+00:07:15.660 --> 00:07:22.320
+Just you know that password I picked entirely at random based on something I had on my desk so I don't
+
+104
+00:07:22.320 --> 00:07:23.520
+use the password for anything else.
+
+105
+00:07:23.520 --> 00:07:27.180
+Don't try to sign my email with that you're going to be wasting your time.
+
+106
+00:07:27.180 --> 00:07:32.190
+There was a point is that I'm making a request with the data inside that form I can then take a look
+
+107
+00:07:32.190 --> 00:07:35.790
+at the response that is given to me by base camp servers.
+
+108
+00:07:35.910 --> 00:07:41.700
+If I scroll up a little bit and find the section inside of here called response headers instead of response
+
+109
+00:07:41.700 --> 00:07:45.860
+headers I'll see several sections marked as set cookie.
+
+110
+00:07:45.900 --> 00:07:52.620
+So these are the little identifying pieces of information that uniquely identify me to base camp servers.
+
+111
+00:07:52.680 --> 00:07:58.260
+So now any sign that my browser makes a follow up request to base camp servers is going to include each
+
+112
+00:07:58.260 --> 00:08:00.200
+of the cookies that I see inside of here.
+
+113
+00:08:00.240 --> 00:08:01.570
+So here's one cookie.
+
+114
+00:08:01.920 --> 00:08:07.950
+Here's another here's another in every case I'll see that they contain or essentially reference what
+
+115
+00:08:07.950 --> 00:08:10.630
+looks like a random string of characters.
+
+116
+00:08:10.740 --> 00:08:15.810
+So this seemingly random string of characters right here is what uniquely identifies me to base camp
+
+117
+00:08:15.810 --> 00:08:22.100
+servers so take note that the names of these different cookie properties in this case are identity I.D.
+
+118
+00:08:22.460 --> 00:08:25.760
+session token and Launchpad session.
+
+119
+00:08:25.880 --> 00:08:30.090
+I can now take a look at any other requests that is being made to base camp dot com.
+
+120
+00:08:30.140 --> 00:08:33.240
+In particular when I do so here's one right here.
+
+121
+00:08:33.290 --> 00:08:38.090
+I see the end point that essentially gives me this H HTML document I should be able to click on that
+
+122
+00:08:38.090 --> 00:08:39.410
+request.
+
+123
+00:08:39.410 --> 00:08:42.470
+Take a look at request headers in this case.
+
+124
+00:08:42.470 --> 00:08:48.350
+So here's request letters inside there is the cookie session or something cookie section and inside
+
+125
+00:08:48.350 --> 00:08:53.540
+of here is all the different cookies that base camp has told my browser to include with follow up requests
+
+126
+00:08:54.560 --> 00:08:59.070
+the inside of here I should see all the same property names that I saw that were being set back over
+
+127
+00:08:59.070 --> 00:09:00.330
+here just a second ago.
+
+128
+00:09:00.390 --> 00:09:09.370
+So I then the idea session token and Launchpad session so I should see inside of here somewhere inside
+
+129
+00:09:09.370 --> 00:09:10.620
+of your identity I.D..
+
+130
+00:09:10.630 --> 00:09:14.290
+I'm not going to look too long session I.D. and so on.
+
+131
+00:09:14.860 --> 00:09:16.480
+I don't see them right off the top of my head.
+
+132
+00:09:18.310 --> 00:09:20.650
+The reason for that is actually kind of interesting.
+
+133
+00:09:20.650 --> 00:09:23.260
+Well here's something in practice something I just noticed.
+
+134
+00:09:23.350 --> 00:09:24.730
+Remember when I told you just a moment ago.
+
+135
+00:09:24.730 --> 00:09:27.190
+Every different domain has its own set of cookies.
+
+136
+00:09:27.190 --> 00:09:28.810
+Well I've actually looked really closely here.
+
+137
+00:09:28.870 --> 00:09:34.870
+The initial log in request was being made to 37 Signals dot com and then the request that I just clicked
+
+138
+00:09:34.870 --> 00:09:38.260
+on by Ray had random was to base camp dot com.
+
+139
+00:09:38.260 --> 00:09:42.130
+So these two different domains actually have different sets of cookies and that's why I was not just
+
+140
+00:09:42.130 --> 00:09:47.080
+able to look at the set of cookies and see the same ones that were being made use of when actually it
+
+141
+00:09:47.070 --> 00:09:47.820
+logged back in.
+
+142
+00:09:47.820 --> 00:09:48.850
+Over there.
+
+143
+00:09:48.940 --> 00:09:51.010
+So that's why things were a little bit unexpected.
+
+144
+00:09:51.040 --> 00:09:54.180
+I'm going to try going to about this one right here.
+
+145
+00:09:54.190 --> 00:09:59.010
+This is where it looks like I get another set of cookies if I took a look in here.
+
+146
+00:09:59.020 --> 00:09:59.540
+There we go.
+
+147
+00:09:59.560 --> 00:10:06.820
+Some these are all a bit more easy to find so easy 3 identify D and B C 3 session verification token.
+
+148
+00:10:06.830 --> 00:10:08.830
+OK so now remembering those two names.
+
+149
+00:10:08.830 --> 00:10:16.690
+Let me go back to that request and now inside of here I'll see these three ident I.D. and session verification
+
+150
+00:10:16.690 --> 00:10:23.290
+token so we can see very plainly that the server gives me a cookie and then my browser chooses to automatically
+
+151
+00:10:23.290 --> 00:10:25.780
+append that cookie in every up request.
+
+152
+00:10:25.780 --> 00:10:32.110
+And again that is what identifies me to base camp servers and to really show you this stuff in action.
+
+153
+00:10:32.110 --> 00:10:40.260
+I'm going to pull up a little tool that I can use to make arbitrary network requests.
+
+154
+00:10:40.260 --> 00:10:46.200
+So this is a little tool called postman and it's all about making network requests and I can specifically
+
+155
+00:10:46.200 --> 00:10:52.620
+and very easily identify exactly what options I want to include with every request that I make.
+
+156
+00:10:52.770 --> 00:10:58.180
+So I mean zoom in on this thing really quickly so you can see it more easily alternate that sidebar.
+
+157
+00:10:59.270 --> 00:11:03.920
+So I can make a get request to some given your URL and they'll show me the response down here.
+
+158
+00:11:04.160 --> 00:11:08.210
+So I'm going to try to make a get request to the URL that I am currently at.
+
+159
+00:11:08.210 --> 00:11:13.900
+This will be essentially equivalent to if I type this URL into my browser so if I try to navigate to
+
+160
+00:11:13.900 --> 00:11:18.730
+that address I'm going to get back some amount of HCM although I see down here in white red away based
+
+161
+00:11:18.730 --> 00:11:19.330
+on that title.
+
+162
+00:11:19.330 --> 00:11:25.090
+You can see that I am being redirected or being told that I need to log in in order to see the content
+
+163
+00:11:25.150 --> 00:11:26.650
+at that your URL.
+
+164
+00:11:26.830 --> 00:11:33.370
+Of course I don't really have any way of logging in via this client here but I can kind of fake my identity
+
+165
+00:11:33.670 --> 00:11:38.830
+by including this exact same cookie information over here with the request that I make.
+
+166
+00:11:38.830 --> 00:11:45.610
+So if I just can manually take that cookie information and stick it in to this request client base camp
+
+167
+00:11:45.640 --> 00:11:51.760
+is essentially going to be tricked into thinking that I am someone who I am not so I'm going to take
+
+168
+00:11:51.790 --> 00:11:59.370
+all this cookie information that is saved to my browser I'm gonna cut it or simply copy it then paste
+
+169
+00:11:59.370 --> 00:12:07.010
+it in as a header inside of my API client under a heady header called Cookie and I'll give it the same
+
+170
+00:12:07.010 --> 00:12:12.290
+value of the entire cookie that is being sent along for my browser it's now I'm essentially tricking
+
+171
+00:12:12.290 --> 00:12:17.400
+base camp into thinking that I am the person who has all this information here.
+
+172
+00:12:17.420 --> 00:12:21.680
+So now if I make the same request I'm going to get a very different response.
+
+173
+00:12:21.760 --> 00:12:26.750
+Now you'll see that I got some different content here and it has a title of home so clearly I'm not
+
+174
+00:12:26.750 --> 00:12:29.050
+being asked to sign in or log in anymore.
+
+175
+00:12:29.060 --> 00:12:34.190
+So I have successfully tricked base camp into thinking that I am that person just by taking that cookie
+
+176
+00:12:34.400 --> 00:12:35.870
+and throwing it into the request.
+
+177
+00:12:36.690 --> 00:12:40.820
+So at the end of the day I knows a little bit rambling but at the end of the day the entire point here
+
+178
+00:12:40.820 --> 00:12:46.980
+is that the cookie is the absolute key for identifying myself to base camp servers and so it's gonna
+
+179
+00:12:47.000 --> 00:12:49.850
+be the exact same thing inside of our application as well.
+
+180
+00:12:50.480 --> 00:12:57.380
+Whenever a user signs up for an account with our application we're going to create a record inside of
+
+181
+00:12:57.380 --> 00:13:01.040
+our little data store that we just put together to say hey here's this person.
+
+182
+00:13:01.040 --> 00:13:05.960
+They signed up at this email and this password and then to actually consider that person to be logged
+
+183
+00:13:05.960 --> 00:13:07.210
+into our application.
+
+184
+00:13:07.340 --> 00:13:12.470
+We're going to give them a cookie to hold onto the cookie is going to be automatically managed by the
+
+185
+00:13:12.470 --> 00:13:12.900
+browser.
+
+186
+00:13:12.920 --> 00:13:17.270
+We don't have to write any javascript code on the browser side for that the browser is going to include
+
+187
+00:13:17.300 --> 00:13:19.390
+that cookie on every form request.
+
+188
+00:13:19.400 --> 00:13:23.150
+We're going to use that to automatically say OK this person is logged in.
+
+189
+00:13:23.150 --> 00:13:23.920
+They're good to go.
+
+190
+00:13:23.930 --> 00:13:27.630
+They can edit products delete products and so on.
+
+191
+00:13:27.700 --> 00:13:28.780
+That's the whole idea.
+
+192
+00:13:28.790 --> 00:13:30.520
+So now we've got a better idea of what's going on.
+
+193
+00:13:30.520 --> 00:13:34.780
+Quick pause right here and we'll start taking care of all this cookie stuff in the next video.

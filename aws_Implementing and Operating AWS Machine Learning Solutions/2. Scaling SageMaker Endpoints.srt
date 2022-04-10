@@ -1,0 +1,248 @@
+1
+00:00:01,040 --> 00:00:06,060
+Now next, we're going to talk about how you scale SageMaker endpoints,
+
+2
+00:00:06,060 --> 00:00:09,610
+and this has to do with a concept that comes from the AWS
+
+3
+00:00:09,610 --> 00:00:13,140
+well‑architected framework called Elasticity.
+
+4
+00:00:13,140 --> 00:00:17,610
+And it's defined in that framework as the ability to acquire resources as you
+
+5
+00:00:17,610 --> 00:00:21,510
+need them and release resources when you no longer need them.
+
+6
+00:00:21,510 --> 00:00:25,440
+In the cloud, you want to do this automatically.
+
+7
+00:00:25,440 --> 00:00:28,650
+So let's talk at a high level about how we scale our endpoints,
+
+8
+00:00:28,650 --> 00:00:32,340
+and there's really two different approaches that we can take.
+
+9
+00:00:32,340 --> 00:00:38,540
+The first is vertical scaling, which you'll sometimes hear people call scale up.
+
+10
+00:00:38,540 --> 00:00:43,220
+And if you remember, we've specified instance types for our endpoints.
+
+11
+00:00:43,220 --> 00:00:46,660
+And what we're saying here is if we're going to do vertical scaling,
+
+12
+00:00:46,660 --> 00:00:52,340
+we can simply select a bigger instance type for our endpoint.
+
+13
+00:00:52,340 --> 00:00:54,840
+Now the other approach that we can take is what we call
+
+14
+00:00:54,840 --> 00:00:58,070
+horizontal scaling or scaling out.
+
+15
+00:00:58,070 --> 00:01:01,490
+And what this means is you can utilize multiple
+
+16
+00:01:01,490 --> 00:01:05,340
+instances to accommodate additional demand.
+
+17
+00:01:05,340 --> 00:01:08,300
+Now let's talk first about this vertical scaling approach,
+
+18
+00:01:08,300 --> 00:01:09,460
+and a part of understanding.
+
+19
+00:01:09,460 --> 00:01:12,310
+vertical scaling is knowing something about the
+
+20
+00:01:12,310 --> 00:01:14,520
+different SageMaker instance types.
+
+21
+00:01:14,520 --> 00:01:17,980
+So we're going to look at a high level at the different families
+
+22
+00:01:17,980 --> 00:01:20,940
+of instant types that you have on SageMaker.
+
+23
+00:01:20,940 --> 00:01:28,440
+So we have standard instances, and these are t2, t3s, m4, m5s, and m5ds.
+
+24
+00:01:28,440 --> 00:01:34,170
+We then have memory optimized instance types, and these include our r5 and r5ds.
+
+25
+00:01:34,170 --> 00:01:38,690
+We then have compute optimized, which is c4, c5, and c5d.
+
+26
+00:01:38,690 --> 00:01:44,440
+Accelerated computing, so p2, p3, g4dn, and inf1s.
+
+27
+00:01:44,440 --> 00:01:47,970
+And we've also talked about this, and that is elastic inference.
+
+28
+00:01:47,970 --> 00:01:51,040
+Now those are not specifically instance types,
+
+29
+00:01:51,040 --> 00:01:54,760
+but those are capabilities that you can add to your instance if
+
+30
+00:01:54,760 --> 00:01:57,840
+you want to have that partial GPU support.
+
+31
+00:01:57,840 --> 00:02:03,460
+So if you're starting off and maybe you're using an mlt2 instance for SageMaker,
+
+32
+00:02:03,460 --> 00:02:06,730
+you might want to look at leveraging maybe a p2 instance because
+
+33
+00:02:06,730 --> 00:02:09,940
+that's going to give you some GPU capabilities if it's not quite
+
+34
+00:02:09,940 --> 00:02:12,820
+meeting the needs at that t2v level. Now again,
+
+35
+00:02:12,820 --> 00:02:14,170
+that's just one example.
+
+36
+00:02:14,170 --> 00:02:17,010
+But the truth is, no matter how much we scale,
+
+37
+00:02:17,010 --> 00:02:22,470
+vertical scaling cannot ultimately solve problems caused by increased usage.
+
+38
+00:02:22,470 --> 00:02:24,970
+And if you think about it, this makes sense because no
+
+39
+00:02:24,970 --> 00:02:27,230
+matter how big you make an instance,
+
+40
+00:02:27,230 --> 00:02:29,380
+there will be a point where your user demand could
+
+41
+00:02:29,380 --> 00:02:32,240
+exceed what that single instance can do.
+
+42
+00:02:32,240 --> 00:02:36,320
+So next, let's talk about the concept of SageMaker autoscaling,
+
+43
+00:02:36,320 --> 00:02:39,610
+and this is the horizontal scaling approach.
+
+44
+00:02:39,610 --> 00:02:43,390
+So this enables you to increase or decrease the number of instances that
+
+45
+00:02:43,390 --> 00:02:47,240
+are leveraged by a particular endpoint based on demand.
+
+46
+00:02:47,240 --> 00:02:49,990
+So in looking at SageMaker autoscaling, first of all,
+
+47
+00:02:49,990 --> 00:02:52,780
+it's important to note that you can configure this with the
+
+48
+00:02:52,780 --> 00:02:56,890
+console through the CLI or with an API. And later within this
+
+49
+00:02:56,890 --> 00:03:00,040
+module, we'll be utilizing the console to add SageMaker
+
+50
+00:03:00,040 --> 00:03:02,840
+autoscaling to one of our endpoints.
+
+51
+00:03:02,840 --> 00:03:07,180
+And it utilizes CloudWatch metrics to define the scaling policy.
+
+52
+00:03:07,180 --> 00:03:09,960
+Now we haven't talked a great deal about CloudWatch,
+
+53
+00:03:09,960 --> 00:03:12,840
+but we will be doing that later within this module.
+
+54
+00:03:12,840 --> 00:03:15,410
+Now there's an initial metric that we can use for scaling,
+
+55
+00:03:15,410 --> 00:03:17,020
+and this is a CloudWatch metric,
+
+56
+00:03:17,020 --> 00:03:21,450
+and it's called SageMakerVariantInvocationsPerInstance. And it
+
+57
+00:03:21,450 --> 00:03:25,400
+means the average time per minute that each instance is invoked
+
+58
+00:03:25,400 --> 00:03:28,270
+for a specific production variant.
+
+59
+00:03:28,270 --> 00:03:31,530
+Now that's not to say you couldn't use other metrics, you can, and
+
+60
+00:03:31,530 --> 00:03:34,240
+you could look at things like CPU utilization.
+
+61
+00:03:34,240 --> 00:03:36,490
+But I would recommend starting with the metric I had
+
+62
+00:03:36,490 --> 00:03:42,000
+mentioned earlier because that's going to give you the truest map to overall user demand.
+

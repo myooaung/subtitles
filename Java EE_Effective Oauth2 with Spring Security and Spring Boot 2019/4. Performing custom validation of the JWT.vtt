@@ -1,0 +1,233 @@
+WEBVTT
+1
+00:00:01.931 --> 00:00:08.118
+By default, the authorization server will use the JWT authentication provider,
+
+2
+00:00:08.118 --> 00:00:12.530
+which will decode the JWT token using a JwtDecoder that
+
+3
+00:00:12.530 --> 00:00:16.274
+will perform the validation of the token,
+
+4
+00:00:16.274 --> 00:00:22.119
+checking its signature, optionally the issuer and the expiry.
+
+5
+00:00:22.119 --> 00:00:23.988
+In our portfolio service,
+
+6
+00:00:23.988 --> 00:00:28.245
+you can implement a custom validator to check the
+
+7
+00:00:28.245 --> 00:00:31.939
+audience and add it to the JwtDecoder.
+
+8
+00:00:31.939 --> 00:00:32.931
+To do this,
+
+9
+00:00:32.931 --> 00:00:36.352
+create a class that implements the OAuth2TokenValidator
+
+10
+00:00:36.352 --> 00:00:40.027
+and override the validate method.
+
+11
+00:00:40.027 --> 00:00:45.547
+Here you have access to the JWT object where you can access the audience
+
+12
+00:00:45.547 --> 00:00:49.297
+and check if it contains the value portfolio-service.
+
+13
+00:00:49.297 --> 00:00:54.855
+If it doesn't, you can return an OAuth2Error,
+
+14
+00:00:54.855 --> 00:01:03.544
+otherwise return success using the OAuth2TokenValidatorResult object.
+
+15
+00:01:03.544 --> 00:01:07.373
+Now you need to plug in the validator into the decoder.
+
+16
+00:01:07.373 --> 00:01:12.758
+To do this, create a new instance of the decoder.
+
+17
+00:01:12.758 --> 00:01:15.502
+In the SecurityConfiguration class,
+
+18
+00:01:15.502 --> 00:01:20.699
+you can create a method that returns an instance of a JwtDecoder.
+
+19
+00:01:20.699 --> 00:01:25.666
+Here you can return an instance of the NimbusJwtDecoder as this is the
+
+20
+00:01:25.666 --> 00:01:31.715
+default for Spring by using JwtDecoders builder.
+
+21
+00:01:31.715 --> 00:01:35.092
+Since the issuer supports OpenID Connect discovery,
+
+22
+00:01:35.092 --> 00:01:42.207
+you can use the issuer URI method and pass in the issuer URI.
+
+23
+00:01:42.207 --> 00:01:42.507
+Next,
+
+24
+00:01:42.507 --> 00:01:46.613
+you need to create an instance of the default validator so
+
+25
+00:01:46.613 --> 00:01:49.875
+that the default checks like the expiry,
+
+26
+00:01:49.875 --> 00:01:52.008
+the issuer claim are still performed.
+
+27
+00:01:52.008 --> 00:01:56.996
+You can use the JwtValidator builder class for that.
+
+28
+00:01:56.996 --> 00:02:01.268
+Now you can only set one validator into the decoder.
+
+29
+00:02:01.268 --> 00:02:05.107
+So to add both the default and our custom audience validator,
+
+30
+00:02:05.107 --> 00:02:11.214
+you need to create an instance of the delegating OAuth2 validator
+
+31
+00:02:11.214 --> 00:02:14.609
+and pass in the both instances in the constructor,
+
+32
+00:02:14.609 --> 00:02:21.166
+then add the delegatingValidator into the decoder and return it.
+
+33
+00:02:21.166 --> 00:02:23.075
+And that's it.
+
+34
+00:02:23.075 --> 00:02:27.815
+Plug this decoder into the JWT authentication provider.
+
+35
+00:02:27.815 --> 00:02:31.280
+Now do the same for the support service,
+
+36
+00:02:31.280 --> 00:02:34.267
+but this time checking the audience is support-service.
+
+37
+00:02:34.267 --> 00:02:40.495
+One final thing that's needed now is to add these audiences
+
+38
+00:02:40.495 --> 00:02:44.828
+into the access token created by Keycloak.
+
+39
+00:02:44.828 --> 00:02:47.238
+For that, you need a mapping.
+
+40
+00:02:47.238 --> 00:02:52.859
+So in our Keycloak admin console, in Clients,
+
+41
+00:02:52.859 --> 00:02:59.111
+crypto-portfolio, Mappers, Create, give the mapper a name,
+
+42
+00:02:59.111 --> 00:03:01.562
+and the type will be Audience.
+
+43
+00:03:01.562 --> 00:03:05.952
+Here you can select from a list of clients Keycloak is aware of.
+
+44
+00:03:05.952 --> 00:03:11.234
+Now our portfolio service is a part of this list, so you can select it.
+
+45
+00:03:11.234 --> 00:03:14.479
+This is because we configured it as a client previously so that
+
+46
+00:03:14.479 --> 00:03:19.540
+it can request a token via the client credentials grant to make
+
+47
+00:03:19.540 --> 00:03:22.077
+a request to the pricing service.
+
+48
+00:03:22.077 --> 00:03:25.485
+Make sure it is added to the access token.
+
+49
+00:03:25.485 --> 00:03:28.648
+You can create a similar mapping for the support service.
+
+50
+00:03:28.648 --> 00:03:31.788
+However, the support service is not a client,
+
+51
+00:03:31.788 --> 00:03:34.560
+so it is not part of the client list.
+
+52
+00:03:34.560 --> 00:03:39.898
+Hence, you can use the custom audience field and just simply type it in.
+
+53
+00:03:39.898 --> 00:03:40.509
+That's it.
+
+54
+00:03:40.509 --> 00:03:45.038
+The audience on the access tokens created by the WebClients will
+
+55
+00:03:45.038 --> 00:03:48.586
+now contain the portfolio and support service.
+
+56
+00:03:48.586 --> 00:03:52.218
+Whereas the token created by the client credentials grant by the
+
+57
+00:03:52.218 --> 00:03:56.429
+portfolio service to access the pricing service will not contain
+
+58
+00:03:56.429 --> 00:04:04.000
+these audiences and hence cannot be used against the portfolio or support services.
+

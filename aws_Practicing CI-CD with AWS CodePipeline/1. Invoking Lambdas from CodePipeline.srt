@@ -1,0 +1,584 @@
+1
+00:00:00,940 --> 00:00:03,650
+There's more to CodePipeline than just building and deploying.
+
+2
+00:00:03,650 --> 00:00:06,440
+In this module we're going to look at some of the more
+
+3
+00:00:06,440 --> 00:00:08,490
+advanced features of CodePipeline.
+
+4
+00:00:08,490 --> 00:00:12,570
+We'll start in this clip by looking at how to invoke lambdas and
+
+5
+00:00:12,570 --> 00:00:15,640
+interact with a pipeline in that Lambda function.
+
+6
+00:00:15,640 --> 00:00:20,640
+In the next clip, we'll look at how to disable and enable stage transitions.
+
+7
+00:00:20,640 --> 00:00:22,930
+Then we'll see how you can monitor changes in your
+
+8
+00:00:22,930 --> 00:00:25,240
+pipeline with CloudWatch events.
+
+9
+00:00:25,240 --> 00:00:26,070
+And finally,
+
+10
+00:00:26,070 --> 00:00:30,700
+we'll see how you can configure automated notifications in CodePipeline.
+
+11
+00:00:30,700 --> 00:00:34,740
+Emma's team was happy with the progress they had made.
+
+12
+00:00:34,740 --> 00:00:37,430
+They'd completed a pipeline created to build,
+
+13
+00:00:37,430 --> 00:00:41,020
+test, and deploy the new HBFL interface.
+
+14
+00:00:41,020 --> 00:00:43,800
+It was already saving the team a ton of time.
+
+15
+00:00:43,800 --> 00:00:47,290
+But then one of Emma's team members, Sam, raised a concern.
+
+16
+00:00:47,290 --> 00:00:50,310
+What if the team needed to do more in the future?
+
+17
+00:00:50,310 --> 00:00:54,410
+Building, testing, deploying, is that all CodePipeline is good for?
+
+18
+00:00:54,410 --> 00:00:58,440
+What if they needed more advanced logic on when to start a pipeline?
+
+19
+00:00:58,440 --> 00:01:03,060
+What if they needed to fetch data from an API during a pipeline execution?
+
+20
+00:01:03,060 --> 00:01:05,440
+What if, what if, what if?
+
+21
+00:01:05,440 --> 00:01:07,230
+Sam went on and on.
+
+22
+00:01:07,230 --> 00:01:10,910
+Emma stopped him before he tore all his hair out and told him
+
+23
+00:01:10,910 --> 00:01:13,630
+about invoking lambdas from CodePipeline.
+
+24
+00:01:13,630 --> 00:01:15,970
+You can do almost anything in a Lambda function,
+
+25
+00:01:15,970 --> 00:01:21,240
+and CodePipeline has a built‑in action specifically for invoking lambdas.
+
+26
+00:01:21,240 --> 00:01:25,740
+So let's take a look at how Lambda invocations work with CodePipeline.
+
+27
+00:01:25,740 --> 00:01:30,000
+CodePipeline comes with an AWS Lambda invocation action type.
+
+28
+00:01:30,000 --> 00:01:33,720
+With this, you can invoke a Lambda directly from CodePipeline.
+
+29
+00:01:33,720 --> 00:01:35,470
+When you invoke that Lambda,
+
+30
+00:01:35,470 --> 00:01:39,290
+in the action you can define a couple of configuration options
+
+31
+00:01:39,290 --> 00:01:42,640
+such as input artifacts and user parameters,
+
+32
+00:01:42,640 --> 00:01:46,150
+which allow you to pass in preconfigured string data.
+
+33
+00:01:46,150 --> 00:01:47,430
+Inside the Lambda,
+
+34
+00:01:47,430 --> 00:01:50,710
+you'll be able to pull these inputs out of the event object
+
+35
+00:01:50,710 --> 00:01:53,640
+that's passed into your Lambda function handler.
+
+36
+00:01:53,640 --> 00:01:56,920
+Once inside the function code, you can do whatever you want,
+
+37
+00:01:56,920 --> 00:02:01,710
+but to actually report back to the pipeline execution and continue,
+
+38
+00:02:01,710 --> 00:02:06,210
+you'll need to use an AWS SDK CodePipeline object.
+
+39
+00:02:06,210 --> 00:02:12,130
+A few of the functions that you may be interested in are putJobSuccessResult,
+
+40
+00:02:12,130 --> 00:02:15,870
+which will mark the Lambda Invocation action as a success
+
+41
+00:02:15,870 --> 00:02:18,740
+and continue the pipeline execution.
+
+42
+00:02:18,740 --> 00:02:22,970
+You can also use put jobFailureResult to mark the invocation
+
+43
+00:02:22,970 --> 00:02:27,540
+action as a failure and stop a pipeline execution.
+
+44
+00:02:27,540 --> 00:02:31,210
+Other useful functions are startPipelineExecution,
+
+45
+00:02:31,210 --> 00:02:34,370
+which lets you kick off a CodePipeline execution,
+
+46
+00:02:34,370 --> 00:02:38,780
+and getPipelineState, which tells you what a pipeline is doing,
+
+47
+00:02:38,780 --> 00:02:42,390
+including the state of each stage and action.
+
+48
+00:02:42,390 --> 00:02:45,140
+When you're invoking a Lambda from CodePipeline,
+
+49
+00:02:45,140 --> 00:02:48,460
+it really opens up your options to do almost anything.
+
+50
+00:02:48,460 --> 00:02:49,950
+For our demo pipeline,
+
+51
+00:02:49,950 --> 00:02:53,890
+we're going to create a basic Lambda function that does nothing and
+
+52
+00:02:53,890 --> 00:02:57,740
+just demonstrates how to interact with CodePipeline.
+
+53
+00:02:57,740 --> 00:02:59,770
+First, we need to create our Lambda function,
+
+54
+00:02:59,770 --> 00:03:03,760
+so go to the Lambda dashboard in the AWS console.
+
+55
+00:03:03,760 --> 00:03:07,340
+Click the Create function button.
+
+56
+00:03:07,340 --> 00:03:12,240
+Let's name the function hbfl‑cp.
+
+57
+00:03:12,240 --> 00:03:18,640
+Select Node 12.x for the runtime and then click Create function.
+
+58
+00:03:18,640 --> 00:03:23,740
+Lambda functions can be invoked by CodePipeline with no change in permissions.
+
+59
+00:03:23,740 --> 00:03:26,680
+But when Lambda is invoked by a pipeline,
+
+60
+00:03:26,680 --> 00:03:31,780
+an important final step is for the Lambda function to notify the pipeline
+
+61
+00:03:31,780 --> 00:03:36,140
+execution of a success or failure so that it can continue.
+
+62
+00:03:36,140 --> 00:03:41,510
+To do this, the Lambda function does need permissions to access CodePipeline.
+
+63
+00:03:41,510 --> 00:03:47,140
+We'll need to add a policy to the service role used by the Lambda function.
+
+64
+00:03:47,140 --> 00:03:50,370
+Scroll down to the Execution role section.
+
+65
+00:03:50,370 --> 00:03:55,290
+There's a link that will take us to that role in the IAM console at the bottom,
+
+66
+00:03:55,290 --> 00:03:56,670
+so click that.
+
+67
+00:03:56,670 --> 00:04:00,940
+Now we just need to attach a policy, so click Attach policies.
+
+68
+00:04:00,940 --> 00:04:04,640
+In the search input, type CodePipeline.
+
+69
+00:04:04,640 --> 00:04:06,660
+Now, in a production scenario,
+
+70
+00:04:06,660 --> 00:04:10,290
+it would be best to only give this Lambda access to the
+
+71
+00:04:10,290 --> 00:04:13,940
+pipeline it is being invoked from, but for this demo,
+
+72
+00:04:13,940 --> 00:04:15,590
+we'll give it full access.
+
+73
+00:04:15,590 --> 00:04:22,120
+SelectAWSCodePipelineFullAccess and then click Attach policy.
+
+74
+00:04:22,120 --> 00:04:25,530
+Now the Lambda will have permissions to report back to CodePipeline,
+
+75
+00:04:25,530 --> 00:04:28,940
+so go back to the Lambda function tab.
+
+76
+00:04:28,940 --> 00:04:33,020
+Scroll up to the function code section with the in‑browser editor.
+
+77
+00:04:33,020 --> 00:04:36,140
+Now we'll implement the Lambda function.
+
+78
+00:04:36,140 --> 00:04:39,940
+First we need to change the handler function signature a bit.
+
+79
+00:04:39,940 --> 00:04:43,740
+Remove the async keyword before the function.
+
+80
+00:04:43,740 --> 00:04:47,940
+Then add another argument after event called context.
+
+81
+00:04:47,940 --> 00:04:51,820
+We'll use this context argument to manage the function execution,
+
+82
+00:04:51,820 --> 00:04:56,240
+since the AWS SDK uses the callback pattern.
+
+83
+00:04:56,240 --> 00:04:58,320
+Now, when this Lambda is invoked,
+
+84
+00:04:58,320 --> 00:05:00,770
+there's going to be important data on the event
+
+85
+00:05:00,770 --> 00:05:02,980
+object that's passed into the handler.
+
+86
+00:05:02,980 --> 00:05:06,000
+Let's take a look at the structure of what's there.
+
+87
+00:05:06,000 --> 00:05:10,640
+On the event object there's a CodePipeline.job property
+
+88
+00:05:10,640 --> 00:05:13,810
+with all the information from the current execution that
+
+89
+00:05:13,810 --> 00:05:15,840
+invoked the Lambda function.
+
+90
+00:05:15,840 --> 00:05:18,840
+The properties on that object are the id,
+
+91
+00:05:18,840 --> 00:05:22,390
+which refers to the current pipeline execution,
+
+92
+00:05:22,390 --> 00:05:25,990
+the accountId, where the pipeline resides,
+
+93
+00:05:25,990 --> 00:05:30,540
+and then any data passed into the Lambda from the action.
+
+94
+00:05:30,540 --> 00:05:34,330
+That data object contains the configuration details about
+
+95
+00:05:34,330 --> 00:05:37,180
+the invocation action in the pipeline,
+
+96
+00:05:37,180 --> 00:05:41,270
+the location in S3 of the input and output artifacts,
+
+97
+00:05:41,270 --> 00:05:43,980
+and artifact session information,
+
+98
+00:05:43,980 --> 00:05:48,510
+including keys and tokens to access the artifacts from S3.
+
+99
+00:05:48,510 --> 00:05:53,380
+Back in our code, first we need to import the AWS SDK.
+
+100
+00:05:53,380 --> 00:05:59,340
+At the top, declare a const with the identifier AWS in all caps,
+
+101
+00:05:59,340 --> 00:06:02,320
+then assign to it a require function call with the
+
+102
+00:06:02,320 --> 00:06:06,510
+string aws‑sdk as its argument.
+
+103
+00:06:06,510 --> 00:06:09,560
+The AWS SDK is included with all lambdas,
+
+104
+00:06:09,560 --> 00:06:12,840
+so we don't need to install this dependency.
+
+105
+00:06:12,840 --> 00:06:14,990
+Next, inside the handler function,
+
+106
+00:06:14,990 --> 00:06:18,610
+we need to instantiate a new CodePipeline instance.
+
+107
+00:06:18,610 --> 00:06:22,510
+Declare another const variable with the identifier cp.
+
+108
+00:06:22,510 --> 00:06:27,740
+Assign to it a new AWS.CodePipeline function call.
+
+109
+00:06:27,740 --> 00:06:31,490
+Now we need to get the id of the job that invoked this Lambda.
+
+110
+00:06:31,490 --> 00:06:34,240
+We'll do this so that we can report back to the correct
+
+111
+00:06:34,240 --> 00:06:38,600
+pipeline execution in case this Lambda is being called by
+
+112
+00:06:38,600 --> 00:06:41,120
+multiple executions at the same time.
+
+113
+00:06:41,120 --> 00:06:46,200
+Declare a new const with the identifier jobId. Assign to it the
+
+114
+00:06:46,200 --> 00:06:51,420
+value event, then open square brackets and quotes and enter
+
+115
+00:06:51,420 --> 00:06:55,430
+CodePipeline.job inside the quotes.
+
+116
+00:06:55,430 --> 00:07:01,800
+Then close the quotes and square brackets and then add .id. This is how you can
+
+117
+00:07:01,800 --> 00:07:06,560
+get this jobId off of the event object. On the next line,
+
+118
+00:07:06,560 --> 00:07:09,690
+we're going to make a function call on the CP object.
+
+119
+00:07:09,690 --> 00:07:13,780
+Call cp.put job success result.
+
+120
+00:07:13,780 --> 00:07:16,540
+The first argument will be an object literal.
+
+121
+00:07:16,540 --> 00:07:19,740
+You can give it one property, jobId.
+
+122
+00:07:19,740 --> 00:07:24,540
+Then for the next argument, add a function with err and data arguments.
+
+123
+00:07:24,540 --> 00:07:27,900
+This'll be the callback after the pipeline execution has been
+
+124
+00:07:27,900 --> 00:07:31,130
+notified of the success result from this action.
+
+125
+00:07:31,130 --> 00:07:38,940
+If there's an error object, then call context.fail, else call context.succeed.
+
+126
+00:07:38,940 --> 00:07:42,680
+These calls to context define how and when the Lambda function
+
+127
+00:07:42,680 --> 00:07:46,740
+ends its execution as a failure or a success.
+
+128
+00:07:46,740 --> 00:07:51,830
+The way the Lambda stops executing does not matter to the pipeline execution.
+
+129
+00:07:51,830 --> 00:07:55,190
+It doesn't even know that the Lambda function has completed.
+
+130
+00:07:55,190 --> 00:08:00,390
+Only the job result that is put matters. And that's all we
+
+131
+00:08:00,390 --> 00:08:01,950
+need to do for this Lambda function.
+
+132
+00:08:01,950 --> 00:08:05,430
+Click the Save button in the top right. Now go to the
+
+133
+00:08:05,430 --> 00:08:09,360
+CodePipeline dashboard and select your hbfl pipeline.
+
+134
+00:08:09,360 --> 00:08:13,640
+We're going to add this invocation right before the build action.
+
+135
+00:08:13,640 --> 00:08:19,640
+Click the Edit button, and then on the build stage Click Edit stage.
+
+136
+00:08:19,640 --> 00:08:24,000
+Now click the Add action group button above the build action. For the
+
+137
+00:08:24,000 --> 00:08:29,330
+action name, let's call it Lambda. In the action provider drop‑down, look
+
+138
+00:08:29,330 --> 00:08:35,550
+for the Invoke group and select AWS Lambda. In the Function name input
+
+139
+00:08:35,550 --> 00:08:40,050
+field, select the hbfl‑cp function.
+
+140
+00:08:40,050 --> 00:08:48,540
+Now click Done and then click Done on the stage and then Save and Save.
+
+141
+00:08:48,540 --> 00:08:51,240
+Now we need to kick off the pipeline again, so click
+
+142
+00:08:51,240 --> 00:08:54,140
+Release change and then Release.
+
+143
+00:08:54,140 --> 00:08:57,030
+Now you can watch the pipeline and see that it invokes the
+
+144
+00:08:57,030 --> 00:09:00,130
+Lambda function and marks it as a success.
+
+145
+00:09:00,130 --> 00:09:03,030
+If we were to do something more substantial with our Lambda,
+
+146
+00:09:03,030 --> 00:09:10,000
+we could check the result. But for our purposes, a successful result is just what we're looking for.
+

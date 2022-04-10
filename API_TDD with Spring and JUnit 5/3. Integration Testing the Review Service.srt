@@ -1,0 +1,384 @@
+1
+00:00:01,049 --> 00:00:04,648
+In this section, we're going to write integration tests for the review service.
+
+2
+00:00:04,648 --> 00:00:07,202
+Recall that the review service makes requests to MongoDB,
+
+3
+00:00:07,202 --> 00:00:08,995
+so in order to test it,
+
+4
+00:00:08,995 --> 00:00:11,842
+we're going to use MockMvc to send requests to the review
+
+5
+00:00:11,842 --> 00:00:15,143
+service and leverage the MongoSpringExtension that we previously
+
+6
+00:00:15,143 --> 00:00:18,853
+build to pre-populate MongoDB before our test run and cleaned it
+
+7
+00:00:18,853 --> 00:00:20,993
+up when our tests complete.
+
+8
+00:00:20,993 --> 00:00:21,920
+From a coding perspective,
+
+9
+00:00:21,920 --> 00:00:24,442
+we're going to include both our MongoSpringExtension
+
+10
+00:00:24,442 --> 00:00:27,104
+and the standard SpringExtension.
+
+11
+00:00:27,104 --> 00:00:29,312
+We're going to use the SpringBootTest annotation to load
+
+12
+00:00:29,312 --> 00:00:31,025
+our full Spring application context.
+
+13
+00:00:31,025 --> 00:00:35,474
+And we're going to include the AutoConfigureMockMvc annotation
+
+14
+00:00:35,474 --> 00:00:38,018
+to tell Spring to create a MockMvc instance.
+
+15
+00:00:38,018 --> 00:00:42,474
+The MongoSpringExtension requires that we create a getMongoTemplate method,
+
+16
+00:00:42,474 --> 00:00:44,273
+so we'll include that method and return the
+
+17
+00:00:44,273 --> 00:00:47,381
+MongoTemplate that Spring autowires in for us.
+
+18
+00:00:47,381 --> 00:00:51,538
+Finally, our test methods will be annotated with the MongoDataFile annotation,
+
+19
+00:00:51,538 --> 00:00:54,748
+which specifies the source JSON file that the MongoSpringExtension
+
+20
+00:00:54,748 --> 00:00:58,390
+should use to populate our embedded MongoDB instance.
+
+21
+00:00:58,390 --> 00:00:59,966
+Let's review the source code for the
+
+22
+00:00:59,966 --> 00:01:03,805
+ReviewServiceIntegrationTest class and see how it works.
+
+23
+00:01:03,805 --> 00:01:07,132
+The ReviewServiceIntegrationTest is annotated with the
+
+24
+00:01:07,132 --> 00:01:09,824
+ExtendWith annotation and includes both the SpringExtension
+
+25
+00:01:09,824 --> 00:01:13,653
+and our MongoSpringExtension classes, as we discussed previously.
+
+26
+00:01:13,653 --> 00:01:15,637
+It's annotated with the SpringBootTest annotation,
+
+27
+00:01:15,637 --> 00:01:19,025
+as well as the AutoConfigureMockMvc annotation.
+
+28
+00:01:19,025 --> 00:01:20,880
+All of this is to say that the ReviewServiceIntegrationTest
+
+29
+00:01:20,880 --> 00:01:24,907
+will load the full Spring application context,
+
+30
+00:01:24,907 --> 00:01:27,191
+it will create a MockMvc instance for us,
+
+31
+00:01:27,191 --> 00:01:30,914
+and it'll set up and tear down our MongoDB data between test runs.
+
+32
+00:01:30,914 --> 00:01:33,394
+It has wired into it a MongoTemplate,
+
+33
+00:01:33,394 --> 00:01:36,568
+and our MongoSpringExtension requires that we provide a
+
+34
+00:01:36,568 --> 00:01:39,919
+getMongoTemplate method that returns our autowired MongoTemplate.
+
+35
+00:01:39,919 --> 00:01:44,347
+Our sample JSON file contains two reviews: The first with one user entry,
+
+36
+00:01:44,347 --> 00:01:46,424
+and the second with three user entries.
+
+37
+00:01:46,424 --> 00:01:51,370
+With our test class set up, the first test method is testGetReviewByIdFound.
+
+38
+00:01:51,370 --> 00:01:54,804
+This method is annotated with our MongoDataFile annotation,
+
+39
+00:01:54,804 --> 00:01:57,011
+which is configured to load the contents of the
+
+40
+00:01:57,011 --> 00:02:00,873
+sample.json file into review instances and persist them
+
+41
+00:02:00,873 --> 00:02:02,933
+to the reviews collection in MongoDB.
+
+42
+00:02:02,933 --> 00:02:06,818
+We use MockMvc to perform a GET request to /review/1,
+
+43
+00:02:06,818 --> 00:02:09,383
+which exists in our sample JSON file,
+
+44
+00:02:09,383 --> 00:02:14,432
+so we expect a 200 OK HTTP response code and a JSON response.
+
+45
+00:02:14,432 --> 00:02:18,632
+We validate that the ETAG is 1, since the version in the JSON file is 1,
+
+46
+00:02:18,632 --> 00:02:21,619
+and that the LOCATION is /review/1.
+
+47
+00:02:21,619 --> 00:02:21,804
+Finally,
+
+48
+00:02:21,804 --> 00:02:23,710
+we validate that the fields in the JSON response
+
+49
+00:02:23,710 --> 00:02:27,003
+match those in the sample JSON file.
+
+50
+00:02:27,003 --> 00:02:29,894
+The testGetReviewByIdNotFound method does the same thing,
+
+51
+00:02:29,894 --> 00:02:33,232
+but it uses MockMvc to perform a GET request to /review/99,
+
+52
+00:02:33,232 --> 00:02:36,280
+which doesn't exist in our sample JSON file,
+
+53
+00:02:36,280 --> 00:02:40,958
+so we validate that we receive a 404 Not Found HTTP response code.
+
+54
+00:02:40,958 --> 00:02:45,022
+The testCreateReview method creates a new review in the review service.
+
+55
+00:02:45,022 --> 00:02:47,521
+It begins by creating a new review instance and
+
+56
+00:02:47,521 --> 00:02:49,344
+adds a single entry to the review,
+
+57
+00:02:49,344 --> 00:02:52,704
+and then it uses MockMvc to perform a post request to /review,
+
+58
+00:02:52,704 --> 00:02:57,191
+passing a JSON representation of the new review as the body of the post,
+
+59
+00:02:57,191 --> 00:02:59,186
+and setting the content type to JSON.
+
+60
+00:02:59,186 --> 00:03:02,484
+We validate that we receive a 201 created HTTP
+
+61
+00:03:02,484 --> 00:03:04,939
+response code and a JSON response.
+
+62
+00:03:04,939 --> 00:03:06,758
+The interesting thing in this test case is that MongoDB
+
+63
+00:03:06,758 --> 00:03:09,334
+will generate a unique ID for the object,
+
+64
+00:03:09,334 --> 00:03:12,410
+which will look like a UUID so we cannot accurately
+
+65
+00:03:12,410 --> 00:03:14,661
+predict what it will be for out test.
+
+66
+00:03:14,661 --> 00:03:16,311
+Instead we do two things: First,
+
+67
+00:03:16,311 --> 00:03:18,804
+we execute the header's exists method to validate
+
+68
+00:03:18,804 --> 00:03:23,708
+that a location header is present, which will be /review/ some UUID,
+
+69
+00:03:23,708 --> 00:03:25,150
+but without actually checking the value.
+
+70
+00:03:25,150 --> 00:03:26,921
+And in our JSON body evaluation,
+
+71
+00:03:26,921 --> 00:03:30,284
+we test to see that there is an ID field that is any
+
+72
+00:03:30,284 --> 00:03:32,513
+String by using the any matcher.
+
+73
+00:03:32,513 --> 00:03:35,242
+This way we can validate that there's a location header and a
+
+74
+00:03:35,242 --> 00:03:38,034
+review ID without examining the actual value.
+
+75
+00:03:38,034 --> 00:03:41,867
+We validate that we receive an ETAG value and a version of 1.
+
+76
+00:03:41,867 --> 00:03:43,276
+Because this review is just created,
+
+77
+00:03:43,276 --> 00:03:45,893
+it will have its version automatically set to 1.
+
+78
+00:03:45,893 --> 00:03:49,002
+We validate that we received one review entry and that the
+
+79
+00:03:49,002 --> 00:03:51,838
+username and review match the review we created.
+
+80
+00:03:51,838 --> 00:03:54,761
+Finally, we validate that the date of the review entry is present,
+
+81
+00:03:54,761 --> 00:03:58,399
+but we match against any string because we cannot accurately predict the date.
+
+82
+00:03:58,399 --> 00:04:01,626
+The last method is testAddEntryToReview,
+
+83
+00:04:01,626 --> 00:04:03,822
+which adds a new entry to an existing review.
+
+84
+00:04:03,822 --> 00:04:06,201
+We create the new review entry and use MockMvc to
+
+85
+00:04:06,201 --> 00:04:08,809
+perform a post request to /review/1/entry,
+
+86
+00:04:08,809 --> 00:04:14,181
+with a JSON representation of a review entry as the body of the post,
+
+87
+00:04:14,181 --> 00:04:15,592
+and a JSON contentType.
+
+88
+00:04:15,592 --> 00:04:18,993
+We validate that we receive a 200 OK HTTP response code and
+
+89
+00:04:18,993 --> 00:04:20,894
+the correct ETAG and LOCATION headers.
+
+90
+00:04:20,894 --> 00:04:23,198
+Finally, we validate the returned fields,
+
+91
+00:04:23,198 --> 00:04:25,499
+specifically checking that there are two entries,
+
+92
+00:04:25,499 --> 00:04:27,993
+and then examining the values in those entries.
+
+93
+00:04:27,993 --> 00:04:32,089
+Again, we check for any string as the date in our new review entry.
+
+94
+00:04:32,089 --> 00:04:34,754
+This integration test looks a lot like the review controller test,
+
+95
+00:04:34,754 --> 00:04:38,174
+but instead of mocking the review service to return expected results,
+
+96
+00:04:38,174 --> 00:04:45,000
+we instead exercise the review service end to end from the controller all the way back to MongoDB.
+

@@ -1,0 +1,224 @@
+1
+00:00:00,792 --> 00:00:02,165
+As we would expect,
+
+2
+00:00:02,165 --> 00:00:07,201
+custom retry policies helped SaaS Bass with temporary socket exceptions.
+
+3
+00:00:07,201 --> 00:00:09,392
+Now, let's look at timeout exceptions.
+
+4
+00:00:09,392 --> 00:00:14,374
+In SaaS Bass's case, timeout exceptions are caused by temporary I/O latency.
+
+5
+00:00:14,374 --> 00:00:17,106
+To follow along with this demo, for the Base Tracker Service,
+
+6
+00:00:17,106 --> 00:00:21,273
+check out the adding-custom-retry-policies-timeout-exception branch.
+
+7
+00:00:21,273 --> 00:00:22,572
+For the Lake Profile Service,
+
+8
+00:00:22,572 --> 00:00:27,253
+also check out the adding-custom-retry-policies-timeout-exception branch.
+
+9
+00:00:27,253 --> 00:00:28,762
+In the lake-profile-service,
+
+10
+00:00:28,762 --> 00:00:32,366
+we're simulating a socket timeout exception by sleeping for 4
+
+11
+00:00:32,366 --> 00:00:34,535
+seconds for the first two GET requests.
+
+12
+00:00:34,535 --> 00:00:37,257
+Let's run the lake-profile- service and then switch
+
+13
+00:00:37,257 --> 00:00:39,189
+over to the bass- tracker-service.
+
+14
+00:00:39,189 --> 00:00:42,823
+The bass-tracker-service remains unchanged from the
+
+15
+00:00:42,823 --> 00:00:44,634
+module branch for this simulation,
+
+16
+00:00:44,634 --> 00:00:48,555
+except that we've removed the back off duration logs from the LakeProfileClient,
+
+17
+00:00:48,555 --> 00:00:52,029
+as those are now misleading due to the 4 second
+
+18
+00:00:52,029 --> 00:00:54,863
+sleep in the lake-profile-service.
+
+19
+00:00:54,863 --> 00:00:57,579
+Let's run the bass-tracker-service and see what happens.
+
+20
+00:00:57,579 --> 00:00:59,810
+We successfully create the lake profile,
+
+21
+00:00:59,810 --> 00:01:03,423
+then we attempt to get the profile the first time.
+
+22
+00:01:03,423 --> 00:01:04,772
+Attempt to get a second time.
+
+23
+00:01:04,772 --> 00:01:06,732
+Attempt to get a third time.
+
+24
+00:01:06,732 --> 00:01:09,313
+And then we're finally able to get the profile.
+
+25
+00:01:09,313 --> 00:01:11,054
+It felt like that took forever.
+
+26
+00:01:11,054 --> 00:01:13,772
+Is it taking too long for application's needs?
+
+27
+00:01:13,772 --> 00:01:16,566
+How can we tell what the maximum time retry will take
+
+28
+00:01:16,566 --> 00:01:18,834
+based on the properties we've specified?
+
+29
+00:01:18,834 --> 00:01:21,872
+Let's look at how to calculate the maximum timeout.
+
+30
+00:01:21,872 --> 00:01:26,352
+To calculate the maximum timeout we can expect from our retry configuration,
+
+31
+00:01:26,352 --> 00:01:29,501
+we first need to add up the connect and read timeout and
+
+32
+00:01:29,501 --> 00:01:32,383
+multiply that sum by max attempts.
+
+33
+00:01:32,383 --> 00:01:37,305
+Then, we'll subtract 1 from max attempts and multiply by max back off.
+
+34
+00:01:37,305 --> 00:01:41,553
+Then, we can add the two products together to get our total timeout.
+
+35
+00:01:41,553 --> 00:01:44,083
+Maximum back off is the tricky one here.
+
+36
+00:01:44,083 --> 00:01:47,612
+For a fixed back off policy, it's simply the back off period.
+
+37
+00:01:47,612 --> 00:01:51,653
+For an exponential back off policy, it's the max back off interval.
+
+38
+00:01:51,653 --> 00:01:52,214
+For simplicity,
+
+39
+00:01:52,214 --> 00:01:56,397
+we'll use the fixed back off policy properties for our calculation.
+
+40
+00:01:56,397 --> 00:02:01,196
+Let's take our fixed back off properties and apply them to the formula.
+
+41
+00:02:01,196 --> 00:02:05,412
+Doing the math, we see that the total timeout would be 12 seconds.
+
+42
+00:02:05,412 --> 00:02:07,971
+Keep in mind, this is the worst case scenario timeout,
+
+43
+00:02:07,971 --> 00:02:12,325
+and we should make sure it's within our application's acceptable limits.
+
+44
+00:02:12,325 --> 00:02:14,736
+Let's run a little test to prove that our formula works.
+
+45
+00:02:14,736 --> 00:02:17,844
+It's hard to simulate a connection timeout in our app,
+
+46
+00:02:17,844 --> 00:02:21,992
+so we'll set that to 0 and leave the rest of the properties as is.
+
+47
+00:02:21,992 --> 00:02:26,749
+Doing the math, we should expect an 11 second total timeout.
+
+48
+00:02:26,749 --> 00:02:29,722
+Let's switch to our application and see what we get.
+
+49
+00:02:29,722 --> 00:02:34,594
+In the lake-profile-service, let's set our getLakeProfileRequestCount to 5,
+
+50
+00:02:34,594 --> 00:02:36,903
+which will be higher than our retry count,
+
+51
+00:02:36,903 --> 00:02:38,172
+and then run it.
+
+52
+00:02:38,172 --> 00:02:39,583
+Then, switching to bass-tracker-service,
+
+53
+00:02:39,583 --> 00:02:43,288
+we've added a try/ catch with a timing log so we can
+
+54
+00:02:43,288 --> 00:02:46,153
+see the total retry timeout duration.
+
+55
+00:02:46,153 --> 00:02:47,200
+Let's run that.
+
+56
+00:02:47,200 --> 00:02:56,000
+In the logs, we can see that the total duration was very close to 11 seconds. Looks like our calculation worked.
+

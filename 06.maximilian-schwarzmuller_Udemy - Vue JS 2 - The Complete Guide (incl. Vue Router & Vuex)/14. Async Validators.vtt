@@ -1,0 +1,328 @@
+WEBVTT
+
+00:02.250 --> 00:08.160
+So we got a custom validator but how can we now turn this into an asynchronous one?
+
+00:08.220 --> 00:10.370
+Actually this is really simple,
+
+00:10.770 --> 00:16.800
+we just have to return a promise and vuelidate is then able to automatically handle this.
+
+00:16.800 --> 00:23.000
+Now first of all I'll check if val is equal to an empty string in which case I'll immediately return
+
+00:23.010 --> 00:31.500
+true, true and not false because this validator does not care about whether it's empty or not,
+
+00:31.500 --> 00:36.560
+it doesn't treat empty as bad. that's not its job and that's important.
+
+00:36.600 --> 00:42.330
+So this returns true if it's empty because then we don't care if it's unique or not,
+
+00:42.400 --> 00:47.170
+other validators like required have to take care about whether it's empty or not,
+
+00:47.460 --> 00:52.500
+I just want to make sure I don't run my async code which potentially hits my server
+
+00:52.500 --> 01:00.660
+if we got no value anyways. So assuming we got a value, we can simply return a promise, so we can simply return
+
+01:00.660 --> 01:02.360
+a new promise here
+
+01:02.730 --> 01:11.900
+and as you know, a promise gets a function which gets two arguments, resolve and reject and inside this
+
+01:11.890 --> 01:14.780
+function which we pass to the promise constructor,
+
+01:14.870 --> 01:22.520
+we can then call resolve to simulate that we got a value and here, we simply have to resolve to either
+
+01:22.550 --> 01:24.050
+true or false,
+
+01:24.050 --> 01:27.670
+so what we previously also returned synchronously.
+
+01:27.680 --> 01:34.640
+So here, I can resolve if value is equal to test@test.com, to make this more interesting,
+
+01:34.700 --> 01:44.200
+I'll add set timeout here, wait for one second and after this second, I'll execute this function inside
+
+01:44.210 --> 01:46.440
+set timeout where I then call resolve,
+
+01:46.550 --> 01:49.290
+so now this already is asynchronous.
+
+01:49.490 --> 01:56.630
+If we now go back to the application and enter test2 and adjust my validator to check if it's not equal to
+
+01:56.630 --> 01:58.310
+test@test.com,
+
+01:58.310 --> 02:02.840
+so now test2 should pass. If I now enter test2 again,
+
+02:02.960 --> 02:04.270
+nothing changes,
+
+02:04.430 --> 02:11.570
+if I switch to test though, after one second this becomes invalid because now we found out, hey it's
+
+02:11.570 --> 02:14.700
+invalid because set timeout is done.
+
+02:14.750 --> 02:19.930
+That's nice but we actually got a backend on firebase where we store email addresses,
+
+02:20.270 --> 02:26.840
+so let's use that backend, backend firebase and there, I need to adjust something in the database to
+
+02:26.840 --> 02:33.020
+be able to query the data I want to query. I in the end want to find out whether one of my users here
+
+02:33.110 --> 02:34.280
+has an e-mail address
+
+02:34.280 --> 02:41.750
+we already registered, for this and this is firebase specific, I'll need to create a so-called index in
+
+02:41.750 --> 02:49.320
+my rules set here, for that I'll go into rules and I'll add a key for users referring to my users
+
+02:49.320 --> 02:53.360
+node and that also is a javascript object then
+
+02:53.510 --> 03:00.240
+and in there, I'll add the special .indexOn key and again this is just exclusive to firebase. It tells
+
+03:00.240 --> 03:05.170
+firebase hey there is a key in my users which I want to be able to query,
+
+03:05.490 --> 03:11.600
+so here this key then simply is an array, actually I can define multiple keys, here
+
+03:11.640 --> 03:13.580
+I'll simply define e-mail,
+
+03:13.590 --> 03:20.290
+so now I can search by e-mail once I publish this, I can search by e-mail in all my user objects here,
+
+03:20.340 --> 03:28.860
+so here, email. With that, we can go back to our vue code and now write the code to actually reach out
+
+03:28.860 --> 03:33.270
+to our server and see if a certain e-mail address is already taken,
+
+03:33.270 --> 03:40.830
+so here instead of returning my own promise, I can simply return the result of an axios request. For
+
+03:40.830 --> 03:41.130
+that,
+
+03:41.160 --> 03:50.110
+I will import axios and in case you didn't watch my axios module, axios is just an alternative to vue resource,
+
+03:50.130 --> 03:57.000
+it allows us to make Ajax requests and in main.js, we configure that to always use our firebase
+
+03:57.010 --> 03:58.810
+database with this base url.
+
+03:58.960 --> 04:04.950
+In case you don't have this set up, go through the axios section first to be able to follow along in
+
+04:04.950 --> 04:08.120
+your code until then you can of course watch me do it here,
+
+04:08.160 --> 04:10.870
+it'll work in the same way for your own backend.
+
+04:10.860 --> 04:14.850
+So I want to use this axios instance, for that,
+
+04:14.850 --> 04:22.230
+I need to import it in my script section in the signup file, so I'll import axios from axios and
+
+04:22.230 --> 04:29.070
+then axios as learned in that section simply has a get method which allows me to send a get request,
+
+04:29.730 --> 04:33.780
+I want to send this to /users.json, 
+
+04:33.810 --> 04:40.430
+.json is firebase specific and /users is enough because the base path is defined in main.js
+
+04:40.460 --> 04:41.020
+.
+
+04:42.300 --> 04:46.380
+and now here I don't just want to reach out to it like this,
+
+04:46.380 --> 04:48.930
+I of course want to order my data,
+
+04:48.930 --> 04:55.860
+I want to see if this email address exists. To filter this on firebase, I need to pass a query parameter,
+
+04:55.860 --> 05:01.560
+this is how it works in firebase, might work differently for your own backend, the query parameter
+
+05:01.560 --> 05:04.090
+I need to add here is OrderBy
+
+05:04.350 --> 05:11.190
+and that should be e-mail, between double quotation marks that's important. Email then refers to this
+
+05:11.280 --> 05:16.500
+email node here in my users and I will then chain a criteria,
+
+05:16.770 --> 05:22.570
+it's equal to and here, the email address now has to be passed,
+
+05:22.590 --> 05:26.390
+so this should now be val, whatever user entered.
+
+05:27.900 --> 05:32.880
+Then axios gives me a promise and I'll not return the result of that promise because that would not
+
+05:32.880 --> 05:33.830
+be true or false
+
+05:33.840 --> 05:43.750
+but the http response so in the then block here, I'll instead if I now have a look at that response and
+
+05:43.750 --> 05:50.710
+then return false which will be wrapped into a promise and therefore it can now be used by vuelidate.
+
+05:50.710 --> 05:55.980
+It will always invalidate this input though, it will always return false,
+
+05:56.080 --> 05:57.280
+we'll fix this soon.
+
+05:57.460 --> 06:01.700
+Now with that, one more thing we have to do, the value here
+
+06:01.720 --> 06:04.280
+also has to be wrapped between double quotation marks,
+
+06:04.300 --> 06:06.920
+so equal to equals double quotation mark
+
+06:07.090 --> 06:09.440
+and then also a closing double quotation mark
+
+06:09.490 --> 06:13.410
+after the value. And now we can go back to our application, I'll
+
+06:13.650 --> 06:18.070
+open the developer tools here so that we can see the javascript console,
+
+06:18.070 --> 06:26.590
+now if I enter an email address here, I actually get an unauthorized request here because I in the authorization
+
+06:26.590 --> 06:31.100
+section required all users to log in to send http requests,
+
+06:31.120 --> 06:33.420
+this is defining the rules of the database.
+
+06:33.520 --> 06:38.470
+I don't actually want this to be the case for read requests anymore, so I'll switch this back to just
+
+06:38.470 --> 06:43.600
+true which means everyone may read and getting the email address is just reading it.
+
+06:44.020 --> 06:53.030
+So with that, if we go back to our application, if I reload it and I try this one more time,
+
+06:53.140 --> 06:59.440
+now we get back a response and here, the response is the object where the e-mail address matches.
+
+06:59.440 --> 07:05.320
+Now if I do enter email address which we don't have though, I actually get back an empty object,
+
+07:05.650 --> 07:10.620
+so if we get back an empty object, we know the email address is still available.
+
+07:10.900 --> 07:18.640
+So let's return a check which checks if the response data, that is where this empty object would be stored, if it
+
+07:18.640 --> 07:20.200
+is an empty object,
+
+07:20.200 --> 07:24.170
+now how do we find out if it is an empty object?
+
+07:24.210 --> 07:30.720
+We can simply take advantage of a built-in method on the object object in javascript,
+
+07:30.720 --> 07:37.650
+there is a keys method which we can use on the response data and this will give us back an array of all
+
+07:37.650 --> 07:40.560
+the keys this object has, now here
+
+07:40.710 --> 07:48.570
+if the length is equal to zero, we know it's an empty object and then we want return true because that
+
+07:48.570 --> 07:52.860
+means the user picked the email address for which we don't find data on the server.
+
+07:52.890 --> 08:00.330
+So now if we go back to our application and I enter test, this becomes invalid, if I enter a valid one, though
+
+08:00.660 --> 08:02.170
+it stays valid.
+
+08:02.250 --> 08:04.280
+If we go back to test2 which is taken,
+
+08:04.510 --> 08:06.300
+it's marked as invalid.
+
+08:06.630 --> 08:12.210
+So now with that, we get our own asynchronous validator which really reaches out to the backend and
+
+08:12.210 --> 08:14.300
+checks our emails there.
+
+08:14.310 --> 08:16.420
+Now one important note here,
+
+08:16.500 --> 08:23.760
+currently we're validating on the blur event so whenever I lose focus on this input, that means we don't
+
+08:23.760 --> 08:29.300
+send that many requests to the backend, only after the user entered something.
+
+08:29.310 --> 08:33.850
+If you were to use the input event which is fired on every keystroke,
+
+08:34.200 --> 08:40.170
+well there is the danger of you spamming your backend with your requests because a request gets sent
+
+08:40.200 --> 08:44.600
+whenever this validator runs and on input, it runs on every keystroke,
+
+08:44.880 --> 08:51.490
+so if you have on keystroke validation, you probably want to add some additional logic, like
+
+08:51.510 --> 08:58.950
+the bounce method from the low dash library to group your requests and not send one on every request
+
+08:59.160 --> 09:05.840
+but actually add some delay in-between, so that you don't hit your server with too many requests.
+
+09:05.970 --> 09:12.480
+But with that, we know how asynchronous validation works and that's another extremely useful thing we
+
+09:12.480 --> 09:14.150
+can add to our toolbox.

@@ -1,0 +1,225 @@
+WEBVTT
+1
+00:00:00.654 --> 00:00:03.376
+I'm introducing the concept of a release.
+
+2
+00:00:03.376 --> 00:00:06.158
+A release is a deployment release that has a
+
+3
+00:00:06.158 --> 00:00:08.574
+collection of tickets associated to it.
+
+4
+00:00:08.574 --> 00:00:13.929
+There is a release domain object, a ReleaseDAO that contains an entityManager,
+
+5
+00:00:13.929 --> 00:00:16.603
+and a ReleaseService.
+
+6
+00:00:16.603 --> 00:00:20.586
+There is a concept of scheduling a release.
+
+7
+00:00:20.586 --> 00:00:25.071
+So this consists of assigning existing tickets to a release and then setting
+
+8
+00:00:25.071 --> 00:00:28.950
+the status on each ticket in the release as completed.
+
+9
+00:00:28.950 --> 00:00:33.437
+So let's look at the scheduleRelease method on line 34.
+
+10
+00:00:33.437 --> 00:00:37.335
+Now this is a multistep process that needs to complete
+
+11
+00:00:37.335 --> 00:00:40.451
+as one logical unit or transaction.
+
+12
+00:00:40.451 --> 00:00:44.862
+And if any piece fails, the entire transaction should fail.
+
+13
+00:00:44.862 --> 00:00:50.148
+On lines 40 through 42, I'm creating new tickets.
+
+14
+00:00:50.148 --> 00:00:55.527
+I'm actually adding them to the database using the ticketDAO.
+
+15
+00:00:55.527 --> 00:01:00.832
+Here on line 45, I'm obtaining the release entity,
+
+16
+00:01:00.832 --> 00:01:07.313
+and on line 46, I'm associating all of the tickets to this release.
+
+17
+00:01:07.313 --> 00:01:14.421
+On line 49, I'm updating the ticket status on each ticket as completed.
+
+18
+00:01:14.421 --> 00:01:17.396
+Now I want all of this to occur as one logical unit,
+
+19
+00:01:17.396 --> 00:01:22.181
+and if any piece fails, I want everything to roll back.
+
+20
+00:01:22.181 --> 00:01:28.109
+So now let's take a look at the TrackZillaController.
+
+21
+00:01:28.109 --> 00:01:34.211
+And notice on the controller, I've added this new method called scheduleRelease,
+
+22
+00:01:34.211 --> 00:01:36.768
+and the PostMapping path is schedule.
+
+23
+00:01:36.768 --> 00:01:40.243
+So essentially this will invoke our scheduleRelease
+
+24
+00:01:40.243 --> 00:01:42.963
+method from our releaseService.
+
+25
+00:01:42.963 --> 00:01:46.249
+So the server is up and running and the application is deployed.
+
+26
+00:01:46.249 --> 00:01:49.295
+Let's navigate to Postman to test.
+
+27
+00:01:49.295 --> 00:01:54.271
+Notice I'm posting to this URL, and I'm sending in this body,
+
+28
+00:01:54.271 --> 00:01:56.909
+so sending in an ID of 1.
+
+29
+00:01:56.909 --> 00:01:58.963
+This is the list of tickets.
+
+30
+00:01:58.963 --> 00:02:02.605
+So let's invoke this by clicking Send.
+
+31
+00:02:02.605 --> 00:02:06.032
+So I see a 500 Internal Server Error.
+
+32
+00:02:06.032 --> 00:02:07.794
+So let's take a look at this error.
+
+33
+00:02:07.794 --> 00:02:13.063
+It says No EntityManager with actual transaction available for current thread.
+
+34
+00:02:13.063 --> 00:02:18.755
+This error will go away when we add the @Transactional annotation.
+
+35
+00:02:18.755 --> 00:02:20.103
+So let's go back and do that.
+
+36
+00:02:20.103 --> 00:02:23.783
+So I'm going to navigate to my ReleaseService.
+
+37
+00:02:23.783 --> 00:02:30.437
+I'm going to add on line 15 the @Transactional annotation.
+
+38
+00:02:30.437 --> 00:02:33.237
+And I'm going to start the server again.
+
+39
+00:02:33.237 --> 00:02:35.520
+Okay, the server is up and running.
+
+40
+00:02:35.520 --> 00:02:41.463
+Let's navigate back to Postman, and let's test this again.
+
+41
+00:02:41.463 --> 00:02:45.232
+And now we have a status of 200 OK.
+
+42
+00:02:45.232 --> 00:02:51.083
+Let's navigate to the H2 console.
+
+43
+00:02:51.083 --> 00:02:55.364
+And now let's look at what's in our release table.
+
+44
+00:02:55.364 --> 00:02:56.201
+Click Run.
+
+45
+00:02:56.201 --> 00:02:58.712
+And so we have four releases.
+
+46
+00:02:58.712 --> 00:03:02.747
+Remember, we were creating new tickets, and we're adding it to Release 1.
+
+47
+00:03:02.747 --> 00:03:05.002
+So let's look at our tickets.
+
+48
+00:03:05.002 --> 00:03:08.387
+We should see some tickets with a status of completed
+
+49
+00:03:08.387 --> 00:03:12.485
+because they are assigned to a release.
+
+50
+00:03:12.485 --> 00:03:15.430
+And so we see four tickets here with the status of Completed,
+
+51
+00:03:15.430 --> 00:03:18.410
+and they are assigned to a release.
+
+52
+00:03:18.410 --> 00:03:23.315
+And we can see that if we click on RELEASE_TICKETS here.
+
+53
+00:03:23.315 --> 00:03:25.717
+And, yes, we have the four tickets here.
+
+54
+00:03:25.717 --> 00:03:31.679
+So why did the error go away when we used the @Transactional annotation?
+
+55
+00:03:31.679 --> 00:03:37.681
+Spring provides a lot automatically out of the box when we use this annotation.
+
+56
+00:03:37.681 --> 00:03:45.000
+So next we'll discuss what's really going on behind the scenes when we use this annotation.
+

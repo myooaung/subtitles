@@ -1,0 +1,729 @@
+WEBVTT
+1
+00:00:02.222 --> 00:00:06.541
+Now that you know some of the required steps for us to set up a serverless API,
+
+2
+00:00:06.541 --> 00:00:09.581
+let's get started on our project for this module.
+
+3
+00:00:09.581 --> 00:00:10.892
+As a quick reminder of what we're building,
+
+4
+00:00:10.892 --> 00:00:13.627
+we'll create a static frontend that has a recaptcha
+
+5
+00:00:13.627 --> 00:00:15.707
+validation test and form fields,
+
+6
+00:00:15.707 --> 00:00:19.161
+and is configured to send post requests to our serverless API.
+
+7
+00:00:19.161 --> 00:00:23.562
+That API will send the input it receives to a lambda handler function.
+
+8
+00:00:23.562 --> 00:00:25.885
+The handler will send a request to the Google
+
+9
+00:00:25.885 --> 00:00:27.413
+recaptcha API and process the input.
+
+10
+00:00:27.413 --> 00:00:30.436
+If it fails, it will return that failure to the lambda function,
+
+11
+00:00:30.436 --> 00:00:33.231
+which will send that back to the requester via the API.
+
+12
+00:00:33.231 --> 00:00:35.903
+On success, it will send a request to the Twilio API,
+
+13
+00:00:35.903 --> 00:00:40.494
+which will send a text using the information included in the form fields.
+
+14
+00:00:40.494 --> 00:00:41.790
+Before we start this demo,
+
+15
+00:00:41.790 --> 00:00:45.142
+please be aware that the API keys and secrets that you use in this
+
+16
+00:00:45.142 --> 00:00:46.847
+course should be kept out of source control.
+
+17
+00:00:46.847 --> 00:00:49.012
+Especially your AWS access and Twilio keys,
+
+18
+00:00:49.012 --> 00:00:52.291
+as they could be used to send messages on your behalf,
+
+19
+00:00:52.291 --> 00:00:54.284
+or take actions in the AWS console.
+
+20
+00:00:54.284 --> 00:00:56.153
+So when iterating on these applications,
+
+21
+00:00:56.153 --> 00:01:02.171
+be sure not to accidentally commit these credentials.
+
+22
+00:01:02.171 --> 00:01:05.692
+In this demo, we'll be deploying a full-stack serverless application.
+
+23
+00:01:05.692 --> 00:01:07.934
+We'll start by gathering our dependencies,
+
+24
+00:01:07.934 --> 00:01:10.003
+including working with Google Recaptcha to make sure
+
+25
+00:01:10.003 --> 00:01:11.710
+we'll be able to use that in our site,
+
+26
+00:01:11.710 --> 00:01:15.776
+setting up a Twilio account in order to get credentials to send text messages,
+
+27
+00:01:15.776 --> 00:01:18.738
+and then scaffolding out our service with the code provided for this module.
+
+28
+00:01:18.738 --> 00:01:22.063
+Then, we'll review all the function code that we'll be using,
+
+29
+00:01:22.063 --> 00:01:23.628
+the API endpoints that we'll be deploying,
+
+30
+00:01:23.628 --> 00:01:26.495
+then we'll take a moment and deploy our project as a whole,
+
+31
+00:01:26.495 --> 00:01:28.407
+including the static site and the front-end,
+
+32
+00:01:28.407 --> 00:01:30.590
+and our serverless APIs in the back-end.
+
+33
+00:01:30.590 --> 00:01:33.555
+So let's dive into our demo.
+
+34
+00:01:33.555 --> 00:01:35.986
+First, let's get our Google Recaptcha credentials.
+
+35
+00:01:35.986 --> 00:01:39.100
+The application uses reCAPTCHA V2 with the I'm not a
+
+36
+00:01:39.100 --> 00:01:40.346
+robot checkbox and verification.
+
+37
+00:01:40.346 --> 00:01:44.471
+You can sign up for reCAPTCHA V2 with a Google account at this URL.
+
+38
+00:01:44.471 --> 00:01:46.866
+During the sign up process for reCAPTCHA V2,
+
+39
+00:01:46.866 --> 00:01:49.715
+make sure to include amazonaws on the list of domains.
+
+40
+00:01:49.715 --> 00:01:53.254
+This will allow your reCAPTCHA to load on the AWS static website,
+
+41
+00:01:53.254 --> 00:01:54.511
+which we'll be deploying.
+
+42
+00:01:54.511 --> 00:01:58.552
+Then accept the terms of service and press the Register button.
+
+43
+00:01:58.552 --> 00:02:00.922
+Copy down the recaptcha data site key and secret
+
+44
+00:02:00.922 --> 00:02:02.238
+values somewhere you can reference.
+
+45
+00:02:02.238 --> 00:02:05.502
+We'll be adding those to a configuration file in the moment.
+
+46
+00:02:05.502 --> 00:02:08.608
+Next, let's create our Twilio account at this URL.
+
+47
+00:02:08.608 --> 00:02:10.220
+The first time you create an account,
+
+48
+00:02:10.220 --> 00:02:12.837
+you'll need to verify the phone number you'll be using with the account.
+
+49
+00:02:12.837 --> 00:02:13.366
+But in exchange,
+
+50
+00:02:13.366 --> 00:02:15.813
+you'll be getting a few dollars worth of trial
+
+51
+00:02:15.813 --> 00:02:17.444
+credits to use with this application.
+
+52
+00:02:17.444 --> 00:02:20.430
+You can give your project whatever name you'd prefer.
+
+53
+00:02:20.430 --> 00:02:21.636
+When you're done signing up,
+
+54
+00:02:21.636 --> 00:02:24.401
+click the Show API Credentials link in the top right.
+
+55
+00:02:24.401 --> 00:02:27.988
+Then copy down the account SID and auth token values.
+
+56
+00:02:27.988 --> 00:02:31.496
+You'll need to press the eye icon to show your auth token.
+
+57
+00:02:31.496 --> 00:02:32.365
+Once you're done with this,
+
+58
+00:02:32.365 --> 00:02:35.621
+you can get your first Twilio phone number by going to this URL and
+
+59
+00:02:35.621 --> 00:02:38.419
+clicking the Get your first Twilio phone number button.
+
+60
+00:02:38.419 --> 00:02:40.133
+Choose the phone number that they offer you,
+
+61
+00:02:40.133 --> 00:02:44.377
+and then copy down that phone number, as we'll be using that later.
+
+62
+00:02:44.377 --> 00:02:46.988
+Next, we'll be reviewing some of the code we're using in this demo.
+
+63
+00:02:46.988 --> 00:02:49.968
+I'm using the tree utility to show you each of the files within this folder,
+
+64
+00:02:49.968 --> 00:02:52.659
+but this isn't required for this course.
+
+65
+00:02:52.659 --> 00:02:55.554
+The first one we'll be opening up will be serverless.
+
+66
+00:02:55.554 --> 00:02:55.844
+yml.
+
+67
+00:02:55.844 --> 00:02:57.734
+Go ahead and do that now.
+
+68
+00:02:57.734 --> 00:02:58.365
+In serverless.
+
+69
+00:02:58.365 --> 00:02:58.680
+yml,
+
+70
+00:02:58.680 --> 00:03:01.969
+replace the default values in the environment section with your
+
+71
+00:03:01.969 --> 00:03:03.914
+newly acquired Twilio and recaptcha values.
+
+72
+00:03:03.914 --> 00:03:06.900
+Also be sure to replace the final configuration value of
+
+73
+00:03:06.900 --> 00:03:09.977
+your unique bucket name here with a unique S3 bucket name
+
+74
+00:03:09.977 --> 00:03:11.513
+to deploy your application in.
+
+75
+00:03:11.513 --> 00:03:14.408
+This value has to be different from all other S3 buckets,
+
+76
+00:03:14.408 --> 00:03:18.460
+because S3 buckets are globally unique across every bucket in existence.
+
+77
+00:03:18.460 --> 00:03:24.079
+So I'd suggest something like fernando-node-text-message-app-20170801
+
+78
+00:03:24.079 --> 00:03:26.202
+to make sure you don't run into any name conflicts.
+
+79
+00:03:26.202 --> 00:03:30.125
+Consider adding the name of your favorite animal to the end just to be safe.
+
+80
+00:03:30.125 --> 00:03:32.748
+Make sure that you're copying the Google secret and not the site key.
+
+81
+00:03:32.748 --> 00:03:36.360
+And also keep in mind to put in your Twilio phone number in this file,
+
+82
+00:03:36.360 --> 00:03:37.675
+not your personal cell phone.
+
+83
+00:03:37.675 --> 00:03:40.042
+When you're done, make sure to save the file.
+
+84
+00:03:40.042 --> 00:03:43.083
+Next, let's take a look at the abridged version of how the handler.
+
+85
+00:03:43.083 --> 00:03:45.677
+js file validates things coming in through the API Gateway.
+
+86
+00:03:45.677 --> 00:03:49.370
+First, we load in our environment variables and required libraries.
+
+87
+00:03:49.370 --> 00:03:53.242
+Then we add the headers constant of Access-Control-Allow-Origin *.
+
+88
+00:03:53.242 --> 00:03:55.856
+This allows us to make sure that we don't run into issues
+
+89
+00:03:55.856 --> 00:03:57.429
+with cross origin resource sharing.
+
+90
+00:03:57.429 --> 00:04:01.615
+After that, we create a Google recaptcha payload from the event data,
+
+91
+00:04:01.615 --> 00:04:04.880
+and then we send that payload over to Google and check
+
+92
+00:04:04.880 --> 00:04:06.773
+whether or not this recaptcha has passed.
+
+93
+00:04:06.773 --> 00:04:10.773
+If the Google recaptcha is valid, then we create a payload for the Twilio API,
+
+94
+00:04:10.773 --> 00:04:13.215
+and we attempt to send our SMS message.
+
+95
+00:04:13.215 --> 00:04:18.467
+If the message is successfully sent, then we send the results back to the caller.
+
+96
+00:04:18.467 --> 00:04:20.030
+After we're done reviewing the handler.
+
+97
+00:04:20.030 --> 00:04:22.114
+js file, let's go back to our terminal.
+
+98
+00:04:22.114 --> 00:04:25.151
+Run npm install from the top level folder of this project in
+
+99
+00:04:25.151 --> 00:04:27.374
+order to install the dependencies we need.
+
+100
+00:04:27.374 --> 00:04:30.900
+This will install the Twilio helper, the requests package,
+
+101
+00:04:30.900 --> 00:04:33.918
+serverless finch, and any dependencies that they need.
+
+102
+00:04:33.918 --> 00:04:36.927
+Now with all our dependencies installed and our code set up,
+
+103
+00:04:36.927 --> 00:04:39.909
+let's deploy our serverless API using serverless deploy.
+
+104
+00:04:39.909 --> 00:04:40.994
+After the deployment is complete,
+
+105
+00:04:40.994 --> 00:04:45.319
+be sure to copy the API Gateway value that is returned to the console.
+
+106
+00:04:45.319 --> 00:04:47.724
+It should look something like this.
+
+107
+00:04:47.724 --> 00:04:51.213
+Let's open up the lambda section of the AWS console one more time.
+
+108
+00:04:51.213 --> 00:04:53.443
+You should see a new function listed.
+
+109
+00:04:53.443 --> 00:04:55.355
+If we click into that function,
+
+110
+00:04:55.355 --> 00:04:58.277
+you can scroll down and see that it's been configured with environment
+
+111
+00:04:58.277 --> 00:05:00.341
+variables that were included with our serverless.
+
+112
+00:05:00.341 --> 00:05:00.931
+yml file.
+
+113
+00:05:00.931 --> 00:05:04.107
+Now let's go to the API Gateway section of the console.
+
+114
+00:05:04.107 --> 00:05:05.111
+If you do this,
+
+115
+00:05:05.111 --> 00:05:07.778
+you can see that the API Gateway has successfully deployed
+
+116
+00:05:07.778 --> 00:05:10.643
+and configured an API endpoint for us.
+
+117
+00:05:10.643 --> 00:05:11.946
+But with all of this deployed,
+
+118
+00:05:11.946 --> 00:05:14.344
+how are we going to actually use this in an application?
+
+119
+00:05:14.344 --> 00:05:18.231
+Because we created our recaptcha to be used within the domain Amazon AWS,
+
+120
+00:05:18.231 --> 00:05:22.422
+we'll actually be taking advantage of AWS static site hosting.
+
+121
+00:05:22.422 --> 00:05:25.002
+To speed up this process, we'll use two things,
+
+122
+00:05:25.002 --> 00:05:27.531
+a prebuilt static website template that's included in the demos
+
+123
+00:05:27.531 --> 00:05:29.935
+code that you've downloaded for this module,
+
+124
+00:05:29.935 --> 00:05:32.390
+and the serverless finch plugin for the serverless framework,
+
+125
+00:05:32.390 --> 00:05:34.653
+which we'll be using to deploy our static site.
+
+126
+00:05:34.653 --> 00:05:38.108
+First, we need to prep our static site for deployment.
+
+127
+00:05:38.108 --> 00:05:43.262
+Use a text editor to open up the index file at client/dist/index.
+
+128
+00:05:43.262 --> 00:05:43.691
+html.
+
+129
+00:05:43.691 --> 00:05:45.273
+We'll be making two changes.
+
+130
+00:05:45.273 --> 00:05:45.589
+First,
+
+131
+00:05:45.589 --> 00:05:49.053
+replace your Google recaptcha site key text with the data site key
+
+132
+00:05:49.053 --> 00:05:50.976
+value from the Google recaptcha step earlier.
+
+133
+00:05:50.976 --> 00:05:54.140
+This will have the static site load in your specific
+
+134
+00:05:54.140 --> 00:05:55.405
+Google recaptcha for validation.
+
+135
+00:05:55.405 --> 00:05:57.672
+This value is different from the secret value,
+
+136
+00:05:57.672 --> 00:06:00.578
+which we just copied down and put into serverless.
+
+137
+00:06:00.578 --> 00:06:00.932
+yml.
+
+138
+00:06:00.932 --> 00:06:01.286
+Next,
+
+139
+00:06:01.286 --> 00:06:04.634
+change the API endpoint URL to the value that you copy
+
+140
+00:06:04.634 --> 00:06:05.946
+down from our deployment process.
+
+141
+00:06:05.946 --> 00:06:09.382
+This will make your static site post to the API endpoint you just deployed.
+
+142
+00:06:09.382 --> 00:06:12.071
+After making these changes and saving the index.
+
+143
+00:06:12.071 --> 00:06:15.809
+html file, let's use serverless finch to deploy our static site.
+
+144
+00:06:15.809 --> 00:06:18.671
+You can do this with the serverless client deploy command.
+
+145
+00:06:18.671 --> 00:06:21.690
+This will deploy the contents of our client/dist folder as
+
+146
+00:06:21.690 --> 00:06:24.034
+a static site in an S3 bucket on AWS.
+
+147
+00:06:24.034 --> 00:06:25.276
+When this process is completed,
+
+148
+00:06:25.276 --> 00:06:28.391
+it should output the location of our deployed project.
+
+149
+00:06:28.391 --> 00:06:32.164
+Copy that down, and paste it into your browser to take a look.
+
+150
+00:06:32.164 --> 00:06:34.839
+You should see a page that looks something like this.
+
+151
+00:06:34.839 --> 00:06:36.988
+Go ahead and enter in your personal phone number and
+
+152
+00:06:36.988 --> 00:06:38.453
+a message to send to yourself.
+
+153
+00:06:38.453 --> 00:06:40.638
+You'll need to use your personal phone number,
+
+154
+00:06:40.638 --> 00:06:42.550
+because other numbers aren't validated and your
+
+155
+00:06:42.550 --> 00:06:44.462
+account is still in a trial phase.
+
+156
+00:06:44.462 --> 00:06:46.404
+Once you're done entering a message,
+
+157
+00:06:46.404 --> 00:06:49.451
+then complete the Google recaptcha portion and send the message.
+
+158
+00:06:49.451 --> 00:06:53.168
+You should see a success status and get the message on your cell phone.
+
+159
+00:06:53.168 --> 00:06:57.222
+If you'd like, you can go back to the AWS console and take a look at S3.
+
+160
+00:06:57.222 --> 00:06:57.762
+Within S3,
+
+161
+00:06:57.762 --> 00:07:01.538
+you should see a new bucket that we're using for our static site hosting.
+
+162
+00:07:01.538 --> 00:07:04.835
+This bucket contains all the static site files from client/dist
+
+163
+00:07:04.835 --> 00:07:07.719
+and was created by the serverless finch plugin.
+
+164
+00:07:07.719 --> 00:07:08.589
+And that's it.
+
+165
+00:07:08.589 --> 00:07:10.910
+We've just deployed our first full stack serverless
+
+166
+00:07:10.910 --> 00:07:15.594
+application using the serverless framework.
+
+167
+00:07:15.594 --> 00:07:18.714
+In this module, we covered several serverless concepts.
+
+168
+00:07:18.714 --> 00:07:21.849
+We took a look at plugins and how we can use them to extend and
+
+169
+00:07:21.849 --> 00:07:24.404
+enhance the functionality of the serverless framework.
+
+170
+00:07:24.404 --> 00:07:27.082
+We also took a look at the process for API development and configuration,
+
+171
+00:07:27.082 --> 00:07:30.737
+as well as some deployment options that we have for when we
+
+172
+00:07:30.737 --> 00:07:32.222
+want to get our services up and running.
+
+173
+00:07:32.222 --> 00:07:34.794
+We also learned some new serverless skills; specifically,
+
+174
+00:07:34.794 --> 00:07:37.562
+we implemented our own serverless APIs.
+
+175
+00:07:37.562 --> 00:07:40.260
+We also deployed a full stack serverless application,
+
+176
+00:07:40.260 --> 00:07:42.309
+complete with the front-end application that we
+
+177
+00:07:42.309 --> 00:07:43.841
+deployed with the serverless finch plugin,
+
+178
+00:07:43.841 --> 00:07:46.698
+through to the back-end serverless API that allowed us to
+
+179
+00:07:46.698 --> 00:07:48.918
+integrate with other third-party services.
+
+180
+00:07:48.918 --> 00:07:50.504
+Coming up in the next module,
+
+181
+00:07:50.504 --> 00:07:54.612
+we'll be working with serverless CRUD applications and how we can use APIs
+
+182
+00:07:54.612 --> 00:08:02.000
+and databases in combination with the serverless framework. I'll see you in the next module.
+

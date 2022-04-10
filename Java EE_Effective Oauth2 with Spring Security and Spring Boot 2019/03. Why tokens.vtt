@@ -1,0 +1,345 @@
+WEBVTT
+1
+00:00:01.976 --> 00:00:06.460
+To explain tokens, let's start by describing the alternative.
+
+2
+00:00:06.460 --> 00:00:09.214
+Here we have a web application and a number of microservices.
+
+3
+00:00:09.214 --> 00:00:12.264
+You could secure the communication between the browser
+
+4
+00:00:12.264 --> 00:00:14.713
+and the web server or edge service,
+
+5
+00:00:14.713 --> 00:00:18.324
+which will be exposed externally and leave the internal
+
+6
+00:00:18.324 --> 00:00:22.215
+services behind a firewall unsecure.
+
+7
+00:00:22.215 --> 00:00:24.275
+To maintain state, you could include user info,
+
+8
+00:00:24.275 --> 00:00:29.750
+like the username in the body or query string of the requests.
+
+9
+00:00:29.750 --> 00:00:30.197
+However,
+
+10
+00:00:30.197 --> 00:00:34.178
+you're leaving yourself exposed to anyone who breaks into your
+
+11
+00:00:34.178 --> 00:00:37.633
+network or anyone working in your organization.
+
+12
+00:00:37.633 --> 00:00:40.254
+There have been a number of high-profile hacks that
+
+13
+00:00:40.254 --> 00:00:45.121
+were perpetrated by insiders, like contractors or consultants.
+
+14
+00:00:45.121 --> 00:00:48.728
+You could pass the user credentials along with each request.
+
+15
+00:00:48.728 --> 00:00:52.203
+A popular approach is via basic authentication.
+
+16
+00:00:52.203 --> 00:00:56.746
+This is basically a Base64 encoder string of the username:password,
+
+17
+00:00:56.746 --> 00:01:00.737
+which is added to the header of the request with the
+
+18
+00:01:00.737 --> 00:01:04.696
+authorization property with Basic space encoded string.
+
+19
+00:01:04.696 --> 00:01:07.890
+These would be passed down with each request.
+
+20
+00:01:07.890 --> 00:01:12.081
+And each endpoint would authenticate the username and password
+
+21
+00:01:12.081 --> 00:01:15.796
+with perhaps an identity provider like LDAP.
+
+22
+00:01:15.796 --> 00:01:18.947
+However, this approach doesn't scale.
+
+23
+00:01:18.947 --> 00:01:22.549
+Each hop requires a call to the identity provider to authenticate
+
+24
+00:01:22.549 --> 00:01:26.347
+the credentials and retrieve the identity details.
+
+25
+00:01:26.347 --> 00:01:28.740
+And too many services are handling credentials,
+
+26
+00:01:28.740 --> 00:01:32.002
+increasing the chance of them being leaked.
+
+27
+00:01:32.002 --> 00:01:33.759
+To improve this,
+
+28
+00:01:33.759 --> 00:01:38.960
+after authentication with credentials is performed with the identity provider,
+
+29
+00:01:38.960 --> 00:01:41.963
+an identifier, like a GUID, is returned,
+
+30
+00:01:41.963 --> 00:01:44.172
+which could then be sent instead.
+
+31
+00:01:44.172 --> 00:01:48.992
+The identifier is a pointer to the state in the identity server.
+
+32
+00:01:48.992 --> 00:01:51.788
+It can then be passed around to other services.
+
+33
+00:01:51.788 --> 00:01:57.541
+The services can verify and source the identity details from the provider.
+
+34
+00:01:57.541 --> 00:02:02.374
+This solves the password problem as it's no longer handled by the services.
+
+35
+00:02:02.374 --> 00:02:04.628
+This is essentially a token.
+
+36
+00:02:04.628 --> 00:02:08.945
+You would sent it in a similar manner as the basic authentication,
+
+37
+00:02:08.945 --> 00:02:11.570
+just with the Bearer prefix.
+
+38
+00:02:11.570 --> 00:02:16.406
+However, in its current form, it's no different than a password.
+
+39
+00:02:16.406 --> 00:02:17.416
+If a token gets leaked,
+
+40
+00:02:17.416 --> 00:02:21.091
+it could be used to access anything just like the password.
+
+41
+00:02:21.091 --> 00:02:21.723
+In fact,
+
+42
+00:02:21.723 --> 00:02:26.110
+it might be worse than a password because the user cannot simply change it,
+
+43
+00:02:26.110 --> 00:02:31.986
+and it doesn't solve the scaling problem due to the identity checks at each hop.
+
+44
+00:02:31.986 --> 00:02:35.598
+This is why tokens also have an expiry time associated
+
+45
+00:02:35.598 --> 00:02:39.145
+with them to limit damage if exposed.
+
+46
+00:02:39.145 --> 00:02:42.540
+Now this type of token is referred to as a by reference token.
+
+47
+00:02:42.540 --> 00:02:44.983
+It is a reference to the resource.
+
+48
+00:02:44.983 --> 00:02:48.656
+Another type of token is a by value token,
+
+49
+00:02:48.656 --> 00:02:51.489
+which will include the state information within in,
+
+50
+00:02:51.489 --> 00:02:56.160
+like the username, email, and what the bearer of the token is authorized for,
+
+51
+00:02:56.160 --> 00:02:59.859
+hence eliminating the need to call the identity provider.
+
+52
+00:02:59.859 --> 00:03:02.659
+These tokens are generally signed by the provider.
+
+53
+00:03:02.659 --> 00:03:03.439
+Hence,
+
+54
+00:03:03.439 --> 00:03:07.013
+services can use the public keys of the provider to ensure it
+
+55
+00:03:07.013 --> 00:03:09.534
+is valid and hasn't been tampered with.
+
+56
+00:03:09.534 --> 00:03:12.896
+For most use cases, a by reference is fine,
+
+57
+00:03:12.896 --> 00:03:17.744
+and the additional hops to the identity server has the benefit of allowing you
+
+58
+00:03:17.744 --> 00:03:22.047
+to invalidate the identifier with the identity provider.
+
+59
+00:03:22.047 --> 00:03:25.398
+By value is generally preferred as it saves you the
+
+60
+00:03:25.398 --> 00:03:27.243
+hop to the identity provider.
+
+61
+00:03:27.243 --> 00:03:32.093
+However, anyone with access to the token has the visibility of the contents.
+
+62
+00:03:32.093 --> 00:03:33.401
+And in certain circumstances,
+
+63
+00:03:33.401 --> 00:03:38.862
+you might not want that as the data could be sensitive or give insight to
+
+64
+00:03:38.862 --> 00:03:41.902
+the types of roles authorizations in your application.
+
+65
+00:03:41.902 --> 00:03:48.615
+This can, however, be solved with encryption or the use of opaque tokens instead.
+
+66
+00:03:48.615 --> 00:03:52.473
+The format of a by value token can be whatever you require.
+
+67
+00:03:52.473 --> 00:03:54.826
+However, what should you use?
+
+68
+00:03:54.826 --> 00:03:59.317
+The answer is a standard format as you don't want to be in a
+
+69
+00:03:59.317 --> 00:04:02.027
+situation where every application you're integrating with
+
+70
+00:04:02.027 --> 00:04:04.394
+requires a different way of passing, validating,
+
+71
+00:04:04.394 --> 00:04:06.924
+and translating the token.
+
+72
+00:04:06.924 --> 00:04:09.485
+So what standard formats are there?
+
+73
+00:04:09.485 --> 00:04:12.022
+In the 90s, it was Kerberos.
+
+74
+00:04:12.022 --> 00:04:13.563
+Early 2000s, SAML.
+
+75
+00:04:13.563 --> 00:04:17.848
+And today, it's JSON Web Token, pronounced as jot.
+
+76
+00:04:17.848 --> 00:04:21.853
+However, I always get it wrong and refer to it as JWT.
+
+77
+00:04:21.853 --> 00:04:23.348
+Sometimes, by mistake,
+
+78
+00:04:23.348 --> 00:04:26.942
+you might even catch me referring to it as Java Web Tokens.
+
+79
+00:04:26.942 --> 00:04:31.379
+Now JWTs are in JSON format, SAML in XML.
+
+80
+00:04:31.379 --> 00:04:33.783
+This makes JWTs more lightweight, compact,
+
+81
+00:04:33.783 --> 00:04:37.225
+and easier to pass and hence mobile-friendly.
+
+82
+00:04:37.225 --> 00:04:39.668
+It is digitally signed to prevent it from being
+
+83
+00:04:39.668 --> 00:04:42.630
+tampered with and is Base64-encoded,
+
+84
+00:04:42.630 --> 00:04:46.943
+so you can put it anywhere even in a URL unlike SAML.
+
+85
+00:04:46.943 --> 00:04:49.413
+It's also protocol-agnostic.
+
+86
+00:04:49.413 --> 00:04:57.000
+With SAML, you need to use SAML server and protocol. Whereas JWT doesn't mandate how you use it.
+

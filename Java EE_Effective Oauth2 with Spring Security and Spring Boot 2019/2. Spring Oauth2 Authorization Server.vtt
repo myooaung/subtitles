@@ -1,0 +1,297 @@
+WEBVTT
+1
+00:00:02.196 --> 00:00:04.828
+To create our authorization server,
+
+2
+00:00:04.828 --> 00:00:09.067
+we create a new Spring Boot 2 project with web and
+
+3
+00:00:09.067 --> 00:00:11.365
+Spring Security starter dependencies.
+
+4
+00:00:11.365 --> 00:00:14.513
+We can use the Spring Initializer to set this up for us.
+
+5
+00:00:14.513 --> 00:00:17.038
+If we look at the feature matrix,
+
+6
+00:00:17.038 --> 00:00:22.440
+Spring's authorization server is not yet a part of Spring Security 5.
+
+7
+00:00:22.440 --> 00:00:25.997
+It's a part of the older Spring Security OAuth project.
+
+8
+00:00:25.997 --> 00:00:31.357
+Also, Spring Boot 2 only supports Spring Security 5,
+
+9
+00:00:31.357 --> 00:00:35.809
+which will unify all the other OAuth projects eventually.
+
+10
+00:00:35.809 --> 00:00:40.754
+Hence, authorization server should eventually be part of Spring Security 5.
+
+11
+00:00:40.754 --> 00:00:41.437
+But until then,
+
+12
+00:00:41.437 --> 00:00:44.440
+we can use the following dependency to bridge the old
+
+13
+00:00:44.440 --> 00:00:48.297
+Spring Security OAuth with Spring Boot 2.
+
+14
+00:00:48.297 --> 00:00:52.100
+We need to provide a version as it's an external dependency.
+
+15
+00:00:52.100 --> 00:00:55.035
+The version will have to match the Spring Boot 2 version.
+
+16
+00:00:55.035 --> 00:00:55.442
+Next,
+
+17
+00:00:55.442 --> 00:00:59.941
+we'll create a configuration class for the authorization server that
+
+18
+00:00:59.941 --> 00:01:04.412
+will extend the AuthorizationServerConfigurerAdapter.
+
+19
+00:01:04.412 --> 00:01:09.151
+Then add the configuration annotation so that it's added to the Spring context.
+
+20
+00:01:09.151 --> 00:01:14.832
+Additionally, we also add the EnableAuthorizationServer annotation.
+
+21
+00:01:14.832 --> 00:01:17.038
+We override the configure method that accepts the
+
+22
+00:01:17.038 --> 00:01:20.816
+AuthorizationServerSecurityConfigurer builder.
+
+23
+00:01:20.816 --> 00:01:22.840
+Two things we need to do here.
+
+24
+00:01:22.840 --> 00:01:27.848
+First, we set the permission for our tokenKeyAccess endpoint to permitAll,
+
+25
+00:01:27.848 --> 00:01:31.812
+meaning any client can request that access token.
+
+26
+00:01:31.812 --> 00:01:32.820
+In your implementation,
+
+27
+00:01:32.820 --> 00:01:36.350
+you could restrict some clients from accessing the token
+
+28
+00:01:36.350 --> 00:01:39.881
+endpoint based on roles or authorities.
+
+29
+00:01:39.881 --> 00:01:43.563
+Perhaps the client first needs to be approved as not every grant type
+
+30
+00:01:43.563 --> 00:01:48.054
+uses the token endpoint like the implicit grant type.
+
+31
+00:01:48.054 --> 00:01:52.787
+Next, for the token check access, you can set it to isAuthenticated,
+
+32
+00:01:52.787 --> 00:01:56.139
+meaning the client will have to be authenticated before it can use
+
+33
+00:01:56.139 --> 00:02:00.696
+the token endpoint to verify a token they possess.
+
+34
+00:02:00.696 --> 00:02:03.745
+If you're going to pass your token around to other services,
+
+35
+00:02:03.745 --> 00:02:09.478
+then all the services would have to be known to the authorization server.
+
+36
+00:02:09.478 --> 00:02:13.388
+We now need to register our web application as a
+
+37
+00:02:13.388 --> 00:02:15.904
+client of the authorization server.
+
+38
+00:02:15.904 --> 00:02:18.811
+We can override the configure method that accepts the
+
+39
+00:02:18.811 --> 00:02:22.366
+ClientDetailsServiceConfigurer builder.
+
+40
+00:02:22.366 --> 00:02:25.304
+For demo purposes, we'll set up an in- memory version.
+
+41
+00:02:25.304 --> 00:02:30.064
+Here we can put all the details about our client web app,
+
+42
+00:02:30.064 --> 00:02:32.825
+the client ID, supported grant types,
+
+43
+00:02:32.825 --> 00:02:38.013
+in our case it's the authorization_code grant and the client-secret.
+
+44
+00:02:38.013 --> 00:02:40.479
+Now it's important to keep the client secret safe.
+
+45
+00:02:40.479 --> 00:02:44.501
+If that gets leaked, then anyone can masquerade as the client.
+
+46
+00:02:44.501 --> 00:02:47.554
+Now for demo purposes, I have hardcoded it here.
+
+47
+00:02:47.554 --> 00:02:52.600
+But in a production system, you would want to store it in a secure secret store.
+
+48
+00:02:52.600 --> 00:02:55.129
+In my previous course on Spring Security,
+
+49
+00:02:55.129 --> 00:02:57.823
+I talk about options of doing this in the Secure
+
+50
+00:02:57.823 --> 00:03:01.203
+Secrets with Spring Cloud Vault module.
+
+51
+00:03:01.203 --> 00:03:01.412
+Also,
+
+52
+00:03:01.412 --> 00:03:06.130
+you would want your secret to be long and difficult to crack via brute force.
+
+53
+00:03:06.130 --> 00:03:09.108
+And by default, Spring expects it to be hashed.
+
+54
+00:03:09.108 --> 00:03:12.724
+So we can wire in a password encoder and do that.
+
+55
+00:03:12.724 --> 00:03:18.772
+Next, we specify the supported scopes for this client and the redirect URIs.
+
+56
+00:03:18.772 --> 00:03:21.437
+This is for validation purposes.
+
+57
+00:03:21.437 --> 00:03:22.126
+If you recall,
+
+58
+00:03:22.126 --> 00:03:24.872
+when the client requests an access code via the
+
+59
+00:03:24.872 --> 00:03:30.770
+redirect from the user's browser, they provide a redirect URI in the request.
+
+60
+00:03:30.770 --> 00:03:34.427
+The resource server will only redirect the URI that
+
+61
+00:03:34.427 --> 00:03:36.682
+is preregistered for these claims.
+
+62
+00:03:36.682 --> 00:03:39.354
+This is for the consent pop-up.
+
+63
+00:03:39.354 --> 00:03:41.227
+By default, it's already actually false,
+
+64
+00:03:41.227 --> 00:03:43.982
+meaning that the user will be prompted to approve the
+
+65
+00:03:43.982 --> 00:03:46.473
+scopes being requested by the client.
+
+66
+00:03:46.473 --> 00:03:47.548
+By setting it to true,
+
+67
+00:03:47.548 --> 00:03:50.759
+the authorization server would just approve by default any scope
+
+68
+00:03:50.759 --> 00:03:55.210
+defined in the supported scopes for this client.
+
+69
+00:03:55.210 --> 00:03:59.142
+Now you can also store your client metadata in the database
+
+70
+00:03:59.142 --> 00:04:01.756
+as Spring has a JDBC builder for that.
+
+71
+00:04:01.756 --> 00:04:05.997
+Or you could create your own implementation by creating a class that
+
+72
+00:04:05.997 --> 00:04:10.682
+implements the ClientDetailsService and implementing a loadClientById
+
+73
+00:04:10.682 --> 00:04:14.933
+method that returns the ClientDetails object.
+
+74
+00:04:14.933 --> 00:04:21.000
+Our resource server now needs a way to authenticate the resource owner, the user.
+

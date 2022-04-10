@@ -1,0 +1,563 @@
+1
+00:00:02,430 --> 00:00:03,990
+So now what can we do here,
+
+2
+00:00:03,990 --> 00:00:07,170
+How can we optimize our startup time? Size is
+
+3
+00:00:07,170 --> 00:00:07,770
+okay,
+
+4
+00:00:07,950 --> 00:00:09,300
+especially keep in mind
+
+5
+00:00:09,300 --> 00:00:11,540
+it will be even much smaller later,
+
+6
+00:00:11,610 --> 00:00:13,860
+we're not having multiple round trips.
+
+7
+00:00:13,860 --> 00:00:20,010
+Now one thing that could still be interesting is to check how much of the code which we download initially
+
+8
+00:00:20,010 --> 00:00:27,330
+here is actually being used because if we have a lot of unused code, then we might be downloading too
+
+9
+00:00:27,330 --> 00:00:28,380
+much here,
+
+10
+00:00:28,500 --> 00:00:32,300
+we might be downloading code which we don't even need yet,
+
+11
+00:00:32,370 --> 00:00:35,060
+now thankfully Chrome helps us with that.
+
+12
+00:00:35,280 --> 00:00:41,850
+If you press escape here in the dev tools in network tab, then this bottom tab here opens and there you
+
+13
+00:00:41,850 --> 00:00:45,880
+will have a coverage tab. Now in coverage,
+
+14
+00:00:46,030 --> 00:00:49,810
+you can check how much of the Javascript code is getting used,
+
+15
+00:00:50,170 --> 00:00:56,690
+click on this instrument coverage button here and it will tell you how much code is unused
+
+16
+00:00:56,710 --> 00:01:04,160
+and in this example here, you see around 41% of my Javascript code is unused.
+
+17
+00:01:04,160 --> 00:01:11,480
+Now if we click on that, you see here at the top this opens and there you have a green line next to
+
+18
+00:01:11,480 --> 00:01:15,590
+code which is being used and a red line next to code which is not being used.
+
+19
+00:01:15,590 --> 00:01:23,720
+Now this here is our code as it is produced by webpack, so therefore here we also see code which is actually
+
+20
+00:01:23,720 --> 00:01:27,350
+injected by webpack which we didn't write,
+
+21
+00:01:27,380 --> 00:01:31,880
+so there we'll have little influence on whether we need it or not.
+
+22
+00:01:31,880 --> 00:01:37,820
+You can go to the webpack folder here in the sources tab, there to the .folder and there you will
+
+23
+00:01:37,820 --> 00:01:46,330
+find your source non-optimized folder and in here, you'll find your original files and also there you
+
+24
+00:01:46,350 --> 00:01:52,430
+see if code is getting used or not and what you see here for example is that a lot of the code is getting
+
+25
+00:01:52,430 --> 00:01:59,510
+used but for example in product management, delete product, all this code here is not really getting used,
+
+26
+00:01:59,590 --> 00:02:07,160
+add product is also not getting used which means it didn't execute yet and here in the rendering js,
+
+27
+00:02:07,640 --> 00:02:14,610
+we also see all that code is not getting used, though that is actually not correct, this is not detected correctly,
+
+28
+00:02:14,660 --> 00:02:20,150
+you see it detected that the for each code was used and therefore actually this code did execute here.
+
+29
+00:02:20,180 --> 00:02:25,460
+So that's not displayed correctly but indeed what will be true is that for example delete product is
+
+30
+00:02:25,460 --> 00:02:30,650
+certainly not executed yet because we haven't deleted any product and the same for add product, we haven't
+
+31
+00:02:30,740 --> 00:02:31,950
+added any product
+
+32
+00:02:32,000 --> 00:02:37,730
+so this function wasn't used at all or to be precise, the code in there didn't execute yet. The function
+
+33
+00:02:37,730 --> 00:02:43,760
+itself is actually used because it's referenced in shop.js where I have an event listener which points
+
+34
+00:02:43,760 --> 00:02:44,710
+at add product.
+
+35
+00:02:44,720 --> 00:02:47,630
+So that is getting used here indirectly,
+
+36
+00:02:47,720 --> 00:02:54,400
+it just didn't execute yet. Still, such unused code is an opportunity for improvement
+
+37
+00:02:54,500 --> 00:03:01,400
+with the help of lazy loading, so this import syntax where you only import a file and download it when
+
+38
+00:03:01,400 --> 00:03:04,050
+you really need it instead of upfront.
+
+39
+00:03:04,100 --> 00:03:09,590
+So let's do that, let's add such lazy loading here to make sure we use more of the code which we initially
+
+40
+00:03:09,590 --> 00:03:17,950
+download or put in other words, that we download less code initially. So back in our code, we see in the
+
+41
+00:03:17,950 --> 00:03:19,840
+end by pointing at add product here
+
+42
+00:03:19,840 --> 00:03:25,180
+but as long as the user doesn't click the button here, the add product function in the product management
+
+43
+00:03:25,180 --> 00:03:27,570
+file is not getting executed,
+
+44
+00:03:27,610 --> 00:03:30,830
+same for delete product, as long as a button wasn't clicked,
+
+45
+00:03:30,880 --> 00:03:32,870
+this is not getting executed.
+
+46
+00:03:32,890 --> 00:03:35,380
+So how could we improve this then?
+
+47
+00:03:35,380 --> 00:03:43,480
+Well we can go to shop.js for example and there, maybe up here, we could add an add product function
+
+48
+00:03:43,480 --> 00:03:50,900
+here instead of importing it from product management and add product in the end is a function, here I'm
+
+49
+00:03:50,910 --> 00:03:54,540
+using an arrow function, of course we could also create it like this.
+
+50
+00:03:54,600 --> 00:04:01,840
+So it is a function which will receive an event object because we bound it to the submit event here
+
+51
+00:04:02,800 --> 00:04:08,500
+and in there, I now want to call import as a function which you learned about in the modules course
+
+52
+00:04:08,560 --> 00:04:14,990
+section, this is supported in Javascript and also by webpack when it analyzes and bundles your code
+
+53
+00:04:15,310 --> 00:04:22,300
+and here I want to import product-management.js, here you need to add this extension and this gives
+
+54
+00:04:22,300 --> 00:04:23,580
+you a promise,
+
+55
+00:04:23,800 --> 00:04:29,800
+of course we could use async await too. The promise will give you the module and I'll just have a mod
+
+56
+00:04:29,810 --> 00:04:37,290
+here and this module will have or this module object will have everything this file exports.
+
+57
+00:04:37,360 --> 00:04:43,470
+So in our case, here we would call add product then from this module when we eventually imported it and
+
+58
+00:04:43,470 --> 00:04:45,510
+forward that event object.
+
+59
+00:04:48,290 --> 00:04:54,230
+Now this theoretically should only load this code when we need it but keep in mind, I'm still importing
+
+60
+00:04:54,230 --> 00:04:56,960
+something from up there which always gets imported,
+
+61
+00:04:56,960 --> 00:05:02,960
+so the whole file has to be loaded anyways because I need one function from it, not all functions but
+
+62
+00:05:02,960 --> 00:05:07,850
+still a file can either be imported entirely or not at all.
+
+63
+00:05:07,880 --> 00:05:14,150
+So if I reach out to products here in this shop.js file, then this whole product management file is
+
+64
+00:05:14,150 --> 00:05:15,460
+getting added to my bundle
+
+65
+00:05:15,470 --> 00:05:19,580
+and whilst this won't break the code, it will also not really help.
+
+66
+00:05:19,580 --> 00:05:27,640
+So if we save here and this compiles and we reload, you'll see in the end here if I try to add a product,
+
+67
+00:05:27,640 --> 00:05:28,910
+this works
+
+68
+00:05:28,910 --> 00:05:31,070
+but we certainly didn't gain anything,
+
+69
+00:05:31,070 --> 00:05:33,260
+instead we just actually added more code
+
+70
+00:05:34,070 --> 00:05:37,470
+but maybe we can optimize our code.
+
+71
+00:05:37,700 --> 00:05:46,590
+We could add a new file and for that, I'll actually create a new folder, optimized, so that we can see
+
+72
+00:05:46,590 --> 00:05:54,110
+the difference in the end and I'll bring over these files here and in the webpack-config.js file,
+
+73
+00:05:54,140 --> 00:06:02,640
+I'll now switch to optimized which should get imported, the same here in the production webpack-config file,
+
+74
+00:06:02,860 --> 00:06:09,740
+entrypoint is indeed optimized folder and then restart the dev server and now in the optimized folder,
+
+75
+00:06:09,980 --> 00:06:16,070
+we could add a products.js file and in product management, we can grab the products here
+
+76
+00:06:19,800 --> 00:06:20,820
+put them into products.js
+
+77
+00:06:20,830 --> 00:06:25,460
+and there, turn this into a constant and export it so that 
+
+78
+00:06:25,460 --> 00:06:38,730
+now in product management, I can import products from ./products. Now I'll actually import it as prods
+
+79
+00:06:39,120 --> 00:06:44,600
+so that here I can also create a new variable here, products,
+
+80
+00:06:46,990 --> 00:06:51,600
+which holds prods here, so that when I use products and set it down there,
+
+81
+00:06:51,670 --> 00:06:57,040
+this still works because now this is a variable in this file initialized with the data from
+
+82
+00:06:57,100 --> 00:06:57,910
+this file.
+
+83
+00:06:57,910 --> 00:06:58,960
+Now why did I do that?
+
+84
+00:06:58,960 --> 00:07:05,260
+Why do I store products in a separate file? So that I can now grab this init product function here and
+
+85
+00:07:05,260 --> 00:07:10,540
+remove it from product management and actually add it to shop.js which is where I'm running this function.
+
+86
+00:07:12,230 --> 00:07:17,770
+So here we can add this init products function,
+
+87
+00:07:17,790 --> 00:07:25,610
+now we just need access to render products and to products, so we can import products from
+
+88
+00:07:25,730 --> 00:07:33,410
+./products and import render products from ./rendering.
+
+89
+00:07:33,410 --> 00:07:40,550
+We also pass a delete product thing to render products and if we have a look at our code, we find out
+
+90
+00:07:40,550 --> 00:07:46,100
+that the delete product thing here is actually a pointer at the delete product function here because
+
+91
+00:07:46,100 --> 00:07:51,620
+inside of the rendering function when we create all these products here, I add a button where when we
+
+92
+00:07:51,620 --> 00:07:57,680
+click on it, I want to execute that delete product function. So a pointer to the function that should
+
+93
+00:07:57,680 --> 00:08:03,650
+be executed upon such a button click is received by the render products function here in the rendering
+
+94
+00:08:03,650 --> 00:08:09,350
+file and therefore whenever we call render products from anywhere, I need to pass a pointer at this function.
+
+95
+00:08:09,350 --> 00:08:15,080
+Now that's a problem in shop.js because delete product is a function defined in product management
+
+96
+00:08:15,410 --> 00:08:18,270
+and I'm actually trying to get rid of that import.
+
+97
+00:08:18,350 --> 00:08:21,820
+Well we can do the same thing as with add product, here
+
+98
+00:08:21,830 --> 00:08:29,720
+I'll just name it delete product, import product management dynamically and then there call delete
+
+99
+00:08:29,720 --> 00:08:30,840
+product.
+
+100
+00:08:30,950 --> 00:08:40,400
+Now delete product when being called needs to get the prodId of the product that should be deleted,
+
+101
+00:08:40,630 --> 00:08:47,830
+so here I expect to get that product ID as an argument so that I can forward it and then here when
+
+102
+00:08:47,830 --> 00:08:50,650
+I pass delete product to render product, we're all good.
+
+103
+00:08:50,650 --> 00:08:53,110
+Now if you're wondering where this ID is coming from,
+
+104
+00:08:53,110 --> 00:08:58,750
+well I'm passing a pointer at delete product to render products, so inside of render products this
+
+105
+00:08:58,750 --> 00:09:01,840
+ID has to be passed and indeed, it is,
+
+106
+00:09:01,840 --> 00:09:09,420
+so that will work. Now with that, we can remove the product management import here and fix that typo
+
+107
+00:09:09,880 --> 00:09:13,260
+and now we got rid of that extra import,
+
+108
+00:09:13,270 --> 00:09:20,300
+now let's see if that helps us in any way. If we now reload, you see our code here shrank a bit,
+
+109
+00:09:20,300 --> 00:09:26,120
+it's 1kb smaller, of course because we're talking about very little code here which we shifted
+
+110
+00:09:26,120 --> 00:09:26,770
+around,
+
+111
+00:09:26,810 --> 00:09:32,130
+so the majority of the 168kb this here is still development mode
+
+112
+00:09:32,150 --> 00:09:36,970
+only code which is why we didn't see a huge change but it got a bit smaller.
+
+113
+00:09:37,040 --> 00:09:43,040
+But what you will also see is that if I now delete something here, now you see the extra files are getting
+
+114
+00:09:43,040 --> 00:09:46,960
+imported. Now arguably, they're bigger than what we removed
+
+115
+00:09:47,090 --> 00:09:54,280
+but this is just an example of how you could split your code. For a tiny application like this one, this
+
+116
+00:09:54,280 --> 00:10:00,470
+here all is probably not worth the hassle because webpack has to add some overhead code because of this
+
+117
+00:10:00,740 --> 00:10:06,350
+and therefore we might actually end up with more code than before but it shows you the general way of
+
+118
+00:10:06,350 --> 00:10:11,210
+thinking and if you had more code which you import dynamically like this,
+
+119
+00:10:11,300 --> 00:10:19,040
+if add product or delete product in product management were more complex functions, then you could save
+
+120
+00:10:19,040 --> 00:10:26,300
+a lot by only importing them dynamically when they're needed instead of importing them upfront which
+
+121
+00:10:26,300 --> 00:10:27,850
+we're doing at the moment.
+
+122
+00:10:28,040 --> 00:10:35,780
+Now in case you wondered why two files were imported when I click delete, keep in mind that my two dynamic
+
+123
+00:10:35,780 --> 00:10:38,220
+imports here are both pointing at the same file,
+
+124
+00:10:38,240 --> 00:10:42,290
+so as soon as I need one of them, both actually get added.
+
+125
+00:10:42,290 --> 00:10:49,010
+So with that, we had a look at the startup time optimizations, though again just to emphasize it here because
+
+126
+00:10:49,010 --> 00:10:51,860
+of the simplicity of this app and the code here,
+
+127
+00:10:51,920 --> 00:10:57,770
+of course these optimizations are a bit redundant here or might even lead to slightly more code being
+
+128
+00:10:57,770 --> 00:11:04,160
+downloaded. The bigger your application is and the bigger the chunk of optional code you have, the more
+
+129
+00:11:04,160 --> 00:11:05,850
+useful this will be.
+
+130
+00:11:05,930 --> 00:11:12,730
+What I can show you though if we reload is that if we have a look at that coverage thing again, so I'm reloading
+
+131
+00:11:12,730 --> 00:11:16,790
+here, take another coverage snapshot, you see here we improved a bit,
+
+132
+00:11:16,840 --> 00:11:18,900
+we're down to 35%,
+
+133
+00:11:19,030 --> 00:11:20,890
+so we have less unused code now.
+
+134
+00:11:20,920 --> 00:11:26,080
+Indeed if you inspect this all now, you see in rendering, this now is detected correctly actually,
+
+135
+00:11:26,080 --> 00:11:26,740
+that's great
+
+136
+00:11:26,740 --> 00:11:33,730
+so here we use everything. In products.js, we use everything, and in shop.js, only these functions have
+
+137
+00:11:33,730 --> 00:11:36,100
+been used yet but this of course is not much code,
+
+138
+00:11:36,100 --> 00:11:37,570
+everything else is green.
+
+139
+00:11:37,570 --> 00:11:44,440
+So we have less unused code and therefore we definitely proved that with the help of lazy loading.
+
+140
+00:11:44,440 --> 00:11:48,160
+Now let's see what else we can do besides the potential startup time improvement
+
+141
+00:11:48,160 --> 00:11:49,120
+we had a look at here.

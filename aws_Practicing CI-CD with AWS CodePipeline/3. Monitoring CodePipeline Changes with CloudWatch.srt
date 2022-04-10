@@ -1,0 +1,368 @@
+1
+00:00:00,940 --> 00:00:04,720
+Emma and the HBFL team are loving their new pipeline.
+
+2
+00:00:04,720 --> 00:00:07,670
+Code is being deployed to production without anyone
+
+3
+00:00:07,670 --> 00:00:09,310
+having to manually trigger it,
+
+4
+00:00:09,310 --> 00:00:13,130
+and Sam even added a Lambda function to notify the team chat
+
+5
+00:00:13,130 --> 00:00:15,830
+when a build has kicked off and completed.
+
+6
+00:00:15,830 --> 00:00:16,780
+Things are going great,
+
+7
+00:00:16,780 --> 00:00:20,850
+until one day they realize everyone is pushing code to the repository,
+
+8
+00:00:20,850 --> 00:00:25,040
+but they aren't getting any notifications of the completed builds.
+
+9
+00:00:25,040 --> 00:00:29,900
+Emma goes into check and sees that the pipeline failed at the build step.
+
+10
+00:00:29,900 --> 00:00:33,810
+Feeling more than a little embarrassed that the failure fell under the radar,
+
+11
+00:00:33,810 --> 00:00:37,740
+Emma starts to research ways to avoid this in the future.
+
+12
+00:00:37,740 --> 00:00:42,400
+Unfortunately, there's no way to keep your pipeline from never failing.
+
+13
+00:00:42,400 --> 00:00:47,310
+It's inevitable, and so preparing for that situation is the best that you can do.
+
+14
+00:00:47,310 --> 00:00:49,230
+By using CloudWatch Events,
+
+15
+00:00:49,230 --> 00:00:52,790
+you can at least ensure that you're notified when it happens.
+
+16
+00:00:52,790 --> 00:00:55,690
+Let's take a look at the types of CodePipeline events
+
+17
+00:00:55,690 --> 00:00:57,840
+that are available in CloudWatch.
+
+18
+00:00:57,840 --> 00:01:01,350
+CloudWatch Event rules can be configured for the following events,
+
+19
+00:01:01,350 --> 00:01:06,510
+a pipeline execution state change, a stage state change,
+
+20
+00:01:06,510 --> 00:01:11,660
+an action state change, or for any API calls to CodePipeline.
+
+21
+00:01:11,660 --> 00:01:16,150
+The pipeline stage and action changes are the most useful here.
+
+22
+00:01:16,150 --> 00:01:18,050
+You can listen for any changes,
+
+23
+00:01:18,050 --> 00:01:22,480
+or you can target it to a specific change like canceled,
+
+24
+00:01:22,480 --> 00:01:24,940
+failed, started, or succeeded.
+
+25
+00:01:24,940 --> 00:01:27,680
+What we're the most interested in here is being able to
+
+26
+00:01:27,680 --> 00:01:29,880
+be notified when a failure occurs.
+
+27
+00:01:29,880 --> 00:01:35,550
+So if we set an event rule to listen on the failed state change on an action,
+
+28
+00:01:35,550 --> 00:01:37,880
+we should get notified quickly.
+
+29
+00:01:37,880 --> 00:01:39,550
+Let's set that up in CloudWatch.
+
+30
+00:01:39,550 --> 00:01:43,860
+In your AWS console, go to the CloudWatch dashboard.
+
+31
+00:01:43,860 --> 00:01:47,740
+Click on the Rules menu option under Events.
+
+32
+00:01:47,740 --> 00:01:49,850
+If you don't have too many existing rules,
+
+33
+00:01:49,850 --> 00:01:56,340
+you may already notice a rule name something like codepipeline‑hbfl‑master.
+
+34
+00:01:56,340 --> 00:02:00,250
+This is an existing event rule that is set to look for changes to the
+
+35
+00:02:00,250 --> 00:02:04,830
+HBFL repo in CodeCommit and start our CodePipeline.
+
+36
+00:02:04,830 --> 00:02:08,440
+This is literally how that magic is happening.
+
+37
+00:02:08,440 --> 00:02:12,900
+We're going to make a new rule that notifies us when a pipeline action fails,
+
+38
+00:02:12,900 --> 00:02:15,540
+so click the Create rule button.
+
+39
+00:02:15,540 --> 00:02:17,720
+First we'll select the service name,
+
+40
+00:02:17,720 --> 00:02:21,070
+so click the drop‑down and select CodePipeline.
+
+41
+00:02:21,070 --> 00:02:26,230
+In the Event Type drop‑down we're going to listen at the lowest level,
+
+42
+00:02:26,230 --> 00:02:30,980
+so select CodePipeline Action Execution State Change.
+
+43
+00:02:30,980 --> 00:02:34,430
+For this rule, we're interested in catching failures,
+
+44
+00:02:34,430 --> 00:02:37,790
+so select the Specific state radio button,
+
+45
+00:02:37,790 --> 00:02:41,340
+and then FAILED in the drop‑down below it.
+
+46
+00:02:41,340 --> 00:02:44,560
+Now if we left this event rule pattern as is,
+
+47
+00:02:44,560 --> 00:02:49,050
+it would trigger any time any CodePipeline action failed,
+
+48
+00:02:49,050 --> 00:02:50,760
+and maybe that's what you want.
+
+49
+00:02:50,760 --> 00:02:53,510
+But let's pretend that you only wanted to be notified
+
+50
+00:02:53,510 --> 00:02:56,840
+when the HBFL pipeline actions fail.
+
+51
+00:02:56,840 --> 00:02:59,810
+To do that, we need to add a resource filter,
+
+52
+00:02:59,810 --> 00:03:04,260
+and for that we need the pipeline ARN. In a new tab,
+
+53
+00:03:04,260 --> 00:03:09,940
+go to the CodePipeline dashboard and select the hbfl pipeline.
+
+54
+00:03:09,940 --> 00:03:14,940
+On the left‑hand menu under Pipelines, click the Settings menu option.
+
+55
+00:03:14,940 --> 00:03:19,440
+Now we can copy the pipeline ARN that's located here.
+
+56
+00:03:19,440 --> 00:03:21,290
+Back in the CloudWatch Event wizard,
+
+57
+00:03:21,290 --> 00:03:25,180
+click on the Edit button next to the Event Pattern Preview.
+
+58
+00:03:25,180 --> 00:03:30,790
+We need to modify some JSON here. Underneath the detail‑type property,
+
+59
+00:03:30,790 --> 00:03:35,570
+add a new property in quotes called resources. Give it the
+
+60
+00:03:35,570 --> 00:03:40,340
+value of an array, and then in quotes paste the ARN you
+
+61
+00:03:40,340 --> 00:03:43,480
+just copied. Close the quotes,
+
+62
+00:03:43,480 --> 00:03:47,780
+the square bracket for the array, and then add another comma.
+
+63
+00:03:47,780 --> 00:03:50,420
+And then we've narrowed down our pattern to only look
+
+64
+00:03:50,420 --> 00:03:53,240
+for failures on the hbfl pipeline.
+
+65
+00:03:53,240 --> 00:03:55,720
+Now click the Save button.
+
+66
+00:03:55,720 --> 00:03:56,090
+Next,
+
+67
+00:03:56,090 --> 00:04:00,140
+we need to tell the event rule what to do when a pipeline action failure
+
+68
+00:04:00,140 --> 00:04:04,740
+happens. On the right‑hand side of the screen, click Add target.
+
+69
+00:04:04,740 --> 00:04:08,620
+This is what CloudWatch will trigger when the event rule happens,
+
+70
+00:04:08,620 --> 00:04:12,660
+and you can have more than one target per event rule. In the drop‑down
+
+71
+00:04:12,660 --> 00:04:17,520
+you can see there are a ton of different options here for targets. Find
+
+72
+00:04:17,520 --> 00:04:21,880
+and select SNS topic. Now in the topic drop‑down, select the
+
+73
+00:04:21,880 --> 00:04:25,650
+hbfl‑codepipeline topic we created earlier.
+
+74
+00:04:25,650 --> 00:04:31,430
+This will send us an SMS if the pipeline fails. In the Configure input section,
+
+75
+00:04:31,430 --> 00:04:34,340
+you can configure what to send in the text.
+
+76
+00:04:34,340 --> 00:04:38,030
+Let's send some static text that doesn't change by selecting
+
+77
+00:04:38,030 --> 00:04:43,460
+the Constant radio button and entering in quotes "The hbfl
+
+78
+00:04:43,460 --> 00:04:46,310
+pipeline execution has failed".
+
+79
+00:04:46,310 --> 00:04:50,240
+The quotes are necessary because the string will be sent as JSON.
+
+80
+00:04:50,240 --> 00:04:52,440
+Now click Configure details.
+
+81
+00:04:52,440 --> 00:05:01,640
+Let's name the rule code‑pipeline‑hbfl‑failure, and then click Create rule.
+
+82
+00:05:01,640 --> 00:05:04,210
+Now that our CloudWatch Event rule is in place,
+
+83
+00:05:04,210 --> 00:05:08,420
+let's try it out. In your code editor, uncomment the test
+
+84
+00:05:08,420 --> 00:05:10,740
+failure that we commented out earlier.
+
+85
+00:05:10,740 --> 00:05:17,140
+It's in the handlers folder, and it's the file hamsters.test.js.
+
+86
+00:05:17,140 --> 00:05:19,810
+Save the file, and then in your command line,
+
+87
+00:05:19,810 --> 00:05:27,840
+commit it with the command git commit ‑am "fail test".
+
+88
+00:05:27,840 --> 00:05:34,140
+Then push it up to AWS with the command git push aws master.
+
+89
+00:05:34,140 --> 00:05:38,040
+This will kick off a new pipeline execution.
+
+90
+00:05:38,040 --> 00:05:40,270
+Once the test action fails,
+
+91
+00:05:40,270 --> 00:05:45,740
+you should get an SMS notification with the text we entered in the event rule.
+
+92
+00:05:45,740 --> 00:05:52,000
+Having this in place means any failures in your pipeline will never go unnoticed.
+

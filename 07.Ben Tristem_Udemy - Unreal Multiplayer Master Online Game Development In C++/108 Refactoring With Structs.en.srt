@@ -1,0 +1,1115 @@
+1
+00:00:04,630 --> 00:00:09,250
+Hello and welcome in this lecture we are going to be cleaning up our clients take function you remember
+
+2
+00:00:09,520 --> 00:00:13,330
+or if you look at your screens now you probably see that it's very long and unwieldy.
+
+3
+00:00:13,330 --> 00:00:18,460
+And we're going to be splitting it out in two for very simple functions creates blind interpolate location
+
+4
+00:00:18,460 --> 00:00:21,550
+interpolate velocity and interpolate rotation.
+
+5
+00:00:21,550 --> 00:00:29,110
+We're going to do this by extracting out and creating a new struct to encapsulate that notion of the
+
+6
+00:00:29,170 --> 00:00:30,740
+her might cube explain.
+
+7
+00:00:30,790 --> 00:00:32,990
+So let's dive in and see how that's done.
+
+8
+00:00:33,760 --> 00:00:39,010
+Now just a heads up this is a refactored video and I know refactored ideas aren't to everybody's taste.
+
+9
+00:00:39,010 --> 00:00:43,870
+So if you aren't interested in refactoring your code right now and you could go ahead and skip over
+
+10
+00:00:43,870 --> 00:00:49,390
+this video entirely We're not making any functional changes we're just doing a refactor Or you could
+
+11
+00:00:49,390 --> 00:00:55,290
+look at the project code changes and implement them yourself or just try and tidy up your code for yourself
+
+12
+00:00:55,300 --> 00:01:00,700
+it doesn't matter if your code state isn't exactly the same as mine for these lectures.
+
+13
+00:01:00,700 --> 00:01:03,790
+But if you do want to follow along then let's get started.
+
+14
+00:01:03,790 --> 00:01:09,200
+So first off let's assess the existing code and figure out what the problem is going to go to the replicator
+
+15
+00:01:09,210 --> 00:01:13,930
+docs s.p. and it should become fairly apparent what the problem is as we start scrolling down and we
+
+16
+00:01:13,930 --> 00:01:20,440
+reach our climatic function which is rather large and rather unwieldly and not particularly nice to
+
+17
+00:01:20,440 --> 00:01:23,320
+read doesn't really tell us what it's doing here.
+
+18
+00:01:23,320 --> 00:01:25,620
+The other stuff is kind of okay.
+
+19
+00:01:25,810 --> 00:01:27,760
+Autonomous proxy on rep server state.
+
+20
+00:01:27,770 --> 00:01:30,290
+Well that could get a little bit better.
+
+21
+00:01:30,290 --> 00:01:37,540
+Maybe the assimilative proxies just about okay and the rest of these methods are all okay so I'm fairly
+
+22
+00:01:37,540 --> 00:01:38,420
+happy with it all.
+
+23
+00:01:38,470 --> 00:01:40,880
+Apart from this client tic.
+
+24
+00:01:41,170 --> 00:01:47,050
+So let's have a look at what's going on in client Tich we've got some staff here that is pulling together
+
+25
+00:01:47,100 --> 00:01:55,190
+our target location Lerp ratio target start location Saari the velocity derivative.
+
+26
+00:01:56,170 --> 00:02:01,150
+Coefficient the start derivative of the target derivative and we can see these variables are all being
+
+27
+00:02:01,150 --> 00:02:05,180
+used in these kubik interp in the kubik interp derivative.
+
+28
+00:02:05,180 --> 00:02:12,580
+So in some senses these variables are her might curve that we are building up and then were using this
+
+29
+00:02:12,580 --> 00:02:20,440
+cubic interp to do the her might curve calculation to get the new location and to get the new derivative.
+
+30
+00:02:20,620 --> 00:02:25,330
+So we're getting a new derivative interpolating location we are interpolating the velocity and then
+
+31
+00:02:25,330 --> 00:02:33,790
+down here we are interpolating the rotation so we have got basically as far as I can see 4 pieces of
+
+32
+00:02:33,790 --> 00:02:34,440
+functionality.
+
+33
+00:02:34,450 --> 00:02:37,690
+We're building up a curve from our current state.
+
+34
+00:02:37,690 --> 00:02:42,140
+We are interpolating location interpolating velocity and then interpolating rotation.
+
+35
+00:02:42,350 --> 00:02:43,910
+That's what I'd like it to read like.
+
+36
+00:02:43,930 --> 00:02:47,820
+I'd like our client Tich to say you know build a curve do this do this do it.
+
+37
+00:02:48,110 --> 00:02:54,910
+So one problem that we have here is if I started pulling out functions you would notice that if I tried
+
+38
+00:02:54,910 --> 00:03:03,670
+to build a curve I would have at least three or four out parameters from that function because the output
+
+39
+00:03:03,760 --> 00:03:08,110
+from building a curve is three or four different things.
+
+40
+00:03:08,140 --> 00:03:13,840
+Now typically the way we solve this is by using a struct in C plus plus and that's what we're going
+
+41
+00:03:13,840 --> 00:03:16,880
+to do now before we've used you struck.
+
+42
+00:03:16,900 --> 00:03:21,640
+And the reason we've used two strikes is that they serialise properly that means we can pass them around
+
+43
+00:03:21,640 --> 00:03:22,720
+over the network.
+
+44
+00:03:22,720 --> 00:03:26,400
+But in this case where we're just trying to tidy something up and will only use that struct.
+
+45
+00:03:26,400 --> 00:03:32,810
+Here in this C++ then we don't actually need to make it a U straight at all.
+
+46
+00:03:32,830 --> 00:03:39,460
+We can use a very simple C++ struct So that's going to be fairly nice and easy if we do that let's go
+
+47
+00:03:39,460 --> 00:03:43,140
+ahead and build up that plane C++ struct.
+
+48
+00:03:43,240 --> 00:03:46,860
+Going to do it in the head of file and you'll see why in a second.
+
+49
+00:03:46,870 --> 00:03:52,180
+Basically because our other methods are going to be returning this struct type and we can't just forward
+
+50
+00:03:52,180 --> 00:03:52,780
+declare it.
+
+51
+00:03:52,780 --> 00:03:58,420
+If we are returning the struct the C++ needs to know the size of that struct So we are going to have
+
+52
+00:03:58,420 --> 00:03:59,460
+to declare it here.
+
+53
+00:03:59,470 --> 00:04:01,460
+That's boring and do do it in the replicator.
+
+54
+00:04:01,510 --> 00:04:04,830
+H and just after our go kart state.
+
+55
+00:04:04,840 --> 00:04:08,970
+I'm going to create a new struct which I am going to prefix with the F.
+
+56
+00:04:08,980 --> 00:04:14,320
+Just keep consistent with the other structure even though it's not a struct and I'm going to call it
+
+57
+00:04:14,770 --> 00:04:17,920
+f her might Kub explain.
+
+58
+00:04:18,040 --> 00:04:25,600
+Then we can go with our curly braces and I am going to copy the names of our variables start location
+
+59
+00:04:25,600 --> 00:04:33,340
+start derivative target location target derivative over in two at her might keep exploring.
+
+60
+00:04:33,340 --> 00:04:41,500
+Like so these are all f vectors so let me just prefix more with F vector and that should pretty much
+
+61
+00:04:41,500 --> 00:04:42,010
+do the trick.
+
+62
+00:04:42,010 --> 00:04:43,980
+You see I can actually declare them all on one line.
+
+63
+00:04:44,000 --> 00:04:48,880
+Their start location studder of the time allocation target revmata because they're all factors and that
+
+64
+00:04:49,270 --> 00:04:54,800
+pretty much defines her might keep exline but for niceness we can or not for a nicety.
+
+65
+00:04:54,820 --> 00:05:02,730
+We might say we are going to go ahead and implement a get location and get rotation or.
+
+66
+00:05:03,690 --> 00:05:06,470
+Maybe I'll call it interpolate location interpolate.
+
+67
+00:05:07,260 --> 00:05:08,180
+Velocity.
+
+68
+00:05:08,250 --> 00:05:08,970
+That's what I mean.
+
+69
+00:05:08,970 --> 00:05:10,930
+Interpolate derivative No.
+
+70
+00:05:10,950 --> 00:05:11,670
+Get it in the end.
+
+71
+00:05:11,910 --> 00:05:16,050
+So f vector is going to be the return type because we're getting back a location that the function is
+
+72
+00:05:16,050 --> 00:05:25,000
+going to be in ter plate location like so and it's going to take that Lerp ratio so float Lerp ratio.
+
+73
+00:05:26,150 --> 00:05:32,150
+Like so and then we are going to go for interpolate derivative as well.
+
+74
+00:05:32,150 --> 00:05:33,550
+So interpolate.
+
+75
+00:05:34,640 --> 00:05:37,110
+To remove two of.
+
+76
+00:05:37,280 --> 00:05:40,770
+So and that's going to take the Lerp ratio as well.
+
+77
+00:05:40,910 --> 00:05:46,340
+So now you can see we're not going to have to pass in every time the start location start derivative
+
+78
+00:05:46,350 --> 00:05:48,210
+target location target derivative.
+
+79
+00:05:48,290 --> 00:05:53,200
+So one going to do is going to take this cubic interp that we've got here this long thing called the
+
+80
+00:05:53,200 --> 00:05:59,930
+cube interp and I'm going to cut it and I'm actually going to just in line declare this function because
+
+81
+00:05:59,930 --> 00:06:01,050
+it's going to be really small.
+
+82
+00:06:01,070 --> 00:06:03,420
+It's just going to be a return.
+
+83
+00:06:03,560 --> 00:06:09,350
+This cubic interp we have the start derivatives all these derivatives already defined and will just
+
+84
+00:06:09,350 --> 00:06:11,620
+put a semicolon on the end that's going to be that simple.
+
+85
+00:06:11,930 --> 00:06:16,030
+Then we can do the same thing with our kubik derivative.
+
+86
+00:06:16,040 --> 00:06:25,070
+I'm just going to cut it and paste it in line into interpolate derivative member function of the struct.
+
+87
+00:06:25,250 --> 00:06:30,850
+Remember the structures are exactly like classes except that they default to being public.
+
+88
+00:06:30,860 --> 00:06:36,860
+So basically we can use them exact same way do all inline functions we can do everything that we can
+
+89
+00:06:36,860 --> 00:06:37,870
+do with a class.
+
+90
+00:06:37,920 --> 00:06:43,970
+Reason I'm using a struct is because we want to be able to create it and set these start locations start
+
+91
+00:06:43,970 --> 00:06:46,040
+derivatives etc. directly.
+
+92
+00:06:47,190 --> 00:06:52,940
+So we've got ourselves this f her might cubics line and that's what I'm actually going to want to create
+
+93
+00:06:52,950 --> 00:06:59,250
+here in this first section of the client Tich So it's going to create myself an F cubics f her might
+
+94
+00:06:59,250 --> 00:07:03,420
+cubics mine and I'm just going to call it the slime like so.
+
+95
+00:07:03,870 --> 00:07:08,910
+And then instead of creating these local variables for target location what I'm going to do is I'm going
+
+96
+00:07:08,910 --> 00:07:18,750
+to have just slyme dot target location equals I'm going to have blind dot start location blind dot start
+
+97
+00:07:18,780 --> 00:07:19,910
+derivative.
+
+98
+00:07:20,890 --> 00:07:21,850
+Blind dot.
+
+99
+00:07:22,740 --> 00:07:24,550
+Target's derivative as well.
+
+100
+00:07:24,720 --> 00:07:30,480
+So we've set up asplin here in this first section of the code in the next section we want to get the
+
+101
+00:07:30,480 --> 00:07:37,270
+new location what we've got to do is we've got to go ahead and get these plein dot interpolate location.
+
+102
+00:07:37,380 --> 00:07:38,990
+And now we have to give it.
+
+103
+00:07:39,010 --> 00:07:40,670
+He is the Lerp ratios.
+
+104
+00:07:40,680 --> 00:07:45,120
+You can see how this is going to be much easier to split out into functions because now the only thing
+
+105
+00:07:45,120 --> 00:07:49,530
+that passes between these two is the Lerp ratio and the spleen.
+
+106
+00:07:50,250 --> 00:07:54,630
+So I'm going to go ahead and do a very similar thing with the new derivative.
+
+107
+00:07:54,630 --> 00:08:02,300
+I'm going to you a blind dot interpolate derivative with again the same Lerp ratio.
+
+108
+00:08:04,260 --> 00:08:06,370
+MIKE So okay.
+
+109
+00:08:06,720 --> 00:08:12,540
+And now we are ready to actually start pulling this apart in two separate blocks that I talked about
+
+110
+00:08:12,600 --> 00:08:16,820
+earlier and that's what I am going to give to you as a challenge.
+
+111
+00:08:16,830 --> 00:08:20,910
+So here's the challenge definition slide though it's quite rote at this point.
+
+112
+00:08:21,030 --> 00:08:27,840
+Pull out some methods pull out the create saline methods and interpolate location method to velocity
+
+113
+00:08:27,840 --> 00:08:28,980
+and interpolate rotation.
+
+114
+00:08:29,010 --> 00:08:31,010
+It's a bit formulaic if you want to do it differently.
+
+115
+00:08:31,080 --> 00:08:34,440
+You can do things differently this just a starting point in case you aren't sure.
+
+116
+00:08:34,440 --> 00:08:37,180
+So pause there and go okay.
+
+117
+00:08:37,200 --> 00:08:37,860
+Welcome back.
+
+118
+00:08:37,860 --> 00:08:40,360
+So let's go ahead and see if we can do this.
+
+119
+00:08:40,380 --> 00:08:46,830
+I always would prefer to be able to do this sort of stuff with a extract tool.
+
+120
+00:08:46,860 --> 00:08:53,640
+So I'm going to do a controlled dot and then hopefully try to do an extract function never seems to
+
+121
+00:08:53,640 --> 00:08:54,870
+want to work with me.
+
+122
+00:08:54,880 --> 00:08:58,280
+I was going to try it one more time not selecting the initial Splice.
+
+123
+00:08:58,290 --> 00:09:01,940
+There was do control dot extract function.
+
+124
+00:09:01,940 --> 00:09:06,420
+Now the reason seems to be that the Lerp ratio is declared in selected region.
+
+125
+00:09:06,420 --> 00:09:10,170
+We don't actually want the Lerp ratio to be here.
+
+126
+00:09:10,200 --> 00:09:13,250
+We want to be kind of before creating the splice.
+
+127
+00:09:13,260 --> 00:09:15,790
+It's not really part of creating this mine at all.
+
+128
+00:09:15,810 --> 00:09:19,830
+Only part of interpolating the line and we need it in all three functions anyway.
+
+129
+00:09:19,890 --> 00:09:23,540
+So let's go ahead and try that one more time and extract a function.
+
+130
+00:09:23,670 --> 00:09:26,700
+Again here we have a velocity that we don't want to extract.
+
+131
+00:09:26,700 --> 00:09:32,910
+It's really interesting how using these extract tools kind of keeps you honest to what you are passing
+
+132
+00:09:32,910 --> 00:09:37,950
+in out say I'm going to bring the velocity to derivative out as well.
+
+133
+00:09:37,950 --> 00:09:42,450
+We're going to then try and extract this way.
+
+134
+00:09:42,450 --> 00:09:46,230
+In fact let me try and include the and see if a complaint about that.
+
+135
+00:09:47,260 --> 00:09:51,170
+Yep blind declared so let's keep spline out of this.
+
+136
+00:09:52,130 --> 00:09:53,360
+Just giving this a go.
+
+137
+00:09:53,360 --> 00:09:56,790
+Sometimes it can be helpful obviously you can always do this the manual way as well.
+
+138
+00:09:56,870 --> 00:09:58,480
+This time it seems happy.
+
+139
+00:09:58,520 --> 00:10:04,970
+It's unfortunately choosing to use blinds and our parameter though and I really don't want to do that
+
+140
+00:10:04,980 --> 00:10:10,160
+so let's go ahead and do this manually after having tried to use the refactored tool.
+
+141
+00:10:10,160 --> 00:10:15,020
+I'm not happy with it so let's go ahead and create our function.
+
+142
+00:10:15,050 --> 00:10:22,250
+Now I've copied the name the f her mike Kubes blind because underneath a slight tick I'm going to create
+
+143
+00:10:22,640 --> 00:10:26,590
+a create spline function so create spline.
+
+144
+00:10:26,690 --> 00:10:27,890
+It's going to be the name of the function.
+
+145
+00:10:27,890 --> 00:10:34,220
+It doesn't take anything but it does return the supply in that has just been created and that is why
+
+146
+00:10:34,280 --> 00:10:43,210
+we needed to define has dropped in the head before going to go and implement this down in the copy.
+
+147
+00:10:43,250 --> 00:10:51,870
+So make a copy go down just below tick and go ahead and implement our function.
+
+148
+00:10:52,190 --> 00:10:59,780
+Doing the various things that you're very familiar with in C++ by now and we can go and grab asplin
+
+149
+00:11:00,230 --> 00:11:01,760
+Creation code.
+
+150
+00:11:01,760 --> 00:11:08,540
+Stick it in the creates blind fact and go only to copy this declaration of the spline in here copy it
+
+151
+00:11:08,540 --> 00:11:13,130
+rather than move it because we still need discipline in the outer scope as well.
+
+152
+00:11:13,130 --> 00:11:17,080
+And at the end we just return the said supplies.
+
+153
+00:11:17,690 --> 00:11:21,410
+So that has gone ahead and created the spline.
+
+154
+00:11:21,410 --> 00:11:26,990
+You'll notice it's not happy about the velocity too derivative and this is used in multiple places.
+
+155
+00:11:26,990 --> 00:11:32,060
+Now we might as well turn velocity to derivative into a function which I'm going to do.
+
+156
+00:11:32,150 --> 00:11:34,570
+Go to my head of file velocity each derivative.
+
+157
+00:11:34,670 --> 00:11:40,650
+It returns a float like so and I'm going to go ahead.
+
+158
+00:11:41,520 --> 00:11:44,960
+And create that function the C plus plus file.
+
+159
+00:11:45,700 --> 00:11:52,560
+In fact it almost doesn't need to be in the C++ file but for just consistency I'm going to keep it here.
+
+160
+00:11:52,690 --> 00:11:54,610
+And where's but lost its riveting.
+
+161
+00:11:54,610 --> 00:11:56,590
+It's just this client time between last update.
+
+162
+00:11:56,590 --> 00:11:57,990
+Multiply by 100.
+
+163
+00:11:58,180 --> 00:12:00,360
+So I'm going to return that.
+
+164
+00:12:00,520 --> 00:12:04,440
+So Bill hostage derivative and I'm going to add the.
+
+165
+00:12:05,410 --> 00:12:08,330
+Function Kelong the class colon code in front of it.
+
+166
+00:12:08,590 --> 00:12:15,190
+And that means that now instead of using a constant I can use this function velocity to derivative in
+
+167
+00:12:15,190 --> 00:12:20,740
+my creative blind class so it's removed a bit of duplication there and I can remove it from the client
+
+168
+00:12:20,770 --> 00:12:21,210
+tick.
+
+169
+00:12:21,280 --> 00:12:28,740
+And I can remove the splicing code from client tick and now I spline is just equal to create supply
+
+170
+00:12:28,950 --> 00:12:34,020
+so that simplified that hunk of code down and self documented it as well which is what we like.
+
+171
+00:12:34,330 --> 00:12:38,090
+Now the next hunk of code is the interpolate location.
+
+172
+00:12:38,080 --> 00:12:42,210
+Now maybe we'll have a bit more luck here with extracting the function that year.
+
+173
+00:12:42,280 --> 00:12:43,570
+This seems a bit better.
+
+174
+00:12:43,570 --> 00:12:46,130
+It's taking a reference to the blind and the Lerp ratio.
+
+175
+00:12:46,130 --> 00:12:49,800
+Now I'd like that to be a constant reference and will have a go at that in a second.
+
+176
+00:12:49,870 --> 00:12:54,290
+So interpolate supplying is what I'm going for.
+
+177
+00:12:55,300 --> 00:12:56,770
+And I'm going to hit.
+
+178
+00:12:56,780 --> 00:12:57,360
+Okay.
+
+179
+00:12:58,830 --> 00:13:01,290
+Okay that seems to have been created.
+
+180
+00:13:01,290 --> 00:13:03,640
+Let's just check where it is in the head of file.
+
+181
+00:13:05,610 --> 00:13:09,810
+Yeah it seems to be in the private section just above create supply and I'm actually going to just put
+
+182
+00:13:09,810 --> 00:13:14,220
+it underneath create sublime but it's not too big a deal.
+
+183
+00:13:14,430 --> 00:13:21,180
+And I'll do the same thing with the implementation in the C plus plus bodies put underneath creates
+
+184
+00:13:21,180 --> 00:13:23,930
+blind not big deal that it's put it in a different location.
+
+185
+00:13:23,950 --> 00:13:26,670
+Hey I want to be a bit for nicotine now.
+
+186
+00:13:26,970 --> 00:13:33,210
+I said I want this to be a contest and we can have a go at that in a second.
+
+187
+00:13:34,110 --> 00:13:38,400
+See if it actually compiles at the moment it probably should compile because we've just extracted some
+
+188
+00:13:38,400 --> 00:13:42,020
+functions and I don't see why that wouldn't work.
+
+189
+00:13:43,090 --> 00:13:48,060
+Okay so looks like we have one error which is a place where we haven't replaced velocity to derivative
+
+190
+00:13:48,060 --> 00:13:49,880
+with its function just yet.
+
+191
+00:13:49,880 --> 00:13:52,570
+Let's see if there are any other such cases I don't think so.
+
+192
+00:13:52,650 --> 00:13:55,550
+I think that was the last such case so let's go ahead and build again.
+
+193
+00:13:56,970 --> 00:13:58,320
+Yeah sure enough that build.
+
+194
+00:13:58,320 --> 00:14:03,400
+So what happens if we try and make this reference to the spline constant.
+
+195
+00:14:03,600 --> 00:14:07,590
+We should be able to do that because we're not actually going to edit the supplying whether interpolating
+
+196
+00:14:07,590 --> 00:14:08,340
+over the spleen.
+
+197
+00:14:08,520 --> 00:14:11,240
+So a constant reference is probably what we want.
+
+198
+00:14:11,250 --> 00:14:13,760
+Let's go build that and see what it complains about.
+
+199
+00:14:14,040 --> 00:14:18,420
+Okay so let's take a look at the output log and find the error.
+
+200
+00:14:18,810 --> 00:14:25,140
+So here it's saying it's hard to read but it's saying that the interpolates BY-LINE overload member
+
+201
+00:14:25,140 --> 00:14:27,360
+function not found.
+
+202
+00:14:27,390 --> 00:14:27,870
+Okay.
+
+203
+00:14:27,870 --> 00:14:33,730
+So that's just going on about the fact that we've got konitz in the header and not in the C plus plus.
+
+204
+00:14:33,750 --> 00:14:36,600
+But that is not the error I was looking for.
+
+205
+00:14:36,660 --> 00:14:41,490
+If we go ahead and build it again with that concert in both places we should find the error I'm looking
+
+206
+00:14:41,490 --> 00:14:45,630
+for and sure enough we've got the air I'm looking for it's a little bit hard to interpret interpretated
+
+207
+00:14:45,810 --> 00:14:54,210
+interpret interpret So it says cannot convert this pointer from konst her my spleen to her might's billion
+
+208
+00:14:54,270 --> 00:14:54,770
+reference.
+
+209
+00:14:54,780 --> 00:15:02,280
+Basically what it's saying is that the function we are calling hasn't been marked can't so particularly
+
+210
+00:15:02,280 --> 00:15:04,370
+it's moaning about this one.
+
+211
+00:15:04,380 --> 00:15:10,260
+The interpolate location and it thinks because interpolate location has been marked as a konst function
+
+212
+00:15:10,650 --> 00:15:13,610
+that interpolate location might be changing the spline.
+
+213
+00:15:13,650 --> 00:15:17,330
+So we can't use a concert reference to the blind.
+
+214
+00:15:17,580 --> 00:15:18,330
+Well it's wrong.
+
+215
+00:15:18,330 --> 00:15:23,710
+Interpolate location isn't changing the blinds so we need to market as such so that it knows this.
+
+216
+00:15:23,730 --> 00:15:29,910
+So let's go up to our f her Mike you've expiring and all we've got to do is to interpolate location
+
+217
+00:15:29,910 --> 00:15:37,620
+we need to put contest which is going to verify to the compiler that these two both the location and
+
+218
+00:15:37,620 --> 00:15:41,460
+the revathi of aren't modifying that structure at all.
+
+219
+00:15:41,460 --> 00:15:48,380
+So now if we build it should be perfectly fine with us using a constant reference to that struct Okay
+
+220
+00:15:48,390 --> 00:15:50,130
+so that has indeed worked.
+
+221
+00:15:50,130 --> 00:15:56,310
+Now so just a bit more extracting to go we've just got this velocity that we're going to interpolate.
+
+222
+00:15:56,310 --> 00:16:01,280
+So let's go ahead and stracke extract that so I'm going to call it interpolate.
+
+223
+00:16:02,120 --> 00:16:07,040
+Velocity just like so I'm going to have to change up the signature a little bit but we can tweak that
+
+224
+00:16:07,040 --> 00:16:09,130
+after it's done it's extracting process.
+
+225
+00:16:10,040 --> 00:16:11,520
+Which it has done.
+
+226
+00:16:11,540 --> 00:16:20,060
+Let's make that a concert instead of just the how you explain reference and I'll make it konst here
+
+227
+00:16:20,090 --> 00:16:27,020
+even at that C++ as well wherever it's gone or rather I need to close this and do the same thing in
+
+228
+00:16:27,020 --> 00:16:32,200
+the head a file where we've just created the interpolates velocity.
+
+229
+00:16:33,000 --> 00:16:34,140
+It's me that counts.
+
+230
+00:16:35,140 --> 00:16:38,910
+Actually just notice that I called this interpolates blynn Rather interpolate location.
+
+231
+00:16:38,920 --> 00:16:40,530
+The other interplay function.
+
+232
+00:16:40,690 --> 00:16:46,830
+So I'm going to change the signature hopefully maybe I can do it a rename.
+
+233
+00:16:48,120 --> 00:16:48,790
+Not easily.
+
+234
+00:16:48,810 --> 00:16:55,620
+So I'm just going to change it with the can troll find to interpolates blind is going to be interpolate
+
+235
+00:16:56,190 --> 00:16:57,830
+location instead.
+
+236
+00:16:57,840 --> 00:17:05,630
+And I'm going to replace it here and I'm going to replace it in the C++ as well.
+
+237
+00:17:05,790 --> 00:17:10,250
+If I can say I'm looking for interpolates plein.
+
+238
+00:17:11,160 --> 00:17:16,290
+And I'll get a replacement appliqued location in all the locations change in two places which is what
+
+239
+00:17:16,290 --> 00:17:17,160
+I expected.
+
+240
+00:17:17,460 --> 00:17:21,180
+So it's starting to read better with creating a spiner interpolating location and interpolating the
+
+241
+00:17:21,180 --> 00:17:21,650
+velocity.
+
+242
+00:17:21,660 --> 00:17:26,880
+And now finally when you want to interpolate the rotation as well so you can select all of this.
+
+243
+00:17:27,120 --> 00:17:34,130
+And I'm going to go to quick actions refactoring and extract the function and just call it interpolate.
+
+244
+00:17:34,970 --> 00:17:41,060
+Rotation here it's not as you can see taking in the spine because we don't use the spine for interpolating
+
+245
+00:17:41,060 --> 00:17:44,940
+the low rotation so I can go ahead and click okay.
+
+246
+00:17:45,200 --> 00:17:46,520
+And that seems to have worked.
+
+247
+00:17:46,520 --> 00:17:47,570
+Let's go into the head of fun.
+
+248
+00:17:47,570 --> 00:17:49,160
+Just make sure everything is in order.
+
+249
+00:17:49,160 --> 00:17:49,430
+So.
+
+250
+00:17:49,450 --> 00:17:55,430
+Got first of all I'd like to have create supply and then interpolate location then I'd like to have
+
+251
+00:17:55,460 --> 00:17:59,050
+interpolate velocity because they are linked.
+
+252
+00:17:59,270 --> 00:18:05,210
+And then I'd like to have the interpolate rotation and I want to mimic that order in the C++ file as
+
+253
+00:18:05,240 --> 00:18:06,040
+well.
+
+254
+00:18:06,050 --> 00:18:10,860
+Close my little preview window here and bring the velocity.
+
+255
+00:18:11,870 --> 00:18:13,890
+Implementation underneath.
+
+256
+00:18:14,710 --> 00:18:16,870
+The interpolate location.
+
+257
+00:18:16,900 --> 00:18:21,370
+And same with the rotation underneath that.
+
+258
+00:18:22,230 --> 00:18:24,140
+Just the posti.
+
+259
+00:18:24,440 --> 00:18:27,060
+So now we have split our functions.
+
+260
+00:18:27,110 --> 00:18:29,830
+They seem to be nice and small.
+
+261
+00:18:29,840 --> 00:18:31,860
+And describe what they do.
+
+262
+00:18:32,150 --> 00:18:39,110
+And we have created a struct to combine all those parameters of the spine in to one object that's easy
+
+263
+00:18:39,110 --> 00:18:41,300
+to pass around and easy to manage.
+
+264
+00:18:41,300 --> 00:18:42,550
+Let's see if that builds.
+
+265
+00:18:43,770 --> 00:18:48,420
+So it looks like one concert didn't get carried over from the definition in the head a file that's easy
+
+266
+00:18:48,420 --> 00:18:48,810
+to fix.
+
+267
+00:18:48,810 --> 00:18:49,700
+Let's try again.
+
+268
+00:18:49,980 --> 00:18:51,180
+Okay so that worked.
+
+269
+00:18:51,180 --> 00:18:59,110
+Let's go over into unreel and hit play with two players in a new editor window.
+
+270
+00:18:59,330 --> 00:19:05,970
+And I'll stick my authority on the right and the autonomous proxy on the left and I'm going to drive
+
+271
+00:19:05,970 --> 00:19:10,290
+my authority around in front of the autonomous proxy and hopefully we'll see him moving around using
+
+272
+00:19:10,290 --> 00:19:15,220
+US blinds and everything is hunky dory the rotation seems to be interpolating just fine.
+
+273
+00:19:15,440 --> 00:19:17,640
+Yeah seems to be definitely rotating.
+
+274
+00:19:17,640 --> 00:19:23,880
+Definitely interpolating smoothie using cubics So that's successful we have managed to refactor it without
+
+275
+00:19:23,880 --> 00:19:25,850
+actually changing the functionality.
+
+276
+00:19:25,860 --> 00:19:27,520
+Pats on the back all around.
+
+277
+00:19:27,540 --> 00:19:30,160
+Hopefully that wasn't too much refracturing for you in the next video.
+
+278
+00:19:30,300 --> 00:19:38,970
+We are going to be going back to functionality to make sure that we can't affect the collisions by doing
+
+279
+00:19:39,000 --> 00:19:40,380
+this interpellation.

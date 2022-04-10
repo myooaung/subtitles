@@ -1,0 +1,391 @@
+1
+00:00:00,520 --> 00:00:03,940
+In this demo, I'm going to show you how Service Discovery works.
+
+2
+00:00:05,780 --> 00:00:09,140
+I have here a folder services discovery.
+
+3
+00:00:10,010 --> 00:00:15,030
+I'm going to create a few resources again or let me first show you what's in it.
+
+4
+00:00:15,470 --> 00:00:20,360
+I'm going to use "cat service-discovery/credentials/", 
+
+5
+00:00:20,350 --> 00:00:23,570
+the credentials are "secrets.yml"
+
+6
+00:00:23,740 --> 00:00:30,770
+I've got in secrets username, password, rootPassword, and the database. I'm only using rootPassword at the database actually.
+
+7
+00:00:30,920 --> 00:00:37,620
+I'm going to use a rootPassword rather than using a separate username and password,
+
+8
+00:00:37,620 --> 00:00:43,170
+because that needs extra set up and I want to keep it as simple as possible for this demo just to show you 
+
+9
+00:00:43,220 --> 00:00:44,560
+Service Discovery.
+
+10
+00:00:44,690 --> 00:00:56,470
+"kubectl create" and I'm going to create a pod and it's going to be my database pod, so I have here
+
+11
+00:00:56,500 --> 00:01:05,610
+the database again. The name of the database container is "mysql:5.7",
+
+12
+00:01:05,610 --> 00:01:15,340
+runs on 3306, specify root passwords, a user, and a password, and a database.
+
+13
+00:01:15,720 --> 00:01:23,220
+I also have a service is going to expose a node port, a random node port.
+
+14
+00:01:26,940 --> 00:01:43,610
+"Kubectl creates -f service-discovery/database.yml" and service.
+
+15
+00:01:43,740 --> 00:01:46,080
+Then I have a "helloworld-db.yml" and a service.
+
+16
+00:01:46,200 --> 00:01:47,800
+This one is interesting
+
+17
+00:01:48,130 --> 00:01:53,110
+It's a deployment, three replicas, off my "k8s-demo", 
+
+18
+00:01:53,370 --> 00:02:02,540
+I also call it "helloworld-db", it is the same image, but this image also has an "index-db.js" 
+
+19
+00:02:02,630 --> 00:02:03,770
+in the same folder.
+
+20
+00:02:03,950 --> 00:02:08,220
+You might have noticed that when you did the docker built, 
+
+21
+00:02:08,220 --> 00:02:09,370
+that there was also an "index-db.js".
+
+22
+00:02:09,810 --> 00:02:17,030
+If you specify command "node" in the "index-db.js" rather than using NPM start, which is executing
+
+23
+00:02:17,030 --> 00:02:24,640
+node "index-db.js", I can override this in my YAML files, so I can execute different commands on my image.
+
+24
+00:02:25,450 --> 00:02:26,500
+For us it's all the same,
+
+25
+00:02:26,530 --> 00:02:32,820
+nodejs-port 3000, but then and I am also adding environment variables here.
+
+26
+00:02:32,890 --> 00:02:41,980
+Host, mysql host, mysql user, passwords, from the root password and a database from the secrets and
+
+27
+00:02:41,980 --> 00:02:46,350
+key database, which is going to run in a database.
+
+28
+00:02:46,570 --> 00:02:53,740
+And this is going to connect to our database and is going to use the host "database-service".
+
+29
+00:02:54,010 --> 00:02:59,200
+So, this will only work if the DNS resolving works, because
+
+30
+00:03:02,530 --> 00:03:05,670
+my database service is called "database-service".
+
+31
+00:03:05,730 --> 00:03:14,110
+This value of mysql host needs to resolve to the IP address of this service database-service
+
+32
+00:03:14,860 --> 00:03:18,430
+and then my app will be able to connect to the database.
+
+33
+00:03:18,520 --> 00:03:19,550
+Let's try it out.
+
+34
+00:03:21,230 --> 00:03:29,400
+I'm going to do a create of this "helloworld-db.yml" and this "helloworld-db-service.yml".
+
+35
+00:03:29,660 --> 00:03:37,760
+So, this service is very generic and just going to also expose my "helloworld-db"
+
+36
+00:03:41,430 --> 00:03:52,110
+"Minikupe service helloworld-db-service --url", 
+
+37
+00:03:52,110 --> 00:03:52,960
+So, that's going to be the URL that I am going to connect to
+
+38
+00:03:53,490 --> 00:03:55,840
+Let's first check whether everything is running.
+
+39
+00:03:56,180 --> 00:03:57,920
+So, "kubeclt get pods"
+
+40
+00:03:57,960 --> 00:04:03,500
+We have one database which is just a pod and then we have three pods for deployment.
+
+41
+00:04:03,630 --> 00:04:04,920
+All of them are running.
+
+42
+00:04:05,330 --> 00:04:15,600
+Let's check the locks of this pod to see whether we are able to connect that to the database.
+
+43
+00:04:15,670 --> 00:04:16,710
+It says, "Connection to the database established".
+
+44
+00:04:16,750 --> 00:04:23,500
+So, index-db.js was able to connect using these credentials to the database.
+
+45
+00:04:23,560 --> 00:04:30,300
+The only thing that this database index-db.js does is going to create a table and there is going
+
+46
+00:04:30,290 --> 00:04:34,980
+to be one column that is going to initialize a value at zero,
+
+47
+00:04:35,080 --> 00:04:41,200
+and every time I'm going to do a hit, it's going to do a plus one. 
+
+48
+00:04:41,200 --> 00:04:42,850
+Just instead of the "Hello World", it is going to do a plus one.
+
+49
+00:04:43,950 --> 00:04:45,080
+So, "Hello World, you are visitor number 1".
+
+50
+00:04:45,130 --> 00:04:48,520
+"You are visitor number 2"
+
+51
+00:04:48,640 --> 00:04:49,870
+"You are visitor number 3"
+
+52
+00:04:49,900 --> 00:04:51,850
+and so on.
+
+53
+00:04:51,850 --> 00:04:57,490
+So, this is stored in the database. So, it actually works,
+
+54
+00:04:57,490 --> 00:05:06,990
+this "helloworld-deployment", this pod connects to the database service, and inserts data in the database.
+
+55
+00:05:07,000 --> 00:05:08,150
+How can I check this?
+
+56
+00:05:08,290 --> 00:05:16,660
+Well, let me do "kubectl exec database", I am going to log into the database, I am going to execute something on the database, "-i -t", 
+
+57
+00:05:16,810 --> 00:05:19,670
+and the command I am going to execute is "mysql"
+
+58
+00:05:19,710 --> 00:05:28,020
+I am going to log in as "root" and I'm going to give a password.
+
+59
+00:05:28,570 --> 00:05:36,500
+Password is a root password, those are found in secrets.
+
+60
+00:05:37,300 --> 00:05:40,000
+Database, so show databases. 
+
+61
+00:05:40,180 --> 00:05:41,150
+The database is "helloworld",
+
+62
+00:05:41,170 --> 00:05:42,040
+I am going to use 
+
+63
+00:05:42,040 --> 00:05:43,590
+"Helloworld".
+
+64
+00:05:44,010 --> 00:05:45,590
+Show the tables here.
+
+65
+00:05:45,820 --> 00:05:48,410
+And "select * from visits;"
+
+66
+00:05:48,430 --> 00:05:51,400
+So, this was created by my app.
+
+67
+00:05:51,520 --> 00:05:56,100
+There are four records, four visits, and this is just a timestamp.
+
+68
+00:05:56,470 --> 00:05:58,090
+So this works,
+
+69
+00:05:58,090 --> 00:06:09,900
+my app was able to discover the service, and connect to the database.
+
+70
+00:06:09,900 --> 00:06:10,570
+And this because DNS resolving works,
+
+71
+00:06:12,170 --> 00:06:20,480
+which I could also test, opening a shell on one of the nodes, and
+
+72
+00:06:23,820 --> 00:06:28,960
+actually in a "busybox", because I need to resolve settings.
+
+73
+00:06:30,480 --> 00:06:42,080
+So, I'm going to do "kubectl run", "busybox", and "busybox" has "nslookup".
+
+74
+00:06:42,200 --> 00:06:48,090
+And then, with "nslookup" I can then check whether my service works, my service can resolve.
+
+75
+00:06:48,230 --> 00:06:49,540
+So I'm going to do "helloworld-db-service"
+
+76
+00:06:50,330 --> 00:06:55,770
+I am going to do "nslookup",
+
+77
+00:06:56,210 --> 00:06:59,150
+and yes that works.
+
+78
+00:06:59,160 --> 00:07:03,230
+"Kube-dns" answers with "helloworld-db-service" 
+
+79
+00:07:03,230 --> 00:07:05,700
+is at 10.0.0.52,
+
+80
+00:07:06,110 --> 00:07:09,560
+and this is the full hostname.
+
+81
+00:07:09,650 --> 00:07:15,830
+So, let me do this and then "nslookup" again, because here we have an overview of our cluster IP addresses.
+
+82
+00:07:16,040 --> 00:07:22,320
+So, it will be easier to show you, which one is which, because these names are quite confusing.
+
+83
+00:07:22,520 --> 00:07:25,710
+So, if you want to find out which one is the database service,
+
+84
+00:07:25,790 --> 00:07:34,070
+I can do "nslookup database-service". If I want to do a "nslookup" on the service, which is app layer in our case, 
+
+85
+00:07:34,070 --> 00:07:37,440
+then I can do a "nslookup" on this one.
+
+86
+00:07:37,760 --> 00:07:42,290
+So, I don't have "curl" here, 
+
+87
+00:07:43,000 --> 00:07:45,120
+so I actually use the telnet to this service,
+
+88
+00:07:45,800 --> 00:07:52,400
+and then it gets "/", "You are visitor number 5"
+
+89
+00:07:53,030 --> 00:07:59,360
+So, if I just want to connect to the app layer, I can use "helloworld-db-service". If I want to connect
+
+90
+00:07:59,360 --> 00:08:06,270
+to the database-service, the mysql, the database,  then I can use this hostname. 
+
+91
+00:08:06,290 --> 00:08:08,290
+This database-services resolves to this IP
+
+92
+00:08:08,580 --> 00:08:14,360
+and these other services resolves to that IP and whenever the service would be recreated, 
+
+93
+00:08:14,360 --> 00:08:15,170
+the DNS within them would also be updated.
+
+94
+00:08:16,380 --> 00:08:19,360
+That's it for the DNS Discovery
+
+95
+00:08:19,360 --> 00:08:23,120
+It is also going to be part of our WordPress later on.
+
+96
+00:08:23,130 --> 00:08:30,030
+So, I will come back to this. Service discovery is a very important part of running a cluster with lots of services
+
+97
+00:08:30,730 --> 00:08:35,300
+"Control+D" if you want to exit and the delete the pod "busybox", if you want to delete the "busybox"
+
+98
+00:08:35,320 --> 00:08:40,940
+and you obviously have to delete all the running services on pods  and deployments.

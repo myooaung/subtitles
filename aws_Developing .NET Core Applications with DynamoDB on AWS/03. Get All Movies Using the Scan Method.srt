@@ -1,0 +1,232 @@
+1
+00:00:00,000 --> 00:00:07,780
+Let's add the DynamoDB low-level code needed to get all items from our database.
+
+2
+00:00:07,780 --> 00:00:10,519
+We are starting off in the Controller class.
+
+3
+00:00:10,519 --> 00:00:14,334
+The reason I'm starting off each time in the Controller class is
+
+4
+00:00:14,334 --> 00:00:19,248
+to show the pipeline that is followed when a request from a user
+
+5
+00:00:19,248 --> 00:00:22,377
+is received into our application.
+
+6
+00:00:22,377 --> 00:00:24,492
+No changes are needed inside our Controller class,
+
+7
+00:00:24,492 --> 00:00:28,992
+so we can head over to our MovieRankService class.
+
+8
+00:00:28,992 --> 00:00:30,507
+Inside our MovieRankService class,
+
+9
+00:00:30,507 --> 00:00:35,939
+we call off to the GetAllItemsMethod inside our MovieRankRepository.
+
+10
+00:00:35,939 --> 00:00:40,208
+We'll be adding the method inside our Repository class shortly.
+
+11
+00:00:40,208 --> 00:00:40,580
+First,
+
+12
+00:00:40,580 --> 00:00:45,446
+let's create the code needed inside our Mapper class to map the response that
+
+13
+00:00:45,446 --> 00:00:51,816
+we get back from DynamoDB inside our MovieResponseContract.
+
+14
+00:00:51,816 --> 00:00:52,633
+Inside our Mapper class,
+
+15
+00:00:52,633 --> 00:00:56,338
+we will create a method with the return type of IEnumerableMovieResponse,
+
+16
+00:00:56,338 --> 00:01:01,891
+and name our method ToMovieContract.
+
+17
+00:01:01,891 --> 00:01:04,633
+The type that we get back from DynamoDB is a scan response,
+
+18
+00:01:04,633 --> 00:01:08,334
+so we need to add this type to the method's parameters,
+
+19
+00:01:08,334 --> 00:01:12,158
+and name the parameter Response.
+
+20
+00:01:12,158 --> 00:01:15,603
+We need to add the Amazon.DynamoDb .Model using statement.
+
+21
+00:01:15,603 --> 00:01:21,767
+We now need to iterate over each item from our scan response.
+
+22
+00:01:21,767 --> 00:01:26,236
+We will say response.Items, and we'll use links .Select method,
+
+23
+00:01:26,236 --> 00:01:32,087
+and call off to a separate method named ToMovieContract.
+
+24
+00:01:32,087 --> 00:01:34,258
+If we create our second method, ToMovieContract,
+
+25
+00:01:34,258 --> 00:01:37,975
+we want to return a type of MovieResponse,
+
+26
+00:01:37,975 --> 00:01:43,594
+and we'll pass in the parameter's Dictionary of type string and AttributeValue.
+
+27
+00:01:43,594 --> 00:01:49,898
+The AttributeValue is a type class from the DynamoDB SDK.
+
+28
+00:01:49,898 --> 00:01:53,262
+This is where each value is stored once it's been returned back
+
+29
+00:01:53,262 --> 00:01:58,052
+to us from within the scan response class.
+
+30
+00:01:58,052 --> 00:02:00,590
+Inside our method, we'll return a new MovieResponse,
+
+31
+00:02:00,590 --> 00:02:04,658
+and we'll map our items similar to the way that we
+
+32
+00:02:04,658 --> 00:02:07,569
+mapped our document model's items.
+
+33
+00:02:07,569 --> 00:02:13,439
+We'll say MovieName equals item, open square brackets, MovieName.
+
+34
+00:02:13,439 --> 00:02:18,596
+Each of these items represent a property inside our MovieRank table.
+
+35
+00:02:18,596 --> 00:02:24,202
+When using the low-level model, we also need to specify what type our item is.
+
+36
+00:02:24,202 --> 00:02:32,041
+In our case, MovieName is of type string, so we'll say .S to specify that.
+
+37
+00:02:32,041 --> 00:02:37,331
+We'll map the Description, and for Actors we want to use the type .SS,
+
+38
+00:02:37,331 --> 00:02:43,411
+that specifies to DynamoDB that this will be a list of strings.
+
+39
+00:02:43,411 --> 00:02:43,901
+For Ranking,
+
+40
+00:02:43,901 --> 00:02:48,773
+we'll Convert the ranking item that we get back from DynamoDB into an Int,
+
+41
+00:02:48,773 --> 00:02:51,947
+and Ranking is of type number, so we'll add the .N.
+
+42
+00:02:51,947 --> 00:02:55,535
+TimeRanked we have stored as a string,
+
+43
+00:02:55,535 --> 00:03:00,281
+and we'll add our public method to our interface,
+
+44
+00:03:00,281 --> 00:03:06,473
+along with the DynamoDB model using statement.
+
+45
+00:03:06,473 --> 00:03:08,462
+Heading over to our MovieRankRepository class,
+
+46
+00:03:08,462 --> 00:03:12,981
+we want to create a constant that stores our TableName.
+
+47
+00:03:12,981 --> 00:03:16,273
+We want to dependency inject our DynamoDB client,
+
+48
+00:03:16,273 --> 00:03:21,612
+so we'll add a field at the top of our class named _dynamoDbClient,
+
+49
+00:03:21,612 --> 00:03:29,444
+and create a constructor and inject our IAmazonDynamoDB client.
+
+50
+00:03:29,444 --> 00:03:34,937
+The first method in this class will have a return type of Task ScanResponse,
+
+51
+00:03:34,937 --> 00:03:36,545
+and be named GetAllItems.
+
+52
+00:03:36,545 --> 00:03:40,183
+We'll add the Amazon.DynamoDb model using statement,
+
+53
+00:03:40,183 --> 00:03:44,503
+and inside our method we'll be using the ScanAsync method to
+
+54
+00:03:44,503 --> 00:03:49,376
+call off to DynamoDB to get all our items back.
+
+55
+00:03:49,376 --> 00:03:52,056
+But first we need to create a new scan request.
+
+56
+00:03:52,056 --> 00:03:57,635
+We'll say new ScanRequest, and pass in the TableName.
+
+57
+00:03:57,635 --> 00:04:00,764
+Using our _dynamoDbClient, we'll use the ScanAsync method,
+
+58
+00:04:00,764 --> 00:04:09,000
+and pass in our scan request. We'll add this method to our interface, along with the using statement.
+

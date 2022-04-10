@@ -1,0 +1,572 @@
+1
+00:00:02,092 --> 00:00:06,948
+Now to make working with TOTP algorithm and Google Authenticator simpler,
+
+2
+00:00:06,948 --> 00:00:11,276
+we will use the following library by adding it to our POM file.
+
+3
+00:00:11,276 --> 00:00:11,609
+Next,
+
+4
+00:00:11,609 --> 00:00:17,258
+let's add the property to our user entity to persist if the
+
+5
+00:00:17,258 --> 00:00:20,046
+user requires two-factor authentication.
+
+6
+00:00:20,046 --> 00:00:22,970
+You also need to store the secret keys for each user.
+
+7
+00:00:22,970 --> 00:00:25,874
+Now in the demo app, we are using MongoDB,
+
+8
+00:00:25,874 --> 00:00:29,845
+so we need an Entity object with username,
+
+9
+00:00:29,845 --> 00:00:35,430
+secret key, and an index on username for efficient lookups.
+
+10
+00:00:35,430 --> 00:00:38,933
+Let's create an account page where the user can choose
+
+11
+00:00:38,933 --> 00:00:41,090
+to enable two-factor authentication.
+
+12
+00:00:41,090 --> 00:00:42,149
+In the AccountController,
+
+13
+00:00:42,149 --> 00:00:46,991
+we will return if the user has two-factor authentication enabled.
+
+14
+00:00:46,991 --> 00:00:50,723
+If they don't, we will give them the option to enable it.
+
+15
+00:00:50,723 --> 00:00:56,766
+The service method simply checks if the enabled flag is set on the user entity.
+
+16
+00:00:56,766 --> 00:01:03,856
+Then, we will create an endpoint to return the Authenticator QR code URL.
+
+17
+00:01:03,856 --> 00:01:10,558
+The GoogleAuthenticator class can generate a new secret, which we can persist.
+
+18
+00:01:10,558 --> 00:01:13,949
+Then you can use the GoogleAuthenticatorQR code generator to
+
+19
+00:01:13,949 --> 00:01:18,148
+generate a QR code with the secret inside.
+
+20
+00:01:18,148 --> 00:01:21,510
+By passing in the ISSUER name, this is very important.
+
+21
+00:01:21,510 --> 00:01:24,330
+This is the name of your application that will be displayed
+
+22
+00:01:24,330 --> 00:01:27,472
+in the Authenticator app next to the code,
+
+23
+00:01:27,472 --> 00:01:29,246
+also their account name,
+
+24
+00:01:29,246 --> 00:01:33,438
+which also appears next to the app name in case the user has multiple
+
+25
+00:01:33,438 --> 00:01:37,974
+accounts with your site and also the key we pass in.
+
+26
+00:01:37,974 --> 00:01:42,826
+Now in the account's HTML page, we can display the QR code to the user.
+
+27
+00:01:42,826 --> 00:01:46,923
+Also, before we enable two- factor authentication for the user,
+
+28
+00:01:46,923 --> 00:01:51,258
+we want them to confirm the code to ensure that it is set up correctly.
+
+29
+00:01:51,258 --> 00:01:55,075
+Hence, we also need a confirm endpoint in the controller.
+
+30
+00:01:55,075 --> 00:01:59,974
+We get the username by adding the Principal field to the method.
+
+31
+00:01:59,974 --> 00:02:02,054
+Spring will then populate it with the current user.
+
+32
+00:02:02,054 --> 00:02:07,131
+If the user does not have two-factor authentication configured,
+
+33
+00:02:07,131 --> 00:02:10,110
+we call our service class to enable it.
+
+34
+00:02:10,110 --> 00:02:14,689
+We check the code is valid by retrieving the secret key stored for the
+
+35
+00:02:14,689 --> 00:02:18,794
+user and using the GoogleAuthenticatorAuthorize method.
+
+36
+00:02:18,794 --> 00:02:20,366
+Now if the code does not match,
+
+37
+00:02:20,366 --> 00:02:24,431
+we throw a custom InvalidTOTPVerificationCode exception,
+
+38
+00:02:24,431 --> 00:02:29,696
+which is simply a class that extends the Java RuntimeException.
+
+39
+00:02:29,696 --> 00:02:31,010
+If the code matches,
+
+40
+00:02:31,010 --> 00:02:36,920
+then we update the user entity by setting the TotpEnabled flag to true,
+
+41
+00:02:36,920 --> 00:02:40,021
+as well as the model.
+
+42
+00:02:40,021 --> 00:02:43,661
+If the user logs in and they have two- factor authentication enabled,
+
+43
+00:02:43,661 --> 00:02:47,854
+we need to challenge them to provide the two-factor authentication code.
+
+44
+00:02:47,854 --> 00:02:52,970
+We can set it up so that once a user authenticates with their username,
+
+45
+00:02:52,970 --> 00:02:54,355
+password, and pin,
+
+46
+00:02:54,355 --> 00:02:58,470
+they will have restricted access to the site until they also
+
+47
+00:02:58,470 --> 00:03:02,277
+provide a valid two-factor authentication code.
+
+48
+00:03:02,277 --> 00:03:06,132
+Now let's also create a TOTP login and login error page,
+
+49
+00:03:06,132 --> 00:03:11,598
+which simply accepts the code generated from their Authenticator app.
+
+50
+00:03:11,598 --> 00:03:14,631
+The error page also provides a generic error message when the
+
+51
+00:03:14,631 --> 00:03:18,777
+code from the previous attempt was not valid.
+
+52
+00:03:18,777 --> 00:03:20,063
+In the Configuration class,
+
+53
+00:03:20,063 --> 00:03:24,790
+let's change it from any authenticated request being able to access
+
+54
+00:03:24,790 --> 00:03:29,208
+their portfolio to only ones that have the role USER.
+
+55
+00:03:29,208 --> 00:03:33,245
+Now in our UserDetailsService class,
+
+56
+00:03:33,245 --> 00:03:35,772
+which retrieves the credentials from the identity store,
+
+57
+00:03:35,772 --> 00:03:41,194
+we can check if the user has two-factor authentication enabled.
+
+58
+00:03:41,194 --> 00:03:44,330
+If they do, we add the new authority TOTP_AUTH_AUTHORITY,
+
+59
+00:03:44,330 --> 00:03:49,568
+which will give the user restricted access to the site.
+
+60
+00:03:49,568 --> 00:03:50,887
+If they don't have two-factor authentication,
+
+61
+00:03:50,887 --> 00:03:55,851
+then we will give them the user role and give them full access to the site.
+
+62
+00:03:55,851 --> 00:03:56,973
+In the Configuration class,
+
+63
+00:03:56,973 --> 00:04:00,952
+we need to give the users with TOTP authentication authority
+
+64
+00:04:00,952 --> 00:04:06,223
+access to the two-factor authentication login page.
+
+65
+00:04:06,223 --> 00:04:10,611
+I will go over roles and authorities in detail in the next modules,
+
+66
+00:04:10,611 --> 00:04:14,705
+but basically, roles are high level, like a user or an admin,
+
+67
+00:04:14,705 --> 00:04:17,777
+and they generally start with the prefix ROLE_.
+
+68
+00:04:17,777 --> 00:04:20,629
+And authorities are more fine-grained.
+
+69
+00:04:20,629 --> 00:04:23,411
+So you can have a user that is assigned different
+
+70
+00:04:23,411 --> 00:04:26,319
+authorities for different resources, etc.
+
+71
+00:04:26,319 --> 00:04:30,194
+Now to challenge users that have the TOTP authority,
+
+72
+00:04:30,194 --> 00:04:34,066
+we could put the verification logic in a controller,
+
+73
+00:04:34,066 --> 00:04:40,250
+but let's try something different and create a filter to do the authentication.
+
+74
+00:04:40,250 --> 00:04:43,900
+This is consistent with how Spring does authentication.
+
+75
+00:04:43,900 --> 00:04:47,673
+The simplest way is to create a class that extends the Spring
+
+76
+00:04:47,673 --> 00:04:51,586
+GenericFilterBean and override the doFilter method.
+
+77
+00:04:51,586 --> 00:04:51,912
+First,
+
+78
+00:04:51,912 --> 00:04:56,359
+let's try to obtain the code from the request and the
+
+79
+00:04:56,359 --> 00:04:59,522
+Authentication object from the security context.
+
+80
+00:04:59,522 --> 00:05:03,690
+If the security code is null, the filter will ignore the request,
+
+81
+00:05:03,690 --> 00:05:06,670
+forwarding it to the next filter in the chain.
+
+82
+00:05:06,670 --> 00:05:07,062
+Otherwise,
+
+83
+00:05:07,062 --> 00:05:12,086
+we check if two-factor authentication is required by checking if the
+
+84
+00:05:12,086 --> 00:05:16,734
+user is authenticated and has the TOTP authority.
+
+85
+00:05:16,734 --> 00:05:22,991
+If the code is valid, we create a copy of the user's current authorities,
+
+86
+00:05:22,991 --> 00:05:27,485
+remove the TOTP authority, and add the user role.
+
+87
+00:05:27,485 --> 00:05:32,404
+We then create a new UsernamePasswordAuthenticationToken as it is immutable,
+
+88
+00:05:32,404 --> 00:05:35,069
+populate it with the new user authorities,
+
+89
+00:05:35,069 --> 00:05:40,144
+and set it in the user context, replacing the old one.
+
+90
+00:05:40,144 --> 00:05:44,596
+We can then redirect the user using the Spring redirectStrategy to the
+
+91
+00:05:44,596 --> 00:05:49,458
+portfolio page as they are now fully authorized to access this site and
+
+92
+00:05:49,458 --> 00:05:52,817
+annotate the filter with the Component annotation.
+
+93
+00:05:52,817 --> 00:05:59,828
+Now to add the filter to the filter chain, we can use the HttpSecurity object.
+
+94
+00:05:59,828 --> 00:06:02,257
+Now there are many ways to add a filter.
+
+95
+00:06:02,257 --> 00:06:04,252
+If you don't care about the order,
+
+96
+00:06:04,252 --> 00:06:09,137
+use the addFilter method or the addFilterBefore or After
+
+97
+00:06:09,137 --> 00:06:13,954
+method if you want to ensure it is before or after a
+
+98
+00:06:13,954 --> 00:06:16,910
+certain filter already in the chain.
+
+99
+00:06:16,910 --> 00:06:22,323
+We will use the addFilterBefore method and configure it so that our
+
+100
+00:06:22,323 --> 00:06:27,121
+filter is before the UsernamePasswordAuthenticationFilter.
+
+101
+00:06:27,121 --> 00:06:28,592
+Now one important thing,
+
+102
+00:06:28,592 --> 00:06:32,123
+if two-factor authentication is enabled and the user
+
+103
+00:06:32,123 --> 00:06:34,742
+authenticates with their credentials,
+
+104
+00:06:34,742 --> 00:06:39,595
+we need to redirect them to the two-factor authentication login page.
+
+105
+00:06:39,595 --> 00:06:40,984
+Hence, in the login filter,
+
+106
+00:06:40,984 --> 00:06:47,155
+there is a succeessForwardUrl property where we can specify the URL path
+
+107
+00:06:47,155 --> 00:06:51,634
+to forward the user after successful authentication.
+
+108
+00:06:51,634 --> 00:06:52,437
+In our case,
+
+109
+00:06:52,437 --> 00:06:55,199
+there are two options depending on whether the user has
+
+110
+00:06:55,199 --> 00:06:57,740
+two- factor authentication enabled.
+
+111
+00:06:57,740 --> 00:07:02,139
+Hence, we need a successHandler instead.
+
+112
+00:07:02,139 --> 00:07:03,220
+Now to create one,
+
+113
+00:07:03,220 --> 00:07:07,777
+you need to implement the AuthenticationSuccessHandler interface
+
+114
+00:07:07,777 --> 00:07:12,248
+and the onAuthenticationSuccess method where you can add the
+
+115
+00:07:12,248 --> 00:07:14,338
+logic to handle a successful login.
+
+116
+00:07:14,338 --> 00:07:15,977
+In this case,
+
+117
+00:07:15,977 --> 00:07:18,927
+we check if the user has two-factor authentication enabled and
+
+118
+00:07:18,927 --> 00:07:22,612
+redirect them to the appropriate location.
+
+119
+00:07:22,612 --> 00:07:25,493
+Okay, let's give this a test.
+
+120
+00:07:25,493 --> 00:07:28,457
+Now as expected, the user is prompted for the code.
+
+121
+00:07:28,457 --> 00:07:33,186
+If they try to access the portfolio page, they are denied.
+
+122
+00:07:33,186 --> 00:07:36,357
+Let's change it so that they are redirected back to the code
+
+123
+00:07:36,357 --> 00:07:39,932
+verification page instead of displaying the error page.
+
+124
+00:07:39,932 --> 00:07:41,335
+In the Configuration class,
+
+125
+00:07:41,335 --> 00:07:47,673
+we can access the exceptions filter with the exceptionHandling builder method.
+
+126
+00:07:47,673 --> 00:07:51,111
+Here you can set the accessDenied page.
+
+127
+00:07:51,111 --> 00:07:54,380
+In our case though, we need to use the accessDeniedHandler,
+
+128
+00:07:54,380 --> 00:07:59,344
+which is simply a class that implements the AccessDeniedHandler
+
+129
+00:07:59,344 --> 00:08:04,265
+interface and implements the handle method.
+
+130
+00:08:04,265 --> 00:08:05,417
+For our demo application,
+
+131
+00:08:05,417 --> 00:08:09,319
+we check if the user requires two-factor authentication.
+
+132
+00:08:09,319 --> 00:08:13,119
+If so, we direct them to the TOTP login page.
+
+133
+00:08:13,119 --> 00:08:17,049
+Otherwise, we will display a generic error page.
+
+134
+00:08:17,049 --> 00:08:20,571
+Okay, let's try this again.
+
+135
+00:08:20,571 --> 00:08:23,018
+We're now redirected back to the code verification page.
+
+136
+00:08:23,018 --> 00:08:28,250
+And if we enter a valid code, we have access to the site.
+
+137
+00:08:28,250 --> 00:08:28,568
+Okay,
+
+138
+00:08:28,568 --> 00:08:32,213
+that was a lot of effort for the user to perform each
+
+139
+00:08:32,213 --> 00:08:35,499
+time they wish to access the site, a password,
+
+140
+00:08:35,499 --> 00:08:39,299
+a pin, and optionally two-factor authentication.
+
+141
+00:08:39,299 --> 00:08:40,456
+Now in the next section,
+
+142
+00:08:40,456 --> 00:08:44,047
+we will look at improving the user experience using the
+
+143
+00:08:44,047 --> 00:08:53,000
+Spring Security's Remember me functionality, which will allow the user to remain authenticated between sessions.
+

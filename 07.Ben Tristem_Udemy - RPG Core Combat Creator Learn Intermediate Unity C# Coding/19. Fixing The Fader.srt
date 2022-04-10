@@ -1,0 +1,551 @@
+1
+00:00:04,700 --> 00:00:05,530
+Hello and welcome.
+
+2
+00:00:05,540 --> 00:00:11,540
+In this lecture we are going to be fixing a pesky feeder bug in which you can easily get stuck with
+
+3
+00:00:11,540 --> 00:00:13,960
+a fader that is completely white.
+
+4
+00:00:14,000 --> 00:00:16,340
+Now currently I have got that fixed.
+
+5
+00:00:16,340 --> 00:00:22,880
+So what should happen is if you go through even if while the fader is still Fading Out you go back through
+
+6
+00:00:22,940 --> 00:00:24,440
+the portal to another level.
+
+7
+00:00:24,440 --> 00:00:28,430
+Then you'll see that the fader still works the fade out is happening very slowly because we wanted to
+
+8
+00:00:28,430 --> 00:00:29,430
+reproduce the bug.
+
+9
+00:00:29,570 --> 00:00:33,770
+Let's dive in and see what that bug is what's causing it and how we can fix it.
+
+10
+00:00:33,830 --> 00:00:39,290
+So before we can fix the shader bug we need to fix another bug which comes about because we haven't
+
+11
+00:00:39,290 --> 00:00:41,390
+got an event system in the second scene.
+
+12
+00:00:41,390 --> 00:00:46,040
+Now if you've already fixed this then you're not gonna be able to reproduce this bug.
+
+13
+00:00:46,040 --> 00:00:49,400
+But if you don't know what I'm talking about then do follow along.
+
+14
+00:00:49,400 --> 00:00:53,150
+First of all I'm going to go ahead and delete my save file to make sure that we're all starting from
+
+15
+00:00:53,150 --> 00:00:56,600
+the same place and maybe go ahead and do the same thing yourself.
+
+16
+00:00:56,600 --> 00:01:04,040
+Now if I go and play and go over in to my second sandbox level then we are going to get an error right
+
+17
+00:01:04,040 --> 00:01:07,850
+off the bat that is saying that there is a null reference here.
+
+18
+00:01:07,850 --> 00:01:13,550
+This interacts with UI call is basically saying this event system not current is null.
+
+19
+00:01:13,550 --> 00:01:15,290
+There is no event system.
+
+20
+00:01:15,290 --> 00:01:21,830
+And the reason for that is that at some point when we added UI in it added an event system into our
+
+21
+00:01:21,830 --> 00:01:25,550
+sandbox level but it didn't do it into all of our levels.
+
+22
+00:01:25,580 --> 00:01:27,470
+So we want this to be in all our levels.
+
+23
+00:01:27,470 --> 00:01:31,480
+The easiest way to do that is to add that to the persistent object prefab.
+
+24
+00:01:31,820 --> 00:01:38,500
+So I'm going to copy the event system and go and find that persistent object prefab and paste it in
+
+25
+00:01:38,510 --> 00:01:40,640
+as a child of that prefab there.
+
+26
+00:01:41,060 --> 00:01:46,190
+Make sure that saved and now we can delete it from our sandbox level because if we go ahead and hit
+
+27
+00:01:46,190 --> 00:01:50,650
+play it will be added in two events system mega.
+
+28
+00:01:50,660 --> 00:01:55,670
+You can see we've loaded into our second season with no problems.
+
+29
+00:01:55,670 --> 00:02:00,860
+So now I want to show you a problem that we're having with the fader that many of you have noticed and
+
+30
+00:02:00,980 --> 00:02:04,120
+I'm going to show you how we can exacerbate this problem first of all.
+
+31
+00:02:04,190 --> 00:02:12,290
+So if I go to my portable prefab and have a look at the object there we've got some failed times and
+
+32
+00:02:12,290 --> 00:02:18,350
+we've got a fade out time and a fade in time and particularly the fade in time is the one I'm interested
+
+33
+00:02:18,350 --> 00:02:23,450
+in I'm going to extend this to 10 seconds to make this bug really really obvious.
+
+34
+00:02:23,450 --> 00:02:31,010
+And if I go ahead and hit play then what we should see is that when we go across to the other level
+
+35
+00:02:31,010 --> 00:02:37,880
+and to the sandbox level then it is fading very very slowly over 10 seconds which is what we would expect.
+
+36
+00:02:38,960 --> 00:02:42,610
+And now this should make the issue really really obvious.
+
+37
+00:02:42,680 --> 00:02:50,630
+If we go over back into sandbox too and while that fade is still happening we go back to sandbox one
+
+38
+00:02:51,260 --> 00:02:57,380
+you will notice that the fade back down doesn't actually finish doesn't occur and we stay get stuck
+
+39
+00:02:57,380 --> 00:02:58,760
+with this white screen.
+
+40
+00:02:58,820 --> 00:03:00,200
+So what is going on here.
+
+41
+00:03:00,200 --> 00:03:06,650
+Well if I close all of my tabs so we've got a clean slate I'm going to show you that in The Fader we
+
+42
+00:03:06,650 --> 00:03:14,990
+have a potential issue What happens if while we are fading in we call fade out.
+
+43
+00:03:14,990 --> 00:03:20,960
+Well both of these code routines will be running at the same time which is problematic because they'll
+
+44
+00:03:20,960 --> 00:03:27,650
+both be trying to increase or decrease the alpha and neither of them will ever finish because they're
+
+45
+00:03:27,650 --> 00:03:29,310
+cancelling out each other.
+
+46
+00:03:29,450 --> 00:03:33,890
+And one of them may win or may not win but they're trying to work against each other.
+
+47
+00:03:33,890 --> 00:03:38,810
+And this while condition will never be true because they'll never get to their target values over time
+
+48
+00:03:39,320 --> 00:03:42,350
+which is sad and not really what we want.
+
+49
+00:03:42,350 --> 00:03:49,880
+So what we do want to do actually is to make sure that when one fate is called any previous fade ins
+
+50
+00:03:49,880 --> 00:03:56,660
+or fade outs that were in progress get canceled that the last one basically gets cancelled and the latest
+
+51
+00:03:56,660 --> 00:04:00,360
+call is always what is going to happen.
+
+52
+00:04:00,680 --> 00:04:09,050
+So we can achieve this by turning this body of fade out in to a car routine that we start here in the
+
+53
+00:04:09,050 --> 00:04:09,380
+fade.
+
+54
+00:04:09,400 --> 00:04:16,520
+So we start the fader car routine in here and we store that car routine and we store the reference to
+
+55
+00:04:16,520 --> 00:04:22,760
+the car routine that's running so that in subsequent calls we can make sure that we cancel it before
+
+56
+00:04:22,760 --> 00:04:23,570
+starting.
+
+57
+00:04:23,600 --> 00:04:25,270
+That's the idea here.
+
+58
+00:04:25,280 --> 00:04:27,290
+So how is that going to work.
+
+59
+00:04:27,290 --> 00:04:32,090
+Well we have to pull out something that we can actually start here.
+
+60
+00:04:32,150 --> 00:04:38,810
+First of all because if I just comment this out for the time being what we want it to look like at the
+
+61
+00:04:38,810 --> 00:04:52,390
+top level is that first of all we cancel any running code routines then we are going to run the fade
+
+62
+00:04:52,870 --> 00:04:54,900
+out code routine and that's it.
+
+63
+00:04:54,910 --> 00:04:56,910
+That's what it should be doing.
+
+64
+00:04:56,920 --> 00:05:03,970
+So the fade out code routine should be doing this bunch of stuff but we know that to start a car routine
+
+65
+00:05:03,970 --> 00:05:11,760
+we have to call start code routine and pass in something that's a is an I in numerator returns and I
+
+66
+00:05:11,760 --> 00:05:12,890
+numerator.
+
+67
+00:05:12,910 --> 00:05:20,890
+So that's what we're going to do as we go to create a new private function that returns in numerator
+
+68
+00:05:22,350 --> 00:05:30,570
+and it is going to be called fade out routine again taking the float time as we have done before and
+
+69
+00:05:30,570 --> 00:05:34,470
+we'll just take that body that's basically going to be and new fade out routine.
+
+70
+00:05:34,620 --> 00:05:41,160
+So basically wrapping that functionality into a car routine and keeping track of the car routine here
+
+71
+00:05:41,160 --> 00:05:42,480
+locally so we can cancel it.
+
+72
+00:05:42,870 --> 00:05:52,680
+So we need to call to fade out routine with our time and notice that start routine actually return something
+
+73
+00:05:52,680 --> 00:05:58,410
+we've rarely done anything with the handled is routine returned here but the return type of start carotene
+
+74
+00:05:58,470 --> 00:06:01,220
+is something called Car routine.
+
+75
+00:06:01,230 --> 00:06:08,190
+So we can store that we can keep a member variable on Fader called Code routine and this can be the
+
+76
+00:06:08,220 --> 00:06:18,140
+currently active fade like so and we're going to set the currently active fade to start car routine.
+
+77
+00:06:18,170 --> 00:06:21,550
+It'll start off as being null though however.
+
+78
+00:06:21,570 --> 00:06:27,930
+So we set the currently active fade like so and that is the first comment done we're starting the car
+
+79
+00:06:27,930 --> 00:06:33,740
+routine but we need to be able to cancel this car routine as well if it exists.
+
+80
+00:06:33,750 --> 00:06:39,100
+So this we're going to do as follows we gonna say if the currently active fade is not.
+
+81
+00:06:39,110 --> 00:06:43,580
+No because we don't want to be doing anything with a no car routine.
+
+82
+00:06:43,580 --> 00:06:47,490
+If it is not now then we want to stop said car routine in its tracks.
+
+83
+00:06:47,490 --> 00:06:53,670
+So current act fade we stopping and then we're going to go ahead and replace it with the new car routine
+
+84
+00:06:53,670 --> 00:06:56,280
+that we're starting that is this fade out routine.
+
+85
+00:06:56,940 --> 00:07:04,830
+And finally because our fade out returns and I in numerator we need to wait for that car routine to
+
+86
+00:07:04,830 --> 00:07:13,860
+finish which is easy because all we have to do is yield return the current active fait so that fixes
+
+87
+00:07:13,860 --> 00:07:17,640
+the issue and is gonna remove the comment it fixes the issue for fade out.
+
+88
+00:07:17,640 --> 00:07:25,610
+Now your challenge is to go ahead and make it work for fade in in exactly the same way pose a video.
+
+89
+00:07:25,620 --> 00:07:27,620
+Have a go OK.
+
+90
+00:07:27,620 --> 00:07:28,130
+Welcome back.
+
+91
+00:07:28,160 --> 00:07:29,600
+So we're going to give this a shot.
+
+92
+00:07:29,660 --> 00:07:33,720
+So the you could just do it by copying and pasting.
+
+93
+00:07:33,830 --> 00:07:39,250
+But what I want to show you is a way that we can make this a little bit less code repetition.
+
+94
+00:07:39,260 --> 00:07:45,620
+So I'm just gonna call this fade out routine just fade routine instead and we're going to have a float
+
+95
+00:07:45,800 --> 00:07:50,410
+target which is going to be our alpha target.
+
+96
+00:07:50,570 --> 00:07:58,190
+And so in our while loop we're basically saying while the alpha target is not approximately equal to
+
+97
+00:07:58,190 --> 00:08:00,470
+this the alpha is not approximately equal to the target.
+
+98
+00:08:00,470 --> 00:08:06,710
+So we've seen approximately equal before it's math f dot approximately like so.
+
+99
+00:08:06,810 --> 00:08:11,210
+So what we're saying is the alpha needs to be approximately equal to the target.
+
+100
+00:08:11,240 --> 00:08:16,510
+While it's not in fact approximately equal to the target that is when we are going to stop.
+
+101
+00:08:16,740 --> 00:08:23,540
+And I also want to do is make it so that we are moving towards our target at all times.
+
+102
+00:08:23,540 --> 00:08:27,710
+Again there's a math f function to this called move towards.
+
+103
+00:08:27,710 --> 00:08:30,320
+And what it takes is the current value.
+
+104
+00:08:30,330 --> 00:08:38,840
+So we can take the alpha as current value and then it takes the target value which is in our case the
+
+105
+00:08:38,870 --> 00:08:43,660
+target here that we've given it and then it takes the max delta.
+
+106
+00:08:43,670 --> 00:08:48,080
+And that max delta is what we've got here is the delta time divided by time.
+
+107
+00:08:48,320 --> 00:08:55,900
+So it will stick that in here and then we can just assign it rather than doing a plus equal just assign
+
+108
+00:08:55,900 --> 00:08:56,800
+it to the alpha.
+
+109
+00:08:57,220 --> 00:09:01,900
+So now this function will work in both directions if we set a target of zero.
+
+110
+00:09:01,990 --> 00:09:07,930
+It is going to move towards zero if we set a target of 1 it's going to move towards 1 it it's going
+
+111
+00:09:07,930 --> 00:09:16,090
+to do this at the delta time divided by time so that now can be used as private routine can be used
+
+112
+00:09:16,180 --> 00:09:18,480
+in both of our fade functions.
+
+113
+00:09:18,490 --> 00:09:22,430
+So I'm going to have a look and see well okay.
+
+114
+00:09:22,470 --> 00:09:25,010
+So now this code is pretty much identical.
+
+115
+00:09:25,070 --> 00:09:31,900
+We need to make sure that we're calling and new fade routine with the target and the time.
+
+116
+00:09:32,110 --> 00:09:40,270
+But we want to actually pull all of this out in to just a simple public function that returns I numerator
+
+117
+00:09:40,300 --> 00:09:48,730
+public I in numerator and it's just going to be fade and it's going to take a again the float target
+
+118
+00:09:49,720 --> 00:09:58,100
+and the time again which is a float like say and that is going to be the body of it.
+
+119
+00:09:58,460 --> 00:09:59,240
+And we can pass.
+
+120
+00:09:59,240 --> 00:10:02,060
+Now we have the target to pass into the routine you see.
+
+121
+00:10:02,150 --> 00:10:07,550
+So this does automatically stop the car routine before going on and that just meant that we didn't have
+
+122
+00:10:07,550 --> 00:10:10,340
+to duplicate this code lots of times.
+
+123
+00:10:10,340 --> 00:10:16,370
+And now in our fade out and fade in all we need to do is return not yield return because the result
+
+124
+00:10:16,370 --> 00:10:19,820
+is going to be an eye numerator of fade.
+
+125
+00:10:20,210 --> 00:10:26,600
+Again with that this time if it's a fade outs we're going to have one and it is long time.
+
+126
+00:10:26,630 --> 00:10:33,950
+So we're targeting one which is maximum alpha so that basically we are completely the fade cameras are
+
+127
+00:10:33,950 --> 00:10:38,720
+completely visible and then fade in is going to Target Zero.
+
+128
+00:10:38,870 --> 00:10:47,750
+So that should now do the trick with less code repetition and also making sure that our Fader does not
+
+129
+00:10:47,750 --> 00:10:52,900
+get stuck like it was getting stuck here so let's jump into the ante and give it a go.
+
+130
+00:10:52,900 --> 00:10:58,250
+If I go across the scene and while it's still fading go try and go back you'll see that it canceled
+
+131
+00:10:58,250 --> 00:11:05,910
+the fade did my fade up and now it's doing the fade down with no problems whatsoever so in review what
+
+132
+00:11:05,910 --> 00:11:11,880
+we have seen in this video is how we can keep track of car routines that are running so that we can
+
+133
+00:11:11,880 --> 00:11:14,940
+cancel them if needs be that's helped us fix the fader.
+
+134
+00:11:15,010 --> 00:11:20,910
+We've also seen how we could merge together our two failed routines and remove some duplicate code by
+
+135
+00:11:20,910 --> 00:11:24,320
+using the math f move towards function.
+
+136
+00:11:24,330 --> 00:11:29,910
+Now there is still some issues that can happen if you go between portals quickly and we're going to
+
+137
+00:11:29,910 --> 00:11:32,750
+deal with that and see what that issue is in the next lecture.
+
+138
+00:11:32,760 --> 00:11:33,160
+See you then.

@@ -1,0 +1,207 @@
+1
+00:00:00,390 --> 00:00:04,820
+In this lecture, I'll be talking a little bit more about services.
+
+2
+00:00:04,910 --> 00:00:06,420
+Pods are very dynamic,
+
+3
+00:00:06,430 --> 00:00:12,750
+they come and go on the Kubernetes cluster. When using a Replication Controller pods are terminated
+
+4
+00:00:12,840 --> 00:00:19,560
+and created during scaling operations. When using deployments, when updating the image version for instance,
+
+5
+00:00:19,740 --> 00:00:23,420
+pods are terminated and new pods take the place of older pods.
+
+6
+00:00:24,550 --> 00:00:31,870
+That's why pods should never be accessed directly, but always through a service. A service is the logical bridge
+
+7
+00:00:31,930 --> 00:00:35,960
+between the "mortal" pods and other services or end-users.
+
+8
+00:00:37,160 --> 00:00:44,240
+When using the "kubectl expose" command earlier, you created a new service for your pod,
+
+9
+00:00:44,330 --> 00:00:45,240
+so that it could be accessed externally.
+
+10
+00:00:46,330 --> 00:00:50,690
+Creating a new service will create an endpoint for your pods.
+
+11
+00:00:50,770 --> 00:00:57,070
+You can either use a "ClusterIP", which is a virtual IP only reachable from within the cluster.
+
+12
+00:00:57,070 --> 00:00:58,310
+This is the default.
+
+13
+00:00:58,870 --> 00:01:04,100
+Or you can use a "NodePort" and that is a port that is the same on each node that is also reachable externally.
+
+14
+00:01:04,270 --> 00:01:08,480
+If you want to reach a pod externally this is what you need.
+
+15
+00:01:08,680 --> 00:01:14,830
+Or you can go for a "LoadBalancer" and this is used for production applications
+
+16
+00:01:15,070 --> 00:01:16,230
+on the cloud.
+
+17
+00:01:16,320 --> 00:01:23,230
+A LoadBalancer is created by the cloud provider that will route external traffic to 
+
+18
+00:01:23,230 --> 00:01:24,570
+every node on the node port.
+
+19
+00:01:24,580 --> 00:01:26,060
+I showed you how this works.
+
+20
+00:01:26,110 --> 00:01:34,000
+I did it using ELB, Elastic Load Balancer on AWS. The options that I just showed you,
+
+21
+00:01:34,000 --> 00:01:37,840
+allow you to create virtual IPs or ports.
+
+22
+00:01:37,930 --> 00:01:45,340
+There is also a possibility to use DNS names. If you use external name in servers definition,
+
+23
+00:01:45,410 --> 00:01:54,910
+you can provide a DNS name for the service. For instance, for service discovery using DNS. 
+
+24
+00:01:55,000 --> 00:01:57,520
+This only works when the DNS add-on is enabled.
+
+25
+00:01:57,520 --> 00:02:04,180
+I will discuss this later in a separate lecture and we'll talk about service discovery and we will also talk about this DNS add-on.
+
+26
+00:02:04,270 --> 00:02:11,090
+This is an example of a service definition,
+
+27
+00:02:11,390 --> 00:02:18,260
+it could also create the same service using "kubectl expose", it does the same thing. 
+
+28
+00:02:18,340 --> 00:02:19,130
+It has the "apiVersion: v1",
+
+29
+00:02:19,370 --> 00:02:22,120
+the "kind: Service",
+
+30
+00:02:22,160 --> 00:02:27,260
+it has name, the name is, "helloworld-service", and in specification we are going to define the ports.
+
+31
+00:02:27,470 --> 00:02:31,830
+So, the Port we're going to use is 31001
+
+32
+00:02:32,210 --> 00:02:33,850
+and it's going to be "NodePort".
+
+33
+00:02:34,040 --> 00:02:37,270
+So, we see at the bottom here, this service is of "type: NodePort".
+
+34
+00:02:37,270 --> 00:02:42,070
+The target port is the "nodejs-port",
+
+35
+00:02:42,100 --> 00:02:46,280
+so this name "nodejs-port" I defined in my pod and it is Port 30000.
+
+36
+00:02:46,500 --> 00:02:50,660
+The protocol is DCP and the selector is "app: helloworld".
+
+37
+00:02:50,660 --> 00:02:53,830
+So, this will be the service for the pod 
+
+38
+00:02:53,910 --> 00:02:55,790
+that has the label "helloworld"
+
+39
+00:02:55,790 --> 00:02:57,750
+You don't have to specify this "nodePort".
+
+40
+00:02:57,770 --> 00:03:03,860
+If you don't specify it, then it will be a random port, if you specify it, then this port will be used
+
+41
+00:03:04,070 --> 00:03:07,600
+but this service can only be created if this port is still available.
+
+42
+00:03:07,640 --> 00:03:10,320
+So, you will have to manage port collisions yourself.
+
+43
+00:03:11,370 --> 00:03:18,620
+Also note that by default services can only run 
+
+44
+00:03:18,620 --> 00:03:19,980
+between ports 30000 and 32767,
+
+45
+00:03:20,390 --> 00:03:25,260
+But, you could change the behavior by ending the "--service-node-port-range" argument to the "kube-apiserver".
+
+46
+00:03:25,260 --> 00:03:33,200
+"kube-apiserver" is a process that starts in the init scripts of your master nodes,
+
+47
+00:03:33,200 --> 00:03:40,000
+you could change this "--service-node-port-range", if you would want another range for ports.
+
+48
+00:03:40,010 --> 00:03:46,130
+You would then have to make sure that you don't have collisions with ports that are already used on
+
+49
+00:03:46,220 --> 00:03:47,510
+the note.
+
+50
+00:03:47,510 --> 00:03:52,880
+Typically, this is already a good setting, what you are going to do is, if let's say, you want to use a default
+
+51
+00:03:52,910 --> 00:03:57,210
+HTTP port, then you are going to put an AWS load balancer in front of it.
+
+52
+00:03:58,320 --> 00:04:02,670
+In the next demo I'm going to create this service of "type: NodePort".

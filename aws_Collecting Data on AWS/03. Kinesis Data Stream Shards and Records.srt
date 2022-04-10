@@ -1,0 +1,528 @@
+1
+00:00:00,940 --> 00:00:03,380
+Now that we know more about Kinesis data streams,
+
+2
+00:00:03,380 --> 00:00:06,440
+let's look at how these different concepts come together.
+
+3
+00:00:06,440 --> 00:00:09,440
+Let's try to visualize some of these concepts. First,
+
+4
+00:00:09,440 --> 00:00:11,610
+for every stream, we'll need a producer.
+
+5
+00:00:11,610 --> 00:00:12,380
+In this case,
+
+6
+00:00:12,380 --> 00:00:16,160
+we might have something like the Kinesis agent producer that takes server logs
+
+7
+00:00:16,160 --> 00:00:19,080
+and sends them into a kinesis data stream from the server,
+
+8
+00:00:19,080 --> 00:00:21,790
+this agent would bundle up the records and then send
+
+9
+00:00:21,790 --> 00:00:23,840
+them over to a kinesis data stream.
+
+10
+00:00:23,840 --> 00:00:25,030
+Behind the scenes,
+
+11
+00:00:25,030 --> 00:00:28,240
+the kinesis data stream will have one or more shards that actually store
+
+12
+00:00:28,240 --> 00:00:32,280
+the data and make it available to consumers and an application using the
+
+13
+00:00:32,280 --> 00:00:35,540
+AWS SDKs could then pick these records up.
+
+14
+00:00:35,540 --> 00:00:37,300
+Now, when the records come in,
+
+15
+00:00:37,300 --> 00:00:39,620
+they'll be distributed between the different shards,
+
+16
+00:00:39,620 --> 00:00:42,020
+depending on some characteristics of the record that
+
+17
+00:00:42,020 --> 00:00:43,930
+we'll talk about a little later.
+
+18
+00:00:43,930 --> 00:00:46,430
+Now, once the data is inside of the shards,
+
+19
+00:00:46,430 --> 00:00:49,950
+it could be read by something like the AWS SDKs.
+
+20
+00:00:49,950 --> 00:00:53,540
+Now it's not going to actually remove the data from the shards,
+
+21
+00:00:53,540 --> 00:00:56,840
+and this is pretty important because other consumers might want to come back
+
+22
+00:00:56,840 --> 00:01:01,540
+and reference that data later on. Kinesis data streams can also be read by
+
+23
+00:01:01,540 --> 00:01:04,530
+multiple consumers and consumers of different types.
+
+24
+00:01:04,530 --> 00:01:06,650
+So in addition to the AWS SDK,
+
+25
+00:01:06,650 --> 00:01:10,690
+we might have another application using something like the client library
+
+26
+00:01:10,690 --> 00:01:13,440
+in order to interact with the same kinesis data stream.
+
+27
+00:01:13,440 --> 00:01:15,780
+Now these different applications have the ability to start
+
+28
+00:01:15,780 --> 00:01:17,790
+reading data at different points in time.
+
+29
+00:01:17,790 --> 00:01:18,660
+For example,
+
+30
+00:01:18,660 --> 00:01:21,800
+the client library application might want to read all the data in the
+
+31
+00:01:21,800 --> 00:01:25,990
+stream currently, but the AWS SDK application that we just had might
+
+32
+00:01:25,990 --> 00:01:29,380
+not have cared about data that was already of a certain age, so these
+
+33
+00:01:29,380 --> 00:01:32,970
+older records here were going into our client library application, but
+
+34
+00:01:32,970 --> 00:01:36,130
+weren't being picked up by our other application with the AWS SDK.
+
+35
+00:01:36,130 --> 00:01:41,050
+Importantly, however, for any consumer/producer combination,
+
+36
+00:01:41,050 --> 00:01:44,120
+the data that lives inside of a kinesis data stream is only
+
+37
+00:01:44,120 --> 00:01:47,880
+around as long as the retention period for that stream. By
+
+38
+00:01:47,880 --> 00:01:50,150
+default, this period is 24 hours,
+
+39
+00:01:50,150 --> 00:01:54,500
+but it can be extended for as long as 7 days, and when that period is hit,
+
+40
+00:01:54,500 --> 00:01:58,040
+the data will eventually be removed from the kinesis data stream
+
+41
+00:01:58,040 --> 00:02:00,820
+and this will happen for all of the records that hit that agent
+
+42
+00:02:00,820 --> 00:02:03,180
+inside of the stream. Past that point,
+
+43
+00:02:03,180 --> 00:02:06,580
+you won't be able to have your applications access those records.
+
+44
+00:02:06,580 --> 00:02:08,730
+So now that we understand some of the high‑level
+
+45
+00:02:08,730 --> 00:02:11,110
+concepts surrounding kinesis data streams,
+
+46
+00:02:11,110 --> 00:02:14,770
+let's look more closely at some of these concepts.
+
+47
+00:02:14,770 --> 00:02:18,150
+Let's look more closely at the data records and what's inside of them.
+
+48
+00:02:18,150 --> 00:02:20,510
+All data records have a sequence number,
+
+49
+00:02:20,510 --> 00:02:24,620
+which is used to determine the position and order of a record within a stream.
+
+50
+00:02:24,620 --> 00:02:27,180
+These numbers are unique within a shard and assigned
+
+51
+00:02:27,180 --> 00:02:29,120
+when the record is put into that shard.
+
+52
+00:02:29,120 --> 00:02:31,540
+Data records also have a partition key,
+
+53
+00:02:31,540 --> 00:02:35,380
+which helps determine which shard inside of a kinesis data stream they
+
+54
+00:02:35,380 --> 00:02:38,900
+should be placed in and also helps group data by shard.
+
+55
+00:02:38,900 --> 00:02:41,030
+There is also a data blob,
+
+56
+00:02:41,030 --> 00:02:44,400
+which contains the raw data itself for the record. This can
+
+57
+00:02:44,400 --> 00:02:47,490
+be data in a variety of formats as long as they're within the
+
+58
+00:02:47,490 --> 00:02:50,840
+data blob size limit of 1 MB.
+
+59
+00:02:50,840 --> 00:02:54,580
+Now, let's take a look at some of the limitations around kinesis data streams.
+
+60
+00:02:54,580 --> 00:02:55,290
+First,
+
+61
+00:02:55,290 --> 00:03:00,140
+there is a total record size limit of 1 MB for the data blob inside of a record.
+
+62
+00:03:00,140 --> 00:03:03,350
+This applies to all the content inside of the data blob itself.
+
+63
+00:03:03,350 --> 00:03:07,690
+but not the sequence number or the partition key that are included for us.
+
+64
+00:03:07,690 --> 00:03:11,130
+AWS accounts can have any number of streams inside the account.
+
+65
+00:03:11,130 --> 00:03:11,550
+However,
+
+66
+00:03:11,550 --> 00:03:15,010
+since each kinesis data stream must have at least one shard when
+
+67
+00:03:15,010 --> 00:03:18,180
+created, the number of streams will be bound by the current
+
+68
+00:03:18,180 --> 00:03:20,710
+limitations around the number of shards.
+
+69
+00:03:20,710 --> 00:03:24,620
+By default, there is a soft limit of 200 to 500 shards,
+
+70
+00:03:24,620 --> 00:03:26,920
+depending on the AWS region you're using.
+
+71
+00:03:26,920 --> 00:03:27,300
+However,
+
+72
+00:03:27,300 --> 00:03:32,040
+you can request that these limitations be increased if you need more capacity.
+
+73
+00:03:32,040 --> 00:03:34,800
+The default data retention length for data stored in streams
+
+74
+00:03:34,800 --> 00:03:38,830
+is 24 hours, but as I mentioned before, for a little bit of extra cost,
+
+75
+00:03:38,830 --> 00:03:42,540
+you can expand it as far as 7 days.
+
+76
+00:03:42,540 --> 00:03:46,340
+Shards have limitations that determine how many records and of what size
+
+77
+00:03:46,340 --> 00:03:50,660
+can be written or read from a stream in a given period. To start, shards
+
+78
+00:03:50,660 --> 00:03:53,930
+can ingest 1 MB of data per second, however,
+
+79
+00:03:53,930 --> 00:03:57,310
+they're are also bound to 1,000 records ingested per second.
+
+80
+00:03:57,310 --> 00:04:01,650
+In cases when you have many thousands of smaller records that fit within 1 MB,
+
+81
+00:04:01,650 --> 00:04:04,610
+using something like the Kinesis producer library to aggregate the
+
+82
+00:04:04,610 --> 00:04:08,570
+records helps optimize around these limitations by bundling multiple
+
+83
+00:04:08,570 --> 00:04:11,800
+records in tow one before sending them into kinesis.
+
+84
+00:04:11,800 --> 00:04:14,370
+Now when it comes to a reading data from a stream,
+
+85
+00:04:14,370 --> 00:04:20,100
+each shard allows 2 mbps of reads and each shard also allows up to 5
+
+86
+00:04:20,100 --> 00:04:23,490
+transactions per second that are read transactions.
+
+87
+00:04:23,490 --> 00:04:26,920
+Now each read transaction can be up to 10 MB in size
+
+88
+00:04:26,920 --> 00:04:29,820
+and contain up to 10,000 records.
+
+89
+00:04:29,820 --> 00:04:34,640
+And if using a large read transaction above the 2 mbps limit,
+
+90
+00:04:34,640 --> 00:04:37,190
+future requests to the stream will be denied until
+
+91
+00:04:37,190 --> 00:04:39,480
+your capacity catches back up.
+
+92
+00:04:39,480 --> 00:04:39,600
+Now,
+
+93
+00:04:39,600 --> 00:04:43,390
+these limits help indicate an important distinction of kinesis data streams to
+
+94
+00:04:43,390 --> 00:04:47,800
+other tools, generally, that kinesis data streams is designed to help support
+
+95
+00:04:47,800 --> 00:04:53,830
+multiple consumers and read larger volumes of data than you write to the stream.
+
+96
+00:04:53,830 --> 00:04:58,620
+Kinesis data streams shards are also directly related to how capacity is scaled
+
+97
+00:04:58,620 --> 00:05:00,600
+up and down within a stream.
+
+98
+00:05:00,600 --> 00:05:02,870
+When you want to adjust the capacity of a stream,
+
+99
+00:05:02,870 --> 00:05:06,390
+you have the ability to use a process called resharding.
+
+100
+00:05:06,390 --> 00:05:09,820
+This process allows you to either split or merge a shard.
+
+101
+00:05:09,820 --> 00:05:13,430
+When you split a shard, it separates it into two shards,
+
+102
+00:05:13,430 --> 00:05:15,620
+each with their own capacity that's applied to the
+
+103
+00:05:15,620 --> 00:05:18,520
+entire kinesis data stream and added up.
+
+104
+00:05:18,520 --> 00:05:21,090
+This increases the overall capacity of the kinesis data
+
+105
+00:05:21,090 --> 00:05:24,280
+stream. Contrastingly, when you merge shards,
+
+106
+00:05:24,280 --> 00:05:27,810
+this decreases the overall capacity of the stream. Because
+
+107
+00:05:27,810 --> 00:05:30,230
+the number of shards directly correlates to the price you
+
+108
+00:05:30,230 --> 00:05:31,970
+pay for kinesis data streams,
+
+109
+00:05:31,970 --> 00:05:34,940
+increases or decreases to the number of shards in a stream
+
+110
+00:05:34,940 --> 00:05:37,860
+also has the same impact on the price you pay for the
+
+111
+00:05:37,860 --> 00:05:40,340
+overall capacity of that stream.
+
+112
+00:05:40,340 --> 00:05:43,390
+So let's visualize kinesis data streams one more time,
+
+113
+00:05:43,390 --> 00:05:46,620
+this time looking at shards, producers, and consumers.
+
+114
+00:05:46,620 --> 00:05:50,450
+Now let's say we have a producer that's sending data over to our kinesis
+
+115
+00:05:50,450 --> 00:05:53,930
+data stream. This will go immediately into a shard,
+
+116
+00:05:53,930 --> 00:05:55,870
+and as we add more and more data,
+
+117
+00:05:55,870 --> 00:06:00,340
+it'll be stored inside of that shard where consumers can access it
+
+118
+00:06:00,340 --> 00:06:04,430
+and these consumers can access individual pieces of the data or the
+
+119
+00:06:04,430 --> 00:06:06,450
+entire data set that's in our shard.
+
+120
+00:06:06,450 --> 00:06:10,290
+And we can set up multiple consumers to do this at the same time,
+
+121
+00:06:10,290 --> 00:06:12,710
+maybe two different applications that each have their
+
+122
+00:06:12,710 --> 00:06:15,610
+own use cases for our organization.
+
+123
+00:06:15,610 --> 00:06:17,990
+We could also keep adding producers that continue to
+
+124
+00:06:17,990 --> 00:06:20,930
+add additional data to our shard, but at that point,
+
+125
+00:06:20,930 --> 00:06:23,820
+we might hit the capacity limits of our shards
+
+126
+00:06:23,820 --> 00:06:25,710
+inside of our kinesis data stream.
+
+127
+00:06:25,710 --> 00:06:30,490
+So we would need to then take our shard and split the shard into multiple
+
+128
+00:06:30,490 --> 00:06:33,850
+shards to improve the capacity that we have in our stream.
+
+129
+00:06:33,850 --> 00:06:34,890
+Now, when we do this,
+
+130
+00:06:34,890 --> 00:06:38,080
+the data inside these shards is going to be split between them,
+
+131
+00:06:38,080 --> 00:06:42,090
+and the consumers will still be accessing the kinesis data stream, but they'll
+
+132
+00:06:42,090 --> 00:06:49,000
+also have to determine how they want to interact with these shards individually if they're looking for one kind of data or another.
+

@@ -1,0 +1,468 @@
+1
+00:00:00,740 --> 00:00:03,040
+When you're working with many AWS services,
+
+2
+00:00:03,040 --> 00:00:05,800
+CloudWatch alarms may be created for you.
+
+3
+00:00:05,800 --> 00:00:09,710
+A great example is the auto scaling group we configured. With
+
+4
+00:00:09,710 --> 00:00:14,360
+target tracking enabled, AWS created two CloudWatch alarms, one
+
+5
+00:00:14,360 --> 00:00:16,840
+to scale up and one to scale down.
+
+6
+00:00:16,840 --> 00:00:19,690
+But sometimes there are specific things we care about that we want to
+
+7
+00:00:19,690 --> 00:00:23,650
+manually create CloudWatch alarms for. In that case,
+
+8
+00:00:23,650 --> 00:00:27,540
+there are hundreds of different metrics for different services that
+
+9
+00:00:27,540 --> 00:00:31,860
+CloudWatch lets us set alarms on. In this clip, we're going to set an
+
+10
+00:00:31,860 --> 00:00:37,450
+alarm on our load balancer to send a notification to our SNS topic if
+
+11
+00:00:37,450 --> 00:00:40,480
+the healthy hosts fall below 1.
+
+12
+00:00:40,480 --> 00:00:42,890
+This basically means if something happens to our
+
+13
+00:00:42,890 --> 00:00:45,950
+application instance and it stops responding,
+
+14
+00:00:45,950 --> 00:00:48,140
+we should get a text message.
+
+15
+00:00:48,140 --> 00:00:52,640
+All of these details will be wrapped up in a single CloudWatch alarm.
+
+16
+00:00:52,640 --> 00:00:57,900
+We'll create this alarm using the create‑cloudwatch‑alarm.js file in
+
+17
+00:00:57,900 --> 00:01:03,370
+the scripts\ module_09 folder. You can probably get a hint that this
+
+18
+00:01:03,370 --> 00:01:06,170
+function will need a lot of params.
+
+19
+00:01:06,170 --> 00:01:10,000
+We'll start by filling in these TODOs for variables.
+
+20
+00:01:10,000 --> 00:01:13,340
+Go ahead and add your region on line 4,
+
+21
+00:01:13,340 --> 00:01:17,520
+then online 9 we need that SNS topicArn again.
+
+22
+00:01:17,520 --> 00:01:20,700
+I'm thinking that by now you might not have access to it
+
+23
+00:01:20,700 --> 00:01:23,870
+on the command line anymore, so I'll show you where you
+
+24
+00:01:23,870 --> 00:01:26,740
+can find it in the AWS console.
+
+25
+00:01:26,740 --> 00:01:32,580
+Go to your web browser and the AWS console, then to the SNS dashboard.
+
+26
+00:01:32,580 --> 00:01:35,500
+Click on the Topics menu option on the left.
+
+27
+00:01:35,500 --> 00:01:40,740
+Then you should see your topic there with the ARN in the right‑hand column.
+
+28
+00:01:40,740 --> 00:01:45,140
+Copy that value and then paste it in the string on line 9.
+
+29
+00:01:45,140 --> 00:01:45,420
+Next,
+
+30
+00:01:45,420 --> 00:01:50,060
+we need to get a part of the Target Group ARN and Load Balancer group ARN
+
+31
+00:01:50,060 --> 00:01:53,840
+that we created towards the beginning of this course.
+
+32
+00:01:53,840 --> 00:01:58,360
+Head back to the AWS console and go to the EC2 dashboard this
+
+33
+00:01:58,360 --> 00:02:03,540
+time. In the left‑hand menu at the bottom, select Target Groups.
+
+34
+00:02:03,540 --> 00:02:07,140
+Select the target group named hamsterTG,
+
+35
+00:02:07,140 --> 00:02:11,450
+and then we'll select a part of the ARN. Select from
+
+36
+00:02:11,450 --> 00:02:16,540
+targetgroup/hamsterTG all the way to the end.
+
+37
+00:02:16,540 --> 00:02:20,460
+This is all that CloudWatch will use. Now, switch back to your
+
+38
+00:02:20,460 --> 00:02:24,540
+code and paste that in the string on line 10.
+
+39
+00:02:24,540 --> 00:02:28,240
+We've got one more, and that's for the load balancer.
+
+40
+00:02:28,240 --> 00:02:32,540
+Back in the EC2 dashboard, select the Load Balancers menu option.
+
+41
+00:02:32,540 --> 00:02:36,440
+Select the entry named hamsterELB.
+
+42
+00:02:36,440 --> 00:02:44,090
+In the ARN value, select everything from app/hamsterELB to the end and copy it.
+
+43
+00:02:44,090 --> 00:02:48,640
+Then back in your code paste that value in the string on line 9.
+
+44
+00:02:48,640 --> 00:02:50,820
+Now that we have all those values completed,
+
+45
+00:02:50,820 --> 00:02:55,740
+we can get started on implementing the create‑cloudwatch‑alarm function.
+
+46
+00:02:55,740 --> 00:02:58,980
+First, create the params const object.
+
+47
+00:02:58,980 --> 00:03:03,240
+We've got quite a few parameters here in no particular order.
+
+48
+00:03:03,240 --> 00:03:06,590
+First add the property AlarmName, which can have the
+
+49
+00:03:06,590 --> 00:03:09,900
+value of the alarmName function argument.
+
+50
+00:03:09,900 --> 00:03:14,170
+This will be the alarm's identifier in CloudWatch.
+
+51
+00:03:14,170 --> 00:03:17,790
+The next property is ComparisonOperator, and the value
+
+52
+00:03:17,790 --> 00:03:21,580
+will be the string LessThanThreshold.
+
+53
+00:03:21,580 --> 00:03:24,340
+This is the check the alarm will do.
+
+54
+00:03:24,340 --> 00:03:26,770
+We want it to see when the healthy hosts for the
+
+55
+00:03:26,770 --> 00:03:28,980
+load balancer are less than one.
+
+56
+00:03:28,980 --> 00:03:32,030
+That's why we chose LessThanThreshold here,
+
+57
+00:03:32,030 --> 00:03:37,340
+as opposed to GreaterThanThreshold. We'll define the threshold below.
+
+58
+00:03:37,340 --> 00:03:42,940
+Next, add the property EvaluationPeriods and give it the value of 1.
+
+59
+00:03:42,940 --> 00:03:45,610
+This lets you define how many periods should the value be
+
+60
+00:03:45,610 --> 00:03:48,180
+less than the threshold. In our case,
+
+61
+00:03:48,180 --> 00:03:53,240
+we want to know immediately, so we'll set this to 1.
+
+62
+00:03:53,240 --> 00:03:56,180
+The next property is MetricName, which we'll assign
+
+63
+00:03:56,180 --> 00:03:59,040
+to the string HealthyHostCount.
+
+64
+00:03:59,040 --> 00:04:00,800
+There are tons of these metrics,
+
+65
+00:04:00,800 --> 00:04:04,550
+but this one gives us the correct analytics for the load balancer
+
+66
+00:04:04,550 --> 00:04:10,160
+hosts. The next property namespace refers to the AWS service that
+
+67
+00:04:10,160 --> 00:04:14,090
+the metric is a part of. The value for this is a string with the
+
+68
+00:04:14,090 --> 00:04:19,270
+value AWS/ApplicationELB.
+
+69
+00:04:19,270 --> 00:04:21,970
+The next property is Period, which works with the
+
+70
+00:04:21,970 --> 00:04:24,720
+above EvaluationPeriods property.
+
+71
+00:04:24,720 --> 00:04:29,540
+This is how long a period should be defined as in your alarm.
+
+72
+00:04:29,540 --> 00:04:34,640
+The typical length is 5 minutes, but I prefer 1 minute for this.
+
+73
+00:04:34,640 --> 00:04:39,080
+This value should be in seconds, so enter the number 60.
+
+74
+00:04:39,080 --> 00:04:41,230
+Next is the Threshold property.
+
+75
+00:04:41,230 --> 00:04:41,830
+In our case,
+
+76
+00:04:41,830 --> 00:04:46,840
+this is the number of healthy hosts that are okay. We'll enter 1 here
+
+77
+00:04:46,840 --> 00:04:51,530
+since we want the alarm to cry if it's less than 1. This property is
+
+78
+00:04:51,530 --> 00:04:55,140
+directly tied to the ComparisonOperator above.
+
+79
+00:04:55,140 --> 00:05:00,940
+You'll notice it says LessThanThreshold, and this is the Threshold property.
+
+80
+00:05:00,940 --> 00:05:05,440
+The next property is AlarmActions, and it has a value of an array.
+
+81
+00:05:05,440 --> 00:05:10,140
+This will basically be the actions the alarm takes when it's triggered.
+
+82
+00:05:10,140 --> 00:05:13,940
+Enter the topicArn function argument here.
+
+83
+00:05:13,940 --> 00:05:18,910
+The fact that this is an SNS topic tells the alarm all it needs to know,
+
+84
+00:05:18,910 --> 00:05:23,040
+and it will publish an alarm to the notification topic.
+
+85
+00:05:23,040 --> 00:05:27,190
+The next property is Dimensions with the value of an array.
+
+86
+00:05:27,190 --> 00:05:31,260
+This is where you specify exactly which resources the alarm should
+
+87
+00:05:31,260 --> 00:05:35,800
+gather metrics from. For HealthyHost, we'll need to enter both the
+
+88
+00:05:35,800 --> 00:05:39,640
+target group and load balancer resources here.
+
+89
+00:05:39,640 --> 00:05:40,830
+Create an object,
+
+90
+00:05:40,830 --> 00:05:46,840
+then add the property Name with the value of TargetGroup as a string.
+
+91
+00:05:46,840 --> 00:05:49,980
+The other property of this object is Value with the
+
+92
+00:05:49,980 --> 00:05:53,940
+value as the tg function argument.
+
+93
+00:05:53,940 --> 00:05:57,910
+Now we'll make another object in this array. The Name property and this
+
+94
+00:05:57,910 --> 00:06:02,670
+one will be LoadBalancer, and the Value property will be the lb
+
+95
+00:06:02,670 --> 00:06:07,850
+function argument. Now outside the Dimensions array, add the Statistic
+
+96
+00:06:07,850 --> 00:06:12,910
+property and give it the value of Average. Other possible options here
+
+97
+00:06:12,910 --> 00:06:18,020
+are Minimum, Maximum, Sum, and SampleCount. Minimum would probably also
+
+98
+00:06:18,020 --> 00:06:23,740
+work for our purposes here. And the final property is TreatMissingData.
+
+99
+00:06:23,740 --> 00:06:28,190
+This property defines what the alarm should do if it is missing appropriate
+
+100
+00:06:28,190 --> 00:06:33,070
+metric data. We'll add the string breaching here as the value.
+
+101
+00:06:33,070 --> 00:06:37,840
+This means that if there is missing data, it should trigger the alarm.
+
+102
+00:06:37,840 --> 00:06:42,390
+Other possible options are ignore, not breaching or missing.
+
+103
+00:06:42,390 --> 00:06:47,340
+The reason we're putting breaching here is because if you reach 0 healthy hosts
+
+104
+00:06:47,340 --> 00:06:51,490
+on your load balancer, instead of the metric coming in as 0,
+
+105
+00:06:51,490 --> 00:06:53,410
+it comes in as missing.
+
+106
+00:06:53,410 --> 00:06:56,830
+So for us, a missing value here basically equals 0,
+
+107
+00:06:56,830 --> 00:07:00,240
+thus we want the alarm to fire.
+
+108
+00:07:00,240 --> 00:07:04,575
+Now we can create the alarm, so inside the function call the
+
+109
+00:07:04,575 --> 00:07:10,280
+cw.putMetricAlarm function, passing in params as the first argument and a
+
+110
+00:07:10,280 --> 00:07:14,640
+callback function with err and data arguments as the second.
+
+111
+00:07:14,640 --> 00:07:18,180
+If there's an err object, then call reject and pass it in.
+
+112
+00:07:18,180 --> 00:07:21,140
+Otherwise, call resolve with the data argument,
+
+113
+00:07:21,140 --> 00:07:24,530
+and that is all we'll need to create our alarm.
+
+114
+00:07:24,530 --> 00:07:27,700
+Let's run the file by switching over to your command line and
+
+115
+00:07:27,700 --> 00:07:32,540
+executing node create‑cloudwatch‑alarm.js.
+
+116
+00:07:32,540 --> 00:07:35,490
+You should get some output when it's complete, and now your
+
+117
+00:07:35,490 --> 00:07:44,000
+CloudWatch alarm is configured to alert your hamster topic whenever your load balancer goes below one healthy host.
+

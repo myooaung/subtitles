@@ -1,0 +1,501 @@
+WEBVTT
+1
+00:00:02.119 --> 00:00:04.686
+With the Spring Batch plumbing configured,
+
+2
+00:00:04.686 --> 00:00:06.601
+including the JobRepository and JobLauncher,
+
+3
+00:00:06.601 --> 00:00:10.698
+we have everything we need to support creating and executing a job.
+
+4
+00:00:10.698 --> 00:00:16.534
+I'm going to create a job as a Spring bean in a Configuration class.
+
+5
+00:00:16.534 --> 00:00:19.562
+Note that I'm adding the JobConfiguration in a new
+
+6
+00:00:19.562 --> 00:00:21.201
+Configuration class named BatchJobConfiguration.
+
+7
+00:00:21.201 --> 00:00:28.694
+To create the job, I'll be using Spring Batch's JobBuilderFactory.
+
+8
+00:00:28.694 --> 00:00:33.452
+The JobBuilderFactory class is a factory for getting a type of builder.
+
+9
+00:00:33.452 --> 00:00:37.221
+In our case, we're going to use a simple JobBuilder.
+
+10
+00:00:37.221 --> 00:00:39.460
+There's also a JobFlowBuilder; however,
+
+11
+00:00:39.460 --> 00:00:43.043
+flows are outside the scope of this course.
+
+12
+00:00:43.043 --> 00:00:45.885
+The SimpleJobBuilder class then provides a DSL for
+
+13
+00:00:45.885 --> 00:00:47.975
+defining how the job is constructed.
+
+14
+00:00:47.975 --> 00:00:51.047
+We're going to use two methods on this builder.
+
+15
+00:00:51.047 --> 00:00:54.295
+The first will define the starting step of the job,
+
+16
+00:00:54.295 --> 00:00:57.581
+and the second will perform the actual construction of
+
+17
+00:00:57.581 --> 00:01:00.277
+a job bean that can be executed.
+
+18
+00:01:00.277 --> 00:01:04.758
+Here I'm showing the code that will be implemented to return the job bean.
+
+19
+00:01:04.758 --> 00:01:07.517
+I'm using the JobBuilderFactory to create a job
+
+20
+00:01:07.517 --> 00:01:10.512
+builder using the name of the batch job.
+
+21
+00:01:10.512 --> 00:01:13.744
+Note that the JobRepository I defined earlier will
+
+22
+00:01:13.744 --> 00:01:16.098
+also be configured for the builder.
+
+23
+00:01:16.098 --> 00:01:16.490
+Next,
+
+24
+00:01:16.490 --> 00:01:21.918
+a validation check is included for checking the validity of the job parameters.
+
+25
+00:01:21.918 --> 00:01:23.990
+I'm going to cover that next.
+
+26
+00:01:23.990 --> 00:01:27.442
+Then the start method is called on the job builder.
+
+27
+00:01:27.442 --> 00:01:30.560
+This defines the starting step for the job.
+
+28
+00:01:30.560 --> 00:01:33.167
+I'll define this step a little later, but for now,
+
+29
+00:01:33.167 --> 00:01:37.628
+I'll just assume it's available and inject it into the method call.
+
+30
+00:01:37.628 --> 00:01:42.653
+Finally, the build method is called on the JobBuilder to construct the job.
+
+31
+00:01:42.653 --> 00:01:46.112
+Let's look closer at the validation call I made.
+
+32
+00:01:46.112 --> 00:01:48.130
+When you start the execution of a job,
+
+33
+00:01:48.130 --> 00:01:53.137
+you define any number of input parameters you need to support processing.
+
+34
+00:01:53.137 --> 00:01:57.814
+For the demo, I want to load patient data in batch from a file.
+
+35
+00:01:57.814 --> 00:02:01.691
+As you know, any number of things could go wrong with this scenario.
+
+36
+00:02:01.691 --> 00:02:05.573
+The file may not exist, the directory for the file may not exist,
+
+37
+00:02:05.573 --> 00:02:08.281
+the file may not have the right permissions,
+
+38
+00:02:08.281 --> 00:02:10.312
+heck, the file may be corrupt.
+
+39
+00:02:10.312 --> 00:02:13.921
+Spring Batch provides a JobParametersValidator interface where you can
+
+40
+00:02:13.921 --> 00:02:18.386
+define any validation logic you want for your implementation.
+
+41
+00:02:18.386 --> 00:02:21.449
+Let's look at the implementation for our demo.
+
+42
+00:02:21.449 --> 00:02:24.081
+Here's the logic for the validator method.
+
+43
+00:02:24.081 --> 00:02:28.538
+It returns an implementation of JobParametersValidator.
+
+44
+00:02:28.538 --> 00:02:33.305
+First, I check to assure the input FILE_NAME parameter is not blank.
+
+45
+00:02:33.305 --> 00:02:38.122
+If it is, I throw an exception and fail the job execution.
+
+46
+00:02:38.122 --> 00:02:38.386
+Next,
+
+47
+00:02:38.386 --> 00:02:41.296
+I check the path and file to assure that they exist
+
+48
+00:02:41.296 --> 00:02:43.056
+and that the file is readable.
+
+49
+00:02:43.056 --> 00:02:47.944
+If the file doesn't exist on the server or the file is not readable,
+
+50
+00:02:47.944 --> 00:02:51.080
+I once again fail the job execution.
+
+51
+00:02:51.080 --> 00:02:54.245
+As this is a demo, I'm doing the bare minimum; however,
+
+52
+00:02:54.245 --> 00:02:57.816
+you should expect this validation check to include
+
+53
+00:02:57.816 --> 00:02:59.982
+several other additional checks.
+
+54
+00:02:59.982 --> 00:03:02.030
+There's one last piece of code we'll be adding.
+
+55
+00:03:02.030 --> 00:03:04.228
+Let's cover it briefly.
+
+56
+00:03:04.228 --> 00:03:09.053
+I'm going to define a JobRegistryBeanPostProcessor.
+
+57
+00:03:09.053 --> 00:03:12.208
+The goal of the PostProcessor is to register all jobs with
+
+58
+00:03:12.208 --> 00:03:16.505
+the job registry as they are created.
+
+59
+00:03:16.505 --> 00:03:21.063
+Now that we've discussed configuring a job, let's actually do it.
+
+60
+00:03:21.063 --> 00:03:25.548
+I'll be following Demo 5 that's found in the DEMOS.
+
+61
+00:03:25.548 --> 00:03:28.688
+md file in the root project directory.
+
+62
+00:03:28.688 --> 00:03:30.471
+With Spring Batch configuration in place,
+
+63
+00:03:30.471 --> 00:03:35.054
+the next step I'll demonstrate is the configuration of a Spring Batch job.
+
+64
+00:03:35.054 --> 00:03:39.077
+Make sure you've expanded the src folder to the package com.
+
+65
+00:03:39.077 --> 00:03:40.131
+Pluralsight.
+
+66
+00:03:40.131 --> 00:03:41.184
+springbatch.
+
+67
+00:03:41.184 --> 00:03:42.238
+patientbatchloader.
+
+68
+00:03:42.238 --> 00:03:43.291
+config.
+
+69
+00:03:43.291 --> 00:03:49.611
+In this folder, I'm going to create a new class called BatchJobConfiguration.
+
+70
+00:03:49.611 --> 00:03:55.598
+Again, I'll add in the class name as BatchJobConfiguration.
+
+71
+00:03:55.598 --> 00:03:57.519
+As this will be a Spring Configuration class,
+
+72
+00:03:57.519 --> 00:04:04.184
+I need to add the Configuration annotation to the class definition.
+
+73
+00:04:04.184 --> 00:04:09.078
+To create the job bean, we're going to use a Spring Batch job builder factory.
+
+74
+00:04:09.078 --> 00:04:12.974
+We simply need to autowire it into the Configuration class.
+
+75
+00:04:12.974 --> 00:04:19.658
+Let's add the JobBuilderFactory as the first member on the class.
+
+76
+00:04:19.658 --> 00:04:24.529
+The JobBuilderFactory will provide the DSL for configuring our job.
+
+77
+00:04:24.529 --> 00:04:29.144
+Next, let's add the definition for the job registry BeanPostProcessor bean.
+
+78
+00:04:29.144 --> 00:04:34.348
+Again, this will provide support for registering our job with the JobRepository.
+
+79
+00:04:34.348 --> 00:04:36.845
+I'll go ahead and drop that in now,
+
+80
+00:04:36.845 --> 00:04:40.728
+and here we can see we're just simply creating this BeanPostProcessor.
+
+81
+00:04:40.728 --> 00:04:44.972
+Now we can start to define our job bean.
+
+82
+00:04:44.972 --> 00:04:48.927
+Let's start by creating the method shell.
+
+83
+00:04:48.927 --> 00:04:52.007
+This bean will return the definition of our batch job.
+
+84
+00:04:52.007 --> 00:04:56.070
+It accepts a step, which will be created in the next demo.
+
+85
+00:04:56.070 --> 00:05:00.461
+I'm going to use the DSL for the JobBuilderFactory to define the job.
+
+86
+00:05:00.461 --> 00:05:02.808
+Let's drop that code in now.
+
+87
+00:05:02.808 --> 00:05:07.601
+First, you'll notice I'm using a Constants field for the JOB_NAME.
+
+88
+00:05:07.601 --> 00:05:09.558
+Let's define that now.
+
+89
+00:05:09.558 --> 00:05:15.264
+Open the Java class Constants in the same config
+
+90
+00:05:15.264 --> 00:05:17.800
+package as batch BatchJobConfiguration.
+
+91
+00:05:17.800 --> 00:05:19.427
+I'm going to scroll down to the bottom,
+
+92
+00:05:19.427 --> 00:05:22.456
+and I'm going to drop in the constant for our JOB_NAME.
+
+93
+00:05:22.456 --> 00:05:26.910
+This is the name we will use when referring to our job,
+
+94
+00:05:26.910 --> 00:05:31.318
+such as when retrieving information from the JobRepository or execution.
+
+95
+00:05:31.318 --> 00:05:36.522
+Let's open back up the BatchJobConfiguration class.
+
+96
+00:05:36.522 --> 00:05:40.513
+And after the JOB_NAME, I've defined a call to the method validator.
+
+97
+00:05:40.513 --> 00:05:40.798
+Again,
+
+98
+00:05:40.798 --> 00:05:43.650
+the purpose of this validator is to validate the job
+
+99
+00:05:43.650 --> 00:05:45.502
+parameters that are input to the job.
+
+100
+00:05:45.502 --> 00:05:49.320
+I want to add a check to assure that the FILE_NAME is valid
+
+101
+00:05:49.320 --> 00:05:52.940
+and that the input file it refers to exists.
+
+102
+00:05:52.940 --> 00:05:56.245
+Let's add that validator method now.
+
+103
+00:05:56.245 --> 00:05:59.425
+The method returns the JobParametersValidator instance.
+
+104
+00:05:59.425 --> 00:06:03.801
+In the validate method, I look for the JOB_PARAM_FILE_NAME.
+
+105
+00:06:03.801 --> 00:06:09.258
+As I'm using a constant for that, I'm going to have to drop that in as well.
+
+106
+00:06:09.258 --> 00:06:15.329
+Let's open back up that Constants class, and I'm going to drop in the constant.
+
+107
+00:06:15.329 --> 00:06:18.793
+And now we have a constant for the JOB_PARAM_FILE_NAME.
+
+108
+00:06:18.793 --> 00:06:22.541
+Let's open back up our BatchJobConfiguration class.
+
+109
+00:06:22.541 --> 00:06:27.784
+After obtaining the JobParameter for the fileName, I first check if it's blank.
+
+110
+00:06:27.784 --> 00:06:31.688
+If it is blank, an exception will be thrown when executing the job.
+
+111
+00:06:31.688 --> 00:06:37.405
+Next, I validate the file referred to by the JobParameter Exists and isReadable.
+
+112
+00:06:37.405 --> 00:06:40.854
+Again, if it's not, an exception gets thrown.
+
+113
+00:06:40.854 --> 00:06:44.203
+Note I'm using the application property that we defined earlier.
+
+114
+00:06:44.203 --> 00:06:48.140
+I'm going to need to autowire it into the Configuration class to fix this error.
+
+115
+00:06:48.140 --> 00:06:53.564
+Let's add that member now, and scroll back down to our Validate method,
+
+116
+00:06:53.564 --> 00:06:55.789
+and that fixes the error.
+
+117
+00:06:55.789 --> 00:06:59.349
+That also covers the validation for our job.
+
+118
+00:06:59.349 --> 00:07:02.076
+Now look back to the job method.
+
+119
+00:07:02.076 --> 00:07:06.845
+After the validator method call, we have the call to the start method.
+
+120
+00:07:06.845 --> 00:07:10.838
+This accepts a step, which will be defined in the next demo.
+
+121
+00:07:10.838 --> 00:07:14.609
+The start method creates an instance of SimpleJobBuilder for you,
+
+122
+00:07:14.609 --> 00:07:17.196
+which will then execute the step.
+
+123
+00:07:17.196 --> 00:07:17.506
+Finally,
+
+124
+00:07:17.506 --> 00:07:20.293
+the build method is called to complete creation of
+
+125
+00:07:20.293 --> 00:07:28.000
+the job based on what was defined. That completes the demo for our job.
+

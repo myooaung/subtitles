@@ -1,0 +1,880 @@
+﻿1
+00:00:00,390 --> 00:00:02,550
+Hello and welcome to this new tutorial.
+
+2
+00:00:02,730 --> 00:00:09,360
+So we made good progress so far because we built the AI and now we're going to make an additional function
+
+3
+00:00:09,600 --> 00:00:15,530
+which we'll call the Xplornet function and that will not belong to any class but is just a function
+
+4
+00:00:15,530 --> 00:00:17,900
+we will use to explore.
+
+5
+00:00:18,030 --> 00:00:24,040
+As you can see our policy on one specific direction and over one episode.
+
+6
+00:00:24,300 --> 00:00:27,420
+So let me quickly remind why we have to do that.
+
+7
+00:00:27,450 --> 00:00:34,910
+Remember the principle of this whole A R S algorithm is that we are testing several directions to update
+
+8
+00:00:34,940 --> 00:00:40,020
+the weights and we want to take the direction that increases the most that we want.
+
+9
+00:00:40,020 --> 00:00:44,070
+And then you know we take the opposite direction because we're going to do a differentiation of the
+
+10
+00:00:44,070 --> 00:00:48,620
+gradient to update the weights in that best optimal direction.
+
+11
+00:00:48,900 --> 00:00:55,920
+But when we compare the directions with each other we need to find a relevant measure of do we want
+
+12
+00:00:55,920 --> 00:01:02,520
+to assess in a relevant way which direction is the best and therefore we're not going to compare the
+
+13
+00:01:02,530 --> 00:01:10,400
+words on one single action no by getting the reward obtained by playing one specific action after applying
+
+14
+00:01:10,410 --> 00:01:12,660
+the perturbation on the weights.
+
+15
+00:01:12,660 --> 00:01:19,470
+No we're going to do that on one full episode because one full episode is composed of several actions
+
+16
+00:01:19,650 --> 00:01:24,510
+actually a lot of actions because you know it can last a few seconds and there are a lot of actions
+
+17
+00:01:24,510 --> 00:01:29,490
+happening in a few seconds and therefore we'll get lots of rewards for each direction.
+
+18
+00:01:29,490 --> 00:01:36,150
+And then by just taking the average of those words or some of that we words like the cumulative word
+
+19
+00:01:36,210 --> 00:01:37,630
+over the full episode.
+
+20
+00:01:37,830 --> 00:01:45,210
+Well we will have a set of several words each word corresponding to one specific direction and this
+
+21
+00:01:45,210 --> 00:01:51,510
+will be a much more relevant way to measure that we want to compare them with each other and get the
+
+22
+00:01:51,510 --> 00:01:54,350
+highest ones and therefore get the best reactions.
+
+23
+00:01:54,360 --> 00:02:02,130
+So that's what we have to do now and we'll do it through a function which we'll call the Explore function.
+
+24
+00:02:02,130 --> 00:02:04,590
+So this function is going to take several arguments.
+
+25
+00:02:04,590 --> 00:02:10,170
+The first one is the environment of course because we're exploring in one specific environment and I
+
+26
+00:02:10,170 --> 00:02:12,610
+remind that we will test many of them.
+
+27
+00:02:12,900 --> 00:02:18,600
+The second one is the normalizer because we will use Indeed the normalizer to normalize the states.
+
+28
+00:02:18,600 --> 00:02:25,170
+I remind that the states are the input of the policy or the perception of the policy and each time we're
+
+29
+00:02:25,170 --> 00:02:30,360
+going to feed those inputs to the policy we will normalize them first so that's where I'm taking the
+
+30
+00:02:30,360 --> 00:02:31,840
+normalizer here.
+
+31
+00:02:31,950 --> 00:02:34,430
+Then of course we're going to take our policy.
+
+32
+00:02:34,460 --> 00:02:40,560
+We're exploring our policies so we need to specify in the arguments which policy we want to explore
+
+33
+00:02:41,190 --> 00:02:46,390
+then the direction which will set by default equal to none.
+
+34
+00:02:46,530 --> 00:02:49,380
+Because again we will use the evaluate method.
+
+35
+00:02:49,410 --> 00:02:55,470
+Remember from the policy class and we just want to remind that the direction is set by default to none
+
+36
+00:02:55,770 --> 00:03:01,230
+because the evaluate method is not only used to apply some perturbations and getting the output when
+
+37
+00:03:01,230 --> 00:03:07,620
+we feed the input but also when we simply want to get the output by filling the inputs and without applying
+
+38
+00:03:07,650 --> 00:03:10,730
+any perturbation to direction it Course none.
+
+39
+00:03:10,950 --> 00:03:13,300
+And then one final argument.
+
+40
+00:03:13,560 --> 00:03:16,470
+Delta equals none as well.
+
+41
+00:03:16,530 --> 00:03:18,780
+Right Delta as a perturbation.
+
+42
+00:03:18,780 --> 00:03:25,050
+All right so it takes these four arguments and now we're going to do the whole exploration on one full
+
+43
+00:03:25,050 --> 00:03:25,870
+episode.
+
+44
+00:03:26,220 --> 00:03:32,760
+So the first thing we have to do of course is to reset the environment because we have to start from
+
+45
+00:03:32,760 --> 00:03:38,140
+scratch we have to start from the very beginning of a new episode in the very beginning of a new episode
+
+46
+00:03:38,180 --> 00:03:39,880
+is when the ice starts.
+
+47
+00:03:39,930 --> 00:03:46,020
+You know I remind that an episode is when they start to try to walk and then at some point it either
+
+48
+00:03:46,080 --> 00:03:51,810
+falls and that's the end of the episode or it manages to walk for a few seconds.
+
+49
+00:03:51,810 --> 00:03:57,060
+And so in that case the end of the piece that will be when the eye reaches the abyss at length which
+
+50
+00:03:57,060 --> 00:03:58,980
+is one of our hyper parameters.
+
+51
+00:03:59,100 --> 00:04:07,190
+So we are going to reset the environment and to do this we're going to take our environment and we're
+
+52
+00:04:07,200 --> 00:04:11,180
+going to add the reset method.
+
+53
+00:04:11,340 --> 00:04:16,180
+But the reset method actually returns the first date when you reset the environment.
+
+54
+00:04:16,320 --> 00:04:23,220
+And therefore here I'm going to add state equals to get that first date and that's perfect.
+
+55
+00:04:23,370 --> 00:04:27,840
+That's going to be our first input of this exploration on one full episode.
+
+56
+00:04:27,840 --> 00:04:36,150
+All right so we have our state and now the next step is to introduce a done variable which is a Boolean
+
+57
+00:04:36,510 --> 00:04:42,110
+that is equal to either true or false and which will be equal to true when the episode is done.
+
+58
+00:04:42,110 --> 00:04:48,180
+That is when we reach the end of an episode and false if we haven't reached yet the end of the episode
+
+59
+00:04:48,780 --> 00:04:54,390
+and we will initialised of course to Fox because at the very beginning of course the episode is not
+
+60
+00:04:54,540 --> 00:04:56,220
+done yet.
+
+61
+00:04:56,220 --> 00:05:04,370
+The next step we have to introduce the number of actions played and we will call this non-place.
+
+62
+00:05:04,400 --> 00:05:10,140
+So that's number of action plays and therefore of course we have to initialize it to zero because at
+
+63
+00:05:10,140 --> 00:05:17,760
+the very beginning no action was played yet and we will even initialize this to zero point because later
+
+64
+00:05:17,760 --> 00:05:22,760
+on you'll see that this number of actions played will be used in the float computation.
+
+65
+00:05:22,750 --> 00:05:23,310
+All right.
+
+66
+00:05:23,340 --> 00:05:30,390
+And then one final variable will introduce an initialized to zero and it's of course what we want to
+
+67
+00:05:30,390 --> 00:05:31,270
+get in the end.
+
+68
+00:05:31,350 --> 00:05:34,620
+So that's the most important one which is the sum of the reward.
+
+69
+00:05:34,800 --> 00:05:37,750
+Or if you want you can call it the accumulated reward.
+
+70
+00:05:38,040 --> 00:05:42,420
+And it doesn't have to be the sum of the reward it could also be the average reward.
+
+71
+00:05:42,480 --> 00:05:48,590
+The only thing that matter is that we need a relevant measure of the world over the full episode.
+
+72
+00:05:48,660 --> 00:05:51,950
+And since you know that we can either be positive or negative.
+
+73
+00:05:51,960 --> 00:05:55,600
+Well by taking the accumulated reward no something the reward.
+
+74
+00:05:55,680 --> 00:06:02,610
+Each time we play a new action well this will get us a relevant measure at the end of how high the final
+
+75
+00:06:02,610 --> 00:06:05,740
+reward is going to be over the full episode.
+
+76
+00:06:05,870 --> 00:06:13,050
+And so we will initialize this sum of words to zero and we don't have to set it as a float because it
+
+77
+00:06:13,050 --> 00:06:15,630
+won't be used in a flawed computation.
+
+78
+00:06:15,630 --> 00:06:18,030
+All right so perfect.
+
+79
+00:06:18,030 --> 00:06:21,850
+Now we're done with the initialization of the variables.
+
+80
+00:06:21,970 --> 00:06:30,300
+And so now the next natural step is to do a loop because indeed an episode will contain a lot of actions
+
+81
+00:06:30,300 --> 00:06:36,780
+to play and we will do some kind of loop until we reach the episode length that is until the number
+
+82
+00:06:36,780 --> 00:06:39,570
+of actions reaches the opposite length.
+
+83
+00:06:39,600 --> 00:06:44,010
+The episode length is basically the total number of actions you can play in an episode.
+
+84
+00:06:44,190 --> 00:06:45,410
+You can see it this way.
+
+85
+00:06:45,700 --> 00:06:53,430
+So not only we're going to loop until the number of action splayed reaches the episode length but also
+
+86
+00:06:53,760 --> 00:06:57,970
+we have to do this loop as long as we don't reach the end of the episode.
+
+87
+00:06:58,020 --> 00:07:03,190
+That is as long as done here is a quote for us as soon as dawn is equal to true.
+
+88
+00:07:03,240 --> 00:07:09,900
+The exploration of the policy will be over and therefore the most natural loop that we should use here
+
+89
+00:07:10,140 --> 00:07:16,710
+is not to fall because of this done very well here but a while loop is in the while loop we can specify
+
+90
+00:07:16,740 --> 00:07:21,440
+easily that you want to do the loop as long as done is equal to false.
+
+91
+00:07:21,450 --> 00:07:22,060
+All right.
+
+92
+00:07:22,170 --> 00:07:33,240
+So the way to do this world loop is well done is equal to falso So as long as done is not equal to true
+
+93
+00:07:33,630 --> 00:07:40,980
+and by typing was not done like that its exactly saying as long as done is not equal to true because
+
+94
+00:07:40,980 --> 00:07:43,780
+the default value of a boolean is true.
+
+95
+00:07:43,860 --> 00:07:48,320
+So by just writing done here its like writing down equals equals true.
+
+96
+00:07:48,650 --> 00:07:52,040
+So well not done because true basically.
+
+97
+00:07:52,450 --> 00:08:01,080
+And the number of action played is lower than the fool episode.
+
+98
+00:08:02,110 --> 00:08:09,520
+Lengths and as you can notice I didn't forget the HP hyper parameter object which will create later
+
+99
+00:08:09,520 --> 00:08:14,800
+on because episode length is a variable of our hyper parameters class.
+
+100
+00:08:14,810 --> 00:08:17,950
+No the class containing all the hyper parameters.
+
+101
+00:08:18,190 --> 00:08:26,260
+So while we haven't reached the end of the episode and wow the number of actions played is lower than
+
+102
+00:08:26,260 --> 00:08:29,800
+the total episode length which I remind was set to 1000.
+
+103
+00:08:29,890 --> 00:08:36,420
+Well in that case we are going to compute the cumulated reward on the full episode.
+
+104
+00:08:36,640 --> 00:08:38,110
+And so let's do this.
+
+105
+00:08:38,110 --> 00:08:43,270
+You're going to see the steps to do it are going to feel very natural now that we've done the hardest
+
+106
+00:08:43,270 --> 00:08:44,370
+part.
+
+107
+00:08:44,410 --> 00:08:52,060
+So the first natural step is to feed the perception of the policy with the input because indeed we want
+
+108
+00:08:52,060 --> 00:08:58,600
+to return the output which is the action to play because that action to play will get us our first word.
+
+109
+00:08:58,810 --> 00:09:05,200
+But before we feed the input to the perception remember we need to normalize it.
+
+110
+00:09:05,380 --> 00:09:12,820
+And before normalizing it we need remember the mean and the variance because in order to normalize it
+
+111
+00:09:13,240 --> 00:09:18,200
+we indeed need the mean and standard deviation which is the root of the variance.
+
+112
+00:09:18,400 --> 00:09:26,800
+So the very first step here is to take our normalizer which is one of our arguments here and then use
+
+113
+00:09:26,800 --> 00:09:34,990
+the observe method which we apply to the state because remember we normalized the state and that the
+
+114
+00:09:34,990 --> 00:09:40,090
+observed method remember will give us exactly the mean and the variance.
+
+115
+00:09:40,300 --> 00:09:43,570
+So now we have the mean and the variance.
+
+116
+00:09:43,630 --> 00:09:47,600
+And so that's when we can normalize our state.
+
+117
+00:09:47,650 --> 00:09:54,610
+And so this time we're going to use the normalized method which returns directly remember the normalized
+
+118
+00:09:54,730 --> 00:10:00,540
+state it takes as input to state and returns the normalized state.
+
+119
+00:10:00,550 --> 00:10:08,350
+Therefore since it returns something here and it returns the state will directly get our state which
+
+120
+00:10:08,380 --> 00:10:11,790
+so far was just the first state of the environment.
+
+121
+00:10:12,040 --> 00:10:18,120
+And this state will be equal to what is returned by this normalized method of the normalizer class and
+
+122
+00:10:18,130 --> 00:10:25,150
+therefore I'm taking the normalizer object of the normalizer class and I'm going to use the normalize
+
+123
+00:10:25,810 --> 00:10:30,030
+method which I'm going to apply to the state.
+
+124
+00:10:30,040 --> 00:10:35,800
+The previous version of the state which by applying the normalized method will become the normalized
+
+125
+00:10:35,950 --> 00:10:36,860
+state.
+
+126
+00:10:36,940 --> 00:10:42,580
+And now we can feed the perception with this state because it was indeed normalized.
+
+127
+00:10:42,850 --> 00:10:48,190
+And we want to work with the normalized version of the alias of the paper.
+
+128
+00:10:48,610 --> 00:10:53,190
+So now that we have this date we have input so we can fit it to the perception.
+
+129
+00:10:53,410 --> 00:11:01,330
+And so now we're going to naturally use the evaluate method in of course that specific direction that
+
+130
+00:11:01,330 --> 00:11:02,410
+we want to explore.
+
+131
+00:11:02,410 --> 00:11:05,420
+By applying the perturbation in that direction.
+
+132
+00:11:05,620 --> 00:11:12,910
+So right now what we have to do is apply the evaluate method by taking as input the state that which
+
+133
+00:11:12,910 --> 00:11:20,710
+is normalized then the perturbation Delta which is one of our argument and the direction which is another
+
+134
+00:11:20,710 --> 00:11:21,820
+one of our argument.
+
+135
+00:11:21,970 --> 00:11:25,990
+And since the evaluate method of course returns the action to play.
+
+136
+00:11:26,200 --> 00:11:33,670
+Well I'm going to get that action that we're going to play now by taking the evaluate method but be
+
+137
+00:11:33,670 --> 00:11:38,500
+careful the evaluate method belongs to our policy object.
+
+138
+00:11:38,500 --> 00:11:46,780
+So we take policy that evaluate this evaluate method takes on the three arguments first the input state
+
+139
+00:11:47,350 --> 00:11:55,660
+which was well normalized then the perturbation Delta and then the direction of the perturbation.
+
+140
+00:11:55,660 --> 00:12:01,360
+So right now the action is set by default to none and Delta I said bellyfull to non-bird of course when
+
+141
+00:12:01,360 --> 00:12:07,270
+we were going to explore the policy on one specific direction and for one specific perturbation.
+
+142
+00:12:07,270 --> 00:12:09,650
+Well these will not be equal to none.
+
+143
+00:12:09,940 --> 00:12:19,330
+OK so here we evaluate our policy by filling to the input state and by applying the perturbation delta
+
+144
+00:12:19,360 --> 00:12:26,460
+on one specific direction and all of this returns the action played in that situation.
+
+145
+00:12:26,500 --> 00:12:34,290
+And now since we played an action well that will lead us to a next date that will lead us to a word
+
+146
+00:12:34,540 --> 00:12:40,290
+and also that lead us to know whether Dunn is still equal to false or true.
+
+147
+00:12:40,540 --> 00:12:46,750
+And luckily for us we're going to get these three updates of the words very easily.
+
+148
+00:12:46,750 --> 00:12:54,110
+It is thanks to the step method of the environment class of the Bible library which just takes us and
+
+149
+00:12:54,120 --> 00:13:00,620
+put one argument which is the action played and that we've just got and that will return the state.
+
+150
+00:13:00,640 --> 00:13:06,320
+The word and this done variable you know when we've just played the action and we reach the new state
+
+151
+00:13:06,320 --> 00:13:13,820
+of the environment so that's why in order to get on these next stage and we would well we simply to
+
+152
+00:13:14,540 --> 00:13:18,400
+update our variables here state we want and done.
+
+153
+00:13:18,650 --> 00:13:24,590
+And then there's even a fourth variable but that we don't use here so no need to worry about this.
+
+154
+00:13:24,830 --> 00:13:30,650
+And here we go to get these next state we wanted and done well we simply need to take our environment
+
+155
+00:13:31,070 --> 00:13:38,750
+which is not ject of the public library then the step method which only takes as input one argument
+
+156
+00:13:38,840 --> 00:13:41,870
+which is of course the action that was just played.
+
+157
+00:13:42,200 --> 00:13:47,900
+And this step function this step method from the environment object of the public library returns to
+
+158
+00:13:47,900 --> 00:13:50,090
+next state and the environment.
+
+159
+00:13:50,160 --> 00:13:55,700
+The reward obtained after playing that action and whether or not the episode is done.
+
+160
+00:13:56,090 --> 00:13:56,390
+All right.
+
+161
+00:13:56,390 --> 00:13:57,250
+Perfect.
+
+162
+00:13:57,560 --> 00:14:04,330
+And now that you've just got the word we have to do a trick that is very classic in reinforcement learning.
+
+163
+00:14:04,460 --> 00:14:12,860
+It's the fact that we don't want to be biased by any super high reward or super low negative reward
+
+164
+00:14:12,890 --> 00:14:14,310
+you know imagine that.
+
+165
+00:14:14,480 --> 00:14:20,450
+Imagine that most of the words we get are taking small values like for example between minus 1 and plus
+
+166
+00:14:20,450 --> 00:14:20,910
+1.
+
+167
+00:14:21,140 --> 00:14:27,040
+But in the same episode you find one or two rewards are taking some very high values.
+
+168
+00:14:27,290 --> 00:14:34,460
+Well imagine the bias and the final accumulated reward or the final average reward that would cause
+
+169
+00:14:34,730 --> 00:14:41,660
+to keep these very high values that would disturb the measure of the reward and therefore for those
+
+170
+00:14:41,870 --> 00:14:48,500
+outliers we call them outliers these very high reward or very high positive or negative rewards that
+
+171
+00:14:48,500 --> 00:14:51,480
+we can get during the expiration of one full episode.
+
+172
+00:14:51,500 --> 00:14:58,160
+We want to ignore them or we want to set them equal to either plus one for the very high positive reward
+
+173
+00:14:58,400 --> 00:15:01,400
+or minus one for the very high negative reward.
+
+174
+00:15:01,610 --> 00:15:07,680
+And by doing this we will protect ourselves from any bias due to the outliers.
+
+175
+00:15:07,910 --> 00:15:13,450
+And the trick to do this is actually to force all of super high positive rewards to be equal to one
+
+176
+00:15:13,730 --> 00:15:17,640
+and those who were high negative reward to be equal to minus one.
+
+177
+00:15:17,750 --> 00:15:24,620
+So we can either do it with an IF condition but there is a better trick faster trick which is you take
+
+178
+00:15:24,620 --> 00:15:36,950
+your reward and you take the max of the men between the reward and 1 and minus 1 and you can check that
+
+179
+00:15:37,040 --> 00:15:42,770
+this will get you that we want all the wars between minus 1 and plus 1 or more specifically all the
+
+180
+00:15:42,770 --> 00:15:49,370
+super high but every word will be forced to be equal to one and no the super low negative reward will
+
+181
+00:15:49,370 --> 00:15:51,490
+be us to be equal to minus 1.
+
+182
+00:15:51,500 --> 00:15:53,740
+That's a classic trick in reinforcement learning.
+
+183
+00:15:53,780 --> 00:15:54,560
+Keep it in mind.
+
+184
+00:15:54,590 --> 00:16:00,320
+You might have to use it again if you want to go further in reinforcement learning.
+
+185
+00:16:00,470 --> 00:16:01,190
+Perfect.
+
+186
+00:16:01,190 --> 00:16:03,850
+And so now we have a few more steps to go.
+
+187
+00:16:03,860 --> 00:16:09,890
+The first one is of course now that we have the we wanted to update the accumulated reward or the sum
+
+188
+00:16:09,890 --> 00:16:11,650
+of rewards and to obtain it.
+
+189
+00:16:11,660 --> 00:16:20,990
+Well naturally we need to take our some of words and incremented by this last word that we've just got.
+
+190
+00:16:21,110 --> 00:16:29,140
+So Plus you quote the Word Perfect then almost over one last step we have to do inside this while loop.
+
+191
+00:16:29,180 --> 00:16:30,430
+Can you guess what it is.
+
+192
+00:16:30,530 --> 00:16:32,680
+It is of course the non-place.
+
+193
+00:16:32,810 --> 00:16:38,990
+There is number of actions play that need to be incremented by 1 because indeed we need to check that
+
+194
+00:16:39,200 --> 00:16:43,640
+number of actions played is lower than this episode length.
+
+195
+00:16:43,670 --> 00:16:49,280
+In order to do all this so we need to increment to 1 in order to check that we haven't reached the end
+
+196
+00:16:49,310 --> 00:16:56,610
+of the episode and therefore I'm taking the number of actions played which record called non-place and
+
+197
+00:16:56,990 --> 00:16:59,430
+incrementing it by one.
+
+198
+00:16:59,540 --> 00:17:00,320
+Perfect.
+
+199
+00:17:00,560 --> 00:17:08,240
+And now we can get out of the while loop and return of course the sum of the rewards because that's
+
+200
+00:17:08,240 --> 00:17:11,050
+exactly the purpose of this export function.
+
+201
+00:17:11,250 --> 00:17:13,030
+So now we have some of the words.
+
+202
+00:17:13,220 --> 00:17:19,070
+Don't worry about this warning here that just because we haven't defined HP yet but HP is going to be
+
+203
+00:17:19,370 --> 00:17:22,330
+our future object of the hyper Brenner's class.
+
+204
+00:17:22,460 --> 00:17:23,340
+So all good.
+
+205
+00:17:23,570 --> 00:17:30,230
+And now we have this explorer function that will give us a relevant measure of the word over one full
+
+206
+00:17:30,230 --> 00:17:34,070
+episode and for one specific direction of perturbation.
+
+207
+00:17:34,100 --> 00:17:41,480
+So we will be able to compare in a relevant way the different words we obtain in different directions
+
+208
+00:17:41,540 --> 00:17:49,250
+of perturbations and now mostly the good news is that we were ready for the major step that will make
+
+209
+00:17:49,310 --> 00:17:57,270
+our AI smart or should I say are able to walk on the field and I'm talking of course about the training.
+
+210
+00:17:57,290 --> 00:18:02,780
+The next section will implement now is going to be the training at the AA.
+
+211
+00:18:02,940 --> 00:18:08,430
+And so we're going to make a train function that all days and put the environment the policy because
+
+212
+00:18:08,430 --> 00:18:15,330
+we want to train that policy to normalizer and our hyper parameters and we will do this whole full hoop
+
+213
+00:18:15,750 --> 00:18:21,710
+which will basically do all the steps here from 1 to 10.
+
+214
+00:18:21,930 --> 00:18:26,970
+And to do that we're going to use of course the tools we made so far you know different classes that
+
+215
+00:18:26,970 --> 00:18:33,990
+contains method and therefore tools to implement all this including the normalization of the states.
+
+216
+00:18:34,110 --> 00:18:39,540
+So I can't wait to do that because that means that we're also getting closer to the final demo when
+
+217
+00:18:39,540 --> 00:18:42,860
+we see our final AI walk on the field.
+
+218
+00:18:42,900 --> 00:18:44,280
+It's going to be very exciting.
+
+219
+00:18:44,280 --> 00:18:46,230
+I can't wait to show you all this.
+
+220
+00:18:46,260 --> 00:18:47,900
+And until then enjoy AI.
+

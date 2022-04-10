@@ -1,0 +1,403 @@
+WEBVTT
+
+00:02.120 --> 00:04.310
+In the last lecture we already got pretty far,
+
+00:04.310 --> 00:10.540
+we're starting to store our file, now I want to finish this up and then send a request.
+
+00:10.640 --> 00:13.430
+So we're uploading this, now for this
+
+00:13.460 --> 00:14.210
+upload,
+
+00:14.270 --> 00:20.360
+we not only pass this configuration but as a third argument to the upload function, instead we pass
+
+00:20.650 --> 00:24.330
+a function which will be executed once it's done, here
+
+00:24.350 --> 00:26.520
+we either get an error or a file,
+
+00:26.540 --> 00:34.240
+well we actually get both arguments but error is either null or the error or file is the file or
+
+00:34.250 --> 00:36.110
+null in the case of an error.
+
+00:36.500 --> 00:42.590
+So in here, I then check if we don't have an error, this is the better case for us because there we successfully
+
+00:42.590 --> 00:44.660
+saved everything. There
+
+00:44.660 --> 00:51.440
+I want to return a response with the link to the file which would allow us to view the file because
+
+00:51.490 --> 00:54.550
+that is what I want to store in the database thereafter,
+
+00:54.860 --> 01:00.990
+we could also reach out to the database from within here but I want to do it in two separate steps.
+
+01:01.030 --> 01:09.470
+So what I do is in this case, I will use response status 201 because we created a file and then return
+
+01:09.470 --> 01:12.290
+a json object or a
+
+01:12.340 --> 01:20.740
+json response where we pass some data, where I want to pass the image url and that is now url
+
+01:20.740 --> 01:27.450
+we have to manually construct, keeping a certain pattern firebase uses for creating images
+
+01:27.460 --> 01:34.540
+it would store on the storage with its own SDK. This url has a couple of different parts, the
+
+01:34.540 --> 01:40.810
+first part is a string which targets https//firebasestorage.
+
+01:40.900 --> 01:52.760
+googleapis, one word dot com /v0/b, probably for bucket
+
+01:52.890 --> 01:58.290
+but then we'll append something and I'm deliberately writing it like this over multiple lines and slowly
+
+01:58.290 --> 01:59.730
+step by step.
+
+01:59.850 --> 02:02.170
+The next part we add is the bucket name,
+
+02:02.320 --> 02:09.830
+now keep in mind bucket is a constant we created and we can access name to get the name of the bucket,
+
+02:09.900 --> 02:16.010
+then we have to append a string with /o/,
+
+02:16.410 --> 02:25.050
+we append something else. We use encode uri component which is a nodejs function we can use to encode the
+
+02:25.050 --> 02:26.220
+file.name,
+
+02:26.220 --> 02:31.030
+now just remember, file is one of the arguments we receive here if we don't have an error,
+
+02:31.030 --> 02:32.610
+so that's the file name.
+
+02:33.270 --> 02:40.740
+And then we append something else, another string with a query parameter which should be alt equals media
+
+02:40.800 --> 02:48.600
+to indicate that it's a media file and then token equals and that should now be your uuid, so your
+
+02:48.600 --> 02:51.150
+unique ID and this will generate a link
+
+02:51.150 --> 02:58.290
+we can use to directly access the data on this bucket or this file to be precise, this image without
+
+02:58.290 --> 03:01.270
+having general access rights which is a good thing of course
+
+03:02.160 --> 03:03.620
+and that's it.
+
+03:03.620 --> 03:07.660
+Now of course this if check here where we see if we have an error could also fail,
+
+03:07.820 --> 03:12.150
+so I also will set up an else case so that we have an error.
+
+03:12.680 --> 03:21.080
+In this case, I want to log the error to see what's wrong and then return response status 500
+
+03:21.320 --> 03:28.520
+json and pass an object where we have the error and forward the error message to the client.
+
+03:28.550 --> 03:31.480
+Now I will remove this response send thing here at the end,
+
+03:31.490 --> 03:37.370
+we don't need that anymore and we don't need return statements in front of our response statements
+
+03:37.370 --> 03:39.500
+because there is no code coming after that
+
+03:39.500 --> 03:41.350
+that could be executed
+
+03:41.960 --> 03:45.880
+and that should be the code we need to store a file.
+
+03:45.890 --> 03:50.060
+Now we of course need to test this and for this, we want to send a request.
+
+03:50.260 --> 03:57.080
+So back in the places.js file in the actions folder, here we send a request to store data on the database,
+
+03:57.080 --> 04:03.090
+now that's nice but I'll temporarily disable this and comment this out, instead
+
+04:03.210 --> 04:09.660
+I want to send a request to our own firebase cloud function to store a file which is more important
+
+04:09.660 --> 04:11.100
+to me right now.
+
+04:11.260 --> 04:16.740
+For this, we first of all need to deploy the firebase functions, I'll cd out of the functions directory
+
+04:16.740 --> 04:18.930
+back into the root project directory
+
+04:19.260 --> 04:25.410
+and then you can run firebase deploy with the firebase tools installed which we did to upload this
+
+04:25.410 --> 04:31.040
+firebase cloud function to your firebase service, to your firebase project.
+
+04:31.200 --> 04:38.040
+Once it's done it will give us a url we can send the request to to trigger the function and then have
+
+04:38.040 --> 04:40.350
+the moment of truth and see if it works.
+
+04:40.350 --> 04:42.470
+So let's wait for this deployment to finish
+
+04:43.260 --> 04:47.960
+and now once it's done, you can expand this and get that function
+
+04:47.970 --> 04:52.010
+url here in the terminal where you ran firebase deploy,
+
+04:52.260 --> 04:54.890
+that is where you need to send the request to.
+
+04:54.900 --> 04:59.290
+So let's do this here, let's call fetch and enter this as a url,
+
+04:59.310 --> 05:01.840
+this is still should be a post request
+
+05:01.840 --> 05:04.590
+so let's set the method to post here
+
+05:05.850 --> 05:07.760
+and we want to add a body here
+
+05:07.760 --> 05:17.020
+too, there I will now use json stringify again to turn a javascript object into a string object and
+
+05:17.020 --> 05:19.870
+there I want to pass on the image.
+
+05:19.870 --> 05:28.840
+Now keep in mind, image as we receive it here is in the end sent from our shared or share place screen,
+
+05:29.060 --> 05:31.750
+there at the bottom where we dispatch this action,
+
+05:31.750 --> 05:39.640
+we pass on image and image here is coming from the image place added handler from the state controls
+
+05:39.670 --> 05:44.650
+image value and image value is set from the image picker in the end,
+
+05:44.650 --> 05:46.820
+here we set the value to image,
+
+05:47.020 --> 05:53.080
+so the image is coming from the pick image component and there, our image object has an uri and the
+
+05:53.080 --> 05:54.880
+base64 property.
+
+05:55.090 --> 05:56.730
+It's the base64 property
+
+05:56.770 --> 06:02.170
+I am interested in because that is what I want to send to the backend so that it there gets extracted, stored
+
+06:02.170 --> 06:03.840
+as a file and so on.
+
+06:04.240 --> 06:10.240
+So now that we know this, what I want to do is I want to send a javascript object where I provide an
+
+06:10.240 --> 06:14.680
+image property because that is what we try to extract in our cloud function,
+
+06:14.680 --> 06:20.040
+remember, we're doing this in the cloud function here,
+
+06:20.270 --> 06:22.600
+body image.
+
+06:22.750 --> 06:24.420
+So this is what we extract there,
+
+06:25.520 --> 06:32.480
+therefore here I will send an image, I'll access the image but I'm only sending the base64 part.
+
+06:32.660 --> 06:35.330
+Now this sends the request,
+
+06:35.330 --> 06:37.820
+now of course we want to see if it's successful,
+
+06:37.820 --> 06:44.670
+so I will first of all add catch to log any errors we might get to see what went wrong
+
+06:45.020 --> 06:50.000
+but then I also will have a then block where I get the response and I call response.json to
+
+06:50.000 --> 06:57.710
+extract the json portion and chain another then block to then really get the parsed response here and
+
+06:57.740 --> 06:58.150
+there,
+
+06:58.160 --> 07:07.500
+I now also want to log the parsed response. And with all that set up, let's see if it works, let's go
+
+07:07.500 --> 07:08.930
+back to our application and
+
+07:08.940 --> 07:09.990
+let's reload it
+
+07:10.020 --> 07:11.460
+since we change the code
+
+07:11.730 --> 07:15.420
+and let's quickly try to create and share a new file.
+
+07:15.420 --> 07:20.640
+Make sure that your debugging tools are attached so that we can see if that all works and what we
+
+07:20.640 --> 07:22.150
+get back, if we get an error
+
+07:22.170 --> 07:33.980
+and so on, let me pick an image and a place here, enter some cool name and click share the place and
+
+07:34.040 --> 07:36.930
+after clicking this, I clear the console in advance,
+
+07:37.100 --> 07:41.740
+it should take a little while but after a while, you should see a success message
+
+07:41.750 --> 07:48.680
+and this request simply takes a while because we're uploading the image which is not super small and the network
+
+07:48.680 --> 07:51.710
+speed of the simulator here is not super high.
+
+07:51.710 --> 07:58.970
+So this can take a little while but after that, you should get this response here which holds a link
+
+07:58.970 --> 08:00.990
+to the image,
+
+08:01.340 --> 08:10.640
+let's copy that and paste it into a new tab and there I get an error,
+
+08:10.730 --> 08:13.940
+the problem has to be somewhere in the cloud function,
+
+08:14.010 --> 08:19.600
+the firebase function we wrote and the error is here in the metadata area.
+
+08:19.610 --> 08:24.920
+There you actually need to nest another metadata property, yeah that's confusing but you need to do
+
+08:24.920 --> 08:25.210
+that
+
+08:25.280 --> 08:31.440
+and there you should add this set up which will be important for this download link that gets generated.
+
+08:31.670 --> 08:38.400
+So there paste it into this inner metadata property in the outer metadata one, yeah that is confusing
+
+08:38.660 --> 08:40.630
+and now let's try this again.
+
+08:40.640 --> 08:46.400
+Now we change the cloud function so first of all, we need to run firebase deploy again to upload our
+
+08:46.400 --> 08:47.170
+new code,
+
+08:47.180 --> 08:52.140
+make sure to save the file before doing that and now this will take a while for which we have to wait
+
+08:52.340 --> 08:56.390
+but the good thing is we can whilst it takes some time, that it succeeds,
+
+08:56.390 --> 08:59.390
+so we'll certainly have to do something about the waiting time
+
+08:59.510 --> 09:01.320
+but this works in theory.
+
+09:01.430 --> 09:06.280
+Now I'll be back once this redeployed and once we can try this again.
+
+09:06.440 --> 09:07.800
+So redeployment finished,
+
+09:07.820 --> 09:12.830
+the good thing is the url will still be the same so you don't need to touch your react native code,
+
+09:12.830 --> 09:18.170
+you don't even need to reload the app here, you can just share the place again so that's what I'm doing, sharing
+
+09:18.170 --> 09:19.030
+the place again,
+
+09:19.040 --> 09:25.400
+waiting for this to resolve and give me a response and once the response is there,
+
+09:25.400 --> 09:31.160
+let's now try this image url so again let's copy the full link here.
+
+09:31.160 --> 09:34.840
+Go into the tab from before and enter there and
+
+09:34.910 --> 09:38.120
+there you should see your beautiful image.
+
+09:38.240 --> 09:45.840
+You can also confirm this if you visit firebase and click on storage there and there, you should
+
+09:45.840 --> 09:53.130
+see places, the subfolder with two images because I tried two uploads and there you can also see a
+
+09:53.130 --> 09:54.290
+preview.
+
+09:54.290 --> 09:59.640
+Now I'm going to delete both by marking them and clicking delete because right now, I'm not really doing
+
+09:59.640 --> 10:01.310
+anything useful with response
+
+10:01.320 --> 10:05.330
+but now that we know that the response is valid, we can start doing this.
+
+10:05.400 --> 10:07.720
+So we're sending a request in the next video,
+
+10:07.740 --> 10:08.990
+let's use the response,
+
+10:09.000 --> 10:14.580
+let's use the image url to revisit how we store the rest of the data on firebase.

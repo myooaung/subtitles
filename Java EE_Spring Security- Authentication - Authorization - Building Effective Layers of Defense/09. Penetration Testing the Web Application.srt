@@ -1,0 +1,360 @@
+1
+00:00:02,633 --> 00:00:05,191
+It's time to do some penetration testing of our site.
+
+2
+00:00:05,191 --> 00:00:10,016
+So let's put on our hoodies and head over to a dark, dingy basement.
+
+3
+00:00:10,016 --> 00:00:13,895
+That seems to be the stereotypical look of a hacker these days.
+
+4
+00:00:13,895 --> 00:00:16,385
+That and a Russian accent of course.
+
+5
+00:00:16,385 --> 00:00:18,972
+Nah, my Russian accent is bad.
+
+6
+00:00:18,972 --> 00:00:20,664
+So as we mentioned,
+
+7
+00:00:20,664 --> 00:00:23,930
+the weakness with digest is the fact that you can't store a
+
+8
+00:00:23,930 --> 00:00:27,483
+one-way hash of the password in anything but MD5,
+
+9
+00:00:27,483 --> 00:00:30,955
+which is no longer considered secure.
+
+10
+00:00:30,955 --> 00:00:33,797
+It actually is worse than that for digest.
+
+11
+00:00:33,797 --> 00:00:36,587
+Spring allows you to store the first MD5 hash,
+
+12
+00:00:36,587 --> 00:00:44,648
+the HA1, which is the username:realm:password in your identity store.
+
+13
+00:00:44,648 --> 00:00:47,263
+So let's generate this and update the UserDetailsService.
+
+14
+00:00:47,263 --> 00:00:47,893
+Next,
+
+15
+00:00:47,893 --> 00:00:52,630
+we set the PasswordAlreadyEncoded property to true on
+
+16
+00:00:52,630 --> 00:00:55,502
+the DigestAuthenticationFilter.
+
+17
+00:00:55,502 --> 00:00:58,434
+The filter will now not generate the HA1.
+
+18
+00:00:58,434 --> 00:01:01,091
+But it will use the one that's returned by the
+
+19
+00:01:01,091 --> 00:01:04,041
+UserDetailsService directly in the digest hash.
+
+20
+00:01:04,041 --> 00:01:09,162
+We will also set the CreateAuthentication token to true to force the
+
+21
+00:01:09,162 --> 00:01:13,926
+digest filter to authenticate the token as the AuthenticationManager in
+
+22
+00:01:13,926 --> 00:01:18,128
+the interceptor is not able to handle the HA1.
+
+23
+00:01:18,128 --> 00:01:21,845
+Now if our identity store is compromised and a hacker
+
+24
+00:01:21,845 --> 00:01:24,722
+got the usernames and the hashes, which is very common,
+
+25
+00:01:24,722 --> 00:01:27,705
+a lot of the major high-profile hacking incidents
+
+26
+00:01:27,705 --> 00:01:30,352
+haven't been because of SSL being cracked.
+
+27
+00:01:30,352 --> 00:01:33,792
+It's been the identity store being hacked and the
+
+28
+00:01:33,792 --> 00:01:35,805
+credentials stolen and published online,
+
+29
+00:01:35,805 --> 00:01:36,916
+for example.
+
+30
+00:01:36,916 --> 00:01:40,697
+And this is mainly due to the sloppy maintenance of the identity stores,
+
+31
+00:01:40,697 --> 00:01:43,339
+example being vulnerable to SQL injection,
+
+32
+00:01:43,339 --> 00:01:47,508
+the IT team throwing out all hard drives without cleaning them first,
+
+33
+00:01:47,508 --> 00:01:48,770
+a rogue ex-employee,
+
+34
+00:01:48,770 --> 00:01:53,786
+or even being checked into source control to be used for testing.
+
+35
+00:01:53,786 --> 00:01:57,004
+Now the first issue with this hash is that it can't be salted,
+
+36
+00:01:57,004 --> 00:02:01,279
+so it's very susceptible to brute force cracking attacks.
+
+37
+00:02:01,279 --> 00:02:06,373
+I think currently with MD5, thanks to the GPU cryptocurrency craze,
+
+38
+00:02:06,373 --> 00:02:09,092
+hackers can perform up to a billion hashes per second.
+
+39
+00:02:09,092 --> 00:02:12,630
+But a hacker doesn't really need to bother with that in
+
+40
+00:02:12,630 --> 00:02:16,475
+this case because the digest hash for authentication is
+
+41
+00:02:16,475 --> 00:02:18,223
+generated in the client's browser.
+
+42
+00:02:18,223 --> 00:02:18,571
+Hence,
+
+43
+00:02:18,571 --> 00:02:22,054
+the hacker can use the HA1 hash directly to generate
+
+44
+00:02:22,054 --> 00:02:26,185
+the digest and access the admin site, just like a password.
+
+45
+00:02:26,185 --> 00:02:28,424
+Let's access the site and hit Cancel.
+
+46
+00:02:28,424 --> 00:02:31,667
+We now have the realm and the nonce.
+
+47
+00:02:31,667 --> 00:02:36,258
+Now Spring is backward compatible to RFC 2069.
+
+48
+00:02:36,258 --> 00:02:40,980
+Hence by emitting the qop in the header when we make our authorization request,
+
+49
+00:02:40,980 --> 00:02:47,320
+it will default to 2069 rather than the more secure RFC 2617.
+
+50
+00:02:47,320 --> 00:02:50,629
+The hacker now doesn't need to worry about the client nonce or
+
+51
+00:02:50,629 --> 00:02:52,623
+the nonce count when generating the digest,
+
+52
+00:02:52,623 --> 00:02:54,458
+which makes things a bit more simpler.
+
+53
+00:02:54,458 --> 00:02:58,310
+I built a little utility class that generates the digest.
+
+54
+00:02:58,310 --> 00:03:03,468
+Let's add the username, the nonce, the HA1 stolen from the identity store,
+
+55
+00:03:03,468 --> 00:03:06,315
+the method and URI to generate the digest.
+
+56
+00:03:06,315 --> 00:03:10,512
+I will use Postman to create the HTTP request to access the admin page.
+
+57
+00:03:10,512 --> 00:03:15,277
+I add the digest authentication header and the generated digest in the response
+
+58
+00:03:15,277 --> 00:03:18,750
+property and set all the other required properties as well.
+
+59
+00:03:18,750 --> 00:03:21,608
+I now have access to the site.
+
+60
+00:03:21,608 --> 00:03:25,887
+If this site was form or basic authentication with HTTPS,
+
+61
+00:03:25,887 --> 00:03:30,322
+we have the option to encode the password with bcrypt.
+
+62
+00:03:30,322 --> 00:03:34,045
+Hence, the hacker would not be able to use the hash directly.
+
+63
+00:03:34,045 --> 00:03:38,640
+They would need to perform a brute force attack to first crack the password.
+
+64
+00:03:38,640 --> 00:03:42,503
+And with bcrypt, that's not very easy as it's designed to be very slow.
+
+65
+00:03:42,503 --> 00:03:46,478
+Now let's say the hacker hasn't breached the identity store.
+
+66
+00:03:46,478 --> 00:03:48,952
+But since the site doesn't currently use HTTPS,
+
+67
+00:03:48,952 --> 00:03:52,560
+the hacker has captured the authorization header while
+
+68
+00:03:52,560 --> 00:03:55,504
+packet sniffing for an admin user.
+
+69
+00:03:55,504 --> 00:03:57,440
+Since there are client and server nonces,
+
+70
+00:03:57,440 --> 00:04:01,427
+as well as the nonce count, replay attacks are off the table.
+
+71
+00:04:01,427 --> 00:04:04,415
+However, brute force is still in the cards though.
+
+72
+00:04:04,415 --> 00:04:06,900
+The attacker has enough information, including the username,
+
+73
+00:04:06,900 --> 00:04:10,229
+to perform a brute force offline attack.
+
+74
+00:04:10,229 --> 00:04:14,575
+Now since it is MD5, and if the system uses very poor password policies,
+
+75
+00:04:14,575 --> 00:04:18,117
+there is a good chance they can crack it.
+
+76
+00:04:18,117 --> 00:04:21,800
+To demonstrate this, I have created a small program that does this.
+
+77
+00:04:21,800 --> 00:04:24,846
+If I add all the details from the captured authorization header,
+
+78
+00:04:24,846 --> 00:04:29,118
+the program will generate the digest with different password combinations
+
+79
+00:04:29,118 --> 00:04:32,959
+until it matches the digest of the captured request,
+
+80
+00:04:32,959 --> 00:04:35,652
+a sort of dictionary attack.
+
+81
+00:04:35,652 --> 00:04:40,281
+Our poor password choice has revealed the password very quickly.
+
+82
+00:04:40,281 --> 00:04:43,296
+This is a weakness of digest without HTTPS.
+
+83
+00:04:43,296 --> 00:04:45,910
+It allows the attacker to use offline brute force attacks,
+
+84
+00:04:45,910 --> 00:04:49,477
+and you can't protect against it by limiting the number of
+
+85
+00:04:49,477 --> 00:04:52,962
+unsuccessful password attempts in your application.
+
+86
+00:04:52,962 --> 00:04:56,631
+Now having said that, digest is still useful.
+
+87
+00:04:56,631 --> 00:05:01,752
+It's quick to set up, better than form or basic if you don't use HTTPS.
+
+88
+00:05:01,752 --> 00:05:05,045
+Hence, it really comes down to your security requirements.
+
+89
+00:05:05,045 --> 00:05:09,387
+And if you have good, long passwords with numeric and special characters,
+
+90
+00:05:09,387 --> 00:05:18,000
+which are changed very frequently, then digest might be the option for you, especially if the application is internal behind a firewall.
+

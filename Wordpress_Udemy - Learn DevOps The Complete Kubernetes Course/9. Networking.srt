@@ -1,0 +1,259 @@
+1
+00:00:00,210 --> 00:00:06,930
+Let's talk a little bit about networking. The approach to networking is quite different than a default Docker set up.
+
+2
+00:00:06,970 --> 00:00:14,290
+In this course, I already covered container to continue communication within a pod that
+
+3
+00:00:14,290 --> 00:00:21,920
+goes through localhost and the port number, I covered Pod-To-Service communication, using nodePort using DNS discovery,
+
+4
+00:00:21,920 --> 00:00:30,170
+using the cluster IP, External-To-Service, using the load balancer, like the external
+
+5
+00:00:30,170 --> 00:00:37,380
+load balancer on the cloud, Ingress Controller is also an example, or just the NodePort.
+
+6
+00:00:37,510 --> 00:00:40,800
+In Kubernetes, the pod itself should always be routable .
+
+7
+00:00:40,800 --> 00:00:48,130
+This is Pod-To-Pod communications, Kubernetes assumes that pods should be able to communicate to other
+
+8
+00:00:48,150 --> 00:00:51,710
+pods regardless of which node they are running.
+
+9
+00:00:52,580 --> 00:00:59,420
+Every pod has therefore its own IP address, pods on different need to be able to communicate to each other
+
+10
+00:00:59,420 --> 00:01:01,670
+using those IP addresses.
+
+11
+00:01:02,350 --> 00:01:10,510
+This is implemented differently depending on your networking set up. On AWS: it's kubenet networking (kops default)
+
+12
+00:01:10,600 --> 00:01:17,530
+everybody can get an IP address that is routable using the 
+
+13
+00:01:17,530 --> 00:01:18,460
+AWS Virtual Private Network (VPC)
+
+14
+00:01:18,460 --> 00:01:26,560
+The Kubernetes master allocates a "/24" subnet for each node, a "/24" consists of 254 IP addresses.
+
+15
+00:01:26,590 --> 00:01:33,460
+This subnet is added to the VPCs route table using the SDK.
+
+16
+00:01:33,790 --> 00:01:41,170
+There is a limit of 50 entries which means you cannot have more than 50 nodes in a single AWS cluster,
+
+17
+00:01:42,030 --> 00:01:47,200
+although AWS can raise its limit to 100, but it might have performance impact.
+
+18
+00:01:48,700 --> 00:01:55,640
+Not every cloud provider has VPC-technology, although Google Cloud and Azure do have something similar.
+
+19
+00:01:55,720 --> 00:02:01,870
+So, we can use something very similar on those cloud providers. For cloud providers or even on premise
+
+20
+00:02:01,960 --> 00:02:03,830
+there are alternatives available.
+
+21
+00:02:04,830 --> 00:02:07,760
+You can use something called content network interface (CNI).
+
+22
+00:02:07,940 --> 00:02:15,330
+That is a software that provides libraries and plugins for network interfaces within containers.
+
+23
+00:02:15,660 --> 00:02:23,910
+Popular solutions are Calico and Weave. Weave can be used stand alone, or with CNI. Or there is another solution
+
+24
+00:02:23,940 --> 00:02:25,890
+called an Overlay Network,
+
+25
+00:02:26,430 --> 00:02:30,160
+and here Flannel is an easy and popular way.
+
+26
+00:02:30,180 --> 00:02:33,180
+There are also other solutions that I didn't put on this  slide.
+
+27
+00:02:33,210 --> 00:02:37,770
+So, if you want to have a full list, have a look on the Kubernetes networking page, or just google for
+
+28
+00:02:37,770 --> 00:02:41,310
+CNI or an overlay network, and you get all of them.
+
+29
+00:02:42,420 --> 00:02:48,330
+Let me just discuss Flannel in a little bit more detail, so that you have an idea what it actually does.
+
+30
+00:02:48,330 --> 00:02:52,050
+So, here is a Flannel overview diagram.
+
+31
+00:02:52,140 --> 00:02:58,620
+The problem that Flannel tries to solve is that, let's say you use Digital Ocean, you have a public IP and get
+
+32
+00:02:58,620 --> 00:03:01,320
+a private IP, but it stops there.
+
+33
+00:03:01,320 --> 00:03:07,770
+You cannot allocate more IP addresses, but within one node you still need more IP addresses to allocate
+
+34
+00:03:07,770 --> 00:03:11,780
+to your pod, because your part wants to 
+
+35
+00:03:11,820 --> 00:03:13,010
+communicate to another pod on another node.
+
+36
+00:03:13,550 --> 00:03:16,890
+So, basically you're going to create some fake network.
+
+37
+00:03:16,890 --> 00:03:18,850
+This is what they call the Overlay Network.
+
+38
+00:03:18,850 --> 00:03:25,410
+You can lay a network over the network you already have. So, we have two host IP addresses here 
+
+39
+00:03:25,410 --> 00:03:28,360
+"192.168.0.2" and "192.168.0.3",
+
+40
+00:03:28,560 --> 00:03:31,940
+and that's how our nodes can communicate with each other.
+
+41
+00:03:32,040 --> 00:03:33,830
+Our pod also needs an IP address,
+
+42
+00:03:33,870 --> 00:03:39,340
+and here we are going to use some virtual IP address that is going to be managed by Flannel.
+
+43
+00:03:39,690 --> 00:03:47,660
+Flannel also uses "etcd" as a backend to store its networking information, so "10.3.1.2" the IP address of our pod of "Node 1"
+
+44
+00:03:47,670 --> 00:03:53,730
+is going to go to Docker0, which is the gateway, which is going to go to Flannel, 
+
+45
+00:03:53,730 --> 00:03:54,970
+and then to the host IP,
+
+46
+00:03:55,260 --> 00:04:00,240
+and if you would take a look at the packet that is transmitted between Host IP 1 and Host IP 2, so the
+
+47
+00:04:00,280 --> 00:04:02,960
+one with ".2" and the one with ".3".
+
+48
+00:04:02,970 --> 00:04:09,720
+is that the packet is encapsulated, because the source destination always needs to be 
+
+49
+00:04:09,810 --> 00:04:12,030
+the "192.169.0.2" and "192.169.0.3" IP addresses.
+
+50
+00:04:12,030 --> 00:04:20,130
+If you want to send a packet from point "2" to point "3", you cannot communicate 
+
+51
+00:04:20,160 --> 00:04:23,100
+the IP addresses "10.3.1.2" or "10.3.2.2"
+
+52
+00:04:23,130 --> 00:04:25,590
+over this real network.
+
+53
+00:04:25,710 --> 00:04:34,770
+So, those are encapsulated within these packets. The encapsulated packet goes then to the Host IP final "0",
+
+54
+00:04:34,830 --> 00:04:40,070
+and it actually gets to a normal packet again, and goes all the way to the other pod.
+
+55
+00:04:40,320 --> 00:04:47,130
+So, if Flannel acts as a network gateway between the nodes, so you are going to have an overlay network, 
+
+56
+00:04:47,400 --> 00:04:49,350
+so that you can assign each pod with a unique IP address
+
+57
+00:04:49,350 --> 00:04:51,960
+That is not really known by a real network.
+
+58
+00:04:52,030 --> 00:04:53,160
+That's it in a nutshell.
+
+59
+00:04:54,260 --> 00:05:00,710
+So, if you're going to deploy your Kubernetes cluster on premise, on cloud, but not AWS, Azure, or Google cloud, 
+
+60
+00:05:00,830 --> 00:05:06,550
+then you might need Flannel. If only for Digital Ocean, you need an overlay network,
+
+61
+00:05:06,830 --> 00:05:12,740
+You can use a CNI like Calico or something simple like Flannel.
+
+62
+00:05:12,800 --> 00:05:19,100
+Often when you are using some launch scripts that are going to deploy you a Kubernetes cluster for you.
+
+63
+00:05:19,100 --> 00:05:25,310
+Those large groups will include the configuration for software like Flannel, but it's very good to know that
+
+64
+00:05:25,370 --> 00:05:31,980
+this exists and that you might have to implement it yourself, 
+
+65
+00:05:31,980 --> 00:05:32,300
+if you're doing let's say a manual setup.

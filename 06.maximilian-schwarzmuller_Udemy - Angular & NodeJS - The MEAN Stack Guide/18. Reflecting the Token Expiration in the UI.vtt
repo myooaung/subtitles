@@ -1,0 +1,262 @@
+WEBVTT
+
+00:01.980 --> 00:07.060
+From an authentication perspective, the application is now looking really good.
+
+00:07.100 --> 00:08.520
+We're redirecting,
+
+00:08.570 --> 00:11.310
+we're protecting, we're updating the UI,
+
+00:11.330 --> 00:13.200
+we're protecting the back-end.
+
+00:13.520 --> 00:17.980
+There's one thing I want to add though and that is our token,
+
+00:18.200 --> 00:20.320
+it's going to expire after one hour,
+
+00:20.360 --> 00:20.660
+right
+
+00:20.660 --> 00:26.450
+because that is the duration we give it here on the back-end when we create it and I mentioned that this
+
+00:26.450 --> 00:29.870
+is a good duration for security reasons.
+
+00:30.090 --> 00:35.090
+This of course means that after one hour, our user is essentially logged out.
+
+00:35.120 --> 00:40.000
+Right now, our user doesn't recognize this because our UI won't update.
+
+00:40.010 --> 00:41.050
+We got a token
+
+00:41.270 --> 00:42.670
+and it's just invalid
+
+00:42.680 --> 00:45.290
+but on the front-end, we don't know that,
+
+00:45.320 --> 00:47.860
+so we don't know that the token expired.
+
+00:48.230 --> 00:53.360
+Well we can know it of course because we know that the token will expire in one hour
+
+00:53.360 --> 00:57.130
+and actually, we can even pass that information along with the response.
+
+00:57.290 --> 01:03.890
+We could add an expiresIn property here on the response we're sending back if we got a token and
+
+01:03.890 --> 01:10.920
+simply pass that when does the token expire information. We know that it's going to be one hour from now
+
+01:11.180 --> 01:16.430
+but then one hour we don't want to send a hard timestamp because the server of time could deviate from
+
+01:16.430 --> 01:17.650
+the client time,
+
+01:17.900 --> 01:24.380
+let's instead simply send back this duration and you could send back one hour and let the client parse
+
+01:24.380 --> 01:25.400
+this like this,
+
+01:25.400 --> 01:30.570
+you could send the duration in minutes, 60 or in seconds and I will send it back in seconds,
+
+01:30.650 --> 01:32.720
+so 3600seconds,
+
+01:32.720 --> 01:35.140
+let's actually send it as a number.
+
+01:35.210 --> 01:38.740
+So this is the duration in seconds until it will expire,
+
+01:39.980 --> 01:46.730
+now we can use that information on the front-end. When we are storing that token here in login, we can
+
+01:46.730 --> 01:50.850
+actually also parse that when does it expire thing
+
+01:50.990 --> 01:53.330
+and then kind of set a timer
+
+01:53.540 --> 01:57.520
+and that is exactly what I want to do. In my subscribe method here in login,
+
+01:57.590 --> 02:03.120
+I know did we get that expiresIn information and it only matters to me if I got a token,
+
+02:03.140 --> 02:10.520
+so I will extract it here in that if check, there I will get the expiresIn duration which is equal
+
+02:10.520 --> 02:11.130
+to
+
+02:11.210 --> 02:13.780
+response expiresIn.
+
+02:13.880 --> 02:16.700
+Now we need to update our generic type here
+
+02:16.700 --> 02:22.880
+to well tell Angular that we will get this information, so we will have expiresIn which actually will
+
+02:22.880 --> 02:28.290
+be a number because we're passing back a number. So we're getting back that duration here
+
+02:28.860 --> 02:33.490
+and I'll for now simply console log that to the
+
+02:33.650 --> 02:35.780
+well javascript console to see it.
+
+02:36.020 --> 02:44.610
+Now if I go back to the Angular app and I do login with valid credentials, we see that duration here.
+
+02:44.610 --> 02:45.440
+So that's working,
+
+02:45.450 --> 02:52.500
+now we just need to set a timer and we can do that with set timeout of course. set timeout actually will
+
+02:52.500 --> 02:53.360
+return a NodeJS
+
+02:53.370 --> 03:00.330
+timer and it will also just, well take a function which should execute after that duration and
+
+03:00.330 --> 03:02.430
+then the duration as a second argument,
+
+03:02.580 --> 03:09.700
+so here I'll pass expiresIn duration. However set timeout works with milliseconds, not with seconds,
+
+03:09.720 --> 03:14.720
+so we should multiply this with 1000 because we get it back in seconds as we know.
+
+03:14.790 --> 03:18.950
+So after this duration, it will execute this function
+
+03:18.960 --> 03:23.090
+and here I simply want to call this logout,
+
+03:23.170 --> 03:26.760
+I want to call the logout function, clear the token and so on.
+
+03:26.800 --> 03:32.940
+I also should store the timer in some variable so that I can clear the timer
+
+03:32.950 --> 03:38.920
+if we do call logout because if we manually logout, we want to clear the timer so that if we then
+
+03:38.920 --> 03:44.860
+login again thereafter, we don't have that old logout timer going on in the back.
+
+03:44.890 --> 03:57.010
+So I will add a new private property here, TokenTimer which will be of type NodeJS timer, that's a
+
+03:57.010 --> 03:59.070
+type you can just use like that,
+
+03:59.230 --> 04:01.390
+it's made available by typescript.
+
+04:01.390 --> 04:07.940
+So that's the timer we got, so this token timer is equal to the result returned here,
+
+04:08.260 --> 04:13.870
+this token timer is equal to the result returned by set timeout and in logout,
+
+04:13.870 --> 04:21.870
+we can then call clear timeout and pass this token timer as a value.
+
+04:21.900 --> 04:29.330
+So this will now clear this timer whenever we do logout, be that manually or automatically.
+
+04:29.370 --> 04:35.810
+Now to see that in action, I'll temporarily remove the multiplication with 1000,
+
+04:36.000 --> 04:41.040
+so now it will interpret the 3600 as milliseconds and therefore, we should get
+
+04:41.040 --> 04:46.110
+logged out after these 3.6seconds then actually.
+
+04:46.140 --> 04:47.980
+So let's see if that works
+
+04:48.060 --> 04:54.060
+and yes, that NodeJS type assignment doesn't seem to work here in this typescript version,
+
+04:54.060 --> 04:56.620
+so let's use any then instead,
+
+04:56.970 --> 05:03.270
+so this will just hold the timer then. So it's of type any, it's that timer reference which we need for clearing.
+
+05:03.750 --> 05:04.620
+With that saved,
+
+05:04.620 --> 05:06.780
+let's go back and let's now test this.
+
+05:06.780 --> 05:12.160
+Let's login and now we should be logged out in a few seconds,
+
+05:12.940 --> 05:13.570
+here we go,
+
+05:13.570 --> 05:18.080
+it updated here and we can actually prove this and see this a bit better.
+
+05:18.280 --> 05:21.970
+If we go to new post, now we should also be redirected
+
+05:22.300 --> 05:23.300
+and we are.
+
+05:23.650 --> 05:25.170
+So we are logged out here,
+
+05:25.270 --> 05:25.900
+that's great,
+
+05:25.900 --> 05:27.880
+this is working. Now
+
+05:28.030 --> 05:32.690
+one thing which is not that great is that if I update my code,
+
+05:32.710 --> 05:36.830
+so if I go back to multiplying this with 1000,
+
+05:36.880 --> 05:46.500
+so to really turn it into one hour, that now with this added, i will actually still lose my authentication
+
+05:46.500 --> 05:50.180
+status if I reload the page. If I do login here,
+
+05:51.040 --> 05:56.860
+I'm logged in but if I reload the page because let's say I leave it and I come back, then I'm actually
+
+05:56.860 --> 06:00.880
+logged out because I'm not persisting that login state.
+
+06:00.880 --> 06:02.870
+The token is only stored in memory
+
+06:02.950 --> 06:08.110
+and as mentioned before, this will get cleared whenever the Angular app restarts.
+
+06:08.110 --> 06:10.390
+So that's something we'll tackle next.

@@ -1,0 +1,202 @@
+WEBVTT
+
+00:02.020 --> 00:07.690
+In the last lecture, we already called register to register a synchronization task
+
+00:08.050 --> 00:14.440
+but this alone won't do anything, for one because we have no counterpart in the service worker file but
+
+00:14.440 --> 00:19.520
+also because we don't pass any information, we don't know which data we want to synchronize.
+
+00:19.600 --> 00:25.660
+So that's what I'll do next and for that, we can basically think about the data we would want to send to the server
+
+00:25.690 --> 00:26.660
+anyways.
+
+00:27.040 --> 00:35.050
+Now that data is right now the title and the location, the two things we fetched from the input fields.
+
+00:35.050 --> 00:43.510
+Therefore I will create a new variable which I'll name post and this will just be a Javascript object.
+
+00:43.510 --> 00:45.910
+Now I will add two properties here,
+
+00:45.920 --> 00:49.840
+title and this shall of course be title input value,
+
+00:49.870 --> 00:56.890
+we check that it is valid and the location which shall be title input, excuse me not title input, location
+
+00:56.890 --> 00:58.760
+input value.
+
+00:58.930 --> 01:04.780
+I'll add a third property, an ID and here I want to use the current date which I'll turn into a string
+
+01:04.780 --> 01:06.380
+with toIsoString and
+
+01:06.500 --> 01:08.710
+this is just some identifier I want to use,
+
+01:09.040 --> 01:14.170
+I wouldn't need to do that but I want to create a unique identifier which is why I take the date here.
+
+01:14.560 --> 01:18.900
+So with that, I'll set up the post I want to pass eventually,
+
+01:18.910 --> 01:21.900
+now I need to store that in indexedDB.
+
+01:21.940 --> 01:26.960
+The reason why I use indexedDB is, we can't pass it to the register method,
+
+01:27.220 --> 01:33.550
+the sync manager doesn't have a built-in database, so we need to use one of the databases we already have,
+
+01:33.820 --> 01:40.030
+indexedDB and we already wrote this utility.js file with some useful functions we can use
+
+01:40.270 --> 01:44.630
+and writeData seems promising to store some data in there, the data
+
+01:44.740 --> 01:52.010
+we want to send with the synchronization tasks later. writeData can be used because in our index.html
+
+01:52.150 --> 01:59.860
+file, we import feed.js after we import the utility.js file which is the file where we define
+
+01:59.860 --> 02:04.560
+these utility methods, so we can safely use writeData in feed.js.
+
+02:04.760 --> 02:12.070
+So there, I will call writeData and writeData takes two arguments, the store we want to access and the
+
+02:12.070 --> 02:17.530
+post we want to write or the data we want to write. Now regarding the store we want to access, I have to go
+
+02:17.530 --> 02:23.500
+to utility.js and have a look at the object stores we set up, right now that's only one, posts
+
+02:23.950 --> 02:30.040
+and this is not the store I want to use because this is the store which is therefore caching posts we
+
+02:30.040 --> 02:31.460
+fetch from the server.
+
+02:31.690 --> 02:36.210
+Now I want to use a new object store which is there for synchronization tasks,
+
+02:36.340 --> 02:39.150
+so basically to store the data in our sync queue.
+
+02:39.430 --> 02:45.070
+For that, I will duplicate that code to create a new object store and I will create a new one which
+
+02:45.070 --> 02:52.600
+I'll name sync posts and I also will set up that there will be an ID property which uniquely identifies
+
+02:52.630 --> 02:55.740
+each task or each entry.
+
+02:55.750 --> 03:02.380
+So sync posts is the new object store which is there to store all the posts I want to synchronize and back
+
+03:02.380 --> 03:03.260
+in feed.js,
+
+03:03.420 --> 03:09.170
+I now can use that post or that store, excuse me, that sync post store.
+
+03:09.580 --> 03:15.850
+So writeData will go to sync posts, this newly created object store and the data of course is post
+
+03:16.320 --> 03:23.460
+and in writeData, I have all the logic to go through that and store that in my store.
+
+03:24.820 --> 03:32.740
+Now with that, writeData of course returns promise which will resolve once this finished successfully
+
+03:32.740 --> 03:38.950
+and actually it's inside this function here in the first then block where I want to register the synchronization
+
+03:38.950 --> 03:45.370
+task because I only want to do this if I successfully wrote data to indexedDB, otherwise I have the task
+
+03:45.370 --> 03:47.550
+set up but the data isn't there.
+
+03:47.950 --> 03:49.540
+So this is what I want to do,
+
+03:49.540 --> 03:57.760
+this allows me to make sure that the data is stored and that the synchronization task is registered.
+
+03:57.760 --> 04:03.010
+Now there's one other thing I want to do here and that is in the index.html file, at the bottom you
+
+04:03.010 --> 04:11.170
+see this confirmation toast div, this is just a feature of the CSS and Javascript library I use, material
+
+04:11.170 --> 04:17.740
+design lite and it allows me to show a little information message to the user, that we did successfully
+
+04:17.740 --> 04:20.870
+synchronize this or store this for synchronization.
+
+04:21.010 --> 04:26.260
+So I'll chain another then call and therefore I will return service worker register which also returns a
+
+04:26.260 --> 04:32.280
+promise and this will resolve once we did successfully register this synchronization task
+
+04:32.470 --> 04:39.970
+and here I now want to get access to that snack bar container, snack bar simply is the name of this notification
+
+04:39.970 --> 04:40.670
+feature,
+
+04:40.780 --> 04:43.620
+so this element here at the bottom,
+
+04:43.630 --> 04:50.590
+this feature we use here from that CSS library and we can see, it has an ID of confirmation toast
+
+04:50.730 --> 04:58.950
+div. So let's use that with document query selector to select by that ID and then I want to
+
+04:59.410 --> 05:07.000
+output some data and there the library I'm using, again this material design lite library requires
+
+05:07.000 --> 05:16.250
+me to have a Javascript object with a message where I say your post was saved for syncing and I will now
+
+05:16.250 --> 05:24.860
+use my snack bar container, call material snack bar, this is a property provided by that third-party package I'm using
+
+05:25.190 --> 05:31.750
+and I can call show snack bar here and pass my data and this will simply output a nice visual feedback
+
+05:31.790 --> 05:32.920
+to the user.
+
+05:32.960 --> 05:39.090
+I'll also catch any errors we have so that I can at least see in the console if something fails,
+
+05:39.140 --> 05:42.950
+so I will call console log error. Important, this part
+
+05:43.160 --> 05:48.060
+with that snack bar is not related to background synchronization at all,
+
+05:48.080 --> 05:53.750
+it's just a feature I added here to have a nice way of showing the user that something happened,
+
+05:53.750 --> 05:55.110
+it's purely optional.
+
+05:55.190 --> 05:58.680
+This and the indexedDB part, that's the important part.

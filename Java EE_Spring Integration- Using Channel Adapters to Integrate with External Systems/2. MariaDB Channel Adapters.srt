@@ -1,0 +1,376 @@
+1
+00:00:00,340 --> 00:00:01,490
+In this section,
+
+2
+00:00:01,490 --> 00:00:06,940
+we're going to use Spring integration to connect to MariaDB using the JDBC API.
+
+3
+00:00:06,940 --> 00:00:12,290
+MariaDB is a fork of MySQL that is intended to remain free and
+
+4
+00:00:12,290 --> 00:00:16,440
+open‑source software under the new general public license.
+
+5
+00:00:16,440 --> 00:00:21,950
+It was forked due to concerns of the acquisition of MySQL by Oracle and
+
+6
+00:00:21,950 --> 00:00:25,930
+is a drop in replacement for MySQL and it's a APIs.
+
+7
+00:00:25,930 --> 00:00:29,860
+Because of its license and compatibility with MySQL,
+
+8
+00:00:29,860 --> 00:00:34,840
+many companies have opted to use MariaDB instead of MySQL.
+
+9
+00:00:34,840 --> 00:00:35,820
+Regardless,
+
+10
+00:00:35,820 --> 00:00:38,840
+we can use MariaDB to learn how to integrate with a
+
+11
+00:00:38,840 --> 00:00:41,870
+relational database using the JDBC APIs.
+
+12
+00:00:41,870 --> 00:00:47,770
+In order to query MariaDB for new rows matching specific criteria,
+
+13
+00:00:47,770 --> 00:00:50,260
+we're going to use the JdbcPollingChannelAdapter.
+
+14
+00:00:50,260 --> 00:00:55,400
+The JdbcPollingChannelAdapter is a message source that
+
+15
+00:00:55,400 --> 00:00:59,620
+we'll configure with an InboundChannelAdapter annotation to
+
+16
+00:00:59,620 --> 00:01:05,040
+query MariaDB for a set of rows, and then publish those rows to a channel.
+
+17
+00:01:05,040 --> 00:01:07,400
+When we want to write a record to MariaDB,
+
+18
+00:01:07,400 --> 00:01:13,410
+we'll use a JdbcMessageHandler annotated with a ServiceActivater and define
+
+19
+00:01:13,410 --> 00:01:17,790
+an INSERT SQL statement used to write a row to MariaDB.
+
+20
+00:01:17,790 --> 00:01:21,580
+Let's look at how to create a JDBC InboundChannelAdapter.
+
+21
+00:01:21,580 --> 00:01:26,370
+First we create an InboundChannelAdapter with a 1 second poller that
+
+22
+00:01:26,370 --> 00:01:29,160
+publishes messages to the newReservationListChannel.
+
+23
+00:01:29,160 --> 00:01:32,970
+We create a JdbcPollingChannelAdapter,
+
+24
+00:01:32,970 --> 00:01:36,900
+specifying a select statement that is executed every time
+
+25
+00:01:36,900 --> 00:01:39,570
+the poller invokes the message source.
+
+26
+00:01:39,570 --> 00:01:40,570
+In this case,
+
+27
+00:01:40,570 --> 00:01:46,140
+we select all rows from the reservation table that have a status value of 0.
+
+28
+00:01:46,140 --> 00:01:50,680
+Then we define a RowMapper that receives a JDBC results set
+
+29
+00:01:50,680 --> 00:01:53,160
+and returns a new reservation object.
+
+30
+00:01:53,160 --> 00:01:54,000
+Finally,
+
+31
+00:01:54,000 --> 00:01:59,170
+we define an update statement to execute after the select statement finishes.
+
+32
+00:01:59,170 --> 00:02:03,840
+This step is optional, but if we don't update the reservation status,
+
+33
+00:02:03,840 --> 00:02:07,640
+then we'll receive all matching rows every 1 second.
+
+34
+00:02:07,640 --> 00:02:12,360
+So we set the status value to 1 for all rows that match the IDs
+
+35
+00:02:12,360 --> 00:02:14,750
+returned by the initial select statement.
+
+36
+00:02:14,750 --> 00:02:19,860
+The JdbcPollingChannelAdapter returns matching rows as a list of reservations,
+
+37
+00:02:19,860 --> 00:02:25,140
+so we define a splitter that returns the payload as a list of reservations.
+
+38
+00:02:25,140 --> 00:02:30,640
+Recall that the splitter will create new messages for each record in the list.
+
+39
+00:02:30,640 --> 00:02:34,890
+In this way, we'll receive one message for each reservation.
+
+40
+00:02:34,890 --> 00:02:37,640
+Turning our attention to the OutboundChannelAdapter,
+
+41
+00:02:37,640 --> 00:02:41,670
+we create a new message handler with a ServiceActivater that
+
+42
+00:02:41,670 --> 00:02:44,300
+receives messages from an inputChannel.
+
+43
+00:02:44,300 --> 00:02:47,440
+We create a JdbcMessageHandler instance,
+
+44
+00:02:47,440 --> 00:02:50,500
+passing it an INSERT SQL statement that inserts
+
+45
+00:02:50,500 --> 00:02:53,540
+values into the reservation table.
+
+46
+00:02:53,540 --> 00:02:58,540
+Under the hood, the JdbcMessageHandler is going to create a prepared statement,
+
+47
+00:02:58,540 --> 00:03:02,650
+and its setPreparedStatementSetter method will be called with a prepared
+
+48
+00:03:02,650 --> 00:03:05,780
+statement instance and the message it wants to insert.
+
+49
+00:03:05,780 --> 00:03:10,030
+We retrieve the message payload, cast it to a reservation,
+
+50
+00:03:10,030 --> 00:03:13,000
+and then set the Id and name properties.
+
+51
+00:03:13,000 --> 00:03:18,350
+For our example, consider another reservation system that doesn't send messages,
+
+52
+00:03:18,350 --> 00:03:22,640
+but rather inserts rows into its reservation database.
+
+53
+00:03:22,640 --> 00:03:24,060
+On the inbound side,
+
+54
+00:03:24,060 --> 00:03:28,930
+we'll create a JdbcPollingChannelAdapter with a 1 second poller that
+
+55
+00:03:28,930 --> 00:03:32,910
+retrieves the reservations and publishes them to a channel.
+
+56
+00:03:32,910 --> 00:03:34,020
+As you saw,
+
+57
+00:03:34,020 --> 00:03:37,300
+we're going to create a splitter that publishes one reservation
+
+58
+00:03:37,300 --> 00:03:41,100
+at a time to a reservation channel that will be received and
+
+59
+00:03:41,100 --> 00:03:43,740
+processed by a reservation listener.
+
+60
+00:03:43,740 --> 00:03:48,370
+On the outbound side, we're going to define a reservation service that,
+
+61
+00:03:48,370 --> 00:03:49,590
+when it's invoked,
+
+62
+00:03:49,590 --> 00:03:54,100
+publishes a reservation message to a channel that will be received by a
+
+63
+00:03:54,100 --> 00:03:57,820
+JdbcMessageHandler that will write it to our database.
+
+64
+00:03:57,820 --> 00:04:00,070
+The Docker image that we're going to use for this
+
+65
+00:04:00,070 --> 00:04:03,430
+example is the latest version of MariaDB,
+
+66
+00:04:03,430 --> 00:04:06,140
+which has over 10 million downloads.
+
+67
+00:04:06,140 --> 00:04:09,120
+You can start it with the Docker run command,
+
+68
+00:04:09,120 --> 00:04:13,580
+docker run ‑d to run it as a daemon process,
+
+69
+00:04:13,580 --> 00:04:19,380
+‑p to specify that we want to expose port 3306 on the container,
+
+70
+00:04:19,380 --> 00:04:22,580
+as port 3306 on the local machine,
+
+71
+00:04:22,580 --> 00:04:27,750
+‑e to set the environment variable MySQL_ROOT_PASSWORD= password,
+
+72
+00:04:27,750 --> 00:04:29,320
+which, as its name implies,
+
+73
+00:04:29,320 --> 00:04:33,650
+is the root password for the MariaDB instance to password,
+
+74
+00:04:33,650 --> 00:04:36,860
+and finally mariadb, which is the name of the image.
+
+75
+00:04:36,860 --> 00:04:41,590
+Next, we need to create the reservation DB database in MariaDB.
+
+76
+00:04:41,590 --> 00:04:44,180
+You can either create a terminal session into the
+
+77
+00:04:44,180 --> 00:04:49,740
+container and run the MySQL command, or you can execute it all in one statement.
+
+78
+00:04:49,740 --> 00:04:50,510
+First,
+
+79
+00:04:50,510 --> 00:04:56,140
+you need to run the Docker PS command to find the ID of the MariaDB container,
+
+80
+00:04:56,140 --> 00:04:59,140
+and then you can run the Docker exec command,
+
+81
+00:04:59,140 --> 00:05:03,430
+docker exec, and then the container‑id, and then the command,
+
+82
+00:05:03,430 --> 00:05:07,990
+mysql ‑u to specify the username of root,
+
+83
+00:05:07,990 --> 00:05:12,490
+‑ p with the password of password, and then ‑e,
+
+84
+00:05:12,490 --> 00:05:18,090
+and the command to execute, create database reservationdb.
+
+85
+00:05:18,090 --> 00:05:19,040
+From here,
+
+86
+00:05:19,040 --> 00:05:22,380
+the sample code has a schema SQL file that will
+
+87
+00:05:22,380 --> 00:05:24,930
+create the reservation table for us.
+
+88
+00:05:24,930 --> 00:05:27,810
+Let's dive into the code and see this in action.
+
+89
+00:05:27,810 --> 00:05:30,540
+We'll begin by building our application.
+
+90
+00:05:30,540 --> 00:05:33,090
+We'll start by reviewing the configuration,
+
+91
+00:05:33,090 --> 00:05:36,940
+both the Spring configuration and the schema SQL file.
+
+92
+00:05:36,940 --> 00:05:41,410
+Then we'll build our InboundChannelAdapter and reservation listener service,
+
+93
+00:05:41,410 --> 00:05:44,570
+and then we'll build our OutboundChannelAdapter and reservation
+
+94
+00:05:44,570 --> 00:05:53,000
+service. We'll run the application to write reservations to MariaDB, and then read those reservations from MariaDB.
+

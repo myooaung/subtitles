@@ -1,0 +1,256 @@
+1
+00:00:01,740 --> 00:00:04,940
+With Java 11, things are slightly different.
+
+2
+00:00:04,940 --> 00:00:06,440
+So we still have a policy file,
+
+3
+00:00:06,440 --> 00:00:12,540
+although that's now here in conf/security/java.policy.
+
+4
+00:00:12,540 --> 00:00:15,810
+So in Java 11, there is really only the SDK.
+
+5
+00:00:15,810 --> 00:00:19,640
+There is no separate Java runtime, that's why the policy file is here.
+
+6
+00:00:19,640 --> 00:00:23,680
+Also, when we look in the policy file, there is no extensions directory anymore,
+
+7
+00:00:23,680 --> 00:00:27,840
+so the policy file no longer covers that.
+
+8
+00:00:27,840 --> 00:00:29,840
+There are some other differences as well.
+
+9
+00:00:29,840 --> 00:00:33,340
+So the policy file covers the Bootstrap class loader and that
+
+10
+00:00:33,340 --> 00:00:36,740
+grants everything all permission essentially.
+
+11
+00:00:36,740 --> 00:00:39,840
+There is also a policy file for the platform class loader,
+
+12
+00:00:39,840 --> 00:00:44,790
+and the permissions for the platform class loader are specified by a default
+
+13
+00:00:44,790 --> 00:00:48,490
+policy file and we'll take a look at that in the moment.
+
+14
+00:00:48,490 --> 00:00:51,730
+Remember that on Java 11 we are loading modules.
+
+15
+00:00:51,730 --> 00:00:56,840
+Each modules classes are assigned a unique protection domain.
+
+16
+00:00:56,840 --> 00:01:01,310
+These modules are identified using the JRT URL schemes,
+
+17
+00:01:01,310 --> 00:01:03,510
+so the Java runtime URL scheme,
+
+18
+00:01:03,510 --> 00:01:08,140
+and these modules are only granted permissions necessary for them to
+
+19
+00:01:08,140 --> 00:01:13,040
+function correctly and that's not necessarily all permissions.
+
+20
+00:01:13,040 --> 00:01:15,600
+So this default policy file lives here,
+
+21
+00:01:15,600 --> 00:01:23,540
+it's in JAVA_HOME/lib/security/default.policy.
+
+22
+00:01:23,540 --> 00:01:28,740
+So let's take a look at this default policy file and briefly add these modules.
+
+23
+00:01:28,740 --> 00:01:34,410
+So this is the Java 11 policy file, so it's very similar to the 1 for Java 8,
+
+24
+00:01:34,410 --> 00:01:37,620
+but notice there is no EXT entry here,
+
+25
+00:01:37,620 --> 00:01:41,760
+so we're not granting things in the EXT directory or permissions
+
+26
+00:01:41,760 --> 00:01:45,790
+because the EXT directory essentially no longer exists.
+
+27
+00:01:45,790 --> 00:01:48,650
+There is also this default policy file, and in here,
+
+28
+00:01:48,650 --> 00:01:54,540
+we'll find grants for a code base with the JRT URL protocol
+
+29
+00:01:54,540 --> 00:01:56,210
+and this protocol identifies modules,
+
+30
+00:01:56,210 --> 00:01:59,740
+so the java.compiler module gets given all permissions,
+
+31
+00:01:59,740 --> 00:02:03,170
+the java.net.http module gets given certain permissions,
+
+32
+00:02:03,170 --> 00:02:04,310
+and so on and so forth,
+
+33
+00:02:04,310 --> 00:02:09,880
+and you can scan through here and see what modules are given what permissions.
+
+34
+00:02:09,880 --> 00:02:11,710
+So what is this JRT protocol?
+
+35
+00:02:11,710 --> 00:02:15,610
+Well, it's a way of reaching inside the modules to discover what's there.
+
+36
+00:02:15,610 --> 00:02:19,690
+The module file format itself is not documented and that's because it
+
+37
+00:02:19,690 --> 00:02:22,150
+might change in the future unlike the Java file format,
+
+38
+00:02:22,150 --> 00:02:23,500
+which is just zip falls.
+
+39
+00:02:23,500 --> 00:02:25,870
+So we need a way of interrogating those modules,
+
+40
+00:02:25,870 --> 00:02:29,340
+and the JRT protocol is a way of doing that.
+
+41
+00:02:29,340 --> 00:02:32,140
+So let's briefly look at some code that let us do that.
+
+42
+00:02:32,140 --> 00:02:33,580
+So here,
+
+43
+00:02:33,580 --> 00:02:39,340
+we have a helper function called readJrtModules that we're going to complete.
+
+44
+00:02:39,340 --> 00:02:41,160
+And in here, I'll need a try/catch block,
+
+45
+00:02:41,160 --> 00:02:47,240
+and this catch will catch FileSystemNotFoundException,
+
+46
+00:02:47,240 --> 00:02:50,130
+and this exception will be thrown if the JRT protocol
+
+47
+00:02:50,130 --> 00:02:51,770
+doesn't work in our environment.
+
+48
+00:02:51,770 --> 00:02:56,340
+Typically because you're running on a JDK previous to Java 9.
+
+49
+00:02:56,340 --> 00:03:00,580
+So if this happens, we can just print out the message, Could not read modules.
+
+50
+00:03:00,580 --> 00:03:05,810
+So to get access to the built‑in modules, I can use the pre‑existing URL.
+
+51
+00:03:05,810 --> 00:03:06,520
+So there is a URL,
+
+52
+00:03:06,520 --> 00:03:14,440
+jrt:/modules that gives me access to this module file system if you like.
+
+53
+00:03:14,440 --> 00:03:19,840
+Then once I have that, I can print out all the modules referenced by this path,
+
+54
+00:03:19,840 --> 00:03:22,510
+so we can call files.list, passing it the path,
+
+55
+00:03:22,510 --> 00:03:25,870
+and for each file referenced by this path,
+
+56
+00:03:25,870 --> 00:03:28,380
+print out the name of that file.
+
+57
+00:03:28,380 --> 00:03:31,540
+Now let's just add a header and a footer to this.
+
+58
+00:03:31,540 --> 00:03:34,410
+And then if I run this code and I'm running on Java
+
+59
+00:03:34,410 --> 00:03:36,800
+11 here and look at the output,
+
+60
+00:03:36,800 --> 00:03:40,630
+we get to see the list of all the modules on my system.
+
+61
+00:03:40,630 --> 00:03:45,850
+And notice here, corresponding to the policy file is a java.compiler module,
+
+62
+00:03:45,850 --> 00:03:47,560
+which is referenced here.
+
+63
+00:03:47,560 --> 00:03:52,540
+There is a java.net.http module, it's also referenced here.
+
+64
+00:03:52,540 --> 00:04:03,000
+So here we can see how the JRT protocol can be used to identify a module and then how we can specify permissions within that module.
+

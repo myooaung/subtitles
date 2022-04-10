@@ -1,0 +1,283 @@
+WEBVTT
+
+00:02.370 --> 00:07.590
+So far we're able to write data and we do this in a way which allows us to do it both from the normal
+
+00:07.620 --> 00:09.570
+Javascript code in the service worker,
+
+00:09.570 --> 00:16.160
+now of course we want to read data too, so that we can actually fetch data from our indexedDB. For that
+
+00:16.170 --> 00:21.650
+I'll create a new function which I'll name readAllData and you can of course choose any name you like.
+
+00:21.660 --> 00:27.580
+Now in this function, we need to get at least one argument, the store from which we want to read data
+
+00:28.050 --> 00:32.010
+and then I simply want to return dbPromise,
+
+00:32.010 --> 00:37.050
+so still accessing my database, opening a connection and having access to all the objects stores in
+
+00:37.050 --> 00:39.080
+there and just like before,
+
+00:39.120 --> 00:45.500
+we of course now chain a then block where we in the function get access to the opened database.
+
+00:45.510 --> 00:49.500
+Now the pattern is not that different from before, we create a transaction
+
+00:49.500 --> 00:55.230
+first of all because every operation has to be wrapped in a transaction. We do this with the transaction
+
+00:55.230 --> 00:56.880
+method on the database,
+
+00:57.060 --> 00:59.450
+we define which store we want to open,
+
+00:59.460 --> 01:02.360
+so that's the store argument we're getting here
+
+01:02.730 --> 01:05.200
+and then the type of transaction.
+
+01:05.400 --> 01:10.680
+Now before we used readwrite, here we only want to read so we can use readonly and again, make sure
+
+01:10.680 --> 01:14.860
+to not mistype that. Then we can open the store,
+
+01:14.870 --> 01:21.510
+so just as before we used the transaction, call object store and open the store we passed as an argument,
+
+01:21.660 --> 01:23.250
+so again this store
+
+01:23.490 --> 01:27.840
+and finally, we can simply return store get all.
+
+01:27.840 --> 01:34.360
+Now one difference you may notice is that before we called store put and return tx complete,
+
+01:34.500 --> 01:39.750
+now here we don't need to call tx complete because the transaction will complete but we don't need
+
+01:39.750 --> 01:43.390
+to return that to indicate that we need it to succeed,
+
+01:43.540 --> 01:49.260
+it's a get data operation, if it for some reason fails, we'd simply get back no data
+
+01:49.290 --> 01:54.930
+but we never try to change the database. So database integrity was never in danger and therefore we
+
+01:54.930 --> 01:56.780
+can directly return the results
+
+01:56.790 --> 01:59.810
+and again if that fails, that's just null, undefined
+
+01:59.970 --> 02:01.870
+but if it succeeds, that's good,
+
+02:01.890 --> 02:06.780
+we never have that case where we need to wait for transaction to successfully finish.
+
+02:06.780 --> 02:11.580
+So we get all the data back and now we can use that of course in our code.
+
+02:11.730 --> 02:16.550
+So back in feed.js here, I now want to use it.
+
+02:16.590 --> 02:17.740
+Now in the service worker,
+
+02:17.760 --> 02:24.100
+I didn't check whether we had access to indexedDB because in service workers, we have
+
+02:24.420 --> 02:29.670
+but here in the feed.js file, we might not have that access because maybe we're in a browser
+
+02:29.670 --> 02:35.900
+which doesn't support indexedDB, even though we saw that 93% of all browsers already support it
+
+02:35.940 --> 02:37.860
+at the point of time I'm recording this,
+
+02:38.160 --> 02:42.660
+still, better safe than sorry. Before we used caches here,
+
+02:42.660 --> 02:45.970
+now I want to check if indexedDB is available. So for that,
+
+02:45.990 --> 02:53.820
+I'll simply check if indexedDB is available in window and make sure to not mistype this, DB are two capital
+
+02:53.820 --> 02:58.160
+characters. This make sure that the browser supports it and now in there,
+
+02:58.170 --> 03:00.310
+I of course want to access it.
+
+03:00.420 --> 03:04.710
+I no longer need to match any cache here or something like that,
+
+03:04.710 --> 03:11.170
+instead what I'll do is I'll call read all data which I can only call if we import utility.js
+
+03:11.190 --> 03:12.100
+.
+
+03:12.150 --> 03:18.460
+So let's go back to index.html and before we import feed, I need to import utility.
+
+03:18.480 --> 03:21.600
+I'll do it right after IDB, though you need of course
+
+03:21.600 --> 03:24.840
+make sure to keep that order because in utility.js,
+
+03:24.870 --> 03:26.880
+we use IDB, so we need to import
+
+03:26.910 --> 03:31.110
+IDB first and we need to import utility before we import feed.
+
+03:31.560 --> 03:32.760
+So now we import that
+
+03:32.820 --> 03:36.270
+and now in the feed.js, we can safely call read all data
+
+03:36.600 --> 03:41.860
+and of course I want to read all data from my posts data store.
+
+03:42.300 --> 03:48.290
+Now with that, we can call then because read all data returns get all
+
+03:48.330 --> 03:51.890
+and that happens to be a promise which resolves once the data was read.
+
+03:52.170 --> 03:54.070
+So here, we can use that data,
+
+03:54.180 --> 04:00.390
+so in function we get back the data we stored and that data will simply be an array of all the values
+
+04:00.390 --> 04:01.130
+we had.
+
+04:01.530 --> 04:04.930
+So in there I'll first of all check if we didn't receive the network data yet
+
+04:05.070 --> 04:12.720
+because if we did, I don't want to overwrite it with the cache and then I'll simply log from cache again
+
+04:12.780 --> 04:16.330
+and output the data we get back and thereafter,
+
+04:16.380 --> 04:19.400
+I want to call updateUI with that data.
+
+04:19.560 --> 04:26.940
+Now updateUI thankfully already expects an array of data so we should be safe to simply call updateUI
+
+04:27.030 --> 04:28.970
+and pass the data to it
+
+04:29.040 --> 04:33.450
+and in there, we'll loop through the data and it should be an array already.
+
+04:33.450 --> 04:36.430
+Now let's see if that works as expected.
+
+04:36.480 --> 04:42.480
+Since I also changed feed.js, I'll simply go back to my service worker and bump up the static
+
+04:42.480 --> 04:47.370
+cache version here to make sure we fetch a new version, though it doesn't really matter because I'll
+
+04:47.370 --> 04:57.470
+use clear anyways, so clear storage, clear site data and then reload to install and activate. Now as you
+
+04:57.470 --> 05:01.100
+can see, we have a problem with utility.js here. 
+
+05:01.160 --> 05:07.360
+Now the reason for this is that I have a typo in the name, so let's name it
+
+05:09.200 --> 05:17.420
+utility, this looks better. Let's make sure I have it correctly in all the imports, utility and in the
+
+05:17.420 --> 05:19.650
+service worker, it's also utility.
+
+05:20.000 --> 05:20.300
+OK,
+
+05:20.300 --> 05:26.440
+so let's quickly clear the storage again and reload and see if that error is gone now, that looks better.
+
+05:26.450 --> 05:28.410
+You see from cache, it's an empty array now
+
+05:28.430 --> 05:30.280
+because nothing is in the cache yet,
+
+05:30.560 --> 05:33.060
+if I reload one more time, it should be written to the cache
+
+05:33.350 --> 05:35.810
+and now it should fetch it from the cache too
+
+05:35.930 --> 05:41.040
+and you see it is an array which has elements which have exactly the structure we expect them to have.
+
+05:41.360 --> 05:49.640
+So now if we go offline, we should still see our card here and we do. Now by the way, here's a bonus
+
+05:49.640 --> 05:50.790
+point you can earn,
+
+05:50.900 --> 05:53.150
+why does the image still work?
+
+05:53.150 --> 05:59.160
+Keep in mind in indexedDB, we only store a link to that image, here
+
+05:59.180 --> 06:01.610
+we don't store the full image there, just the link,
+
+06:01.700 --> 06:03.980
+so this needs to be fetched from the Internet.
+
+06:03.980 --> 06:06.110
+Why does it still work then if we're offline?
+
+06:09.040 --> 06:10.590
+Did you figure it out?
+
+06:10.640 --> 06:16.250
+The reason of course is our dynamic caching The image here is fetched just like all the other assets we have
+
+06:16.250 --> 06:17.420
+in our application
+
+06:17.420 --> 06:23.570
+and therefore if we inspect our cache here, the dynamic one, we see that it was simply added to it which
+
+06:23.570 --> 06:26.590
+makes sense and which is absolutely the behavior we want.
+
+06:26.840 --> 06:34.700
+So that is why we have an offline functioning application here using indexedDB instead of the normal
+
+06:34.790 --> 06:35.620
+network here
+
+06:35.660 --> 06:38.000
+or instead of the cache we used before.

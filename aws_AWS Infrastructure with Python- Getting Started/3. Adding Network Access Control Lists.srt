@@ -1,0 +1,416 @@
+1
+00:00:01,140 --> 00:00:04,160
+Now that we created the actual VPC,
+
+2
+00:00:04,160 --> 00:00:12,840
+let's next add some firewall rules in the form of network ACL rules to this VPC.
+
+3
+00:00:12,840 --> 00:00:21,090
+So first off, I'm going to store all of our private subnets in a variable.
+
+4
+00:00:21,090 --> 00:00:31,120
+I can actually do this by accessing our VPC construct and
+
+5
+00:00:31,120 --> 00:00:35,040
+accessing an attribute called private_subnets.
+
+6
+00:00:35,040 --> 00:00:38,850
+This will actually store a list of all of our private
+
+7
+00:00:38,850 --> 00:00:42,690
+subnets in the private_subnets variable.
+
+8
+00:00:42,690 --> 00:00:51,140
+So again, notice I am referring to the self.vpc attribute of this class.
+
+9
+00:00:51,140 --> 00:00:57,240
+Next, I'm going to do the same thing for isolated subnets,
+
+10
+00:00:57,240 --> 00:01:05,240
+so I'm just going to replace the word private with isolated.
+
+11
+00:01:05,240 --> 00:01:09,370
+So we now have two variables here that represent a list of
+
+12
+00:01:09,370 --> 00:01:13,840
+private subnets and isolated subnets in our VPC.
+
+13
+00:01:13,840 --> 00:01:18,200
+What we can actually do with this list is we can loop
+
+14
+00:01:18,200 --> 00:01:21,940
+through this list and add rules to this list.
+
+15
+00:01:21,940 --> 00:01:24,880
+For example, in an isolated subnet,
+
+16
+00:01:24,880 --> 00:01:30,410
+we normally only allow traffic from the private
+
+17
+00:01:30,410 --> 00:01:35,240
+subnet and only through the DB port.
+
+18
+00:01:35,240 --> 00:01:38,540
+That's the only traffic we allow inbound.
+
+19
+00:01:38,540 --> 00:01:44,840
+So what I'm going to do is I'm first going to create an isolated_nacl.
+
+20
+00:01:44,840 --> 00:01:48,520
+This is going to be an empty network ACL.
+
+21
+00:01:48,520 --> 00:01:55,630
+So I'm just going to call the NetworkAcl class and give this network ACL a name,
+
+22
+00:01:55,630 --> 00:01:58,340
+just DBNacl.
+
+23
+00:01:58,340 --> 00:02:03,320
+There are no rules yet created by default; however,
+
+24
+00:02:03,320 --> 00:02:10,040
+this NetworkAcl construct will take in a few arguments as well.
+
+25
+00:02:10,040 --> 00:02:16,440
+So you need to specify the VPC you want this NetworkAcl to be created in,
+
+26
+00:02:16,440 --> 00:02:19,610
+as well as a subnet_selection,
+
+27
+00:02:19,610 --> 00:02:27,040
+which represents the subnets you want this network ACL to be attached to.
+
+28
+00:02:27,040 --> 00:02:32,240
+So for the VPC, I'm going to say self.vpc.
+
+29
+00:02:32,240 --> 00:02:35,840
+Next for subnet_selection,
+
+30
+00:02:35,840 --> 00:02:42,900
+we actually need to pass a SubnetSelection object because that is what
+
+31
+00:02:42,900 --> 00:02:48,640
+this NetworkAcl class expects in its constructor.
+
+32
+00:02:48,640 --> 00:02:50,400
+So, to do this,
+
+33
+00:02:50,400 --> 00:02:57,100
+we just create a SubnetSelection object and specify that
+
+34
+00:02:57,100 --> 00:03:01,540
+we're passing the list of isolated_subnets.
+
+35
+00:03:01,540 --> 00:03:08,240
+This will return a SubnetSelection containing our isolated_subnets.
+
+36
+00:03:08,240 --> 00:03:13,940
+So now we're going to loop through all of our private_subnets,
+
+37
+00:03:13,940 --> 00:03:22,050
+and we're going to allow traffic from the private_subnets into
+
+38
+00:03:22,050 --> 00:03:27,580
+the protected subnets on the database port.
+
+39
+00:03:27,580 --> 00:03:36,240
+Notice, I'm using the Python enumerate function, and I'm starting from 1.
+
+40
+00:03:36,240 --> 00:03:42,480
+This is to make labeling each of the network ACL rules easier.
+
+41
+00:03:42,480 --> 00:03:46,550
+Now again, for every private_subnet,
+
+42
+00:03:46,550 --> 00:03:52,940
+we're going to add an entry to the isolated_nacl.
+
+43
+00:03:52,940 --> 00:03:59,940
+I'm going to name this entry DbNACLIngress,
+
+44
+00:03:59,940 --> 00:04:04,120
+multiply the id from the enumeration by 100,
+
+45
+00:04:04,120 --> 00:04:06,860
+and add it to the name.
+
+46
+00:04:06,860 --> 00:04:13,540
+I next need to specify the rule number or the sequence number for this rule.
+
+47
+00:04:13,540 --> 00:04:20,640
+In this case, the rule number will be, again, the id number times 100.
+
+48
+00:04:20,640 --> 00:04:25,620
+Now, as usual, it's up to you how you number your NACL rules.
+
+49
+00:04:25,620 --> 00:04:33,440
+It is just a personal preference for me that I number them in hundreds.
+
+50
+00:04:33,440 --> 00:04:38,930
+Next, I need to specify the CIDR range for this rule.
+
+51
+00:04:38,930 --> 00:04:44,400
+So I need to specify what type of traffic I am whitelisting.
+
+52
+00:04:44,400 --> 00:04:50,240
+To do that, I actually need to pass an AclCider object.
+
+53
+00:04:50,240 --> 00:04:58,040
+Now this AclCider object can come from an existing IPv4 mask.
+
+54
+00:04:58,040 --> 00:05:04,840
+So we can actually retrieve the IPv4 address from our private_subnet.
+
+55
+00:05:04,840 --> 00:05:09,140
+However, how do we actually retrieve the IPv4 address?
+
+56
+00:05:09,140 --> 00:05:15,920
+Let's make a short stop at the CDK documentation and check how can we
+
+57
+00:05:15,920 --> 00:05:21,140
+retrieve the IPv4 address from a private subnet?
+
+58
+00:05:21,140 --> 00:05:28,440
+So here we are at the CDK documentation for the PrivateSubnet class.
+
+59
+00:05:28,440 --> 00:05:33,840
+By default, the documentation is actually written in TypeScript,
+
+60
+00:05:33,840 --> 00:05:38,540
+but the functions are still documented the same way.
+
+61
+00:05:38,540 --> 00:05:42,340
+So if we go to the Properties section,
+
+62
+00:05:42,340 --> 00:05:51,110
+notice that the PrivateSubnet class does not actually have an IPv4 property.
+
+63
+00:05:51,110 --> 00:05:59,740
+We actually cannot retrieve the private subnet IPv4 address from this class.
+
+64
+00:05:59,740 --> 00:06:01,100
+So what do we do now?
+
+65
+00:06:01,100 --> 00:06:03,440
+Do we just give up?
+
+66
+00:06:03,440 --> 00:06:12,840
+Well, if we actually look at another class called the CfnSubnet class,
+
+67
+00:06:12,840 --> 00:06:16,340
+if we scroll down to Properties,
+
+68
+00:06:16,340 --> 00:06:26,240
+there is a property for the cidrBlock of this particular subnet.
+
+69
+00:06:26,240 --> 00:06:31,040
+What exactly is the CfnSubnet class?
+
+70
+00:06:31,040 --> 00:06:39,440
+The CfnSubnet class is actually the lower‑level CFN construct.
+
+71
+00:06:39,440 --> 00:06:47,840
+Remember that the CDK is an abstraction on top of CloudFormation.
+
+72
+00:06:47,840 --> 00:06:53,350
+So this CFN class gives you access to the underlying
+
+73
+00:06:53,350 --> 00:07:01,340
+CloudFormation resource that this construct represents.
+
+74
+00:07:01,340 --> 00:07:06,450
+So to retrieve the lower‑level cidrBlock property,
+
+75
+00:07:06,450 --> 00:07:11,440
+we need to look at the CfnSubnet class.
+
+76
+00:07:11,440 --> 00:07:19,140
+Every construct has a CfnSubnet class.
+
+77
+00:07:19,140 --> 00:07:24,450
+To get the CfnSubnet class for a particular construct,
+
+78
+00:07:24,450 --> 00:07:32,840
+we just need to look at subnet.node.default_child.
+
+79
+00:07:32,840 --> 00:07:41,180
+This default child represents the CFN resource created by this construct.
+
+80
+00:07:41,180 --> 00:07:44,020
+And from this default child,
+
+81
+00:07:44,020 --> 00:07:51,840
+we can retrieve the CIDR block of this private subnet.
+
+82
+00:07:51,840 --> 00:07:55,070
+Now just take note of the documentation differences.
+
+83
+00:07:55,070 --> 00:07:58,910
+For Python, we mainly use snake case,
+
+84
+00:07:58,910 --> 00:08:03,670
+which is why it's cidr_block instead of the camel
+
+85
+00:08:03,670 --> 00:08:09,140
+case cidr with capital B Block.
+
+86
+00:08:09,140 --> 00:08:16,700
+Now let's complete our network ACL entry with the TCP port we are
+
+87
+00:08:16,700 --> 00:08:25,980
+allowing into our firewall. So this TCP port will be the DB port that we
+
+88
+00:08:25,980 --> 00:08:31,690
+actually specified in this class's constructor.
+
+89
+00:08:31,690 --> 00:08:41,940
+So remember, the db_port default 5432 value that we specified earlier.
+
+90
+00:08:41,940 --> 00:08:46,170
+Lastly, we need to specify the direction of this traffic,
+
+91
+00:08:46,170 --> 00:08:50,510
+and we're going to allow this traffic inbound.
+
+92
+00:08:50,510 --> 00:08:57,140
+We're allowing this DB port inbound on our network ACL.
+
+93
+00:08:57,140 --> 00:09:03,440
+That is specified in this INGRESS construct.
+
+94
+00:09:03,440 --> 00:09:06,440
+Now that we've specified our ingress rules,
+
+95
+00:09:06,440 --> 00:09:12,340
+we also need to specify our egress rules or our outbound rules.
+
+96
+00:09:12,340 --> 00:09:15,880
+So to do this, I'm just going to copy this add_entry function,
+
+97
+00:09:15,880 --> 00:09:19,140
+and I'm going to change the label to egress,
+
+98
+00:09:19,140 --> 00:09:23,480
+change the direction to egress as well,
+
+99
+00:09:23,480 --> 00:09:31,640
+and I'm also going to change the tcp_port_range to the FM URL port range.
+
+100
+00:09:31,640 --> 00:09:39,640
+This FM URL port range is just the possible ports our DB can
+
+101
+00:09:39,640 --> 00:09:44,230
+actually respond on based on RFC 6056.
+
+102
+00:09:44,230 --> 00:09:50,940
+So this is a networking‑specific port that's used for response traffic.
+
+103
+00:09:50,940 --> 00:09:55,530
+Since this is not a networking class, I won't spend too much time on this.
+
+104
+00:09:55,530 --> 00:10:03,000
+Think of it as the port you need to allow outbound for your DB to respond properly.
+

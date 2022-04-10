@@ -1,0 +1,197 @@
+WEBVTT
+1
+00:00:03.093 --> 00:00:06.631
+Most good JMS brokers will have some form of message
+
+2
+00:00:06.631 --> 00:00:08.575
+redelivery and a dead letter queue.
+
+3
+00:00:08.575 --> 00:00:12.704
+It's not specifically part of the API, but in an enterprise system,
+
+4
+00:00:12.704 --> 00:00:14.359
+it's important to consider.
+
+5
+00:00:14.359 --> 00:00:16.911
+It generally applies to messages being sent to
+
+6
+00:00:16.911 --> 00:00:18.506
+consumers from the message broker.
+
+7
+00:00:18.506 --> 00:00:20.911
+Sending messages to the broker generally has to be taken
+
+8
+00:00:20.911 --> 00:00:22.609
+care of within your application logic.
+
+9
+00:00:22.609 --> 00:00:25.512
+If you can't send the messages to the broker,
+
+10
+00:00:25.512 --> 00:00:29.257
+then you have to decide what to do.
+
+11
+00:00:29.257 --> 00:00:30.255
+For consumers though,
+
+12
+00:00:30.255 --> 00:00:33.778
+the message broker has effectively taken responsibility for the message,
+
+13
+00:00:33.778 --> 00:00:36.450
+and therefore it needs to deliver it.
+
+14
+00:00:36.450 --> 00:00:38.569
+That messageListener simply throws an unchecked
+
+15
+00:00:38.569 --> 00:00:40.529
+exception indicating that it has failed.
+
+16
+00:00:40.529 --> 00:00:44.352
+In this case, you can tell the message broker to attempt redelivery,
+
+17
+00:00:44.352 --> 00:00:49.437
+and after so many attempts fail, and put the message back on another queue,
+
+18
+00:00:49.437 --> 00:00:52.607
+commonly called a dead letter queue, or DLQ.
+
+19
+00:00:52.607 --> 00:00:54.405
+We can then monitor that DLQ,
+
+20
+00:00:54.405 --> 00:00:57.626
+and take action based on the messages that are on it,
+
+21
+00:00:57.626 --> 00:00:58.749
+which in my experience,
+
+22
+00:00:58.749 --> 00:01:03.657
+quite often means some form of human interaction to resolve the issue,
+
+23
+00:01:03.657 --> 00:01:05.269
+but not always.
+
+24
+00:01:05.269 --> 00:01:08.291
+As I say, it's not part of the API,
+
+25
+00:01:08.291 --> 00:01:11.649
+so let's see how we do it in Apache's ActiveMQ.
+
+26
+00:01:11.649 --> 00:01:11.956
+Well,
+
+27
+00:01:11.956 --> 00:01:14.411
+it's actually controlled at the ConnectionFactory level by
+
+28
+00:01:14.411 --> 00:01:16.343
+something called a redelivery policy.
+
+29
+00:01:16.343 --> 00:01:20.733
+In this piece of code, as part of creating the ConnectionFactory,
+
+30
+00:01:20.733 --> 00:01:24.411
+you can see I'm saying a maximum of 4 redeliveries.
+
+31
+00:01:24.411 --> 00:01:30.096
+So the message broker will attempt to deliver the message 5 times in total.
+
+32
+00:01:30.096 --> 00:01:33.392
+ActiveMQ then relies for a backing-off algorithm,
+
+33
+00:01:33.392 --> 00:01:36.973
+which means the time between subsequent redeliveries will be longer,
+
+34
+00:01:36.973 --> 00:01:39.888
+allowing some time for the system to possibly recover.
+
+35
+00:01:39.888 --> 00:01:41.798
+So let's see this running.
+
+36
+00:01:41.798 --> 00:01:42.945
+From the output,
+
+37
+00:01:42.945 --> 00:01:48.345
+you can see there is a total of 5 attempts to consume the message,
+
+38
+00:01:48.345 --> 00:01:49.510
+then it stops.
+
+39
+00:01:49.510 --> 00:01:52.022
+If I jump onto the ActiveMQ Admin console,
+
+40
+00:01:52.022 --> 00:01:55.103
+then I can see from the queue section are two queues.
+
+41
+00:01:55.103 --> 00:01:57.622
+Note that even though the message was not successfully
+
+42
+00:01:57.622 --> 00:01:59.738
+consumed from the test destination queue,
+
+43
+00:01:59.738 --> 00:02:01.684
+there are no pending messages.
+
+44
+00:02:01.684 --> 00:02:04.979
+Instead, the message has been added to the DLQ,
+
+45
+00:02:04.979 --> 00:02:06.970
+which has one pending message,
+
+46
+00:02:06.970 --> 00:02:11.701
+which we can then consume using some other process.
+
+47
+00:02:11.701 --> 00:02:13.766
+Now it's important to mention that you do need some way
+
+48
+00:02:13.766 --> 00:02:19.307
+of reading messages from this queue, and the message can come in many formats,
+
+49
+00:02:19.307 --> 00:02:28.000
+as the message potentially comes from any queue within the message broker. So the DLQ consumer needs to be fairly generic.
+

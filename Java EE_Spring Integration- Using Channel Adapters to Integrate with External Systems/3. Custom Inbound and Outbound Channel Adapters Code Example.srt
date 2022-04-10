@@ -1,0 +1,364 @@
+1
+00:00:00,440 --> 00:00:04,040
+Let's start by looking at the DirectoryMonitorMessageSource.
+
+2
+00:00:04,040 --> 00:00:06,590
+We extend the AbstractMessageSource,
+
+3
+00:00:06,590 --> 00:00:12,620
+specifying that we support any type of object. We define a Jackson ObjectMapper,
+
+4
+00:00:12,620 --> 00:00:17,420
+which will deserialize a JSON file on the local file system to an
+
+5
+00:00:17,420 --> 00:00:22,340
+object. We define the directory we want to monitor and the entityClass
+
+6
+00:00:22,340 --> 00:00:25,200
+to which to deserialize the file's contents.
+
+7
+00:00:25,200 --> 00:00:28,600
+We define a simple constructor that accepts this directory
+
+8
+00:00:28,600 --> 00:00:32,480
+and the entityClass, as well as an empty constructor and
+
+9
+00:00:32,480 --> 00:00:34,240
+some getter and setter methods.
+
+10
+00:00:34,240 --> 00:00:37,700
+The doReceive method is where we implement our business logic.
+
+11
+00:00:37,700 --> 00:00:41,050
+We create an ArrayList to hold our results.
+
+12
+00:00:41,050 --> 00:00:45,850
+Then we create a new File object with the configure directory and call its
+
+13
+00:00:45,850 --> 00:00:50,560
+ListFiles method. We iterate over all the files in the directory,
+
+14
+00:00:50,560 --> 00:00:56,070
+deserialize them to the specified entityClass using a Jackson ObjectMapper,
+
+15
+00:00:56,070 --> 00:00:58,940
+and then add them to our list of results.
+
+16
+00:00:58,940 --> 00:00:59,730
+Finally,
+
+17
+00:00:59,730 --> 00:01:03,020
+we use Spring Integration's MessageBuilder to construct a
+
+18
+00:01:03,020 --> 00:01:06,000
+new message with results as its payload.
+
+19
+00:01:06,000 --> 00:01:08,440
+To complete the class, we override the
+
+20
+00:01:08,440 --> 00:01:12,980
+AbstractMessageSource's getComponentType method to return
+
+21
+00:01:12,980 --> 00:01:16,640
+the string directory‑monitor:inbound‑channel‑adapter.
+
+22
+00:01:16,640 --> 00:01:20,640
+This method is required because the AbstractMessageSource
+
+23
+00:01:20,640 --> 00:01:24,070
+implements the name component interface and Spring will use
+
+24
+00:01:24,070 --> 00:01:26,340
+this name in its bean management.
+
+25
+00:01:26,340 --> 00:01:28,070
+Now that we have a MessageSource,
+
+26
+00:01:28,070 --> 00:01:33,880
+the CustomInboundChannelAdapterConfig class will use it. We define two channels.
+
+27
+00:01:33,880 --> 00:01:37,230
+The reservationFromCustomChannel is the channel to which
+
+28
+00:01:37,230 --> 00:01:40,540
+individual reservations will be published and the
+
+29
+00:01:40,540 --> 00:01:44,300
+reservationListFromCustomChannel is the channel to which our
+
+30
+00:01:44,300 --> 00:01:47,610
+MessageSource will publish a list of reservations.
+
+31
+00:01:47,610 --> 00:01:51,660
+The directoryMonitorMessageSource method is annotated with the
+
+32
+00:01:51,660 --> 00:01:55,990
+InboundChannelAdapter annotation, specifying that it will publish its
+
+33
+00:01:55,990 --> 00:02:00,500
+messages to the reservationListFromCustomChannel, and it includes a
+
+34
+00:02:00,500 --> 00:02:04,400
+poller that invokes the bean every 5 seconds.
+
+35
+00:02:04,400 --> 00:02:08,640
+Inside the method, we create a new DirectoryMonitorMessageSource,
+
+36
+00:02:08,640 --> 00:02:13,310
+passing it the directory to monitor, namely the reservations directory,
+
+37
+00:02:13,310 --> 00:02:18,040
+as well as the entityClass to which to deserialize the files in that directory,
+
+38
+00:02:18,040 --> 00:02:20,440
+namely the Reservation.class.
+
+39
+00:02:20,440 --> 00:02:21,360
+Finally,
+
+40
+00:02:21,360 --> 00:02:25,860
+because the DirectoryMonitorMessageSource returns a list of reservations,
+
+41
+00:02:25,860 --> 00:02:29,150
+we create a splitter that listens for messages on the
+
+42
+00:02:29,150 --> 00:02:33,390
+reservationListFromCustomChannel and publishes messages to
+
+43
+00:02:33,390 --> 00:02:35,540
+the reservationFromCustomChannel.
+
+44
+00:02:35,540 --> 00:02:37,530
+It extracts the message payload,
+
+45
+00:02:37,530 --> 00:02:41,140
+which is a list of reservations, and returns it to the splitter.
+
+46
+00:02:41,140 --> 00:02:45,530
+The splitter will create new messages for each individual reservation in the
+
+47
+00:02:45,530 --> 00:02:49,860
+list and publish them to the reservationFromCustomChannel.
+
+48
+00:02:49,860 --> 00:02:54,440
+A reservation is a plain, old Java object that manages three fields,
+
+49
+00:02:54,440 --> 00:02:57,280
+an id, a name, and status.
+
+50
+00:02:57,280 --> 00:03:00,950
+The ReservationListener is a Spring service with a
+
+51
+00:03:00,950 --> 00:03:05,000
+ServiceActivator that listens for reservations published to the
+
+52
+00:03:05,000 --> 00:03:08,240
+reservationFromCustomChannel and logs them.
+
+53
+00:03:08,240 --> 00:03:10,410
+Now that we know how to read messages,
+
+54
+00:03:10,410 --> 00:03:12,610
+let's look at how we write them. The
+
+55
+00:03:12,610 --> 00:03:17,340
+DirectoryMonitorMessageHandler extends the AbstractMessageHandler class.
+
+56
+00:03:17,340 --> 00:03:20,840
+It creates a Jackson ObjectMapper and defines the
+
+57
+00:03:20,840 --> 00:03:23,370
+directory to which to write objects.
+
+58
+00:03:23,370 --> 00:03:26,550
+We override the handleMessageInternal method,
+
+59
+00:03:26,550 --> 00:03:31,630
+which has passed the message to process. We generate a unique UUID for
+
+60
+00:03:31,630 --> 00:03:35,660
+the file name, and then create a path object that concatenates the
+
+61
+00:03:35,660 --> 00:03:40,240
+configure directory with the uuid .json file name.
+
+62
+00:03:40,240 --> 00:03:41,020
+Finally,
+
+63
+00:03:41,020 --> 00:03:46,240
+we use the Jackson ObjectMapper to write the message payload to the path's file.
+
+64
+00:03:46,240 --> 00:03:50,740
+The CustomOutboundChannelAdapterConfig is a Spring configuration class.
+
+65
+00:03:50,740 --> 00:03:54,190
+It defines a reservation to CustomChannel and then a
+
+66
+00:03:54,190 --> 00:03:58,160
+customMessageHandler method with a ServiceActivator that
+
+67
+00:03:58,160 --> 00:04:00,470
+listens for messages on that channel.
+
+68
+00:04:00,470 --> 00:04:05,510
+We create a new instance of our DirectoryMonitorMessageHandler, specifying that
+
+69
+00:04:05,510 --> 00:04:08,790
+it should write its messages to the reservations directory.
+
+70
+00:04:08,790 --> 00:04:09,650
+Finally,
+
+71
+00:04:09,650 --> 00:04:14,150
+we define a MessagingGateway named CreateReservationGateway that
+
+72
+00:04:14,150 --> 00:04:17,930
+publishes messages to the reservationToCustomChannel when its
+
+73
+00:04:17,930 --> 00:04:20,540
+createReservation method is invoked.
+
+74
+00:04:20,540 --> 00:04:23,780
+The reservation service is a Spring service with the
+
+75
+00:04:23,780 --> 00:04:28,830
+CreateReservationGateway wired into it that publishes reservations to
+
+76
+00:04:28,830 --> 00:04:32,540
+the gateway when its createReservation method is called.
+
+77
+00:04:32,540 --> 00:04:33,340
+Finally,
+
+78
+00:04:33,340 --> 00:04:38,040
+the CustomAdaptersApplication is a command line Spring boot application with
+
+79
+00:04:38,040 --> 00:04:42,960
+the ReservationService wired into it that creates six Reservations and sends
+
+80
+00:04:42,960 --> 00:04:46,120
+them to the ReservationService every 2 seconds.
+
+81
+00:04:46,120 --> 00:04:48,890
+Then we wait 3 seconds before exiting the
+
+82
+00:04:48,890 --> 00:04:51,340
+application for everything to complete.
+
+83
+00:04:51,340 --> 00:04:55,490
+Let's run the code and review the logs. From the logs, we can see
+
+84
+00:04:55,490 --> 00:04:58,710
+the ReservationService creating reservations,
+
+85
+00:04:58,710 --> 00:05:03,160
+and we can see the ReservationListener receiving those reservations.
+
+86
+00:05:03,160 --> 00:05:06,610
+One thing to note is that we did not add logic to skip the
+
+87
+00:05:06,610 --> 00:05:08,970
+messages that we've already processed,
+
+88
+00:05:08,970 --> 00:05:13,140
+so you'll see the same messages processed multiple times.
+
+89
+00:05:13,140 --> 00:05:16,440
+I'll leave that for you to work on if you're so inclined.
+
+90
+00:05:16,440 --> 00:05:20,260
+Additionally, if you run the application multiple times,
+
+91
+00:05:20,260 --> 00:05:28,000
+you'll see that it will discover your previous runs, so you might want to delete existing files before you run the application.
+

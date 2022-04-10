@@ -1,0 +1,265 @@
+WEBVTT
+1
+00:00:01.220 --> 00:00:04.760
+So let's review some basic symmetric encryption principles.
+
+2
+00:00:04.760 --> 00:00:07.000
+Let's say we have some data, and we want to make it
+
+3
+00:00:07.000 --> 00:00:09.160
+indecipherable to anyone else.
+
+4
+00:00:09.160 --> 00:00:12.120
+Well, we could lock that data up with an encryption key,
+
+5
+00:00:12.120 --> 00:00:13.730
+and in order to get that data,
+
+6
+00:00:13.730 --> 00:00:17.440
+you would then need to use the same key in order to decrypt it.
+
+7
+00:00:17.440 --> 00:00:19.330
+Now, in this visualization,
+
+8
+00:00:19.330 --> 00:00:22.900
+we'll just use the lock here to signify that something is encrypted.
+
+9
+00:00:22.900 --> 00:00:26.160
+Now, if we wanted to have some encrypted value inside of our code,
+
+10
+00:00:26.160 --> 00:00:29.540
+we could do this, but if we needed it decrypted for any reason,
+
+11
+00:00:29.540 --> 00:00:32.680
+maybe to show it to a user or to actually allow it
+
+12
+00:00:32.680 --> 00:00:36.490
+to be acted upon by some process, we would need to decrypt it.
+
+13
+00:00:36.490 --> 00:00:37.870
+So in this case,
+
+14
+00:00:37.870 --> 00:00:41.090
+we might need to actually use the key within our code to
+
+15
+00:00:41.090 --> 00:00:44.240
+decrypt the value and then to get access to it.
+
+16
+00:00:44.240 --> 00:00:48.590
+But this is kind of a bad practice because it might be a bad idea if we have an
+
+17
+00:00:48.590 --> 00:00:52.720
+attacker that wants to get at this data. Take this example.
+
+18
+00:00:52.720 --> 00:00:56.150
+Let's say we're trying to encrypt keys in basically the same way,
+
+19
+00:00:56.150 --> 00:00:58.770
+and we have our encryption key and the encryption, which we'll
+
+20
+00:00:58.770 --> 00:01:02.550
+use this lock to signify again, and we have a bunch of twitter
+
+21
+00:01:02.550 --> 00:01:05.730
+API keys, or maybe these are access keys to some other system
+
+22
+00:01:05.730 --> 00:01:07.610
+that we're trying to protect.
+
+23
+00:01:07.610 --> 00:01:11.580
+If we encrypt these keys with a green encryption key, and then we wanna have our
+
+24
+00:01:11.580 --> 00:01:15.210
+code written here and put these keys in sight of that code,
+
+25
+00:01:15.210 --> 00:01:18.760
+we'd also need to include the green encryption key to decrypt them.
+
+26
+00:01:18.760 --> 00:01:22.560
+Now, if an attacker comes along and they access our system somehow,
+
+27
+00:01:22.560 --> 00:01:26.650
+maybe the code is pushed into GitHub and inadvertently it gets made public,
+
+28
+00:01:26.650 --> 00:01:29.070
+which has happened many times in the past and is likely to
+
+29
+00:01:29.070 --> 00:01:32.070
+happen in the future, the attacker would then see the encrypted
+
+30
+00:01:32.070 --> 00:01:35.860
+value and the key and would basically know how to get the keys
+
+31
+00:01:35.860 --> 00:01:37.890
+back out from that value.
+
+32
+00:01:37.890 --> 00:01:40.650
+Then they could take those keys and gallivant through our
+
+33
+00:01:40.650 --> 00:01:43.400
+systems doing basically whatever they wanted with them. So
+
+34
+00:01:43.400 --> 00:01:45.420
+how do we avoid issues like this?
+
+35
+00:01:45.420 --> 00:01:45.660
+Well,
+
+36
+00:01:45.660 --> 00:01:50.480
+we'll be using Parameter Store and KMS. Specifically, we'll be taking
+
+37
+00:01:50.480 --> 00:01:53.360
+our keys and putting them into Parameter Store.
+
+38
+00:01:53.360 --> 00:01:55.760
+Now you're noticing here that I'm locking these up with the
+
+39
+00:01:55.760 --> 00:01:58.800
+red lock here, and that's because for all the keys that we're
+
+40
+00:01:58.800 --> 00:02:00.440
+adding inside of Parameter Store,
+
+41
+00:02:00.440 --> 00:02:03.200
+we'll also be locking them with a key that's managed
+
+42
+00:02:03.200 --> 00:02:05.440
+by the Key Management Service, KMS.
+
+43
+00:02:05.440 --> 00:02:08.000
+And I'll explain how that comes in in just a moment.
+
+44
+00:02:08.000 --> 00:02:11.560
+But let's say we have our Lambda code over here, and we want this Lambda
+
+45
+00:02:11.560 --> 00:02:15.050
+code to be able to get the decrypted values of those keys.
+
+46
+00:02:15.050 --> 00:02:18.890
+So we're going to give it an IAM role, and this IAM role will be checked
+
+47
+00:02:18.890 --> 00:02:21.310
+against the Identity and Access Management system.
+
+48
+00:02:21.310 --> 00:02:23.990
+When we make a request over to the Parameter Store,
+
+49
+00:02:23.990 --> 00:02:27.790
+it'll basically then allow us to do that if we have the correct permissions,
+
+50
+00:02:27.790 --> 00:02:30.260
+so we'll need to make sure we give it permissions to go and
+
+51
+00:02:30.260 --> 00:02:32.640
+fetch these keys from the Parameter Store.
+
+52
+00:02:32.640 --> 00:02:35.210
+Then the Lambda code can make that call,
+
+53
+00:02:35.210 --> 00:02:38.630
+and in the background, the Parameter Store will go and ask KMS,
+
+54
+00:02:38.630 --> 00:02:43.310
+the Key Management Service from AWS, to give us the decrypted value of
+
+55
+00:02:43.310 --> 00:02:46.480
+that green key because KMS is managing the red key,
+
+56
+00:02:46.480 --> 00:02:47.800
+which is locking it up.
+
+57
+00:02:47.800 --> 00:02:51.050
+So KMS goes and allows that value to be decrypted by Parameter
+
+58
+00:02:51.050 --> 00:02:54.020
+Store, and then that's returned to our Lambda code.
+
+59
+00:02:54.020 --> 00:02:57.100
+Now this will be returned while our Lambda code is actually running,
+
+60
+00:02:57.100 --> 00:03:01.200
+and the key itself isn't stored anywhere inside our Lambda code, so this helps
+
+61
+00:03:01.200 --> 00:03:05.370
+us avoid issues of having keys and source code or having them in unsecured
+
+62
+00:03:05.370 --> 00:03:08.370
+places that might end up being a liability later on.
+
+63
+00:03:08.370 --> 00:03:11.740
+We do still need to make sure our AWS account itself is secure
+
+64
+00:03:11.740 --> 00:03:14.640
+and that the permissions granted to access the Parameter Store
+
+65
+00:03:14.640 --> 00:03:17.040
+keys are heavily scoped down.
+
+66
+00:03:17.040 --> 00:03:25.000
+But this gives us a better way to manage all of our access keys and secrets, and that's why we're doing it inside of this demo.
+

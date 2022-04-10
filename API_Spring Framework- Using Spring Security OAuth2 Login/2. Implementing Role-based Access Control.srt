@@ -1,0 +1,324 @@
+1
+00:00:01,840 --> 00:00:06,940
+Let's log into the Keycloak admin console and create a new role.
+
+2
+00:00:06,940 --> 00:00:09,170
+You can create roles for different namespaces,
+
+3
+00:00:09,170 --> 00:00:13,640
+so realm based or even client based.
+
+4
+00:00:13,640 --> 00:00:15,160
+Now I'm going to go for realm based,
+
+5
+00:00:15,160 --> 00:00:19,090
+so that this role is available to all clients in this role.
+
+6
+00:00:19,090 --> 00:00:21,740
+Currently, though, I just have one client.
+
+7
+00:00:21,740 --> 00:00:24,240
+Let's name the new role ADMIN.
+
+8
+00:00:24,240 --> 00:00:29,040
+Now, I'm going to assign this role to Victoria.
+
+9
+00:00:29,040 --> 00:00:32,280
+Let's put a breakpoint in the OpenID Connect User service,
+
+10
+00:00:32,280 --> 00:00:37,140
+so that we can actually see this access token created by Keycloak.
+
+11
+00:00:37,140 --> 00:00:37,990
+As you can see,
+
+12
+00:00:37,990 --> 00:00:44,040
+Victoria's access token now has the role ADMIN for CryptoPortfolio realm.
+
+13
+00:00:44,040 --> 00:00:45,840
+This is nested,
+
+14
+00:00:45,840 --> 00:00:53,040
+so I am going to map this into a claim named roles to make things a bit easier.
+
+15
+00:00:53,040 --> 00:00:58,220
+So in Clients, crypto‑portfolio client, select Mappers,
+
+16
+00:00:58,220 --> 00:01:01,640
+and the type will be User Realm Roles.
+
+17
+00:01:01,640 --> 00:01:05,640
+And I want this under roles claim.
+
+18
+00:01:05,640 --> 00:01:09,620
+Now Keycloak gives me the option to include this new claim in the ID token,
+
+19
+00:01:09,620 --> 00:01:13,540
+the access token or the userinfo endpoint.
+
+20
+00:01:13,540 --> 00:01:16,940
+Now, this is an important concept to understand about OAuth 2.0.
+
+21
+00:01:16,940 --> 00:01:20,120
+ID tokens, according to the OpenID Connect spec,
+
+22
+00:01:20,120 --> 00:01:22,390
+are JWT tokens,
+
+23
+00:01:22,390 --> 00:01:28,360
+so they will have claims about the user and the authentication on them.
+
+24
+00:01:28,360 --> 00:01:33,040
+In fact, it has certain mandatory claims that need to be there.
+
+25
+00:01:33,040 --> 00:01:35,960
+ID tokens are actually meant for the client to be
+
+26
+00:01:35,960 --> 00:01:38,440
+used for authentication purposes.
+
+27
+00:01:38,440 --> 00:01:42,500
+Now, when it comes to access tokens, according to the OAuth 2.0 spec,
+
+28
+00:01:42,500 --> 00:01:46,240
+there is no standard for what the access token should be.
+
+29
+00:01:46,240 --> 00:01:49,040
+It doesn't actually have to be a by value token.
+
+30
+00:01:49,040 --> 00:01:52,340
+It could be a by reference token, meaning opaque.
+
+31
+00:01:52,340 --> 00:01:55,460
+And the userinfo endpoint is where the client should
+
+32
+00:01:55,460 --> 00:01:57,900
+be getting the user claims from.
+
+33
+00:01:57,900 --> 00:01:59,470
+Now, for convenience,
+
+34
+00:01:59,470 --> 00:02:03,140
+you will find that most authorization servers will issue access
+
+35
+00:02:03,140 --> 00:02:06,870
+tokens that are by value and in JWT format,
+
+36
+00:02:06,870 --> 00:02:11,440
+and by default Keycloak does that, but according to the OAuth 2.0 spec,
+
+37
+00:02:11,440 --> 00:02:14,650
+access tokens are actually meant for the resource server,
+
+38
+00:02:14,650 --> 00:02:16,420
+and not to be read by the client.
+
+39
+00:02:16,420 --> 00:02:19,590
+So the client should be simply forwarding on to the resource
+
+40
+00:02:19,590 --> 00:02:21,950
+server to access the userinfo endpoint,
+
+41
+00:02:21,950 --> 00:02:24,340
+where they can then retrieve those claims from.
+
+42
+00:02:24,340 --> 00:02:28,310
+There is also a limit on the size of an access token that you
+
+43
+00:02:28,310 --> 00:02:30,430
+can actually fit in the header of a request,
+
+44
+00:02:30,430 --> 00:02:33,700
+so you tend to find that the userinfo endpoint actually returns more claims
+
+45
+00:02:33,700 --> 00:02:37,540
+back than what could be on the access token or the ID token.
+
+46
+00:02:37,540 --> 00:02:39,970
+These are known as thin tokens.
+
+47
+00:02:39,970 --> 00:02:42,440
+Okay, save this for now.
+
+48
+00:02:42,440 --> 00:02:49,590
+If I log out and log back in, you can now see Victoria has a new claim of roles,
+
+49
+00:02:49,590 --> 00:02:51,370
+with the ADMIN role inside.
+
+50
+00:02:51,370 --> 00:02:55,040
+Now we need to map these roles claims into the
+
+51
+00:02:55,040 --> 00:02:59,540
+GrantedAuthorities collection on the authentication token.
+
+52
+00:02:59,540 --> 00:03:02,640
+For this, we need a GrantedAuthoritiesMapper.
+
+53
+00:03:02,640 --> 00:03:06,240
+It's basically a class that implements the GrantedAuthoritiesMapper interface,
+
+54
+00:03:06,240 --> 00:03:08,950
+overrides the mapAuthorities method.
+
+55
+00:03:08,950 --> 00:03:12,180
+You just need to add it to your Spring ApplicationContext,
+
+56
+00:03:12,180 --> 00:03:17,440
+and Spring will plug it into the OAuth 2.0 login authentication provider.
+
+57
+00:03:17,440 --> 00:03:18,860
+In the authorities collection,
+
+58
+00:03:18,860 --> 00:03:24,240
+there will be an OpenID Connect userAuthority object,
+
+59
+00:03:24,240 --> 00:03:29,940
+and via this object you have access to the ID token and the UserInfo endpoint.
+
+60
+00:03:29,940 --> 00:03:32,000
+Notice that there is no access token.
+
+61
+00:03:32,000 --> 00:03:35,030
+Again, Spring is following the convention.
+
+62
+00:03:35,030 --> 00:03:37,390
+The access token is not meant for the client,
+
+63
+00:03:37,390 --> 00:03:39,940
+it's meant to be used against the resource server
+
+64
+00:03:39,940 --> 00:03:42,140
+to access the UserInfo endpoint.
+
+65
+00:03:42,140 --> 00:03:44,060
+Now, using the UserInfo endpoint,
+
+66
+00:03:44,060 --> 00:03:47,420
+we can get the roles claim and add the value into
+
+67
+00:03:47,420 --> 00:03:49,250
+the GrantedAuthorities collection.
+
+68
+00:03:49,250 --> 00:03:52,290
+Note that because these are roles you need to
+
+69
+00:03:52,290 --> 00:03:54,850
+prefix them with the capital ROLE_.
+
+70
+00:03:54,850 --> 00:03:58,900
+Now Spring, by default, maps scopes to GrantedAuthorities.
+
+71
+00:03:58,900 --> 00:04:04,640
+Since we're returning a new collection, let's also add them as well.
+
+72
+00:04:04,640 --> 00:04:07,630
+Okay, in our SecurityConfiguration adapter,
+
+73
+00:04:07,630 --> 00:04:11,730
+we can restrict access to the /support/admin path
+
+74
+00:04:11,730 --> 00:04:14,250
+to use this with the role ADMIN.
+
+75
+00:04:14,250 --> 00:04:18,040
+All other requests will still just need to be authenticated.
+
+76
+00:04:18,040 --> 00:04:20,590
+One thing to know is you can also use the
+
+77
+00:04:20,590 --> 00:04:24,180
+hasAuthority with the value of ROLE_ADMIN.
+
+78
+00:04:24,180 --> 00:04:25,390
+It's the same thing.
+
+79
+00:04:25,390 --> 00:04:28,340
+The prefix is like a namespace for roles,
+
+80
+00:04:28,340 --> 00:04:32,570
+as, if you recall, they're just maintained in the same collection as authorities,
+
+81
+00:04:32,570 --> 00:04:40,000
+nice and simple. Next, let's look at scope‑based authorization.
+

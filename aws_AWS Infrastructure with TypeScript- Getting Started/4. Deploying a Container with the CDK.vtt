@@ -1,0 +1,693 @@
+WEBVTT
+1
+00:00:01.040 --> 00:00:06.640
+So now we're going to be deploying our container with the AWS CDK.
+
+2
+00:00:06.640 --> 00:00:07.930
+So here within this demo,
+
+3
+00:00:07.930 --> 00:00:12.140
+we're first going to be creating a new construct for our web server.
+
+4
+00:00:12.140 --> 00:00:16.830
+We'll then be configuring a Docker image asset to store in the ECR, we'll
+
+5
+00:00:16.830 --> 00:00:19.730
+be deploying our container as a service on Fargate,
+
+6
+00:00:19.730 --> 00:00:23.160
+and then ultimately, we will be verifying our deployment,
+
+7
+00:00:23.160 --> 00:00:25.340
+so let's dive in.
+
+8
+00:00:25.340 --> 00:00:27.540
+So the first thing I'm going to need to do is I'm going
+
+9
+00:00:27.540 --> 00:00:30.010
+to need to install some packages.
+
+10
+00:00:30.010 --> 00:00:33.630
+So here, we're basically going to need three different packages.
+
+11
+00:00:33.630 --> 00:00:37.560
+First is AWS ECS, and again, that is the actual service package,
+
+12
+00:00:37.560 --> 00:00:41.400
+but then we also have AWS ECS patterns, and again,
+
+13
+00:00:41.400 --> 00:00:45.540
+this is a three element name, meaning it is provided in addition to the service,
+
+14
+00:00:45.540 --> 00:00:46.100
+and here,
+
+15
+00:00:46.100 --> 00:00:49.210
+they're going to be some great constructs that we can leverage that
+
+16
+00:00:49.210 --> 00:00:52.620
+make deploying our service on Fargate even easier.
+
+17
+00:00:52.620 --> 00:00:55.910
+We're also going to be using AWS ECR assets,
+
+18
+00:00:55.910 --> 00:00:58.790
+which provides an easy way for us to take our directory
+
+19
+00:00:58.790 --> 00:01:01.760
+that contains a Docker file and make it a container that we
+
+20
+00:01:01.760 --> 00:01:03.980
+can reference within the ECR.
+
+21
+00:01:03.980 --> 00:01:08.740
+So I'll go ahead and install these packages.
+
+22
+00:01:08.740 --> 00:01:12.640
+So now I'll navigate back over to VS code.
+
+23
+00:01:12.640 --> 00:01:14.270
+So here, within VS code,
+
+24
+00:01:14.270 --> 00:01:18.240
+I'm going to go in my lib directory and I'm going to create a new file.
+
+25
+00:01:18.240 --> 00:01:22.590
+We're going to call this webserver.ts and here I'm going to use the same
+
+26
+00:01:22.590 --> 00:01:25.740
+snippet I've used before to create a custom construct.
+
+27
+00:01:25.740 --> 00:01:30.140
+We're going to call this DocumentManageWebServer,
+
+28
+00:01:30.140 --> 00:01:33.230
+and then we're going to need to import some different packages.
+
+29
+00:01:33.230 --> 00:01:34.000
+So first,
+
+30
+00:01:34.000 --> 00:01:37.460
+we're going to need to import path because we will use this to get a
+
+31
+00:01:37.460 --> 00:01:41.230
+reference to the directory where our Docker file is stored.
+
+32
+00:01:41.230 --> 00:01:46.230
+Then we're going to need to import a Docker image asset from AWS ECR
+
+33
+00:01:46.230 --> 00:01:51.380
+assets, and then we're going to need to import AWS EC2 because we're
+
+34
+00:01:51.380 --> 00:01:56.830
+going to need to get the type of IVPC to specify that as a specific
+
+35
+00:01:56.830 --> 00:01:58.940
+parameter that needs to be passed in.
+
+36
+00:01:58.940 --> 00:02:01.580
+Then we're going to import ECS patterns,
+
+37
+00:02:01.580 --> 00:02:05.950
+which we're going to call ECSP, which is different from a regular ECS,
+
+38
+00:02:05.950 --> 00:02:09.470
+which we'll also be importing because we'll need that as well.
+
+39
+00:02:09.470 --> 00:02:10.140
+And in addition,
+
+40
+00:02:10.140 --> 00:02:14.440
+we're also going to need to bring in API gateway and I'll show you why.
+
+41
+00:02:14.440 --> 00:02:17.440
+Here within our document management web server props,
+
+42
+00:02:17.440 --> 00:02:19.960
+we're going to need to get references to two different
+
+43
+00:02:19.960 --> 00:02:22.570
+things to be able to launch our web server.
+
+44
+00:02:22.570 --> 00:02:28.840
+The first is going to be our VPC and that's going to be of type ec2 IVpc.
+
+45
+00:02:28.840 --> 00:02:31.180
+Now the next thing we're going to need a reference to is we're
+
+46
+00:02:31.180 --> 00:02:34.910
+going to need a reference to our API and the reason is is because
+
+47
+00:02:34.910 --> 00:02:38.820
+we need to be able to pass in that base URL as an environment
+
+48
+00:02:38.820 --> 00:02:40.720
+variable which we can get from this.
+
+49
+00:02:40.720 --> 00:02:46.040
+So we're going to have this be of type apig HttpApi.
+
+50
+00:02:46.040 --> 00:02:48.270
+So those two props are going to be required,
+
+51
+00:02:48.270 --> 00:02:50.540
+so I'll remove the optional statement here.
+
+52
+00:02:50.540 --> 00:02:52.340
+Now the next thing I want to do is I want to
+
+53
+00:02:52.340 --> 00:02:55.770
+actually create my Docker image asset,
+
+54
+00:02:55.770 --> 00:02:59.410
+so we're going to call this webserverDocker and this is
+
+55
+00:02:59.410 --> 00:03:03.190
+going to be a new Docker image asset. Now,
+
+56
+00:03:03.190 --> 00:03:06.250
+just like any construct, we'll pass in this and then we need to give it a
+
+57
+00:03:06.250 --> 00:03:11.940
+name and then we need to pass in our parameters object.
+
+58
+00:03:11.940 --> 00:03:14.540
+Now here, we really only need to specify one thing and
+
+59
+00:03:14.540 --> 00:03:18.240
+that's going to be the directory.
+
+60
+00:03:18.240 --> 00:03:20.290
+So now that we have that in place,
+
+61
+00:03:20.290 --> 00:03:25.840
+that's all we need to do to deploy our Docker container into the ECR.
+
+62
+00:03:25.840 --> 00:03:27.360
+But now that we have that in place,
+
+63
+00:03:27.360 --> 00:03:30.730
+we're going to be using another construct here and this is
+
+64
+00:03:30.730 --> 00:03:33.640
+what's going to automate our use of Fargate.
+
+65
+00:03:33.640 --> 00:03:38.620
+So we're going to call this our fargateService and here we're going to use ECSP,
+
+66
+00:03:38.620 --> 00:03:41.460
+which is the AWS ECS patterns package,
+
+67
+00:03:41.460 --> 00:03:45.280
+and there is a construct for ApplicationLoadBalancedFargateService,
+
+68
+00:03:45.280 --> 00:03:49.540
+and here, this is what we're going to be leveraging and this is
+
+69
+00:03:49.540 --> 00:03:52.620
+going to take care of much of what we covered earlier within this
+
+70
+00:03:52.620 --> 00:03:56.600
+module where we talked through how you deploy a fargate task and
+
+71
+00:03:56.600 --> 00:03:58.640
+then make that a service.
+
+72
+00:03:58.640 --> 00:04:01.280
+So here, we're going to need to give it the scope, we need to give
+
+73
+00:04:01.280 --> 00:04:05.940
+it a name, and then we need to specify our props.
+
+74
+00:04:05.940 --> 00:04:08.180
+Well, there is a couple things we're going to specify here.
+
+75
+00:04:08.180 --> 00:04:08.780
+First,
+
+76
+00:04:08.780 --> 00:04:12.200
+we need to specify our VPC. Now you don't have to, it
+
+77
+00:04:12.200 --> 00:04:15.450
+actually would create a VPC for you, however,
+
+78
+00:04:15.450 --> 00:04:17.980
+we created one already and we want to use that one so
+
+79
+00:04:17.980 --> 00:04:20.890
+we're going to say props.vpc. Now,
+
+80
+00:04:20.890 --> 00:04:22.930
+the next thing that we need to specify is we need to
+
+81
+00:04:22.930 --> 00:04:25.840
+specify the task image options.
+
+82
+00:04:25.840 --> 00:04:30.940
+So here, within the task image options we're first going to specify the image.
+
+83
+00:04:30.940 --> 00:04:36.980
+Now here, we're going to say ecs.container image and then we're going
+
+84
+00:04:36.980 --> 00:04:42.320
+to specify fromDockerImageAsset, and then from here, we can simply
+
+85
+00:04:42.320 --> 00:04:45.340
+pass in our webserverDocker image asset.
+
+86
+00:04:45.340 --> 00:04:46.650
+So now that we have that in place,
+
+87
+00:04:46.650 --> 00:04:50.140
+we can now specify those environment variables that we mentioned earlier.
+
+88
+00:04:50.140 --> 00:04:52.040
+So here, we're going to create an object,
+
+89
+00:04:52.040 --> 00:04:56.340
+and the first one is going to be server port.
+
+90
+00:04:56.340 --> 00:04:56.760
+Now again,
+
+91
+00:04:56.760 --> 00:04:58.470
+we could probably just hard code this in, we
+
+92
+00:04:58.470 --> 00:04:59.780
+wouldn't have to include this value,
+
+93
+00:04:59.780 --> 00:05:03.490
+but I'm showing you how to pass in multiple environment variables.
+
+94
+00:05:03.490 --> 00:05:05.930
+What we do need though, and what is required for this to
+
+95
+00:05:05.930 --> 00:05:08.400
+work properly is that API base value.
+
+96
+00:05:08.400 --> 00:05:10.450
+And so, what we're going to do is we're going to use props,
+
+97
+00:05:10.450 --> 00:05:12.800
+and we're going to reference our API, and then we're
+
+98
+00:05:12.800 --> 00:05:15.440
+going to specify the URL of the API,
+
+99
+00:05:15.440 --> 00:05:18.740
+and we want to be sure that is present and that's not an optional value.
+
+100
+00:05:18.740 --> 00:05:19.070
+Next,
+
+101
+00:05:19.070 --> 00:05:21.910
+we need to specify the container port because we need to know what
+
+102
+00:05:21.910 --> 00:05:24.040
+port it is going to be broadcasting on, and so,
+
+103
+00:05:24.040 --> 00:05:27.140
+in this case, it's going to use Port 8080.
+
+104
+00:05:27.140 --> 00:05:29.050
+That's really all we need to do.
+
+105
+00:05:29.050 --> 00:05:32.030
+It's going to go through the process of looking at our VPC,
+
+106
+00:05:32.030 --> 00:05:34.980
+determining how many public and private subnets we have,
+
+107
+00:05:34.980 --> 00:05:37.600
+putting fargate within our private subnets and putting the
+
+108
+00:05:37.600 --> 00:05:41.220
+application load balancer in the public subnets. Because we haven't
+
+109
+00:05:41.220 --> 00:05:44.850
+specified a certificate or a domain or a hosted zone, it's just
+
+110
+00:05:44.850 --> 00:05:48.290
+going to be using HTTP and not HTTPS,
+
+111
+00:05:48.290 --> 00:05:50.440
+but that's perfect for what we're looking to do.
+
+112
+00:05:50.440 --> 00:05:55.040
+But we're going to go through and we're going to do one additional thing,
+
+113
+00:05:55.040 --> 00:06:02.520
+and that is we're going to create a new cloud formation output, and then
+
+114
+00:06:02.520 --> 00:06:06.580
+we're going to specify for our export name this is going to be web server
+
+115
+00:06:06.580 --> 00:06:13.150
+host, and for the value, this is going to be the
+
+116
+00:06:13.150 --> 00:06:21.940
+fargateService.loadBalancer and then the loadBalancerDnsName.
+
+117
+00:06:21.940 --> 00:06:27.540
+Now we need to integrate this construct into our stack.
+
+118
+00:06:27.540 --> 00:06:28.090
+First,
+
+119
+00:06:28.090 --> 00:06:35.630
+we're going to go in and actually import this and then we're
+
+120
+00:06:35.630 --> 00:06:42.640
+going to go in and create a new instance of it.
+
+121
+00:06:42.640 --> 00:06:44.800
+Now, if you remember, we need to pass in two values.
+
+122
+00:06:44.800 --> 00:06:47.420
+The first is going to be the VPC,
+
+123
+00:06:47.420 --> 00:06:53.340
+and that's going to be under our networkingStack.vpc.
+
+124
+00:06:53.340 --> 00:06:54.370
+The next thing, though,
+
+125
+00:06:54.370 --> 00:06:57.410
+that we need to pass in is we need to pass in the API, but
+
+126
+00:06:57.410 --> 00:07:00.640
+the problem is is we haven't actually exposed the API yet
+
+127
+00:07:00.640 --> 00:07:03.040
+within our DocumentManagementAPI.
+
+128
+00:07:03.040 --> 00:07:05.940
+So I'm going to click into this construct.
+
+129
+00:07:05.940 --> 00:07:10.340
+So here, we're first going to go in here and create a property,
+
+130
+00:07:10.340 --> 00:07:13.240
+and we're going to make this a public read‑only property,
+
+131
+00:07:13.240 --> 00:07:21.440
+and it is going to be httpApi and it's going to be of type apig.HttpApi.
+
+132
+00:07:21.440 --> 00:07:24.220
+Now the next thing we need to do is just change how we reference this.
+
+133
+00:07:24.220 --> 00:07:26.150
+So here, instead of having this be a local variable,
+
+134
+00:07:26.150 --> 00:07:27.990
+we're going to make this that property,
+
+135
+00:07:27.990 --> 00:07:30.630
+and then we just need to reference everywhere where we're
+
+136
+00:07:30.630 --> 00:07:33.940
+using httpApi to use the correct value.
+
+137
+00:07:33.940 --> 00:07:38.880
+So now that we have this in place, we now have exposed our httpApi.
+
+138
+00:07:38.880 --> 00:07:43.460
+So now I can go back over to the stack, I can go here under api, we can now
+
+139
+00:07:43.460 --> 00:07:47.940
+go to api and then do httpApi and now we've included it.
+
+140
+00:07:47.940 --> 00:07:50.500
+The last thing we need to do is probably not a surprise.
+
+141
+00:07:50.500 --> 00:07:54.040
+We're going to tag all of the resources within this construct.
+
+142
+00:07:54.040 --> 00:07:58.090
+So we're going to say Tags.of (webserver), we're going to add the module,
+
+143
+00:07:58.090 --> 00:08:00.740
+and we're going to call that Webserver.
+
+144
+00:08:00.740 --> 00:08:05.030
+Now that we have all of this in place, we're now ready to deploy our stack.
+
+145
+00:08:05.030 --> 00:08:09.500
+So I'm going to navigate over to the terminal. Here within the terminal, I'm
+
+146
+00:08:09.500 --> 00:08:17.000
+going to run cdk deploy. So here, we have a lot of security changes. Now
+
+147
+00:08:17.000 --> 00:08:18.730
+we're not going to walk through these line by line,
+
+148
+00:08:18.730 --> 00:08:22.110
+but we're adding in some new security groups and some new IAM permissions.
+
+149
+00:08:22.110 --> 00:08:29.240
+I'm going to accept these and we're going to continue deployment.
+
+150
+00:08:29.240 --> 00:08:31.250
+Now that our deployment is complete,
+
+151
+00:08:31.250 --> 00:08:34.180
+we can see that we do have an output here that's going to give us the
+
+152
+00:08:34.180 --> 00:08:37.170
+URL that will allow us to access the load balancer.
+
+153
+00:08:37.170 --> 00:08:39.050
+So I'm going to go ahead and copy this value,
+
+154
+00:08:39.050 --> 00:08:41.940
+and now we're going to navigate over to the browser.
+
+155
+00:08:41.940 --> 00:08:46.240
+So I'm going to paste this value in, and when I do,
+
+156
+00:08:46.240 --> 00:08:48.580
+you can see that it does give us our list of documents.
+
+157
+00:08:48.580 --> 00:08:49.340
+And just as before,
+
+158
+00:08:49.340 --> 00:08:54.140
+we can open up one of these documents and actually see it using the signed URL.
+
+159
+00:08:54.140 --> 00:08:59.240
+So let's quickly dive in and take a look at the AWS console.
+
+160
+00:08:59.240 --> 00:09:00.590
+So now that I'm here in the console,
+
+161
+00:09:00.590 --> 00:09:05.150
+I'm going to navigate to the elastic container service, and when I do,
+
+162
+00:09:05.150 --> 00:09:07.520
+you can see that we do have one service and one
+
+163
+00:09:07.520 --> 00:09:10.140
+running task on our Fargate cluster.
+
+164
+00:09:10.140 --> 00:09:11.180
+And if I click into this,
+
+165
+00:09:11.180 --> 00:09:14.170
+I can see the particular service that we have configured.
+
+166
+00:09:14.170 --> 00:09:17.840
+And then within here, I can see the given tasks that we have.
+
+167
+00:09:17.840 --> 00:09:19.160
+You'll notice here, for example,
+
+168
+00:09:19.160 --> 00:09:22.940
+when I go into the task and I click on our current task,
+
+169
+00:09:22.940 --> 00:09:25.520
+you can see that we do have the configuration included,
+
+170
+00:09:25.520 --> 00:09:29.340
+including our API base value and our server port.
+
+171
+00:09:29.340 --> 00:09:32.030
+But hopefully you see here that through using these
+
+172
+00:09:32.030 --> 00:09:34.110
+reusable constructs and ECS patterns,
+
+173
+00:09:34.110 --> 00:09:42.000
+we have greatly simplified the process of deploying our container in a load balanced manner to AWS.
+

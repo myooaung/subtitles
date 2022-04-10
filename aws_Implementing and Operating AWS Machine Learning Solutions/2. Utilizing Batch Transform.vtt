@@ -1,0 +1,285 @@
+WEBVTT
+1
+00:00:01.040 --> 00:00:04.940
+So next, we're going to talk about how we utilize batch transform.
+
+2
+00:00:04.940 --> 00:00:09.000
+We've already covered some high‑level use cases in the previous clip.
+
+3
+00:00:09.000 --> 00:00:12.940
+But let's dive just a little bit deeper and talk about some use cases.
+
+4
+00:00:12.940 --> 00:00:13.720
+First of all,
+
+5
+00:00:13.720 --> 00:00:16.000
+we might have a situation where we want to do
+
+6
+00:00:16.000 --> 00:00:19.240
+post‑training validation of our model fit.
+
+7
+00:00:19.240 --> 00:00:22.400
+We want to take a large amount of data and analyze that against
+
+8
+00:00:22.400 --> 00:00:24.620
+the model that we just previously trained.
+
+9
+00:00:24.620 --> 00:00:27.250
+In those cases, batch transform works well.
+
+10
+00:00:27.250 --> 00:00:29.740
+Or if we want to change multiple models.
+
+11
+00:00:29.740 --> 00:00:31.020
+So potentially,
+
+12
+00:00:31.020 --> 00:00:33.340
+if we're going to have the inference output of one
+
+13
+00:00:33.340 --> 00:00:36.150
+model be the input of a future model,
+
+14
+00:00:36.150 --> 00:00:39.440
+that can be a situation where batch transform works.
+
+15
+00:00:39.440 --> 00:00:44.820
+Also, if we have predictions that are going to be served outside of SageMaker,
+
+16
+00:00:44.820 --> 00:00:47.700
+this is where it would make sense to look at batch transform.
+
+17
+00:00:47.700 --> 00:00:50.360
+Maybe we have a limited number of input types,
+
+18
+00:00:50.360 --> 00:00:53.220
+and we're going to store our inference results in something like
+
+19
+00:00:53.220 --> 00:00:56.010
+Elasticsearch and then serve them in a different way.
+
+20
+00:00:56.010 --> 00:00:56.760
+In those cases,
+
+21
+00:00:56.760 --> 00:00:59.690
+you can utilize batch transform Well let's talk at a
+
+22
+00:00:59.690 --> 00:01:02.540
+high level about what this process is.
+
+23
+00:01:02.540 --> 00:01:05.470
+First of all, we're going to train and store the model,
+
+24
+00:01:05.470 --> 00:01:08.540
+just like we would do with either hosting approach.
+
+25
+00:01:08.540 --> 00:01:10.340
+We're then going to make sure that our dataset is
+
+26
+00:01:10.340 --> 00:01:13.340
+loaded for inference into Amazon S3.
+
+27
+00:01:13.340 --> 00:01:17.060
+We're then going to specify the configuration for the batch transform job,
+
+28
+00:01:17.060 --> 00:01:21.140
+and then we will execute that job on the dataset.
+
+29
+00:01:21.140 --> 00:01:23.880
+SageMaker will then take and will actually store those
+
+30
+00:01:23.880 --> 00:01:27.040
+results in the specified S3 bucket.
+
+31
+00:01:27.040 --> 00:01:29.790
+Let's talk about some configuration points for how we
+
+32
+00:01:29.790 --> 00:01:32.740
+adjust how batch transform works.
+
+33
+00:01:32.740 --> 00:01:35.640
+So at a high level, we'll revisit what we just covered.
+
+34
+00:01:35.640 --> 00:01:37.920
+We're going to have some inference infrastructure.
+
+35
+00:01:37.920 --> 00:01:41.240
+It's going to have an input dataset in an S3 bucket.
+
+36
+00:01:41.240 --> 00:01:42.650
+Those two things are going to communicate.
+
+37
+00:01:42.650 --> 00:01:45.790
+The inference infrastructure will pull that input dataset.
+
+38
+00:01:45.790 --> 00:01:50.840
+And then it's going to output the results into an output data bucket.
+
+39
+00:01:50.840 --> 00:01:53.740
+So let's talk about the different points of configuration.
+
+40
+00:01:53.740 --> 00:01:56.940
+First, we have the configuration of that infrastructure.
+
+41
+00:01:56.940 --> 00:02:01.320
+Second, we have the configuration for how we pull data from the input dataset,
+
+42
+00:02:01.320 --> 00:02:03.960
+as well as where that input dataset is.
+
+43
+00:02:03.960 --> 00:02:08.000
+We then have configuration for how we write the data to the output data bucket
+
+44
+00:02:08.000 --> 00:02:11.220
+and the configuration for where that output data bucket is.
+
+45
+00:02:11.220 --> 00:02:13.030
+So let's look at each of these.
+
+46
+00:02:13.030 --> 00:02:15.440
+First of all, for our infrastructure,
+
+47
+00:02:15.440 --> 00:02:17.970
+we can configure our infrastructure with a specific
+
+48
+00:02:17.970 --> 00:02:20.640
+container and number of instances.
+
+49
+00:02:20.640 --> 00:02:24.720
+We can also specify in terms of how we communicate with the input
+
+50
+00:02:24.720 --> 00:02:28.540
+data bucket the strategy parameter which is going to dictate how
+
+51
+00:02:28.540 --> 00:02:30.550
+we're pulling data from the input source,
+
+52
+00:02:30.550 --> 00:02:32.700
+whether we're batching multiple records together or
+
+53
+00:02:32.700 --> 00:02:35.210
+potentially pulling a single record at a time.
+
+54
+00:02:35.210 --> 00:02:40.160
+Then, we're going to have the ability to specify what that input source is,
+
+55
+00:02:40.160 --> 00:02:42.540
+what S3 bucket it refers to.
+
+56
+00:02:42.540 --> 00:02:46.710
+Then, we're going to be able to specify how we write data to that output bucket.
+
+57
+00:02:46.710 --> 00:02:49.370
+So the AssembleWith parameter will dictate how we're
+
+58
+00:02:49.370 --> 00:02:51.340
+actually out putting that data.
+
+59
+00:02:51.340 --> 00:02:51.970
+And then,
+
+60
+00:02:51.970 --> 00:02:54.720
+we're going to be able to specify what that overall
+
+61
+00:02:54.720 --> 00:02:57.440
+output data bucket is going to be.
+
+62
+00:02:57.440 --> 00:02:59.850
+Now there's a couple of different infrastructure approaches
+
+63
+00:02:59.850 --> 00:03:02.440
+that we can take with batch transform.
+
+64
+00:03:02.440 --> 00:03:02.870
+First,
+
+65
+00:03:02.870 --> 00:03:06.420
+we can take the managed approach where SageMaker is going to totally
+
+66
+00:03:06.420 --> 00:03:10.080
+launch the infrastructure using a SageMaker container and just
+
+67
+00:03:10.080 --> 00:03:12.750
+loading it up to the specified number of instances that we have
+
+68
+00:03:12.750 --> 00:03:15.340
+included within the configuration.
+
+69
+00:03:15.340 --> 00:03:18.280
+But if we wanted to, we can also specify our own custom
+
+70
+00:03:18.280 --> 00:03:21.680
+container that would be utilized in the same way,
+
+71
+00:03:21.680 --> 00:03:27.000
+except instead of using a pre‑defined SageMaker container, we're providing the container.
+

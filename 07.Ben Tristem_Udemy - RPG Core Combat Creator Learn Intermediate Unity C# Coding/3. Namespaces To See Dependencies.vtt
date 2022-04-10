@@ -1,0 +1,672 @@
+WEBVTT
+1
+00:00:04.610 --> 00:00:09.050
+Hello and welcome to this lecture on dependency is we're gonna be learning how to manage dependency
+
+2
+00:00:09.050 --> 00:00:15.980
+hell where you modify one class everything starts to break down and how we can keep that going when
+
+3
+00:00:15.980 --> 00:00:21.590
+we've got massive class hierarchies like this and keep the dependencies as low as possible between all
+
+4
+00:00:21.590 --> 00:00:25.730
+of our classes and all of our name spaces we're gonna be learning about names spaces how to use and
+
+5
+00:00:25.730 --> 00:00:26.750
+how to create them.
+
+6
+00:00:26.750 --> 00:00:30.020
+So let's dive in and see what this is all about.
+
+7
+00:00:30.140 --> 00:00:35.450
+So we have started to allow our scripts in these different folders under control core movement and so
+
+8
+00:00:35.450 --> 00:00:35.800
+on.
+
+9
+00:00:36.020 --> 00:00:41.030
+But there's nothing that actually keeps us honest to this in the code this is just for our organization.
+
+10
+00:00:41.030 --> 00:00:44.930
+I'd like to talk a little bit about something called name spaces and why we might want to use them.
+
+11
+00:00:44.930 --> 00:00:49.760
+You've actually used named spaces before you might not realize it but when you do using Unity engine
+
+12
+00:00:49.760 --> 00:00:54.890
+that is including the unity engine namespace and that's what allows you to use things like the Ray and
+
+13
+00:00:54.890 --> 00:00:58.550
+the ray cast and the camera and so on and so forth.
+
+14
+00:00:58.640 --> 00:01:05.090
+Basically all these names are included in the namespace it restricts the ability to clash basically
+
+15
+00:01:05.090 --> 00:01:10.670
+because if you had another module that required a camera it could use it as long as it was in a different
+
+16
+00:01:10.670 --> 00:01:13.820
+namespace to the unity engine namespace.
+
+17
+00:01:13.820 --> 00:01:18.550
+But why might we want to use these.
+
+18
+00:01:18.590 --> 00:01:25.340
+So the problem is that dependencies are evil we need dependencies in any program obviously because things
+
+19
+00:01:25.340 --> 00:01:29.690
+need to cooperate with each other you know it would be useless to have a perfect combat system if it
+
+20
+00:01:29.750 --> 00:01:33.060
+didn't communicate with movement and wasn't controlled by a control system.
+
+21
+00:01:33.410 --> 00:01:39.860
+So imagine we have this dependency structure between our different names spaces of our basically our
+
+22
+00:01:39.860 --> 00:01:43.340
+features as Chris call them features for now and we'll use namespace as later on.
+
+23
+00:01:44.000 --> 00:01:50.720
+Imagine we have this situation in movement we have our movement components and it has a script to move
+
+24
+00:01:50.780 --> 00:01:56.530
+move to which is shared between combat and control because combat uses it to move towards the enemy
+
+25
+00:01:56.840 --> 00:02:01.760
+whereas control uses it just to move when you point and click.
+
+26
+00:02:01.760 --> 00:02:09.380
+So this both of these makes sense but what happens if we make a change to movement we could do this
+
+27
+00:02:09.500 --> 00:02:16.010
+for example by changing the return type of move to now it might return a boolean and potentially fail
+
+28
+00:02:16.010 --> 00:02:17.080
+to move.
+
+29
+00:02:17.210 --> 00:02:22.080
+That means that now what could change as a result of that one change to movement.
+
+30
+00:02:22.490 --> 00:02:26.930
+Well we can go backwards along these dependency arrows to see what could change combat could change
+
+31
+00:02:26.930 --> 00:02:34.430
+for example we might need to decide what to do in the eventuality that movement fails control might
+
+32
+00:02:34.670 --> 00:02:41.240
+fail as well we need to show some affords when we fail to move to a certain location so the player knows
+
+33
+00:02:41.240 --> 00:02:47.630
+why we are failing to move now obviously not every change in movement is going to break something in
+
+34
+00:02:47.630 --> 00:02:52.760
+combat and control but it is a possibility and it's something we have to test so that's why dependencies
+
+35
+00:02:52.760 --> 00:02:59.450
+are evil and as much as possible we try and reduce the impact of dependencies if we can manage it not
+
+36
+00:02:59.450 --> 00:03:03.920
+always okay we're not going to be able to do everything but we don't want to have a situation where
+
+37
+00:03:03.920 --> 00:03:07.730
+movement depends on control and combat on core and blah blah blah blah.
+
+38
+00:03:07.790 --> 00:03:11.380
+Now if dependencies are evil then cycles are even worse.
+
+39
+00:03:11.390 --> 00:03:16.510
+So this is a cycle because it's a dependency cycle because if I go from control I can get into combat
+
+40
+00:03:16.550 --> 00:03:21.440
+and at the core and I can find my way back to controls I've created this cycle of dependency in fact
+
+41
+00:03:21.430 --> 00:03:26.420
+factors more than one cycle here I could go by movement I could go via movement core you know there's
+
+42
+00:03:26.480 --> 00:03:28.990
+there's cycles lots and lots of cycles.
+
+43
+00:03:29.090 --> 00:03:35.380
+Now what if I make that same change to movement what can be affected now have a little think maybe pause
+
+44
+00:03:35.380 --> 00:03:44.740
+a video and think what could be affected now in this well core and combat still the same as before but
+
+45
+00:03:44.740 --> 00:03:49.720
+now we can follow this dependency this circular defensive back to core which means that core can be
+
+46
+00:03:49.720 --> 00:03:56.650
+affected and funnily enough movement itself can also be broken by a change the movement in a way that
+
+47
+00:03:56.650 --> 00:04:02.260
+you weren't expecting so you change something over here but hey via that dependency on core that got
+
+48
+00:04:02.260 --> 00:04:05.160
+changed by the dependency on control something broke.
+
+49
+00:04:05.350 --> 00:04:13.120
+So this is obviously not great and this is how cycles can just propagate this problem of dependency
+
+50
+00:04:13.120 --> 00:04:16.590
+is further and further and further and just make your life a nightmare.
+
+51
+00:04:16.900 --> 00:04:24.460
+So what we try and do is without a doubt always try to avoid cycles and what happens interestingly enough
+
+52
+00:04:24.490 --> 00:04:27.520
+when you try and avoid cycles is you get something called layering.
+
+53
+00:04:27.520 --> 00:04:33.430
+So this is the layout structure of my prototype and obviously it's very complicated.
+
+54
+00:04:33.430 --> 00:04:36.950
+There's lots of dependencies but not as many as there could have been right.
+
+55
+00:04:36.970 --> 00:04:42.850
+You know the combat depends on five things it doesn't depend on ten things the movement only depends
+
+56
+00:04:42.850 --> 00:04:45.940
+on two things saving in core and so on.
+
+57
+00:04:45.940 --> 00:04:52.000
+Now what you'll notice here is that you can arrange them in layers where none of the modules reference
+
+58
+00:04:52.000 --> 00:04:57.670
+anything higher up so inventories doesn't mention anything about combat or special actions or UI or
+
+59
+00:04:57.670 --> 00:05:04.030
+control it doesn't rely on any of that because it's a lower layer dependency and the lowest layer dependency
+
+60
+00:05:04.030 --> 00:05:11.440
+have basically no internal dependencies within these modules they might depend on stuff in C sharp or
+
+61
+00:05:11.440 --> 00:05:17.620
+in unity but they don't depend on anything within our project is the lowest layer dependencies and interestingly
+
+62
+00:05:17.620 --> 00:05:24.070
+enough what happens here is that you have stability increasing as you go down the layers and that's
+
+63
+00:05:24.070 --> 00:05:25.330
+a requirement for stability.
+
+64
+00:05:25.330 --> 00:05:32.170
+So what I mean by that is that we need to change these classes less or if we change these classes it's
+
+65
+00:05:32.170 --> 00:05:37.420
+going to destabilise our project and you can kind of see this you know if I change the way my saving
+
+66
+00:05:37.420 --> 00:05:43.060
+system works I've got to think about everything because everything depends on my saving system.
+
+67
+00:05:43.060 --> 00:05:47.950
+I've got to think about how that affects questing and as a result how does that affect the dialogue
+
+68
+00:05:47.950 --> 00:05:49.390
+system in the UI.
+
+69
+00:05:49.390 --> 00:05:55.210
+How does it affect combat and control because these lines go all the way up to control so you have to
+
+70
+00:05:55.600 --> 00:06:01.390
+have the lower layers as stable as possible as unchanging as possible and the higher layers are the
+
+71
+00:06:01.390 --> 00:06:06.550
+ones where you can do lots of changing so control can change a lot because it has very little dependencies
+
+72
+00:06:06.700 --> 00:06:07.590
+on it.
+
+73
+00:06:07.810 --> 00:06:13.660
+So this is just a little bit of an overview of why we are going to be using namespace as it allows us
+
+74
+00:06:13.720 --> 00:06:20.290
+to really kind of see the picture of this stuff through the using statements because in combat I will
+
+75
+00:06:20.290 --> 00:06:24.340
+say in a combat namespace I will see that it is using.
+
+76
+00:06:24.340 --> 00:06:31.600
+Saving is using coins using stats is using inventories and is using movement and that allows me to really
+
+77
+00:06:31.600 --> 00:06:35.410
+kind of highlight the dependencies and be cognizant of them when I'm adding a new dependency when I'm
+
+78
+00:06:35.410 --> 00:06:41.140
+writing a new using line I'm having to think twice about doing that and is that really a dependency
+
+79
+00:06:41.140 --> 00:06:42.420
+I want to add to this graph.
+
+80
+00:06:42.430 --> 00:06:47.200
+Is it something that I want to add in terms of complications to my project so it allows us to essentially
+
+81
+00:06:47.470 --> 00:06:55.830
+firewall our features now a flip side of this is that within a namespace you want things to be as cohesive
+
+82
+00:06:55.860 --> 00:06:57.210
+as possible.
+
+83
+00:06:57.210 --> 00:07:02.670
+And what that means is that they should try as much as possible to be related to one another so they
+
+84
+00:07:02.670 --> 00:07:06.330
+probably need to be using each other's classes.
+
+85
+00:07:06.330 --> 00:07:10.670
+So here's an example of a not very cohesive namespace.
+
+86
+00:07:10.780 --> 00:07:11.090
+Right.
+
+87
+00:07:11.100 --> 00:07:16.080
+The combat system depends on damage text and health and the weapon conflict depends on damage range
+
+88
+00:07:16.110 --> 00:07:19.530
+but between these two you know they could kind of be separate namespace is right.
+
+89
+00:07:19.530 --> 00:07:21.640
+This one over here could be one namespace.
+
+90
+00:07:21.780 --> 00:07:26.300
+This one over here could be another namespace because they don't have very much to do with each other.
+
+91
+00:07:26.300 --> 00:07:31.590
+Now in reality this namespace is more like this where the combat system does rely on weapon conflict
+
+92
+00:07:31.620 --> 00:07:32.910
+and damage range.
+
+93
+00:07:32.910 --> 00:07:39.360
+And this is more cohesive now because everything relates to something else in the namespace.
+
+94
+00:07:39.360 --> 00:07:43.540
+And it's pretty much you know you can't pull any of this out.
+
+95
+00:07:43.590 --> 00:07:46.620
+It's not completely cohesive it's not as cohesive as it could be.
+
+96
+00:07:46.620 --> 00:07:51.410
+You know if I added in more dependencies like this there would be a really cohesive namespace.
+
+97
+00:07:51.600 --> 00:07:56.880
+We don't necessarily want to go for maximum cohesion within a namespace because all these dependencies
+
+98
+00:07:56.880 --> 00:08:00.630
+do add complexity and it means that if I change the health system I could damage.
+
+99
+00:08:00.680 --> 00:08:05.520
+Yeah I could change any of these other systems or C sharp scripts in here.
+
+100
+00:08:05.520 --> 00:08:10.080
+So you still want to minimize dependencies but you want to make sure that within a namespace you've
+
+101
+00:08:10.080 --> 00:08:13.830
+only got things that are really related to one another.
+
+102
+00:08:13.830 --> 00:08:17.970
+So with that said let's go and apply this in practice.
+
+103
+00:08:18.000 --> 00:08:19.410
+How do you create a namespace.
+
+104
+00:08:19.410 --> 00:08:20.850
+It's fairly straightforward.
+
+105
+00:08:20.880 --> 00:08:23.990
+I'm going to do it with our player controller first of all.
+
+106
+00:08:24.120 --> 00:08:30.030
+So the player controller if I go ahead and cut out the class definition because I'm going to stick it
+
+107
+00:08:30.030 --> 00:08:37.860
+inside a namespace I can use the keyword namespace and then I can name the namespace.
+
+108
+00:08:37.890 --> 00:08:43.740
+And now the way I'm going to do this is starting off with a prefix namespace as are hierarchical.
+
+109
+00:08:43.740 --> 00:08:48.260
+So you can have RPG dot and I'm going to call it control.
+
+110
+00:08:48.690 --> 00:08:53.370
+So this is going to match with the structure of the folders that we've got.
+
+111
+00:08:53.370 --> 00:08:57.690
+You could have RPG dot control dot something else as well if you wanted.
+
+112
+00:08:57.690 --> 00:08:59.020
+You can keep it hierarchical.
+
+113
+00:08:59.070 --> 00:09:05.250
+We're starting with RPG so that if we import anything else cool control it doesn't conflict.
+
+114
+00:09:05.250 --> 00:09:10.830
+If there's any other module you're using the fact that we started it with RPG hopefully will keep us
+
+115
+00:09:10.830 --> 00:09:12.180
+safe from conflicts.
+
+116
+00:09:12.360 --> 00:09:18.690
+So this is RPG control namespace and then you have curly brackets to define things that should go in
+
+117
+00:09:18.750 --> 00:09:19.790
+that namespace.
+
+118
+00:09:19.830 --> 00:09:24.480
+That's where I'm going to paste in the definition of our player controller.
+
+119
+00:09:24.530 --> 00:09:29.670
+So now whenever we want to use the player controller somewhere else in another namespace in the same
+
+120
+00:09:29.670 --> 00:09:35.670
+namespace it's going to be fine if you have namespace RPG control you can just use player controller
+
+121
+00:09:36.120 --> 00:09:42.130
+but if you are outside of the namespace you will need to do have a using statement.
+
+122
+00:09:42.150 --> 00:09:49.380
+So this is gonna be the challenge for you folks to namespace the remaining two classes that we've got.
+
+123
+00:09:49.590 --> 00:09:57.360
+So each class should be in its own namespace name it appropriately as we have with our folders at any
+
+124
+00:09:57.360 --> 00:10:01.500
+using statements you need to use you might find that you already have some dependencies between these
+
+125
+00:10:01.500 --> 00:10:02.940
+different name spaces.
+
+126
+00:10:03.150 --> 00:10:04.870
+And what do the dependencies look like.
+
+127
+00:10:04.890 --> 00:10:10.250
+Get out a piece of pen and paper and map out all the dependencies between your name spaces pause the
+
+128
+00:10:10.260 --> 00:10:14.510
+video and have a go at this challenge okay.
+
+129
+00:10:14.520 --> 00:10:15.620
+So welcome back.
+
+130
+00:10:15.630 --> 00:10:19.690
+What we're going to do is we're going to go into the next one is a follow camera.
+
+131
+00:10:19.700 --> 00:10:24.120
+It is in this core folder so I think it's gonna be in a core namespace.
+
+132
+00:10:24.120 --> 00:10:29.490
+I'm gonna cut out the class and again use namespace and there is actually a snippet here and visual
+
+133
+00:10:29.490 --> 00:10:30.220
+studio.
+
+134
+00:10:30.250 --> 00:10:34.170
+I'm going to auto complete in a kind of pop pops in some of the boilerplate for me.
+
+135
+00:10:34.170 --> 00:10:39.060
+It's going to be RPG prefixed again because it's everything relating to our project is going to be under
+
+136
+00:10:39.060 --> 00:10:41.160
+this RPG namespace.
+
+137
+00:10:41.160 --> 00:10:44.820
+And then instead of control which is trying to alter complete form you're going to create a new namespace
+
+138
+00:10:44.820 --> 00:10:46.240
+called core.
+
+139
+00:10:46.320 --> 00:10:49.430
+You'd actually declare namespace as anywhere if you use one.
+
+140
+00:10:49.500 --> 00:10:55.430
+It's created it and then in the body of namespace I can paste that follow camera class back in.
+
+141
+00:10:55.530 --> 00:11:02.820
+And finally in the movie script I'm going to go ahead and cut out mover like so and I'm going to add
+
+142
+00:11:02.820 --> 00:11:10.350
+a namespace as you might have guessed it's going to be RPG dot can you guess it movement as then as
+
+143
+00:11:10.350 --> 00:11:13.100
+the folder I'm trying to keep it the same as the folder.
+
+144
+00:11:13.200 --> 00:11:17.430
+And then in the body I can paste and move a class back in.
+
+145
+00:11:17.580 --> 00:11:20.350
+Now I am getting a little red thing here in Visual Studio.
+
+146
+00:11:20.350 --> 00:11:23.010
+KERRY Let me can just check this over in unity as well.
+
+147
+00:11:23.010 --> 00:11:28.890
+I should be able to go to the console and see that it's saying in the player controller class I go over
+
+148
+00:11:28.890 --> 00:11:34.260
+to that player controller class Whoops it's opening up in a different place the player control class
+
+149
+00:11:34.580 --> 00:11:37.810
+got a red squiggly under move here and why is that.
+
+150
+00:11:37.830 --> 00:11:44.930
+Why do I have this red squiggly if you click on the little show fixes button we little light bulb it
+
+151
+00:11:44.950 --> 00:11:49.840
+it'll say that you need to be including using RPG movement you go.
+
+152
+00:11:49.860 --> 00:11:55.740
+So we've got our first using statement in here saying using RPG movement which is including our own
+
+153
+00:11:55.740 --> 00:12:01.530
+module called movement and we can see now that there is a dependency between our control module and
+
+154
+00:12:01.530 --> 00:12:04.380
+our movement module as we might well expect.
+
+155
+00:12:04.410 --> 00:12:05.650
+So let's have a look.
+
+156
+00:12:05.670 --> 00:12:11.550
+If I were to draw out my dependencies I've got three modules or three name spaces called control movement
+
+157
+00:12:11.580 --> 00:12:14.490
+and core and that is the dependency.
+
+158
+00:12:14.490 --> 00:12:16.320
+That's the only dependency we've currently got.
+
+159
+00:12:16.320 --> 00:12:22.500
+We're going to hope to see more dependencies ones between movement and Core for example or when we add
+
+160
+00:12:22.500 --> 00:12:28.590
+in a combat module we're expecting to see a Lisa dependency between these two so we've got control and
+
+161
+00:12:28.590 --> 00:12:33.330
+combat and combat depending on control depending on combat basically.
+
+162
+00:12:33.360 --> 00:12:38.730
+So hopefully that elucidate is why you might want to use namespace as why dependencies are evil and
+
+163
+00:12:38.730 --> 00:12:40.760
+we want to reduce them as much as possible.
+
+164
+00:12:40.770 --> 00:12:46.860
+I know it's early at this stage we've got very like three classes but trust me an RPG becomes big very
+
+165
+00:12:46.860 --> 00:12:52.590
+quickly and you were going to want to have this in the back of your mind while you're doing it so that
+
+166
+00:12:52.590 --> 00:12:55.130
+we don't get ourselves into a dependency hell.
+
+167
+00:12:55.260 --> 00:12:59.100
+Hopefully you enjoyed this lecture let me know what you think over in the discussions and I'll see you
+
+168
+00:12:59.160 --> 00:12:59.790
+in the next one.

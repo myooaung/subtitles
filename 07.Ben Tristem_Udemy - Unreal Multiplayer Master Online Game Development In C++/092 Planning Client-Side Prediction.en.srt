@@ -1,0 +1,963 @@
+1
+00:00:04,730 --> 00:00:09,970
+While I'm in this lecture we're going to be taking a high level overview of the client side prediction
+
+2
+00:00:09,980 --> 00:00:14,690
+algorithm that was described with diagrams in the last lecture we're going to be looking at the pseudocode.
+
+3
+00:00:14,690 --> 00:00:19,580
+We're going to be looking at what data structures we need and they go ahead and create those data structures
+
+4
+00:00:19,610 --> 00:00:25,130
+but we aren't actually going to be making any changes to our code per say or how it works just yet that
+
+5
+00:00:25,130 --> 00:00:26,380
+will be for future lectures.
+
+6
+00:00:26,390 --> 00:00:30,220
+So let's dive in and see what our high level plan is going to be.
+
+7
+00:00:31,220 --> 00:00:38,660
+So in the last election we saw very much in detail how this architecture would work we got to understand
+
+8
+00:00:38,660 --> 00:00:41,300
+it using the graphs that we saw in the last lecture.
+
+9
+00:00:41,510 --> 00:00:44,240
+But we're very far away from being able to implement it.
+
+10
+00:00:44,240 --> 00:00:48,800
+So that's what we're going to be looking at in this letter is getting a high level plan for how we're
+
+11
+00:00:48,800 --> 00:00:49,630
+going to implement it.
+
+12
+00:00:49,640 --> 00:00:56,090
+Because when youre implementing very tricky things like this I often find it incredibly helpful to start
+
+13
+00:00:56,090 --> 00:01:01,670
+off with a plan and when we're talking about planning code one of the best tools to use is some pseudo
+
+14
+00:01:01,670 --> 00:01:03,370
+code especially when it's an algorithm.
+
+15
+00:01:03,560 --> 00:01:07,650
+So we're going to be writing some pseudo code for our client prediction.
+
+16
+00:01:07,880 --> 00:01:12,350
+Now you could have a go if you feel like you got a very good grasp of this you could have a go at writing
+
+17
+00:01:12,350 --> 00:01:15,640
+the pseudocode yourself and pause video and have a go.
+
+18
+00:01:15,660 --> 00:01:20,590
+But let's start off with a high level and you might want to write the pseudocode after that.
+
+19
+00:01:20,990 --> 00:01:21,230
+Okay.
+
+20
+00:01:21,260 --> 00:01:26,180
+So we are going to have a look at the high level there are basically three events that were going to
+
+21
+00:01:26,180 --> 00:01:31,670
+be dealing with the first one is the on tick event which we obviously know and love and what we are
+
+22
+00:01:31,670 --> 00:01:38,150
+going to do with the take spend is we're going to need to create a move and send that move to the server
+
+23
+00:01:38,160 --> 00:01:43,430
+so the move is something new and move is something that encapsulates essentially what we're doing in
+
+24
+00:01:43,430 --> 00:01:48,100
+this take and can be reassimilated by the server.
+
+25
+00:01:48,320 --> 00:01:54,740
+Then when the server receives that move well it's going to simulate it isn't it it's going to make sure
+
+26
+00:01:54,800 --> 00:02:02,000
+that the move is go here and turn it into some state and gersen that state back down to the Clydes then
+
+27
+00:02:02,260 --> 00:02:06,710
+it is going to go ahead and the clients are going to receive this service date including the autonomous
+
+28
+00:02:06,710 --> 00:02:14,030
+proxy and the autonomous proxy is going to have to replay its local moves on top of the server state
+
+29
+00:02:14,030 --> 00:02:15,140
+that has been sent.
+
+30
+00:02:15,200 --> 00:02:18,940
+And if that results in different state then its going to obviously be in a different place.
+
+31
+00:02:18,950 --> 00:02:21,410
+But if it isn't then it'll be in the same place.
+
+32
+00:02:21,410 --> 00:02:25,520
+So this is the high level and if you feel like going off and having a go at the pseudocode then do pause
+
+33
+00:02:25,520 --> 00:02:26,780
+the video and do that.
+
+34
+00:02:26,780 --> 00:02:31,520
+But there is going to be another challenge so don't worry if you feel like you'd be missing out on a
+
+35
+00:02:31,520 --> 00:02:34,540
+challenge by going on with me if you don't feel ready for it.
+
+36
+00:02:34,760 --> 00:02:37,610
+So let's talk about the on tick.
+
+37
+00:02:37,610 --> 00:02:41,410
+Let's go into a deep dive into that little bit of handling.
+
+38
+00:02:41,420 --> 00:02:43,510
+How is the pseudocode going to look for that.
+
+39
+00:02:43,880 --> 00:02:47,730
+Well step one we're going to need to create a new move.
+
+40
+00:02:47,810 --> 00:02:52,940
+Now this move is a new data type which we are going to define in this lecture for the challenge.
+
+41
+00:02:52,940 --> 00:02:59,990
+So the move is going to have to encapsulate everything you need in order to simulate on top of a given
+
+42
+00:02:59,990 --> 00:03:00,890
+set state.
+
+43
+00:03:00,890 --> 00:03:05,060
+So we've got a tick at the moment is responsible for doing simulation.
+
+44
+00:03:05,230 --> 00:03:09,800
+We're going to have to change that a little bit so that you can take a move and you can simulate that
+
+45
+00:03:09,800 --> 00:03:11,430
+move on the object.
+
+46
+00:03:11,690 --> 00:03:17,720
+Then we're going to have to save a list of unacknowledged moves going out to keep that move around because
+
+47
+00:03:17,720 --> 00:03:19,800
+that's Can need to be replayed later.
+
+48
+00:03:20,930 --> 00:03:26,840
+We're going to send the move up to the server so we can use our p.c to send the move up to the server
+
+49
+00:03:26,870 --> 00:03:29,030
+where the surf will obviously simulate it.
+
+50
+00:03:29,870 --> 00:03:34,070
+And then we're going to simulate the move locally so that we're not behind the serve we're not waiting
+
+51
+00:03:34,070 --> 00:03:40,820
+for the server update before we actually have this move and we can basically have quick reaction times
+
+52
+00:03:41,060 --> 00:03:43,620
+even with quite high lag to the server.
+
+53
+00:03:43,800 --> 00:03:48,540
+So that's what we're going to be doing locally on the autonomous proxy on tick.
+
+54
+00:03:48,590 --> 00:03:51,990
+How about on receive move on the server.
+
+55
+00:03:52,340 --> 00:03:56,980
+So when the server receives a move it's going to check first of all that the move is valid.
+
+56
+00:03:57,350 --> 00:03:58,430
+Obviously no cheating.
+
+57
+00:03:58,430 --> 00:04:03,560
+We don't want our clients to be able to cheat by sending a move that's bogus because there is going
+
+58
+00:04:03,560 --> 00:04:07,570
+to be more information in that move and there's going to have to be a little bit more trust.
+
+59
+00:04:07,630 --> 00:04:13,040
+Well not exactly more trusted but there is more ways in which that move could be invalid than we previously
+
+60
+00:04:13,040 --> 00:04:14,510
+had with our inputs.
+
+61
+00:04:15,480 --> 00:04:18,430
+Then we're going to have to simulate the move on the server.
+
+62
+00:04:18,690 --> 00:04:21,900
+Pretty much exactly the same way as we just did on the client.
+
+63
+00:04:22,590 --> 00:04:27,250
+And then we're going to send the canonical state to the clients again.
+
+64
+00:04:27,270 --> 00:04:35,670
+The state is now a new data type that is going to encapsulate all the state we need to send to the clients.
+
+65
+00:04:35,670 --> 00:04:40,210
+The reason for this rather than just putting replicate on all the different variables we want is because
+
+66
+00:04:40,210 --> 00:04:44,940
+I want to make sure that this state comes down in one single packet.
+
+67
+00:04:44,940 --> 00:04:50,940
+We don't want to have lots of different bits of state all coming at different times because we need
+
+68
+00:04:50,940 --> 00:04:52,490
+to be able to replay on top of it.
+
+69
+00:04:52,560 --> 00:04:58,710
+So we need a consistent packet of state that says yes at the end of a move this is where we were.
+
+70
+00:04:58,850 --> 00:05:00,200
+So that's why we're going to need that.
+
+71
+00:05:00,360 --> 00:05:00,660
+Okay.
+
+72
+00:05:00,690 --> 00:05:02,220
+So that's the server side.
+
+73
+00:05:02,220 --> 00:05:04,020
+Very straightforward really.
+
+74
+00:05:04,380 --> 00:05:09,530
+And then we're going to go back to the ords one proxy side where we're receiving that service state.
+
+75
+00:05:09,720 --> 00:05:12,640
+And remember this is where we previously jumped back.
+
+76
+00:05:12,660 --> 00:05:18,640
+So we were previously getting the service state and we would just reset ourselves to that server state.
+
+77
+00:05:18,840 --> 00:05:24,660
+So how we're going to deal with it this time well we remove all moves included in the state.
+
+78
+00:05:24,660 --> 00:05:28,440
+So remember we've been keeping those unacknowledged moves somewhere.
+
+79
+00:05:28,470 --> 00:05:33,030
+Well what we're going to do is we're gonna remove all the ones that are now gone stale because the state
+
+80
+00:05:33,060 --> 00:05:34,230
+includes them.
+
+81
+00:05:34,900 --> 00:05:39,360
+We'll figure out how to do that in fact it's going to be part of your challenge really is to figure
+
+82
+00:05:39,360 --> 00:05:44,700
+out what you need to include in the state to make sure that the moves can be included.
+
+83
+00:05:45,680 --> 00:05:52,770
+Then we are going to go ahead and reset to the server state so we're going take the solar state.
+
+84
+00:05:53,080 --> 00:06:00,190
+Apply it to our local object and then we're going to replay or simulate all the unacknowledged moves
+
+85
+00:06:00,200 --> 00:06:05,620
+the ones that haven't expired since that state all the ones that haven't reached the service yet or
+
+86
+00:06:05,620 --> 00:06:07,670
+the server hasn't told us about yet.
+
+87
+00:06:08,050 --> 00:06:10,150
+So that is the job of the client.
+
+88
+00:06:10,150 --> 00:06:13,160
+That's the high level that we're going to be doing.
+
+89
+00:06:13,330 --> 00:06:16,540
+That's what we're going to try to implement in the next few lectures.
+
+90
+00:06:16,930 --> 00:06:23,780
+So I have a little challenge for you to go ahead and create the structures from these last two three
+
+91
+00:06:23,790 --> 00:06:29,530
+sites so you're going to review the pseudocode from the slice make sure you understand it and why we
+
+92
+00:06:29,530 --> 00:06:30,180
+need to do that.
+
+93
+00:06:30,190 --> 00:06:32,570
+If you have any questions obviously ask them.
+
+94
+00:06:32,630 --> 00:06:35,190
+That's the point of being having a queue.
+
+95
+00:06:35,950 --> 00:06:39,220
+What data does the move and state include.
+
+96
+00:06:39,220 --> 00:06:45,430
+So what do you need to put in the move to be able to then simulate what do you need to put into the
+
+97
+00:06:45,430 --> 00:06:46,450
+state to simulate.
+
+98
+00:06:46,450 --> 00:06:49,050
+Is it like control things go in move.
+
+99
+00:06:49,060 --> 00:06:53,090
+Do you need any timing information you need to know how long that moves going to be.
+
+100
+00:06:53,230 --> 00:06:55,770
+Do you need to know when it started that sort of stuff.
+
+101
+00:06:55,810 --> 00:06:57,040
+How about State.
+
+102
+00:06:57,040 --> 00:07:00,660
+What does it need to include so that you can invalidate old moves.
+
+103
+00:07:00,670 --> 00:07:07,360
+What do they need to include so that you have the full state of the object to start simulating from.
+
+104
+00:07:07,360 --> 00:07:13,660
+Think about these kinds of questions and then create a struct for both and no need to use them just
+
+105
+00:07:13,660 --> 00:07:15,450
+yet with just creating the struct.
+
+106
+00:07:15,520 --> 00:07:20,230
+We'll be looking at integrating them into their code in the next few lectures.
+
+107
+00:07:20,260 --> 00:07:23,350
+Okay so pause a video and have a go this challenge.
+
+108
+00:07:24,590 --> 00:07:25,790
+Okay welcome back.
+
+109
+00:07:25,790 --> 00:07:32,090
+So we're going to start off with implementing struts So we're going to go into the go cart dot H which
+
+110
+00:07:32,090 --> 00:07:34,160
+is where we're going to put these structures.
+
+111
+00:07:34,550 --> 00:07:38,790
+And I've linked this bit of documentation which talks about sorry.
+
+112
+00:07:38,810 --> 00:07:40,400
+This is the wrong bit of documentation.
+
+113
+00:07:40,400 --> 00:07:45,560
+The bit of documentation I want is actually in the background so it's close that one down and I've linked
+
+114
+00:07:45,560 --> 00:07:51,290
+to this one which just talks about struts and it's very simply has some nice copy and paste code right
+
+115
+00:07:51,290 --> 00:07:56,960
+here which is what I like to use for the struts because otherwise I totally forget all the paraphernalia
+
+116
+00:07:56,990 --> 00:08:02,150
+that you have to put around them for the auto generated code and introspection and all that sort of
+
+117
+00:08:02,150 --> 00:08:02,480
+stuff.
+
+118
+00:08:02,480 --> 00:08:09,650
+So here I've pasted in a code in a struct and obviously abstracts we start with an F usually And I'm
+
+119
+00:08:09,740 --> 00:08:15,230
+not just going to call it f move because that's a bit ambiguous I'm going to call it an F go cart.
+
+120
+00:08:16,240 --> 00:08:16,760
+Move.
+
+121
+00:08:16,780 --> 00:08:20,620
+MIKE So move rather than pluralizing it just keep it singler.
+
+122
+00:08:20,920 --> 00:08:24,540
+And we don't need any of these specifiers just yet.
+
+123
+00:08:24,550 --> 00:08:26,460
+We'll figure that out as we go along.
+
+124
+00:08:26,890 --> 00:08:27,300
+Okay.
+
+125
+00:08:27,520 --> 00:08:29,590
+But what do we actually want to include here.
+
+126
+00:08:29,590 --> 00:08:34,220
+Well two prime candidates are going to be the control.
+
+127
+00:08:34,300 --> 00:08:38,870
+We need to know what the control throw is in order to enact a move.
+
+128
+00:08:39,070 --> 00:08:47,380
+And if you go and have a look at the C++ and go into that tick function you can see that we are making
+
+129
+00:08:47,380 --> 00:08:48,400
+use of throttle.
+
+130
+00:08:48,430 --> 00:08:49,790
+We are making use of.
+
+131
+00:08:49,810 --> 00:08:55,900
+It's hard to see in here but actually in Apply rotation if we go into the definition of apply rotation
+
+132
+00:08:56,260 --> 00:09:03,180
+we have got the software here rotation angle the steering throat they go.
+
+133
+00:09:03,430 --> 00:09:07,680
+That's what's being used to calculate the rotation so that is the move.
+
+134
+00:09:07,690 --> 00:09:14,410
+That is what is coming uniquely from this autonomous proxy.
+
+135
+00:09:14,770 --> 00:09:19,210
+And there are some other things that we need to look at that are coming uniquely from this autonomous
+
+136
+00:09:19,210 --> 00:09:25,930
+proxy which you may not have caught or may not have thought of and that is the time or the delta time
+
+137
+00:09:26,320 --> 00:09:29,510
+of this tick because remember they're on the server.
+
+138
+00:09:29,530 --> 00:09:35,200
+This may be a different delta time in the simulation would then be different if it used its own delta
+
+139
+00:09:35,200 --> 00:09:36,610
+time in its own tick.
+
+140
+00:09:36,610 --> 00:09:44,290
+So what we're going to do is for simplicity's sake include our own delta time in the move so that when
+
+141
+00:09:44,290 --> 00:09:49,900
+the server simulator it knows how long to simulate it for and it gets the same result or as close as
+
+142
+00:09:49,900 --> 00:09:52,200
+possible the same result as we did.
+
+143
+00:09:52,570 --> 00:09:57,220
+So we will minimize the risk of us jumping around in the world.
+
+144
+00:09:57,220 --> 00:10:00,660
+So let's go over to our move and start building it up.
+
+145
+00:10:00,670 --> 00:10:08,230
+So the first thing to copy is actually these throw and the steering throw So the throttle and the steering
+
+146
+00:10:08,260 --> 00:10:09,110
+very sorry.
+
+147
+00:10:09,190 --> 00:10:16,150
+And we're going to be those with the new properties because we do want these to be you propertys inside
+
+148
+00:10:16,240 --> 00:10:22,210
+our go cart move so they are properly represented in the ED and all that sort of jazz.
+
+149
+00:10:22,240 --> 00:10:24,570
+So we'll be happy with that.
+
+150
+00:10:24,610 --> 00:10:30,650
+I'm going to remove replicated However as we do not need the individual parts of these to be replicated.
+
+151
+00:10:31,520 --> 00:10:32,360
+So we've got a throttle.
+
+152
+00:10:32,360 --> 00:10:33,600
+You've got a stearing throw.
+
+153
+00:10:33,740 --> 00:10:37,360
+We also want a delta time so going to go for a new property.
+
+154
+00:10:39,470 --> 00:10:42,410
+Of float again Delta time.
+
+155
+00:10:43,160 --> 00:10:49,800
+And there is one more thing that we're going to want to enable us to remove old moves.
+
+156
+00:10:49,820 --> 00:10:51,950
+But we're going to look at that in just a second.
+
+157
+00:10:52,000 --> 00:10:58,170
+So next up we're going to look at what's the state what comes down replicated from the server.
+
+158
+00:10:58,190 --> 00:11:03,140
+Well it should be fairly straightforward actually because we already got a bunch of things marked as
+
+159
+00:11:03,140 --> 00:11:04,010
+being replicated.
+
+160
+00:11:04,010 --> 00:11:07,450
+Okay we've got the throttle and the steering throw those are marked as replicated.
+
+161
+00:11:07,610 --> 00:11:10,290
+But their reputation in a slightly different way.
+
+162
+00:11:10,640 --> 00:11:16,100
+But there may be an argument for that maybe we actually need the move to be replicated back down in
+
+163
+00:11:16,100 --> 00:11:20,160
+order for the non or Thomas proxy to be able to simulate.
+
+164
+00:11:20,450 --> 00:11:21,920
+I think that does make sense.
+
+165
+00:11:21,950 --> 00:11:24,790
+So we're going to go ahead and make sure.
+
+166
+00:11:25,990 --> 00:11:28,230
+Let's create our state.
+
+167
+00:11:28,280 --> 00:11:37,610
+So I'm going to copy the paraphernalia above the struct and call it f go cart state instead of the move.
+
+168
+00:11:38,650 --> 00:11:43,000
+And I'm going to end with a semicolon because that's what classis instructs end with.
+
+169
+00:11:43,180 --> 00:11:48,690
+And in Him we are going to have an F go cart move.
+
+170
+00:11:49,450 --> 00:11:52,920
+Called the last move.
+
+171
+00:11:53,900 --> 00:11:59,420
+So that's going to be the last move that went into making this state and that's going to be helpful
+
+172
+00:11:59,450 --> 00:12:04,040
+because we all on the non autonomous simulated proxy's.
+
+173
+00:12:04,190 --> 00:12:07,730
+We're going to need that throttle to be able to interpolate.
+
+174
+00:12:08,030 --> 00:12:08,280
+Okay.
+
+175
+00:12:08,300 --> 00:12:10,090
+So that's one of the replicated properties.
+
+176
+00:12:10,190 --> 00:12:12,160
+What were the other replicated properties.
+
+177
+00:12:12,200 --> 00:12:13,730
+We've got velocity for example.
+
+178
+00:12:13,730 --> 00:12:15,640
+So we need velocity.
+
+179
+00:12:16,010 --> 00:12:19,700
+That's a very important part of the state when we are simulating.
+
+180
+00:12:20,780 --> 00:12:22,250
+So stick that in there.
+
+181
+00:12:24,270 --> 00:12:30,270
+And what else we've got for lost we don't need replicate is just you property and we can put you property
+
+182
+00:12:30,300 --> 00:12:33,590
+in over the F go can't move as well.
+
+183
+00:12:33,810 --> 00:12:41,220
+And what other than the lost how do we have we've got this replicated transform at the moment and we
+
+184
+00:12:41,220 --> 00:12:44,330
+can copy that and add that as well.
+
+185
+00:12:44,340 --> 00:12:47,320
+So we've got the transform we've got the velocity.
+
+186
+00:12:48,210 --> 00:12:49,490
+And we've got the last move.
+
+187
+00:12:49,500 --> 00:12:54,520
+I think we are pretty much there set that transform doesn't need to be called replicate a transform
+
+188
+00:12:54,530 --> 00:12:55,040
+anymore.
+
+189
+00:12:55,200 --> 00:13:00,360
+It would be sufficient just call it transform because it's not competing with any properties of the
+
+190
+00:13:00,360 --> 00:13:01,790
+actor like it was before.
+
+191
+00:13:02,670 --> 00:13:07,380
+Now let's just see whether we think this is going to be suitable for pseudocode.
+
+192
+00:13:07,380 --> 00:13:09,570
+Let's go and take a look at the pseudocode again.
+
+193
+00:13:09,870 --> 00:13:13,390
+So Antec create a move or yes we can create move save to a list of moves.
+
+194
+00:13:13,410 --> 00:13:17,200
+Yes we can do that and yes we can send it to the server.
+
+195
+00:13:17,400 --> 00:13:20,110
+We can simulate it locally can we simulate locally from this.
+
+196
+00:13:20,130 --> 00:13:26,550
+Yes I believe we can if we go over to tick we can see that we've got everything we need from the autonomous
+
+197
+00:13:26,550 --> 00:13:27,530
+proxy side.
+
+198
+00:13:27,540 --> 00:13:29,220
+We've got our throttle.
+
+199
+00:13:29,280 --> 00:13:35,790
+We've got our delta time and I believe we've got the steering throw as well which is hidden in here
+
+200
+00:13:35,790 --> 00:13:36,820
+at the moment.
+
+201
+00:13:36,990 --> 00:13:40,370
+So we've got everything we need for simulating what else.
+
+202
+00:13:41,420 --> 00:13:45,370
+On received move on the server side we check that the move is valid.
+
+203
+00:13:45,380 --> 00:13:47,350
+I think we've got enough information to check the movies now.
+
+204
+00:13:47,360 --> 00:13:51,980
+We can simulate the move Yes because we've added that Delta type if we hand out the DealTime we wouldn't
+
+205
+00:13:51,980 --> 00:13:58,670
+have been able to simulate that move then number three we send the canonical state to the client so
+
+206
+00:13:59,090 --> 00:14:00,590
+sending the canonical state to the client.
+
+207
+00:14:00,590 --> 00:14:05,960
+Yes we've got a velocity and a transforms so we can send the state to the client and the client can
+
+208
+00:14:05,960 --> 00:14:13,310
+simulate because were sending it the last move applied as well so it can keep interpolating in between.
+
+209
+00:14:13,540 --> 00:14:18,260
+If it's not the autonomous proxy the autonomous proxy does it differently autonomous proxy when it receives
+
+210
+00:14:18,260 --> 00:14:24,060
+the service state instead what it will do is remove all moves that aren't included in the state.
+
+211
+00:14:24,110 --> 00:14:26,410
+Okay how are we going to do that.
+
+212
+00:14:26,420 --> 00:14:31,280
+How are we going to remove all moves we've got the last move here so we could go round trying to check
+
+213
+00:14:31,280 --> 00:14:31,900
+for a quality.
+
+214
+00:14:31,910 --> 00:14:37,120
+But what if we had back to back by fluke two moves that were exactly the same delta time.
+
+215
+00:14:37,130 --> 00:14:39,120
+We need some other way to distinguish these.
+
+216
+00:14:39,200 --> 00:14:43,970
+And one really simple way to distinguish them you could add some sequence numbers to them if you really
+
+217
+00:14:43,970 --> 00:14:44,720
+wanted.
+
+218
+00:14:44,900 --> 00:14:49,370
+But the way I'm going to do it is simply by adding a timestamp.
+
+219
+00:14:49,430 --> 00:14:53,390
+So were going to have the delta time but were also going to have the time at which the move started
+
+220
+00:14:53,990 --> 00:14:54,770
+this way.
+
+221
+00:14:54,770 --> 00:15:00,320
+When we receive the last move from the server we can go through our list of unacknowledged moves and
+
+222
+00:15:00,320 --> 00:15:04,580
+we can check if they are before or equal to that last move.
+
+223
+00:15:04,580 --> 00:15:10,520
+And in that case we can remove them their old moves basically and the new moves are the ones that are
+
+224
+00:15:10,520 --> 00:15:14,660
+greater and they are the ones that are going to stay in that list and get replaced.
+
+225
+00:15:14,660 --> 00:15:19,400
+So do we have everything else for the rest of this pseudo code reset the service state yes we can do
+
+226
+00:15:19,400 --> 00:15:20,890
+that and we can simulate the moves.
+
+227
+00:15:20,880 --> 00:15:24,320
+Yes because we've been simulating moves just fine so far.
+
+228
+00:15:24,320 --> 00:15:26,840
+So and that is how it's going to work.
+
+229
+00:15:26,840 --> 00:15:31,700
+This is the data that we need to be sending back and forth between the client and server let's just
+
+230
+00:15:31,700 --> 00:15:35,200
+go and build and make sure that that's going to work okay.
+
+231
+00:15:35,210 --> 00:15:41,390
+So there is one area that I've forgotten to put this and generate new struct body at the beginning of
+
+232
+00:15:41,420 --> 00:15:45,030
+the state structure so I am going to go ahead and rebuild that now.
+
+233
+00:15:45,380 --> 00:15:47,900
+Yeah sure enough this time it compiles.
+
+234
+00:15:48,020 --> 00:15:53,180
+So if we want to get rid of our redd's quigley's what we have to do is go over into the UN real.
+
+235
+00:15:53,180 --> 00:15:57,190
+Ed. This is just another way to do it you can do it from the file system as well.
+
+236
+00:15:57,260 --> 00:16:02,840
+Refresh visual studio project is the one we want which was just go ahead and rebuild the visual studio
+
+237
+00:16:02,870 --> 00:16:03,400
+project.
+
+238
+00:16:03,410 --> 00:16:09,440
+Making sure that those struts are now included in the auto complete it will reload in Visual Studio
+
+239
+00:16:09,470 --> 00:16:12,900
+and then the Reds quigley's should hopefully disappear.
+
+240
+00:16:13,220 --> 00:16:17,420
+So that's it from me from this lecture and in the next one we're going to be looking at how we actually
+
+241
+00:16:17,420 --> 00:16:21,200
+start integrating these struts into our code base.

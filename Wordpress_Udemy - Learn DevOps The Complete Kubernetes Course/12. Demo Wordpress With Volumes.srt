@@ -1,0 +1,731 @@
+1
+00:00:00,380 --> 00:00:05,720
+In this demo, I'm going to show how you can use Wordpress with Volumes.
+
+2
+00:00:05,750 --> 00:00:12,320
+Let's have a look at the files in Wordpress Volumes.
+
+3
+00:00:12,450 --> 00:00:16,150
+Lots of files.
+
+4
+00:00:16,190 --> 00:00:18,240
+Let's first start with a "storage.yml".
+
+5
+00:00:18,280 --> 00:00:20,130
+Here, I'm going to define a StorageClass,
+
+6
+00:00:20,380 --> 00:00:30,320
+standard storage, gp2, type storage, using aws-ebs volumes in the eu-west-1a zone.
+
+7
+00:00:30,320 --> 00:00:38,220
+because this is the zone that my Kubernetes cluster is running in. And, have a storage cloud
+
+8
+00:00:38,240 --> 00:00:40,600
+so I also "pv-claim.yml",
+
+9
+00:00:40,960 --> 00:00:47,750
+and this is going to be the persistent volume claim for my database, so it's going to be called "db-storage" 
+
+10
+00:00:47,750 --> 00:00:53,920
+and I'm going to use 8 gigabytes, and this is going to be the storage 
+
+11
+00:00:53,920 --> 00:00:54,650
+that is going to be used in the database pod.
+
+12
+00:00:55,030 --> 00:01:01,600
+So, let's have a look at this database pod, "wordpress-db.yml".
+
+13
+00:01:01,740 --> 00:01:08,620
+Now, I'm just using a very simple replication controller, with only one replica, because I never want more
+
+14
+00:01:08,620 --> 00:01:11,870
+than one instance of this pod running.
+
+15
+00:01:12,320 --> 00:01:14,530
+It's going to be a "mysql:5.7".
+
+16
+00:01:14,890 --> 00:01:15,400
+And I am going to add the arguments, "--ignore-db-directory=lost+found",
+
+17
+00:01:15,430 --> 00:01:22,420
+because this directory "lost+found" 
+
+18
+00:01:22,480 --> 00:01:24,640
+will exist in our directory
+
+19
+00:01:24,670 --> 00:01:26,440
+where are we going to put our files.
+
+20
+00:01:26,470 --> 00:01:28,720
+It will become clear in a few seconds.
+
+21
+00:01:28,780 --> 00:01:34,920
+This is still the same, this is also the same, I'm just defining the root password that comes from the secrets.
+
+22
+00:01:35,380 --> 00:01:37,030
+And then we have a volumeMount.
+
+23
+00:01:37,050 --> 00:01:39,510
+Are we going to mount, "/var/lib/mysql",
+
+24
+00:01:39,520 --> 00:01:46,750
+this is going to come from "mysql-storage". "Mysql-storage" refers to a persistent falling claim 
+
+25
+00:01:46,750 --> 00:01:48,800
+Called DB storage.
+
+26
+00:01:48,910 --> 00:01:55,700
+This one with 8Gi, this volume will be created by Amazon automatically,
+
+27
+00:01:55,720 --> 00:01:58,200
+we don't have to create it ourselves.
+
+28
+00:01:58,330 --> 00:02:00,250
+It will then, be mounted here,
+
+29
+00:02:00,520 --> 00:02:05,600
+and because this is a new podition a new volume with a podition on it,
+
+30
+00:02:05,980 --> 00:02:09,300
+there is a directory "lost+found" that is created in Linux.
+
+31
+00:02:09,330 --> 00:02:11,740
+So, that's why we're going to say ignore database directory "lost+found".
+
+32
+00:02:11,770 --> 00:02:17,290
+Otherwise, our database won't start.
+
+33
+00:02:17,290 --> 00:02:21,090
+Then we need a service for that.
+
+34
+00:02:21,640 --> 00:02:22,750
+So, we going to create a service "wordpress-db",
+
+35
+00:02:22,750 --> 00:02:25,960
+which we then can use in our other pod,
+
+36
+00:02:25,990 --> 00:02:34,440
+the one that is going to run the Wordpress itself. 
+
+37
+00:02:34,550 --> 00:02:36,030
+Let me just show you the credentials, plus here we have Wordpress secrets.
+
+38
+00:02:36,080 --> 00:02:39,330
+So, here we have a database password, which is the used passwords,
+
+39
+00:02:39,890 --> 00:02:43,560
+and these are all going to be used in the Wordpress pod.
+
+40
+00:02:43,730 --> 00:02:48,900
+We need to supplying them, because WordPress needs them, and they need to be seen for every pod.
+
+41
+00:02:49,190 --> 00:02:54,290
+Let's have a look at how these variables are used in the "wordpress-web-yml".
+
+42
+00:02:54,330 --> 00:02:59,830
+It's a deployment.
+
+43
+00:02:59,830 --> 00:03:09,250
+We can run two replicas, because this pod can horizontally scale. I am still going to use still the wordpress 4-php7.
+
+44
+00:03:10,790 --> 00:03:14,350
+We define a wordpress database password, which is the same as the mysql,
+
+45
+00:03:14,470 --> 00:03:20,620
+and then, we define these "AUTH_KEY", "LOGGED_IN_KEY", because those keys need to be the same for all the pods.
+
+46
+00:03:20,620 --> 00:03:27,670
+We have two pods, so those keys need to be the same because your session 
+
+47
+00:03:27,670 --> 00:03:28,650
+might otherwise differ between the pods.
+
+48
+00:03:29,170 --> 00:03:35,830
+So, these we just need to do because of wordpress itself. And then, we are going to add a volume mount. 
+
+49
+00:03:35,910 --> 00:03:41,080
+We are going to use a volume for this "/wp-content/uploads".
+
+50
+00:03:41,110 --> 00:03:46,360
+In wordpress you can upload pictures, we want these pictures to be available on all the pods.
+
+51
+00:03:46,420 --> 00:03:50,980
+So, we need to have some shared storage.
+
+52
+00:03:51,020 --> 00:03:55,070
+On Amazon, we can use you for that EFS for that, elastic file system.
+
+53
+00:03:55,130 --> 00:04:03,380
+This is an EFS file system and this EFS file system is write and read on every node, every pod that
+
+54
+00:04:03,380 --> 00:04:06,670
+is going to mount, can read and write to that.
+
+55
+00:04:07,120 --> 00:04:12,190
+EFS is not fit for mysql, that's why we're are using block storage for that.
+
+56
+00:04:12,500 --> 00:04:19,980
+But, we can use it for images, for just storing small files.
+
+57
+00:04:19,990 --> 00:04:26,860
+This is going to be the server, we just need to change a string, because we have to create a new EFS volume first,
+
+58
+00:04:26,920 --> 00:04:28,410
+because this is not auto provisioned.
+
+59
+00:04:28,690 --> 00:04:32,370
+And then, it will mount this EFS right here.
+
+60
+00:04:32,650 --> 00:04:35,100
+So, let's see did I cover everything.
+
+61
+00:04:35,560 --> 00:04:43,540
+Well we still have a service, a Wordp ress web service, and this is just going to put a load balancer in
+
+62
+00:04:43,540 --> 00:04:48,590
+front of these two pods, so that we can connect to the Wordpress using our browser.
+
+63
+00:04:48,910 --> 00:04:54,000
+Let's create this EFS volume, we can use the AWS wordpress command for that.
+
+64
+00:04:54,230 --> 00:04:57,630
+So, first it "aws efs create-file-system",
+
+65
+00:04:57,800 --> 00:05:01,410
+you need to specify "creation-token" which needs to be unique.
+
+66
+00:05:01,430 --> 00:05:08,310
+I've already used one, so I am going to use "2", and this is going to create an EFS file system.
+
+67
+00:05:08,330 --> 00:05:13,100
+Then, we need to create an EFS mount target.
+
+68
+00:05:13,260 --> 00:05:16,750
+We going to create a mount target using this file system ID.
+
+69
+00:05:16,790 --> 00:05:20,060
+So, we're going to say, "--file-system-id". And then, this string that comes from here.
+
+70
+00:05:20,690 --> 00:05:28,690
+And we need to create this in the same subnet ID as our cluster.
+
+71
+00:05:28,760 --> 00:05:34,050
+So, we need to figure out first the subnet ID of our cluster in another window.
+
+72
+00:05:34,070 --> 00:05:44,030
+You can do, "aws ec2 describe-instances". And here, somewhere here, you are going to find
+
+73
+00:05:44,030 --> 00:05:48,900
+one of your instances and it's going to be a subnet ID.
+
+74
+00:05:48,970 --> 00:05:53,450
+This is one of our instances, where you're going to use this something that ID.
+
+75
+00:05:56,330 --> 00:05:58,150
+Then, we need a security group.
+
+76
+00:05:58,430 --> 00:06:03,770
+And, if two instances are in the same security group then they can access each other.
+
+77
+00:06:03,830 --> 00:06:10,540
+So, we are just going to use the security group, also from this node on the Kubernetes,
+
+78
+00:06:10,540 --> 00:06:17,170
+this is a security group "nodes.kubernetes.newtech.academy", so I am going to use this security group.
+
+79
+00:06:18,520 --> 00:06:19,470
+So, it should work.
+
+80
+00:06:20,720 --> 00:06:22,320
+And now it is creating.
+
+81
+00:06:22,580 --> 00:06:31,890
+So, we just need to take this string, the file system ID and replace this in our "wordpress-web.yml".
+
+82
+00:06:32,280 --> 00:06:34,190
+So, this needs to be the zone.
+
+83
+00:06:34,410 --> 00:06:38,450
+"eu-west-1" for me and then ID.
+
+84
+00:06:39,110 --> 00:06:41,020
+And then the region right here.
+
+85
+00:06:41,340 --> 00:06:43,440
+And "amazonaws.com".
+
+86
+00:06:43,650 --> 00:06:46,100
+So, this should work.
+
+87
+00:06:46,100 --> 00:06:50,340
+So, let's now create all the resources.
+
+88
+00:06:50,420 --> 00:06:52,690
+Let's start with the database.
+
+89
+00:06:52,820 --> 00:06:59,580
+So I am going to do, "kubectl create", storage first.
+
+90
+00:07:02,370 --> 00:07:06,570
+"-f storage.yml". Then, the "pv-claim.yml", the secrets, 
+
+91
+00:07:10,650 --> 00:07:15,330
+and the database.
+
+92
+00:07:16,460 --> 00:07:20,380
+And, let's have a look whether a service is needed as well.
+
+93
+00:07:20,490 --> 00:07:22,230
+And then let's have a look whether
+
+94
+00:07:25,080 --> 00:07:27,510
+our volume is created.
+
+95
+00:07:28,350 --> 00:07:29,560
+Yes.
+
+96
+00:07:29,590 --> 00:07:30,480
+So, this is the "pvc".
+
+97
+00:07:30,490 --> 00:07:31,850
+This is for storage.
+
+98
+00:07:31,850 --> 00:07:34,420
+The "db-storage" is bound.
+
+99
+00:07:35,030 --> 00:07:38,470
+Okay, secrets will be created.
+
+100
+00:07:38,620 --> 00:07:40,260
+It's all very difficult.
+
+101
+00:07:40,610 --> 00:07:44,030
+And, then we have the wordpress-db,
+
+102
+00:07:45,250 --> 00:07:49,410
+and this can take some time for us.
+
+103
+00:07:51,050 --> 00:07:52,510
+Describe pod.
+
+104
+00:07:55,100 --> 00:08:01,180
+And it's just pulling the image. So, I mounted the "PersistentVolumeClaim" and it is pulling this image.
+
+105
+00:08:01,180 --> 00:08:08,930
+So, this actually created a new EBS volume for us and this "av" by the ebs volume is going to be used to store 
+
+106
+00:08:09,470 --> 00:08:17,600
+my secret data on. These containers started, there we go. It's now running.
+
+107
+00:08:18,100 --> 00:08:24,040
+So, which one do we still need to create? "Kubectl create", and then let's create the web services.
+
+108
+00:08:24,400 --> 00:08:31,470
+It can take some time for EFS to be created.
+
+109
+00:08:31,690 --> 00:08:39,420
+So, we have to be patient a little bit, but then we should be able to create the web and the service, 
+
+110
+00:08:39,420 --> 00:08:41,790
+and the service is going to launch a load balancer.
+
+111
+00:08:41,820 --> 00:08:47,470
+And if you want to use a proper DNS name you can go to route 53.
+
+112
+00:08:48,120 --> 00:08:56,190
+So, if you go to route 53, then you can go to DNS management, your DNS name, and you could create a new
+
+113
+00:08:56,210 --> 00:08:56,920
+recordset.
+
+114
+00:08:56,970 --> 00:08:58,910
+You could say Wordpress.
+
+115
+00:08:59,010 --> 00:09:02,610
+I actually already have one, but you could create a new one.
+
+116
+00:09:02,610 --> 00:09:04,460
+Let me first leave the old one.
+
+117
+00:09:04,920 --> 00:09:16,400
+So Wordpress is an AWS and then it's going to load the ELB classical load balancer, it takes a few seconds
+
+118
+00:09:16,970 --> 00:09:19,190
+and then we have our load balancers.
+
+119
+00:09:19,190 --> 00:09:22,530
+So, these are the load balancers created by Kubernetes.
+
+120
+00:09:22,770 --> 00:09:31,590
+Click create, and then you'll be able to access the "wordress.kubernetes.newtech.academy" and here then
+
+121
+00:09:31,750 --> 00:09:35,000
+we have our Wordpress installation.
+
+122
+00:09:35,140 --> 00:09:36,670
+So, we just do the install.
+
+123
+00:09:36,840 --> 00:09:39,290
+Here is my blog.
+
+124
+00:09:40,330 --> 00:09:43,460
+My username there is an autogenerated password for me.
+
+125
+00:09:45,170 --> 00:09:49,390
+Login with the same passwords.
+
+126
+00:09:50,190 --> 00:09:54,310
+And then I have my wordpress running.
+
+127
+00:09:54,420 --> 00:09:57,230
+The main difference now is that, two things,
+
+128
+00:09:57,270 --> 00:10:05,880
+I have two pods running that are going to handle the web requests, and the one pod running that is
+
+129
+00:10:05,880 --> 00:10:11,530
+going to handle the database, and the database data is saved in a volume.
+
+130
+00:10:11,610 --> 00:10:13,410
+So I'm not going to lose it.
+
+131
+00:10:13,440 --> 00:10:23,580
+I also have this EFS volume to create media or to upload to be able to upload media, but there is a
+
+132
+00:10:23,580 --> 00:10:31,230
+small but here, that it will not allow me immediately to run media, because look if I select a file,
+
+133
+00:10:34,570 --> 00:10:42,860
+it is going to say, "Unable to create directory in this volume", because this directory is not writable and
+
+134
+00:10:42,860 --> 00:10:48,550
+it is just because the image, the Wordpress image, was not built to be working on Kubernetes with
+
+135
+00:10:48,570 --> 00:10:50,200
+these EFS volumes.
+
+136
+00:10:50,230 --> 00:10:53,350
+So, a couple of ways to fix this issue,
+
+137
+00:10:53,350 --> 00:10:59,230
+you could just build your own image of Wordpress, and maintain your own image, or what I'm going to do
+
+138
+00:10:59,320 --> 00:11:07,750
+is going to change a CMD when it starts, with the risk that if the CMD ever changes for Wordpress
+
+139
+00:11:07,870 --> 00:11:09,300
+then it might not work anymore.
+
+140
+00:11:09,340 --> 00:11:14,600
+So, I'll probably not commit this to my repository, 
+
+141
+00:11:14,600 --> 00:11:16,110
+but you can always make the changes yourself to make this work.
+
+142
+00:11:16,180 --> 00:11:17,150
+So, let's say that you want that we want to edit 
+
+143
+00:11:17,200 --> 00:11:22,920
+our deployments, the "wordpress-deployments".
+
+144
+00:11:24,250 --> 00:11:34,210
+And then if you scroll down, here are the container's spec you, just add these commands.  
+
+145
+00:11:34,690 --> 00:11:43,810
+"bash", execute a command, and then change the permissions, or change ownership to correct user and group of this directory
+
+146
+00:11:43,810 --> 00:11:45,340
+then run this "docker-entrypoint.sh Apache2-foreground"
+
+147
+00:11:45,340 --> 00:11:47,500
+So, if this "docker-entrypoint.sh" will change in the future,
+
+148
+00:11:47,500 --> 00:11:53,800
+then this command doesn't work, but you just would have to change
+
+149
+00:11:53,800 --> 00:12:02,600
+into the real command, which you can find on Docker Hub. So, you save this and then now we can test it.
+
+150
+00:12:02,640 --> 00:12:08,430
+So, now let me refresh this page, and I will add a new file,
+
+151
+00:12:12,020 --> 00:12:24,770
+and now it uploads. This is the file that uploaded, and I can make a change to a post, "My image" and media, this image,
+
+152
+00:12:25,360 --> 00:12:34,490
+"Insert Picture", Update, and then there's my blog.
+
+153
+00:12:35,340 --> 00:12:40,580
+So, let me show you that the volume actually works.
+
+154
+00:12:40,980 --> 00:12:49,340
+"Kubectl get pod", and let me just delete this pod here.
+
+155
+00:12:52,010 --> 00:13:04,350
+"delete pod" and let me deletes those other pods as well.
+
+156
+00:13:06,220 --> 00:13:08,620
+And I'm just to delete this last pod as well.
+
+157
+00:13:08,640 --> 00:13:14,290
+All my pods are moved.
+
+158
+00:13:14,290 --> 00:13:17,290
+And what is going to happen.
+
+159
+00:13:17,730 --> 00:13:21,100
+Kubernetes is going to spin up some new pods.
+
+160
+00:13:21,100 --> 00:13:25,480
+This one is creating again and these ones are already running.
+
+161
+00:13:25,480 --> 00:13:30,890
+So, you just have to give it some time and noe everything is running again
+
+162
+00:13:34,520 --> 00:13:36,260
+Let's have a look at the logs for those things.
+
+163
+00:13:36,380 --> 00:13:41,040
+Wordpress successfully installed.
+
+164
+00:13:41,300 --> 00:13:42,500
+Let's execute this pod.
+
+165
+00:13:47,460 --> 00:13:50,550
+Let's executes within the bash this pod.
+
+166
+00:13:52,050 --> 00:14:05,430
+Let's have a look in our contents, our uploads, and here we still have, here we still have our image.
+
+167
+00:14:05,430 --> 00:14:10,590
+So, even after I killed the pod, even after I deleted the pods, we still have our image.
+
+168
+00:14:11,020 --> 00:14:15,660
+Let me have a look at the database.
+
+169
+00:14:22,030 --> 00:14:27,240
+Database started again and even already refreshed.
+
+170
+00:14:27,240 --> 00:14:31,460
+I still have all my data, still available.
+
+171
+00:14:32,040 --> 00:14:33,080
+"Hello World" with the image.
+
+172
+00:14:33,080 --> 00:14:39,750
+Even after our pod was crashed, even after my node would be crashed, Kubernetes would just shuffle
+
+173
+00:14:39,750 --> 00:14:46,530
+The pods when there is capacity, detach and attach volume necessary if necessary,
+
+174
+00:14:46,530 --> 00:14:48,160
+so that my blog keeps on running.
+
+175
+00:14:48,160 --> 00:14:50,600
+So that's it for this lecture, for this demo.
+
+176
+00:14:51,060 --> 00:14:57,370
+I think this was a very useful demo to show the capabilities of Kubernetes. 
+
+177
+00:14:57,370 --> 00:14:58,600
+Some things I showed you are still in beta.
+
+178
+00:14:58,660 --> 00:15:02,570
+Be very careful with those features.
+
+179
+00:15:02,650 --> 00:15:04,420
+But it is all very promising.
+
+180
+00:15:06,570 --> 00:15:14,760
+Also, when you clean up, make sure that you go to elastic file systems in AWS,
+
+181
+00:15:14,760 --> 00:15:17,400
+and you delete this file system.
+
+182
+00:15:17,500 --> 00:15:17,900
+This is EFS in AWS.
+
+183
+00:15:17,930 --> 00:15:22,830
+And click on delete file system, because otherwise you will be paying for it.

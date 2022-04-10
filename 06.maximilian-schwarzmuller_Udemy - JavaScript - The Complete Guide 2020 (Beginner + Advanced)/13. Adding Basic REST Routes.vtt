@@ -1,0 +1,580 @@
+WEBVTT
+1
+00:00:02.100 --> 00:00:06.390
+To implement this new approach, we could delete the view folder but we can also just ignore it.
+
+2
+00:00:06.660 --> 00:00:13.070
+I will comment out these two lines because we won't send back any HTML rendered templates anymore,
+
+3
+00:00:13.290 --> 00:00:16.380
+instead now I want to exchange JSON data.
+
+4
+00:00:16.380 --> 00:00:18.400
+So for that, we can also comment out
+
+5
+00:00:18.420 --> 00:00:26.490
+these middlewares here and when we parse incoming data for our API which we're now building, I also don't
+
+6
+00:00:26.490 --> 00:00:30.000
+expect form data anymore but I expect JSON data,
+
+7
+00:00:30.030 --> 00:00:33.530
+so I will try to parse incoming JSON data here.
+
+8
+00:00:33.600 --> 00:00:41.510
+Now I want to set up two routes, two URLs which I handle here on this backend Node.js server,
+
+9
+00:00:41.760 --> 00:00:44.950
+one URL which can be triggered from share place,
+
+10
+00:00:45.030 --> 00:00:52.980
+basically when we select a place here, I want to send the request to this backend server with the chosen
+
+11
+00:00:53.070 --> 00:00:58.590
+address and the chosen coordinates, so that on the backend we can store that in a database and create
+
+12
+00:00:58.620 --> 00:01:04.810
+a unique ID for that which we then send back to the frontend and the second URL I want is reached
+
+13
+00:01:04.810 --> 00:01:11.230
+from my-place.js where we extract an ID from the URL and then request the data for that place
+
+14
+00:01:11.560 --> 00:01:13.900
+here from our server as well.
+
+15
+00:01:14.020 --> 00:01:19.540
+Now to split our code a bit more and have a clearer structure, I'll create a new folder, routes which
+
+16
+00:01:19.540 --> 00:01:24.910
+should hold these routes so that in app.js, we just have the general setup like this body parsing which
+
+17
+00:01:24.910 --> 00:01:30.730
+I set up and then we have our routes, so the specific different paths which we want to support and the
+
+18
+00:01:30.730 --> 00:01:37.540
+logic for that in a separate file. So for that, let's go into the routes folder and here, I will add 
+
+19
+00:01:37.540 --> 00:01:38.530
+my-location.js
+
+20
+00:01:38.680 --> 00:01:39.370
+file,
+
+21
+00:01:39.370 --> 00:01:41.910
+you can name this however you want of course and there
+
+22
+00:01:41.920 --> 00:01:45.690
+we also need to import Express by requiring Expressy
+
+23
+00:01:45.790 --> 00:01:48.680
+You need to import this in any file where you want to use it.
+
+24
+00:01:48.820 --> 00:01:53.550
+Here I won't create a new Express app, so we'll not execute it like this,
+
+25
+00:01:53.560 --> 00:01:59.200
+instead we can use another feature which is part of the Express package and that's the Express router.
+
+26
+00:02:00.180 --> 00:02:05.040
+We can execute this as a as a function here and store it in a constant,
+
+27
+00:02:05.040 --> 00:02:13.500
+the router makes it easy for us to register different routes. You can simply specify the kind of HTTP
+
+28
+00:02:13.500 --> 00:02:14.950
+method you want to support,
+
+29
+00:02:14.970 --> 00:02:22.980
+for example a post method and then any incoming post request to the path which you specify as the first
+
+30
+00:02:22.980 --> 00:02:30.780
+argument, for example slash nothing or /add-location, whatever you want, will then be handled
+
+31
+00:02:31.080 --> 00:02:37.980
+by the function you specify as a second argument which receives a request, a response and the next function
+
+32
+00:02:37.980 --> 00:02:38.700
+here.
+
+33
+00:02:38.730 --> 00:02:46.800
+So it's like a middleware but filtered for a path and a specific HTTP method and only incoming post requests
+
+34
+00:02:46.980 --> 00:02:50.480
+to this address here will make it into this
+
+35
+00:02:50.500 --> 00:02:53.750
+function. Now that's one of the two routes we need,
+
+36
+00:02:53.750 --> 00:02:57.200
+the other route will be a get route because we want to get data,
+
+37
+00:02:57.410 --> 00:03:03.620
+we want to get let's say a specific location for a specific ID and I'll come back to how that works
+
+38
+00:03:03.620 --> 00:03:10.340
+later, for now let's focus on the post route. So here on the post route, the idea now is that we get some
+
+39
+00:03:10.340 --> 00:03:13.410
+data and keep in mind that we parsed data here,
+
+40
+00:03:13.430 --> 00:03:19.520
+so we got it already extracted and stored in this body property of the request object and the data we
+
+41
+00:03:19.520 --> 00:03:25.010
+get there are the coordinates and the address and then we want to store that in a database.
+
+42
+00:03:25.010 --> 00:03:30.920
+Now let's add the database later, for now here I'll just use an in-memory storage which will basically
+
+43
+00:03:31.160 --> 00:03:35.660
+live as long as our server lives but whenever we shut down the server, it will be lost,
+
+44
+00:03:35.690 --> 00:03:41.090
+so it's not a great permanent storage but here to get started it's fine and there I'll have my location
+
+45
+00:03:41.090 --> 00:03:47.420
+storage which simply is let's say a Javascript object and there I have my locations which is an array
+
+46
+00:03:47.910 --> 00:03:54.890
+and now here when we got an incoming request, I'll reach out to location storage.locations and I push a
+
+47
+00:03:54.890 --> 00:04:00.380
+new location in there and this new location will receive an ID which I want to generate on the fly.
+
+48
+00:04:01.200 --> 00:04:07.400
+For that, we can for example use math random which is not perfectly unique but for now it will do, later
+
+49
+00:04:07.400 --> 00:04:14.030
+we'll have a better ID and then I will have my address which we get from the request body, request
+
+50
+00:04:14.030 --> 00:04:15.050
+body.address
+
+51
+00:04:15.050 --> 00:04:21.560
+let's say, we expect an address field on the incoming request body and the coords, the coordinates which
+
+52
+00:04:21.560 --> 00:04:26.760
+could be a nested object with a lat key which we get from request.body.lat
+
+53
+00:04:26.800 --> 00:04:32.160
+let's say and a lng key which we get from request.body.lng.
+
+54
+00:04:32.300 --> 00:04:38.420
+Of course it will be our duty to make sure that when we sent this request, we do provide this address
+
+55
+00:04:38.420 --> 00:04:44.420
+field on the body of the request and this lat and lng fields on the request body
+
+56
+00:04:44.690 --> 00:04:48.510
+and with that we should add this to our location storage.
+
+57
+00:04:48.740 --> 00:04:54.830
+Now sending back a response would also be nice so that we basically provide some answer to the client
+
+58
+00:04:54.860 --> 00:04:56.370
+who sent us this data
+
+59
+00:04:56.570 --> 00:05:00.710
+and here we can use the JSON method to send back a JSON response.
+
+60
+00:05:00.710 --> 00:05:05.120
+It's like using send and setting the content type to JSON manually,
+
+61
+00:05:05.120 --> 00:05:11.060
+here we can simply abbreviate this and just send back JSON data, we can send back an object which
+
+62
+00:05:11.060 --> 00:05:16.940
+will be converted to JSON automatically by Express.js and there we could have a message maybe where
+
+63
+00:05:16.940 --> 00:05:23.840
+we say stored location or whatever you want to send back. You could always add an extra validation
+
+64
+00:05:23.900 --> 00:05:28.640
+where you first of all check whether you got valid coordinates and you may be send back an error if
+
+65
+00:05:28.640 --> 00:05:29.840
+that's not the case
+
+66
+00:05:30.050 --> 00:05:33.220
+but to not dive too deeply into that right now, let's ignore that and
+
+67
+00:05:33.260 --> 00:05:41.170
+let's just assume we get valid data here. With all of that, we got our first routes set up but it lives
+
+68
+00:05:41.170 --> 00:05:49.300
+in the location.js file. Right now nowhere in this application we tell Javascript or Node or Express
+
+69
+00:05:49.300 --> 00:05:51.250
+that we're interested in this file.
+
+70
+00:05:51.250 --> 00:05:56.530
+So back to app.js which is the file we actually will execute with Node with this command here in the
+
+71
+00:05:56.530 --> 00:06:03.610
+terminal, here we should import this location.js file or the routes set up there to be precise and
+
+72
+00:06:03.610 --> 00:06:09.040
+we should then also tell Express.js that it should consider these routes when it funnels the request
+
+73
+00:06:09.040 --> 00:06:14.470
+through all the middlewares. Now to import something from that file, we first of all need to export
+
+74
+00:06:14.470 --> 00:06:20.110
+something here and here Node.js has its own export syntax, you don't have an export keyword as you
+
+75
+00:06:20.110 --> 00:06:26.800
+have it in client side Javascript, instead you export with module.exports. This by the way might look
+
+76
+00:06:26.800 --> 00:06:32.710
+familiar to you, it is what we had here in the webpack config earlier because I mentioned that this
+
+77
+00:06:32.710 --> 00:06:34.200
+would be handled by Node.js,
+
+78
+00:06:34.330 --> 00:06:40.180
+well here is how we export something in a Node.js file. We then point at the something which should
+
+79
+00:06:40.180 --> 00:06:46.380
+be exported and here, that's the router with these registered routes that are added to it.
+
+80
+00:06:46.450 --> 00:06:53.560
+So here we export this configured Express router and now we can import it into another file and we do
+
+81
+00:06:53.560 --> 00:07:00.070
+import with the syntax you see up there. We can import our routes here, however you want to name it, by
+
+82
+00:07:00.070 --> 00:07:06.700
+requiring this file where we store them, so ./routes to go to the routes folder and then
+
+83
+00:07:06.700 --> 00:07:14.070
+location, maybe name it location routes therefore but the name is up to you. Here we have a relative
+
+84
+00:07:14.070 --> 00:07:19.080
+path, before we just had the package names but now we're not working with a package but with one of our
+
+85
+00:07:19.080 --> 00:07:24.020
+own files and therefore we have to specify a relative path here and also important,
+
+86
+00:07:24.030 --> 00:07:26.850
+you can and should omit the file extension here,
+
+87
+00:07:26.910 --> 00:07:30.420
+Node.js will add it for you automatically when it looks up this file,
+
+88
+00:07:30.420 --> 00:07:34.010
+it will look for a Javascript file in there after all.
+
+89
+00:07:34.020 --> 00:07:40.080
+Now we just have to tell Express.js that it should consider these location routes and for that, after
+
+90
+00:07:40.200 --> 00:07:41.190
+parsing the body
+
+91
+00:07:41.220 --> 00:07:48.090
+but before you listen, you want to register a new middleware here and that should just be the location
+
+92
+00:07:48.640 --> 00:07:53.790
+routes here because it turns out the Express router is actually a middleware
+
+93
+00:07:53.820 --> 00:08:00.270
+you can register in your Express application and now Express knows that it should funnel incoming requests
+
+94
+00:08:00.420 --> 00:08:02.130
+through these routes as well
+
+95
+00:08:02.130 --> 00:08:08.490
+and there, we have our filtering logic by HTTP method and by path to then execute these functions
+
+96
+00:08:08.760 --> 00:08:15.320
+which in the end are also just like middleware functions you could say. So that was a lot of talking,
+
+97
+00:08:15.320 --> 00:08:19.370
+now if we start our server, let's see if it works. Server is running,
+
+98
+00:08:19.370 --> 00:08:24.620
+now we need to work on the client side and make sure that in share place, once we got coordinates and
+
+99
+00:08:24.620 --> 00:08:34.620
+address, we send a request to our backend. Now the backend is running on port 3000, the frontend
+
+100
+00:08:34.620 --> 00:08:40.020
+by default has port 8080, the webpack dev server takes this. So we have no clash here,
+
+101
+00:08:40.020 --> 00:08:45.390
+we have to use different ports because these are two totally different servers as if they were running
+
+102
+00:08:45.420 --> 00:08:51.510
+on different domains and therefore now here, we can use fetch for example to send the request to HTTP
+
+103
+00:08:51.550 --> 00:08:57.180
+localhost:3000 for now because we're running this locally
+
+104
+00:08:57.200 --> 00:08:59.170
+but again this is like a separate server,
+
+105
+00:08:59.190 --> 00:09:06.600
+it is technically a separate server and then here, we want to send the request to /add-location
+
+106
+00:09:06.900 --> 00:09:13.700
+because that's the path we're filtering out with a post request here. So send this to /add-location
+
+107
+00:09:14.030 --> 00:09:18.620
+and now configure this request because as I just said it should be a post request,
+
+108
+00:09:18.710 --> 00:09:24.590
+so we want to add the method here and set this to post and add a body to this request and this body
+
+109
+00:09:24.590 --> 00:09:27.770
+should be the coordinates and the address.
+
+110
+00:09:27.770 --> 00:09:33.980
+So for that, we can call json.stringify because we need to provide some JSON content here and
+
+111
+00:09:34.010 --> 00:09:38.350
+json. stringify object and now it's important that we pass the right keys here,
+
+112
+00:09:38.480 --> 00:09:43.020
+we have to pass the keys which we tried to extract on the backend. There
+
+113
+00:09:43.040 --> 00:09:49.340
+we're looking for an address key, for a lat key and for an lng key, so we should provide exactly these
+
+114
+00:09:49.340 --> 00:09:51.140
+keys here as well,
+
+115
+00:09:51.380 --> 00:09:59.470
+an address key which holds the address we're getting here and then a lat key which holds
+
+116
+00:09:59.470 --> 00:10:00.160
+coordinates.latitude
+
+117
+00:10:00.470 --> 00:10:06.710
+and then a lng key which holds coordinates.lng
+
+118
+00:10:06.860 --> 00:10:10.240
+and this should now be a valid body for our request.
+
+119
+00:10:11.730 --> 00:10:16.560
+Now let's also provide some headers here to tell the backend that we're sending some JSON data,
+
+120
+00:10:16.680 --> 00:10:18.420
+so here I will add my headers,
+
+121
+00:10:18.450 --> 00:10:24.810
+I will add the content-type header and set this to application/json to tell the backend
+
+122
+00:10:24.840 --> 00:10:30.600
+that we're sending some JSON data so that body parser and app.js which is watching for JSON data
+
+123
+00:10:30.690 --> 00:10:35.740
+knows that this is a request where it should parse its body.
+
+124
+00:10:35.760 --> 00:10:37.440
+So now we're trying to send this,
+
+125
+00:10:38.070 --> 00:10:41.520
+then we get back a response here in the end,
+
+126
+00:10:41.520 --> 00:10:48.090
+so we might want to parse that JSON data in there and return that, as you learned this returns a new
+
+127
+00:10:48.090 --> 00:10:49.440
+promise
+
+128
+00:10:49.440 --> 00:10:56.930
+and thereafter we got the data and our response which we for now can just log here on the client. You
+
+129
+00:10:56.930 --> 00:10:59.300
+could of course also use async await if you wanted to,
+
+130
+00:10:59.300 --> 00:11:01.550
+here I'll go for two then blocks.
+
+131
+00:11:01.610 --> 00:11:06.960
+Now in reality, you might also want to check if the status code is ok, if you've got any errors
+
+132
+00:11:07.040 --> 00:11:11.960
+but on our server, we're not setting any other status codes than the default 200 code
+
+133
+00:11:11.960 --> 00:11:15.520
+and we're also not throwing any errors unless we have a bug in there,
+
+134
+00:11:15.530 --> 00:11:17.210
+so for now we can leave it as it is,
+
+135
+00:11:17.300 --> 00:11:23.160
+it's just there so that we can have a look at how this generally works. So with all of that, let's save
+
+136
+00:11:23.150 --> 00:11:24.500
+the client side code
+
+137
+00:11:24.660 --> 00:11:29.130
+and then here, make sure you've got all packages installed which I'll do again here because I deleted
+
+138
+00:11:29.130 --> 00:11:33.990
+node modules in this project in between the different videos and with dependencies installed,
+
+139
+00:11:33.990 --> 00:11:40.170
+let's run npm run build: dev to bring up that development server, looking good, running on localhost:8080
+
+140
+00:11:40.170 --> 00:11:42.120
+as you can see.
+
+141
+00:11:42.150 --> 00:11:50.490
+So now here if you visit localhost:8080, this works, let's open a console to see if it really works
+
+142
+00:11:51.930 --> 00:11:59.500
+and now here I will find a place, maybe also enter a correct one, 6th avenue, find place.
+
+143
+00:11:59.520 --> 00:12:04.740
+Now this works but we got an error here and it's coming from our server and it's complaining about some
+
+144
+00:12:04.740 --> 00:12:06.320
+CORS thing,
+
+145
+00:12:06.330 --> 00:12:07.020
+now what's that?

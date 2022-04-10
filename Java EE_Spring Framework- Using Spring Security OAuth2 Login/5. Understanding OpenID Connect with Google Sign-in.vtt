@@ -1,0 +1,429 @@
+WEBVTT
+1
+00:00:01.240 --> 00:00:04.340
+As detailed by its working group,
+
+2
+00:00:04.340 --> 00:00:09.310
+OpenID Connect allows you to use an existing account to sign into
+
+3
+00:00:09.310 --> 00:00:13.860
+multiple websites without needing to create new passwords.
+
+4
+00:00:13.860 --> 00:00:18.040
+It provides an identity layer on top of OAuth2,
+
+5
+00:00:18.040 --> 00:00:23.320
+which allows computing clients to verify the identity of an end user based on
+
+6
+00:00:23.320 --> 00:00:27.940
+the authentication performed by the authorization server,
+
+7
+00:00:27.940 --> 00:00:31.400
+as well as to obtain basic profile information about
+
+8
+00:00:31.400 --> 00:00:35.140
+the end user in a REST‑like manner.
+
+9
+00:00:35.140 --> 00:00:37.770
+Google's implementation actually complies with the
+
+10
+00:00:37.770 --> 00:00:44.440
+OpenID Connect's specification, so let's add sign‑in with Google to our demo app,
+
+11
+00:00:44.440 --> 00:00:48.800
+and Spring Security with Spring Boot makes this super easy; however,
+
+12
+00:00:48.800 --> 00:00:49.200
+first,
+
+13
+00:00:49.200 --> 00:00:52.410
+you need to register with Google Developer and then register your
+
+14
+00:00:52.410 --> 00:00:55.410
+application to use OpenID Connect Identity.
+
+15
+00:00:55.410 --> 00:01:00.540
+Google will provide you with the application's client ID and secret.
+
+16
+00:01:00.540 --> 00:01:05.540
+Now, add the following default authorized redirect URI.
+
+17
+00:01:05.540 --> 00:01:11.540
+Default for Spring is your domain followed by login/oauth2/code,
+
+18
+00:01:11.540 --> 00:01:14.830
+and then the client registration name, in this case,
+
+19
+00:01:14.830 --> 00:01:15.620
+Google.
+
+20
+00:01:15.620 --> 00:01:17.040
+That's the hard part.
+
+21
+00:01:17.040 --> 00:01:19.410
+Now, just like for Facebook,
+
+22
+00:01:19.410 --> 00:01:22.300
+Spring Boot has conveniently looked up all the
+
+23
+00:01:22.300 --> 00:01:27.050
+endpoints and configuration for you, apart from the client ID and secret,
+
+24
+00:01:27.050 --> 00:01:29.470
+of course, but that would be too easy.
+
+25
+00:01:29.470 --> 00:01:32.240
+So let's add these to our configuration.
+
+26
+00:01:32.240 --> 00:01:33.990
+Now, if we restart our app,
+
+27
+00:01:33.990 --> 00:01:38.770
+Spring now gives the user an option between Facebook and Google,
+
+28
+00:01:38.770 --> 00:01:40.210
+easy‑peasy,
+
+29
+00:01:40.210 --> 00:01:43.200
+and Spring Security and Spring Boot are handling all
+
+30
+00:01:43.200 --> 00:01:45.520
+the complexities for us; however,
+
+31
+00:01:45.520 --> 00:01:50.740
+let's take a peek under the covers to see how OpenID Connect works.
+
+32
+00:01:50.740 --> 00:01:54.380
+As mentioned, OpenID Connect extends the OAuth2 spec.
+
+33
+00:01:54.380 --> 00:01:57.350
+It still uses the authorization code flow,
+
+34
+00:01:57.350 --> 00:02:01.670
+so there's an authorization redirect request to the auth server,
+
+35
+00:02:01.670 --> 00:02:04.370
+very similar to Facebook's implementation,
+
+36
+00:02:04.370 --> 00:02:07.990
+but with the addition of the OpenID Connect scope.
+
+37
+00:02:07.990 --> 00:02:13.040
+Indicate to the auth server that this client wants OpenID Connect.
+
+38
+00:02:13.040 --> 00:02:17.970
+Additionally, there is now a nonce parameter to mitigate any replay attacks.
+
+39
+00:02:17.970 --> 00:02:23.050
+Now, if we authenticate with Google, you can see everything else is very similar,
+
+40
+00:02:23.050 --> 00:02:25.460
+the auth server returns back an auth code.
+
+41
+00:02:25.460 --> 00:02:29.860
+Where OpenID Connect provides value is the standardization of every field,
+
+42
+00:02:29.860 --> 00:02:34.240
+such as the endpoints, like the discovery document endpoint.
+
+43
+00:02:34.240 --> 00:02:38.080
+All OpenID Connect providers must use the same path.
+
+44
+00:02:38.080 --> 00:02:40.660
+So if you know your provider's domain,
+
+45
+00:02:40.660 --> 00:02:43.850
+your application can quickly source this document as it
+
+46
+00:02:43.850 --> 00:02:46.590
+will be the authorization server's domain followed by
+
+47
+00:02:46.590 --> 00:02:50.240
+.well‑known/openid‑configuration.
+
+48
+00:02:50.240 --> 00:02:52.170
+And in this document, if we open it,
+
+49
+00:02:52.170 --> 00:02:55.840
+is everything the client needs to bootstrap itself and
+
+50
+00:02:55.840 --> 00:03:00.930
+use the provider for authentication, like the token endpoint and much more.
+
+51
+00:03:00.930 --> 00:03:03.730
+If we didn't have the preconfigured endpoints
+
+52
+00:03:03.730 --> 00:03:06.140
+already done for us by Spring Boot,
+
+53
+00:03:06.140 --> 00:03:09.290
+we could have simply added this issuer URI in our
+
+54
+00:03:09.290 --> 00:03:12.240
+configuration for the provider Google.
+
+55
+00:03:12.240 --> 00:03:13.190
+In our config,
+
+56
+00:03:13.190 --> 00:03:17.120
+Spring Security would know to look up the discovery document by
+
+57
+00:03:17.120 --> 00:03:21.160
+putting a .well‑known/openid‑configuraiton path and simply
+
+58
+00:03:21.160 --> 00:03:24.340
+automatically bootstrap itself with the endpoints.
+
+59
+00:03:24.340 --> 00:03:26.440
+Now, in addition to an access token,
+
+60
+00:03:26.440 --> 00:03:31.840
+OpenID Connect will return a new type of token known as an identity token.
+
+61
+00:03:31.840 --> 00:03:35.880
+It's important as this token is meant for the client
+
+62
+00:03:35.880 --> 00:03:40.120
+to be used for authentication, unlike the access token,
+
+63
+00:03:40.120 --> 00:03:43.230
+which is intended to be used against the resource server to
+
+64
+00:03:43.230 --> 00:03:46.940
+authorize access to the protected resource.
+
+65
+00:03:46.940 --> 00:03:49.210
+The ID token follows a strict standard,
+
+66
+00:03:49.210 --> 00:03:54.440
+so the client dev team don't have to worry about changes to the token format,
+
+67
+00:03:54.440 --> 00:03:56.630
+which could break their authentication logic,
+
+68
+00:03:56.630 --> 00:04:00.050
+and there is no need to share this with third parties as
+
+69
+00:04:00.050 --> 00:04:02.040
+that's the role of the access token.
+
+70
+00:04:02.040 --> 00:04:05.510
+Now, I have created an endpoint in our controller to see this token.
+
+71
+00:04:05.510 --> 00:04:08.240
+Obviously, you wouldn't have something like this in production.
+
+72
+00:04:08.240 --> 00:04:12.200
+Now, this token follows the JSON web token specification,
+
+73
+00:04:12.200 --> 00:04:14.540
+so making it super easy to decode.
+
+74
+00:04:14.540 --> 00:04:18.440
+If I copy and paste this into JWT.IO, you can see,
+
+75
+00:04:18.440 --> 00:04:22.940
+it's a Base64 encoded string with three parts separated by a period.
+
+76
+00:04:22.940 --> 00:04:26.180
+Here, to the right, the parts are decoded.
+
+77
+00:04:26.180 --> 00:04:27.720
+The first is the header.
+
+78
+00:04:27.720 --> 00:04:31.480
+Next is the body with all the claims about the user with a
+
+79
+00:04:31.480 --> 00:04:34.740
+combination of mandatory and optional claims about the user
+
+80
+00:04:34.740 --> 00:04:36.590
+and the authentication event.
+
+81
+00:04:36.590 --> 00:04:39.920
+Some of the key mandatory claims are issuer,
+
+82
+00:04:39.920 --> 00:04:42.730
+which is who created this token, and in this case,
+
+83
+00:04:42.730 --> 00:04:47.040
+it's Google, the audience, who the token was minted for,
+
+84
+00:04:47.040 --> 00:04:49.970
+in this case, it's our application's client ID,
+
+85
+00:04:49.970 --> 00:04:53.690
+hence we can verify it was for an authentication event for our
+
+86
+00:04:53.690 --> 00:04:56.370
+application and not someone else's application,
+
+87
+00:04:56.370 --> 00:05:00.340
+the subject will contain the unique identifier for the user,
+
+88
+00:05:00.340 --> 00:05:03.140
+so we're confident that is unique and it won't change,
+
+89
+00:05:03.140 --> 00:05:05.440
+and, of course, the expiry of the token.
+
+90
+00:05:05.440 --> 00:05:09.940
+Additionally, we have optional claims from the scopes we requested.
+
+91
+00:05:09.940 --> 00:05:12.910
+Now, you can check out the OpenID spec for more details on these,
+
+92
+00:05:12.910 --> 00:05:15.910
+but the great thing is that as a developer,
+
+93
+00:05:15.910 --> 00:05:18.740
+if you're integrating with an OpenID Connect provider,
+
+94
+00:05:18.740 --> 00:05:21.540
+you know that if you request a scope,
+
+95
+00:05:21.540 --> 00:05:24.890
+the claims returned will follow the naming convention and even
+
+96
+00:05:24.890 --> 00:05:27.940
+format and date format defined in the spec,
+
+97
+00:05:27.940 --> 00:05:32.340
+so you don't have to develop custom parsing logic for each provider.
+
+98
+00:05:32.340 --> 00:05:37.240
+But since we're using Spring Security, this is all done for us anyways.
+
+99
+00:05:37.240 --> 00:05:37.460
+Now,
+
+100
+00:05:37.460 --> 00:05:42.880
+the third part of the JWT token is the signature as the whole token is digitally
+
+101
+00:05:42.880 --> 00:05:47.620
+signed so that you can verify the integrity of it offline,
+
+102
+00:05:47.620 --> 00:05:50.630
+and conveniently, in the Discovery document,
+
+103
+00:05:50.630 --> 00:05:54.510
+you have a link to the public keys to do this so your application can
+
+104
+00:05:54.510 --> 00:05:58.740
+bootstrap that and verify the token's integrity offline.
+
+105
+00:05:58.740 --> 00:06:00.680
+There is still more to OpenID Connect.
+
+106
+00:06:00.680 --> 00:06:03.700
+There are many different endpoints like session management for handling
+
+107
+00:06:03.700 --> 00:06:12.000
+logging out and many others that we'll cover later. However, next, let's wrap up this module.
+

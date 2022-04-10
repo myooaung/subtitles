@@ -1,0 +1,276 @@
+1
+00:00:02,580 --> 00:00:05,430
+So before we actually get into writing the container parsing
+
+2
+00:00:05,430 --> 00:00:07,620
+code, I just want to take a look at a couple of the helper
+
+3
+00:00:07,620 --> 00:00:09,050
+classes that we're going to use here.
+
+4
+00:00:09,050 --> 00:00:11,310
+So we have an IoCException class.
+
+5
+00:00:11,310 --> 00:00:14,460
+So if there's any exception that gets thrown by the container,
+
+6
+00:00:14,460 --> 00:00:18,610
+we'll catch that exception and wrap it inside our own IOC exception so that the
+
+7
+00:00:18,610 --> 00:00:21,830
+application is aware this has come from the IOC container.
+
+8
+00:00:21,830 --> 00:00:26,380
+We have a Loader class, and the job of the Loader class is to
+
+9
+00:00:26,380 --> 00:00:29,540
+load the configuration from the JSON file.
+
+10
+00:00:29,540 --> 00:00:32,550
+So this is using things like an ObjectMapper class to map JSON
+
+11
+00:00:32,550 --> 00:00:36,340
+objects into Java objects and then load those up.
+
+12
+00:00:36,340 --> 00:00:39,810
+The JSON config file that we saw looks like this.
+
+13
+00:00:39,810 --> 00:00:43,400
+So this is an array of information about things to load,
+
+14
+00:00:43,400 --> 00:00:46,910
+and each of these things will call a registration, so there's a
+
+15
+00:00:46,910 --> 00:00:51,500
+Registration class that the loader loads things into, so in the loader,
+
+16
+00:00:51,500 --> 00:00:56,250
+we map through the configuration and pick out the objects, we parse the
+
+17
+00:00:56,250 --> 00:01:01,350
+data from the JSON into a registration object, and we store this thing
+
+18
+00:01:01,350 --> 00:01:03,430
+into the list of registrations,
+
+19
+00:01:03,430 --> 00:01:07,180
+we return that list from this loadConfiguration method, as
+
+20
+00:01:07,180 --> 00:01:10,210
+well as a simple configuration with an abstract type
+
+21
+00:01:10,210 --> 00:01:11,900
+having on it some concrete type.
+
+22
+00:01:11,900 --> 00:01:15,260
+We'll also need to deal with more complex configuration where
+
+23
+00:01:15,260 --> 00:01:18,810
+the type we are mapping to, say Meeting in this case, takes
+
+24
+00:01:18,810 --> 00:01:20,780
+multiple constructor parameters,
+
+25
+00:01:20,780 --> 00:01:24,780
+some of which might be types that are registered inside the container or some
+
+26
+00:01:24,780 --> 00:01:28,040
+which might be primitive types or maybe even string types.
+
+27
+00:01:28,040 --> 00:01:31,440
+So we need to see how we build those objects as well.
+
+28
+00:01:31,440 --> 00:01:32,680
+So here, for example,
+
+29
+00:01:32,680 --> 00:01:35,860
+we have a Meeting class for the meeting constructor, and that
+
+30
+00:01:35,860 --> 00:01:40,320
+takes an IMeetingService, but also takes a string.
+
+31
+00:01:40,320 --> 00:01:43,250
+Now we've seen that to create an IMeetingService, we can also
+
+32
+00:01:43,250 --> 00:01:47,370
+configure that inside our configuration JSON file, and that will
+
+33
+00:01:47,370 --> 00:01:50,540
+map onto some type like a MeetingService.
+
+34
+00:01:50,540 --> 00:01:52,670
+But string is an abstract class.
+
+35
+00:01:52,670 --> 00:01:55,620
+String is a concrete type, and the same will go for
+
+36
+00:01:55,620 --> 00:01:56,970
+other primitive types as well.
+
+37
+00:01:56,970 --> 00:02:01,340
+If we wanted to pass, say, an int or a double or a float to our constructor,
+
+38
+00:02:01,340 --> 00:02:05,590
+we need a way of configuring that inside our JSON file as well. And the way
+
+39
+00:02:05,590 --> 00:02:10,630
+we do that is by specifying the name of the constructor parameter and the
+
+40
+00:02:10,630 --> 00:02:14,040
+value of that parameter when we pass it in.
+
+41
+00:02:14,040 --> 00:02:15,260
+So as an example,
+
+42
+00:02:15,260 --> 00:02:18,700
+here we have a class, which is a stupidly long name just for testing
+
+43
+00:02:18,700 --> 00:02:22,640
+purposes, and here's the constructor for that class.
+
+44
+00:02:22,640 --> 00:02:25,710
+The key thing is that this constructor has two constructor
+
+45
+00:02:25,710 --> 00:02:29,050
+parameters. It takes something of type of Logger and something of
+
+46
+00:02:29,050 --> 00:02:32,440
+type String, and we need to configure that.
+
+47
+00:02:32,440 --> 00:02:37,900
+So here in my Configuration class, config.json, I have my type, so this silly
+
+48
+00:02:37,900 --> 00:02:42,370
+name with the interface and master, a silly name of implementation, and then
+
+49
+00:02:42,370 --> 00:02:45,640
+here we specify one of the constructorParams.
+
+50
+00:02:45,640 --> 00:02:51,540
+We specify the value param. Let me actually give that the value of 23.
+
+51
+00:02:51,540 --> 00:02:54,060
+So if I look back in the type itself,
+
+52
+00:02:54,060 --> 00:02:57,730
+that's this constructor parameter here. As before,
+
+53
+00:02:57,730 --> 00:03:02,200
+it gets the logger parameter from the fact that Logger is
+
+54
+00:03:02,200 --> 00:03:05,570
+also registered inside the container.
+
+55
+00:03:05,570 --> 00:03:09,490
+So inside the configuration, we map Logger to FileLogger.
+
+56
+00:03:09,490 --> 00:03:13,720
+So the idea with the IOC container is that any types that are mapped inside the
+
+57
+00:03:13,720 --> 00:03:16,940
+configuration file, it picks up from the configuration file.
+
+58
+00:03:16,940 --> 00:03:20,800
+But things such as primitive types and strings, it will
+
+59
+00:03:20,800 --> 00:03:22,550
+pick up from the constructorParams.
+
+60
+00:03:22,550 --> 00:03:25,710
+So here this is the name of the value we pass into the constructor,
+
+61
+00:03:25,710 --> 00:03:30,140
+and this is the value of that value we want to pass into that constructor.
+
+62
+00:03:30,140 --> 00:03:31,790
+So just to recap.
+
+63
+00:03:31,790 --> 00:03:35,840
+We have a loader that has a loadConfiguration method.
+
+64
+00:03:35,840 --> 00:03:39,470
+This loadConfiguration method gets called and reads
+
+65
+00:03:39,470 --> 00:03:41,590
+through our configuration file,
+
+66
+00:03:41,590 --> 00:03:45,050
+which is the JSON file. That maps values from this
+
+67
+00:03:45,050 --> 00:03:48,110
+file into a list of registrations.
+
+68
+00:03:48,110 --> 00:03:53,760
+The Registration class contains things like the type that we want to load
+
+69
+00:03:53,760 --> 00:04:02,000
+up, the thing that we are mapping to, and then any information about those types such as its constructor parameters.
+

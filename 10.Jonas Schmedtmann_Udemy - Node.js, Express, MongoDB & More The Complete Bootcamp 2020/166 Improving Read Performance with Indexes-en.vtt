@@ -1,0 +1,1309 @@
+WEBVTT
+1
+00:00:00.910 --> 00:00:02.310
+<v Jonas>Welcome back.</v>
+
+2
+00:00:02.310 --> 00:00:04.110
+So let's now talk a little bit
+
+3
+00:00:04.110 --> 00:00:07.540
+about read performance in MongoDB,
+
+4
+00:00:07.540 --> 00:00:10.630
+why something called indexes are so important,
+
+5
+00:00:10.630 --> 00:00:13.053
+and how we can actually create them ourselves.
+
+6
+00:00:14.560 --> 00:00:18.540
+And I want to start this demonstration about indexes
+
+7
+00:00:18.540 --> 00:00:21.873
+by firing off a simple query on all our tours.
+
+8
+00:00:23.500 --> 00:00:26.550
+So let's come here to get all tours
+
+9
+00:00:26.550 --> 00:00:28.820
+and I will also filter
+
+10
+00:00:30.190 --> 00:00:33.803
+for a price less than 1,000.
+
+11
+00:00:35.400 --> 00:00:39.393
+Okay and so let's see.
+
+12
+00:00:40.900 --> 00:00:43.970
+Yeah, so we get three results back, all right.
+
+13
+00:00:43.970 --> 00:00:45.950
+And that's important to keep in mind
+
+14
+00:00:45.950 --> 00:00:48.230
+for what I'm gonna show you next which is
+
+15
+00:00:48.230 --> 00:00:51.200
+that we can actually also get a couple of statistics
+
+16
+00:00:51.200 --> 00:00:53.070
+about the query itself.
+
+17
+00:00:53.070 --> 00:00:56.770
+So let's go here basically to the handler function.
+
+18
+00:00:56.770 --> 00:01:01.523
+And so this remember right now in the handler factory.
+
+19
+00:01:02.620 --> 00:01:06.033
+Right, so it's this,
+
+20
+00:01:08.100 --> 00:01:09.410
+I think it's at the bottom.
+
+21
+00:01:09.410 --> 00:01:12.000
+Yeah so it's this, get all factory function
+
+22
+00:01:12.000 --> 00:01:14.290
+that will create this handler that is called
+
+23
+00:01:14.290 --> 00:01:16.940
+for the query that we just performed.
+
+24
+00:01:16.940 --> 00:01:18.360
+And so here on the query,
+
+25
+00:01:18.360 --> 00:01:21.053
+I'll actually now add an explain method.
+
+26
+00:01:23.640 --> 00:01:28.300
+Okay so after the query we will then call explain all right.
+
+27
+00:01:28.300 --> 00:01:30.603
+And so let's take a look at that.
+
+28
+00:01:33.710 --> 00:01:36.770
+And so we now get a completely different result,
+
+29
+00:01:36.770 --> 00:01:39.490
+which is basically these statistics.
+
+30
+00:01:39.490 --> 00:01:41.920
+Now there's a lot of stuff in here.
+
+31
+00:01:41.920 --> 00:01:43.030
+But what I'm really interested
+
+32
+00:01:43.030 --> 00:01:48.030
+in is these execution statistics, okay.
+
+33
+00:01:48.110 --> 00:01:50.230
+So you can see here that the number of documents
+
+34
+00:01:50.230 --> 00:01:52.420
+that were returned were three.
+
+35
+00:01:52.420 --> 00:01:55.130
+And so that's exactly the result that we got before.
+
+36
+00:01:55.130 --> 00:01:58.030
+So before doing the explain right.
+
+37
+00:01:58.030 --> 00:02:00.230
+But what's really important to note here is
+
+38
+00:02:00.230 --> 00:02:01.460
+that the number of documents
+
+39
+00:02:01.460 --> 00:02:05.180
+that were examined is nine, okay.
+
+40
+00:02:05.180 --> 00:02:07.970
+And so this means that MongoDB had to examine,
+
+41
+00:02:07.970 --> 00:02:11.200
+so basically to scan all of the nine documents
+
+42
+00:02:11.200 --> 00:02:13.780
+in order to find the correct three ones.
+
+43
+00:02:13.780 --> 00:02:17.260
+So the three ones that match the query okay.
+
+44
+00:02:17.260 --> 00:02:20.320
+And so that's not efficient at all right?
+
+45
+00:02:20.320 --> 00:02:21.900
+Now of course at this scale
+
+46
+00:02:21.900 --> 00:02:25.670
+with only nine documents it makes absolutely no difference.
+
+47
+00:02:25.670 --> 00:02:27.740
+But if we had hundreds of thousands,
+
+48
+00:02:27.740 --> 00:02:30.020
+or even millions of documents here,
+
+49
+00:02:30.020 --> 00:02:32.010
+then this would significantly affect
+
+50
+00:02:32.010 --> 00:02:34.390
+the read performance of this query.
+
+51
+00:02:34.390 --> 00:02:37.850
+So again, it's not going to be the case in this application,
+
+52
+00:02:37.850 --> 00:02:41.210
+but it might be in an app that you will build someday.
+
+53
+00:02:41.210 --> 00:02:44.150
+And so you really need to learn about indexes.
+
+54
+00:02:44.150 --> 00:02:46.290
+Because with indexes, we will be able
+
+55
+00:02:46.290 --> 00:02:48.530
+to kind of solve this problem.
+
+56
+00:02:48.530 --> 00:02:53.020
+So we can create indexes on specific fields in a collection.
+
+57
+00:02:53.020 --> 00:02:55.980
+For example Mongo automatically creates an index
+
+58
+00:02:55.980 --> 00:02:58.640
+on the ID field by default.
+
+59
+00:02:58.640 --> 00:03:02.920
+And let's actually see that in Compass okay.
+
+60
+00:03:02.920 --> 00:03:07.280
+For example in all tours, we have here the indexes tab.
+
+61
+00:03:07.280 --> 00:03:09.580
+So up until this point we only ever were here
+
+62
+00:03:09.580 --> 00:03:10.810
+in the documents tab,
+
+63
+00:03:10.810 --> 00:03:13.550
+but as you see we have a lot of different stuff here
+
+64
+00:03:13.550 --> 00:03:15.690
+and one of them is the indexes.
+
+65
+00:03:15.690 --> 00:03:20.410
+And so again you see that by default we have an ID index.
+
+66
+00:03:20.410 --> 00:03:23.860
+And this ID index is then basically an ordered list
+
+67
+00:03:23.860 --> 00:03:26.380
+of all the IDs that get stored somewhere
+
+68
+00:03:26.380 --> 00:03:28.890
+outside of the collection okay.
+
+69
+00:03:28.890 --> 00:03:30.750
+And you can actually see a size here,
+
+70
+00:03:30.750 --> 00:03:35.190
+that it has 36 kilobytes, this index all right.
+
+71
+00:03:35.190 --> 00:03:37.660
+And this index is extremely useful.
+
+72
+00:03:37.660 --> 00:03:39.830
+Because whenever documents are queried
+
+73
+00:03:39.830 --> 00:03:44.140
+by the ID MongoDB will search that ordered index
+
+74
+00:03:44.140 --> 00:03:46.390
+instead of searching through the whole collection
+
+75
+00:03:46.390 --> 00:03:48.660
+and look at all the documents one by one,
+
+76
+00:03:48.660 --> 00:03:50.890
+which is of course much slower.
+
+77
+00:03:50.890 --> 00:03:54.440
+So again without an index Mongo has to look
+
+78
+00:03:54.440 --> 00:03:56.650
+at each document one by one.
+
+79
+00:03:56.650 --> 00:03:59.830
+But with an index on the field that we are querying for,
+
+80
+00:03:59.830 --> 00:04:02.810
+this process becomes much more efficient.
+
+81
+00:04:02.810 --> 00:04:05.420
+So that is pretty smart, right?
+
+82
+00:04:05.420 --> 00:04:08.230
+And of course, we can set our own indexes
+
+83
+00:04:08.230 --> 00:04:10.890
+on fields that we query very often.
+
+84
+00:04:10.890 --> 00:04:13.430
+So let's actually do that with the price field
+
+85
+00:04:13.430 --> 00:04:15.830
+that we just queried for before
+
+86
+00:04:15.830 --> 00:04:18.800
+because I believe that it is one of the most important
+
+87
+00:04:18.800 --> 00:04:21.770
+that people will query for, okay.
+
+88
+00:04:21.770 --> 00:04:25.100
+And so this is how it works.
+
+89
+00:04:25.100 --> 00:04:30.030
+So we need to go to the tour model right.
+
+90
+00:04:30.030 --> 00:04:33.290
+And then let's do it right here after this inner declaration
+
+91
+00:04:34.370 --> 00:04:37.097
+and we say tourschema.index okay.
+
+92
+00:04:42.960 --> 00:04:45.600
+And then an object with the name of the field
+
+93
+00:04:47.070 --> 00:04:49.470
+and remember how I said we were gonna set the index
+
+94
+00:04:49.470 --> 00:04:54.470
+on the price and then either a one or a minus one.
+
+95
+00:04:54.500 --> 00:04:57.100
+And a one means that we're sorting the price index
+
+96
+00:04:57.100 --> 00:04:58.660
+in an ascending order,
+
+97
+00:04:58.660 --> 00:05:02.120
+while the minus one stands for descending order okay.
+
+98
+00:05:02.120 --> 00:05:05.520
+And there are actually other types of indexes as well,
+
+99
+00:05:05.520 --> 00:05:08.280
+like for text or for geospatial data,
+
+100
+00:05:08.280 --> 00:05:10.260
+but we will see that a bit later.
+
+101
+00:05:10.260 --> 00:05:13.360
+Okay so let's give it a save now
+
+102
+00:05:13.360 --> 00:05:16.633
+and try our query again.
+
+103
+00:05:17.820 --> 00:05:20.190
+And actually I will do it a couple of times here
+
+104
+00:05:20.190 --> 00:05:22.860
+to make sure that the index is really set.
+
+105
+00:05:22.860 --> 00:05:26.950
+Because sometimes it is not set right away.
+
+106
+00:05:26.950 --> 00:05:28.860
+But let's now take a look here.
+
+107
+00:05:28.860 --> 00:05:33.140
+And so indeed we get still our number of returned at three
+
+108
+00:05:33.140 --> 00:05:36.260
+but this time the number of documents that were examined,
+
+109
+00:05:36.260 --> 00:05:39.490
+so that were scanned, were also only three.
+
+110
+00:05:39.490 --> 00:05:41.540
+And so that proves that with this index,
+
+111
+00:05:41.540 --> 00:05:44.310
+we basically achieved exactly what we wanted.
+
+112
+00:05:44.310 --> 00:05:47.370
+So before we had to scan through all of the nine documents
+
+113
+00:05:47.370 --> 00:05:50.230
+and now the engine only needs to scan the three documents
+
+114
+00:05:50.230 --> 00:05:51.870
+that are actually also returned.
+
+115
+00:05:51.870 --> 00:05:54.080
+And again because their prices
+
+116
+00:05:54.080 --> 00:05:56.330
+are now ordered in that index.
+
+117
+00:05:56.330 --> 00:05:58.890
+And so that makes it much easier and much faster
+
+118
+00:05:58.890 --> 00:06:01.870
+for the MongoDB engine to find them.
+
+119
+00:06:01.870 --> 00:06:04.883
+And so this is of course a huge performance gain.
+
+120
+00:06:05.930 --> 00:06:09.300
+Let's now also check out Compass here,
+
+121
+00:06:09.300 --> 00:06:13.060
+and actually let's reload the entire database,
+
+122
+00:06:13.060 --> 00:06:14.890
+and now it should actually be here
+
+123
+00:06:14.890 --> 00:06:17.750
+but for some reason it's not.
+
+124
+00:06:17.750 --> 00:06:19.823
+Let's maybe try to reload the documents.
+
+125
+00:06:21.040 --> 00:06:22.433
+Maybe it appears then.
+
+126
+00:06:23.910 --> 00:06:26.963
+Not really, let's also analyze the schema,
+
+127
+00:06:28.080 --> 00:06:29.260
+and that's something that we're gonna talk
+
+128
+00:06:29.260 --> 00:06:30.583
+about a bit later.
+
+129
+00:06:31.420 --> 00:06:34.970
+But still as you see we still only have these two indexes.
+
+130
+00:06:34.970 --> 00:06:37.760
+But that doesn't matter at all because we already know
+
+131
+00:06:37.760 --> 00:06:40.760
+that the index is actually working right?
+
+132
+00:06:40.760 --> 00:06:41.830
+So it's completely normal
+
+133
+00:06:41.830 --> 00:06:45.450
+that sometimes this takes some time to update.
+
+134
+00:06:45.450 --> 00:06:48.330
+Now another thing that you might notice here is
+
+135
+00:06:48.330 --> 00:06:50.690
+how this ID index that we talked
+
+136
+00:06:50.690 --> 00:06:53.830
+about earlier says unique here okay.
+
+137
+00:06:53.830 --> 00:06:56.030
+And so unique is also a property
+
+138
+00:06:56.030 --> 00:06:58.220
+that we can give to indexes.
+
+139
+00:06:58.220 --> 00:06:59.950
+And this is actually the reason
+
+140
+00:06:59.950 --> 00:07:02.550
+why the IDs have always to be unique.
+
+141
+00:07:02.550 --> 00:07:04.290
+So simply because the index
+
+142
+00:07:04.290 --> 00:07:07.180
+of the ID has this unique property.
+
+143
+00:07:07.180 --> 00:07:09.970
+You probably also noticed that there is an index
+
+144
+00:07:09.970 --> 00:07:11.760
+for the name here right?
+
+145
+00:07:11.760 --> 00:07:15.600
+But we didn't actually create that manually ourselves right?
+
+146
+00:07:15.600 --> 00:07:17.970
+So can you guess why it is here?
+
+147
+00:07:17.970 --> 00:07:20.790
+Well it is because in our schema definition,
+
+148
+00:07:20.790 --> 00:07:23.140
+we set the name field to be unique.
+
+149
+00:07:23.140 --> 00:07:25.580
+And so what Mongos then does behind the scenes
+
+150
+00:07:25.580 --> 00:07:28.900
+in order to ensure the uniqueness of this field is
+
+151
+00:07:28.900 --> 00:07:32.170
+to create a unique index for it, all right.
+
+152
+00:07:32.170 --> 00:07:34.630
+And so because of that, not only the ID
+
+153
+00:07:34.630 --> 00:07:37.410
+but also the name always have to be unique.
+
+154
+00:07:37.410 --> 00:07:40.520
+Okay and this is great already.
+
+155
+00:07:40.520 --> 00:07:42.970
+So when all we ever do is to just query
+
+156
+00:07:42.970 --> 00:07:45.050
+for one single field alone,
+
+157
+00:07:45.050 --> 00:07:47.700
+then a single field index is perfect
+
+158
+00:07:47.700 --> 00:07:50.010
+because remember the index that we just set
+
+159
+00:07:50.010 --> 00:07:53.200
+before is called a single field index.
+
+160
+00:07:53.200 --> 00:07:56.770
+Not sure if I mentioned it back then but I think I did.
+
+161
+00:07:56.770 --> 00:07:59.716
+But anyway, if we sometimes query for that field
+
+162
+00:07:59.716 --> 00:08:02.020
+but combined with another one,
+
+163
+00:08:02.020 --> 00:08:03.650
+then it's actually more efficient
+
+164
+00:08:03.650 --> 00:08:05.930
+to create a compound index.
+
+165
+00:08:05.930 --> 00:08:09.210
+So one with two fields and not just one.
+
+166
+00:08:09.210 --> 00:08:12.883
+So let's create a query for that just to illustrate it.
+
+167
+00:08:14.100 --> 00:08:16.000
+And so another field that I think is going
+
+168
+00:08:16.000 --> 00:08:19.713
+to be queried for all the time is the ratings average.
+
+169
+00:08:22.470 --> 00:08:27.470
+So ratings average, I think that's how it's called,
+
+170
+00:08:27.610 --> 00:08:32.610
+and let's say that we want greater or equal than 4.7 okay.
+
+171
+00:08:35.370 --> 00:08:36.673
+Let's send that query.
+
+172
+00:08:38.230 --> 00:08:42.163
+And let's see how many results we get.
+
+173
+00:08:43.050 --> 00:08:44.440
+Where is that?
+
+174
+00:08:44.440 --> 00:08:45.400
+Yeah here.
+
+175
+00:08:45.400 --> 00:08:47.010
+So the number of results,
+
+176
+00:08:47.010 --> 00:08:49.290
+so the number of documents that are returned,
+
+177
+00:08:49.290 --> 00:08:51.960
+so that match this query is two.
+
+178
+00:08:51.960 --> 00:08:55.390
+But we still had to examine three documents.
+
+179
+00:08:55.390 --> 00:08:57.480
+And again, at this scale of course,
+
+180
+00:08:57.480 --> 00:08:59.250
+that doesn't make any difference.
+
+181
+00:08:59.250 --> 00:09:01.920
+But as you understand, this is just an example.
+
+182
+00:09:01.920 --> 00:09:05.150
+And so now we want to fix the situation as well
+
+183
+00:09:05.150 --> 00:09:07.853
+and for that we're gonna use a compound index.
+
+184
+00:09:09.010 --> 00:09:10.870
+So let's go back here.
+
+185
+00:09:10.870 --> 00:09:12.360
+Comment this one out.
+
+186
+00:09:12.360 --> 00:09:15.890
+Or actually first duplicate it and then comment.
+
+187
+00:09:15.890 --> 00:09:17.500
+And so it's actually very simple.
+
+188
+00:09:17.500 --> 00:09:20.103
+All we need to do is to add here the other field.
+
+189
+00:09:21.530 --> 00:09:25.270
+So ratings average and let's put this one
+
+190
+00:09:25.270 --> 00:09:26.633
+in the ascending order.
+
+191
+00:09:29.150 --> 00:09:33.160
+Or actually, that's the descending order all right.
+
+192
+00:09:33.160 --> 00:09:35.290
+So let's give this a save.
+
+193
+00:09:35.290 --> 00:09:37.060
+Let's go back here.
+
+194
+00:09:37.060 --> 00:09:41.720
+And again, I'm going to do it a couple of times here okay.
+
+195
+00:09:41.720 --> 00:09:43.970
+And let's see our results.
+
+196
+00:09:43.970 --> 00:09:47.080
+And so now we get the result that we wanted.
+
+197
+00:09:47.080 --> 00:09:49.880
+So only two documents were scanned in order
+
+198
+00:09:49.880 --> 00:09:54.010
+to find the two documents that we were actually looking for.
+
+199
+00:09:54.010 --> 00:09:57.420
+Perfect and actually this compound index
+
+200
+00:09:57.420 --> 00:10:00.700
+that we just created is also going to work when the query
+
+201
+00:10:00.700 --> 00:10:04.020
+for just one of these two fields here individually,
+
+202
+00:10:04.020 --> 00:10:06.330
+so price or ratings average.
+
+203
+00:10:06.330 --> 00:10:09.000
+So when we create a compound index like this,
+
+204
+00:10:09.000 --> 00:10:11.350
+we do not have to then create one individual
+
+205
+00:10:11.350 --> 00:10:14.193
+for each of the fields as well okay.
+
+206
+00:10:15.720 --> 00:10:19.603
+I just want to check out how it looks in Compass now.
+
+207
+00:10:21.310 --> 00:10:22.890
+But well it still looks the same.
+
+208
+00:10:22.890 --> 00:10:25.320
+But again, not really important.
+
+209
+00:10:25.320 --> 00:10:27.440
+One thing that we can still see here
+
+210
+00:10:27.440 --> 00:10:28.933
+and which is pretty interesting is
+
+211
+00:10:28.933 --> 00:10:31.663
+that actually the size of these indexes.
+
+212
+00:10:32.640 --> 00:10:36.680
+So 72 kilobytes is actually way bigger
+
+213
+00:10:36.680 --> 00:10:39.930
+than the total size of all the documents combined,
+
+214
+00:10:39.930 --> 00:10:42.680
+which is only 14 kilobyte right?
+
+215
+00:10:42.680 --> 00:10:45.470
+And so basically these indexes that we create
+
+216
+00:10:45.470 --> 00:10:48.680
+to search the documents take up a lot more space
+
+217
+00:10:48.680 --> 00:10:50.890
+than the documents themselves.
+
+218
+00:10:50.890 --> 00:10:53.530
+But again that's just because we're operating
+
+219
+00:10:53.530 --> 00:10:56.260
+on such a small scale in this example.
+
+220
+00:10:56.260 --> 00:10:59.300
+And so that's not really relevant okay.
+
+221
+00:10:59.300 --> 00:11:01.530
+But it's still important to talk about this
+
+222
+00:11:01.530 --> 00:11:05.150
+because actually this leads me to our next question.
+
+223
+00:11:05.150 --> 00:11:06.510
+And that question is,
+
+224
+00:11:06.510 --> 00:11:10.150
+how do we decide which field we actually need to index?
+
+225
+00:11:10.150 --> 00:11:13.710
+And why don't we set indexes on all the fields?
+
+226
+00:11:13.710 --> 00:11:16.720
+Well we kind of used the strategy that I used
+
+227
+00:11:16.720 --> 00:11:20.640
+to set the indexes on the price and on the average rating.
+
+228
+00:11:20.640 --> 00:11:24.380
+So basically we need to carefully study the access patterns
+
+229
+00:11:24.380 --> 00:11:27.130
+of our application in order to figure out
+
+230
+00:11:27.130 --> 00:11:29.690
+which fields are queried the most
+
+231
+00:11:29.690 --> 00:11:32.530
+and then set the indexes for these fields.
+
+232
+00:11:32.530 --> 00:11:36.640
+For example, I'm not setting an index here on the group size
+
+233
+00:11:36.640 --> 00:11:38.060
+because I don't really believe
+
+234
+00:11:38.060 --> 00:11:41.300
+that many people will query for that parameter,
+
+235
+00:11:41.300 --> 00:11:43.890
+and so I don't need to create an index there.
+
+236
+00:11:43.890 --> 00:11:47.930
+Because we really do not want to overdo it with indexes.
+
+237
+00:11:47.930 --> 00:11:51.610
+So we don't want to blindly set indexes on all the fields
+
+238
+00:11:51.610 --> 00:11:54.110
+and then hope for the best basically.
+
+239
+00:11:54.110 --> 00:11:55.420
+And the reason for that is
+
+240
+00:11:55.420 --> 00:11:58.380
+that each index actually uses resources,
+
+241
+00:11:58.380 --> 00:12:01.360
+so as you can actually see here right.
+
+242
+00:12:01.360 --> 00:12:04.850
+And also, each index needs to be updated each time
+
+243
+00:12:04.850 --> 00:12:07.670
+that the underlying collection is updated.
+
+244
+00:12:07.670 --> 00:12:12.150
+So if you have a collection with a high write-read ratio,
+
+245
+00:12:12.150 --> 00:12:14.980
+so a collection that is mostly written to,
+
+246
+00:12:14.980 --> 00:12:17.320
+then it would make absolutely no sense
+
+247
+00:12:17.320 --> 00:12:21.150
+to create an index on any field in this collection
+
+248
+00:12:21.150 --> 00:12:23.800
+because the cost of always updating the index
+
+249
+00:12:23.800 --> 00:12:27.060
+and keeping it in memory clearly outweighs the benefit
+
+250
+00:12:27.060 --> 00:12:29.550
+of having the index in the first place
+
+251
+00:12:29.550 --> 00:12:31.750
+if we rarely have searches,
+
+252
+00:12:31.750 --> 00:12:34.240
+so have queries, for that collection.
+
+253
+00:12:34.240 --> 00:12:36.500
+So in summary, when deciding whether
+
+254
+00:12:36.500 --> 00:12:38.630
+to index a certain field or not,
+
+255
+00:12:38.630 --> 00:12:40.750
+we must kind of balance the frequency
+
+256
+00:12:40.750 --> 00:12:43.430
+of queries using that exact field
+
+257
+00:12:43.430 --> 00:12:46.190
+with the cost of maintaining this index,
+
+258
+00:12:46.190 --> 00:12:49.910
+and also with the read-write pattern of the resource.
+
+259
+00:12:49.910 --> 00:12:52.950
+However, just like it is with data modeling,
+
+260
+00:12:52.950 --> 00:12:55.460
+there are not really hard rules here.
+
+261
+00:12:55.460 --> 00:12:57.240
+So it's all a bit fuzzy
+
+262
+00:12:57.240 --> 00:12:59.530
+and you really need some experimentation
+
+263
+00:12:59.530 --> 00:13:03.030
+and also experience to get it right, all right.
+
+264
+00:13:03.030 --> 00:13:06.570
+But whatever you do, please don't just ignore indexing.
+
+265
+00:13:06.570 --> 00:13:08.550
+Because even if it's not perfect,
+
+266
+00:13:08.550 --> 00:13:12.660
+it will always have a huge benefit for your application.
+
+267
+00:13:12.660 --> 00:13:14.940
+All right, and that's actually all I had
+
+268
+00:13:14.940 --> 00:13:16.903
+to tell you about indexes.
+
+269
+00:13:18.230 --> 00:13:21.880
+There's just one more index that I actually want to set here
+
+270
+00:13:21.880 --> 00:13:25.030
+which is for the tour slug okay.
+
+271
+00:13:25.030 --> 00:13:26.920
+Because later on we will actually want
+
+272
+00:13:26.920 --> 00:13:30.250
+to use the unique slug to query for tours.
+
+273
+00:13:30.250 --> 00:13:32.680
+So meaning that the slug will then probably
+
+274
+00:13:32.680 --> 00:13:34.640
+become the most queried field.
+
+275
+00:13:34.640 --> 00:13:35.950
+And so it makes all the sense
+
+276
+00:13:35.950 --> 00:13:38.780
+to also have an index for that one.
+
+277
+00:13:38.780 --> 00:13:41.460
+So tourschema.index
+
+278
+00:13:45.370 --> 00:13:47.380
+and slug one.
+
+279
+00:13:47.380 --> 00:13:52.140
+And most times the one or minus one is not that important.
+
+280
+00:13:52.140 --> 00:13:54.680
+Okay now I'm really curious
+
+281
+00:13:54.680 --> 00:13:56.640
+to try to see this here in Compass.
+
+282
+00:13:56.640 --> 00:14:00.500
+So what I'm gonna do is to try to connect
+
+283
+00:14:00.500 --> 00:14:02.043
+to the database again here.
+
+284
+00:14:06.740 --> 00:14:10.083
+And so I can just get that here from the most recent ones.
+
+285
+00:14:11.360 --> 00:14:14.020
+Click, connect, and then we should get connected
+
+286
+00:14:14.020 --> 00:14:15.453
+to the same database.
+
+287
+00:14:17.260 --> 00:14:21.540
+So natours, tours, let's come to our indexes.
+
+288
+00:14:21.540 --> 00:14:23.380
+And now here we go.
+
+289
+00:14:23.380 --> 00:14:26.013
+So now we actually have our indexes right here.
+
+290
+00:14:27.070 --> 00:14:28.920
+So let's make this window bigger
+
+291
+00:14:28.920 --> 00:14:31.290
+and take a look at what we got.
+
+292
+00:14:31.290 --> 00:14:33.710
+So we have our slug here all right.
+
+293
+00:14:33.710 --> 00:14:36.670
+We have the price, which is the first one that we set.
+
+294
+00:14:36.670 --> 00:14:39.940
+And then we also have the price and ratings average,
+
+295
+00:14:39.940 --> 00:14:42.610
+which is compound and you also see here
+
+296
+00:14:42.610 --> 00:14:45.510
+that this one here is ascending and this one is descending
+
+297
+00:14:45.510 --> 00:14:47.740
+because it has the minus one.
+
+298
+00:14:47.740 --> 00:14:49.870
+And another thing you might notice is
+
+299
+00:14:49.870 --> 00:14:50.880
+that actually we no longer
+
+300
+00:14:50.880 --> 00:14:53.680
+have this price index in our code.
+
+301
+00:14:53.680 --> 00:14:55.070
+But it's still here.
+
+302
+00:14:55.070 --> 00:14:58.630
+And so it's not enough to remove the index from our code,
+
+303
+00:14:58.630 --> 00:15:03.430
+we really need to delete it from the database itself right.
+
+304
+00:15:03.430 --> 00:15:05.870
+So remember we had it here in the beginning
+
+305
+00:15:05.870 --> 00:15:07.460
+and then we commented it out
+
+306
+00:15:07.460 --> 00:15:09.780
+and created this new compound index,
+
+307
+00:15:09.780 --> 00:15:12.300
+but again the index is stand still here.
+
+308
+00:15:12.300 --> 00:15:14.430
+But since we actually no longer need it,
+
+309
+00:15:14.430 --> 00:15:18.170
+we can just go ahead and delete it okay.
+
+310
+00:15:18.170 --> 00:15:21.070
+Now we need to type the name just to make sure
+
+311
+00:15:21.070 --> 00:15:23.413
+that we do not do any mistakes.
+
+312
+00:15:25.110 --> 00:15:27.410
+And so here we go, great.
+
+313
+00:15:27.410 --> 00:15:30.050
+So that is the power of indexes.
+
+314
+00:15:30.050 --> 00:15:32.420
+They really can make our read performance
+
+315
+00:15:32.420 --> 00:15:34.970
+on databases much, much better.
+
+316
+00:15:34.970 --> 00:15:36.700
+And so in your own applications
+
+317
+00:15:36.700 --> 00:15:39.460
+you should really never ignore them.
+
+318
+00:15:39.460 --> 00:15:42.680
+And before we finish let's actually take back
+
+319
+00:15:42.680 --> 00:15:45.140
+that explain method that we added here
+
+320
+00:15:45.140 --> 00:15:47.860
+in our handler function.
+
+321
+00:15:47.860 --> 00:15:49.430
+And actually just as a reference,
+
+322
+00:15:49.430 --> 00:15:52.283
+I will leave it here like this okay.
+
+323
+00:15:54.640 --> 00:15:55.543
+Give it a save.
+
+324
+00:15:57.090 --> 00:15:58.133
+Back in post menu.
+
+325
+00:15:59.280 --> 00:16:00.773
+Let's try that now.
+
+326
+00:16:01.670 --> 00:16:04.040
+And indeed, it's back to working.
+
+327
+00:16:04.040 --> 00:16:05.763
+Okay and now that's really it.
+

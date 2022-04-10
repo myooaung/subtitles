@@ -1,0 +1,721 @@
+WEBVTT
+1
+00:00:01.840 --> 00:00:03.450
+Back in the AWS Console,
+
+2
+00:00:03.450 --> 00:00:07.010
+let's go ahead and create our Lambda function with this new function package.
+
+3
+00:00:07.010 --> 00:00:11.160
+We'll go to Lambda here, and then we'll create a new function.
+
+4
+00:00:11.160 --> 00:00:13.580
+We'll author it from scratch instead of using a blueprint or
+
+5
+00:00:13.580 --> 00:00:18.250
+the serverless app repository. Let's call this sparrow, and
+
+6
+00:00:18.250 --> 00:00:19.870
+let's pick a runtime for it.
+
+7
+00:00:19.870 --> 00:00:24.720
+In this case, we could use Python 3.8 or any Python 3 runtime.
+
+8
+00:00:24.720 --> 00:00:27.540
+Now there's differences between Python 3 and Python 2 that would end
+
+9
+00:00:27.540 --> 00:00:30.240
+up breaking our code, so let's make sure to select something like
+
+10
+00:00:30.240 --> 00:00:33.630
+Python 3.7 so that it works properly.
+
+11
+00:00:33.630 --> 00:00:37.260
+Now let's create an execution role for our Lambda function.
+
+12
+00:00:37.260 --> 00:00:40.180
+Now if we click on this, we can select an existing role,
+
+13
+00:00:40.180 --> 00:00:43.760
+select a new role that we create from AWS policy templates, or
+
+14
+00:00:43.760 --> 00:00:46.420
+create a new role with basic Lambda permissions.
+
+15
+00:00:46.420 --> 00:00:47.440
+Unfortunately for us,
+
+16
+00:00:47.440 --> 00:00:50.555
+we might want to create a custom role for this function because it's going
+
+17
+00:00:50.555 --> 00:00:56.140
+to need to use both the AWS SSM Parameter Store to go and get parameters,
+
+18
+00:00:56.140 --> 00:00:58.610
+and because those are encrypted parameters,
+
+19
+00:00:58.610 --> 00:01:03.530
+it'll also need access to the Key Management Service, KMS. So we could click
+
+20
+00:01:03.530 --> 00:01:08.070
+Create a new role from AWS policy templates, and then could scroll down, and in
+
+21
+00:01:08.070 --> 00:01:11.070
+this we could look for KMS here, but unfortunately,
+
+22
+00:01:11.070 --> 00:01:14.710
+KMS is the only preconfigured permission policy associated
+
+23
+00:01:14.710 --> 00:01:17.200
+with Lambda here, so we're also going to eventually need to
+
+24
+00:01:17.200 --> 00:01:19.260
+add some permissions for SSM.
+
+25
+00:01:19.260 --> 00:01:20.400
+So let's go ahead and clear that here,
+
+26
+00:01:20.400 --> 00:01:24.800
+and you'll see if we search for SSM or params, this is not going
+
+27
+00:01:24.800 --> 00:01:27.490
+to load us up any other pre‑canned policies,
+
+28
+00:01:27.490 --> 00:01:31.070
+so we won't be able to do anything other than set that KMS permission here.
+
+29
+00:01:31.070 --> 00:01:35.920
+So let's go ahead and give this a role though, and let's call it a sparrowRole.
+
+30
+00:01:35.920 --> 00:01:38.850
+And then let's scroll down and create this function.
+
+31
+00:01:38.850 --> 00:01:41.070
+So now that we've created this function and it's gone
+
+32
+00:01:41.070 --> 00:01:43.010
+back and created a role for us,
+
+33
+00:01:43.010 --> 00:01:45.390
+we should be able to go and edit that role to make sure
+
+34
+00:01:45.390 --> 00:01:48.340
+it'll have access to SSM Parameter Store.
+
+35
+00:01:48.340 --> 00:01:51.640
+So let's go to the Permissions section here now and fix that.
+
+36
+00:01:51.640 --> 00:01:53.920
+So now you see that we have the ability to access
+
+37
+00:01:53.920 --> 00:01:57.030
+the AWS Key Management service, and if you scroll down,
+
+38
+00:01:57.030 --> 00:02:00.740
+you'll see we have the ability to use the KMS decrypt operation.
+
+39
+00:02:00.740 --> 00:02:02.730
+Now this is good because we will need this permission
+
+40
+00:02:02.730 --> 00:02:05.040
+when we're working with SSM; however,
+
+41
+00:02:05.040 --> 00:02:09.120
+we don't currently have any permissions with the SSM Parameter Store,
+
+42
+00:02:09.120 --> 00:02:10.990
+so we'll need to change this.
+
+43
+00:02:10.990 --> 00:02:14.660
+We can click Manage these permissions on the IAM Console, and this will
+
+44
+00:02:14.660 --> 00:02:18.190
+take us to the IAM section with this sparrow role.
+
+45
+00:02:18.190 --> 00:02:19.220
+Now with this sparrow role,
+
+46
+00:02:19.220 --> 00:02:22.360
+we currently have permissions to use KMS and the basic
+
+47
+00:02:22.360 --> 00:02:24.970
+Lambda execution role, which will allow us to push to
+
+48
+00:02:24.970 --> 00:02:27.120
+CloudWatch the logs from our function.
+
+49
+00:02:27.120 --> 00:02:29.560
+But we're also going to want to attach another policy.
+
+50
+00:02:29.560 --> 00:02:32.860
+We're going to look for SSM here in the drop‑down, and
+
+51
+00:02:32.860 --> 00:02:36.480
+while we could grant this Lambda function full access to
+
+52
+00:02:36.480 --> 00:02:38.740
+SSM, that might be a bit much.
+
+53
+00:02:38.740 --> 00:02:40.800
+It's going to be a lot of different permissions that we
+
+54
+00:02:40.800 --> 00:02:42.790
+don't actually need for this function.
+
+55
+00:02:42.790 --> 00:02:45.180
+So let's leave that one off, and let's pick a little
+
+56
+00:02:45.180 --> 00:02:47.440
+bit of a more restrictive policy.
+
+57
+00:02:47.440 --> 00:02:52.810
+Let's look for a read‑only access role here for AmazonSSMReadOnlyAccess.
+
+58
+00:02:52.810 --> 00:02:56.050
+If I open this up and scroll down a little further, this
+
+59
+00:02:56.050 --> 00:02:59.240
+will allow us to get things from SSM, which will include
+
+60
+00:02:59.240 --> 00:03:01.500
+the GetParameters operation.
+
+61
+00:03:01.500 --> 00:03:05.100
+So let's attach this policy to our function instead.
+
+62
+00:03:05.100 --> 00:03:07.430
+So now that this policy has been attached, we can review the
+
+63
+00:03:07.430 --> 00:03:11.910
+permissions in this role, and it has the AmazonSSMReadOnlyAccess
+
+64
+00:03:11.910 --> 00:03:16.300
+policy, as well as this KMS policy, which will allow it to decrypt
+
+65
+00:03:16.300 --> 00:03:19.230
+the parameters that are stored in SSM.
+
+66
+00:03:19.230 --> 00:03:23.360
+So with these both set up here, we should have our sparrow role good to go.
+
+67
+00:03:23.360 --> 00:03:26.180
+So I'm going to close out of the IAM Management Console, and back
+
+68
+00:03:26.180 --> 00:03:28.650
+in the Lambda console we can navigate back over to our
+
+69
+00:03:28.650 --> 00:03:31.670
+configuration to keep configuring our function.
+
+70
+00:03:31.670 --> 00:03:34.070
+The next thing we'll need to do is add a trigger for
+
+71
+00:03:34.070 --> 00:03:36.190
+our function, so let's do that here.
+
+72
+00:03:36.190 --> 00:03:37.930
+And I want to select a trigger from the drop‑down,
+
+73
+00:03:37.930 --> 00:03:40.250
+and we can pick many of the different pre‑canned
+
+74
+00:03:40.250 --> 00:03:43.190
+triggers from this list of triggers here.
+
+75
+00:03:43.190 --> 00:03:45.400
+Now the one I'm really going to want in this case to run on a
+
+76
+00:03:45.400 --> 00:03:48.180
+schedule is the CloudWatch Events trigger.
+
+77
+00:03:48.180 --> 00:03:50.690
+So I'm going to click that here, and we can pick a role,
+
+78
+00:03:50.690 --> 00:03:52.240
+or we can create a new role.
+
+79
+00:03:52.240 --> 00:03:55.170
+If we wanted to use the canary role we created in a previous section,
+
+80
+00:03:55.170 --> 00:03:55.960
+we could do that,
+
+81
+00:03:55.960 --> 00:03:58.670
+or I could create a new rule if that's actually a little too
+
+82
+00:03:58.670 --> 00:04:03.480
+frequent for me. Let's call this rule name dailyTweet because
+
+83
+00:04:03.480 --> 00:04:05.530
+we're going to want to do this once a day.
+
+84
+00:04:05.530 --> 00:04:07.180
+Now this Rule description.
+
+85
+00:04:07.180 --> 00:04:10.340
+we'll just tweet to fire once a day,
+
+86
+00:04:10.340 --> 00:04:14.600
+and this will make sure that we know it's going to run once every single day.
+
+87
+00:04:14.600 --> 00:04:16.510
+Then let's use a schedule expression,
+
+88
+00:04:16.510 --> 00:04:20.900
+and let's have this be a rate of one day, so let's run this with a rate
+
+89
+00:04:20.900 --> 00:04:25.080
+of 1 day here, and now this should run every day. So let's scroll down a
+
+90
+00:04:25.080 --> 00:04:28.340
+little further, and let's click Add here.
+
+91
+00:04:28.340 --> 00:04:30.830
+So now that our Lambda function is created, we should be able to
+
+92
+00:04:30.830 --> 00:04:33.580
+confirm that the CloudWatch event is enabled,
+
+93
+00:04:33.580 --> 00:04:36.430
+and if we wanted to see how else we could configure this,
+
+94
+00:04:36.430 --> 00:04:40.540
+we would click then on the sparrow function instead of its event trigger.
+
+95
+00:04:40.540 --> 00:04:41.820
+Now, if we scroll down,
+
+96
+00:04:41.820 --> 00:04:44.770
+we should be able to review the function code for this function,
+
+97
+00:04:44.770 --> 00:04:47.390
+and you'll notice that while we have the runtime that we might want of
+
+98
+00:04:47.390 --> 00:04:52.260
+Python 3.7, the actual function code that's for this function is the
+
+99
+00:04:52.260 --> 00:04:55.180
+default code that AWS Lambda provides.
+
+100
+00:04:55.180 --> 00:04:56.610
+So we need to change this.
+
+101
+00:04:56.610 --> 00:04:59.550
+We're going to click the drop‑down next to Code entry type,
+
+102
+00:04:59.550 --> 00:05:03.460
+and we'll click Upload a .zip file. So we'll go to our Desktop,
+
+103
+00:05:03.460 --> 00:05:06.550
+which is where my sparrow folder is, and then inside of here we'll
+
+104
+00:05:06.550 --> 00:05:09.450
+pick out the package.zip file that was just created.
+
+105
+00:05:09.450 --> 00:05:10.920
+So let's open this up.
+
+106
+00:05:10.920 --> 00:05:13.060
+So now that we've opened the package.zip file,
+
+107
+00:05:13.060 --> 00:05:16.230
+we should be able to save this function so that it updates to
+
+108
+00:05:16.230 --> 00:05:19.420
+use the contents of our package.zip file.
+
+109
+00:05:19.420 --> 00:05:20.210
+Now, when we do this,
+
+110
+00:05:20.210 --> 00:05:23.090
+this function package should still be small enough for us to
+
+111
+00:05:23.090 --> 00:05:26.580
+review it in the code editor inside of AWS Lambda.
+
+112
+00:05:26.580 --> 00:05:26.760
+Now,
+
+113
+00:05:26.760 --> 00:05:30.390
+we're also going to need to change the handler for our function. Instead of
+
+114
+00:05:30.390 --> 00:05:33.850
+using the Lambda function for the beginning part of our handler,
+
+115
+00:05:33.850 --> 00:05:37.430
+we're going to need to change this to where our Lambda handler function will be,
+
+116
+00:05:37.430 --> 00:05:40.100
+which is inside of sparrow.py.
+
+117
+00:05:40.100 --> 00:05:41.280
+So, in order to do this,
+
+118
+00:05:41.280 --> 00:05:44.120
+I'm going to change the beginning to sparrow because that's where
+
+119
+00:05:44.120 --> 00:05:47.730
+our handler function is inside of it., and actually, inside of
+
+120
+00:05:47.730 --> 00:05:50.770
+sparrow.py, once this finishes loading,
+
+121
+00:05:50.770 --> 00:05:54.140
+we're going to need to reference the handler function, so let's
+
+122
+00:05:54.140 --> 00:05:57.270
+change that configuration value as well. We'll change this from
+
+123
+00:05:57.270 --> 00:06:01.250
+lambda_handler to handler so that we can correctly refer to the part
+
+124
+00:06:01.250 --> 00:06:03.140
+of code that we actually want to run.
+
+125
+00:06:03.140 --> 00:06:03.300
+Now,
+
+126
+00:06:03.300 --> 00:06:07.510
+I'm going to close out of this lambda_function.py here because this isn't in
+
+127
+00:06:07.510 --> 00:06:12.180
+our code anymore after we uploaded the ZIP package there. You'll also see
+
+128
+00:06:12.180 --> 00:06:14.620
+that we have all these dependencies that are included in our function
+
+129
+00:06:14.620 --> 00:06:16.650
+package so that our function can use them.
+
+130
+00:06:16.650 --> 00:06:20.510
+So let's go ahead and save this function one more time now that we've updated
+
+131
+00:06:20.510 --> 00:06:24.000
+the handler here, and it should be good to go every day.
+
+132
+00:06:24.000 --> 00:06:25.680
+But if we wanted to test this,
+
+133
+00:06:25.680 --> 00:06:29.390
+another thing we could do is scroll back up and configure a test event for
+
+134
+00:06:29.390 --> 00:06:32.440
+this. We could select a test event if we'd already created one,
+
+135
+00:06:32.440 --> 00:06:35.460
+or we can just press Test here, and Lambda will open up this
+
+136
+00:06:35.460 --> 00:06:37.940
+Configure test event console window here.
+
+137
+00:06:37.940 --> 00:06:40.180
+Now, instead of using the Hello World template here,
+
+138
+00:06:40.180 --> 00:06:42.080
+we could look for CloudWatch,
+
+139
+00:06:42.080 --> 00:06:44.580
+which is what we're creating our events from using Amazon
+
+140
+00:06:44.580 --> 00:06:48.310
+CloudWatch, and this would be a typical scheduled event. So we
+
+141
+00:06:48.310 --> 00:06:52.130
+could give this event an event name of dailytest,
+
+142
+00:06:52.130 --> 00:06:54.810
+and this would be basically what would come into the event
+
+143
+00:06:54.810 --> 00:06:57.050
+whenever we're triggering it on a daily basis.
+
+144
+00:06:57.050 --> 00:06:57.190
+Now,
+
+145
+00:06:57.190 --> 00:06:59.470
+we don't need to do much configuration here because our Lambda
+
+146
+00:06:59.470 --> 00:07:02.430
+function isn't processing anything inside of this event.
+
+147
+00:07:02.430 --> 00:07:05.490
+We're just using this to schedule it on a regular basis. So
+
+148
+00:07:05.490 --> 00:07:07.910
+I can scroll back down and click the Create button towards
+
+149
+00:07:07.910 --> 00:07:09.400
+the bottom of the window here.
+
+150
+00:07:09.400 --> 00:07:09.970
+From there,
+
+151
+00:07:09.970 --> 00:07:13.170
+I should be able to press the Test button on the function And it looks
+
+152
+00:07:13.170 --> 00:07:15.860
+like it has been successful, so let's go over here to the details of
+
+153
+00:07:15.860 --> 00:07:17.980
+our function invocation and scroll down,
+
+154
+00:07:17.980 --> 00:07:20.500
+and it looks like it just managed to complete successfully.
+
+155
+00:07:20.500 --> 00:07:23.770
+So let's go back over to Twitter here toward Globomantics Pet Care
+
+156
+00:07:23.770 --> 00:07:26.570
+account that I opened up in the background, and let's refresh this
+
+157
+00:07:26.570 --> 00:07:30.180
+page. So it looks like a few seconds ago our test events successfully
+
+158
+00:07:30.180 --> 00:07:31.530
+sent this tweet out to Twitter.
+
+159
+00:07:31.530 --> 00:07:34.120
+So now that we know that this is tweeting things out correctly,
+
+160
+00:07:34.120 --> 00:07:37.300
+we know that everything from the SSM parameters being loaded into
+
+161
+00:07:37.300 --> 00:07:40.500
+our function and KMS being used to decrypt the values inside of
+
+162
+00:07:40.500 --> 00:07:44.620
+them and everything inside of our sparrow file and our ssm_secrets
+
+163
+00:07:44.620 --> 00:07:46.640
+file is all working properly.
+
+164
+00:07:46.640 --> 00:07:49.725
+You've just gone through the process of making your first Twitter bot.
+
+165
+00:07:49.725 --> 00:07:53.020
+Feel free to update this and do more interesting things with the
+
+166
+00:07:53.020 --> 00:07:56.790
+Twython library and the Twitter APIs. Just make sure to review the
+
+167
+00:07:56.790 --> 00:08:00.060
+documentation on Twitter, and make sure that you're in line with any
+
+168
+00:08:00.060 --> 00:08:02.480
+of their terms of service.
+
+169
+00:08:02.480 --> 00:08:05.710
+So, congratulations! We've done a lot in this module.
+
+170
+00:08:05.710 --> 00:08:08.910
+We've used a third‑party API with Lambda to send things out to the
+
+171
+00:08:08.910 --> 00:08:13.310
+Twitter API. We've also created and deployed our own function package
+
+172
+00:08:13.310 --> 00:08:15.690
+and configure a Lambda function using it.
+
+173
+00:08:15.690 --> 00:08:18.900
+We also used libraries in our function for the first time and learned
+
+174
+00:08:18.900 --> 00:08:22.580
+how to bundle those up into a function package, as well as securely
+
+175
+00:08:22.580 --> 00:08:27.720
+managing and encrypting API keys with the SSM Parameter Store and KMS
+
+176
+00:08:27.720 --> 00:08:30.960
+and configuring our Lambda function to be able to decrypt them and use
+
+177
+00:08:30.960 --> 00:08:32.220
+them when it runs.
+
+178
+00:08:32.220 --> 00:08:33.620
+So what's next for us?
+
+179
+00:08:33.620 --> 00:08:34.210
+Well,
+
+180
+00:08:34.210 --> 00:08:42.000
+we're going to take a closer look at Lambda in combination with other AWS services, so I'll see you in the next module.
+

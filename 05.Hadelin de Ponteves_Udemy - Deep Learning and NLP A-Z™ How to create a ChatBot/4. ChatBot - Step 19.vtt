@@ -1,0 +1,740 @@
+WEBVTT
+1
+00:00:00.450 --> 00:00:02.610
+Hello and welcome to this new tutorial.
+
+2
+00:00:02.640 --> 00:00:09.390
+So before we start creating the encoding layer and the decoding layer we have to prepare a set of targets.
+
+3
+00:00:09.390 --> 00:00:10.290
+Why is that.
+
+4
+00:00:10.290 --> 00:00:15.800
+That's because the decoder will only accept a certain format of the targets.
+
+5
+00:00:15.860 --> 00:00:21.420
+You know the decoder gets to target and in order for the targets to be accepted into the neural network
+
+6
+00:00:21.480 --> 00:00:24.900
+of the Dakota which is an LACMA record a new network.
+
+7
+00:00:25.020 --> 00:00:27.900
+Well the targets need to have a special format.
+
+8
+00:00:27.900 --> 00:00:32.840
+So first of all what is exactly this format this format is twofold.
+
+9
+00:00:33.000 --> 00:00:36.610
+First the targets must be in two batches.
+
+10
+00:00:36.840 --> 00:00:43.710
+The record renewal network of the decoder will not accept single targets that is single answers.
+
+11
+00:00:43.710 --> 00:00:46.430
+Remember the targets are the answers.
+
+12
+00:00:46.470 --> 00:00:51.960
+So thats the first important thing of this special structure that we will create in this tutorial.
+
+13
+00:00:51.990 --> 00:00:54.610
+So the targets must be in two batches.
+
+14
+00:00:54.630 --> 00:01:03.430
+So for example if I take our sort of clean answers which are the targets Well you know the neural network
+
+15
+00:01:03.430 --> 00:01:11.470
+will not accept them one by one like that they will only accept them into batches so instead of feeding
+
+16
+00:01:11.470 --> 00:01:17.890
+them it will that work with single answers we will feed the neural network with batches of for example
+
+17
+00:01:18.220 --> 00:01:22.680
+10 answers at a time and thats the first important thing we need to understand.
+
+18
+00:01:22.840 --> 00:01:30.190
+We need to choose a better size and then create batches of size the bedside that we choose and these
+
+19
+00:01:30.280 --> 00:01:36.990
+batches for example of 10 answers will go into the record renewal network of the doctor.
+
+20
+00:01:37.170 --> 00:01:44.240
+So we'll have this first one here and then the next one after that containing the 10 next answers.
+
+21
+00:01:44.440 --> 00:01:50.110
+And thats the first important element of the special format we want to create and then the second important
+
+22
+00:01:50.140 --> 00:01:59.000
+element is that each of the answers in the batch of Target must start with the S O S tokens.
+
+23
+00:01:59.140 --> 00:02:05.410
+And as you can see here the answer is start with the first word of the answer that is the first unique
+
+24
+00:02:05.410 --> 00:02:10.090
+integer encoding the first word of the answer and not the S.O.S.
+
+25
+00:02:10.090 --> 00:02:18.030
+So what we need to do besides creating batches of answers we need to put the S.O.S token or at least
+
+26
+00:02:18.030 --> 00:02:25.540
+a unique integer encoding so as to go in at the beginning of each of these answers inside each batch.
+
+27
+00:02:25.750 --> 00:02:28.980
+And that's two things we will do in this tutorial.
+
+28
+00:02:29.020 --> 00:02:32.940
+Create the batches and then adding the S.O.S token.
+
+29
+00:02:32.950 --> 00:02:34.650
+So how will we add this.
+
+30
+00:02:34.670 --> 00:02:37.730
+So as still going at the beginning of each answer of each batch.
+
+31
+00:02:37.900 --> 00:02:44.470
+Well since we need to keep the same size for all the answers you know using the bedding Well what you'll
+
+32
+00:02:44.470 --> 00:02:53.430
+do is actually take all these answers inside batches and remove the last column of these answers.
+
+33
+00:02:53.500 --> 00:02:55.080
+We will remove the last column.
+
+34
+00:02:55.150 --> 00:02:56.730
+We will take the rest of it.
+
+35
+00:02:56.740 --> 00:03:03.250
+That is the beginning up to the last column except the last column and then we will make a concatenation
+
+36
+00:03:03.550 --> 00:03:10.100
+to add the start of string tokens at the beginning of the target in the batches.
+
+37
+00:03:10.300 --> 00:03:14.320
+So that's why at some point in this total we will make a concatenation.
+
+38
+00:03:14.320 --> 00:03:19.870
+All right so let's do this let's make this function we're going to make a function that for any targets
+
+39
+00:03:20.020 --> 00:03:26.080
+we'll make the special format and therefore the name of the function we are going to create is going
+
+40
+00:03:26.080 --> 00:03:31.190
+to be print pro says underscore targets.
+
+41
+00:03:31.200 --> 00:03:31.790
+All right.
+
+42
+00:03:31.810 --> 00:03:38.860
+And obviously this preprocess target function is going to take the targets as input because it will
+
+43
+00:03:38.860 --> 00:03:41.940
+return the pre-processed version of this target.
+
+44
+00:03:42.190 --> 00:03:45.250
+So at the end this function will return the targets in the right format.
+
+45
+00:03:45.250 --> 00:03:50.660
+That is in two batches and where each target answer will start with the S.O.S token.
+
+46
+00:03:50.680 --> 00:03:53.610
+Or at least the key identifier encoding.
+
+47
+00:03:53.680 --> 00:04:00.100
+So as tokin So Target but then it's going to take other arguments you might guess which ones will need
+
+48
+00:04:00.100 --> 00:04:00.220
+it.
+
+49
+00:04:00.220 --> 00:04:01.290
+There are two of them.
+
+50
+00:04:01.480 --> 00:04:06.370
+Well first since we'll need to get the unique identifier encoding.
+
+51
+00:04:06.460 --> 00:04:07.600
+So I still can.
+
+52
+00:04:07.600 --> 00:04:14.350
+We're going to take first our dictionary word to it because this is the dictionary that maps the tokens
+
+53
+00:04:14.500 --> 00:04:15.420
+to integers.
+
+54
+00:04:15.670 --> 00:04:19.640
+So that way we'll get the unique and fire of the as so as token.
+
+55
+00:04:19.660 --> 00:04:28.420
+And then of course the third argument is obviously the batch size because we need to choose a batch
+
+56
+00:04:28.420 --> 00:04:32.770
+size for the size of the batches of targets we will create.
+
+57
+00:04:33.040 --> 00:04:39.060
+That's the third and final argument and now we're ready to define what this function has to do.
+
+58
+00:04:39.070 --> 00:04:45.220
+So first of all what we're going to do is get the left side of the concatenation.
+
+59
+00:04:45.280 --> 00:04:47.830
+Remember if I get this again
+
+60
+00:04:50.830 --> 00:04:53.980
+in each batch let's say for example the batch size is 10.
+
+61
+00:04:54.080 --> 00:04:58.700
+So a batch would be a batch containing all these answers here.
+
+62
+00:04:58.850 --> 00:05:05.450
+Well for this batch and every other batch the left side of the concatenation will be a vector of 10
+
+63
+00:05:05.750 --> 00:05:08.770
+elements only containing the S.O.S tokens.
+
+64
+00:05:08.840 --> 00:05:14.900
+And more precisely the unique identifiers including the verso as tokens and the right side of the can
+
+65
+00:05:14.900 --> 00:05:20.010
+get nation will be all the 10 answers in this batch of answers.
+
+66
+00:05:20.150 --> 00:05:26.020
+But except the last column because we don't want to get the last token we want needed for the decoder.
+
+67
+00:05:26.180 --> 00:05:33.050
+So we take all these answers but without the last token ID because these are the IDs of the tokens.
+
+68
+00:05:33.080 --> 00:05:39.860
+So what we'll do to make that function happen is first create the left side of the concatenation which
+
+69
+00:05:39.860 --> 00:05:49.520
+is a matrix of bodged size lines and one column filled with the unique and fires including the S.O.S
+
+70
+00:05:49.520 --> 00:05:50.370
+tokens.
+
+71
+00:05:50.570 --> 00:05:55.970
+And then we'll make the right side of this concatenation which will be the target answers in the batch
+
+72
+00:05:56.180 --> 00:06:02.700
+except the last token identifier of these answers of all the answers in the batch.
+
+73
+00:06:02.840 --> 00:06:07.630
+And then since we'll have the left side and the right side we'll make the can get anation.
+
+74
+00:06:07.700 --> 00:06:08.960
+All right so let's do it.
+
+75
+00:06:08.990 --> 00:06:13.530
+I hope it's clear I'm going to close this and let's make the function.
+
+76
+00:06:13.700 --> 00:06:19.360
+All right so we said we're going to take care of the left on this side first.
+
+77
+00:06:19.370 --> 00:06:25.940
+So it's just an arbitrary name I choose for a variable which will contain the left side of the concatenation.
+
+78
+00:06:25.940 --> 00:06:33.920
+And so this left side as we said is supposed to contain a matrix or a vector of batched size lines and
+
+79
+00:06:34.070 --> 00:06:37.470
+one column containing only the IDs.
+
+80
+00:06:37.620 --> 00:06:38.600
+So as tokens.
+
+81
+00:06:38.780 --> 00:06:39.980
+So how can we get that.
+
+82
+00:06:40.070 --> 00:06:42.170
+Well we will make that with tensor flop.
+
+83
+00:06:42.230 --> 00:06:49.430
+So I'm taking tenths of flow here and the function by turns to prove that this is the fill function
+
+84
+00:06:49.430 --> 00:06:54.820
+because basically we want to fill a matrix with the IDs of S.O.S tokens.
+
+85
+00:06:55.040 --> 00:06:58.790
+So it's fill then parenthesis because it's a function.
+
+86
+00:06:58.880 --> 00:07:01.280
+And so this function will take two arguments.
+
+87
+00:07:01.280 --> 00:07:07.870
+The first argument is the dimensions of this matrix that we have to put in square brackets.
+
+88
+00:07:08.030 --> 00:07:09.620
+And so where are these dimensions.
+
+89
+00:07:09.710 --> 00:07:16.010
+Well you've got this the number of lines is going to be the batch size so batch size for the number
+
+90
+00:07:16.010 --> 00:07:20.830
+of lines and then the number of columns is going to be 1 perfect.
+
+91
+00:07:20.840 --> 00:07:22.430
+So that creates the Matrix.
+
+92
+00:07:22.440 --> 00:07:27.080
+Now we need to fill it with the IDs of the S.O.S tokens.
+
+93
+00:07:27.080 --> 00:07:29.330
+And speaking of feeling yet that is the key word.
+
+94
+00:07:29.330 --> 00:07:36.880
+The second argument is about the second argument is what we want to fill this matrix of dimensions but
+
+95
+00:07:36.890 --> 00:07:38.930
+size and one with.
+
+96
+00:07:38.950 --> 00:07:44.790
+And what we want to fill it with is the unique identifiers and coding the as so as tokens.
+
+97
+00:07:44.790 --> 00:07:46.100
+So let's get this.
+
+98
+00:07:46.100 --> 00:07:47.010
+How do we get this.
+
+99
+00:07:47.030 --> 00:07:51.160
+Well we have to use our word in the dictionary.
+
+100
+00:07:51.500 --> 00:08:00.890
+So we take our word to inte dictionary and in square brackets we hit enter the key identifier and remember
+
+101
+00:08:01.160 --> 00:08:09.110
+the word in dictionaries dictionary that maps the word to their unique integer identifiers and therefore
+
+102
+00:08:09.230 --> 00:08:14.230
+the key need in here is the token that we have to put in quotes.
+
+103
+00:08:14.420 --> 00:08:18.500
+And that token is of course the S O S token.
+
+104
+00:08:18.740 --> 00:08:19.500
+Perfect.
+
+105
+00:08:19.670 --> 00:08:24.380
+So this gives us the left side of the concatenation.
+
+106
+00:08:24.380 --> 00:08:30.620
+We have a small warning here just telling us that we just create a local variable that is not used yet
+
+107
+00:08:30.680 --> 00:08:32.890
+but we will use it in the concatenation.
+
+108
+00:08:33.170 --> 00:08:40.670
+And so now we're going to make the right side of the concatenation which I remind is all the answers
+
+109
+00:08:40.670 --> 00:08:45.130
+in the batch except the last column because it is not needed for decoder.
+
+110
+00:08:45.440 --> 00:08:51.830
+So right side and to get this right side that is the answer is without the last token.
+
+111
+00:08:52.010 --> 00:08:55.850
+Well we're going to use another function by tent's flow that will do exactly what we want.
+
+112
+00:08:56.030 --> 00:08:59.230
+And that is called the stride its life function.
+
+113
+00:08:59.420 --> 00:09:04.850
+So I'm getting a sense of flow here and then that and then I'm going to get this Stryder slice.
+
+114
+00:09:04.850 --> 00:09:05.420
+There we go.
+
+115
+00:09:05.410 --> 00:09:07.630
+This one function.
+
+116
+00:09:07.670 --> 00:09:09.030
+So what does this function do.
+
+117
+00:09:09.230 --> 00:09:13.890
+Well it basically extract a subset of a tensor.
+
+118
+00:09:13.970 --> 00:09:16.620
+So the tensor is going to be our targets.
+
+119
+00:09:16.880 --> 00:09:24.080
+And from this target we'll make it extract everything except the last column read through this the first
+
+120
+00:09:24.080 --> 00:09:27.020
+argument is as we can see here the input.
+
+121
+00:09:27.170 --> 00:09:30.950
+But more precisely it's the tensor from which we want to extract something.
+
+122
+00:09:31.100 --> 00:09:33.100
+So that's our target.
+
+123
+00:09:33.350 --> 00:09:40.310
+Then the next argument is the beginning of the Streitz life that is from where we want to start the
+
+124
+00:09:40.310 --> 00:09:41.210
+extraction.
+
+125
+00:09:41.310 --> 00:09:47.430
+So that's going to be from 0 0 that is the upper left side of the tensor.
+
+126
+00:09:47.660 --> 00:09:55.660
+So 0 0 0 then the next is the end that is up to where we want to make that extraction and so be careful
+
+127
+00:09:55.670 --> 00:09:58.090
+that's where it's important to get this right.
+
+128
+00:09:58.190 --> 00:10:05.540
+Because the end has to be well first the batch size because we'll want to take all the lines we want
+
+129
+00:10:05.540 --> 00:10:10.400
+to include all the lines but we don't want to include all the columns we want to take all the columns
+
+130
+00:10:10.760 --> 00:10:12.190
+except the last one.
+
+131
+00:10:12.290 --> 00:10:19.820
+And the trick to take all of them except the last one is to add here minus 1 so that it will take all
+
+132
+00:10:19.820 --> 00:10:23.140
+the lines because the number of lines is the batch size right.
+
+133
+00:10:23.150 --> 00:10:29.690
+The best size is the number of lines in the batch and the minus one here will make sure to get all the
+
+134
+00:10:29.690 --> 00:10:35.600
+columns except the last one which is OK because it's the last token which is not needed by the decoder
+
+135
+00:10:35.760 --> 00:10:43.220
+the decoder will start the decoding by looking at first the star of string and mostly the context returns
+
+136
+00:10:43.310 --> 00:10:44.210
+by the encoder.
+
+137
+00:10:44.360 --> 00:10:47.470
+But then it will not use the last token.
+
+138
+00:10:47.480 --> 00:10:54.400
+So with this we have exactly what we want that is our answers without end so perfect and then is there
+
+139
+00:10:54.410 --> 00:10:55.600
+less argument.
+
+140
+00:10:55.820 --> 00:11:03.620
+Well yes we have to specify the slide what we call the slide which is by how many cells we want to slide
+
+141
+00:11:03.890 --> 00:11:05.520
+when doing the extraction.
+
+142
+00:11:05.690 --> 00:11:10.620
+And since we want to get all the tokens in the answers except the last ones.
+
+143
+00:11:10.820 --> 00:11:14.070
+But all of them before and for each line of the batch.
+
+144
+00:11:14.180 --> 00:11:21.970
+Well the trick to get all of them is to use a slide of one cell by one cell and to do this we enter
+
+145
+00:11:21.970 --> 00:11:22.680
+it this way.
+
+146
+00:11:22.790 --> 00:11:24.800
+1 1 in square brackets.
+
+147
+00:11:24.890 --> 00:11:28.140
+All right and that gives us the right side of the concatenation.
+
+148
+00:11:28.160 --> 00:11:29.130
+Now that's great.
+
+149
+00:11:29.150 --> 00:11:34.850
+We are ready to make that concatenation and to make this we're going to use the concat function by tens
+
+150
+00:11:34.850 --> 00:11:38.390
+of flow but the concat function will return exactly what we want.
+
+151
+00:11:38.390 --> 00:11:42.370
+That is the pre-processed target in the right format.
+
+152
+00:11:42.440 --> 00:11:49.740
+So I'm going to introduce a new voice will here that I'm going to call pre pro SEST underscored targets.
+
+153
+00:11:49.790 --> 00:11:50.550
+All right.
+
+154
+00:11:50.660 --> 00:11:53.200
+And this will be what we want.
+
+155
+00:11:53.210 --> 00:11:57.090
+And what will be returned by the concat function by of flow.
+
+156
+00:11:57.200 --> 00:12:01.620
+Right now we need to take tens of flow then the concat function.
+
+157
+00:12:01.850 --> 00:12:04.740
+And in parenthesis we need to input two arguments.
+
+158
+00:12:04.880 --> 00:12:10.220
+The first argument is a couple which contains the left side and the right side at the concatenation
+
+159
+00:12:10.640 --> 00:12:17.750
+and the second argument as we see is the axis which is the axis along which we want to make the concatenation.
+
+160
+00:12:17.750 --> 00:12:21.600
+So if we want to make a horizontal concatenation the axis will be one.
+
+161
+00:12:21.680 --> 00:12:25.030
+And if we want to make a vertical concatenation the axis will be zero.
+
+162
+00:12:25.190 --> 00:12:29.940
+And since here we want to make a horizontal can get a nation will have to input access equals one.
+
+163
+00:12:30.080 --> 00:12:35.200
+But first let's input the couple that we have to put in square brackets.
+
+164
+00:12:35.330 --> 00:12:43.690
+And so the couple very simply is composed of the left side there is this matrix of Bachche sized lines
+
+165
+00:12:43.760 --> 00:12:48.790
+and one column filled with the IDs of the S-O as tokens.
+
+166
+00:12:49.100 --> 00:12:57.230
+And the right and this court side which contains all the answers in the batch of the same batch size
+
+167
+00:12:57.230 --> 00:13:03.890
+of the same number of lines but without the last token that is without the last column and so there
+
+168
+00:13:03.890 --> 00:13:10.700
+we go we have our first argument here and now let's put our second argument which is the axis along
+
+169
+00:13:10.700 --> 00:13:15.770
+which we want to make the concatenation and we want to make a horizontal concatenation which is encoded
+
+170
+00:13:15.770 --> 00:13:16.440
+by one.
+
+171
+00:13:16.580 --> 00:13:20.960
+So we need to put access equals one here and perfect.
+
+172
+00:13:21.110 --> 00:13:24.210
+We now get our pre-processed target.
+
+173
+00:13:24.290 --> 00:13:30.670
+But let's not forget to return them because this function is supposed to return the right format.
+
+174
+00:13:30.740 --> 00:13:36.230
+That is the right data structure of the targets in two batches and containing the S.O.S token at the
+
+175
+00:13:36.230 --> 00:13:37.790
+beginning of each answer.
+
+176
+00:13:37.790 --> 00:13:38.480
+All right.
+
+177
+00:13:38.480 --> 00:13:47.930
+So let's do this return print pro SEST and the core targets and there we go congratulations dysfunction
+
+178
+00:13:48.050 --> 00:13:51.100
+is over and the warning is just gone.
+
+179
+00:13:51.170 --> 00:13:51.580
+All right.
+
+180
+00:13:51.590 --> 00:13:56.110
+So let's select these lines and execute.
+
+181
+00:13:56.240 --> 00:13:57.050
+Wonderful.
+
+182
+00:13:57.050 --> 00:14:00.410
+We have our function and now great news.
+
+183
+00:14:00.410 --> 00:14:08.350
+We are ready to create finally the encoding layer and the decoding layer of our set to morrow.
+
+184
+00:14:08.630 --> 00:14:11.900
+So we'll start by carrying the encoding there in the next tutorial.
+
+185
+00:14:11.930 --> 00:14:13.700
+And until then and depend on P.

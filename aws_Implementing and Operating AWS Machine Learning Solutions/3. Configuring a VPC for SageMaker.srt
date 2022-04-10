@@ -1,0 +1,304 @@
+1
+00:00:01,040 --> 00:00:01,880
+So next,
+
+2
+00:00:01,880 --> 00:00:05,430
+we're going to be talking about how we configure a VPC
+
+3
+00:00:05,430 --> 00:00:08,480
+for proper use with Amazon SageMaker.
+
+4
+00:00:08,480 --> 00:00:12,200
+And really, what we're talking about here is infrastructure security.
+
+5
+00:00:12,200 --> 00:00:14,630
+We want to be able to secure our infrastructure,
+
+6
+00:00:14,630 --> 00:00:20,240
+and a part of that is also securing the data that the infrastructure can access.
+
+7
+00:00:20,240 --> 00:00:21,180
+So to do that,
+
+8
+00:00:21,180 --> 00:00:25,390
+we want to be sure that we're launching our infrastructure inside of a VPC
+
+9
+00:00:25,390 --> 00:00:28,990
+that we manage as opposed to one that SageMaker manages.
+
+10
+00:00:28,990 --> 00:00:29,930
+In addition,
+
+11
+00:00:29,930 --> 00:00:33,210
+effort should be taken for us to minimize the amount of data
+
+12
+00:00:33,210 --> 00:00:35,770
+that's traveling over the public internet.
+
+13
+00:00:35,770 --> 00:00:37,470
+Now that might seem a little bit different to you,
+
+14
+00:00:37,470 --> 00:00:39,760
+but let me explain it this way.
+
+15
+00:00:39,760 --> 00:00:44,340
+So let's start off by saying that we do create our own VPC,
+
+16
+00:00:44,340 --> 00:00:49,840
+and we also have the AWS Services that we're going to be interacting with.
+
+17
+00:00:49,840 --> 00:00:51,580
+So over within our VPC,
+
+18
+00:00:51,580 --> 00:00:54,150
+we're going to have things like maybe our notebook
+
+19
+00:00:54,150 --> 00:00:57,040
+instance or a training job that's running.
+
+20
+00:00:57,040 --> 00:00:59,910
+Now over on the AWS Services side,
+
+21
+00:00:59,910 --> 00:01:02,550
+we're going to have things like our training data,
+
+22
+00:01:02,550 --> 00:01:06,410
+for example, that's going to be stored within an S3 bucket.
+
+23
+00:01:06,410 --> 00:01:10,540
+And in addition, we'll have our model data within an S3 bucket.
+
+24
+00:01:10,540 --> 00:01:12,810
+We'll also have the SageMaker Service,
+
+25
+00:01:12,810 --> 00:01:17,490
+so all of the control plane and ways that we interact with the service directly.
+
+26
+00:01:17,490 --> 00:01:21,640
+Now we have outside of these two boxes the public internet.
+
+27
+00:01:21,640 --> 00:01:23,290
+Now when I talk with some clients,
+
+28
+00:01:23,290 --> 00:01:26,170
+they're mistaken in that they think that launching things
+
+29
+00:01:26,170 --> 00:01:30,240
+inside of a VPC automatically has some special routing for
+
+30
+00:01:30,240 --> 00:01:34,000
+working with AWS Services, but that's not the case.
+
+31
+00:01:34,000 --> 00:01:38,390
+So, for example, on our VPC, we're going to have an internet gateway.
+
+32
+00:01:38,390 --> 00:01:40,930
+And then over on the AWS Services side,
+
+33
+00:01:40,930 --> 00:01:43,240
+they'll have their own kind of internet gateway.
+
+34
+00:01:43,240 --> 00:01:47,450
+And what happens is with our notebook instance and our training job,
+
+35
+00:01:47,450 --> 00:01:50,940
+when they need to go out and access those AWS Services,
+
+36
+00:01:50,940 --> 00:01:53,900
+they're going to go through that internet gateway and then through
+
+37
+00:01:53,900 --> 00:01:57,930
+the public internet and over into AWS and then from there to the
+
+38
+00:01:57,930 --> 00:02:00,640
+specific services that are needed.
+
+39
+00:02:00,640 --> 00:02:01,970
+Now what this means,
+
+40
+00:02:01,970 --> 00:02:06,610
+even though we're using TLS 1.2 encryption as we've talked about previously,
+
+41
+00:02:06,610 --> 00:02:10,930
+we're still sending a lot of our data out over the public internet,
+
+42
+00:02:10,930 --> 00:02:12,720
+and that's not what we really want to do.
+
+43
+00:02:12,720 --> 00:02:19,260
+Now luckily, VPCs provide a way around this using what we call VPC endpoints.
+
+44
+00:02:19,260 --> 00:02:22,640
+So we can choose to launch two different endpoints,
+
+45
+00:02:22,640 --> 00:02:27,560
+one for Amazon S3 and one for Amazon SageMaker.
+
+46
+00:02:27,560 --> 00:02:30,090
+Now technically, these are different types of endpoints,
+
+47
+00:02:30,090 --> 00:02:32,650
+and we'll talk more about that in just a minute.
+
+48
+00:02:32,650 --> 00:02:34,140
+But what we can do is we can then,
+
+49
+00:02:34,140 --> 00:02:37,340
+instead of routing our traffic out through the public internet,
+
+50
+00:02:37,340 --> 00:02:40,560
+we can now choose to use these endpoints.
+
+51
+00:02:40,560 --> 00:02:41,640
+And by doing so,
+
+52
+00:02:41,640 --> 00:02:46,070
+our notebook instance and our training job can communicate with these endpoints,
+
+53
+00:02:46,070 --> 00:02:49,090
+and the endpoints know how to communicate with the specific
+
+54
+00:02:49,090 --> 00:02:52,140
+services that they are associated with.
+
+55
+00:02:52,140 --> 00:02:55,940
+So let's quickly talk about these VPC endpoints.
+
+56
+00:02:55,940 --> 00:02:56,490
+First of all,
+
+57
+00:02:56,490 --> 00:03:00,580
+you need to know that there are two different types of VPC endpoints.
+
+58
+00:03:00,580 --> 00:03:04,090
+The first type that we have would be gateway endpoints,
+
+59
+00:03:04,090 --> 00:03:06,780
+and those are really just for two services,
+
+60
+00:03:06,780 --> 00:03:09,340
+S3 and DynamoDB.
+
+61
+00:03:09,340 --> 00:03:14,290
+Now for all other services, this is where you can leverage interface endpoints.
+
+62
+00:03:14,290 --> 00:03:19,840
+Now the interface endpoints leverage a technology called AWS PrivateLink.
+
+63
+00:03:19,840 --> 00:03:22,200
+Now if you have configured this properly,
+
+64
+00:03:22,200 --> 00:03:25,230
+if you don't have a need for public internet,
+
+65
+00:03:25,230 --> 00:03:28,610
+you don't require a NAT gateway or an internet gateway on
+
+66
+00:03:28,610 --> 00:03:31,470
+your VPC. And by configuring it that way,
+
+67
+00:03:31,470 --> 00:03:36,480
+which you enable, is a completely isolated private VPC so that you can
+
+68
+00:03:36,480 --> 00:03:40,920
+make sure that you minimize any chance of data leaking out. Now
+
+69
+00:03:40,920 --> 00:03:44,540
+endpoints are redundant and highly available.
+
+70
+00:03:44,540 --> 00:03:47,410
+So just like many other elements of the AWS stack,
+
+71
+00:03:47,410 --> 00:03:50,690
+you can trust that these will work even if there is a failure
+
+72
+00:03:50,690 --> 00:03:53,670
+that happens in the chain Now in addition,
+
+73
+00:03:53,670 --> 00:03:58,850
+you also can specify IAM policies on an endpoint. So you can
+
+74
+00:03:58,850 --> 00:04:02,370
+control what data is accessed through that endpoint.
+
+75
+00:04:02,370 --> 00:04:06,640
+So maybe you only configure it so specific S3 buckets go through
+
+76
+00:04:06,640 --> 00:04:13,000
+that endpoint and all other S3 buckets that are unrelated, that would just go through the public internet.
+

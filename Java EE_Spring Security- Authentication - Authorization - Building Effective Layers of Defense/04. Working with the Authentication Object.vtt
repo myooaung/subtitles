@@ -1,0 +1,233 @@
+WEBVTT
+1
+00:00:02.108 --> 00:00:04.943
+Often, particularly for authorization,
+
+2
+00:00:04.943 --> 00:00:08.699
+you will need access to the Authentication object as it
+
+3
+00:00:08.699 --> 00:00:12.530
+contains the currently logged in user, their credentials,
+
+4
+00:00:12.530 --> 00:00:14.414
+authorities, such as roles,
+
+5
+00:00:14.414 --> 00:00:17.239
+the UserDetails object that might contain some custom
+
+6
+00:00:17.239 --> 00:00:19.246
+fields that you have configured.
+
+7
+00:00:19.246 --> 00:00:24.182
+Now the Authentication object goes through two transformations.
+
+8
+00:00:24.182 --> 00:00:28.440
+Prior to authentication, it is an authentication request.
+
+9
+00:00:28.440 --> 00:00:31.168
+The authentication flag is set to false,
+
+10
+00:00:31.168 --> 00:00:34.900
+the credentials required for authorization are populated,
+
+11
+00:00:34.900 --> 00:00:39.153
+and there are no assigned roles or authorities yet.
+
+12
+00:00:39.153 --> 00:00:43.661
+Once authenticated, it's known as an authenticated principle.
+
+13
+00:00:43.661 --> 00:00:46.112
+The authentication flag is set to true,
+
+14
+00:00:46.112 --> 00:00:49.306
+the principle becomes the UserDetails object that was
+
+15
+00:00:49.306 --> 00:00:55.792
+returned by the UserDetailsService, and the roles and privileges are populated.
+
+16
+00:00:55.792 --> 00:00:58.663
+The authentication is then stored in the security context,
+
+17
+00:00:58.663 --> 00:01:03.835
+which in turn is stored in the SecurityContextHolder,
+
+18
+00:01:03.835 --> 00:01:05.389
+a thread local,
+
+19
+00:01:05.389 --> 00:01:10.121
+making the authentication available in the current thread of execution.
+
+20
+00:01:10.121 --> 00:01:15.287
+Now there are many ways to access the Authentication object in your application.
+
+21
+00:01:15.287 --> 00:01:18.404
+Here we have the AccountController.
+
+22
+00:01:18.404 --> 00:01:23.059
+The setup-totp requires the username to confirm if the user
+
+23
+00:01:23.059 --> 00:01:25.852
+has two-factor authentication enabled.
+
+24
+00:01:25.852 --> 00:01:31.646
+If they don't, it generates a new two- factor authentication QR code.
+
+25
+00:01:31.646 --> 00:01:34.741
+Now you could simply access the Authentication object from the
+
+26
+00:01:34.741 --> 00:01:42.348
+SecurityContextHolder by calling the getContext and getAuthentication method.
+
+27
+00:01:42.348 --> 00:01:46.097
+Then retrieve the UserDetails from the getPrincipal method.
+
+28
+00:01:46.097 --> 00:01:48.591
+This is messy.
+
+29
+00:01:48.591 --> 00:01:50.035
+There's a lot of casting here,
+
+30
+00:01:50.035 --> 00:01:53.900
+and we are accessing the holder through a static method.
+
+31
+00:01:53.900 --> 00:01:55.154
+We can do better.
+
+32
+00:01:55.154 --> 00:01:59.607
+Another way to do this more cleanly is to simply add a field of type
+
+33
+00:01:59.607 --> 00:02:06.140
+principal or anything inheriting principal to your method.
+
+34
+00:02:06.140 --> 00:02:10.034
+Now Spring MVC will detect that this method parameter is of type principal,
+
+35
+00:02:10.034 --> 00:02:11.719
+and it will resolve it.
+
+36
+00:02:11.719 --> 00:02:16.204
+Hence, you can also use an object of type authentication.
+
+37
+00:02:16.204 --> 00:02:21.502
+You can then access the UserDetails object via the getPrincipal method.
+
+38
+00:02:21.502 --> 00:02:22.899
+Now this is slightly better,
+
+39
+00:02:22.899 --> 00:02:26.948
+but you still need to apply a cast to retrieve the principal.
+
+40
+00:02:26.948 --> 00:02:32.506
+A cleaner approach is to use the AuthenticationPrincipal annotation.
+
+41
+00:02:32.506 --> 00:02:36.596
+This does the casting for you.
+
+42
+00:02:36.596 --> 00:02:37.295
+Much cleaner.
+
+43
+00:02:37.295 --> 00:02:40.746
+Now one issue with this controller is that it checks to see
+
+44
+00:02:40.746 --> 00:02:45.150
+if the user has two-factor authentication enabled by making
+
+45
+00:02:45.150 --> 00:02:47.219
+a call to the data store.
+
+46
+00:02:47.219 --> 00:02:49.105
+Now we can do better here.
+
+47
+00:02:49.105 --> 00:02:52.129
+Now we can add this property to our custom UserDetails object.
+
+48
+00:02:52.129 --> 00:02:57.624
+Then in the UserDetailsService, we can populate it.
+
+49
+00:02:57.624 --> 00:02:59.484
+Now back to the AccountController.
+
+50
+00:02:59.484 --> 00:03:03.173
+We can now refactor it to use the new property to determine if the
+
+51
+00:03:03.173 --> 00:03:06.827
+user has two- factor authentication enabled.
+
+52
+00:03:06.827 --> 00:03:11.592
+Also, if you're not too keen on coupling your application with Spring Security,
+
+53
+00:03:11.592 --> 00:03:14.405
+you can easily create your own annotation.
+
+54
+00:03:14.405 --> 00:03:16.513
+Target will be parameter.
+
+55
+00:03:16.513 --> 00:03:21.008
+Then, you just simply add the @AuthenticationPrincipal annotation.
+
+56
+00:03:21.008 --> 00:03:25.001
+And now you can replace this new annotation in your controller,
+
+57
+00:03:25.001 --> 00:03:28.239
+decoupling you from Spring Security annotations.
+
+58
+00:03:28.239 --> 00:03:35.000
+In case you ever wanted to change in the future, you only need to change the logic within this new annotation.
+

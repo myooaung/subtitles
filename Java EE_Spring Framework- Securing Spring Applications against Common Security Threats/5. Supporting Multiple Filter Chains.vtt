@@ -1,0 +1,177 @@
+WEBVTT
+1
+00:00:01.640 --> 00:00:03.280
+In some rare cases,
+
+2
+00:00:03.280 --> 00:00:06.500
+you might require parts of your web application to have
+
+3
+00:00:06.500 --> 00:00:10.600
+different authentications or authorization strategy.
+
+4
+00:00:10.600 --> 00:00:13.770
+For example, for requests to /portfolio,
+
+5
+00:00:13.770 --> 00:00:17.320
+the user authenticate with basic, but to admin,
+
+6
+00:00:17.320 --> 00:00:20.540
+it's form or perhaps even digest.
+
+7
+00:00:20.540 --> 00:00:21.800
+Now to achieve this,
+
+8
+00:00:21.800 --> 00:00:24.910
+we simply add an additional class that extends the
+
+9
+00:00:24.910 --> 00:00:27.390
+WebSecurityConfigurationAdapter.
+
+10
+00:00:27.390 --> 00:00:30.000
+Here we can define the request matcher.
+
+11
+00:00:30.000 --> 00:00:35.000
+This configuration is form as, by default, it's any request.
+
+12
+00:00:35.000 --> 00:00:39.030
+Here we can say all requests to admin will go
+
+13
+00:00:39.030 --> 00:00:41.380
+through this security configuration,
+
+14
+00:00:41.380 --> 00:00:45.010
+and now we can define the authorization strategy to be form
+
+15
+00:00:45.010 --> 00:00:47.990
+authentication only and require that all users are
+
+16
+00:00:47.990 --> 00:00:51.140
+authenticated and have the role of admin.
+
+17
+00:00:51.140 --> 00:00:53.470
+Now when we add a new class that extends the
+
+18
+00:00:53.470 --> 00:00:58.940
+WebSecurityConfigurationAdapter to the Spring application context,
+
+19
+00:00:58.940 --> 00:01:02.520
+in this case I'm using the Configuration annotation to achieve this,
+
+20
+00:01:02.520 --> 00:01:03.830
+behind the scenes,
+
+21
+00:01:03.830 --> 00:01:09.840
+Spring configures a new filter chain with the DelegatingFilterProxy.
+
+22
+00:01:09.840 --> 00:01:14.640
+Now the DelegatingFilterProxy will iterate through all the available filter
+
+23
+00:01:14.640 --> 00:01:18.800
+chains to see which one deals with the particular request.
+
+24
+00:01:18.800 --> 00:01:21.240
+Hence, it needs to know two things,
+
+25
+00:01:21.240 --> 00:01:24.730
+the order it should evaluate this filter chain relative
+
+26
+00:01:24.730 --> 00:01:28.320
+to the others and the request matcher.
+
+27
+00:01:28.320 --> 00:01:29.340
+Now by default,
+
+28
+00:01:29.340 --> 00:01:35.120
+the order of the WebSecurityConfigurationAdapter is 100, and you
+
+29
+00:01:35.120 --> 00:01:38.080
+cannot have two filter chains with the same order.
+
+30
+00:01:38.080 --> 00:01:43.300
+So we will make the admin one 99 using the Order annotation.
+
+31
+00:01:43.300 --> 00:01:46.940
+This means it will be evaluated first.
+
+32
+00:01:46.940 --> 00:01:52.050
+This is important as our original implementation does not specify a matcher.
+
+33
+00:01:52.050 --> 00:01:55.680
+Hence, by default, it will match all requests.
+
+34
+00:01:55.680 --> 00:02:02.040
+Hence, our admin filter would never get evaluated if it had a higher order.
+
+35
+00:02:02.040 --> 00:02:06.340
+Now if we restart and put a breakpoint back into our FilterChainProxy,
+
+36
+00:02:06.340 --> 00:02:10.040
+you can see that we now have four filter chains.
+
+37
+00:02:10.040 --> 00:02:13.440
+The first two are ignoring the CSS and webjars.
+
+38
+00:02:13.440 --> 00:02:16.440
+The second is our new admin configuration.
+
+39
+00:02:16.440 --> 00:02:19.470
+You can see the request matcher is for requests to /admin,
+
+40
+00:02:19.470 --> 00:02:22.500
+while our last one is the original configuration,
+
+41
+00:02:22.500 --> 00:02:26.450
+which catches everything. And you can see the admin filter chain has
+
+42
+00:02:26.450 --> 00:02:29.460
+the form, while the last filter chain has basic.
+
+43
+00:02:29.460 --> 00:02:32.110
+Now I'm getting a little tired of copying and pasting the
+
+44
+00:02:32.110 --> 00:02:40.000
+password each time the application restarts, so next, let's configure our own test users.
+

@@ -1,0 +1,401 @@
+WEBVTT
+1
+00:00:00.940 --> 00:00:04.480
+CodePipeline connects a lot of different resources in AWS,
+
+2
+00:00:04.480 --> 00:00:08.840
+and to run a demo pipeline, there are a few resources we need to create.
+
+3
+00:00:08.840 --> 00:00:11.460
+In this video, we're going to do just that.
+
+4
+00:00:11.460 --> 00:00:14.930
+We need to create a CodeCommit repository for our source code
+
+5
+00:00:14.930 --> 00:00:17.840
+to live and be connected to CodePipeline.
+
+6
+00:00:17.840 --> 00:00:20.680
+Then we need to create an Elastic Beanstalk application and
+
+7
+00:00:20.680 --> 00:00:23.700
+environment for our pipeline to deploy to.
+
+8
+00:00:23.700 --> 00:00:26.440
+Let's start with the CodeCommit repository.
+
+9
+00:00:26.440 --> 00:00:29.830
+The demo code for this course can be found either in the exercise
+
+10
+00:00:29.830 --> 00:00:33.390
+files here in the Pluralsight course or in GitHub.
+
+11
+00:00:33.390 --> 00:00:35.480
+Get the code however you like.
+
+12
+00:00:35.480 --> 00:00:39.680
+We first need to create a repository in CodeCommit that a source
+
+13
+00:00:39.680 --> 00:00:42.740
+action in CodePipeline can be connected to.
+
+14
+00:00:42.740 --> 00:00:46.610
+We'll have this set up so whenever we push new code to the repository,
+
+15
+00:00:46.610 --> 00:00:49.300
+our demo pipeline will begin execution.
+
+16
+00:00:49.300 --> 00:00:51.720
+So let's create the CodeCommit repo.
+
+17
+00:00:51.720 --> 00:00:56.240
+In the AWS console, go to the CodeCommit dashboard.
+
+18
+00:00:56.240 --> 00:00:59.030
+Click the Create repository button.
+
+19
+00:00:59.030 --> 00:01:03.740
+For the repository name, let's name it hbfl.
+
+20
+00:01:03.740 --> 00:01:07.240
+There's no need to give it a description or tags.
+
+21
+00:01:07.240 --> 00:01:09.740
+Now click Create.
+
+22
+00:01:09.740 --> 00:01:13.600
+The repo has been created, but there's no code there yet.
+
+23
+00:01:13.600 --> 00:01:16.250
+We need to push the code from our local folder with
+
+24
+00:01:16.250 --> 00:01:19.730
+the demo code up to the repository, and to do that,
+
+25
+00:01:19.730 --> 00:01:25.640
+we need to configure access from our local machine to the repository in AWS.
+
+26
+00:01:25.640 --> 00:01:29.970
+If you've used popular source control options like GitHub before,
+
+27
+00:01:29.970 --> 00:01:32.680
+CodeCommit has a little bit more complexity.
+
+28
+00:01:32.680 --> 00:01:35.570
+For command line authentication to CodeCommit,
+
+29
+00:01:35.570 --> 00:01:40.640
+you won't be using the username and password you use to log into AWS,
+
+30
+00:01:40.640 --> 00:01:44.420
+but instead a special username and password created
+
+31
+00:01:44.420 --> 00:01:48.340
+specifically for the Git connection to CodeCommit.
+
+32
+00:01:48.340 --> 00:01:51.050
+This will be configured at the user level,
+
+33
+00:01:51.050 --> 00:01:55.710
+and then we'll give IAM access to the user for CodeCommit.
+
+34
+00:01:55.710 --> 00:01:59.490
+Before we go further, there are a couple of prerequisites.
+
+35
+00:01:59.490 --> 00:02:03.800
+First, you need to have a non‑root user in your account.
+
+36
+00:02:03.800 --> 00:02:05.850
+You don't need to be logged in as that user,
+
+37
+00:02:05.850 --> 00:02:08.300
+just as long as they've been created.
+
+38
+00:02:08.300 --> 00:02:13.440
+We can't configure access to CodeCommit for a root user.
+
+39
+00:02:13.440 --> 00:02:17.250
+Next, make sure you have Git installed at your command line.
+
+40
+00:02:17.250 --> 00:02:19.960
+You can get information on how to install it for your
+
+41
+00:02:19.960 --> 00:02:23.240
+platform here at the Git website.
+
+42
+00:02:23.240 --> 00:02:26.600
+Now in your AWS console, go to the IAM dashboard.
+
+43
+00:02:26.600 --> 00:02:30.120
+We'll follow a best practice and create a group with the
+
+44
+00:02:30.120 --> 00:02:32.800
+access to CodeCommit that we want.
+
+45
+00:02:32.800 --> 00:02:37.340
+Go to Groups and then click Create New Group.
+
+46
+00:02:37.340 --> 00:02:46.040
+Let's name the group hbfl‑code‑committers. Now click Next Step.
+
+47
+00:02:46.040 --> 00:02:48.770
+There are two ways to go with the policies here.
+
+48
+00:02:48.770 --> 00:02:52.240
+We could give the group full access to CodeCommit,
+
+49
+00:02:52.240 --> 00:02:57.640
+or we could only give them access to the HBFL repository.
+
+50
+00:02:57.640 --> 00:02:59.520
+Now in a real‑world setting,
+
+51
+00:02:59.520 --> 00:03:04.240
+I would restrict it to the HBFL repository access only.
+
+52
+00:03:04.240 --> 00:03:09.450
+But for this demo project, let's just give the group full access to CodeCommit.
+
+53
+00:03:09.450 --> 00:03:14.540
+In the search box type awscodecommit and select the
+
+54
+00:03:14.540 --> 00:03:18.940
+policy titled AWSCodeCommitFullAccess.
+
+55
+00:03:18.940 --> 00:03:24.340
+Now click Next Step and then Create Group.
+
+56
+00:03:24.340 --> 00:03:29.880
+We need to add the user you've selected to the hbfl‑code‑committers group,
+
+57
+00:03:29.880 --> 00:03:32.300
+so click on the group we just created.
+
+58
+00:03:32.300 --> 00:03:37.140
+On the Users tab, click the Add Users to Group.
+
+59
+00:03:37.140 --> 00:03:42.860
+Select the user you want to give access to CodeCommit, and then click Add Users.
+
+60
+00:03:42.860 --> 00:03:48.460
+Now our user has permission to access CodeCommit. Next is to
+
+61
+00:03:48.460 --> 00:03:51.440
+create CodeCommit credentials for them.
+
+62
+00:03:51.440 --> 00:03:54.840
+You can click on this hyperlink to go straight to the user
+
+63
+00:03:54.840 --> 00:03:57.400
+details for the user you added to the group.
+
+64
+00:03:57.400 --> 00:04:01.580
+On the Security credentials tab halfway to the bottom,
+
+65
+00:04:01.580 --> 00:04:07.780
+you should see a section titled HTTPS Git credentials for AWS CodeCommit.
+
+66
+00:04:07.780 --> 00:04:11.900
+This is where you can generate a username and password for the user to
+
+67
+00:04:11.900 --> 00:04:16.340
+access CodeCommit. Click the Generate credentials button.
+
+68
+00:04:16.340 --> 00:04:20.220
+The password that's generated will only be visible right now,
+
+69
+00:04:20.220 --> 00:04:24.280
+so either copy it into a text file, or you could just
+
+70
+00:04:24.280 --> 00:04:28.740
+download the credentials as a file as well.
+
+71
+00:04:28.740 --> 00:04:32.130
+Now, move over to your command line and navigate to
+
+72
+00:04:32.130 --> 00:04:34.640
+the root of the demo project.
+
+73
+00:04:34.640 --> 00:04:41.340
+Run the command, git init to ensure Git is configured for the folder.
+
+74
+00:04:41.340 --> 00:04:46.860
+Now we'll add the AWS remote to be able to push code to CodeCommit. First
+
+75
+00:04:46.860 --> 00:04:51.740
+we need the remote URL for our repo. In your browser, go back to the
+
+76
+00:04:51.740 --> 00:04:57.220
+CodeCommit repo we created. In the top‑right corner, click the Clone URL
+
+77
+00:04:57.220 --> 00:05:01.740
+drop‑down and select Clone HTTPS.
+
+78
+00:05:01.740 --> 00:05:06.410
+This will copy the Git URL to your clipboard, so go back to your command line.
+
+79
+00:05:06.410 --> 00:05:13.920
+Enter the command git remote add aws, and then a space, and
+
+80
+00:05:13.920 --> 00:05:17.580
+then paste the Git URL that you copied.
+
+81
+00:05:17.580 --> 00:05:19.520
+Now run that command.
+
+82
+00:05:19.520 --> 00:05:24.540
+This is going to create a new remote called aws that you can push to.
+
+83
+00:05:24.540 --> 00:05:26.130
+Now let's go ahead and do that.
+
+84
+00:05:26.130 --> 00:05:26.830
+So first,
+
+85
+00:05:26.830 --> 00:05:36.140
+create a commit with the command git commit ‑am "first".
+
+86
+00:05:36.140 --> 00:05:39.150
+When that's finished running, push the commit up with the
+
+87
+00:05:39.150 --> 00:05:44.320
+command git push aws master.
+
+88
+00:05:44.320 --> 00:05:48.090
+This'll prompt you for a username first, so copy over the
+
+89
+00:05:48.090 --> 00:05:51.040
+username that was created with those credentials.
+
+90
+00:05:51.040 --> 00:05:55.240
+Then it'll ask you for a password, so copy over the password.
+
+91
+00:05:55.240 --> 00:05:56.990
+Once you enter both of those,
+
+92
+00:05:56.990 --> 00:06:00.940
+your code should upload to the CodeCommit repository.
+
+93
+00:06:00.940 --> 00:06:05.440
+Now we just need to create the Elastic Beanstalk application and environment.
+
+94
+00:06:05.440 --> 00:06:08.780
+I've already created a CloudFormation template that'll do that for you,
+
+95
+00:06:08.780 --> 00:06:12.800
+which should be much quicker. Since you're in your command line,
+
+96
+00:06:12.800 --> 00:06:16.180
+just run this long command that I have here,
+
+97
+00:06:16.180 --> 00:06:22.440
+which is going to create the Elastic Beanstalk stack with CloudFormation.
+
+98
+00:06:22.440 --> 00:06:27.360
+Once it's done, an Elastic Beanstalk application with the name hbfl,
+
+99
+00:06:27.360 --> 00:06:31.490
+and environment named prod will have been created.
+
+100
+00:06:31.490 --> 00:06:40.000
+These are all the resources we need created for our pipeline, so in the next video, we're going to create the pipeline itself.
+

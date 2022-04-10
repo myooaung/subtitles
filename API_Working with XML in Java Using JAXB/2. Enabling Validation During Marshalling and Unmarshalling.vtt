@@ -1,0 +1,369 @@
+WEBVTT
+1
+00:00:02.066 --> 00:00:06.099
+One of the things you can do with an XML Schema is check if an
+
+2
+00:00:06.099 --> 00:00:10.421
+XML document is valid according to the schema.
+
+3
+00:00:10.421 --> 00:00:15.087
+Java has a standard API for validating XML against a schema,
+
+4
+00:00:15.087 --> 00:00:21.242
+and JAXB can use this for validation during marshalling and unmarshalling.
+
+5
+00:00:21.242 --> 00:00:23.740
+When you design a software system,
+
+6
+00:00:23.740 --> 00:00:29.749
+it's important to validate data that enters the system for two main reasons.
+
+7
+00:00:29.749 --> 00:00:30.117
+First,
+
+8
+00:00:30.117 --> 00:00:34.170
+you don't want your system to stop working or do undefined
+
+9
+00:00:34.170 --> 00:00:36.504
+things when invalid data is entered.
+
+10
+00:00:36.504 --> 00:00:37.282
+And second,
+
+11
+00:00:37.282 --> 00:00:41.792
+you want to guard the integrity of the data in the system to
+
+12
+00:00:41.792 --> 00:00:46.288
+prevent that over time your database becomes a mess with
+
+13
+00:00:46.288 --> 00:00:48.572
+incomplete or invalid records.
+
+14
+00:00:48.572 --> 00:00:51.623
+When your system is receiving data as XML,
+
+15
+00:00:51.623 --> 00:00:54.598
+and you're using JAXB to read the XML,
+
+16
+00:00:54.598 --> 00:00:57.802
+then you can tell the unmarshaller to validate the
+
+17
+00:00:57.802 --> 00:01:00.269
+incoming XML against the schema.
+
+18
+00:01:00.269 --> 00:01:03.978
+Also, when your system is sending out XML,
+
+19
+00:01:03.978 --> 00:01:07.716
+you might want to validate it during marshalling to be
+
+20
+00:01:07.716 --> 00:01:11.047
+sure that it's sending out valid XML.
+
+21
+00:01:11.047 --> 00:01:14.571
+Validating against the schema during marshalling and
+
+22
+00:01:14.571 --> 00:01:18.810
+unmarshalling is fortunately very easy to set up.
+
+23
+00:01:18.810 --> 00:01:28.606
+Let's take a look at example ps-jaxb-23-validation-1 to see how to do this.
+
+24
+00:01:28.606 --> 00:01:34.184
+Let's first take a look at unmarshalling, so let's open class UnmarshalExample.
+
+25
+00:01:34.184 --> 00:01:37.238
+This example is very simple.
+
+26
+00:01:37.238 --> 00:01:40.291
+It unmarshals the file purchaseOrder.
+
+27
+00:01:40.291 --> 00:01:45.030
+xml and prints the name of the customer in the purchaseOrder.
+
+28
+00:01:45.030 --> 00:01:49.174
+Note that by default, no validation is done.
+
+29
+00:01:49.174 --> 00:01:52.992
+If I added the XML so that it isn't valid anymore,
+
+30
+00:01:52.992 --> 00:01:58.244
+for example, by removing the required name element from the customer element,
+
+31
+00:01:58.244 --> 00:02:01.183
+the unmarshaller will unmarshal it without any error,
+
+32
+00:02:01.183 --> 00:02:06.281
+and the name of the customer will just be set to null.
+
+33
+00:02:06.281 --> 00:02:09.969
+To enable validation, we first have to load the XSD.
+
+34
+00:02:09.969 --> 00:02:16.059
+For that, we are going to use a few classes from the XML validation API.
+
+35
+00:02:16.059 --> 00:02:21.853
+Many of the Java XML APIs work with factory classes and methods.
+
+36
+00:02:21.853 --> 00:02:24.907
+To be able to load an XSD,
+
+37
+00:02:24.907 --> 00:02:32.012
+we first need to create a schemaFactory object with the method SchemaFactory.
+
+38
+00:02:32.012 --> 00:02:32.604
+newInstance.
+
+39
+00:02:32.604 --> 00:02:38.232
+We have to pass a string that identifies the schema language to this method.
+
+40
+00:02:38.232 --> 00:02:43.780
+In principle, the XML validation API can support different schema languages,
+
+41
+00:02:43.780 --> 00:02:45.345
+not just XSD.
+
+42
+00:02:45.345 --> 00:02:48.474
+We are using standard XSD here,
+
+43
+00:02:48.474 --> 00:02:53.295
+so we have to pass the namespace URI of XML_SCHEMA here,
+
+44
+00:02:53.295 --> 00:02:57.905
+for which there is a constant in the class XMLConstants.
+
+45
+00:02:57.905 --> 00:03:03.431
+Now we have a schemaFactory that can make schema objects from XSDs,
+
+46
+00:03:03.431 --> 00:03:08.931
+and it's very easy to create a schema object for our XSD,
+
+47
+00:03:08.931 --> 00:03:09.463
+purchaseOrder.
+
+48
+00:03:09.463 --> 00:03:14.204
+xsd, by calling the new schema method on the factory.
+
+49
+00:03:14.204 --> 00:03:17.171
+To make the unmarshaller use the schema,
+
+50
+00:03:17.171 --> 00:03:22.287
+all we have to do is call setSchema on the unmarshaller,
+
+51
+00:03:22.287 --> 00:03:24.181
+passing it the schema object.
+
+52
+00:03:24.181 --> 00:03:28.197
+When we now run the example again with the name of
+
+53
+00:03:28.197 --> 00:03:30.168
+the customer missing in the XML,
+
+54
+00:03:30.168 --> 00:03:35.746
+we get an UnmarshalException because the XML is not valid.
+
+55
+00:03:35.746 --> 00:03:41.682
+Next, let's take a look at how we can customize handling validation errors.
+
+56
+00:03:41.682 --> 00:03:45.670
+Besides setting a schema on the unmarshaller,
+
+57
+00:03:45.670 --> 00:03:49.089
+you can also set a ValidationEventHandler.
+
+58
+00:03:49.089 --> 00:03:51.670
+I've implemented an ExampleValidationEventHandler
+
+59
+00:03:51.670 --> 00:03:55.541
+and set it on the unmarshaller.
+
+60
+00:03:55.541 --> 00:03:58.275
+The handleEvent method of this handler will be called
+
+61
+00:03:58.275 --> 00:04:00.452
+when a validation error occurs,
+
+62
+00:04:00.452 --> 00:04:06.201
+and it gets passed a ValidationEvent which contains information on the error.
+
+63
+00:04:06.201 --> 00:04:10.061
+There's a lot of information in the validation object,
+
+64
+00:04:10.061 --> 00:04:13.219
+for example, the severity of the problem,
+
+65
+00:04:13.219 --> 00:04:16.419
+which can be warning error or fatal error,
+
+66
+00:04:16.419 --> 00:04:23.171
+and information on where exactly in the XML the error occurred.
+
+67
+00:04:23.171 --> 00:04:25.895
+The ExampleValidationEventHandler just prints some
+
+68
+00:04:25.895 --> 00:04:27.983
+information and then returns true,
+
+69
+00:04:27.983 --> 00:04:34.675
+which tells the unmarshaller to try to continue parsing the XML if possible.
+
+70
+00:04:34.675 --> 00:04:36.934
+When I now run the example again,
+
+71
+00:04:36.934 --> 00:04:42.221
+you see that there is one fatal error in line 18,
+
+72
+00:04:42.221 --> 00:04:45.251
+column 26 of purchaseOrder.
+
+73
+00:04:45.251 --> 00:04:46.008
+xml.
+
+74
+00:04:46.008 --> 00:04:50.472
+Finally, let's look at validation during marshalling.
+
+75
+00:04:50.472 --> 00:04:53.565
+There's not a lot to explain here because it works in
+
+76
+00:04:53.565 --> 00:04:56.059
+exactly the same way as with unmarshalling.
+
+77
+00:04:56.059 --> 00:05:00.794
+You can set a schema and a ValidationEventHandler on the marshaller
+
+78
+00:05:00.794 --> 00:05:05.411
+in the same way as you do on the unmarshaller.
+
+79
+00:05:05.411 --> 00:05:07.425
+To show you that it works,
+
+80
+00:05:07.425 --> 00:05:11.389
+I've commented out setting the order date on the purchase
+
+81
+00:05:11.389 --> 00:05:14.082
+order in the createPurchaseOrder method.
+
+82
+00:05:14.082 --> 00:05:17.518
+The orderDate attribute is required according to the XSD,
+
+83
+00:05:17.518 --> 00:05:20.868
+so it should complain if I run this.
+
+84
+00:05:20.868 --> 00:05:25.278
+As you can see, it indeed prints a fatal error.
+
+85
+00:05:25.278 --> 00:05:26.607
+In this case,
+
+86
+00:05:26.607 --> 00:05:31.723
+it still produces XML output because the handleEvent method of
+
+87
+00:05:31.723 --> 00:05:34.868
+the ExampleValidationEventHandler returns true,
+
+88
+00:05:34.868 --> 00:05:39.489
+which tells the marshaller to continue even if there's an error.
+
+89
+00:05:39.489 --> 00:05:40.769
+I could, of course,
+
+90
+00:05:40.769 --> 00:05:43.649
+change this and make it return false to prevent
+
+91
+00:05:43.649 --> 00:05:45.998
+invalid XML from being generated.
+
+92
+00:05:45.998 --> 00:05:54.000
+The marshaller would then stop with the marshal exception when a validation error occurs.
+

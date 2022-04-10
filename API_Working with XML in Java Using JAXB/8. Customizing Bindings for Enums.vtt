@@ -1,0 +1,333 @@
+WEBVTT
+1
+00:00:02.060 --> 00:00:07.082
+In XML Schema, simple types can be defined with enumeration facets,
+
+2
+00:00:07.082 --> 00:00:11.712
+which naturally corresponds to Java enum types.
+
+3
+00:00:11.712 --> 00:00:15.110
+There are a number of ways to customize how these XML
+
+4
+00:00:15.110 --> 00:00:18.935
+Schema types are mapped to Java enums.
+
+5
+00:00:18.935 --> 00:00:23.714
+The correspondence between XML Schema simple types with
+
+6
+00:00:23.714 --> 00:00:27.710
+enumeration facets and Java enum types is not exact.
+
+7
+00:00:27.710 --> 00:00:32.492
+It is possible to specify things in XML Schema that cannot be
+
+8
+00:00:32.492 --> 00:00:35.392
+automatically mapped to a Java enum type,
+
+9
+00:00:35.392 --> 00:00:40.900
+so in some cases, it is necessary to customize the mapping.
+
+10
+00:00:40.900 --> 00:00:45.836
+Let's take a look at example ps-jaxb-22-enum to see how
+
+11
+00:00:45.836 --> 00:00:50.594
+we can customize the mapping of enums.
+
+12
+00:00:50.594 --> 00:00:56.581
+We've seen how JAXB maps the loyalty simpleType to a Java enum.
+
+13
+00:00:56.581 --> 00:01:02.238
+The loyalty type in the XSD has a base type
+
+14
+00:01:02.238 --> 00:01:05.066
+xs:string and three enumeration facets.
+
+15
+00:01:05.066 --> 00:01:09.284
+These three facets translate to three enum constants in the
+
+16
+00:01:09.284 --> 00:01:13.958
+Java enum loyalty with names that are the same as the
+
+17
+00:01:13.958 --> 00:01:16.087
+values of the enumeration facets.
+
+18
+00:01:16.087 --> 00:01:20.679
+So we get three constants, BRONZE, SILVER, and GOLD.
+
+19
+00:01:20.679 --> 00:01:25.272
+But suppose that the loyalty type in the XSD looks different.
+
+20
+00:01:25.272 --> 00:01:30.609
+Let's give it a base type xs:int and specify the values 10,
+
+21
+00:01:30.609 --> 00:01:33.579
+20, and 30 as possible values.
+
+22
+00:01:33.579 --> 00:01:38.488
+This definition cannot be mapped to a Java enum.
+
+23
+00:01:38.488 --> 00:01:42.898
+It is as if we have defined an enum that is derived from the type int,
+
+24
+00:01:42.898 --> 00:01:45.395
+which does not exist in Java.
+
+25
+00:01:45.395 --> 00:01:51.168
+Also, the values 10, 20, and 30 are not valid identifiers in Java,
+
+26
+00:01:51.168 --> 00:01:55.732
+so they cannot be used as enum constant names.
+
+27
+00:01:55.732 --> 00:02:00.217
+If we run xjc with this definition of the loyalty type,
+
+28
+00:02:00.217 --> 00:02:06.666
+what happens is that JAXB maps it to an int in Java instead of an enum.
+
+29
+00:02:06.666 --> 00:02:12.479
+You can see this in class Customer where the field loyalty is now an int.
+
+30
+00:02:12.479 --> 00:02:16.992
+Suppose that we want xjc to map it to an enum instead.
+
+31
+00:02:16.992 --> 00:02:20.590
+Let's see what we need to do to make that work.
+
+32
+00:02:20.590 --> 00:02:21.573
+By default,
+
+33
+00:02:21.573 --> 00:02:28.104
+xjc only takes simple types with enumeration facets that have the base type
+
+34
+00:02:28.104 --> 00:02:32.840
+xs:string into consideration for mapping to a Java enum.
+
+35
+00:02:32.840 --> 00:02:37.373
+As we just saw when we changed the base type of the loyalty type to xs:int,
+
+36
+00:02:37.373 --> 00:02:43.799
+we got an int field in class Customer instead of a loyalty enum.
+
+37
+00:02:43.799 --> 00:02:48.525
+We first have to tell xjc that it should also convert simple
+
+38
+00:02:48.525 --> 00:02:52.210
+types with base type xs:int into an enum.
+
+39
+00:02:52.210 --> 00:02:55.937
+We do that by specifying the typesafeEnumBase
+
+40
+00:02:55.937 --> 00:03:00.467
+attribute on the globalBindings element.
+
+41
+00:03:00.467 --> 00:03:05.867
+The value of this attribute is a space-separated list of type names.
+
+42
+00:03:05.867 --> 00:03:09.541
+Only simple types with enumeration facets that have one
+
+43
+00:03:09.541 --> 00:03:15.291
+of these types as their base type, or type derived from one these types,
+
+44
+00:03:15.291 --> 00:03:20.829
+will be taken into consideration for mapping to a Java enum.
+
+45
+00:03:20.829 --> 00:03:26.572
+So the first step we need to take is add xs:int to this list.
+
+46
+00:03:26.572 --> 00:03:30.907
+But this first step is not yet enough to make it work.
+
+47
+00:03:30.907 --> 00:03:33.871
+The second problem is that the values 10,
+
+48
+00:03:33.871 --> 00:03:34.241
+20,
+
+49
+00:03:34.241 --> 00:03:39.003
+and 30 are numerical values that are not valid as
+
+50
+00:03:39.003 --> 00:03:42.283
+identifier names for Java enum constants.
+
+51
+00:03:42.283 --> 00:03:45.955
+We have to tell xjc what to do because by default,
+
+52
+00:03:45.955 --> 00:03:50.087
+it will give up if it encounters values that cannot be
+
+53
+00:03:50.087 --> 00:03:52.551
+used as Java enum constant names,
+
+54
+00:03:52.551 --> 00:03:57.635
+and map the loyalty type to an int instead of an enum despite what we
+
+55
+00:03:57.635 --> 00:04:02.328
+specified for the typesafeEnumBase in the first step.
+
+56
+00:04:02.328 --> 00:04:06.222
+One way we can solve this is by setting the
+
+57
+00:04:06.222 --> 00:04:09.164
+typesafeEnumMemberName attribute on the globalBindings element.
+
+58
+00:04:09.164 --> 00:04:12.906
+This attribute can have three possible values,
+
+59
+00:04:12.906 --> 00:04:13.473
+skipGeneration,
+
+60
+00:04:13.473 --> 00:04:18.791
+which is the default and which means that if it encounters
+
+61
+00:04:18.791 --> 00:04:21.820
+values that are not valid Java identifier names,
+
+62
+00:04:21.820 --> 00:04:26.251
+it gives up mapping the type to an enum and falls back to
+
+63
+00:04:26.251 --> 00:04:29.060
+mapping it to the base type; generateError,
+
+64
+00:04:29.060 --> 00:04:33.811
+which means that it stops with an error if it encounters values that cannot
+
+65
+00:04:33.811 --> 00:04:37.266
+be translated to Java enum constant names; generateName,
+
+66
+00:04:37.266 --> 00:04:42.121
+which means that it will generate constant names automatically.
+
+67
+00:04:42.121 --> 00:04:49.619
+Let's use the generateName option and see what happens when I run xjc again.
+
+68
+00:04:49.619 --> 00:04:55.185
+As you see, we now get a loyalty enum, but the enum members are named VALUE_1,
+
+69
+00:04:55.185 --> 00:05:03.969
+VALUE_2, AND VALUE_3, which are not very meaningful and useful names.
+
+70
+00:05:03.969 --> 00:05:06.209
+So this solution is not very good.
+
+71
+00:05:06.209 --> 00:05:11.087
+There is a way to make this much better by adding a
+
+72
+00:05:11.087 --> 00:05:14.566
+customization specifically for the loyalty type.
+
+73
+00:05:14.566 --> 00:05:18.943
+Let's add a jaxb:bindings element for the loyalty type.
+
+74
+00:05:18.943 --> 00:05:24.521
+Inside this bindings element we can add a typesafeEnumClass element,
+
+75
+00:05:24.521 --> 00:05:31.172
+and inside that element, we can add a typesafeEnumMember element for each value.
+
+76
+00:05:31.172 --> 00:05:35.805
+Here we can specify for each value in the XSD what the
+
+77
+00:05:35.805 --> 00:05:38.125
+Java enum constant name should be.
+
+78
+00:05:38.125 --> 00:05:41.220
+When we do this and run xjc again,
+
+79
+00:05:41.220 --> 00:05:45.965
+we get a nice loyalty enum with constants BRONZE,
+
+80
+00:05:45.965 --> 00:05:47.757
+SILVER, and GOLD,
+
+81
+00:05:47.757 --> 00:05:51.462
+and XmlEnumValue annotations to map each of the
+
+82
+00:05:51.462 --> 00:05:54.412
+constants to their corresponding XML value.
+
+83
+00:05:54.412 --> 00:06:07.000
+We also get a few other autogenerated methods, value and fromValue, to get the numerical value for a constant and vice versa.
+

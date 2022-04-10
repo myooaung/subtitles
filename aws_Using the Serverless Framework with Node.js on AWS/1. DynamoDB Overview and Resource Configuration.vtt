@@ -1,0 +1,833 @@
+WEBVTT
+1
+00:00:00.000 --> 00:00:06.016
+Welcome to the next part of my course on the serverless framework.
+
+2
+00:00:06.016 --> 00:00:08.083
+My name is Fernando Medina Corey, and in this module,
+
+3
+00:00:08.083 --> 00:00:14.655
+we'll be looking at scaffolding and deploying serverless CRUD APIs.
+
+4
+00:00:14.655 --> 00:00:18.667
+We'll start looking at how we can deploy serverless CRUD APIs on AWS.
+
+5
+00:00:18.667 --> 00:00:22.263
+We'll see how we can configure the API Gateway endpoints for CRUD operations.
+
+6
+00:00:22.263 --> 00:00:26.586
+We'll also look at serverless databases, in this case, DynamoDB.
+
+7
+00:00:26.586 --> 00:00:27.366
+In order to work with Dynamo,
+
+8
+00:00:27.366 --> 00:00:29.418
+we'll also need to look at how to integrate database
+
+9
+00:00:29.418 --> 00:00:31.947
+resources using the serverless framework.
+
+10
+00:00:31.947 --> 00:00:35.377
+After that, we'll review and build a serverless pet database.
+
+11
+00:00:35.377 --> 00:00:38.196
+And finally, we'll test and debug our database.
+
+12
+00:00:38.196 --> 00:00:41.143
+We'll learn particular tools and strategies frequently needed
+
+13
+00:00:41.143 --> 00:00:43.840
+when debugging serverless applications.
+
+14
+00:00:43.840 --> 00:00:46.694
+All serverless framework CRUD operations on AWS
+
+15
+00:00:46.694 --> 00:00:48.956
+usually happen with the same workflow.
+
+16
+00:00:48.956 --> 00:00:53.261
+First, HTTP requests are made by a browser or another HTTP client.
+
+17
+00:00:53.261 --> 00:00:56.825
+Those requests are sent to the AWS API Gateway,
+
+18
+00:00:56.825 --> 00:01:00.470
+where the request data is processed and directed to a specific lambda function,
+
+19
+00:01:00.470 --> 00:01:02.633
+depending on the API Gateway endpoint requested.
+
+20
+00:01:02.633 --> 00:01:06.010
+Each potential CRUD operation will have its own function.
+
+21
+00:01:06.010 --> 00:01:09.195
+If the API Gateway receives a request to a create endpoint,
+
+22
+00:01:09.195 --> 00:01:11.948
+it will route that information to the create function.
+
+23
+00:01:11.948 --> 00:01:15.727
+Alternatively, if API Gateway receives a request to delete some value,
+
+24
+00:01:15.727 --> 00:01:18.085
+it will route that to the delete function.
+
+25
+00:01:18.085 --> 00:01:20.945
+Each of these functions will process the JSON payloads that come in
+
+26
+00:01:20.945 --> 00:01:24.515
+via the API Gateway in order to validate them and take the appropriate
+
+27
+00:01:24.515 --> 00:01:27.768
+actions on the backing DynamoDB database.
+
+28
+00:01:27.768 --> 00:01:31.212
+Because we're going to be relying on DynamoDB heavily for our CRUD database,
+
+29
+00:01:31.212 --> 00:01:34.795
+let's take a closer look at what it is and how it works.
+
+30
+00:01:34.795 --> 00:01:37.734
+Amazon describes DynamoDB as a fully managed NoSQL
+
+31
+00:01:37.734 --> 00:01:40.973
+database service that provides fast and predictable
+
+32
+00:01:40.973 --> 00:01:42.977
+performance with seamless scalability.
+
+33
+00:01:42.977 --> 00:01:45.461
+So how do we use Dynamo in our applications?
+
+34
+00:01:45.461 --> 00:01:48.385
+DynamoDB shares several things in common with other data
+
+35
+00:01:48.385 --> 00:01:50.495
+stores you might be familiar with.
+
+36
+00:01:50.495 --> 00:01:53.868
+Similar to other databases, DynamoDB stores data in tables.
+
+37
+00:01:53.868 --> 00:01:56.631
+Each of these tables contains multiple items,
+
+38
+00:01:56.631 --> 00:01:59.391
+and in each of these items, you have one or more attributes.
+
+39
+00:01:59.391 --> 00:02:03.450
+Attributes are the fundamental data element in DynamoDB and are in many ways
+
+40
+00:02:03.450 --> 00:02:06.368
+similar to fields or columns in other database systems.
+
+41
+00:02:06.368 --> 00:02:09.053
+The main distinction is that as long as items in this same table have
+
+42
+00:02:09.053 --> 00:02:11.237
+a different value for their primary key attribute,
+
+43
+00:02:11.237 --> 00:02:14.426
+they don't need to have any other attributes in common.
+
+44
+00:02:14.426 --> 00:02:16.523
+In this way, DynamoDB is schema-less.
+
+45
+00:02:16.523 --> 00:02:19.815
+Now, the attributes nor their data types need to be defined beforehand,
+
+46
+00:02:19.815 --> 00:02:23.715
+and each item can have its own distinct attributes.
+
+47
+00:02:23.715 --> 00:02:26.321
+All items in DynamoDB must have distinct primary keys,
+
+48
+00:02:26.321 --> 00:02:29.855
+but each table can have these keys made in one of two ways.
+
+49
+00:02:29.855 --> 00:02:31.901
+The table can use a simple primary key,
+
+50
+00:02:31.901 --> 00:02:35.885
+which uses only a single attribute such as an id as a partition key.
+
+51
+00:02:35.885 --> 00:02:39.805
+In this case, no two items can have the same partition key or value.
+
+52
+00:02:39.805 --> 00:02:40.036
+Or,
+
+53
+00:02:40.036 --> 00:02:42.578
+the primary key can be a composite primary key made up
+
+54
+00:02:42.578 --> 00:02:44.720
+of a partition key and a sort key.
+
+55
+00:02:44.720 --> 00:02:48.083
+In this case, you could have multiple items with the same partition key,
+
+56
+00:02:48.083 --> 00:02:50.187
+as long as they all had different sort keys.
+
+57
+00:02:50.187 --> 00:02:54.152
+An example of this might be if you had a table of pet ids and a sort
+
+58
+00:02:54.152 --> 00:02:55.992
+key of all the dates that they attended daycare.
+
+59
+00:02:55.992 --> 00:02:59.009
+That way you could query for all the entries for a single pet id,
+
+60
+00:02:59.009 --> 00:03:01.972
+or for a range of dates a specific pet was in attendance.
+
+61
+00:03:01.972 --> 00:03:04.693
+DynamoDB has a few features that are particularly
+
+62
+00:03:04.693 --> 00:03:06.054
+useful for serverless applications.
+
+63
+00:03:06.054 --> 00:03:07.857
+The first is auto scaling.
+
+64
+00:03:07.857 --> 00:03:11.267
+DynamoDB allows you to configure your table to automatically scale up
+
+65
+00:03:11.267 --> 00:03:13.624
+your capacity as needed within a particular range,
+
+66
+00:03:13.624 --> 00:03:16.209
+in this way meeting your demand.
+
+67
+00:03:16.209 --> 00:03:19.497
+It will also automatically scale down up to four times per day.
+
+68
+00:03:19.497 --> 00:03:23.519
+Dynamo also allows you to closely monitor the throughput of your applications.
+
+69
+00:03:23.519 --> 00:03:25.106
+With its read and write capacity units,
+
+70
+00:03:25.106 --> 00:03:28.143
+you can specify exactly the thresholds of traffic you'd like to
+
+71
+00:03:28.143 --> 00:03:30.365
+be able to accommodate and pay accordingly.
+
+72
+00:03:30.365 --> 00:03:30.570
+Additionally,
+
+73
+00:03:30.570 --> 00:03:32.416
+if you're able to consistently predict your need for
+
+74
+00:03:32.416 --> 00:03:37.053
+Dynamo at higher levels of use, you can also take advantage of reserved capacity.
+
+75
+00:03:37.053 --> 00:03:39.860
+Reserved capacity allows you to pay up front for capacity that you
+
+76
+00:03:39.860 --> 00:03:43.642
+know you'll use at a drastically reduced price.
+
+77
+00:03:43.642 --> 00:03:45.219
+So if your workloads are consistent enough,
+
+78
+00:03:45.219 --> 00:03:47.906
+you can get some serious savings from this feature.
+
+79
+00:03:47.906 --> 00:03:50.949
+Finally, according to AWS, DynamoDB can also be HIPPA compliant,
+
+80
+00:03:50.949 --> 00:03:54.136
+which makes it useable on a broader spectrum of applications.
+
+81
+00:03:54.136 --> 00:03:58.367
+It's always good practice to review the details from AWS directly to
+
+82
+00:03:58.367 --> 00:04:00.552
+determine how best to meet the legal requirements like this.
+
+83
+00:04:00.552 --> 00:04:04.365
+But before you think I'm pushing DynamoDB on you regardless of your use case,
+
+84
+00:04:04.365 --> 00:04:07.375
+here's a few things to keep in mind when designing future applications.
+
+85
+00:04:07.375 --> 00:04:09.269
+First, NoSQL isn't relational.
+
+86
+00:04:09.269 --> 00:04:12.866
+DynamoDB requires you to design tables to be queried
+
+87
+00:04:12.866 --> 00:04:14.628
+with a partition and sort key only.
+
+88
+00:04:14.628 --> 00:04:17.401
+Scanning through the entire table is a very costly operation that
+
+89
+00:04:17.401 --> 00:04:20.410
+becomes cost prohibitive as the table size grows.
+
+90
+00:04:20.410 --> 00:04:23.194
+So if you're used to relational databases like MySQL,
+
+91
+00:04:23.194 --> 00:04:25.983
+keep in mind that this is a different animal entirely.
+
+92
+00:04:25.983 --> 00:04:29.654
+So when designing your tables, keep in mind that design decisions matter.
+
+93
+00:04:29.654 --> 00:04:31.092
+When designing your application or your table,
+
+94
+00:04:31.092 --> 00:04:32.923
+you're stuck with the primary keys you create.
+
+95
+00:04:32.923 --> 00:04:36.967
+You don't have options to change and optimize your table design going
+
+96
+00:04:36.967 --> 00:04:39.681
+forward without completely recreating the DynamoDB table.
+
+97
+00:04:39.681 --> 00:04:42.930
+So keep in mind that the table design is somewhat rigid,
+
+98
+00:04:42.930 --> 00:04:45.981
+and be sure to optimize your tables up front whenever possible.
+
+99
+00:04:45.981 --> 00:04:48.605
+Additionally, because the way DynamoDB partitions keys,
+
+100
+00:04:48.605 --> 00:04:52.225
+you have to be careful to pick uniform partition keys.
+
+101
+00:04:52.225 --> 00:04:54.877
+DynamoDB spreads your read and write capacity over
+
+102
+00:04:54.877 --> 00:04:56.800
+automatically created partitions as it scales.
+
+103
+00:04:56.800 --> 00:04:57.754
+So for example,
+
+104
+00:04:57.754 --> 00:05:01.035
+if some primary key value is queried at a much higher frequency than others,
+
+105
+00:05:01.035 --> 00:05:04.920
+the performance of the partition that that value is located in might suffer
+
+106
+00:05:04.920 --> 00:05:07.949
+because it's shared with other values in that partition,
+
+107
+00:05:07.949 --> 00:05:09.978
+and it can't borrow capacity from other partitions without
+
+108
+00:05:09.978 --> 00:05:12.274
+increasing the overall limits on the entire table.
+
+109
+00:05:12.274 --> 00:05:14.758
+Essentially what this means is that as you grow,
+
+110
+00:05:14.758 --> 00:05:16.579
+hot keys become an issue at scale.
+
+111
+00:05:16.579 --> 00:05:20.230
+So be aware of this when creating your own applications.
+
+112
+00:05:20.230 --> 00:05:23.718
+Let's quickly look at how much DynamoDB costs.
+
+113
+00:05:23.718 --> 00:05:26.725
+DynamoDB has a fairly straightforward pricing model.
+
+114
+00:05:26.725 --> 00:05:28.888
+The first part of the charges is for write capacity.
+
+115
+00:05:28.888 --> 00:05:32.078
+Write capacity for DynamoDB is charged about $0.
+
+116
+00:05:32.078 --> 00:05:34.635
+47 per write capacity unit per month.
+
+117
+00:05:34.635 --> 00:05:38.181
+This is roughly equivalent to 1 write per second, or 2.
+
+118
+00:05:38.181 --> 00:05:42.798
+5 million writes per month of items that average about 1 KB in size.
+
+119
+00:05:42.798 --> 00:05:45.804
+You also get 25 free write capacity units per month
+
+120
+00:05:45.804 --> 00:05:47.608
+with your AWS free tier account.
+
+121
+00:05:47.608 --> 00:05:50.847
+The next charge is for reads from your Dynamo table.
+
+122
+00:05:50.847 --> 00:05:52.078
+These are charged at about $0.
+
+123
+00:05:52.078 --> 00:05:55.298
+09 per capacity unit per month, which can actually amount to as many as 5.
+
+124
+00:05:55.298 --> 00:05:59.729
+2 million reads per month of items, averaging about 4 KB in size.
+
+125
+00:05:59.729 --> 00:06:05.106
+25 read capacity units are also included within your account for AWS free tier.
+
+126
+00:06:05.106 --> 00:06:09.345
+The last main charge for Dynamo is in relation to the amount of storage used.
+
+127
+00:06:09.345 --> 00:06:10.162
+You pay $0.
+
+128
+00:06:10.162 --> 00:06:14.093
+25 per gigabyte per month on the total amount of data stored in Dynamo.
+
+129
+00:06:14.093 --> 00:06:18.512
+You also get 25 GB per month for free included within the AWS free tier.
+
+130
+00:06:18.512 --> 00:06:20.728
+There's one quick side note that needs to be made about
+
+131
+00:06:20.728 --> 00:06:22.327
+the read types that DynamoDB offers.
+
+132
+00:06:22.327 --> 00:06:24.719
+The first type of read is eventually consistent.
+
+133
+00:06:24.719 --> 00:06:27.103
+Eventually consistent reads may miss writes that were made
+
+134
+00:06:27.103 --> 00:06:28.882
+recently on the table you're reading from.
+
+135
+00:06:28.882 --> 00:06:32.092
+They maximize throughput and can happen twice per second on items
+
+136
+00:06:32.092 --> 00:06:35.013
+less than 4 KB for each read capacity unit.
+
+137
+00:06:35.013 --> 00:06:36.250
+These are the default type of read,
+
+138
+00:06:36.250 --> 00:06:39.392
+and because you get more reads per second for the same capacity,
+
+139
+00:06:39.392 --> 00:06:40.433
+they're cheaper overall.
+
+140
+00:06:40.433 --> 00:06:40.758
+Now,
+
+141
+00:06:40.758 --> 00:06:44.012
+strongly consistent reads on the other hand are guaranteed to
+
+142
+00:06:44.012 --> 00:06:46.203
+reflect the most recent writes to a table.
+
+143
+00:06:46.203 --> 00:06:46.938
+Because of this,
+
+144
+00:06:46.938 --> 00:06:49.144
+they require twice the read capacity of regular reads
+
+145
+00:06:49.144 --> 00:06:51.830
+and are effectively more costly.
+
+146
+00:06:51.830 --> 00:06:55.232
+Another Dynamo feature you may want to use is DynamoDB streams.
+
+147
+00:06:55.232 --> 00:06:59.642
+This feature allows you to take action on changes that occur on a Dynamo table.
+
+148
+00:06:59.642 --> 00:07:02.381
+Pretend you have a stream of incoming requests to Dynamo.
+
+149
+00:07:02.381 --> 00:07:05.757
+You can use the streams feature to identify changes on this table and
+
+150
+00:07:05.757 --> 00:07:08.723
+trigger a lambda function to review that change.
+
+151
+00:07:08.723 --> 00:07:09.832
+The function can then process the change and
+
+152
+00:07:09.832 --> 00:07:11.268
+determine if it should take an action.
+
+153
+00:07:11.268 --> 00:07:15.063
+For example, in the case of an additional new entry to a users table,
+
+154
+00:07:15.063 --> 00:07:17.197
+we might trigger a lambda function to send an email
+
+155
+00:07:17.197 --> 00:07:19.539
+notification to the new user.
+
+156
+00:07:19.539 --> 00:07:22.373
+Here's a few key takeaways for DynamoDB while you work
+
+157
+00:07:22.373 --> 00:07:24.073
+with it on your own applications.
+
+158
+00:07:24.073 --> 00:07:25.538
+The free tier is very generous.
+
+159
+00:07:25.538 --> 00:07:27.892
+You can build applications that can handle about 200
+
+160
+00:07:27.892 --> 00:07:31.519
+million requests per month and use up to 25 GB of storage
+
+161
+00:07:31.519 --> 00:07:34.082
+without needing to pay AWS a penny.
+
+162
+00:07:34.082 --> 00:07:37.637
+Don't be afraid to play around a little bit with this to get the hang of it.
+
+163
+00:07:37.637 --> 00:07:40.802
+Keep in mind that your reads aren't strongly consistent by default.
+
+164
+00:07:40.802 --> 00:07:42.764
+So if you have a highly sensitive application that
+
+165
+00:07:42.764 --> 00:07:47.151
+needs strong consistency for its reads, be sure to use it where appropriate.
+
+166
+00:07:47.151 --> 00:07:50.399
+Design all your tables thinking about potential issues down the line.
+
+167
+00:07:50.399 --> 00:07:53.963
+Could you have some primary keys reference significantly more than others?
+
+168
+00:07:53.963 --> 00:07:55.655
+Should you be using a sort key?
+
+169
+00:07:55.655 --> 00:07:59.140
+Additionally, if you do need to take action on changes to a database,
+
+170
+00:07:59.140 --> 00:08:01.532
+make sure you think about using DynamoDB streams.
+
+171
+00:08:01.532 --> 00:08:04.622
+Now let's take a look at the configuration details of setting up a
+
+172
+00:08:04.622 --> 00:08:07.814
+DynamoDB resource within the serverless framework.
+
+173
+00:08:07.814 --> 00:08:10.118
+The configuration for a serverless CRUD API would have a few
+
+174
+00:08:10.118 --> 00:08:12.905
+additional components when compared to other services.
+
+175
+00:08:12.905 --> 00:08:13.290
+First,
+
+176
+00:08:13.290 --> 00:08:17.119
+it requires an additional section in the configuration called iamRoleStatements.
+
+177
+00:08:17.119 --> 00:08:21.614
+Within that, we add an IAM, or Identity and Access Management policy,
+
+178
+00:08:21.614 --> 00:08:25.716
+that can be used by the service to access DynamoDB.
+
+179
+00:08:25.716 --> 00:08:30.529
+In this specific instance, we're allowing it to access our DynamoDB pet table.
+
+180
+00:08:30.529 --> 00:08:31.901
+This is a slight oversimplification,
+
+181
+00:08:31.901 --> 00:08:34.933
+but we'll take a look at some actual code just a
+
+182
+00:08:34.933 --> 00:08:36.598
+little bit later in this module.
+
+183
+00:08:36.598 --> 00:08:39.063
+We'll also need to create a resources section that
+
+184
+00:08:39.063 --> 00:08:40.707
+names each of the resources used.
+
+185
+00:08:40.707 --> 00:08:44.445
+In this case, we defined a resource called pet table.
+
+186
+00:08:44.445 --> 00:08:48.524
+We describe it as a DynamoDB table that has the DeletionPolicy of Retain.
+
+187
+00:08:48.524 --> 00:08:50.423
+Now this means that when we deploy, remove,
+
+188
+00:08:50.423 --> 00:08:53.185
+and modify our service, the table data will not be deleted.
+
+189
+00:08:53.185 --> 00:08:55.475
+This is usually a good idea when working with
+
+190
+00:08:55.475 --> 00:08:56.910
+services that rely on data persistence,
+
+191
+00:08:56.910 --> 00:09:00.983
+because it allows us to avoid destroying all of our information by accident.
+
+192
+00:09:00.983 --> 00:09:03.488
+The latter half of the resources configuration defines
+
+193
+00:09:03.488 --> 00:09:05.797
+some properties of the DynamoDB table.
+
+194
+00:09:05.797 --> 00:09:08.821
+Specifically, it creates attribute definitions for the table,
+
+195
+00:09:08.821 --> 00:09:11.890
+and it defines an attribute ID, which is a string.
+
+196
+00:09:11.890 --> 00:09:15.760
+It also specifies the id attribute will be used as the schema key,
+
+197
+00:09:15.760 --> 00:09:17.087
+and uses the HASH KeyType.
+
+198
+00:09:17.087 --> 00:09:20.589
+This means that the id value is the partition key for the table,
+
+199
+00:09:20.589 --> 00:09:23.072
+and the table is using a simple primary key.
+
+200
+00:09:23.072 --> 00:09:26.046
+We could also add another defined attribute using a range KeyType,
+
+201
+00:09:26.046 --> 00:09:28.408
+which would make this a composite primary key,
+
+202
+00:09:28.408 --> 00:09:30.474
+but we'll skip that in this application.
+
+203
+00:09:30.474 --> 00:09:33.091
+The configuration also sets the provisioned read and
+
+204
+00:09:33.091 --> 00:09:37.694
+write capacity of the table to 1, which is conveniently within the AWS free tier.
+
+205
+00:09:37.694 --> 00:09:41.312
+Finally, it sets the name of the DynamoDB table within AWS,
+
+206
+00:09:41.312 --> 00:09:44.569
+which matches the name of the table in the IAMRoleStatement.
+
+207
+00:09:44.569 --> 00:09:45.928
+Now let's quickly refresh our memories about the demo
+
+208
+00:09:45.928 --> 00:09:53.000
+we'll be building out in this module, and then we'll implement the sort of service ourselves.
+

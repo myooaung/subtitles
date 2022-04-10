@@ -1,0 +1,231 @@
+1
+00:00:00,670 --> 00:00:04,750
+Well we've got some code put together that simulated that change or that input event.
+
+2
+00:00:04,840 --> 00:00:09,920
+And we did eventually see some text right here or some list of movies up here but our test still failed.
+
+3
+00:00:09,980 --> 00:00:14,770
+I'm kind of curious why if we refresh the page several times you're going to very quickly notice some
+
+4
+00:00:14,770 --> 00:00:15,860
+interesting behavior.
+
+5
+00:00:15,880 --> 00:00:19,340
+So I got to refresh really quickly and here's the thing when I refresh.
+
+6
+00:00:19,480 --> 00:00:24,560
+You'll notice that the instant the page loads I already see that the test has failed yet.
+
+7
+00:00:24,640 --> 00:00:28,850
+It takes some amount of time after the page has refreshed to actually see the list of results appear
+
+8
+00:00:28,870 --> 00:00:29,300
+right here.
+
+9
+00:00:29,350 --> 00:00:30,220
+Let me do that one more time.
+
+10
+00:00:30,550 --> 00:00:35,170
+So I see the failure then the output failure then the output.
+
+11
+00:00:35,290 --> 00:00:39,760
+So by the time the output appears our test has already failed.
+
+12
+00:00:39,760 --> 00:00:41,450
+That's what the issue is.
+
+13
+00:00:41,470 --> 00:00:45,170
+So by the time we are actually running our expectation.
+
+14
+00:00:45,400 --> 00:00:49,650
+So like this stuff right here there is no dropdown open.
+
+15
+00:00:49,720 --> 00:00:50,850
+We don't see anything.
+
+16
+00:00:50,860 --> 00:00:53,700
+It will eventually be but not yet.
+
+17
+00:00:53,770 --> 00:00:57,210
+So we essentially need to figure out some way to delay our test.
+
+18
+00:00:57,220 --> 00:01:01,780
+We need to figure out some way to not run that thing right there until some little bit of time in the
+
+19
+00:01:01,780 --> 00:01:03,180
+future.
+
+20
+00:01:03,240 --> 00:01:06,030
+By the way you might be curious why there is that delay at all.
+
+21
+00:01:06,030 --> 00:01:11,460
+If you put together the movie's application or specifically the autocomplete widget you might recall
+
+22
+00:01:11,460 --> 00:01:18,750
+that inside of here we wrapped the input event with a D bound statement that essentially means wait
+
+23
+00:01:18,750 --> 00:01:24,180
+for 500 milliseconds before running the function that's going to handle an input event.
+
+24
+00:01:24,510 --> 00:01:26,140
+And that's what exactly what we're seeing.
+
+25
+00:01:26,190 --> 00:01:28,950
+There is no network request being created anymore.
+
+26
+00:01:29,100 --> 00:01:34,690
+Yet it still takes 500 milliseconds for some result to appear because that's how we designed our widget.
+
+27
+00:01:34,800 --> 00:01:36,510
+So how are we gonna fix this.
+
+28
+00:01:36,510 --> 00:01:42,630
+Well there's definitely some easy way and some not so easy way but right way so the easy way that you
+
+29
+00:01:42,630 --> 00:01:48,270
+might think up would be to simply like wrap this thing in a set time out or something and say oh yeah
+
+30
+00:01:48,390 --> 00:01:54,420
+I don't want to run the assertion until like maybe 600 seconds in the future or something like that.
+
+31
+00:01:54,450 --> 00:01:57,000
+This is definitely not the correct way to handle this.
+
+32
+00:01:57,040 --> 00:02:01,380
+The reason for that is that at some point time we might come back over to our autocomplete implementation
+
+33
+00:02:01,440 --> 00:02:08,040
+and say oh yeah we now want a 1000 second delay before we start to actually do any search or handle
+
+34
+00:02:08,040 --> 00:02:09,140
+any searching.
+
+35
+00:02:09,300 --> 00:02:12,650
+And if we did that well now son the test is going to break for no good reason.
+
+36
+00:02:14,090 --> 00:02:19,360
+So we need to essentially think of a better way to kind of delay this expectation right here they're
+
+37
+00:02:19,430 --> 00:02:26,020
+going to take a approach that's going to be extremely useful for all forms of testing that involve what
+
+38
+00:02:26,020 --> 00:02:28,720
+the Web here's what we're going to do.
+
+39
+00:02:28,890 --> 00:02:34,050
+We're going to put together a little helper function we're gonna call it wait for.
+
+40
+00:02:34,050 --> 00:02:36,810
+So we're gonna have something like a Wait Wait for right here.
+
+41
+00:02:36,810 --> 00:02:37,410
+This is the goal.
+
+42
+00:02:37,410 --> 00:02:44,000
+This is what we want to have and then inside of wait for we're going to pass it a selector a CSF selector
+
+43
+00:02:44,150 --> 00:02:49,740
+to some elements that we want to see visible on the screen we're then going to make sure that our wait
+
+44
+00:02:49,740 --> 00:02:56,010
+for function is going to hold everything up it's going to just stop our test for money until it sees
+
+45
+00:02:56,010 --> 00:03:00,360
+some element with whatever selector we pass in right there actually appear.
+
+46
+00:03:00,510 --> 00:03:05,640
+So in our case we don't really want to run our expectation right here until we start to see these results
+
+47
+00:03:05,670 --> 00:03:13,170
+appear on the screen if we inspect that element right there like one of these movies you'll see that
+
+48
+00:03:13,200 --> 00:03:17,340
+each of them is an anchor element with the class of dropdown dash item.
+
+49
+00:03:17,340 --> 00:03:25,530
+So ideally right here we could say something like a wait for dot dropdown dash item and then in a perfect
+
+50
+00:03:25,530 --> 00:03:30,120
+world the wait for function which by the way doesn't exist yet we have to write this we are going to
+
+51
+00:03:30,120 --> 00:03:35,280
+write it in the perfect world you wait for a function would just kind of sit around and twiddle its
+
+52
+00:03:35,280 --> 00:03:40,020
+thumbs until this thing actually appeared on the screen and as soon as it did we would then continue
+
+53
+00:03:40,020 --> 00:03:45,360
+execution we would probably want to have some timeout inside there as well to say well if we wait for
+
+54
+00:03:45,360 --> 00:03:50,130
+like five seconds and we don't see a dom element with that class or that select right there appear then
+
+55
+00:03:50,160 --> 00:03:55,740
+something is clearly wrong let's just fail the test altogether so the wait a function is something that
+
+56
+00:03:55,770 --> 00:04:01,480
+is extremely useful and I think that you will probably end up using on future projects as well.
+
+57
+00:04:01,480 --> 00:04:05,170
+All right so now that we understand how we're going to solve this problem let's take a pause right here
+
+58
+00:04:05,170 --> 00:04:08,530
+we'll come back the next video and start working on the implementation of weight for.

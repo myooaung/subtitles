@@ -1,0 +1,584 @@
+1
+00:00:01,485 --> 00:00:06,549
+Now that our controllers are created and updated, we're ready to test this out.
+
+2
+00:00:06,549 --> 00:00:12,221
+So I'm simply going to start up the application, and let's see what happens.
+
+3
+00:00:12,221 --> 00:00:14,815
+In IntelliJ, if you want to start the application,
+
+4
+00:00:14,815 --> 00:00:17,715
+you can find the ConferenceDemoApplication object,
+
+5
+00:00:17,715 --> 00:00:22,320
+double-click on that or just select it in the Project explorer area,
+
+6
+00:00:22,320 --> 00:00:27,502
+right-click and go to the Run menu.
+
+7
+00:00:27,502 --> 00:00:29,269
+If all is well in your application,
+
+8
+00:00:29,269 --> 00:00:35,195
+you'll get a notification that we have our application started on port 8080,
+
+9
+00:00:35,195 --> 00:00:39,792
+and it's ready to try out.
+
+10
+00:00:39,792 --> 00:00:41,227
+I've jumped over to Postman,
+
+11
+00:00:41,227 --> 00:00:45,607
+and Postman is a tool that allows you to work with API endpoints.
+
+12
+00:00:45,607 --> 00:00:49,530
+You can get it from the URL getpostman.com.
+
+13
+00:00:49,530 --> 00:00:55,408
+Once you have it installed, you can enter endpoints and URLs to test and try out.
+
+14
+00:00:55,408 --> 00:00:58,624
+If you remember, our application is running on port 8080,
+
+15
+00:00:58,624 --> 00:01:02,000
+and I'm running locally, so I'm using localhost port 8080,
+
+16
+00:01:02,000 --> 00:01:07,058
+and our session's endpoint begins with api/v1/sessions.
+
+17
+00:01:07,058 --> 00:01:09,265
+I don't need to pass in any headers or body,
+
+18
+00:01:09,265 --> 00:01:11,945
+so I'm simply just going to try this out.
+
+19
+00:01:11,945 --> 00:01:16,661
+And before I do, note that we're using the HTTP GET verb.
+
+20
+00:01:16,661 --> 00:01:20,088
+You'll notice that we'll get a payload down here,
+
+21
+00:01:20,088 --> 00:01:24,469
+and you'll see that we have a lot of information pulled back.
+
+22
+00:01:24,469 --> 00:01:27,763
+It's actually pulling back a bunch of nested data.
+
+23
+00:01:27,763 --> 00:01:29,278
+You can see this here.
+
+24
+00:01:29,278 --> 00:01:33,725
+It keeps getting deeper and deeper, and this is kind of a problem.
+
+25
+00:01:33,725 --> 00:01:36,744
+This is actually a serialization problem.
+
+26
+00:01:36,744 --> 00:01:41,224
+You can try out speakers as well.
+
+27
+00:01:41,224 --> 00:01:42,727
+And again, we get the data back,
+
+28
+00:01:42,727 --> 00:01:49,280
+but it's looping cyclically over our many-to-many relationship.
+
+29
+00:01:49,280 --> 00:01:55,644
+So let's jump back over to IntelliJ and see how we can handle this.
+
+30
+00:01:55,644 --> 00:02:00,467
+So sometimes your cyclical payload serializations will actually get so large
+
+31
+00:02:00,467 --> 00:02:03,985
+that you'll get exceptions because it'll just go infinitely,
+
+32
+00:02:03,985 --> 00:02:08,297
+and it'll blow up the stack on your Java stack.
+
+33
+00:02:08,297 --> 00:02:09,060
+So to help with this,
+
+34
+00:02:09,060 --> 00:02:12,594
+you can jump into your models and place some annotations on there that Jackson
+
+35
+00:02:12,594 --> 00:02:16,955
+library will look at and help to serialize your payload.
+
+36
+00:02:16,955 --> 00:02:19,817
+The other option that you could do is to create DTOs,
+
+37
+00:02:19,817 --> 00:02:25,067
+or data transfer objects, but I'm simply going to use my entities for entities,
+
+38
+00:02:25,067 --> 00:02:28,056
+as well as data transfer objects.
+
+39
+00:02:28,056 --> 00:02:29,324
+So if you remember on the session,
+
+40
+00:02:29,324 --> 00:02:32,867
+we have a many-to-many relationship set up that's going out to speakers,
+
+41
+00:02:32,867 --> 00:02:35,515
+and this is what's causing that cyclical problem.
+
+42
+00:02:35,515 --> 00:02:39,877
+Because as we go out to the speaker, the speaker is on multiple sessions,
+
+43
+00:02:39,877 --> 00:02:43,225
+and as we go into the session, the session has multiple speakers,
+
+44
+00:02:43,225 --> 00:02:45,699
+and it keeps going over and over.
+
+45
+00:02:45,699 --> 00:02:49,045
+Since we defined the session as the dominant side of
+
+46
+00:02:49,045 --> 00:02:50,600
+the bidirectional relationship,
+
+47
+00:02:50,600 --> 00:02:53,569
+we'll go ahead and leave this alone and jump over to the
+
+48
+00:02:53,569 --> 00:02:56,650
+speakers version of the many-to-many relationship.
+
+49
+00:02:56,650 --> 00:02:57,414
+On this one,
+
+50
+00:02:57,414 --> 00:03:00,859
+we can add a new annotation that will prevent it from
+
+51
+00:03:00,859 --> 00:03:03,306
+back serialization back to the sessions.
+
+52
+00:03:03,306 --> 00:03:06,370
+We can do that by adding the @JsonIgnore.
+
+53
+00:03:06,370 --> 00:03:08,293
+You'll need to import that,
+
+54
+00:03:08,293 --> 00:03:11,856
+and you'll see that this comes from the Jackson library.
+
+55
+00:03:11,856 --> 00:03:14,759
+So Jackson is going to look for this and ignore that
+
+56
+00:03:14,759 --> 00:03:18,264
+when it goes to reload the sessions.
+
+57
+00:03:18,264 --> 00:03:23,059
+I can now go ahead and restart the server and try the call again.
+
+58
+00:03:23,059 --> 00:03:23,908
+To restart the server,
+
+59
+00:03:23,908 --> 00:03:29,203
+you can just click on this encircle or recycle arrow to restart the server.
+
+60
+00:03:29,203 --> 00:03:32,088
+Once that's up, we can jump back to Postman,
+
+61
+00:03:32,088 --> 00:03:35,131
+and let's go ahead and try the sessions again.
+
+62
+00:03:35,131 --> 00:03:37,345
+At this point, you'll notice that the payload has changed.
+
+63
+00:03:37,345 --> 00:03:39,593
+The payload loads in a session.
+
+64
+00:03:39,593 --> 00:03:41,980
+It loads in the relevant speakers for that session,
+
+65
+00:03:41,980 --> 00:03:46,902
+but it does not continue to go deeper and deeper because of that
+
+66
+00:03:46,902 --> 00:03:51,716
+JsonIgnore annotation we put on the speaker entity.
+
+67
+00:03:51,716 --> 00:03:55,258
+Let's go ahead and test a couple of the other controller endpoints.
+
+68
+00:03:55,258 --> 00:03:59,830
+So the next one is the GET where we need to pass in a specific id.
+
+69
+00:03:59,830 --> 00:04:01,656
+You can see that we have one here, session_id of 2,
+
+70
+00:04:01,656 --> 00:04:04,767
+so I'm going to pass that in on the URL,
+
+71
+00:04:04,767 --> 00:04:08,666
+and we should just get this one session back.
+
+72
+00:04:08,666 --> 00:04:09,755
+Uh, oh!
+
+73
+00:04:09,755 --> 00:04:14,606
+You'll notice that there is an error that's occurred on our call.
+
+74
+00:04:14,606 --> 00:04:18,859
+This is another serialization issue with Spring and Hibernate.
+
+75
+00:04:18,859 --> 00:04:23,183
+Let's jump back to IntelliJ, and we can see how to fix this particular problem.
+
+76
+00:04:23,183 --> 00:04:28,204
+You'll notice that it's complaining about the ByteBuddyInterceptor.
+
+77
+00:04:28,204 --> 00:04:31,488
+So again, we'll deal with serialization issues on our models.
+
+78
+00:04:31,488 --> 00:04:34,051
+So I'm going to go to the sessions model or entity,
+
+79
+00:04:34,051 --> 00:04:37,881
+and I'm going to add a new annotation at the top at the
+
+80
+00:04:37,881 --> 00:04:40,307
+class level that looks like this.
+
+81
+00:04:40,307 --> 00:04:45,029
+The @JsonIgnoreProperties, we'll go ahead and import that class.
+
+82
+00:04:45,029 --> 00:04:45,590
+This time,
+
+83
+00:04:45,590 --> 00:04:47,666
+we're ignoring a property called the
+
+84
+00:04:47,666 --> 00:04:50,476
+hibernateLazyInitializer and the handler property.
+
+85
+00:04:50,476 --> 00:04:54,791
+When you create an entity and you have a relationship on here,
+
+86
+00:04:54,791 --> 00:04:59,207
+Hibernate adds a few stub methods to handle lazy loading
+
+87
+00:04:59,207 --> 00:05:01,911
+and eager loading of the relational data.
+
+88
+00:05:01,911 --> 00:05:05,124
+When you go to serialize a Hibernate object,
+
+89
+00:05:05,124 --> 00:05:09,406
+you do not want to serialize this because this will try to
+
+90
+00:05:09,406 --> 00:05:12,274
+load in all of your relational data with SQL,
+
+91
+00:05:12,274 --> 00:05:14,001
+and it can cause problems.
+
+92
+00:05:14,001 --> 00:05:16,582
+And in fact, our problem right now is we have an exception.
+
+93
+00:05:16,582 --> 00:05:20,654
+So I'll save this file, and I want to add this as well to the Speaker class.
+
+94
+00:05:20,654 --> 00:05:26,423
+Again, I'll save those files and restart the server.
+
+95
+00:05:26,423 --> 00:05:27,075
+So back in Postman,
+
+96
+00:05:27,075 --> 00:05:31,953
+let's go ahead and try to get the session with the primary key id of 2,
+
+97
+00:05:31,953 --> 00:05:34,477
+again, by calling Send.
+
+98
+00:05:34,477 --> 00:05:36,868
+This time, you'll notice that we did not get an exception,
+
+99
+00:05:36,868 --> 00:05:40,160
+and we have a valid payload back, and it's just the one,
+
+100
+00:05:40,160 --> 00:05:44,145
+it's just the one for primary key of 2.
+
+101
+00:05:44,145 --> 00:05:46,215
+We'll go ahead and test out the Create.
+
+102
+00:05:46,215 --> 00:05:48,277
+In Postman, when you're creating something,
+
+103
+00:05:48,277 --> 00:05:54,216
+you want to set the HTTP verb to POST, and you need to pass in a body.
+
+104
+00:05:54,216 --> 00:05:56,735
+You can do that on the Body tab here.
+
+105
+00:05:56,735 --> 00:06:03,233
+I've selected the raw with the JSON payload so I can pass in a payload here,
+
+106
+00:06:03,233 --> 00:06:07,269
+and we can see that I have given my new session a name,
+
+107
+00:06:07,269 --> 00:06:12,408
+a description, and a length.
+
+108
+00:06:12,408 --> 00:06:16,402
+Down at the bottom here, you can see that we have a status of 200,
+
+109
+00:06:16,402 --> 00:06:20,369
+meaning that it succeeded, and we have a new session.
+
+110
+00:06:20,369 --> 00:06:23,419
+It's been issued an id of 94.
+
+111
+00:06:23,419 --> 00:06:28,205
+This is what the sequence on the Postgres database automatically did for us.
+
+112
+00:06:28,205 --> 00:06:31,225
+And we have all of the data that we passed in.
+
+113
+00:06:31,225 --> 00:06:32,852
+We can try an update.
+
+114
+00:06:32,852 --> 00:06:35,825
+Again, if you remember, the update takes the PUT verb,
+
+115
+00:06:35,825 --> 00:06:40,928
+and let's go ahead and update the session that I just created,
+
+116
+00:06:40,928 --> 00:06:42,217
+which was 94.
+
+117
+00:06:42,217 --> 00:06:44,142
+We'll take a look at the updated attributes.
+
+118
+00:06:44,142 --> 00:06:44,435
+Again,
+
+119
+00:06:44,435 --> 00:06:46,740
+we're requiring all three of these attributes because
+
+120
+00:06:46,740 --> 00:06:49,144
+it is a PUT rather than a PATCH.
+
+121
+00:06:49,144 --> 00:06:51,819
+We'll send that off to the server.
+
+122
+00:06:51,819 --> 00:06:53,638
+Again, our status is 200 OK,
+
+123
+00:06:53,638 --> 00:06:57,362
+and you can see that the data coming back was we updated
+
+124
+00:06:57,362 --> 00:07:01,069
+session 94 with the new data we passed to it.
+
+125
+00:07:01,069 --> 00:07:04,911
+And finally, to round out our CRUD endpoints, we can try the DELETE out.
+
+126
+00:07:04,911 --> 00:07:09,027
+Since we created a new session with id 94,
+
+127
+00:07:09,027 --> 00:07:11,651
+I'll just go ahead and delete that because I know it
+
+128
+00:07:11,651 --> 00:07:13,265
+does not have any children data.
+
+129
+00:07:13,265 --> 00:07:15,462
+We don't need to pass anything into the body,
+
+130
+00:07:15,462 --> 00:07:19,905
+and we change the verb to DELETE, send that off,
+
+131
+00:07:19,905 --> 00:07:22,683
+and we got a 200 back.
+
+132
+00:07:22,683 --> 00:07:26,408
+So if you got a 400, or a 404, or a 500,
+
+133
+00:07:26,408 --> 00:07:29,327
+those are all problems that have occurred.
+
+134
+00:07:29,327 --> 00:07:31,885
+Either the URL is wrong for a 404.
+
+135
+00:07:31,885 --> 00:07:35,753
+If you've got a 500, there's some kind of a exception happening on your server,
+
+136
+00:07:35,753 --> 00:07:38,764
+and that's where you'll want to go ahead and jump back to
+
+137
+00:07:38,764 --> 00:07:41,153
+IntelliJ and look at the console output.
+
+138
+00:07:41,153 --> 00:07:44,849
+This is where all of the problems will show up,
+
+139
+00:07:44,849 --> 00:07:51,061
+and you can see anything that has happened here that might have caused an error.
+
+140
+00:07:51,061 --> 00:07:51,651
+And that's it!
+
+141
+00:07:51,651 --> 00:07:55,224
+I'll go ahead and let you try out the speaker endpoints.
+
+142
+00:07:55,224 --> 00:07:58,388
+Assuming everything is working for your speaker endpoints as well,
+
+143
+00:07:58,388 --> 00:08:01,991
+we have essentially built a full-blown application on the
+
+144
+00:08:01,991 --> 00:08:04,932
+server side in the last 25-30 minutes.
+
+145
+00:08:04,932 --> 00:08:09,339
+You can see that Spring Boot is very quick at building things,
+
+146
+00:08:09,339 --> 00:08:19,000
+especially, if you're familiar with the other Spring frameworks, like Spring MVC and Spring Data JPA, as well as JPA and entities.
+

@@ -1,0 +1,679 @@
+1
+00:00:04,480 --> 00:00:06,030
+Hello and welcome in this lecture.
+
+2
+00:00:06,040 --> 00:00:12,190
+We are going to be getting notifications when we level up so we'll get a log message down here saying
+
+3
+00:00:12,190 --> 00:00:14,510
+that I leveled up when I killed that guard.
+
+4
+00:00:14,530 --> 00:00:19,720
+We're also going to make this much more efficient so that levels aren't being calculated every frame
+
+5
+00:00:19,720 --> 00:00:25,090
+or more than once a frame but only calculated every time the experience changes which is the only variable
+
+6
+00:00:25,090 --> 00:00:26,440
+that matters to us.
+
+7
+00:00:26,440 --> 00:00:31,750
+And in the process we're going to learn about delegates and events and actions in C sharp to help us
+
+8
+00:00:31,810 --> 00:00:32,970
+make that happen.
+
+9
+00:00:32,980 --> 00:00:40,150
+Let's dive in to this action packed lecture so suppose that when I kill this guard over here and take
+
+10
+00:00:40,150 --> 00:00:44,220
+my experience points with me then I get a level up.
+
+11
+00:00:44,230 --> 00:00:49,960
+But there's no real signal to the player that that has happened other than looking at the level score
+
+12
+00:00:50,050 --> 00:00:51,210
+in the top left.
+
+13
+00:00:51,250 --> 00:00:55,840
+So we want to have some sort of gameplay event triggered when that happens.
+
+14
+00:00:55,840 --> 00:01:02,050
+And the best way to do that is to store some state because we need to know what the previous level was
+
+15
+00:01:02,380 --> 00:01:04,570
+in order to know whether we've leveled up or not.
+
+16
+00:01:04,570 --> 00:01:08,770
+And at the moment all we're doing is there's no state that tells us what the level is we just know whether
+
+17
+00:01:08,770 --> 00:01:11,860
+the experience points have gone up or not.
+
+18
+00:01:11,920 --> 00:01:16,510
+In fact we don't even know that we just know that what the experience points currently are and we can
+
+19
+00:01:16,510 --> 00:01:17,800
+calculate the level from that.
+
+20
+00:01:17,800 --> 00:01:21,480
+So if we want to keep track of the current level we need a new variable.
+
+21
+00:01:21,490 --> 00:01:27,760
+It's going to be an int called current level and I'm going to start it off with zero which is actually
+
+22
+00:01:27,760 --> 00:01:34,420
+invalid level just to make sure that we actually initialize it properly and initialize it from either
+
+23
+00:01:34,420 --> 00:01:38,620
+the starting level or via the experience points.
+
+24
+00:01:38,620 --> 00:01:45,010
+So talking about initialization let's create a start to do it in and the first instance what we should
+
+25
+00:01:45,010 --> 00:01:53,760
+do is get our current level from get level get level will do the grunt work of actually figuring out
+
+26
+00:01:53,760 --> 00:01:57,840
+where it should go from starting level or from the experience.
+
+27
+00:01:57,840 --> 00:02:02,220
+Next up we can replace this update which is currently printing stuff out that we don't need the log
+
+28
+00:02:02,220 --> 00:02:04,110
+messages for anymore.
+
+29
+00:02:04,110 --> 00:02:11,070
+And what we're going to do is essentially every update we want to update the current level via get level
+
+30
+00:02:11,610 --> 00:02:18,210
+but we actually want to check whether we have changed the current level so I'm going to store in a variable
+
+31
+00:02:18,210 --> 00:02:26,250
+first called new level the level that we calculate and then we gonna say if the new level is greater
+
+32
+00:02:26,250 --> 00:02:27,600
+than the current level.
+
+33
+00:02:27,600 --> 00:02:33,060
+Now obviously if your game can have levels go down as well you might need to tweak this logic then here
+
+34
+00:02:33,090 --> 00:02:35,670
+we want to signal or do something.
+
+35
+00:02:35,670 --> 00:02:45,100
+I'm going to just use a print statement here saying leveled up and then before this we want to just
+
+36
+00:02:45,100 --> 00:02:46,690
+set the current level.
+
+37
+00:02:46,710 --> 00:02:48,490
+Want to update it to the new level.
+
+38
+00:02:48,490 --> 00:02:51,790
+So we've calculated the new level now we want to set the current level to it.
+
+39
+00:02:51,790 --> 00:02:57,910
+Now we've done the comparison and this is this will probably work and this is okay but there's a couple
+
+40
+00:02:57,910 --> 00:02:58,630
+of problems here.
+
+41
+00:02:58,630 --> 00:03:03,080
+The first one is that we're recalculating get level every single time.
+
+42
+00:03:03,100 --> 00:03:06,940
+And in fact when do we call get level externally we're also recalculating it.
+
+43
+00:03:06,940 --> 00:03:14,860
+So let us consider instead basically turning get level here in to a different method and just using
+
+44
+00:03:14,920 --> 00:03:17,500
+get level as a successor.
+
+45
+00:03:17,590 --> 00:03:18,460
+Let me show you what I mean.
+
+46
+00:03:18,460 --> 00:03:27,770
+So we do a public int get level another get level which basically just returns current level and then
+
+47
+00:03:27,800 --> 00:03:32,850
+we change the name get level to calculate level instead.
+
+48
+00:03:33,260 --> 00:03:37,000
+Then calculate level is what we're gonna be calling in start an update.
+
+49
+00:03:37,070 --> 00:03:42,680
+And that means that now we're not having to recalculate the level more than once every frame which is
+
+50
+00:03:42,800 --> 00:03:43,430
+a good thing.
+
+51
+00:03:43,550 --> 00:03:48,350
+But we're still having to calculate it once every frame which is a bit more than necessary because the
+
+52
+00:03:48,440 --> 00:03:52,220
+experience doesn't change every single frame at least not often.
+
+53
+00:03:52,700 --> 00:03:58,640
+And what's even worse than that as potentially a race condition because you gain experience in a particular
+
+54
+00:03:58,640 --> 00:04:01,580
+frame in a particular update from somewhere.
+
+55
+00:04:01,640 --> 00:04:08,840
+This exp gain experience gets called when you take damage and we've got update being called to assess
+
+56
+00:04:08,840 --> 00:04:09,080
+the.
+
+57
+00:04:09,080 --> 00:04:10,960
+And calculate the current level.
+
+58
+00:04:10,970 --> 00:04:16,130
+Now what could happen is that depending on the order of these updates you might calculate the level
+
+59
+00:04:16,190 --> 00:04:21,800
+using the old experience points and for a frame at least you will show the old level on the display.
+
+60
+00:04:21,800 --> 00:04:26,480
+Now you might say that doesn't really matter is just a short problem will soon go away.
+
+61
+00:04:26,480 --> 00:04:33,290
+Well yes that's true but I don't like the messiness of it and with the performance consideration I think
+
+62
+00:04:33,290 --> 00:04:34,150
+we can do better.
+
+63
+00:04:34,160 --> 00:04:39,350
+And it's a good excuse to teach you about delegates and about events in more depth.
+
+64
+00:04:39,350 --> 00:04:45,590
+Now remember we have done events and delegates before when we created our cinematic control remover.
+
+65
+00:04:45,590 --> 00:04:51,410
+And here we had this playbill director and we learnt how to subscribe to these events but we really
+
+66
+00:04:51,410 --> 00:04:57,880
+glazed over how to create our own events and that's what I'd like to go into more detail with here.
+
+67
+00:04:57,890 --> 00:05:01,970
+We're not going to have a challenge on this you're just going to watch me code along and do it.
+
+68
+00:05:01,970 --> 00:05:06,410
+But in an upcoming video we are going to challenge you to actually create your own events as well so
+
+69
+00:05:06,410 --> 00:05:08,280
+don't worry that is coming very very soon.
+
+70
+00:05:08,390 --> 00:05:12,810
+Just to test your understanding but because it's a lot of concepts to cover in one go.
+
+71
+00:05:12,950 --> 00:05:16,060
+I'm just gonna do one video that covers the concepts first.
+
+72
+00:05:16,250 --> 00:05:19,430
+So what is the level what is a delegate.
+
+73
+00:05:19,430 --> 00:05:23,450
+We've heard these words may be bandied about maybe you haven't heard these words bandied about.
+
+74
+00:05:23,450 --> 00:05:26,770
+Well let's take a step back a second and see why we need this in the first place.
+
+75
+00:05:26,780 --> 00:05:32,270
+So we've got this base stats and we know base stats depends on experience because it gets the experience
+
+76
+00:05:32,270 --> 00:05:33,770
+in order to calculate the level.
+
+77
+00:05:33,830 --> 00:05:40,160
+But what we want now is a callback from experience saying hey base stats I've updated it's time for
+
+78
+00:05:40,160 --> 00:05:42,050
+you to recalculate your level.
+
+79
+00:05:42,320 --> 00:05:48,200
+And this is a classic example of the observer pattern very much like we did with the cinematic control
+
+80
+00:05:48,200 --> 00:05:48,860
+remover.
+
+81
+00:05:48,980 --> 00:05:53,750
+It allows us to have the dependency go in one direction but execution go in the other.
+
+82
+00:05:53,840 --> 00:05:58,370
+Also very similar to interfaces but in this case delegates are a better fit.
+
+83
+00:05:58,430 --> 00:06:03,860
+So what are delegates I keep using these words and delegates and events interchangeably what's the difference.
+
+84
+00:06:03,860 --> 00:06:08,000
+Well a delegate is just a list of pointers to methods.
+
+85
+00:06:08,000 --> 00:06:11,300
+Remember how we talked about that in the cinematic control remover.
+
+86
+00:06:11,510 --> 00:06:16,930
+Basically we've got a delegate which is a list of pointers to methods how do we declare a delegate.
+
+87
+00:06:16,940 --> 00:06:22,010
+Well it looks like this if I go to my base stats and actually get experience because it's from experience
+
+88
+00:06:22,010 --> 00:06:29,490
+that I want to allow sloughed to be subscribed so from now until the end of this video I'm going to
+
+89
+00:06:29,490 --> 00:06:32,400
+be working through an example that we're subsequently going to delete.
+
+90
+00:06:32,430 --> 00:06:36,680
+So for now put down your editors and just watch along.
+
+91
+00:06:36,750 --> 00:06:43,410
+So I'm going to create a new public delegate so that it's accessible outside a delegate just looks a
+
+92
+00:06:43,410 --> 00:06:45,520
+lot like a function or a method.
+
+93
+00:06:45,840 --> 00:06:47,580
+So you give it a return type.
+
+94
+00:06:47,580 --> 00:06:51,560
+So we could have a bool return type and then the name of the delegates.
+
+95
+00:06:51,570 --> 00:06:57,000
+So example delegate and then potentially some arguments.
+
+96
+00:06:57,000 --> 00:07:04,250
+So we could have a float value and this is a delegate or at least it's the type.
+
+97
+00:07:04,250 --> 00:07:10,480
+It's a delegate type and we can create instances of this delicate just by using it as a type.
+
+98
+00:07:10,490 --> 00:07:19,100
+So I can have a public again making accessible externally example delegates and then on done stuff for
+
+99
+00:07:19,100 --> 00:07:19,680
+example.
+
+100
+00:07:20,180 --> 00:07:21,650
+And that's the name of the delegate.
+
+101
+00:07:21,650 --> 00:07:27,350
+So now what can happen is we can set this delegate in other classes.
+
+102
+00:07:27,350 --> 00:07:32,820
+So for example in base stats we could get hold of the experience in start.
+
+103
+00:07:32,840 --> 00:07:38,090
+It's a good place to subscribe to events is usually start because from then on we'll get notifications
+
+104
+00:07:38,090 --> 00:07:38,670
+about it.
+
+105
+00:07:38,750 --> 00:07:47,100
+We're going to check whether experience is no and if experience is not No actually we want to go ahead
+
+106
+00:07:47,130 --> 00:07:48,050
+and subscribe.
+
+107
+00:07:48,270 --> 00:07:52,870
+So is can we experience dots on Dunn's stuff.
+
+108
+00:07:52,920 --> 00:07:59,340
+And now remember that I've said that delegates are essentially just a list of pointers to methods.
+
+109
+00:07:59,340 --> 00:08:02,730
+Well so what I can do is I could add to that list so I can do.
+
+110
+00:08:02,730 --> 00:08:04,920
+Plus equals and I can.
+
+111
+00:08:04,920 --> 00:08:05,250
+I don't know.
+
+112
+00:08:05,340 --> 00:08:07,490
+I need to have a function that it can called.
+
+113
+00:08:07,530 --> 00:08:12,880
+And crucially it can't be a function that doesn't match the signature of the delegates so that they
+
+114
+00:08:13,080 --> 00:08:15,060
+delegate signature returns boolean.
+
+115
+00:08:15,060 --> 00:08:17,290
+And it takes a float value.
+
+116
+00:08:17,340 --> 00:08:24,220
+And so if I had update as the function that I'm adding to this list of delegates is going to say Nope
+
+117
+00:08:24,270 --> 00:08:25,740
+that doesn't match the signature.
+
+118
+00:08:25,770 --> 00:08:27,270
+So I need to create something it does.
+
+119
+00:08:27,270 --> 00:08:27,600
+I can.
+
+120
+00:08:27,600 --> 00:08:28,410
+It can be private.
+
+121
+00:08:28,410 --> 00:08:31,470
+Doesn't have to be public even though it's being called outside of this class.
+
+122
+00:08:31,600 --> 00:08:35,750
+Doesn't have to be public because it is not part of our public interface.
+
+123
+00:08:35,850 --> 00:08:38,800
+No one else can call it unless it's done through this delegate.
+
+124
+00:08:38,850 --> 00:08:47,050
+So it's gonna be a bool return value and it's going to have on stuff done as the name.
+
+125
+00:08:47,070 --> 00:08:50,220
+And then it needs to take this float to value as well.
+
+126
+00:08:50,280 --> 00:08:57,480
+And then we can just alternate prints the value in here and then return true or something like that.
+
+127
+00:08:57,510 --> 00:09:01,660
+This is just some example code really obviously it's not doing the right thing.
+
+128
+00:09:01,680 --> 00:09:10,950
+So now we can add on stuff done to the list of events or methods in add delegates and this means that
+
+129
+00:09:10,950 --> 00:09:18,430
+now inexperience we can call this delegate list just like we would call a method with the parentheses.
+
+130
+00:09:18,510 --> 00:09:25,290
+So on stuff done parentheses means hey call this but notice I need to pass in a float because again
+
+131
+00:09:25,290 --> 00:09:31,260
+that is the signature it needs a float to go in and it will actually return a boolean out of here if
+
+132
+00:09:31,260 --> 00:09:35,290
+I wanted to bool result like so.
+
+133
+00:09:35,500 --> 00:09:40,300
+And now you might be thinking Hang on its returning one result but this is a list of delegates how that
+
+134
+00:09:40,300 --> 00:09:41,080
+happening.
+
+135
+00:09:41,100 --> 00:09:48,040
+Well that's happening because it only returns the last result in the list of things that it called.
+
+136
+00:09:48,090 --> 00:09:53,280
+Now notice there is a bit of a confusion here because what I can do is instead of doing plus equals
+
+137
+00:09:53,310 --> 00:09:54,840
+I can do equals as well.
+
+138
+00:09:54,840 --> 00:09:58,530
+So I can say on done stuff equals on stuff done like this.
+
+139
+00:09:58,530 --> 00:10:03,480
+And that's basically the same as saying overwrite everything in the list with just a list containing
+
+140
+00:10:03,480 --> 00:10:05,630
+this one method here.
+
+141
+00:10:05,670 --> 00:10:07,230
+Now you might think hang on a second.
+
+142
+00:10:07,260 --> 00:10:09,270
+That seems a little bit dangerous doesn't it.
+
+143
+00:10:09,270 --> 00:10:17,010
+Because I could have one function and then I could have an on stuff done to like so let's go and do
+
+144
+00:10:17,010 --> 00:10:18,400
+this in fact we can try and run this.
+
+145
+00:10:18,400 --> 00:10:29,500
+So I haven't stopped on to and I'm going to have a print on stuff done to plus the value add to distinguish
+
+146
+00:10:29,500 --> 00:10:33,580
+it from the first print statement which is just on stuff done plus the value.
+
+147
+00:10:33,580 --> 00:10:39,940
+So if we had done this by accident and we're calling this on gain experience let's just see what happens
+
+148
+00:10:39,940 --> 00:10:41,590
+if I go ahead and gain experience.
+
+149
+00:10:41,590 --> 00:10:47,040
+So I'll go and pick up the sword kill the enemy and have a look at the log message.
+
+150
+00:10:47,040 --> 00:10:52,820
+You notice that it's only calling on stuff done too which makes sense because in this second line we
+
+151
+00:10:52,820 --> 00:10:56,890
+have overwritten the whole list of methods to call.
+
+152
+00:10:56,900 --> 00:11:03,620
+So what we really want to be doing is plus equals and we don't want to be doing equals and that doing
+
+153
+00:11:03,620 --> 00:11:05,380
+that would be dangerous.
+
+154
+00:11:05,390 --> 00:11:13,340
+So there is a way of preventing us from overwriting delegate lists like this in C sharp and that is
+
+155
+00:11:13,340 --> 00:11:15,950
+to use the event keyword.
+
+156
+00:11:15,950 --> 00:11:22,430
+So what's an event and event is basically a protection on top of a delegate instance that prevents it
+
+157
+00:11:22,430 --> 00:11:23,600
+from being overwritten.
+
+158
+00:11:23,630 --> 00:11:29,510
+So now if I tried to do the same trick over and base that so if I had this equal sign it's going to
+
+159
+00:11:29,510 --> 00:11:34,310
+give me an error right there and then saying it can't appear I can't be used.
+
+160
+00:11:34,310 --> 00:11:39,350
+Basically an event can't be used with an equal sign has to be used with a plus equals or a minus equals
+
+161
+00:11:39,350 --> 00:11:42,800
+if you're wanting to remove the event notification.
+
+162
+00:11:42,800 --> 00:11:46,130
+So that should now work as we would like.
+
+163
+00:11:46,130 --> 00:11:50,510
+So let's summarize what we've learned in this lecture we've learned that delegates are essentially a
+
+164
+00:11:50,510 --> 00:11:52,540
+list of pointers to methods.
+
+165
+00:11:52,540 --> 00:11:59,840
+We can have a delegate type to be the type of that list and then we have events which are protections
+
+166
+00:11:59,870 --> 00:12:05,380
+on those delegates to stop us from being able to overwrite those lists from outside of the class.
+
+167
+00:12:05,420 --> 00:12:12,290
+And we've seen how this can be used to implement the observer pattern where we want other classes to
+
+168
+00:12:12,290 --> 00:12:17,390
+subscribe to our events without us having to know who they are.
+
+169
+00:12:17,480 --> 00:12:23,660
+Now in the next lecture we're going to go ahead and apply this to our own code and we'll also need to
+
+170
+00:12:23,660 --> 00:12:27,950
+learn about something called an action which C sharp gives us for convenience.

@@ -1,0 +1,337 @@
+WEBVTT
+1
+00:00:02.475 --> 00:00:05.141
+In the module on leveraging dependency injection,
+
+2
+00:00:05.141 --> 00:00:07.045
+I introduced a testing pyramid.
+
+3
+00:00:07.045 --> 00:00:07.761
+In this module,
+
+4
+00:00:07.761 --> 00:00:11.062
+we'll be moving up the pyramid to the component integration testing layer.
+
+5
+00:00:11.062 --> 00:00:14.087
+As I mentioned when introducing the testing pyramid,
+
+6
+00:00:14.087 --> 00:00:17.574
+component integration testing is a bit of a fungible term,
+
+7
+00:00:17.574 --> 00:00:21.104
+and it is why I have a dotted line between it and unit testing.
+
+8
+00:00:21.104 --> 00:00:23.769
+When talking to some colleagues while developing this course,
+
+9
+00:00:23.769 --> 00:00:25.867
+some still felt component integration testing could
+
+10
+00:00:25.867 --> 00:00:27.372
+still be considered unit testing.
+
+11
+00:00:27.372 --> 00:00:30.882
+If you're more comfortable with that term for this layer of testing,
+
+12
+00:00:30.882 --> 00:00:32.000
+that is fine; however,
+
+13
+00:00:32.000 --> 00:00:35.812
+as I'm defining component integration testing within this course,
+
+14
+00:00:35.812 --> 00:00:38.604
+component integration testing is tests that focus on how your
+
+15
+00:00:38.604 --> 00:00:41.071
+application interacts with the libraries it depends upon,
+
+16
+00:00:41.071 --> 00:00:43.678
+as well as testing of cross-cutting concerns,
+
+17
+00:00:43.678 --> 00:00:45.359
+like logging and security.
+
+18
+00:00:45.359 --> 00:00:46.871
+In many of these instances,
+
+19
+00:00:46.871 --> 00:00:51.339
+these tests also require in part or in total initializing your application.
+
+20
+00:00:51.339 --> 00:00:53.482
+This contrasts with how I view unit testing,
+
+21
+00:00:53.482 --> 00:00:58.441
+which are tests that are heavily isolated and exclusively test application code.
+
+22
+00:00:58.441 --> 00:01:00.230
+For more on how I define unit testing,
+
+23
+00:01:00.230 --> 00:01:04.588
+you can look back to the module on leveraging dependency injection.
+
+24
+00:01:04.588 --> 00:01:06.851
+So with defining what component integration testing is,
+
+25
+00:01:06.851 --> 00:01:08.461
+what are the goals of it?
+
+26
+00:01:08.461 --> 00:01:09.984
+At many places I have worked,
+
+27
+00:01:09.984 --> 00:01:13.450
+I have often had a feeling of being locked into the libraries the
+
+28
+00:01:13.450 --> 00:01:16.916
+applications depend upon at the time the project was written.
+
+29
+00:01:16.916 --> 00:01:18.579
+As a greenfield project,
+
+30
+00:01:18.579 --> 00:01:21.904
+writing code for the application felt new and exciting; however,
+
+31
+00:01:21.904 --> 00:01:25.608
+it wasn't long before the dependent libraries started becoming out of date.
+
+32
+00:01:25.608 --> 00:01:28.089
+Libraries couldn't be updated because it would introduce risk,
+
+33
+00:01:28.089 --> 00:01:31.823
+as well as requiring a full regression test of the application.
+
+34
+00:01:31.823 --> 00:01:35.219
+While Pivotal and other library developers often strive to ensure their
+
+35
+00:01:35.219 --> 00:01:37.806
+libraries are backwards compatible and free of bugs,
+
+36
+00:01:37.806 --> 00:01:39.099
+no process is perfect.
+
+37
+00:01:39.099 --> 00:01:39.895
+At the most innocent,
+
+38
+00:01:39.895 --> 00:01:42.821
+this meant not getting to use some of the cool new features introduced
+
+39
+00:01:42.821 --> 00:01:45.389
+in more recent iterations of the library; however,
+
+40
+00:01:45.389 --> 00:01:46.911
+of much more concern,
+
+41
+00:01:46.911 --> 00:01:50.359
+applications became more vulnerable as time went on because they were not
+
+42
+00:01:50.359 --> 00:01:52.693
+bringing in the latest patches that addressed security exploits.
+
+43
+00:01:52.693 --> 00:01:57.065
+A recent example of this, as of the producing of this video,
+
+44
+00:01:57.065 --> 00:01:58.744
+is the Equifax hack.
+
+45
+00:01:58.744 --> 00:02:01.304
+The problem wasn't that Equifax was using Struts,
+
+46
+00:02:01.304 --> 00:02:03.254
+but an out-of-date version of Struts.
+
+47
+00:02:03.254 --> 00:02:07.771
+So a goal of component integration testing is to help prevent library walk in.
+
+48
+00:02:07.771 --> 00:02:11.006
+Another goal of component integration testing is to test
+
+49
+00:02:11.006 --> 00:02:13.540
+cross-cutting concerns like logging and security.
+
+50
+00:02:13.540 --> 00:02:17.835
+An example we'll be using in this module of cross-cutting concerns is a logging
+
+51
+00:02:17.835 --> 00:02:21.863
+aspect that captures request information coming in to a RESTful endpoint and the
+
+52
+00:02:21.863 --> 00:02:24.473
+response that endpoint sends back to the client.
+
+53
+00:02:24.473 --> 00:02:27.383
+While this can obviously be handled within the controller itself,
+
+54
+00:02:27.383 --> 00:02:31.124
+it's much more efficient to handle such functionality with an aspect.
+
+55
+00:02:31.124 --> 00:02:33.903
+Instead of manually adding logging statements at the start and
+
+56
+00:02:33.903 --> 00:02:36.235
+end of every method that defines an endpoint,
+
+57
+00:02:36.235 --> 00:02:39.441
+for example a practice which can quickly pollute your code base,
+
+58
+00:02:39.441 --> 00:02:41.238
+as well as having inconsistent coverage,
+
+59
+00:02:41.238 --> 00:02:45.546
+an aspect can be written and configured to weave around your endpoints.
+
+60
+00:02:45.546 --> 00:02:47.526
+Not only does this greatly reduce code bloats,
+
+61
+00:02:47.526 --> 00:02:50.736
+but also typically allows for safer and/or more complex logging,
+
+62
+00:02:50.736 --> 00:02:54.100
+as logging statements no longer have to be copied and
+
+63
+00:02:54.100 --> 00:02:55.728
+pasted into every method endpoint.
+
+64
+00:02:55.728 --> 00:02:58.038
+However, while this aspect of aspects of great,
+
+65
+00:02:58.038 --> 00:03:00.574
+testing them can be a bit more difficult.
+
+66
+00:03:00.574 --> 00:03:02.986
+Luckily when it comes to testing aspects and other
+
+67
+00:03:02.986 --> 00:03:04.421
+areas of component integration testing,
+
+68
+00:03:04.421 --> 00:03:07.639
+Spring has provided a lot of tools to make testing easier,
+
+69
+00:03:07.639 --> 00:03:10.828
+and we will be taking a look at these tools in the demos in this module.
+
+70
+00:03:10.828 --> 00:03:15.419
+Within many of our test classes, we will be adding the JUnit RunWith annotation,
+
+71
+00:03:15.419 --> 00:03:17.911
+and using the SpringRunner class.
+
+72
+00:03:17.911 --> 00:03:19.785
+This will stand up the Spring container.
+
+73
+00:03:19.785 --> 00:03:20.856
+With Spring Boot 1.
+
+74
+00:03:20.856 --> 00:03:23.442
+4, the Boot team added a lot of testing tools.
+
+75
+00:03:23.442 --> 00:03:25.057
+One example is the DataJpaTest.
+
+76
+00:03:25.057 --> 00:03:28.591
+This stands up the data layer of a Spring Boot application,
+
+77
+00:03:28.591 --> 00:03:32.603
+as well as providing tools that make testing the data layer easier.
+
+78
+00:03:32.603 --> 00:03:34.455
+With the Spring container activated,
+
+79
+00:03:34.455 --> 00:03:37.808
+Spring can also hand our test class's dependencies as well.
+
+80
+00:03:37.808 --> 00:03:38.854
+So to review,
+
+81
+00:03:38.854 --> 00:03:42.949
+the goals of component integration testing are verify cross-cutting concerns,
+
+82
+00:03:42.949 --> 00:03:45.708
+for example logging or security,
+
+83
+00:03:45.708 --> 00:03:49.838
+keep our application secure by keeping up the latest security patches,
+
+84
+00:03:49.838 --> 00:03:59.000
+and keep developers happy by keeping up with the latest library features. So let's start looking at some component integration testing in action.
+

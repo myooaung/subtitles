@@ -1,0 +1,1045 @@
+WEBVTT
+1
+00:00:01.040 --> 00:00:05.950
+The actual confirmation of the account might look like the simplest part,
+
+2
+00:00:05.950 --> 00:00:08.700
+but it actually has the most work to do as far as
+
+3
+00:00:08.700 --> 00:00:10.990
+moving data around on the back end.
+
+4
+00:00:10.990 --> 00:00:13.510
+The view is simply just what you see here,
+
+5
+00:00:13.510 --> 00:00:17.120
+but we need to go ahead and move the token and account out of
+
+6
+00:00:17.120 --> 00:00:20.440
+the table that we had and move them over to the users table
+
+7
+00:00:20.440 --> 00:00:22.370
+and associate roles with them.
+
+8
+00:00:22.370 --> 00:00:25.330
+So we're going to do a lot of work in the service and
+
+9
+00:00:25.330 --> 00:00:27.940
+repository tiers to move this information around,
+
+10
+00:00:27.940 --> 00:00:29.910
+and then it's all done.
+
+11
+00:00:29.910 --> 00:00:32.010
+These are all the pieces that we needed to go through
+
+12
+00:00:32.010 --> 00:00:34.540
+the entire confirmation process.
+
+13
+00:00:34.540 --> 00:00:37.860
+I've gone ahead and closed down all of the open files that we had,
+
+14
+00:00:37.860 --> 00:00:41.650
+because we just had half of our project open while we were working on it,
+
+15
+00:00:41.650 --> 00:00:44.930
+and we're just doing the final confirmation step of this.
+
+16
+00:00:44.930 --> 00:00:47.770
+So, I've opened up our AccountController.
+
+17
+00:00:47.770 --> 00:00:50.260
+I'm going to add another method below here,
+
+18
+00:00:50.260 --> 00:00:54.250
+and it is a GetMapping for accountConfirm.
+
+19
+00:00:54.250 --> 00:01:00.970
+And inside of here, we are going to look for the RequestParameter token,
+
+20
+00:01:00.970 --> 00:01:06.060
+you can tell by the @RequestParam annotation where we grab token,
+
+21
+00:01:06.060 --> 00:01:09.970
+and that's what's built in the email that we sent out,
+
+22
+00:01:09.970 --> 00:01:16.040
+and then we're going to call confirmAccount on our accountService.
+
+23
+00:01:16.040 --> 00:01:21.640
+Now, if we open up our AccountServiceImpl and look at it,
+
+24
+00:01:21.640 --> 00:01:23.000
+confirmAccount is empty,
+
+25
+00:01:23.000 --> 00:01:27.370
+and this is what we're going to go ahead and start putting all the
+
+26
+00:01:27.370 --> 00:01:30.260
+details in of what it means to actually confirm account.
+
+27
+00:01:30.260 --> 00:01:33.110
+And there's some round‑tripping with the database and looking up of the token,
+
+28
+00:01:33.110 --> 00:01:36.170
+so let's go ahead and start pseudo coding that out so we can see these steps
+
+29
+00:01:36.170 --> 00:01:39.990
+that we need to do. And that's going to look like this.
+
+30
+00:01:39.990 --> 00:01:43.650
+We're going to retrieve the token from the database,
+
+31
+00:01:43.650 --> 00:01:45.740
+then verify the date,
+
+32
+00:01:45.740 --> 00:01:50.740
+then move the user from the account table to the userdetails table,
+
+33
+00:01:50.740 --> 00:01:54.780
+create the userdetails object, delete from accounts,
+
+34
+00:01:54.780 --> 00:01:58.720
+and then finally delete from tokens if all of these things
+
+35
+00:01:58.720 --> 00:02:02.140
+flow in order and go how they should.
+
+36
+00:02:02.140 --> 00:02:06.710
+So let's start by retrieving that token. And we're going
+
+37
+00:02:06.710 --> 00:02:08.950
+to store that in a VerificationToken,
+
+38
+00:02:08.950 --> 00:02:13.710
+so we'll say VerificationToken verificationToken is
+
+39
+00:02:13.710 --> 00:02:19.360
+equal to accountRepository.findByToken,
+
+40
+00:02:19.360 --> 00:02:27.200
+and we'll pass in the token string that we have.
+
+41
+00:02:27.200 --> 00:02:33.850
+And we haven't created this method yet, so let's hover over that red helper,
+
+42
+00:02:33.850 --> 00:02:39.840
+we'll click findToken and save this, and if we open up our AccountRepository,
+
+43
+00:02:39.840 --> 00:02:44.040
+it'll ask us if we want to go ahead and implement those fields.
+
+44
+00:02:44.040 --> 00:02:46.990
+We can go to the top of our class and say Implement
+
+45
+00:02:46.990 --> 00:02:53.210
+methods, and OK. Let me make this full screen so that you
+
+46
+00:02:53.210 --> 00:02:54.670
+can see it a little bit easier.
+
+47
+00:02:54.670 --> 00:02:59.510
+I am going to paste in this already created,
+
+48
+00:02:59.510 --> 00:03:02.270
+because it is a little bit of typing to do,
+
+49
+00:03:02.270 --> 00:03:10.760
+and in the lieu of time, and import these so we have all of our pieces here.
+
+50
+00:03:10.760 --> 00:03:13.010
+And let me walk through this code with you.
+
+51
+00:03:13.010 --> 00:03:15.870
+Same as before, we created a JdbcTemplate,
+
+52
+00:03:15.870 --> 00:03:19.940
+put our dataSource in the constructor of that.
+
+53
+00:03:19.940 --> 00:03:22.670
+We're doing a queryForObject, as you can see here,
+
+54
+00:03:22.670 --> 00:03:24.790
+so we're saying template.queryForObject,
+
+55
+00:03:24.790 --> 00:03:27.560
+where we have the SQL that we're passing into it,
+
+56
+00:03:27.560 --> 00:03:29.990
+select username, token, expiry_date,
+
+57
+00:03:29.990 --> 00:03:34.360
+from verification_tokens where token =?, and then we'll use
+
+58
+00:03:34.360 --> 00:03:37.440
+the varargs to pass in what that value is.
+
+59
+00:03:37.440 --> 00:03:39.100
+Then we do an anonymous inner class,
+
+60
+00:03:39.100 --> 00:03:42.000
+which is really common to do in this type of query,
+
+61
+00:03:42.000 --> 00:03:47.310
+where we pass in a new RowMapper on the object VerificationToken,
+
+62
+00:03:47.310 --> 00:03:52.440
+and the mapRow method takes and looks for username,
+
+63
+00:03:52.440 --> 00:03:52.960
+token,
+
+64
+00:03:52.960 --> 00:03:57.070
+and expiry_date, and we're expecting one of these to come back so that's
+
+65
+00:03:57.070 --> 00:04:00.640
+why it is a queryForObject and not a queryForList,
+
+66
+00:04:00.640 --> 00:04:02.350
+builds that object,
+
+67
+00:04:02.350 --> 00:04:08.360
+and then you can see at the very bottom here on my line 58 there is a token,
+
+68
+00:04:08.360 --> 00:04:11.170
+and that is that varargs that's getting passed into that
+
+69
+00:04:11.170 --> 00:04:14.050
+question mark in our SQL statement.
+
+70
+00:04:14.050 --> 00:04:15.110
+And then finally,
+
+71
+00:04:15.110 --> 00:04:21.430
+all of that gets returned on line 59 back to our calling method,
+
+72
+00:04:21.430 --> 00:04:24.670
+so that that'll walk clear back out to our AccountServiceImpl
+
+73
+00:04:24.670 --> 00:04:28.430
+where we have here our VerificationToken.
+
+74
+00:04:28.430 --> 00:04:30.880
+Now let's verify the date that gets returned.
+
+75
+00:04:30.880 --> 00:04:34.290
+We're actually going to do this very simply by looking at
+
+76
+00:04:34.290 --> 00:04:40.110
+the date that comes out of our object,
+
+77
+00:04:40.110 --> 00:04:44.600
+which was our verificationToken where we calculated the expiration
+
+78
+00:04:44.600 --> 00:04:48.560
+date, and what this is simply doing is looking to see if that date
+
+79
+00:04:48.560 --> 00:04:51.470
+is after the date that we set to expire.
+
+80
+00:04:51.470 --> 00:04:54.790
+So if the date of now, or our current time,
+
+81
+00:04:54.790 --> 00:04:58.520
+is after the expiration date, then we know it's still good.
+
+82
+00:04:58.520 --> 00:04:59.290
+If it's before it,
+
+83
+00:04:59.290 --> 00:05:02.700
+then we know that our expiration date has in fact
+
+84
+00:05:02.700 --> 00:05:04.860
+expired and we shouldn't allow this,
+
+85
+00:05:04.860 --> 00:05:07.790
+which you should probably throw an exception and handle it from here,
+
+86
+00:05:07.790 --> 00:05:12.040
+but we're just trying to show the best‑case, happy‑path scenario here.
+
+87
+00:05:12.040 --> 00:05:13.900
+So if this data is valid,
+
+88
+00:05:13.900 --> 00:05:18.070
+now the next step that we want to do is go ahead and
+
+89
+00:05:18.070 --> 00:05:22.100
+call the accountRepository again.
+
+90
+00:05:22.100 --> 00:05:26.630
+So we'll say Account account is equal to
+
+91
+00:05:26.630 --> 00:05:36.530
+accountRepository.findByUsername. And we're going to go ahead and
+
+92
+00:05:36.530 --> 00:05:41.940
+use our verificationToken and get the username out of that.
+
+93
+00:05:41.940 --> 00:05:44.740
+And just like the findByToken,
+
+94
+00:05:44.740 --> 00:05:52.640
+we can hover over that red findByUsername and click Create findByUsername.
+
+95
+00:05:52.640 --> 00:05:56.420
+And if we save this, then in our AccountRepository it'll
+
+96
+00:05:56.420 --> 00:06:00.340
+give us the option to create this as well.
+
+97
+00:06:00.340 --> 00:06:04.050
+And like I mentioned before, you can use Hibernate to do this,
+
+98
+00:06:04.050 --> 00:06:05.590
+it's the same thing.
+
+99
+00:06:05.590 --> 00:06:09.440
+This is a little bit clearer, and if you're working with an existing data model,
+
+100
+00:06:09.440 --> 00:06:10.710
+it's actually a little easier.
+
+101
+00:06:10.710 --> 00:06:13.940
+It's a little bit more work up front to type the queries in,
+
+102
+00:06:13.940 --> 00:06:16.040
+but it's a lot better way to go.
+
+103
+00:06:16.040 --> 00:06:20.910
+So, I'm going to go ahead and paste that in there, as you just saw,
+
+104
+00:06:20.910 --> 00:06:28.840
+for our findByUsername, and this is just like the other query that we just did.
+
+105
+00:06:28.840 --> 00:06:31.470
+If I get this down to another line so you can see it,
+
+106
+00:06:31.470 --> 00:06:35.360
+we have the findByUsername, we create a JdbcTemplate,
+
+107
+00:06:35.360 --> 00:06:39.070
+it's also a queryForObject, we're getting one object returned.
+
+108
+00:06:39.070 --> 00:06:39.520
+In fact,
+
+109
+00:06:39.520 --> 00:06:43.220
+you can copy the one we did up above or you could grab the source code
+
+110
+00:06:43.220 --> 00:06:46.010
+out of the exercise files or out of my GitHub repo.
+
+111
+00:06:46.010 --> 00:06:48.510
+But you can see here we're doing a select username,
+
+112
+00:06:48.510 --> 00:06:49.730
+firstname, lastname,
+
+113
+00:06:49.730 --> 00:06:53.830
+password from accounts where username is equal to question mark.
+
+114
+00:06:53.830 --> 00:06:57.640
+Question mark is going to take that varargs of our username from down below.
+
+115
+00:06:57.640 --> 00:07:03.630
+We have an anonymous inner class of a new RowMapper on the Account object,
+
+116
+00:07:03.630 --> 00:07:07.190
+which takes the firstname, lastname, username,
+
+117
+00:07:07.190 --> 00:07:09.920
+password, returns all of that information,
+
+118
+00:07:09.920 --> 00:07:12.510
+and sets it on that Account object,
+
+119
+00:07:12.510 --> 00:07:16.740
+and that eventually returns everything back to our AccountService,
+
+120
+00:07:16.740 --> 00:07:21.440
+where we can now move to creating the user details.
+
+121
+00:07:21.440 --> 00:07:24.140
+Now we need to create our userDetails object,
+
+122
+00:07:24.140 --> 00:07:28.140
+which is an object that we used earlier in this course,
+
+123
+00:07:28.140 --> 00:07:33.300
+and that is simply a ConferenceUserDetails object.
+
+124
+00:07:33.300 --> 00:07:35.560
+And all this is,
+
+125
+00:07:35.560 --> 00:07:42.230
+is simply an instance of the ConferenceUserDetails, which
+
+126
+00:07:42.230 --> 00:07:46.040
+extends Spring's UserDetails object,
+
+127
+00:07:46.040 --> 00:07:50.640
+and we take and build that out with the username and
+
+128
+00:07:50.640 --> 00:07:52.600
+password that we had stored by the token,
+
+129
+00:07:52.600 --> 00:07:54.420
+and that is the encrypted password.
+
+130
+00:07:54.420 --> 00:07:55.840
+It's not declared text.
+
+131
+00:07:55.840 --> 00:07:57.660
+I can't stress that enough.
+
+132
+00:07:57.660 --> 00:08:00.990
+And then we give it a basic role inside of our application.
+
+133
+00:08:00.990 --> 00:08:03.940
+We haven't gone over roles yet, that's actually in a later module,
+
+134
+00:08:03.940 --> 00:08:09.040
+but we give it a role of _user, just the simplest basic role we can.
+
+135
+00:08:09.040 --> 00:08:09.640
+From here,
+
+136
+00:08:09.640 --> 00:08:14.180
+we haven't created anything, we've created this object, now we need
+
+137
+00:08:14.180 --> 00:08:17.440
+to go store this userDetails in our database.
+
+138
+00:08:17.440 --> 00:08:27.440
+And to do that, we're going to call accountRepository.createUserDetails,
+
+139
+00:08:27.440 --> 00:08:37.530
+and we will pass in our userDetails object that we just created here,
+
+140
+00:08:37.530 --> 00:08:38.880
+and save that.
+
+141
+00:08:38.880 --> 00:08:41.090
+And, again, we haven't created this method yet either,
+
+142
+00:08:41.090 --> 00:08:46.200
+so we'll hover over that, add that to our interface,
+
+143
+00:08:46.200 --> 00:08:50.740
+and we'll save this and go into our AccountRepository,
+
+144
+00:08:50.740 --> 00:08:55.580
+which will give us the option to create that unimplemented method in here.
+
+145
+00:08:55.580 --> 00:09:00.150
+And there is a shortcut to do this is well, but this works for us.
+
+146
+00:09:00.150 --> 00:09:04.530
+And down below here we're going to do another JdbcTemplate.
+
+147
+00:09:04.530 --> 00:09:10.170
+And that is very simple, we just INSERT INTO users username,
+
+148
+00:09:10.170 --> 00:09:11.870
+password, and enabled,
+
+149
+00:09:11.870 --> 00:09:17.240
+and we grab out of that userDetails object our username and password.
+
+150
+00:09:17.240 --> 00:09:18.810
+And we can save this.
+
+151
+00:09:18.810 --> 00:09:22.480
+We've got to do the same thing with our authorities on
+
+152
+00:09:22.480 --> 00:09:24.050
+the other end that we just created,
+
+153
+00:09:24.050 --> 00:09:30.180
+so let's go back to our ServiceImpl, and we want to say
+
+154
+00:09:30.180 --> 00:09:41.240
+accountRepository.createAuthorities.
+
+155
+00:09:41.240 --> 00:09:45.740
+And we will also pass in the userDetails for that as well,
+
+156
+00:09:45.740 --> 00:09:51.240
+because we just stored the authorities inside that userDetails object.
+
+157
+00:09:51.240 --> 00:09:55.460
+Now, when we save this, we're going to get the same thing.
+
+158
+00:09:55.460 --> 00:09:58.640
+We hover over our red createAuthorities,
+
+159
+00:09:58.640 --> 00:10:03.740
+we can create the method createAuthorities in our AccountRepository interface.
+
+160
+00:10:03.740 --> 00:10:07.260
+And just a reminder, why do we want to do all the interfaces and all this stuff,
+
+161
+00:10:07.260 --> 00:10:10.450
+it's because with Spring we can use it for unit testing,
+
+162
+00:10:10.450 --> 00:10:15.490
+we can actually detach our code if the database tables aren't ready, and
+
+163
+00:10:15.490 --> 00:10:20.090
+stub this out so that we're not held up on specific pieces,
+
+164
+00:10:20.090 --> 00:10:24.040
+and it makes our application more modular and testable.
+
+165
+00:10:24.040 --> 00:10:30.940
+Now inside of our AccountRepository, we can hover over the class definition
+
+166
+00:10:30.940 --> 00:10:33.960
+and choose Implement methods again, and go down below.
+
+167
+00:10:33.960 --> 00:10:37.500
+And this is very similar to what we just did with the createUserDetails,
+
+168
+00:10:37.500 --> 00:10:41.260
+except now we're going to iterate over a list.
+
+169
+00:10:41.260 --> 00:10:47.240
+And so we can insert this in here. I've got a JdbcTemplate that we
+
+170
+00:10:47.240 --> 00:10:49.440
+pass in a dataSource just like we have been doing,
+
+171
+00:10:49.440 --> 00:10:53.260
+but now I grab an Iterator on GrantedAuthority from the
+
+172
+00:10:53.260 --> 00:10:56.720
+userDetails.getAuthorities object.
+
+173
+00:10:56.720 --> 00:11:00.260
+And this, while there are things to iterate over,
+
+174
+00:11:00.260 --> 00:11:04.150
+inserts into the authorities table the username and
+
+175
+00:11:04.150 --> 00:11:07.500
+the authority value into that table.
+
+176
+00:11:07.500 --> 00:11:10.570
+And this is a very important step. If you skip this,
+
+177
+00:11:10.570 --> 00:11:12.890
+even though you have a valid username and password,
+
+178
+00:11:12.890 --> 00:11:15.140
+it will not let you log in,
+
+179
+00:11:15.140 --> 00:11:17.460
+because it says they have no rights inside of the
+
+180
+00:11:17.460 --> 00:11:21.140
+application and we'll treat it as bad credentials.
+
+181
+00:11:21.140 --> 00:11:22.230
+At this point,
+
+182
+00:11:22.230 --> 00:11:27.260
+our application will actually log in and will create and confirm the account.
+
+183
+00:11:27.260 --> 00:11:33.560
+What we don't have, though, is any cleanup done or a page that shows us that,
+
+184
+00:11:33.560 --> 00:11:35.650
+hey, your account has finally been confirmed.
+
+185
+00:11:35.650 --> 00:11:39.070
+So, we're going to implement these two simple delete statements
+
+186
+00:11:39.070 --> 00:11:42.520
+really quick and then a splash page for us to land on when we
+
+187
+00:11:42.520 --> 00:11:44.220
+are done confirming the account,
+
+188
+00:11:44.220 --> 00:11:48.450
+but functionality‑wise it's actually working right now if you
+
+189
+00:11:48.450 --> 00:11:52.140
+ran it, it just won't clean up after itself.
+
+190
+00:11:52.140 --> 00:11:56.960
+Deleting from the accounts and tokens tables is really quite easy to do.
+
+191
+00:11:56.960 --> 00:12:01.120
+So we'll just say accountRepository.delete,
+
+192
+00:12:01.120 --> 00:12:08.870
+and since this is the main object that the accountRepository is built upon,
+
+193
+00:12:08.870 --> 00:12:16.940
+we'll just pass in account here, and save this.
+
+194
+00:12:16.940 --> 00:12:18.140
+When we hover over this,
+
+195
+00:12:18.140 --> 00:12:23.640
+we can get our implementation to create that in our interface.
+
+196
+00:12:23.640 --> 00:12:27.090
+And if we go to our implementation, the same as before,
+
+197
+00:12:27.090 --> 00:12:31.720
+we can get the opportunity to implement that method.
+
+198
+00:12:31.720 --> 00:12:34.080
+And inside of here,
+
+199
+00:12:34.080 --> 00:12:37.290
+all we're going to do is call a DELETE FROM accounts
+
+200
+00:12:37.290 --> 00:12:41.860
+where the username is equal to this, and pass in the account.username,
+
+201
+00:12:41.860 --> 00:12:43.910
+and save this.
+
+202
+00:12:43.910 --> 00:12:57.030
+And it's the same thing for the tokens, so we'll accountRepository.deleteToken,
+
+203
+00:12:57.030 --> 00:13:03.840
+and pass in token, and save that.
+
+204
+00:13:03.840 --> 00:13:06.510
+And we have not created that either.
+
+205
+00:13:06.510 --> 00:13:09.340
+This is the last one we have to create.
+
+206
+00:13:09.340 --> 00:13:11.520
+Create that method, save this,
+
+207
+00:13:11.520 --> 00:13:16.320
+and go into our AccountRepository and implement that.
+
+208
+00:13:16.320 --> 00:13:18.550
+This has been a whole bunch of SQL.
+
+209
+00:13:18.550 --> 00:13:20.280
+This is the last one.
+
+210
+00:13:20.280 --> 00:13:23.900
+We'll Implement methods, click OK,
+
+211
+00:13:23.900 --> 00:13:28.170
+and this SQL is very similar to what we just did up above,
+
+212
+00:13:28.170 --> 00:13:31.840
+JdbcTemplate, new JdbcTemplate with the dataSource.
+
+213
+00:13:31.840 --> 00:13:34.750
+We're deleting from VerificationTokens,
+
+214
+00:13:34.750 --> 00:13:36.850
+where the token is equal to question mark,
+
+215
+00:13:36.850 --> 00:13:42.140
+and it's just that token that we passed in from the actual confirmation email.
+
+216
+00:13:42.140 --> 00:13:44.140
+All of the pieces are in place.
+
+217
+00:13:44.140 --> 00:13:46.740
+Let's go back to our AccountServiceImpl,
+
+218
+00:13:46.740 --> 00:13:49.440
+we've fulfilled all the requirements there.
+
+219
+00:13:49.440 --> 00:13:51.480
+Going back to our Controller,
+
+220
+00:13:51.480 --> 00:13:55.230
+our Controller is going to return a view of accountConfirmed.
+
+221
+00:13:55.230 --> 00:13:58.160
+And we don't have a JSP page for that yet,
+
+222
+00:13:58.160 --> 00:14:01.360
+so let's just hurry and put a splash page in there,
+
+223
+00:14:01.360 --> 00:14:03.050
+nothing too serious.
+
+224
+00:14:03.050 --> 00:14:10.730
+We can, in fact, open up our account page that we've created and copy that,
+
+225
+00:14:10.730 --> 00:14:14.280
+and right‑click on jsp and say New, JSP,
+
+226
+00:14:14.280 --> 00:14:25.160
+and we'll call this accountConfirmed, and save that.
+
+227
+00:14:25.160 --> 00:14:29.390
+Then highlight all of this, and override that.
+
+228
+00:14:29.390 --> 00:14:40.610
+We're going to change the title to Account Confirmed.
+
+229
+00:14:40.610 --> 00:14:46.690
+And we can come down to the form down below here and get
+
+230
+00:14:46.690 --> 00:14:49.690
+rid of just about everything down here.
+
+231
+00:14:49.690 --> 00:14:55.520
+We've got this form inside of here, we can get rid of that.
+
+232
+00:14:55.520 --> 00:15:05.060
+And we'll have a very basic div that we're going to just give it a class.
+
+233
+00:15:05.060 --> 00:15:08.810
+Since we've styled our page with Twitter Bootstrap,
+
+234
+00:15:08.810 --> 00:15:15.240
+we can say class= and do an alert inside of here.
+
+235
+00:15:15.240 --> 00:15:22.540
+So we'll say alert alert‑success.
+
+236
+00:15:22.540 --> 00:15:32.100
+And the role is of type alert.
+
+237
+00:15:32.100 --> 00:15:43.040
+And inside of our div we can say Your account has been confirmed.
+
+238
+00:15:43.040 --> 00:15:47.240
+Let's save this.
+
+239
+00:15:47.240 --> 00:15:52.700
+Now, we can fire our application back up and go back over to our page,
+
+240
+00:15:52.700 --> 00:15:54.190
+and when we enter that in,
+
+241
+00:15:54.190 --> 00:15:58.480
+it should do the full round‑trip and clean up after itself even.
+
+242
+00:15:58.480 --> 00:16:04.300
+We go to our Account page and give it a valid username,
+
+243
+00:16:04.300 --> 00:16:06.080
+something that we haven't already used.
+
+244
+00:16:06.080 --> 00:16:09.700
+The First Name and Last Name can be reused.
+
+245
+00:16:09.700 --> 00:16:15.280
+And then I am going to give it a valid email address.
+
+246
+00:16:15.280 --> 00:16:16.970
+We'll want to do that, because if not,
+
+247
+00:16:16.970 --> 00:16:20.360
+all the work we just did will be for nothing.
+
+248
+00:16:20.360 --> 00:16:28.440
+And I can give it whatever password, and click Submit.
+
+249
+00:16:28.440 --> 00:16:30.840
+It's gone round‑trip now.
+
+250
+00:16:30.840 --> 00:16:36.020
+We could put one of those same alert boxes here on this page to notify you.
+
+251
+00:16:36.020 --> 00:16:40.040
+If we go into our email and click Refresh,
+
+252
+00:16:40.040 --> 00:16:43.150
+you'll see the Account Confirmation link,
+
+253
+00:16:43.150 --> 00:16:46.200
+and we can click on this link and it will open up a new page,
+
+254
+00:16:46.200 --> 00:16:54.140
+and should confirm our account as well. And you can see now it's been confirmed.
+
+255
+00:16:54.140 --> 00:17:00.140
+If we pull up a new browser and go to it,
+
+256
+00:17:00.140 --> 00:17:12.140
+we can log in with the username and password that you just created,
+
+257
+00:17:12.140 --> 00:17:13.940
+and everything works.
+
+258
+00:17:13.940 --> 00:17:18.260
+We have done the full round‑tripping, fired off emails,
+
+259
+00:17:18.260 --> 00:17:23.210
+set up all the configuration to do it, the confirmation, tokens,
+
+260
+00:17:23.210 --> 00:17:24.960
+hashed passwords,
+
+261
+00:17:24.960 --> 00:17:32.000
+everything as you would in a full‑fledge production system inside your application now.
+

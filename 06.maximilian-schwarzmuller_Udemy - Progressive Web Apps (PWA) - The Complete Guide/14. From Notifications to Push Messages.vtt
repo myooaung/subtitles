@@ -1,0 +1,271 @@
+WEBVTT
+
+00:02.160 --> 00:09.120
+Let's go back to our slide from before, about how push notifications work. We know how that display notification
+
+00:09.120 --> 00:13.650
+part works but the majority of the slide actually is about the push part,
+
+00:13.650 --> 00:15.090
+so let's dive into that
+
+00:15.120 --> 00:17.780
+now and as you can see, it's a multi-step process.
+
+00:17.790 --> 00:23.550
+First of all, we need to get a subscription, either an existing one or create a new one and store that on
+
+00:23.550 --> 00:26.370
+a server because it's on our own back-end server
+
+00:26.450 --> 00:32.760
+where we want to basically send new push notifications and we can only send them to subscribers and we don't
+
+00:32.760 --> 00:34.570
+send them to e-mails or something like that
+
+00:34.680 --> 00:42.310
+but to registered devices, to be precise, to registered browsers on devices and we use that browser vendor
+
+00:42.320 --> 00:50.040
+push service to really make it to our front-end web app to inform our browser that it should issue
+
+00:50.040 --> 00:54.580
+a system notification or that it should inform our service worker basically.
+
+00:55.020 --> 00:56.120
+So this is what we want to do
+
+00:56.120 --> 01:03.170
+and therefore the thing I want to start with is this create a new subscription part here,
+
+01:03.390 --> 01:08.520
+so the front-end part where we use the service worker to create a subscription, then we'll send it to
+
+01:08.520 --> 01:15.420
+our server of course and then we'll learn how we can issue a new push request, push notification on our
+
+01:15.420 --> 01:16.470
+own back-end server.
+
+01:16.530 --> 01:20.410
+So let's start with subscriptions first in our application.
+
+01:20.530 --> 01:27.000
+I'll do this in the app.js file because I'll of course do this as a reaction to some user event,
+
+01:27.120 --> 01:30.790
+in this case that the user clicked the enable notifications button,
+
+01:30.900 --> 01:34.640
+I'll take this as a request to also subscribe the user.
+
+01:34.710 --> 01:42.970
+So therefore I'll add a new function, maybe below the display confirm notification function here which
+
+01:42.980 --> 01:49.950
+I will name configure push sub for push subscription, of course you can pick any function name
+
+01:49.950 --> 01:51.360
+you want.
+
+01:51.360 --> 01:57.530
+Now this function here should actually get triggered here instead of display confirm notification,
+
+01:57.540 --> 02:04.380
+so I'll comment this out and trigger confirm push sub instead after we ask for permission because this
+
+02:04.380 --> 02:05.810
+is what I want to do as a next step.
+
+02:05.850 --> 02:08.170
+I know that we can send notifications,
+
+02:08.250 --> 02:14.400
+so I now want to set up the subscription. So in push sub here, I first of all will check if we have
+
+02:14.400 --> 02:16.370
+access to service workers.
+
+02:16.410 --> 02:20.060
+I maybe should have checked that before because here we use that too
+
+02:20.080 --> 02:22.910
+though here we check it already
+
+02:23.280 --> 02:26.200
+but for push sub, I also need to check it separately
+
+02:26.250 --> 02:30.780
+and of course we could add the check here in the else statement and do nothing if we don't have service
+
+02:30.810 --> 02:33.860
+worker support, I'll add it here though.
+
+02:33.880 --> 02:37.190
+I'll first check if we don't have access to service workers,
+
+02:37.320 --> 02:44.100
+so if the service worker object doesn't exist in the navigator, I check for the opposite by adding an
+
+02:44.100 --> 02:46.290
+exclamation mark at the beginning.
+
+02:46.290 --> 02:51.180
+If service worker doesn't exist here, I just return because there's nothing else left for me to do.
+
+02:51.180 --> 02:52.520
+It doesn't support this,
+
+02:52.530 --> 02:56.030
+I can't listen to push messages without a service worker,
+
+02:56.040 --> 02:57.500
+we can't offer that feature,
+
+02:57.570 --> 02:58.910
+that's how it is.
+
+02:59.370 --> 03:05.640
+That's by the way also the reason why I by default disable this button here and therefore we can also
+
+03:05.640 --> 03:09.320
+improve this check to disable our enable notifications button,
+
+03:09.450 --> 03:12.950
+not only if notifications is not supported,
+
+03:13.140 --> 03:14.520
+so basically we do the opposite,
+
+03:14.520 --> 03:15.350
+we enable it
+
+03:15.380 --> 03:23.340
+if notifications are supported but we also require service workers to be supported in navigator. That
+
+03:23.340 --> 03:28.140
+of course means we could get rid of that check because we can never get there since our buttons 
+
+03:28.140 --> 03:31.700
+won't be displayed if we don't have service worker access
+
+03:31.740 --> 03:37.320
+but for completeness sake, I'll leave it here to also remind you that you should always check for a feature
+
+03:37.320 --> 03:39.660
+availability before using it,
+
+03:39.720 --> 03:43.790
+even though technically you can't reach that code if it's not supported.
+
+03:44.200 --> 03:45.330
+As a next step,
+
+03:45.390 --> 03:51.690
+I now need to get access to my service worker again because even the way I execute it here in my front-end,
+
+03:51.690 --> 03:58.380
+in my main Javascript code because we do it as a reaction to a DOM event, a click, even though I execute it
+
+03:58.380 --> 03:58.960
+here,
+
+03:59.040 --> 04:04.860
+subscriptions are managed by the service worker which makes sense because it's the service worker which
+
+04:04.860 --> 04:09.460
+is also responsible for reacting to push messages later on.
+
+04:09.840 --> 04:14.250
+So here, I will reach out to my navigator service worker
+
+04:14.700 --> 04:21.270
+and then again I will check if the service worker is ready, which gives me a promise and there in the
+
+04:21.270 --> 04:28.980
+function which gets executed upon the resolving of that promise, I get access to the service worker registration
+
+04:28.980 --> 04:31.660
+here. Now in there,
+
+04:31.770 --> 04:34.300
+I now want to access the
+
+04:34.380 --> 04:38.070
+push manager and check for existing subscriptions.
+
+04:38.430 --> 04:48.030
+So I will simply check swreg and there we have a push manager object where I can call get subscription.
+
+04:48.780 --> 04:55.860
+Get subscription is a method which will return any existing subscriptions, though first of all it returns
+
+04:55.860 --> 04:57.080
+a promise.
+
+04:57.120 --> 05:03.490
+So what I'll do is I will return this whole call and can then conveniently chain another then call
+
+05:03.490 --> 05:05.380
+to this promise chain.
+
+05:05.380 --> 05:12.430
+Now this here will resolve with any subscriptions we fetched and sub will be null if we don't have
+
+05:12.430 --> 05:14.340
+any existing subscriptions.
+
+05:14.460 --> 05:15.000
+Now
+
+05:15.020 --> 05:19.950
+for what does the push manager check subscriptions?
+
+05:20.010 --> 05:24.420
+As mentioned earlier, for this browser on this device
+
+05:24.450 --> 05:28.560
+because that's also for what this service worker is registered.
+
+05:28.800 --> 05:35.460
+If we open a wrap in a second browser on the same device, we will also get a new service worker, a whole
+
+05:35.460 --> 05:37.950
+new scope, a whole new app in the end
+
+05:37.950 --> 05:45.450
+and therefore each browser device combination yields one subscription and this is exactly what we check
+
+05:45.450 --> 05:45.950
+here.
+
+05:46.050 --> 05:52.920
+Does this service worker handled through this browser have an existing subscription for this device?
+
+05:53.690 --> 05:58.820
+Here I'll then first of all check if sub is equal to null
+
+05:58.890 --> 06:09.290
+because in this case I want to create a new subscription, in the other case here I'll use my existing,
+
+06:09.300 --> 06:14.670
+so we have a subscription and this might be where you maybe want to send it to your back-end server again
+
+06:14.670 --> 06:15.710
+to update it there
+
+06:15.720 --> 06:21.600
+or just ignore it because you rely on already having it stored on your back-end server, whatever you
+
+06:21.600 --> 06:23.070
+want.
+
+06:23.070 --> 06:29.840
+So this is my subscription management. Now in the first case as I just said, we won't have a subscription,
+
+06:29.850 --> 06:32.170
+so now the goal is to create a new one.
+
+06:32.310 --> 06:34.380
+We'll do this in the next lecture.

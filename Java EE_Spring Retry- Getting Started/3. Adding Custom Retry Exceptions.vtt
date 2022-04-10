@@ -1,0 +1,169 @@
+WEBVTT
+1
+00:00:00.918 --> 00:00:02.494
+For our retryable exceptions,
+
+2
+00:00:02.494 --> 00:00:05.997
+we're going to use a whitelist strategy where we retry
+
+3
+00:00:05.997 --> 00:00:08.159
+everything unless we specify otherwise.
+
+4
+00:00:08.159 --> 00:00:08.974
+In this case,
+
+5
+00:00:08.974 --> 00:00:14.337
+we'll retry all RestClientExceptions except for HTTP 400 and 500 errors.
+
+6
+00:00:14.337 --> 00:00:17.095
+This is because if we've made a bad request,
+
+7
+00:00:17.095 --> 00:00:21.143
+no amount of retry will help, and if we encounter a 500 error,
+
+8
+00:00:21.143 --> 00:00:23.267
+we want to know about it immediately as it usually
+
+9
+00:00:23.267 --> 00:00:26.265
+indicates a major problem with our server.
+
+10
+00:00:26.265 --> 00:00:29.395
+On the other hand, if we encounter a 404 or 503 error,
+
+11
+00:00:29.395 --> 00:00:34.845
+that typically indicates a temporary state that would be good to retry.
+
+12
+00:00:34.845 --> 00:00:37.418
+To configure custom exceptions in our SaaS Bass sample application,
+
+13
+00:00:37.418 --> 00:00:41.580
+we first need to build our retryable exceptions map.
+
+14
+00:00:41.580 --> 00:00:45.619
+Then we can pass that into our existing SimpleRetryPolicy constructor.
+
+15
+00:00:45.619 --> 00:00:48.450
+Let's get into the code and make it happen.
+
+16
+00:00:48.450 --> 00:00:49.459
+To follow along with this demo,
+
+17
+00:00:49.459 --> 00:00:51.670
+for the Bass Tracker Service check out either the
+
+18
+00:00:51.670 --> 00:00:53.087
+initial branch if you want to code along,
+
+19
+00:00:53.087 --> 00:00:55.454
+or the final branch if you want to follow along.
+
+20
+00:00:55.454 --> 00:00:58.465
+For the Lake Profile Service, we're not making any changes in this module,
+
+21
+00:00:58.465 --> 00:01:01.230
+so check out the branch with the module name.
+
+22
+00:01:01.230 --> 00:01:02.870
+Here in our bass-tracker-service,
+
+23
+00:01:02.870 --> 00:01:06.530
+we want to create a new map with the key as something that
+
+24
+00:01:06.530 --> 00:01:09.941
+extends throwable and the value as a Boolean.
+
+25
+00:01:09.941 --> 00:01:15.713
+Then, we'll insert RestClientException class and set its value to true,
+
+26
+00:01:15.713 --> 00:01:19.281
+indicating that we want to retry all rest client exceptions.
+
+27
+00:01:19.281 --> 00:01:19.620
+Then,
+
+28
+00:01:19.620 --> 00:01:25.937
+we'll insert HttpClientErrorException.BadRequest .class and set it to false,
+
+29
+00:01:25.937 --> 00:01:30.552
+indicating that we do not want to retry HTTP 400 errors.
+
+30
+00:01:30.552 --> 00:01:31.040
+Lastly,
+
+31
+00:01:31.040 --> 00:01:33.932
+we'll insert HttpServerErrorException.InternalServerError
+
+32
+00:01:33.932 --> 00:01:38.433
+.class and set its value to false as well,
+
+33
+00:01:38.433 --> 00:01:42.320
+which should account for not retrying HTTP 500 errors.
+
+34
+00:01:42.320 --> 00:01:44.210
+Now, as a very basic example,
+
+35
+00:01:44.210 --> 00:01:47.954
+let's switch over to lake-profile-service and throw a socket
+
+36
+00:01:47.954 --> 00:01:51.100
+exception on getLakeProfile and run it.
+
+37
+00:01:51.100 --> 00:01:55.939
+Then, let's switch back to bass-tracker- service and run that.
+
+38
+00:01:55.939 --> 00:02:00.939
+We can see that our RetryTemplate didn't retry the getLakeProfile request.
+
+39
+00:02:00.939 --> 00:02:05.290
+This is because throwing a socket exception maps to an HTTP 500 error,
+
+40
+00:02:05.290 --> 00:02:10.410
+and we told RetryTemplate not to retry 500 errors.
+
+41
+00:02:10.410 --> 00:02:12.415
+So it's behaving as we would expect.
+
+42
+00:02:12.415 --> 00:02:19.000
+Custom exceptions are a powerful way to fine tune your retry framework for error handling.
+

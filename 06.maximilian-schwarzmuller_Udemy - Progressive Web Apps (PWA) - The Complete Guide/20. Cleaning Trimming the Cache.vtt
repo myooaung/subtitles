@@ -1,0 +1,241 @@
+WEBVTT
+
+00:02.150 --> 00:08.700
+Over the last lectures in this module, we had a look at a lot of caching strategies and learned a lot about
+
+00:08.700 --> 00:10.130
+caching.
+
+00:10.140 --> 00:15.870
+Now I want to come back to general cache management and this is relatively short, I want to talk about how
+
+00:15.870 --> 00:20.550
+we can clean our cache up, especially with dynamic caching.
+
+00:20.670 --> 00:26.970
+If you have a look at your cache, at the dynamic cache, it fills up, if we go to the help page here and we
+
+00:26.970 --> 00:33.180
+now refresh it, we've got more pages in there and the more pages your app has, the more you're going to
+
+00:33.180 --> 00:35.340
+load into the dynamic cache.
+
+00:35.430 --> 00:42.450
+So sometimes, you maybe want to clean up your dynamic cache and I want to show you how you could do just
+
+00:42.450 --> 00:44.300
+that. In the sw.js
+
+00:44.310 --> 00:50.520
+file, I'll add a new function, I'll add it at the very top
+
+00:50.520 --> 00:58.310
+maybe, here, I'll name the function trimCache and I expect to get a cache name of the cache
+
+00:58.310 --> 01:03.720
+I want to trim or should trim and the maximum items which are allowed to stay in the cache.
+
+01:04.340 --> 01:11.870
+So in there, I can now call caches open and open the cache name which was passed here as an argument, then
+
+01:12.380 --> 01:15.860
+I get my well-known function which gives me access to that cache
+
+01:15.860 --> 01:25.600
+I wanted to open. In there, I now want to get all the keys. Now inside of an open sub-cache,
+
+01:25.600 --> 01:31.090
+this will simply be all the response, all the requests excuse me, all the requests which are stored at
+
+01:31.090 --> 01:31.600
+keys,
+
+01:31.600 --> 01:35.290
+so for example all these keys here if I open the static cache.
+
+01:35.740 --> 01:37.920
+So this gives me access to all the keys,
+
+01:37.930 --> 01:42.590
+it also is a function which returns a promise though,
+
+01:42.730 --> 01:47.070
+so let's chain more to our main promise chain here and there,
+
+01:47.080 --> 01:51.310
+I in the end get a function call where I get the keys which are retrieved.
+
+01:51.310 --> 01:56.590
+Again, these are the individual requests which hold the responses as values.
+
+01:56.590 --> 02:02.830
+Now I can check if keys length is greater than max items, which means I have more items in my cache than
+
+02:02.830 --> 02:11.710
+I want to have and I can now call cache delete to remove an item and I want to remove the oldest items,
+
+02:11.720 --> 02:18.240
+so the first element here which is the topmost key, the item which was added a long time ago.
+
+02:18.820 --> 02:22.770
+Of course, you could write a more elaborate algorithm for that,
+
+02:22.780 --> 02:33.550
+this is a simple one where I simply remove this item and then I actually will call trimCache again with
+
+02:33.880 --> 02:42.140
+cache name and max items. So I'm calling this recursively, I'm calling it from inside this function and
+
+02:42.140 --> 02:44.020
+it will stop calling itself
+
+02:44.150 --> 02:50.570
+once this condition is no longer true because then we don't reach this code line. Until that case,
+
+02:50.750 --> 02:54.630
+we will continue executing this function which is just what we want,
+
+02:54.680 --> 03:01.190
+I want to keep on removing elements, single elements until this condition here is false, until we're within
+
+03:01.490 --> 03:04.210
+the maximum amount of items I'm allowing.
+
+03:04.580 --> 03:06.110
+So this is the helper function,
+
+03:06.110 --> 03:11.380
+the question just is where do we call it? Installing aren't the best places
+
+03:11.390 --> 03:13.300
+because these are rarely called,
+
+03:13.430 --> 03:18.110
+only when we update the service worker and there we do some cleanup work already, though of course we
+
+03:18.110 --> 03:20.810
+might want to trim existing caches,
+
+03:20.990 --> 03:24.010
+you can basically call it wherever you feel it's appropriate.
+
+03:24.140 --> 03:29.450
+You could call it on every fetch, maybe whenever you put a new item into the cache,
+
+03:29.570 --> 03:36.080
+that you make sure you trim it thereafter to remove any items you had in there before, maybe right before
+
+03:36.080 --> 03:36.960
+you do that,
+
+03:37.040 --> 03:44.260
+I'll go with that. I'll call trimCache here, trim my dynamic cache because the static one doesn't grow,
+
+03:44.270 --> 03:49.330
+so I don't need to trim it and I only want to have, let's say three items, really aggressively.
+
+03:49.340 --> 03:51.390
+Of course there's no need to be that aggressive,
+
+03:51.410 --> 04:00.500
+you could allow 10, 20, whatever you feel is appropriate. Simply look up browser, a cache API storage limits
+
+04:00.680 --> 04:02.180
+to find the latest limits,
+
+04:02.180 --> 04:05.980
+ou'll also find a link to that at the end of this module, they
+
+04:06.020 --> 04:09.710
+might change in the future which is why a link makes the most sense
+
+04:10.100 --> 04:16.340
+and I'll also add it here therefore. Now with that I'm trimming the cache right before I add a new
+
+04:16.340 --> 04:17.130
+item,
+
+04:17.180 --> 04:21.260
+so I should have a maximum of four items in the cache after that.
+
+04:21.440 --> 04:24.620
+Let's see if it works, let's go back to the application,
+
+04:24.770 --> 04:33.960
+let's update this old school by reloading and then simply closing the tab and opening a new one and we
+
+04:33.960 --> 04:39.220
+get an error, cache is not defined, 27 cache.
+
+04:39.520 --> 04:44.350
+Yes makes sense because I'm chaining this as a new call,
+
+04:44.400 --> 04:48.580
+now a quick way to fix this is simply to add it after here.
+
+04:49.790 --> 04:56.600
+So now with that, let's save this, let's reload one more time and close the tab and open a new one to load
+
+04:56.660 --> 04:59.100
+this updated service worker,
+
+04:59.130 --> 05:00.530
+now this seems to work
+
+05:00.890 --> 05:03.200
+and now let's have a look at the dynamic cache,
+
+05:03.200 --> 05:04.700
+it has three items.
+
+05:04.970 --> 05:13.340
+Let's visit help and let me refresh the caches, you see with four items which I said would be the max
+
+05:13.340 --> 05:14.190
+we have.
+
+05:14.510 --> 05:15.740
+What did we drop?
+
+05:15.950 --> 05:18.420
+Well maybe something from the front page,
+
+05:18.440 --> 05:20.690
+we'll see if we go offline. If we load
+
+05:20.730 --> 05:25.080
+this, this loads, on the feed though we're missing the image,
+
+05:25.100 --> 05:26.240
+this was dropped.
+
+05:26.510 --> 05:27.860
+Well this is how it is,
+
+05:27.980 --> 05:30.070
+this is how we can trim the cache
+
+05:30.080 --> 05:35.210
+and of course there are different places where you could call trimCache depending on your requirements
+
+05:35.420 --> 05:37.000
+and where you feel it's appropriate.
+
+05:37.190 --> 05:43.610
+I just wanted to show you this, feel free to make this algorithm far more complex, whatever you need,
+
+05:43.610 --> 05:49.760
+it's important to be aware of the possibility of trimming or managing your cache though, you can control
+
+05:49.790 --> 05:51.720
+how it grows, how it behaves
+
+05:51.890 --> 05:57.710
+and also keep in mind, since you can access caches from your normal Javascript code too, you could also
+
+05:57.710 --> 06:03.860
+implement some logic there, not just in the service worker, you can access the cache from your normal Javascript
+
+06:03.860 --> 06:05.040
+code as well.

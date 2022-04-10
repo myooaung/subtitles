@@ -1,0 +1,437 @@
+WEBVTT
+1
+00:00:02.720 --> 00:00:06.400
+So the final thing to take a look out is phantom references.
+
+2
+00:00:06.400 --> 00:00:10.840
+PhantomReference is probably the least used of all these types.
+
+3
+00:00:10.840 --> 00:00:14.370
+We've seen both weak reference and strong reference, when we
+
+4
+00:00:14.370 --> 00:00:17.450
+call the get method on the reference type,
+
+5
+00:00:17.450 --> 00:00:21.140
+we get back a strong reference to the underlying object.
+
+6
+00:00:21.140 --> 00:00:23.640
+However, PhantomReference does not work that way.
+
+7
+00:00:23.640 --> 00:00:27.250
+If we wrap a strong reference in a phantom reference and then called
+
+8
+00:00:27.250 --> 00:00:31.960
+get on the phantom reference, we get back null always. And you might
+
+9
+00:00:31.960 --> 00:00:33.740
+think that makes these things useless.
+
+10
+00:00:33.740 --> 00:00:36.140
+However, they do have a use case.
+
+11
+00:00:36.140 --> 00:00:39.870
+They are sometimes used as a replacement for finalize method.
+
+12
+00:00:39.870 --> 00:00:41.520
+Finalizers have certain issues.
+
+13
+00:00:41.520 --> 00:00:42.100
+For example,
+
+14
+00:00:42.100 --> 00:00:46.970
+finalizers can be expensive. When we add a finalizer to a class, when
+
+15
+00:00:46.970 --> 00:00:51.140
+that class is created, the garbage collector has to know about it
+
+16
+00:00:51.140 --> 00:00:54.850
+because the garbage collector has to able to call finalize once the
+
+17
+00:00:54.850 --> 00:00:56.990
+object is no longer reachable.
+
+18
+00:00:56.990 --> 00:00:59.810
+So this means that when such an object is created, there's some
+
+19
+00:00:59.810 --> 00:01:03.150
+code that runs to inform the garbage collector that we have an
+
+20
+00:01:03.150 --> 00:01:06.200
+object that's finalizable. There's a reference to that finalizable
+
+21
+00:01:06.200 --> 00:01:07.980
+object kept by the runtime,
+
+22
+00:01:07.980 --> 00:01:11.210
+so these objects will survive at least one garbage collection as the
+
+23
+00:01:11.210 --> 00:01:13.330
+runtime itself holds on to reference these things.
+
+24
+00:01:13.330 --> 00:01:13.880
+And then finally,
+
+25
+00:01:13.880 --> 00:01:16.780
+the runtime, at some point, must call the finalize method
+
+26
+00:01:16.780 --> 00:01:19.710
+before finally releasing the object, and this takes a lot of
+
+27
+00:01:19.710 --> 00:01:21.480
+work. So these things can be expensive.
+
+28
+00:01:21.480 --> 00:01:23.850
+We're also not really sure when the finalizer method is going to be called,
+
+29
+00:01:23.850 --> 00:01:26.870
+except that it will be called at some point in the future.
+
+30
+00:01:26.870 --> 00:01:30.360
+The idea behind phantom references is that we try and fix some of these
+
+31
+00:01:30.360 --> 00:01:33.940
+issues, and we'll see some code now that does that.
+
+32
+00:01:33.940 --> 00:01:37.040
+So again, we're going to use our Person class here,
+
+33
+00:01:37.040 --> 00:01:40.690
+but now we're going to create instances of this class and wrap them in a
+
+34
+00:01:40.690 --> 00:01:44.900
+PhantomReference. When we create a phantom reference, as we'll see, you must
+
+35
+00:01:44.900 --> 00:01:47.280
+associate a reference queue with a phantom reference.
+
+36
+00:01:47.280 --> 00:01:49.820
+So unlike soft references and weak references where
+
+37
+00:01:49.820 --> 00:01:51.990
+that's optional, with a phantom reference,
+
+38
+00:01:51.990 --> 00:01:55.060
+we must use a reference queue, so that's the first thing we'll do.
+
+39
+00:01:55.060 --> 00:01:58.210
+So here we're going to say ReferenceQueue of Person,
+
+40
+00:01:58.210 --> 00:02:00.350
+and we'll call this thing queue,
+
+41
+00:02:00.350 --> 00:02:03.270
+and then we'll make this equal to new ReferenceQueue of Person. And let's import
+
+42
+00:02:03.270 --> 00:02:06.400
+the class for that. So in a similar way to the way we used reference queues
+
+43
+00:02:06.400 --> 00:02:11.080
+previously, we'll do the same thing with our phantom reference. We'll create a
+
+44
+00:02:11.080 --> 00:02:13.220
+class that derives from PhantomReference.
+
+45
+00:02:13.220 --> 00:02:18.660
+So here, we'll have a class called FinalizePerson,
+
+46
+00:02:18.660 --> 00:02:24.250
+and this will extend PhantomReference of Person. Notice we
+
+47
+00:02:24.250 --> 00:02:26.060
+need to add a constructor to this class,
+
+48
+00:02:26.060 --> 00:02:31.470
+and this constructor takes a Person and the ReferenceQueue of Person. And again,
+
+49
+00:02:31.470 --> 00:02:34.450
+similar to our WeakReference class, we add a cleanup method to
+
+50
+00:02:34.450 --> 00:02:37.220
+this that's going to be called when there are no longer any
+
+51
+00:02:37.220 --> 00:02:39.610
+strong references to our Person type.
+
+52
+00:02:39.610 --> 00:02:41.900
+So we'll do things slightly differently this time.
+
+53
+00:02:41.900 --> 00:02:47.540
+Firstly, we'll create an ArrayList of FinalizePerson.
+
+54
+00:02:47.540 --> 00:02:48.900
+Call this thing list.
+
+55
+00:02:48.900 --> 00:02:52.520
+Make this equal to new ArrayList of FinalizePerson.
+
+56
+00:02:52.520 --> 00:02:55.140
+Then we need to import this class.
+
+57
+00:02:55.140 --> 00:03:00.950
+We'll also create an ArrayList of Person, and we call this thing people
+
+58
+00:03:00.950 --> 00:03:04.960
+and make this equal to again a new ArrayList of Person.
+
+59
+00:03:04.960 --> 00:03:08.720
+So what we'll do is create a number of person objects and add them to
+
+60
+00:03:08.720 --> 00:03:13.050
+the people list. For each person we create, we'll associate it with a
+
+61
+00:03:13.050 --> 00:03:16.920
+phantom reference, in this case a FinalizePerson. And we'll also
+
+62
+00:03:16.920 --> 00:03:20.760
+maintain a collection of those phantom references, and we'll see why we
+
+63
+00:03:20.760 --> 00:03:21.840
+are doing this in a moment.
+
+64
+00:03:21.840 --> 00:03:24.370
+So for the code, let's create 10 people.
+
+65
+00:03:24.370 --> 00:03:31.430
+So for int, our i = 0, i is less than 10, i++. We'll do
+
+66
+00:03:31.430 --> 00:03:38.180
+Person p = new Person people.add p,
+
+67
+00:03:38.180 --> 00:03:42.420
+and then we'll add a final adder to our list. So we'll do list.add
+
+68
+00:03:42.420 --> 00:03:48.010
+new FinalizePerson. Now our FinalizePerson takes a person reference
+
+69
+00:03:48.010 --> 00:03:52.410
+that's p and also a reference to the queue. So we'll add our queue
+
+70
+00:03:52.410 --> 00:03:56.610
+into this and add that into list.
+
+71
+00:03:56.610 --> 00:04:01.080
+So we now have a list full of people. What we can now do it set people
+
+72
+00:04:01.080 --> 00:04:07.690
+to be null and call System.gc. So at this point,
+
+73
+00:04:07.690 --> 00:04:09.250
+we've run the garbage collector.
+
+74
+00:04:09.250 --> 00:04:12.330
+We just run this thing once. And now everything that's on
+
+75
+00:04:12.330 --> 00:04:15.710
+that list will no longer be referenced.
+
+76
+00:04:15.710 --> 00:04:21.360
+Every phantom reference for each thing on that list will now have been added
+
+77
+00:04:21.360 --> 00:04:25.380
+to the reference queue we've associate with this thing.
+
+78
+00:04:25.380 --> 00:04:26.960
+So we can do two things here.
+
+79
+00:04:26.960 --> 00:04:28.070
+First of all,
+
+80
+00:04:28.070 --> 00:04:31.770
+we'll iterate over the list of phantom references and check that each
+
+81
+00:04:31.770 --> 00:04:34.620
+one of these things has been enqueued at this point.
+
+82
+00:04:34.620 --> 00:04:37.040
+So that code will look something like this.
+
+83
+00:04:37.040 --> 00:04:38.520
+And if we run this application,
+
+84
+00:04:38.520 --> 00:04:41.890
+we should see that at this point all our phantom references
+
+85
+00:04:41.890 --> 00:04:44.640
+have been enqueued, so let's try that.
+
+86
+00:04:44.640 --> 00:04:46.340
+If we look in the window here,
+
+87
+00:04:46.340 --> 00:04:49.270
+we see a list of true values printed out. There are no false
+
+88
+00:04:49.270 --> 00:04:51.910
+values here, so every phantom reference is being enqueued
+
+89
+00:04:51.910 --> 00:04:55.700
+when we first call System.gc.
+
+90
+00:04:55.700 --> 00:04:58.990
+Once we have that, we can then walk up to the reference queue
+
+91
+00:04:58.990 --> 00:05:02.940
+itself, retrieve each of the phantom references, and then execute
+
+92
+00:05:02.940 --> 00:05:05.980
+any code we want to inside that phantom reference. So the code for
+
+93
+00:05:05.980 --> 00:05:07.040
+that looks something like this.
+
+94
+00:05:07.040 --> 00:05:11.710
+So we poll the queue in the same way that we poll any reference
+
+95
+00:05:11.710 --> 00:05:15.930
+queue. We'll retrieve the object from the queue.
+
+96
+00:05:15.930 --> 00:05:18.020
+So while the poll doesn't return null,
+
+97
+00:05:18.020 --> 00:05:20.060
+we know we're getting objects back from the queue.
+
+98
+00:05:20.060 --> 00:05:23.160
+We cast it to be a type FinalizePerson,
+
+99
+00:05:23.160 --> 00:05:27.740
+and then we call its cleanup method. And if we run this code,
+
+100
+00:05:27.740 --> 00:05:31.670
+we should see a collection of true values printed out and then a
+
+101
+00:05:31.670 --> 00:05:37.730
+collection of person is finalizing resources printed out. And there we
+
+102
+00:05:37.730 --> 00:05:43.280
+go. We see all the trues followed by person is finalizing resources. The
+
+103
+00:05:43.280 --> 00:05:46.070
+way we normally write this code will be similar to the way we saw
+
+104
+00:05:46.070 --> 00:05:49.310
+reference queues in the previous example, i.e. we have the polling going
+
+105
+00:05:49.310 --> 00:05:51.520
+on in a background thread.
+
+106
+00:05:51.520 --> 00:05:56.440
+And the idea now is that we have more control over when finalization,
+
+107
+00:05:56.440 --> 00:05:59.630
+and again I'm doing air quotes here. We have more control over when
+
+108
+00:05:59.630 --> 00:06:02.400
+the final cleanup of this object happens.
+
+109
+00:06:02.400 --> 00:06:10.000
+It's not under the control of the garbage collector anymore. It's more under our control now.
+

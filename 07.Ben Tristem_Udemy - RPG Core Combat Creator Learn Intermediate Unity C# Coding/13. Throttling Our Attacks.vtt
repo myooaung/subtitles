@@ -1,0 +1,332 @@
+WEBVTT
+1
+00:00:04.690 --> 00:00:07.800
+Hello and welcome in this lecture we're gonna be throttling the attack.
+
+2
+00:00:07.810 --> 00:00:12.580
+By this I mean we're going to be able to slow it down so he's not constantly punching all the time there's
+
+3
+00:00:12.580 --> 00:00:19.000
+a bit of idle breath time between and we've got this low configurable parameter the time between attacks
+
+4
+00:00:19.330 --> 00:00:26.320
+where if I increase this you can see he waits a lot longer on his locomotion state waiting around until
+
+5
+00:00:26.320 --> 00:00:30.790
+he attacks the second time around that's what we're gonna be implementing let's dive in and see how
+
+6
+00:00:30.790 --> 00:00:31.730
+it's done.
+
+7
+00:00:31.990 --> 00:00:37.870
+As we observed at the end of last lecture if you go up to this capsule our guy just punches as quickly
+
+8
+00:00:37.900 --> 00:00:38.980
+as he wants.
+
+9
+00:00:38.980 --> 00:00:43.990
+Now obviously this is something that we would like to control because for example you might have a lower
+
+10
+00:00:43.990 --> 00:00:49.090
+level character that has to has weaker and needs to take his breath between punches.
+
+11
+00:00:49.090 --> 00:00:54.190
+Things like that and also for different sized weapons big hammers can't really be swung as quickly as
+
+12
+00:00:54.190 --> 00:00:58.210
+you would like you need to take a bit of a breather between swings that kind of thing.
+
+13
+00:00:58.270 --> 00:01:05.350
+We want to fix so if we go over to our fighter c s script what we're going to do for now is add a serialized
+
+14
+00:01:05.350 --> 00:01:06.790
+field.
+
+15
+00:01:06.850 --> 00:01:12.090
+Eventually this will be a property of the weapon equipped but we are not going to do that just yet.
+
+16
+00:01:12.280 --> 00:01:20.530
+And that field should tell us basically the time between attacks the time between attacks like so because
+
+17
+00:01:20.530 --> 00:01:25.240
+Currently what we've got is it's going back to back because we are constantly setting the trigger every
+
+18
+00:01:25.240 --> 00:01:26.540
+time we want to attack.
+
+19
+00:01:26.560 --> 00:01:32.680
+Now how the trigger works we didn't quite talk about this fully and maybe you know already but a trigger
+
+20
+00:01:32.680 --> 00:01:33.640
+is quite clever.
+
+21
+00:01:33.640 --> 00:01:40.250
+It's like a boolean value but when you set it it waits until it has been acted upon that means that
+
+22
+00:01:40.250 --> 00:01:42.950
+the transition has actually happened.
+
+23
+00:01:42.980 --> 00:01:45.170
+They see notes we've got this condition transition.
+
+24
+00:01:45.400 --> 00:01:50.600
+Now if this had been a boolean it would keep making that transition as off basically all the time.
+
+25
+00:01:50.620 --> 00:01:54.850
+It is possible but the trigger is very smart.
+
+26
+00:01:54.850 --> 00:02:00.400
+It basically makes that transition once and sets the trigger back to FALSE sets the boolean back to
+
+27
+00:02:00.400 --> 00:02:06.430
+FALSE which means that the next time we go back into locomotion unless we've hit trigger again it won't
+
+28
+00:02:06.430 --> 00:02:07.160
+go in attack.
+
+29
+00:02:07.360 --> 00:02:13.900
+So that's a good thing and that's what we want to do we basically want to do the trigger wait a certain
+
+30
+00:02:13.900 --> 00:02:16.120
+amount of time and then do the trigger again.
+
+31
+00:02:16.120 --> 00:02:22.000
+So that's how this time between attacks is going to work time between tax is going to be a float value
+
+32
+00:02:22.930 --> 00:02:29.140
+and we can default it to I don't know once every second is actually quite a long time for time between
+
+33
+00:02:29.140 --> 00:02:35.470
+attacks if you if you actually work it out it turns out well what if you actually use it and play with
+
+34
+00:02:35.470 --> 00:02:39.180
+it one second or two seconds is actually quite a long time to wait between attacks.
+
+35
+00:02:40.030 --> 00:02:44.650
+So how are we going to figure out how long has passed since the last attack and whether we are ready
+
+36
+00:02:44.650 --> 00:02:46.550
+to attack again to do this.
+
+37
+00:02:46.660 --> 00:02:53.860
+You might want to introduce a variable so I'm going to introduce a float time since last attack.
+
+38
+00:02:54.280 --> 00:02:59.180
+And I'm going to leave up to you to do some of this implementation.
+
+39
+00:02:59.530 --> 00:03:05.590
+But what we want to do here is update this time since last attack every single update no matter what
+
+40
+00:03:05.770 --> 00:03:11.620
+even if our target is no we want to be updating this time since last attack because imagine that you've
+
+41
+00:03:11.680 --> 00:03:18.750
+stopped targeting the particular enemy and you want to run away to catch your breath.
+
+42
+00:03:18.790 --> 00:03:21.100
+You want the time since last attack to keep incrementing.
+
+43
+00:03:21.100 --> 00:03:27.790
+So every single update we are going to increment plus equals the time since last attack.
+
+44
+00:03:28.300 --> 00:03:35.530
+And that's going to be time dot delta time which gives us the time that the last frame took to render
+
+45
+00:03:35.950 --> 00:03:38.710
+basically the time since the last time update was called.
+
+46
+00:03:39.010 --> 00:03:45.160
+So you can see how adding this repeatedly is going to give us the total since we last reset the time
+
+47
+00:03:45.160 --> 00:03:46.870
+since last attack.
+
+48
+00:03:46.870 --> 00:03:54.340
+Now what I'm going to leave to you is the actual making sure we only trigger once the time enough time
+
+49
+00:03:54.340 --> 00:03:58.840
+has elapsed and resetting this time since last attack.
+
+50
+00:03:58.840 --> 00:04:02.560
+So that's going to be a challenge to implement the throttle I'm calling a throttle because it kind of
+
+51
+00:04:02.560 --> 00:04:07.840
+slows down the throttles the ability to attack.
+
+52
+00:04:07.840 --> 00:04:13.270
+Now how to only trigger after time has elapsed that's your first question to answer and implement.
+
+53
+00:04:13.270 --> 00:04:19.150
+And the second is how will you reset after you have actually triggered so suppose a video and have a
+
+54
+00:04:19.150 --> 00:04:21.260
+go okay.
+
+55
+00:04:21.260 --> 00:04:22.220
+Welcome back.
+
+56
+00:04:22.220 --> 00:04:28.250
+So the first thing how to throttle so in our attack behavior we are setting the trigger.
+
+57
+00:04:28.280 --> 00:04:30.980
+So this is the logical place to put the throttle.
+
+58
+00:04:31.130 --> 00:04:37.760
+The first thing we want to do is basically say if the time since last attack is actually greater than
+
+59
+00:04:37.820 --> 00:04:44.810
+the what is it we're looking for time between attacks then what we can do is we can actually trigger
+
+60
+00:04:44.840 --> 00:04:45.350
+this attack.
+
+61
+00:04:45.350 --> 00:04:51.050
+So what I'm going to do it this way for now you could do an early return and flip around the boolean
+
+62
+00:04:51.050 --> 00:04:57.110
+here say whether it's less than but I'm gonna make it I think slightly easier to read here by saying
+
+63
+00:04:57.590 --> 00:05:05.660
+if it's time for us to attack we're going to attack and we're going to reset the time since last attack
+
+64
+00:05:05.990 --> 00:05:08.180
+to zero because we've literally just done want.
+
+65
+00:05:08.210 --> 00:05:11.720
+So the time since that last attack is in fact zero.
+
+66
+00:05:11.810 --> 00:05:14.600
+So that should be sufficient for throttling our attacks.
+
+67
+00:05:14.630 --> 00:05:17.100
+Let's have a go and see if this now works.
+
+68
+00:05:17.180 --> 00:05:22.830
+If I go and hit play I'd expect to have a second before starting every punch.
+
+69
+00:05:22.850 --> 00:05:27.760
+So let's go over to our capsule I guess it seems to be a bit slower.
+
+70
+00:05:27.810 --> 00:05:35.700
+Let's just make sure by changing our time between attacks three seconds between attacks.
+
+71
+00:05:35.710 --> 00:05:36.480
+There you go.
+
+72
+00:05:36.900 --> 00:05:40.790
+That's much longer and you can see it stays on locomotion for a while before hit.
+
+73
+00:05:40.860 --> 00:05:46.170
+Before getting a new attack trigger and going into the attack state and obviously you can tweak this
+
+74
+00:05:46.170 --> 00:05:47.460
+to your heart's desire.
+
+75
+00:05:47.580 --> 00:05:53.670
+The minimum of course is if you make the time between attacks very small then you're going to notice
+
+76
+00:05:53.730 --> 00:05:57.960
+that he the minimum he can do is as fast as the animation will allow.
+
+77
+00:05:57.990 --> 00:05:59.550
+But that's kind of okay for now.
+
+78
+00:05:59.550 --> 00:06:02.870
+We can just slow it down a little bit if we want to.
+
+79
+00:06:02.910 --> 00:06:04.640
+Using the time between attacks.
+
+80
+00:06:04.680 --> 00:06:06.990
+So that's how we got throttling implemented.
+
+81
+00:06:06.990 --> 00:06:08.550
+Hope you enjoyed that video.
+
+82
+00:06:08.970 --> 00:06:12.540
+And the next one's is gonna be very exciting because we're actually gonna be implementing damage so
+
+83
+00:06:12.570 --> 00:06:13.110
+I'll see you there.

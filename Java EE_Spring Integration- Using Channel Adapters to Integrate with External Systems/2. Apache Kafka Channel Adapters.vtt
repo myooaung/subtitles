@@ -1,0 +1,381 @@
+WEBVTT
+1
+00:00:00.240 --> 00:00:01.430
+In this section,
+
+2
+00:00:01.430 --> 00:00:06.140
+we're going to review Kafka's support for inbound and outbound channel adapters.
+
+3
+00:00:06.140 --> 00:00:09.130
+Let's begin by looking at how to publish a message
+
+4
+00:00:09.130 --> 00:00:11.400
+to Kafka and how to receive it.
+
+5
+00:00:11.400 --> 00:00:15.690
+The inbound channel adapter we're going to use is the KafkaMessageSource.
+
+6
+00:00:15.690 --> 00:00:20.820
+We'll create it as a being and configure it to listen on a specific topic,
+
+7
+00:00:20.820 --> 00:00:24.540
+and then annotate it with the inbound channel adapter,
+
+8
+00:00:24.540 --> 00:00:29.340
+so that when it receives messages, it publishes them to a specific channel.
+
+9
+00:00:29.340 --> 00:00:30.060
+Next,
+
+10
+00:00:30.060 --> 00:00:32.980
+the outbound channel adapter we're going to use is
+
+11
+00:00:32.980 --> 00:00:35.510
+the KafkaProducerMessageHandler.
+
+12
+00:00:35.510 --> 00:00:40.890
+We're going to configure it with the KafkaTemplate that uses a ProducerFactory,
+
+13
+00:00:40.890 --> 00:00:44.440
+and set the topic and key to which we want to publish it.
+
+14
+00:00:44.440 --> 00:00:47.290
+Then we'll configure a service activater so that when a
+
+15
+00:00:47.290 --> 00:00:49.940
+message is published to a specific channel,
+
+16
+00:00:49.940 --> 00:00:54.220
+the KafkaProducerMessageHandler will send the message to Kafka.
+
+17
+00:00:54.220 --> 00:00:58.170
+Creating an inbound channel adapter for Kafka is pretty straightforward.
+
+18
+00:00:58.170 --> 00:01:00.640
+We define a channel that we'll listen on,
+
+19
+00:01:00.640 --> 00:01:04.500
+and then create a KafkaMessageSource being annotated with the
+
+20
+00:01:04.500 --> 00:01:08.870
+InboundChannelAdapter annotation that publishes messages to that
+
+21
+00:01:08.870 --> 00:01:10.850
+channel as messages are received.
+
+22
+00:01:10.850 --> 00:01:15.840
+We configure a poller to check for new messages every 1 second.
+
+23
+00:01:15.840 --> 00:01:19.960
+The KafkaMessageSource is created with a ConsumerFactory that
+
+24
+00:01:19.960 --> 00:01:24.080
+Spring integration will create for us when it sees the Spring
+
+25
+00:01:24.080 --> 00:01:26.700
+Kafka libraries in our class path,
+
+26
+00:01:26.700 --> 00:01:30.180
+and a ConsumerProperties object that specifies the topic
+
+27
+00:01:30.180 --> 00:01:33.040
+we want to listen on and a GroupId.
+
+28
+00:01:33.040 --> 00:01:37.640
+The Kafka consumer API defines both a low‑level consumer, as well as
+
+29
+00:01:37.640 --> 00:01:40.910
+a high‑level abstraction called consumer groups.
+
+30
+00:01:40.910 --> 00:01:44.110
+In this example, we'll only have one consumer,
+
+31
+00:01:44.110 --> 00:01:48.770
+so the GroupId doesn't mean much, but if we had multiple consumers,
+
+32
+00:01:48.770 --> 00:01:51.830
+all of the consumers in the same group would process the
+
+33
+00:01:51.830 --> 00:01:55.620
+same set of messages concurrently. the outbound channel
+
+34
+00:01:55.620 --> 00:01:57.940
+adapter is a little bit more complex.
+
+35
+00:01:57.940 --> 00:02:02.620
+We first create a ProducerFactory that specifies the address of the broker we're
+
+36
+00:02:02.620 --> 00:02:07.390
+connecting to and defines how to serialize keys and values.
+
+37
+00:02:07.390 --> 00:02:10.830
+In this case, we serialize both of them to strings.
+
+38
+00:02:10.830 --> 00:02:14.100
+Next we create a KafkaTemplate that our publisher
+
+39
+00:02:14.100 --> 00:02:16.490
+will use to send messages to Kafka.
+
+40
+00:02:16.490 --> 00:02:19.390
+It uses the ProducerFactory configuration.
+
+41
+00:02:19.390 --> 00:02:20.100
+Finally,
+
+42
+00:02:20.100 --> 00:02:23.800
+we create a KafkaProducerMessageHandler that uses the
+
+43
+00:02:23.800 --> 00:02:28.110
+KafkaTemplate we just created. We specify the name of the topic we
+
+44
+00:02:28.110 --> 00:02:31.660
+want to publish to, as well as a message key.
+
+45
+00:02:31.660 --> 00:02:37.200
+The value is the message body, which we're going to send as a JSON string,
+
+46
+00:02:37.200 --> 00:02:40.220
+and the key specifies the partition in the topic to
+
+47
+00:02:40.220 --> 00:02:42.040
+which we publish the message.
+
+48
+00:02:42.040 --> 00:02:45.000
+You are required to tell Kafka the partition that you
+
+49
+00:02:45.000 --> 00:02:46.740
+want to publish the message to.
+
+50
+00:02:46.740 --> 00:02:47.790
+In this case,
+
+51
+00:02:47.790 --> 00:02:50.840
+we simply specify a reservation key, but if you're
+
+52
+00:02:50.840 --> 00:02:53.250
+publishing a large number of messages,
+
+53
+00:02:53.250 --> 00:02:55.660
+then you'll want to publish messages to different
+
+54
+00:02:55.660 --> 00:02:59.120
+partitions, so that Kafka can balance its load.
+
+55
+00:02:59.120 --> 00:03:03.140
+The example for this section is another reservation integration.
+
+56
+00:03:03.140 --> 00:03:08.540
+In this case, the baz reservation system is publishing its reservations to Kafka.
+
+57
+00:03:08.540 --> 00:03:12.310
+Thebaz reservation service will publish a baz reservation to
+
+58
+00:03:12.310 --> 00:03:16.230
+Kafka using a KafkaProducerMessageHandler,
+
+59
+00:03:16.230 --> 00:03:20.370
+which will be sent to a reservation topic by the Kafka broker.
+
+60
+00:03:20.370 --> 00:03:22.850
+The baz reservation listener will receive the
+
+61
+00:03:22.850 --> 00:03:25.790
+reservation using a KafkaMessageSource.
+
+62
+00:03:25.790 --> 00:03:30.440
+Running Kafka in a Docker container is a little bit more work this time
+
+63
+00:03:30.440 --> 00:03:34.560
+because Kafka relies on Zookeeper to manage its brokers,
+
+64
+00:03:34.560 --> 00:03:35.970
+topics, and users.
+
+65
+00:03:35.970 --> 00:03:36.950
+Furthermore,
+
+66
+00:03:36.950 --> 00:03:40.080
+many of the Docker images are configured to run multiple
+
+67
+00:03:40.080 --> 00:03:43.910
+brokers and restrict access to other Docker containers
+
+68
+00:03:43.910 --> 00:03:45.740
+running in the same environment.
+
+69
+00:03:45.740 --> 00:03:49.780
+The wurstmeister/kafka image provides a single broker
+
+70
+00:03:49.780 --> 00:03:53.430
+configuration that we can access from our local computer.
+
+71
+00:03:53.430 --> 00:03:54.690
+In order to run this,
+
+72
+00:03:54.690 --> 00:03:58.950
+you need to download the docker‑compose‑single‑broker.yml file,
+
+73
+00:03:58.950 --> 00:04:01.950
+which you can get by cloning its Git repository.
+
+74
+00:04:01.950 --> 00:04:05.940
+Once you have that, you can start it using docker‑compose,
+
+75
+00:04:05.940 --> 00:04:09.300
+which is a tool included with Docker that allows you
+
+76
+00:04:09.300 --> 00:04:11.460
+to configure multiple containers,
+
+77
+00:04:11.460 --> 00:04:14.710
+create relationships between them, and so forth.
+
+78
+00:04:14.710 --> 00:04:19.950
+To start both Kafka and Zookeeper from this docker‑compose file, execute the
+
+79
+00:04:19.950 --> 00:04:23.890
+following command, docker‑compose ‑f to specify the file, which in this case
+
+80
+00:04:23.890 --> 00:04:32.300
+is docker‑compose‑single‑broker.yml, then the command up to start all
+
+81
+00:04:32.300 --> 00:04:38.030
+containers in the specified YAML file, and the ‑d parameter to start them in a
+
+82
+00:04:38.030 --> 00:04:40.560
+daemon mode as background processes.
+
+83
+00:04:40.560 --> 00:04:41.410
+Afterwards,
+
+84
+00:04:41.410 --> 00:04:45.260
+you can run docker ps to list all running containers to
+
+85
+00:04:45.260 --> 00:04:47.440
+make sure that both started properly.
+
+86
+00:04:47.440 --> 00:04:50.840
+I've occasionally seeing the Kafka container die,
+
+87
+00:04:50.840 --> 00:04:53.660
+probably related to connecting to Zookeeper.
+
+88
+00:04:53.660 --> 00:04:57.020
+So if that happens, you just need to run the command again.
+
+89
+00:04:57.020 --> 00:05:01.000
+It won't start a new Zookeeper, it will start whichever containers
+
+90
+00:05:01.000 --> 00:05:04.440
+in the YAML file are not running, namely Kafka.
+
+91
+00:05:04.440 --> 00:05:07.430
+Let's look at the code and see this in action. We'll be
+
+92
+00:05:07.430 --> 00:05:09.510
+building two applications this time.
+
+93
+00:05:09.510 --> 00:05:10.310
+First,
+
+94
+00:05:10.310 --> 00:05:14.480
+the baz reservation publisher will be publishing baz reservations to
+
+95
+00:05:14.480 --> 00:05:21.000
+Kafka, and then the Kafka Globomantics reservation service will receive those reservations and log them.
+

@@ -1,0 +1,277 @@
+WEBVTT
+1
+00:00:00.000 --> 00:00:03.671
+I've got another example to demonstrate something,
+
+2
+00:00:03.671 --> 00:00:08.400
+it's similar to the previous example where we use the default messageListener
+
+3
+00:00:08.400 --> 00:00:12.284
+container to consume messages using multiple cached consumers.
+
+4
+00:00:12.284 --> 00:00:14.605
+When using multiple consumers,
+
+5
+00:00:14.605 --> 00:00:19.656
+the JMS API doesn't stipulate that the messages are delivered in order.
+
+6
+00:00:19.656 --> 00:00:21.851
+The consumers are basically competing with each other
+
+7
+00:00:21.851 --> 00:00:23.962
+to take a message from the queue.
+
+8
+00:00:23.962 --> 00:00:27.688
+But then we get into race conditions within the various
+
+9
+00:00:27.688 --> 00:00:30.562
+threads to process those messages.
+
+10
+00:00:30.562 --> 00:00:32.090
+From the output you can see on the screen,
+
+11
+00:00:32.090 --> 00:00:34.749
+it's clear that the messages we're processed in order.
+
+12
+00:00:34.749 --> 00:00:39.526
+This is because of the competing consumers within the default
+
+13
+00:00:39.526 --> 00:00:41.328
+messageListener container implementation.
+
+14
+00:00:41.328 --> 00:00:44.665
+So what if your system requires your messages to be
+
+15
+00:00:44.665 --> 00:00:46.333
+delivered in a specific order?
+
+16
+00:00:46.333 --> 00:00:46.936
+For example,
+
+17
+00:00:46.936 --> 00:00:49.949
+you don't want a message on a queue representing an
+
+18
+00:00:49.949 --> 00:00:52.590
+update operation for a customer order,
+
+19
+00:00:52.590 --> 00:00:56.115
+if the customer order hasn't already been created yet.
+
+20
+00:00:56.115 --> 00:00:57.771
+This is a real-world problem.
+
+21
+00:00:57.771 --> 00:01:02.563
+Now it's best if you can architect your application to deal with these events.
+
+22
+00:01:02.563 --> 00:01:04.522
+If you receive an update event for an order that hasn't been created yet,
+
+23
+00:01:04.522 --> 00:01:08.446
+then maybe you can place that message back at the end of the queue
+
+24
+00:01:08.446 --> 00:01:11.351
+or on to another queue for processing later on.
+
+25
+00:01:11.351 --> 00:01:15.482
+Maybe use message priorities with creates having a higher priority.
+
+26
+00:01:15.482 --> 00:01:19.030
+There are various techniques for dealing with this.
+
+27
+00:01:19.030 --> 00:01:22.349
+Another option that is part of the JMS API is to
+
+28
+00:01:22.349 --> 00:01:24.393
+guarantee the ordering of messages.
+
+29
+00:01:24.393 --> 00:01:26.572
+Now this approach does have a downside.
+
+30
+00:01:26.572 --> 00:01:30.995
+It means that only one consumer can ever process the messages,
+
+31
+00:01:30.995 --> 00:01:32.906
+so it affects throughput.
+
+32
+00:01:32.906 --> 00:01:35.899
+That's a tradeoff you'll have to think about and deal with.
+
+33
+00:01:35.899 --> 00:01:37.628
+So on to the code.
+
+34
+00:01:37.628 --> 00:01:41.481
+I've restructured the example to try and make it a little
+
+35
+00:01:41.481 --> 00:01:44.448
+bit more clear as to what's going on.
+
+36
+00:01:44.448 --> 00:01:47.012
+I'm still creating five consumers; however,
+
+37
+00:01:47.012 --> 00:01:51.725
+this time I'm using the index of the for loop to identify the
+
+38
+00:01:51.725 --> 00:01:53.713
+messageListener being assigned to each consumer.
+
+39
+00:01:53.713 --> 00:01:57.460
+This just makes it a bit clearer in the console output.
+
+40
+00:01:57.460 --> 00:01:59.907
+If the for loop index is an even number,
+
+41
+00:01:59.907 --> 00:02:04.334
+then it uses a fast operation, and if it is odd,
+
+42
+00:02:04.334 --> 00:02:05.868
+a slow operation.
+
+43
+00:02:05.868 --> 00:02:09.404
+The important bit is on the sender's side.
+
+44
+00:02:09.404 --> 00:02:14.089
+So I've overwritten the method that sends my 100 messages onto the queue.
+
+45
+00:02:14.089 --> 00:02:14.913
+In this case though,
+
+46
+00:02:14.913 --> 00:02:18.588
+I'm using the index of the for loop to determine if it's odd or even.
+
+47
+00:02:18.588 --> 00:02:21.933
+I then use a specific string property on the message,
+
+48
+00:02:21.933 --> 00:02:27.172
+which is the JMSXGroupID, and set it to one of two values,
+
+49
+00:02:27.172 --> 00:02:28.762
+odd or even.
+
+50
+00:02:28.762 --> 00:02:34.060
+This tells the message broker that all messages with the
+
+51
+00:02:34.060 --> 00:02:36.143
+even value should go to a single consumer,
+
+52
+00:02:36.143 --> 00:02:39.895
+and all messages with the odd value should go to another consumer.
+
+53
+00:02:39.895 --> 00:02:42.510
+Now the message broker effectively makes the decision
+
+54
+00:02:42.510 --> 00:02:44.636
+of which consumer to send it to,
+
+55
+00:02:44.636 --> 00:02:46.587
+but if for some reason the consumer goes offline,
+
+56
+00:02:46.587 --> 00:02:50.625
+then the message broker will start sending the messages to another consumer,
+
+57
+00:02:50.625 --> 00:02:55.110
+so there is still a level of failover, which is important.
+
+58
+00:02:55.110 --> 00:02:59.402
+Generally I recommend setting the JMSXGroupID to the lowest common denominator,
+
+59
+00:02:59.402 --> 00:03:03.420
+for example, an order number, an account number,
+
+60
+00:03:03.420 --> 00:03:05.429
+or a customer identifier.
+
+61
+00:03:05.429 --> 00:03:09.360
+This will help ensure the maximum amount of throughput possible.
+
+62
+00:03:09.360 --> 00:03:12.146
+If you set the properties to something like order,
+
+63
+00:03:12.146 --> 00:03:14.597
+then all order messages are going to go to one consumer,
+
+64
+00:03:14.597 --> 00:03:19.651
+which may not be able to process them quickly enough to avoid backlogs.
+
+65
+00:03:19.651 --> 00:03:20.942
+So let's run this example.
+
+66
+00:03:20.942 --> 00:03:23.929
+In the output, even though I have five consumers available,
+
+67
+00:03:23.929 --> 00:03:27.614
+I can see only two are being used.
+
+68
+00:03:27.614 --> 00:03:29.872
+Notice that overall the messages are out of order,
+
+69
+00:03:29.872 --> 00:03:38.000
+but all even-ordered messages are being processed in order, and all all-number messages are also being processed in order.
+

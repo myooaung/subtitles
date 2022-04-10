@@ -1,0 +1,216 @@
+1
+00:00:01,340 --> 00:00:02,970
+So how does all this hang together?
+
+2
+00:00:02,970 --> 00:00:06,600
+How do we actually secure calls in the runtime?
+
+3
+00:00:06,600 --> 00:00:08,100
+Well, we use the SecurityManager.
+
+4
+00:00:08,100 --> 00:00:15,140
+The SecurityManager is called to check requests to any protected operation.
+
+5
+00:00:15,140 --> 00:00:18,600
+Now what is protected is up to the library developer.
+
+6
+00:00:18,600 --> 00:00:22,440
+So we know as part of the Java runtime file access is protected,
+
+7
+00:00:22,440 --> 00:00:26,960
+network access is protected, some access to threads is protected,
+
+8
+00:00:26,960 --> 00:00:30,170
+even access to system properties is protected.
+
+9
+00:00:30,170 --> 00:00:37,830
+If the caller is not allowed to access this protected resource,
+
+10
+00:00:37,830 --> 00:00:40,670
+is not allowed to execute this protected operation,
+
+11
+00:00:40,670 --> 00:00:46,070
+then the SecurityManager is going to throw an exception.
+
+12
+00:00:46,070 --> 00:00:50,870
+The call succeeds or fails, depending on something called a CodeSource,
+
+13
+00:00:50,870 --> 00:00:54,540
+and we'll take a look at CodeSources in more detail a little later.
+
+14
+00:00:54,540 --> 00:01:00,790
+But the CodeSource contains a location and information about the call.
+
+15
+00:01:00,790 --> 00:01:02,840
+So something like this, we have a file system,
+
+16
+00:01:02,840 --> 00:01:06,120
+we want to access the file system, and in front of that,
+
+17
+00:01:06,120 --> 00:01:07,930
+we have the SecurityManager.
+
+18
+00:01:07,930 --> 00:01:10,230
+When something comes along inside an application and
+
+19
+00:01:10,230 --> 00:01:14,730
+wants to access the file system, they have to pass through the SecurityManager.
+
+20
+00:01:14,730 --> 00:01:17,030
+So here we're trying to write to a file called system.dat,
+
+21
+00:01:17,030 --> 00:01:20,270
+and we're creating a new FileOutputStream to do that.
+
+22
+00:01:20,270 --> 00:01:22,750
+SecurityManager in this case allows access,
+
+23
+00:01:22,750 --> 00:01:26,940
+so we're allowed to write to this file.
+
+24
+00:01:26,940 --> 00:01:30,310
+It's possible that the same application loading code from
+
+25
+00:01:30,310 --> 00:01:34,340
+another location also tries to access this file.
+
+26
+00:01:34,340 --> 00:01:38,610
+So it makes another call to FileOutputStream, again tries to access system.dat.
+
+27
+00:01:38,610 --> 00:01:45,000
+But this time, the SecurityManager fails the call. So we can allow or fail
+
+28
+00:01:45,000 --> 00:01:48,760
+calls to the same resource within the same application,
+
+29
+00:01:48,760 --> 00:01:52,040
+depending on where the code is loaded.
+
+30
+00:01:52,040 --> 00:01:55,820
+There are other things that affect whether a call will succeed or fail,
+
+31
+00:01:55,820 --> 00:01:59,400
+but primarily in this case, it's where the code is loaded from.
+
+32
+00:01:59,400 --> 00:02:04,800
+So the SecurityManager works together with the AccessController. It's the job
+
+33
+00:02:04,800 --> 00:02:08,870
+of the SecurityManager to check any sensitive operations.
+
+34
+00:02:08,870 --> 00:02:11,140
+This thing was originally abstract base class that
+
+35
+00:02:11,140 --> 00:02:12,530
+we had to implement ourselves.
+
+36
+00:02:12,530 --> 00:02:14,560
+This is back in the days of Java 1.
+
+37
+00:02:14,560 --> 00:02:18,490
+But since Java 2, there's a concrete SecurityManager that delegates to a
+
+38
+00:02:18,490 --> 00:02:23,450
+concrete AccessController, and that AccessController will make use of
+
+39
+00:02:23,450 --> 00:02:28,970
+policy and permissions to decide whether or not to allow access. By
+
+40
+00:02:28,970 --> 00:02:32,840
+default, there is no SecurityManager,
+
+41
+00:02:32,840 --> 00:02:36,940
+so we have to turn it on if we want to use it.
+
+42
+00:02:36,940 --> 00:02:41,590
+Server processes should almost certainly activate security.
+
+43
+00:02:41,590 --> 00:02:44,530
+The server processes want to limit the attack area.
+
+44
+00:02:44,530 --> 00:02:47,650
+They want to follow this principle of least privilege.
+
+45
+00:02:47,650 --> 00:02:49,600
+And how do we activate security?
+
+46
+00:02:49,600 --> 00:02:52,800
+Remember, it's off by default, so we have to turn it on.
+
+47
+00:02:52,800 --> 00:02:57,130
+And there two ways of doing this. One way is from the command line.
+
+48
+00:02:57,130 --> 00:02:59,000
+We can set a system property.
+
+49
+00:02:59,000 --> 00:03:03,520
+So if you run the code with this property ‑Djava.security.manager,
+
+50
+00:03:03,520 --> 00:03:09,240
+that says, I want to use the default SecurityManager to run my code.
+
+51
+00:03:09,240 --> 00:03:13,820
+We can also activate it explicitly inside our code. So I can
+
+52
+00:03:13,820 --> 00:03:16,800
+call setSecurityManager and passing it a new
+
+53
+00:03:16,800 --> 00:03:19,160
+SecurityManager. These two are equivalent.
+
+54
+00:03:19,160 --> 00:03:28,000
+So now we'll take a look at a demo, and just turning on the SecurityManager and seeing what that allows or disallows within our code.
+

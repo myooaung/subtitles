@@ -1,0 +1,325 @@
+WEBVTT
+1
+00:00:00.940 --> 00:00:04.400
+With all of our data gathered and an event being
+
+2
+00:00:04.400 --> 00:00:06.680
+triggered inside of our application,
+
+3
+00:00:06.680 --> 00:00:10.250
+we need to now create the listener for that event
+
+4
+00:00:10.250 --> 00:00:15.120
+that will create a reset token, store that token in our database,
+
+5
+00:00:15.120 --> 00:00:19.960
+and all of the relevant information to retrieve and verify that it is
+
+6
+00:00:19.960 --> 00:00:23.210
+actually who we think it is trying to change our password,
+
+7
+00:00:23.210 --> 00:00:28.940
+and send that email off to that registered email address with us.
+
+8
+00:00:28.940 --> 00:00:33.970
+Let's create that listener and the back‑end service impl
+
+9
+00:00:33.970 --> 00:00:38.140
+and repository to capture all of that.
+
+10
+00:00:38.140 --> 00:00:41.770
+The password listener is where things are going to start to get a
+
+11
+00:00:41.770 --> 00:00:44.950
+little bit more interesting inside of this example.
+
+12
+00:00:44.950 --> 00:00:50.170
+And we want to go ahead and exit full screen inside of our app,
+
+13
+00:00:50.170 --> 00:00:53.440
+go to our util package,
+
+14
+00:00:53.440 --> 00:00:58.260
+and we're going to create this listener right alongside our other
+
+15
+00:00:58.260 --> 00:01:02.440
+messaging components that we've already created.
+
+16
+00:01:02.440 --> 00:01:11.040
+We'll give this a name of PasswordListener.
+
+17
+00:01:11.040 --> 00:01:16.390
+We want to make this implement our ApplicationListener
+
+18
+00:01:16.390 --> 00:01:22.240
+interface for our OnPasswordResetEvent.
+
+19
+00:01:22.240 --> 00:01:26.980
+We're going to get a error to begin with because we haven't created the
+
+20
+00:01:26.980 --> 00:01:30.040
+methods that it wants us to by implementing that interface,
+
+21
+00:01:30.040 --> 00:01:33.090
+so let's go ahead and do that now.
+
+22
+00:01:33.090 --> 00:01:38.590
+And I'm going to redirect this OnApplicationEvent to
+
+23
+00:01:38.590 --> 00:01:40.040
+a method we're going to create.
+
+24
+00:01:40.040 --> 00:01:52.740
+And we'll just call this this.resetPassword, and we'll pass in the event.
+
+25
+00:01:52.740 --> 00:01:57.360
+We can create that method inside of here as well.
+
+26
+00:01:57.360 --> 00:02:03.480
+And now there's not really a great order of one over the other of the things
+
+27
+00:02:03.480 --> 00:02:06.830
+that we need to do to implement this method completely.
+
+28
+00:02:06.830 --> 00:02:11.950
+So let's begin by annotating this as a component,
+
+29
+00:02:11.950 --> 00:02:14.500
+and that just, if you'll remember,
+
+30
+00:02:14.500 --> 00:02:19.740
+makes it a Spring‑registered bean inside of our app.
+
+31
+00:02:19.740 --> 00:02:24.470
+Then we're going to need a handful of variables inside of here.
+
+32
+00:02:24.470 --> 00:02:30.740
+We're going to create a private string, and that is for our server URL.
+
+33
+00:02:30.740 --> 00:02:35.850
+And as I mentioned before, you could make this part of a parent class,
+
+34
+00:02:35.850 --> 00:02:40.140
+and we should also inject that hardcoded string in through properties.
+
+35
+00:02:40.140 --> 00:02:41.680
+If you're wondering how to do that,
+
+36
+00:02:41.680 --> 00:02:44.000
+go ahead and look at the Spring Fundamentals course that we
+
+37
+00:02:44.000 --> 00:02:48.130
+have out here that shows you how to do some of these best
+
+38
+00:02:48.130 --> 00:02:50.450
+practices of extracting these out.
+
+39
+00:02:50.450 --> 00:02:54.270
+But to keep it simple, we're just going to hardcode that inside of here.
+
+40
+00:02:54.270 --> 00:02:59.460
+We're also going to need our JavaMailSender that we used
+
+41
+00:02:59.460 --> 00:03:04.630
+from the account registration portion, so we'll say @Autowired.
+
+42
+00:03:04.630 --> 00:03:12.330
+We're going to create a private JavaMailSender instance.
+
+43
+00:03:12.330 --> 00:03:18.790
+We'll call this mailSender and save that.
+
+44
+00:03:18.790 --> 00:03:23.570
+Now this is broken down into three parts here.
+
+45
+00:03:23.570 --> 00:03:28.640
+We're going to create the password token,
+
+46
+00:03:28.640 --> 00:03:32.600
+and this is what we'll use to verify that whoever is
+
+47
+00:03:32.600 --> 00:03:36.330
+trying to change the password actually did so through the
+
+48
+00:03:36.330 --> 00:03:38.730
+interface of that email address.
+
+49
+00:03:38.730 --> 00:03:43.640
+We need to get the email properties,
+
+50
+00:03:43.640 --> 00:03:47.500
+and that's just what we need to send that actual email.
+
+51
+00:03:47.500 --> 00:03:50.990
+And then, finally, we're going to actually do just that,
+
+52
+00:03:50.990 --> 00:03:57.970
+send the actual email using the mail sender that we just imported in here.
+
+53
+00:03:57.970 --> 00:04:03.640
+So to flesh that out, let's start off by creating that password token,
+
+54
+00:04:03.640 --> 00:04:09.340
+and that is almost identical to what we did in our accountListener.
+
+55
+00:04:09.340 --> 00:04:16.440
+We're going to take our Password instance and get the actual
+
+56
+00:04:16.440 --> 00:04:19.240
+password that they've sent in out of that,
+
+57
+00:04:19.240 --> 00:04:27.090
+and we're going to use the UUID class from Java to get a randomized
+
+58
+00:04:27.090 --> 00:04:30.820
+string for that token ID that we have inside of our app.
+
+59
+00:04:30.820 --> 00:04:34.330
+And then there's one other piece that we haven't implemented yet.
+
+60
+00:04:34.330 --> 00:04:40.540
+We're going to use a passwordService, we haven't created this service yet,
+
+61
+00:04:40.540 --> 00:04:50.610
+and that will create a ResetToken that we pass in from our
+
+62
+00:04:50.610 --> 00:04:54.270
+Password instance and that UUID that we just created.
+
+63
+00:04:54.270 --> 00:05:01.340
+So we'll pass in password and the token that we just created.
+
+64
+00:05:01.340 --> 00:05:03.680
+Now we haven't created that interface yet.
+
+65
+00:05:03.680 --> 00:05:05.530
+We'll do that here in a second,
+
+66
+00:05:05.530 --> 00:05:11.820
+but let's finish out the rest of our email and actual sending of our email,
+
+67
+00:05:11.820 --> 00:05:16.440
+and then we'll focus on what the implementation of that service needs to be.
+
+68
+00:05:16.440 --> 00:05:20.360
+The email properties consists of a recipientAddress,
+
+69
+00:05:20.360 --> 00:05:24.620
+the subject, confirmationUrl, and the message.
+
+70
+00:05:24.620 --> 00:05:29.530
+The confirmationUrl is the event app URL that we got
+
+71
+00:05:29.530 --> 00:05:34.280
+earlier combined with our server URL,
+
+72
+00:05:34.280 --> 00:05:39.010
+and that is sent to the body of that email that we're
+
+73
+00:05:39.010 --> 00:05:44.840
+going to now send in the next step.
+
+74
+00:05:44.840 --> 00:05:50.540
+And the actual sending of that email is a simple mail message.
+
+75
+00:05:50.540 --> 00:05:55.800
+We set the To address from the recipientAddress that we
+
+76
+00:05:55.800 --> 00:05:57.780
+got out of our password object earlier.
+
+77
+00:05:57.780 --> 00:06:01.550
+We set our Subject, then the Text or Body of that.
+
+78
+00:06:01.550 --> 00:06:04.940
+Then we use mailSender to actually send that email.
+
+79
+00:06:04.940 --> 00:06:07.670
+Now this is all the pieces we need inside of the PasswordListener,
+
+80
+00:06:07.670 --> 00:06:10.940
+but we do still have to create that password service.
+
+81
+00:06:10.940 --> 00:06:18.000
+I'm going to talk a little bit more in depth about that before we create that actual interface and the implementing class behind it.
+

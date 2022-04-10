@@ -1,0 +1,304 @@
+WEBVTT
+
+00:02.370 --> 00:07.710
+As I mentioned, it would be nice to have some error message when we're, well getting an error
+
+00:08.040 --> 00:10.710
+and for that, we can use an @angular/material component,
+
+00:10.710 --> 00:14.100
+of course you could build something similar on your own.
+
+00:14.130 --> 00:18.010
+There we have a component, the dialog component,
+
+00:18.150 --> 00:23.040
+we find it here under pop-ups and modals.
+
+00:23.470 --> 00:28.600
+There we get that dialog which really looks like that, we can show our own message here in the middle
+
+00:28.600 --> 00:34.930
+of the screen and you could of course create your own modal, any div with some content, some backdrop
+
+00:35.020 --> 00:40.850
+and attach both conditionally with ngIf or well, use this solution here
+
+00:40.870 --> 00:42.880
+which we will use in this course.
+
+00:42.880 --> 00:44.350
+So how does this work?
+
+00:44.440 --> 00:49.150
+We can inspect the source code and there, the typescript code is the interesting part.
+
+00:49.150 --> 00:53.410
+This dialog component here happens to work programmatically,
+
+00:53.650 --> 01:00.520
+we open a dialog by using the dialog service provided by Angular material and we actually pass in a
+
+01:00.520 --> 01:05.370
+component reference which will be rendered inside of that dialog which is opened.
+
+01:05.470 --> 01:10.400
+Now that is a bit of a more advanced solution here, rendering a component dynamically.
+
+01:10.420 --> 01:16.150
+The easy solution would be as I just mentioned to really just add some div,
+
+01:16.250 --> 01:24.330
+maybe in the app component and then use ngIf combined with some error condition to show or hide this.
+
+01:24.400 --> 01:30.970
+So let's use that dialog though and let me show you how to generally handle errors and show and hide
+
+01:30.970 --> 01:34.000
+something if we got an error. For that,
+
+01:34.060 --> 01:45.190
+I want to register a global error handler and since our errors are related to HTTP errors, I want to use
+
+01:45.190 --> 01:53.680
+my interceptor again. This auth-interceptor here is used to, well intercept all outgoing requests and
+
+01:53.770 --> 01:58.310
+add the auth header. We can add another interceptor
+
+01:58.490 --> 02:05.450
+and I will add it here in my root folder since it will affect the entire app, I will add my error
+
+02:05.740 --> 02:07.010
+interceptor file,
+
+02:07.060 --> 02:12.300
+so error.interceptor.ts.
+
+02:12.330 --> 02:17.430
+Now keep in mind, we got the auth-interceptor and there, we used the dash
+
+02:17.430 --> 02:23.420
+so let's use one here too, error-interceptor
+
+02:23.460 --> 02:28.070
+and now here, I will create an interceptor just as I did it for auth.
+
+02:28.110 --> 02:34.500
+So let's copy the entire auth-interceptor code and let's put it into the error-interceptor.
+
+02:34.620 --> 02:37.220
+I won't need the auth service though,
+
+02:37.320 --> 02:39.000
+so no need to inject it,
+
+02:39.150 --> 02:45.380
+no need for injectable then because we're not injecting a service here right now and therefore, we can
+
+02:45.380 --> 02:50.810
+also remove the injectable input here. And now in the intercept method,
+
+02:50.880 --> 02:54.600
+I just want to return next händler request
+
+02:54.750 --> 02:58.270
+but now we can actually also listen to the response there.
+
+02:58.290 --> 02:59.780
+I don't want to edit the request,
+
+02:59.780 --> 03:07.890
+I want to listen to the response and handle actually gives us back the response observable stream and
+
+03:07.890 --> 03:16.020
+we can just hook into that stream and listen to events and we can use the pipe method provided by
+
+03:16.020 --> 03:16.880
+rxjs
+
+03:17.010 --> 03:24.840
+to add an operator to that stream and I want to add a special operator, the catch error operator which
+
+03:24.840 --> 03:33.660
+you need to import from rxjs/operators. Catch error as the name suggests is an operator
+
+03:33.900 --> 03:37.450
+that allows us to handle errors emitted in this stream
+
+03:37.530 --> 03:42.890
+and since this is for an HTTP request, we'll be talking about HTTP errors.
+
+03:43.470 --> 03:51.000
+Here we have to pass a function where we will get our error, which will be of type HTTP error
+
+03:51.060 --> 03:56.240
+response which you can import from @angular/common/http 
+
+03:56.460 --> 04:00.210
+and then we can of course console log it for example.
+
+04:00.540 --> 04:02.340
+Now we can do that
+
+04:02.340 --> 04:08.190
+but one thing we absolutely have to do here is we have to keep in mind that we're just adding something
+
+04:08.220 --> 04:10.130
+to that observable stream.
+
+04:10.350 --> 04:16.170
+We're finally handling it in different places of our app, in the post service where we subscribe, in the
+
+04:16.230 --> 04:19.200
+auth service where we subscribe to our requests.
+
+04:19.290 --> 04:27.480
+So we absolutely have to return an observable here inside of catch error, even if we had an error and
+
+04:27.480 --> 04:35.370
+we can just use throwError for this, a method which we import directly from rxjs and this
+
+04:35.370 --> 04:42.650
+will generate a new observable to which we can just pass that error and now we just return that
+
+04:42.660 --> 04:43.690
+observable here.
+
+04:43.980 --> 04:46.910
+So now we're just returning that observable with the error
+
+04:47.040 --> 04:49.750
+but we can do some error handling here and
+
+04:50.040 --> 04:56.150
+for example, we can also alert to throw a normal javascript alert, error
+
+04:56.190 --> 05:02.570
+and on that error object, we actually have an error property which will be the response body of the error
+
+05:02.570 --> 05:06.010
+request or of the error response I should say
+
+05:06.150 --> 05:11.550
+and there we could output the message and hope to have one, we'll refine this later.
+
+05:11.940 --> 05:19.290
+So now we can register this interceptor in our app module where we also register the auth-interceptor by
+
+05:19.290 --> 05:21.750
+copying this provider.
+
+05:21.810 --> 05:24.210
+Same token, also use multi
+
+05:24.420 --> 05:30.370
+but here we use the error interceptor and for that, I need to rename that class first.
+
+05:30.420 --> 05:35.730
+So in the error-interceptor file, this is now the error-interceptor class.
+
+05:35.910 --> 05:40.620
+Now we can use that in app module, here error-interceptor.
+
+05:40.650 --> 05:42.300
+We also need to import this,
+
+05:42.330 --> 05:50.160
+so at the top, we import error interceptor from ./error-interceptor, so from that file we
+
+05:50.160 --> 05:51.490
+just created.
+
+05:51.600 --> 05:57.180
+Now every outgoing HTTP request will have this interceptor attached to it
+
+05:57.780 --> 06:00.950
+and if I recompile this, strange error is also gone.
+
+06:01.050 --> 06:07.740
+So now every outgoing HTTP request will be watched by this and if we get back an error response, this
+
+06:07.740 --> 06:09.510
+interceptor should kick in.
+
+06:09.840 --> 06:11.190
+So let's give this a try,
+
+06:11.190 --> 06:13.310
+we're not using that material dialog yet
+
+06:13.380 --> 06:16.080
+but let's give this a try on the sign-up page again.
+
+06:16.440 --> 06:23.490
+If I do enter an e-mail address which is already taken and I hit sign-up, we get back an alert with
+
+06:23.520 --> 06:26.910
+undefined because we don't have a message here as it seems
+
+06:27.060 --> 06:32.310
+but we see that the interceptor is doing something and we also see the log from inside the interceptor
+
+06:32.590 --> 06:34.980
+here.
+
+06:35.020 --> 06:39.080
+There we can see the error response we're getting, that's the response body
+
+06:39.380 --> 06:48.000
+and there, we actually have a message field, so error, error message should actually yield something.
+
+06:49.000 --> 06:49.540
+Now though
+
+06:49.570 --> 06:56.590
+I see because of the error we're getting back from the server which is automatically generated by our
+
+06:56.590 --> 06:59.170
+Mongoose unique validator,
+
+06:59.170 --> 07:04.930
+we have another level of error in there and that's really just because that Mongoose unique validator
+
+07:04.930 --> 07:07.690
+adds another error object nested in there,
+
+07:07.780 --> 07:11.090
+so it's error.error.error.message.
+
+07:11.290 --> 07:13.130
+Yes, that is really weird
+
+07:13.150 --> 07:18.820
+but now we would actually be able to see something here.
+
+07:18.880 --> 07:22.930
+Now we get user validation failed, email error expected email to be unique.
+
+07:22.930 --> 07:27.610
+Now that is not a message I want to show anyways and that is one of the rare cases where we have this
+
+07:27.640 --> 07:29.390
+extra level of nesting,
+
+07:29.440 --> 07:30.770
+so let's ignore it for now
+
+07:30.790 --> 07:37.540
+but you see that we can actually access error information and that we have an error object which actually
+
+07:37.540 --> 07:42.510
+holds the response and we can access the response body on that nested error object
+
+07:42.550 --> 07:48.360
+and as you saw in the log, we also got other things like the exact status code we're getting and so on.
+
+07:48.370 --> 07:51.210
+So this can really help you handling your errors.
+
+07:51.290 --> 07:53.360
+Now that we added this interceptor,
+
+07:53.410 --> 07:59.210
+let's use it and add something better than this boring alert in the next lecture.

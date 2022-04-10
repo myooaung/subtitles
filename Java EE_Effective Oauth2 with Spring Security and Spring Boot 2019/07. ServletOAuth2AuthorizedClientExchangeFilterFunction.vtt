@@ -1,0 +1,389 @@
+WEBVTT
+1
+00:00:02.083 --> 00:00:06.624
+This time, let's switch over to our MVC web application.
+
+2
+00:00:06.624 --> 00:00:09.905
+We create a WebClientConfig class and annotate it
+
+3
+00:00:09.905 --> 00:00:15.368
+with the configuration annotation, then create a method that returns a WebClient,
+
+4
+00:00:15.368 --> 00:00:18.582
+this time accepting two arguments,
+
+5
+00:00:18.582 --> 00:00:24.364
+the ClientRegistrationRepository and the OAuth2AuthorizedClientRepository.
+
+6
+00:00:24.364 --> 00:00:28.116
+Spring will autowire these instances for us.
+
+7
+00:00:28.116 --> 00:00:31.010
+I'll describe what they're for shortly.
+
+8
+00:00:31.010 --> 00:00:36.136
+We use the builder on the WebClient class and return the build method.
+
+9
+00:00:36.136 --> 00:00:39.923
+We want the WebClient to automatically include the token along
+
+10
+00:00:39.923 --> 00:00:43.712
+with our request in the authorization header.
+
+11
+00:00:43.712 --> 00:00:46.666
+To do this, we can add an exchange filter,
+
+12
+00:00:46.666 --> 00:00:49.559
+which will intercept the request before going out and
+
+13
+00:00:49.559 --> 00:00:52.198
+add the authentication header for us.
+
+14
+00:00:52.198 --> 00:00:57.771
+Spring provides an OAuth2 filter function just for this purpose,
+
+15
+00:00:57.771 --> 00:01:01.558
+the ServletOAuth2AuthorizedClientExchange FilterFunction.
+
+16
+00:01:01.558 --> 00:01:05.556
+Now that's a bit of a mouthful.
+
+17
+00:01:05.556 --> 00:01:10.653
+To be honest, I had to practice that for some time, and it took me a few takes.
+
+18
+00:01:10.653 --> 00:01:13.723
+But the name will make sense to you shortly.
+
+19
+00:01:13.723 --> 00:01:18.296
+The filter function requires the clientRegistrationRepository and the
+
+20
+00:01:18.296 --> 00:01:22.704
+OAuth2 authorizedClientRepository in the constructor.
+
+21
+00:01:22.704 --> 00:01:24.602
+There are actually two flavors of the
+
+22
+00:01:24.602 --> 00:01:27.501
+OAuth2AuthorizedClientExchangeFilter Function,
+
+23
+00:01:27.501 --> 00:01:30.357
+the servlet and the server.
+
+24
+00:01:30.357 --> 00:01:34.683
+Because this is an MVC application, we use the servlet version.
+
+25
+00:01:34.683 --> 00:01:37.264
+If this was a reactive application,
+
+26
+00:01:37.264 --> 00:01:42.659
+then we would use the ServerOAuth2AuthorizedClientExchangeFilter Function.
+
+27
+00:01:42.659 --> 00:01:47.044
+Now the ClientRegistrationRepository is used by the OAuthFilterFunction
+
+28
+00:01:47.044 --> 00:01:51.694
+to retrieve the registered clients in our application.
+
+29
+00:01:51.694 --> 00:01:52.891
+And in our application,
+
+30
+00:01:52.891 --> 00:01:55.908
+it's the default in-memory version that loaded the client
+
+31
+00:01:55.908 --> 00:01:59.426
+information from our configuration file.
+
+32
+00:01:59.426 --> 00:02:03.588
+The filter function will need it to retrieve this information.
+
+33
+00:02:03.588 --> 00:02:07.463
+Whereas the OAuth2AuthorizedClientRepository is a
+
+34
+00:02:07.463 --> 00:02:10.972
+repository for authorized clients.
+
+35
+00:02:10.972 --> 00:02:15.655
+Now an authorized client is just that, a client that has been authorized, i.e.
+
+36
+00:02:15.655 --> 00:02:20.277
+it has a valid access token and optionally a refresh token.
+
+37
+00:02:20.277 --> 00:02:23.327
+So basically the OAuth flow has happened for that client.
+
+38
+00:02:23.327 --> 00:02:26.631
+The filter function will use the client registration to
+
+39
+00:02:26.631 --> 00:02:30.072
+retrieve a client's details to make the OAuth2 authorization
+
+40
+00:02:30.072 --> 00:02:33.728
+request to the authorization server and,
+
+41
+00:02:33.728 --> 00:02:34.917
+once authorized,
+
+42
+00:02:34.917 --> 00:02:39.111
+create an authorized client and store it in an authorized client repository
+
+43
+00:02:39.111 --> 00:02:43.743
+where it can be access for future requests by the filter function to add the
+
+44
+00:02:43.743 --> 00:02:47.891
+access token to the header until it expires.
+
+45
+00:02:47.891 --> 00:02:52.603
+Now we plug in the OAuthFilterFunction into our WebClient.
+
+46
+00:02:52.603 --> 00:02:54.951
+Okay, in our MvcController,
+
+47
+00:02:54.951 --> 00:03:01.940
+we are using WebClient to send REST requests to our portfolio microservice.
+
+48
+00:03:01.940 --> 00:03:07.311
+This time, we will let the ExchangeFilter function add the authorization header.
+
+49
+00:03:07.311 --> 00:03:11.359
+Now an advantage of this approach is that if there is a refresh token
+
+50
+00:03:11.359 --> 00:03:15.074
+and the client uses the authorization code grant,
+
+51
+00:03:15.074 --> 00:03:17.727
+the filter function will check the expiry.
+
+52
+00:03:17.727 --> 00:03:20.433
+And if it is within 1 minute of being expired,
+
+53
+00:03:20.433 --> 00:03:24.272
+it will request a new fresh token.
+
+54
+00:03:24.272 --> 00:03:27.943
+All the filter function needs to know is which authorized client we
+
+55
+00:03:27.943 --> 00:03:31.725
+want to use as we could have multiple configured.
+
+56
+00:03:31.725 --> 00:03:37.362
+One cool feature about the WebClient is you can add attributes to a request,
+
+57
+00:03:37.362 --> 00:03:41.164
+which can then be referenced by an ExchangeFilterFunction.
+
+58
+00:03:41.164 --> 00:03:45.686
+Here we can add the attribute for the OAuth2 filter function,
+
+59
+00:03:45.686 --> 00:03:49.467
+the registration ID of the client so it can look it up
+
+60
+00:03:49.467 --> 00:03:52.362
+in the authorizedClientRepository.
+
+61
+00:03:52.362 --> 00:03:55.290
+There is a static method on the OAuth exchange function we
+
+62
+00:03:55.290 --> 00:03:58.905
+can use to set the attribute it requires.
+
+63
+00:03:58.905 --> 00:04:03.438
+So in the attributes property, we can use the clientRegistrationId,
+
+64
+00:04:03.438 --> 00:04:05.708
+passing in crypto-portfolio.
+
+65
+00:04:05.708 --> 00:04:09.037
+The OAuth2ExchangeFilterFunction will now look for that
+
+66
+00:04:09.037 --> 00:04:12.883
+authorized client in the authorizedClientRepository.
+
+67
+00:04:12.883 --> 00:04:14.860
+If it can't find one there,
+
+68
+00:04:14.860 --> 00:04:18.640
+it then might attempt to authorize that client depending if
+
+69
+00:04:18.640 --> 00:04:21.540
+the grant type is appropriate for that.
+
+70
+00:04:21.540 --> 00:04:24.644
+Now we can also access the authorized client in our
+
+71
+00:04:24.644 --> 00:04:28.229
+controller by adding the RegisteredOauth2AuthorizedClient
+
+72
+00:04:28.229 --> 00:04:32.223
+annotation in our controller methods.
+
+73
+00:04:32.223 --> 00:04:34.555
+Now Spring will resolve it.
+
+74
+00:04:34.555 --> 00:04:35.905
+If we have multiple clients,
+
+75
+00:04:35.905 --> 00:04:39.356
+then we also need to specify the registration ID so
+
+76
+00:04:39.356 --> 00:04:41.942
+that it knows which one to retrieve.
+
+77
+00:04:41.942 --> 00:04:46.453
+And we can use the OAuth2AuthorizedClient method and pass that in.
+
+78
+00:04:46.453 --> 00:04:47.869
+Now let's test this.
+
+79
+00:04:47.869 --> 00:04:52.029
+If we put in a breakpoint in the portfolio service
+
+80
+00:04:52.029 --> 00:04:53.808
+BearerTokenAuthenticationFilter,
+
+81
+00:04:53.808 --> 00:05:00.623
+we can see the token that was sent to the portfolio service by the MVC web app.
+
+82
+00:05:00.623 --> 00:05:05.946
+You can also set the default client when configuring the ExchangeFilterFunction.
+
+83
+00:05:05.946 --> 00:05:08.629
+Now one thing to note is in the OAuthFilterFunction,
+
+84
+00:05:08.629 --> 00:05:14.237
+if the authorized client is using the authorize code grant,
+
+85
+00:05:14.237 --> 00:05:17.019
+the filter will check the expiry each time.
+
+86
+00:05:17.019 --> 00:05:20.016
+And by default, if it's within 1 minute of expiring,
+
+87
+00:05:20.016 --> 00:05:23.804
+it will check for a refresh token for that client.
+
+88
+00:05:23.804 --> 00:05:26.711
+If one exists, it will get a new token.
+
+89
+00:05:26.711 --> 00:05:27.983
+Now that's quite neat.
+
+90
+00:05:27.983 --> 00:05:33.239
+Our MVC web app is a client and can have access to a refresh token.
+
+91
+00:05:33.239 --> 00:05:37.099
+However, if we pass the access token down to other services,
+
+92
+00:05:37.099 --> 00:05:39.574
+we don't forward the refresh token.
+
+93
+00:05:39.574 --> 00:05:43.489
+So all the other services that might be downstream of that request
+
+94
+00:05:43.489 --> 00:05:46.643
+chain would not be able to refresh the token.
+
+95
+00:05:46.643 --> 00:05:49.115
+Hence, 1 minute might not be enough.
+
+96
+00:05:49.115 --> 00:05:51.957
+You might need to adjust the skew time based on the
+
+97
+00:05:51.957 --> 00:05:56.000
+average time of your total request time. Token relay with the
+

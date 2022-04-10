@@ -1,0 +1,1688 @@
+1
+00:00:01,300 --> 00:00:03,180
+<v Instructor>Remember how we have a field</v>
+
+2
+00:00:03,180 --> 00:00:06,500
+for the average rating on each tour document?
+
+3
+00:00:06,500 --> 00:00:09,860
+Well up until this point that field doesn't really hold
+
+4
+00:00:09,860 --> 00:00:12,110
+any meaningful data, does it?
+
+5
+00:00:12,110 --> 00:00:14,290
+But so let's now actually change that
+
+6
+00:00:14,290 --> 00:00:17,233
+and calculate average ratings in this lecture.
+
+7
+00:00:18,920 --> 00:00:22,410
+So storing a summary of a related data set
+
+8
+00:00:22,410 --> 00:00:26,270
+on the main data set is actually a very popular technique
+
+9
+00:00:26,270 --> 00:00:29,900
+in data modeling that I hadn't actually mentioned yet.
+
+10
+00:00:29,900 --> 00:00:32,720
+And this technique can actually be really helpful
+
+11
+00:00:32,720 --> 00:00:34,750
+in order to prevent constant queries
+
+12
+00:00:34,750 --> 00:00:36,890
+of the related data set.
+
+13
+00:00:36,890 --> 00:00:40,110
+So in our application a great example of this technique
+
+14
+00:00:40,110 --> 00:00:43,320
+is to store the average rating and the number of ratings
+
+15
+00:00:43,320 --> 00:00:46,870
+on each tour, so that we don't have to query the reviews
+
+16
+00:00:46,870 --> 00:00:49,860
+and calculate that average each time that we query
+
+17
+00:00:49,860 --> 00:00:52,150
+for all the tours, okay.
+
+18
+00:00:52,150 --> 00:00:54,380
+For example, that could become very useful
+
+19
+00:00:54,380 --> 00:00:57,280
+for a tour overview page in our front-end
+
+20
+00:00:57,280 --> 00:01:00,320
+where we really do not want to display all the reviews,
+
+21
+00:01:00,320 --> 00:01:03,350
+but still want to show a summary of these reviews,
+
+22
+00:01:03,350 --> 00:01:06,730
+like for example, the number of ratings and the average.
+
+23
+00:01:06,730 --> 00:01:09,130
+And actually we already have the fields for that
+
+24
+00:01:09,130 --> 00:01:10,433
+in our tour schema.
+
+25
+00:01:11,450 --> 00:01:15,870
+So right here at the beginning, I think.
+
+26
+00:01:15,870 --> 00:01:17,660
+Yeah, so we have the ratings average
+
+27
+00:01:17,660 --> 00:01:19,760
+and ratings quantity right here,
+
+28
+00:01:19,760 --> 00:01:22,380
+but right now they're only just some numbers
+
+29
+00:01:22,380 --> 00:01:25,307
+and of course, they are not the actual average
+
+30
+00:01:25,307 --> 00:01:27,560
+and the number of ratings, because we never
+
+31
+00:01:27,560 --> 00:01:30,840
+really calculated that at any point in our application,
+
+32
+00:01:30,840 --> 00:01:34,290
+but that's exactly what we're gonna change in this video.
+
+33
+00:01:34,290 --> 00:01:37,370
+So right now we're gonna calculate the average rating
+
+34
+00:01:37,370 --> 00:01:39,750
+and also the number of ratings of a tour
+
+35
+00:01:39,750 --> 00:01:43,330
+each time that a new review is added to that tour
+
+36
+00:01:43,330 --> 00:01:47,000
+or also when a review is updated or deleted,
+
+37
+00:01:47,000 --> 00:01:49,230
+because that's exactly the situations
+
+38
+00:01:49,230 --> 00:01:52,830
+when the number or the average might change, right.
+
+39
+00:01:52,830 --> 00:01:55,920
+So how are we actually going to implement this?
+
+40
+00:01:55,920 --> 00:01:58,800
+Well back here in the review model
+
+41
+00:01:58,800 --> 00:02:00,620
+we're gonna create a new function
+
+42
+00:02:00,620 --> 00:02:02,690
+which will take in a tour ID
+
+43
+00:02:02,690 --> 00:02:05,690
+and calculate the average rating and the number of ratings
+
+44
+00:02:05,690 --> 00:02:09,410
+that exist in our collection for that exact tour.
+
+45
+00:02:09,410 --> 00:02:11,880
+Then in the end the function will even update
+
+46
+00:02:11,880 --> 00:02:14,020
+the corresponding tour document.
+
+47
+00:02:14,020 --> 00:02:16,360
+Then in order to use that function
+
+48
+00:02:16,360 --> 00:02:19,510
+we will use middleware to basically call this function
+
+49
+00:02:19,510 --> 00:02:22,650
+each time that there is a new review or one is updated
+
+50
+00:02:22,650 --> 00:02:24,980
+or deleted, okay.
+
+51
+00:02:24,980 --> 00:02:28,030
+So let's now start by writing that function
+
+52
+00:02:28,030 --> 00:02:31,370
+and for that we're actually gonna write a static method
+
+53
+00:02:31,370 --> 00:02:34,510
+on our schema, and that's a feature of Mongoose
+
+54
+00:02:34,510 --> 00:02:36,580
+that we hadn't used yet.
+
+55
+00:02:36,580 --> 00:02:38,630
+So we only used instance method,
+
+56
+00:02:38,630 --> 00:02:40,500
+which we can call on documents
+
+57
+00:02:40,500 --> 00:02:42,050
+and they are also very useful,
+
+58
+00:02:42,050 --> 00:02:46,090
+but this time we're really going to use static methods.
+
+59
+00:02:46,090 --> 00:02:46,923
+Okay.
+
+60
+00:02:47,850 --> 00:02:51,330
+So again, these can be called on the model
+
+61
+00:02:51,330 --> 00:02:55,157
+directly, for example, like this review.calcStats,
+
+62
+00:02:58,010 --> 00:02:59,520
+okay.
+
+63
+00:02:59,520 --> 00:03:04,350
+And the way this works is of course reviewSchema
+
+64
+00:03:04,350 --> 00:03:09,323
+and then .statics and then the name of the function.
+
+65
+00:03:10,490 --> 00:03:11,540
+So calcAverageRatings
+
+66
+00:03:18,360 --> 00:03:22,143
+is equal to a function, which remember takes in a tour ID,
+
+67
+00:03:24,800 --> 00:03:27,180
+and that ID is of course for the tour
+
+68
+00:03:27,180 --> 00:03:29,670
+to which the current review belongs to.
+
+69
+00:03:29,670 --> 00:03:32,790
+And I know that at this point it's probably all sounds
+
+70
+00:03:32,790 --> 00:03:35,000
+kind of confusing, but don't worry
+
+71
+00:03:35,000 --> 00:03:36,720
+once we have all of this implemented
+
+72
+00:03:36,720 --> 00:03:38,380
+and also when we're testing it
+
+73
+00:03:38,380 --> 00:03:42,080
+it will then make a lot of sense in practice, okay?
+
+74
+00:03:42,080 --> 00:03:45,120
+Anyway in order to now actually do the calculation
+
+75
+00:03:45,120 --> 00:03:48,470
+we will again use the aggregation pipeline, right.
+
+76
+00:03:48,470 --> 00:03:53,470
+So let's remember that in our tool controller,
+
+77
+00:03:53,970 --> 00:03:56,990
+so right here we use the aggregation pipeline
+
+78
+00:03:56,990 --> 00:04:00,730
+to also create some statistics like this, okay.
+
+79
+00:04:00,730 --> 00:04:04,560
+So we used the aggregate method, which we called directly
+
+80
+00:04:04,560 --> 00:04:06,670
+on the model, okay.
+
+81
+00:04:06,670 --> 00:04:09,080
+So now in our instance method we can actually do
+
+82
+00:04:09,080 --> 00:04:10,393
+the exact same thing.
+
+83
+00:04:12,140 --> 00:04:15,690
+So in a static method like this these keywords
+
+84
+00:04:15,690 --> 00:04:18,130
+actually points to the current model.
+
+85
+00:04:18,130 --> 00:04:20,623
+So that's why we can use this.aggregate,
+
+86
+00:04:22,160 --> 00:04:25,100
+because remember we need to call this.aggregate
+
+87
+00:04:25,100 --> 00:04:27,470
+on the model directly, and that's exactly
+
+88
+00:04:27,470 --> 00:04:30,970
+why we're using a static method here in the first place.
+
+89
+00:04:30,970 --> 00:04:33,690
+Because again this now points to the model
+
+90
+00:04:33,690 --> 00:04:38,200
+and we need to call aggregate always on the model, okay.
+
+91
+00:04:38,200 --> 00:04:41,610
+So into aggregate we need to pass in an array
+
+92
+00:04:41,610 --> 00:04:45,850
+of all the stages that we want in aggregate, okay.
+
+93
+00:04:45,850 --> 00:04:47,930
+So what do we want to do first?
+
+94
+00:04:47,930 --> 00:04:51,930
+Well the first step should be to select all the reviews
+
+95
+00:04:51,930 --> 00:04:54,280
+that actually belong to the current tour
+
+96
+00:04:54,280 --> 00:04:57,470
+that was passed in as the argument.
+
+97
+00:04:57,470 --> 00:04:58,790
+Okay.
+
+98
+00:04:58,790 --> 00:05:02,093
+So our first stage is a match stage,
+
+99
+00:05:03,090 --> 00:05:03,933
+remember that,
+
+100
+00:05:05,360 --> 00:05:07,580
+and so in here we passed our filter object
+
+101
+00:05:08,620 --> 00:05:11,420
+and we can say tour equal to tour,
+
+102
+00:05:11,420 --> 00:05:13,740
+but we don't really need that, as you already know,
+
+103
+00:05:13,740 --> 00:05:17,950
+and so let's just remove this part, or actually
+
+104
+00:05:17,950 --> 00:05:20,670
+just to make it a bit less confusing here with the names
+
+105
+00:05:20,670 --> 00:05:24,290
+let's call this one here tour ID, okay.
+
+106
+00:05:24,290 --> 00:05:26,620
+So tourId in here,
+
+107
+00:05:26,620 --> 00:05:27,480
+okay.
+
+108
+00:05:27,480 --> 00:05:29,510
+So like this we only select a tour
+
+109
+00:05:29,510 --> 00:05:33,330
+that we actually want to update, okay.
+
+110
+00:05:33,330 --> 00:05:35,740
+Now in the next stage let's actually calculate
+
+111
+00:05:35,740 --> 00:05:37,930
+the statistics themselves,
+
+112
+00:05:37,930 --> 00:05:41,033
+and for that we use a group stage.
+
+113
+00:05:42,920 --> 00:05:44,900
+And in the group phase remember
+
+114
+00:05:44,900 --> 00:05:49,900
+the first field that we need to specify is the ID, so _id
+
+115
+00:05:50,240 --> 00:05:51,740
+and then the common field
+
+116
+00:05:51,740 --> 00:05:53,570
+that all of the documents have in common
+
+117
+00:05:53,570 --> 00:05:56,200
+that we want to group by and so that's again
+
+118
+00:05:56,200 --> 00:05:57,543
+going to be the tour.
+
+119
+00:06:00,230 --> 00:06:04,460
+So just like in our previous statistic calculation example
+
+120
+00:06:04,460 --> 00:06:07,310
+here we grouped by the difficulty.
+
+121
+00:06:07,310 --> 00:06:10,250
+So like this we calculate the statistics for easy
+
+122
+00:06:10,250 --> 00:06:11,840
+and statistics for medium
+
+123
+00:06:11,840 --> 00:06:14,560
+and then statistics for difficult tours.
+
+124
+00:06:14,560 --> 00:06:17,140
+So in this example, we grouped all the tours together
+
+125
+00:06:17,140 --> 00:06:18,453
+by their difficulty,
+
+126
+00:06:19,450 --> 00:06:20,283
+okay.
+
+127
+00:06:20,283 --> 00:06:22,810
+But here, of course we're grouping all the tours together
+
+128
+00:06:22,810 --> 00:06:23,663
+by tour.
+
+129
+00:06:25,440 --> 00:06:26,273
+Great.
+
+130
+00:06:26,273 --> 00:06:28,023
+Now the number of ratings,
+
+131
+00:06:31,290 --> 00:06:32,653
+remember how we do that,
+
+132
+00:06:33,690 --> 00:06:35,970
+so all we do is to basically add one
+
+133
+00:06:35,970 --> 00:06:37,970
+for each tour that we have,
+
+134
+00:06:37,970 --> 00:06:41,570
+so each tour that was matched in the previous step, okay.
+
+135
+00:06:41,570 --> 00:06:44,810
+So if there are five review documents for the current tour
+
+136
+00:06:44,810 --> 00:06:48,310
+then for each of these documents one will get added.
+
+137
+00:06:48,310 --> 00:06:51,310
+So then in the end the number of ratings will be five,
+
+138
+00:06:51,310 --> 00:06:55,130
+and again, because of course we have five review documents.
+
+139
+00:06:55,130 --> 00:06:57,083
+So that makes sense, right?
+
+140
+00:06:58,532 --> 00:07:03,532
+Then also the average rating, which just like before
+
+141
+00:07:03,970 --> 00:07:08,970
+we use the average operator and this needs to be inside
+
+142
+00:07:09,180 --> 00:07:10,013
+an object
+
+143
+00:07:12,490 --> 00:07:14,440
+and in here the name of the field
+
+144
+00:07:15,470 --> 00:07:18,330
+which is the rating, right.
+
+145
+00:07:18,330 --> 00:07:22,180
+So remember how each review has a rating field.
+
+146
+00:07:22,180 --> 00:07:24,993
+So that's where we want to calculate the average from.
+
+147
+00:07:27,720 --> 00:07:30,350
+Okay, and that's actually it.
+
+148
+00:07:30,350 --> 00:07:32,950
+So number and average of ratings
+
+149
+00:07:32,950 --> 00:07:36,790
+is exactly what we wanted to calculate in this aggregation.
+
+150
+00:07:36,790 --> 00:07:39,740
+Now keep in mind that this actually returns a promise
+
+151
+00:07:39,740 --> 00:07:43,290
+and so we need to await that and then store it
+
+152
+00:07:43,290 --> 00:07:46,193
+into a variable called stats.
+
+153
+00:07:49,070 --> 00:07:49,980
+Okay.
+
+154
+00:07:49,980 --> 00:07:53,023
+Then mark this one here as async as well,
+
+155
+00:07:54,600 --> 00:07:55,620
+give it a save
+
+156
+00:07:55,620 --> 00:07:59,790
+and so now we actually need to use that stats variable.
+
+157
+00:07:59,790 --> 00:08:02,930
+For now all I really want to do just to test this
+
+158
+00:08:02,930 --> 00:08:06,073
+is to actually log the statistics to the console.
+
+159
+00:08:08,120 --> 00:08:09,090
+Console.log
+
+160
+00:08:10,600 --> 00:08:11,433
+stats.
+
+161
+00:08:13,640 --> 00:08:16,880
+Okay, then in the later step we will actually want to,
+
+162
+00:08:16,880 --> 00:08:19,950
+as I mentioned before then update the tour document
+
+163
+00:08:19,950 --> 00:08:21,770
+with these statistics,
+
+164
+00:08:21,770 --> 00:08:23,930
+but I'm gonna leave that for a bit later,
+
+165
+00:08:23,930 --> 00:08:26,070
+because for now we actually need to call
+
+166
+00:08:26,070 --> 00:08:28,390
+this method here somewhere, because otherwise
+
+167
+00:08:28,390 --> 00:08:31,133
+the statistics here will never get called.
+
+168
+00:08:32,100 --> 00:08:33,863
+And remember how we said at the beginning
+
+169
+00:08:33,863 --> 00:08:36,160
+that we will do this using middleware
+
+170
+00:08:36,160 --> 00:08:38,523
+each time that a new review is created.
+
+171
+00:08:40,050 --> 00:08:44,250
+So let's implement that using reviewSchema pre
+
+172
+00:08:45,330 --> 00:08:46,163
+save
+
+173
+00:08:50,680 --> 00:08:54,563
+and then just our normal regular middleware function here.
+
+174
+00:08:55,860 --> 00:08:57,873
+And remember that in this kind of middleware
+
+175
+00:08:57,873 --> 00:09:00,093
+that this keyword points to the document
+
+176
+00:09:00,093 --> 00:09:02,210
+that is currently being saved.
+
+177
+00:09:02,210 --> 00:09:04,760
+So this points to
+
+178
+00:09:06,540 --> 00:09:08,850
+current review, okay.
+
+179
+00:09:08,850 --> 00:09:11,880
+So we will want to call the calcAverageRating function
+
+180
+00:09:11,880 --> 00:09:15,020
+using this.tour, right.
+
+181
+00:09:15,020 --> 00:09:18,770
+Now how are we actually going to call this function?
+
+182
+00:09:18,770 --> 00:09:19,940
+Remember how I said that
+
+183
+00:09:19,940 --> 00:09:22,470
+this function is available on the model.
+
+184
+00:09:22,470 --> 00:09:25,050
+So basically like this put
+
+185
+00:09:25,050 --> 00:09:27,390
+review.calcAverageRatings
+
+186
+00:09:29,557 --> 00:09:32,550
+and then as I said we want to use this.tour,
+
+187
+00:09:34,340 --> 00:09:35,173
+okay.
+
+188
+00:09:35,173 --> 00:09:37,240
+And again, because this is the current review
+
+189
+00:09:37,240 --> 00:09:40,340
+and this is then the tour ID that we're gonna pass
+
+190
+00:09:40,340 --> 00:09:42,143
+inside of the calcAverageRatings.
+
+191
+00:09:43,640 --> 00:09:46,950
+Now the problem is that at this point here in the code
+
+192
+00:09:46,950 --> 00:09:50,200
+the review variable is not yet defined.
+
+193
+00:09:50,200 --> 00:09:53,340
+Now you might think that the simple solution would be to
+
+194
+00:09:53,340 --> 00:09:57,780
+simply move this code in here after this review declaration,
+
+195
+00:09:57,780 --> 00:10:00,480
+but unfortunately that's not going to work,
+
+196
+00:10:00,480 --> 00:10:03,630
+because just like in Express this code here basically runs
+
+197
+00:10:03,630 --> 00:10:05,730
+in the sequence it is declared.
+
+198
+00:10:05,730 --> 00:10:08,100
+So if we were to put this code here
+
+199
+00:10:08,100 --> 00:10:11,550
+after the review declaration then this reviewSchema here
+
+200
+00:10:11,550 --> 00:10:13,810
+would not contain this middleware,
+
+201
+00:10:13,810 --> 00:10:16,050
+because we would then only be declaring it
+
+202
+00:10:16,050 --> 00:10:19,750
+after the review model was already created, okay,
+
+203
+00:10:19,750 --> 00:10:23,160
+but there is fortunately still a way around this
+
+204
+00:10:23,160 --> 00:10:26,273
+and that is to use this.constructor.
+
+205
+00:10:28,970 --> 00:10:31,640
+So this here still points to the model.
+
+206
+00:10:31,640 --> 00:10:35,267
+You know, basically again this is the current document
+
+207
+00:10:35,267 --> 00:10:38,030
+and the constructor is basically the model
+
+208
+00:10:38,030 --> 00:10:40,470
+who created that document.
+
+209
+00:10:40,470 --> 00:10:42,410
+So this here stands for the tour
+
+210
+00:10:42,410 --> 00:10:45,823
+and so we can then simply do it like this.
+
+211
+00:10:47,420 --> 00:10:52,043
+Then call next as always and that's actually it.
+
+212
+00:10:54,130 --> 00:10:57,320
+So let's now go ahead and test this.
+
+213
+00:10:57,320 --> 00:11:00,500
+And for doing that I will create a new tour first,
+
+214
+00:11:00,500 --> 00:11:02,670
+because the other ones that we already have
+
+215
+00:11:02,670 --> 00:11:04,620
+they have the average and number of ratings
+
+216
+00:11:04,620 --> 00:11:06,730
+already calculated and so we really
+
+217
+00:11:06,730 --> 00:11:10,240
+want to start from scratch here when testing this out.
+
+218
+00:11:10,240 --> 00:11:13,270
+So to create a new tour we need to be logged in
+
+219
+00:11:13,270 --> 00:11:16,840
+as administrators, and I think we currently are,
+
+220
+00:11:16,840 --> 00:11:18,940
+but just to make sure let's do that again.
+
+221
+00:11:20,400 --> 00:11:21,233
+Okay.
+
+222
+00:11:22,660 --> 00:11:24,981
+So this is the new test tour.
+
+223
+00:11:24,981 --> 00:11:28,313
+All right let's remove these here, they are not mandatory,
+
+224
+00:11:30,120 --> 00:11:32,663
+and I think with this we're good to go.
+
+225
+00:11:36,950 --> 00:11:40,580
+All right, and here you see the defaults that we set before
+
+226
+00:11:40,580 --> 00:11:43,130
+so the ratings average for five
+
+227
+00:11:43,130 --> 00:11:46,430
+and the quantity set to zero, okay.
+
+228
+00:11:46,430 --> 00:11:49,630
+Now in order to create a new review
+
+229
+00:11:49,630 --> 00:11:52,560
+we actually need to be logged in as a regular user,
+
+230
+00:11:52,560 --> 00:11:54,033
+so not an administrator.
+
+231
+00:11:54,900 --> 00:11:58,900
+So let's get a normal user, let's say.
+
+232
+00:11:58,900 --> 00:12:02,120
+So let's just use this Laura here.
+
+233
+00:12:02,120 --> 00:12:03,470
+So Laura@example.com
+
+234
+00:12:04,804 --> 00:12:08,063
+and as I mentioned earlier the password is always the same.
+
+235
+00:12:12,000 --> 00:12:16,773
+So let's do that and now we will create new review on tour.
+
+236
+00:12:17,920 --> 00:12:21,103
+So now let's get the tour that we created earlier,
+
+237
+00:12:22,890 --> 00:12:26,653
+so this ID and put it here in the URL.
+
+238
+00:12:27,880 --> 00:12:30,490
+Okay, and so remember that this route
+
+239
+00:12:30,490 --> 00:12:33,877
+now automatically gets a tour ID from the URL
+
+240
+00:12:33,877 --> 00:12:37,413
+and a user ID from the currently logged in user,
+
+241
+00:12:38,730 --> 00:12:39,563
+okay.
+
+242
+00:12:39,563 --> 00:12:42,063
+So let's use this one as the first rating,
+
+243
+00:12:44,490 --> 00:12:48,643
+let's send it, and now I want to take a look at our console.
+
+244
+00:12:50,060 --> 00:12:53,230
+We have an output here, but for some reason it's only
+
+245
+00:12:53,230 --> 00:12:55,260
+like this empty array.
+
+246
+00:12:55,260 --> 00:12:58,010
+So something must not be working here.
+
+247
+00:12:58,010 --> 00:13:02,400
+So let's take a look at the tour ID here just to make sure
+
+248
+00:13:02,400 --> 00:13:07,200
+that we're getting the right value here, ID
+
+249
+00:13:07,200 --> 00:13:09,340
+and let's also comment out this part here
+
+250
+00:13:10,210 --> 00:13:14,220
+just to see if maybe there's some error in this part,
+
+251
+00:13:14,220 --> 00:13:17,360
+and so let's now try it again.
+
+252
+00:13:17,360 --> 00:13:20,113
+I'll simply add the same one here again, okay.
+
+253
+00:13:23,680 --> 00:13:26,453
+Okay, so now we actually get something.
+
+254
+00:13:27,310 --> 00:13:29,790
+So we have this one review which is
+
+255
+00:13:29,790 --> 00:13:32,210
+the one that we created initially.
+
+256
+00:13:32,210 --> 00:13:34,900
+So it starts with this ac15,
+
+257
+00:13:34,900 --> 00:13:39,623
+but the one that I just created is this 66d, okay.
+
+258
+00:13:39,623 --> 00:13:44,223
+So let's take a look at that here in Compass.
+
+259
+00:13:45,490 --> 00:13:47,223
+So we need to go to the last page.
+
+260
+00:13:49,380 --> 00:13:52,450
+Okay, and so the one that shows up in our console
+
+261
+00:13:52,450 --> 00:13:55,270
+is only this one here, but not the second one
+
+262
+00:13:55,270 --> 00:13:57,730
+that we just created, okay.
+
+263
+00:13:57,730 --> 00:13:59,670
+So if we now create a third one
+
+264
+00:13:59,670 --> 00:14:02,980
+then we should probably see the first and the second one.
+
+265
+00:14:02,980 --> 00:14:03,880
+So let's try that.
+
+266
+00:14:12,060 --> 00:14:13,160
+Okay.
+
+267
+00:14:13,160 --> 00:14:16,290
+Send this one and now here in our output
+
+268
+00:14:18,060 --> 00:14:20,830
+I actually get all three of them.
+
+269
+00:14:20,830 --> 00:14:23,793
+So that doesn't make much sense,
+
+270
+00:14:24,800 --> 00:14:27,443
+but anyway the point that I wanted to make here
+
+271
+00:14:27,443 --> 00:14:29,700
+is that we shouldn't use pre,
+
+272
+00:14:29,700 --> 00:14:33,560
+but instead we should use the post save middleware, okay.
+
+273
+00:14:33,560 --> 00:14:35,520
+And that's because at pre save
+
+274
+00:14:35,520 --> 00:14:37,350
+the current review is not really
+
+275
+00:14:37,350 --> 00:14:39,270
+in the collection just yet.
+
+276
+00:14:39,270 --> 00:14:42,420
+So therefore, when we then do this match here
+
+277
+00:14:42,420 --> 00:14:45,170
+it shouldn't be able to then appear in the output here,
+
+278
+00:14:45,170 --> 00:14:47,150
+because again at this point in time
+
+279
+00:14:47,150 --> 00:14:51,000
+it's not really saved into the collection just yet, okay.
+
+280
+00:14:51,000 --> 00:14:52,760
+So it's best to use post here,
+
+281
+00:14:52,760 --> 00:14:54,770
+because at that time, of course,
+
+282
+00:14:54,770 --> 00:14:57,820
+all the documents are already saved in the database
+
+283
+00:14:57,820 --> 00:14:59,330
+and so that's then a great time
+
+284
+00:14:59,330 --> 00:15:02,430
+to actually do this calculation with all the reviews already
+
+285
+00:15:02,430 --> 00:15:04,723
+and then store the result on the tour.
+
+286
+00:15:05,940 --> 00:15:07,750
+Okay, so I'm not really sure
+
+287
+00:15:07,750 --> 00:15:10,403
+why this one here actually showed up at this point,
+
+288
+00:15:11,670 --> 00:15:15,603
+but anyway let's now try it with another one.
+
+289
+00:15:19,290 --> 00:15:21,280
+So that's the fourth one,
+
+290
+00:15:21,280 --> 00:15:25,450
+and now we get next is not a function and indeed
+
+291
+00:15:25,450 --> 00:15:27,930
+as I mentioned earlier the post middleware
+
+292
+00:15:27,930 --> 00:15:30,250
+does not get access to next
+
+293
+00:15:30,250 --> 00:15:33,940
+and so therefore, we of course cannot call it,
+
+294
+00:15:33,940 --> 00:15:34,833
+cannot use it.
+
+295
+00:15:37,070 --> 00:15:40,793
+All right, and so here we have our next rating,
+
+296
+00:15:42,160 --> 00:15:42,993
+okay.
+
+297
+00:15:42,993 --> 00:15:45,913
+So it now shows up here as well.
+
+298
+00:15:48,090 --> 00:15:50,840
+So we don't need that and now we can safely
+
+299
+00:15:50,840 --> 00:15:53,053
+try to calculate our statistics here.
+
+300
+00:15:54,140 --> 00:15:56,600
+Give it a save, and actually let's
+
+301
+00:15:56,600 --> 00:15:59,000
+delete all of these reviews.
+
+302
+00:15:59,000 --> 00:16:03,623
+So I basically want to start from scratch, okay.
+
+303
+00:16:04,880 --> 00:16:05,800
+So
+
+304
+00:16:08,320 --> 00:16:11,190
+all of these five reviews here should go
+
+305
+00:16:16,300 --> 00:16:18,450
+and now we're ready to go.
+
+306
+00:16:18,450 --> 00:16:21,030
+So let's actually create this one as the first one
+
+307
+00:16:22,860 --> 00:16:26,400
+and now let's go ahead and take a look at our statistics
+
+308
+00:16:26,400 --> 00:16:27,600
+and here we go.
+
+309
+00:16:27,600 --> 00:16:29,530
+So this is the current tour ID
+
+310
+00:16:29,530 --> 00:16:31,670
+then the number of ratings is one
+
+311
+00:16:31,670 --> 00:16:33,703
+and the average is of course three.
+
+312
+00:16:35,510 --> 00:16:39,240
+So if we add another one with the rating of five
+
+313
+00:16:40,920 --> 00:16:43,310
+well then the average should be four
+
+314
+00:16:43,310 --> 00:16:46,010
+and we should have the number of ratings equal to two.
+
+315
+00:16:47,840 --> 00:16:52,460
+So let's try that and indeed just as I said
+
+316
+00:16:52,460 --> 00:16:55,480
+two ratings, average of four.
+
+317
+00:16:55,480 --> 00:16:59,010
+And just another one just to make really sure,
+
+318
+00:16:59,010 --> 00:17:00,610
+let's add another one with five,
+
+319
+00:17:05,600 --> 00:17:07,240
+and here we go.
+
+320
+00:17:07,240 --> 00:17:08,073
+Great.
+
+321
+00:17:08,073 --> 00:17:10,990
+So we're now correctly calculating the statistics,
+
+322
+00:17:10,990 --> 00:17:13,090
+but of course they're not yet being persisted
+
+323
+00:17:13,090 --> 00:17:15,290
+to the current tour document.
+
+324
+00:17:15,290 --> 00:17:18,630
+So if we come here in Compass
+
+325
+00:17:18,630 --> 00:17:20,293
+to the tour that we just created,
+
+326
+00:17:22,330 --> 00:17:24,340
+probably it's the last one here.
+
+327
+00:17:24,340 --> 00:17:27,790
+Yep, so our test tour, it still has these default values
+
+328
+00:17:27,790 --> 00:17:30,470
+of 4.5 and zero,
+
+329
+00:17:30,470 --> 00:17:31,350
+okay.
+
+330
+00:17:31,350 --> 00:17:33,260
+So now it's time to actually persist
+
+331
+00:17:33,260 --> 00:17:36,573
+the calculated statistics into this tour document,
+
+332
+00:17:38,250 --> 00:17:39,480
+okay.
+
+333
+00:17:39,480 --> 00:17:41,670
+And so let's do that.
+
+334
+00:17:41,670 --> 00:17:44,420
+First of all, in order to be able to do that
+
+335
+00:17:44,420 --> 00:17:47,863
+we need to require the tour model, right.
+
+336
+00:17:48,810 --> 00:17:49,643
+So tour
+
+337
+00:17:51,620 --> 00:17:52,453
+require
+
+338
+00:17:55,250 --> 00:17:56,483
+and there we go.
+
+339
+00:18:03,860 --> 00:18:07,010
+So what we need to do is to basically find
+
+340
+00:18:07,010 --> 00:18:10,160
+the current tour and then update it.
+
+341
+00:18:10,160 --> 00:18:13,873
+So we did that before many times, findById
+
+342
+00:18:14,830 --> 00:18:16,980
+and update,
+
+343
+00:18:16,980 --> 00:18:17,813
+okay.
+
+344
+00:18:17,813 --> 00:18:21,370
+And the ID is of course the tour ID that was passed in
+
+345
+00:18:21,370 --> 00:18:23,670
+into the function and then an object
+
+346
+00:18:23,670 --> 00:18:27,140
+of the data that we actually want to update.
+
+347
+00:18:27,140 --> 00:18:30,470
+So let's get these field names from here.
+
+348
+00:18:30,470 --> 00:18:32,500
+So we have ratingsQuantity
+
+349
+00:18:34,970 --> 00:18:36,230
+on one hand.
+
+350
+00:18:36,230 --> 00:18:39,260
+Let's put it here to one for now
+
+351
+00:18:39,260 --> 00:18:41,240
+just so we don't get an error
+
+352
+00:18:41,240 --> 00:18:42,893
+and ratingsAverage.
+
+353
+00:18:46,910 --> 00:18:48,940
+Again, to prevent any errors,
+
+354
+00:18:48,940 --> 00:18:50,650
+because now I want to come here
+
+355
+00:18:50,650 --> 00:18:53,400
+and take a look at these statistics.
+
+356
+00:18:53,400 --> 00:18:57,700
+So you see they are stored in an array actually, okay.
+
+357
+00:18:57,700 --> 00:19:00,870
+So we need to go to the first position of that array,
+
+358
+00:19:00,870 --> 00:19:02,433
+which is where this object is.
+
+359
+00:19:04,520 --> 00:19:07,060
+So stats at position zero
+
+360
+00:19:07,970 --> 00:19:12,820
+and then from there we get the end rating property,
+
+361
+00:19:12,820 --> 00:19:13,653
+okay.
+
+362
+00:19:13,653 --> 00:19:14,593
+So this one here.
+
+363
+00:19:18,440 --> 00:19:21,283
+And then of course the same for average rating.
+
+364
+00:19:23,870 --> 00:19:24,800
+Okay.
+
+365
+00:19:24,800 --> 00:19:27,070
+And now we also need to await it.
+
+366
+00:19:27,070 --> 00:19:31,640
+So as always this returns a premise and so we can await it.
+
+367
+00:19:31,640 --> 00:19:34,750
+Now we could also store the result of this to a variable,
+
+368
+00:19:34,750 --> 00:19:37,250
+but we don't really need the tour at all.
+
+369
+00:19:37,250 --> 00:19:39,530
+All we want to do is to really update it,
+
+370
+00:19:39,530 --> 00:19:40,880
+and so we do not store
+
+371
+00:19:40,880 --> 00:19:43,700
+the results value of the premise anywhere.
+
+372
+00:19:43,700 --> 00:19:44,960
+Okay.
+
+373
+00:19:44,960 --> 00:19:49,960
+So let's simply try to add another review here,
+
+374
+00:19:50,050 --> 00:19:53,373
+this time with one terrible.
+
+375
+00:19:55,800 --> 00:19:56,810
+Okay.
+
+376
+00:19:56,810 --> 00:20:00,650
+And first of all, let's take a look at the statistics.
+
+377
+00:20:00,650 --> 00:20:03,300
+So of course, we get the rating of four,
+
+378
+00:20:03,300 --> 00:20:06,203
+so the number of ratings, and the average of 3.5.
+
+379
+00:20:07,270 --> 00:20:10,090
+So now in order to really see if it worked
+
+380
+00:20:10,090 --> 00:20:13,290
+let's check out Compass or we can also use
+
+381
+00:20:13,290 --> 00:20:15,223
+or get tour end point,
+
+382
+00:20:16,270 --> 00:20:17,320
+okay.
+
+383
+00:20:17,320 --> 00:20:20,593
+So we need the tour ID, that we can copy from here,
+
+384
+00:20:23,550 --> 00:20:27,160
+paste it here, and now comes the moment
+
+385
+00:20:27,160 --> 00:20:30,060
+and indeed it worked,
+
+386
+00:20:30,060 --> 00:20:31,110
+perfect.
+
+387
+00:20:31,110 --> 00:20:34,940
+So that's awesome, absolutely fantastic.
+
+388
+00:20:34,940 --> 00:20:37,810
+Just one more time for the fun of it
+
+389
+00:20:37,810 --> 00:20:39,893
+let's add another review here.
+
+390
+00:20:44,330 --> 00:20:45,163
+Okay.
+
+391
+00:20:45,163 --> 00:20:48,480
+Update this one, and so now we get five
+
+392
+00:20:48,480 --> 00:20:51,760
+and our average went up by a little bit.
+
+393
+00:20:51,760 --> 00:20:52,593
+Great.
+
+394
+00:20:52,593 --> 00:20:56,570
+So let's now just take a second and recap what we did here.
+
+395
+00:20:56,570 --> 00:20:59,690
+So we started by creating a static method.
+
+396
+00:20:59,690 --> 00:21:01,770
+So this entire function here
+
+397
+00:21:01,770 --> 00:21:04,870
+to basically create the statistics of the average
+
+398
+00:21:04,870 --> 00:21:07,980
+and number of ratings for the tour ID
+
+399
+00:21:07,980 --> 00:21:12,230
+for which the current review was created, okay.
+
+400
+00:21:12,230 --> 00:21:14,870
+And we created this function as a static method,
+
+401
+00:21:14,870 --> 00:21:18,030
+because we needed to call the aggregate function
+
+402
+00:21:18,030 --> 00:21:19,310
+on the model.
+
+403
+00:21:19,310 --> 00:21:22,080
+So in a static method to this variable
+
+404
+00:21:22,080 --> 00:21:23,910
+calls exactly to a method.
+
+405
+00:21:23,910 --> 00:21:26,670
+So it's very handy in these cases.
+
+406
+00:21:26,670 --> 00:21:29,930
+So we constructed our aggregation pipeline here
+
+407
+00:21:29,930 --> 00:21:32,590
+where we selected all the reviews that matched
+
+408
+00:21:32,590 --> 00:21:35,880
+the current tour ID, and then they're calculated,
+
+409
+00:21:35,880 --> 00:21:38,470
+the statistics for all of these reviews.
+
+410
+00:21:38,470 --> 00:21:40,520
+Then after that was done
+
+411
+00:21:40,520 --> 00:21:45,470
+we saved the statistics to the current tour, okay.
+
+412
+00:21:45,470 --> 00:21:47,690
+Then in order to actually use this function
+
+413
+00:21:47,690 --> 00:21:52,570
+we call it after a new review has been created, okay.
+
+414
+00:21:52,570 --> 00:21:55,620
+For that we need to use this.constructor
+
+415
+00:21:55,620 --> 00:21:58,930
+because this is what points to the current model.
+
+416
+00:21:58,930 --> 00:22:02,037
+Now keep in mind how we said that we also want to update
+
+417
+00:22:02,037 --> 00:22:06,350
+the statistics whenever a review is edited or deleted,
+
+418
+00:22:06,350 --> 00:22:08,090
+because these actions will, of course,
+
+419
+00:22:08,090 --> 00:22:11,210
+also influence the number and the average.
+
+420
+00:22:11,210 --> 00:22:13,960
+However, doing so is a bit more complex.
+
+421
+00:22:13,960 --> 00:22:18,140
+So since this video is already running pretty long
+
+422
+00:22:18,140 --> 00:22:20,493
+let's actually leave that to the next one.
+

@@ -1,0 +1,656 @@
+WEBVTT
+1
+00:00:05.500 --> 00:00:11.920
+Welcome back everyone to part two of gantz what we're going to do and part two is actually create the
+
+2
+00:00:11.950 --> 00:00:16.930
+generator and then the discriminator and similar to what we did in the auto encoders lecture.
+
+3
+00:00:16.960 --> 00:00:22.720
+We can then join them together to create the actual generative adversarial network itself.
+
+4
+00:00:22.720 --> 00:00:23.290
+All right.
+
+5
+00:00:23.290 --> 00:00:26.530
+Let's head back to the notebook and continue where we left off last time.
+
+6
+00:00:26.530 --> 00:00:26.760
+OK.
+
+7
+00:00:26.770 --> 00:00:29.530
+Here we are at the notebook where we left off last time.
+
+8
+00:00:29.590 --> 00:00:34.570
+Now the first thing I'm going to do is create the generator and discriminator there are separate models
+
+9
+00:00:34.660 --> 00:00:39.100
+and then we join them together into again object doesn't quite actually matter which one you create
+
+10
+00:00:39.100 --> 00:00:41.130
+first since we're going to be joining them anyways.
+
+11
+00:00:41.170 --> 00:00:46.130
+But let's go ahead and start off with the discriminator since it's a little bit simpler than the generator.
+
+12
+00:00:46.150 --> 00:00:51.560
+So what we do is recall during training the first phase is we're actually trained the discriminator.
+
+13
+00:00:51.580 --> 00:00:56.740
+So essentially what we're doing is we're taking a batch of real images samples from either the entire
+
+14
+00:00:56.740 --> 00:01:02.410
+training set or our particular only Zero's data set for faster training and we take that batch of real
+
+15
+00:01:02.410 --> 00:01:08.530
+images and then we also take an equal number of fake images that the generator will be producing and
+
+16
+00:01:08.530 --> 00:01:11.490
+we end up setting the labels as zero for the fake images.
+
+17
+00:01:11.560 --> 00:01:17.530
+And as one for the actual true real images and discriminator is trained on this label batch for then
+
+18
+00:01:17.530 --> 00:01:23.290
+just one step using what we'll see as binary across entropy loss because it's either correct or incorrect
+
+19
+00:01:23.290 --> 00:01:24.390
+0 or 1.
+
+20
+00:01:24.610 --> 00:01:29.770
+And then importantly what's going to happen is the back propagation only optimizes the weights of the
+
+21
+00:01:29.770 --> 00:01:34.600
+discriminator during that training phase and we'll see that when we actually write our training loop
+
+22
+00:01:34.990 --> 00:01:36.460
+after we create our batches.
+
+23
+00:01:36.460 --> 00:01:39.900
+But first let's just create the discriminator model.
+
+24
+00:01:39.910 --> 00:01:45.810
+We say discriminator is equal to a sequential model and to do this I need actually add in some imports.
+
+25
+00:01:45.880 --> 00:01:50.590
+So let's go ahead and insert a cell above here and let's do our classic imports.
+
+26
+00:01:50.590 --> 00:01:59.120
+We'll say import tensor flow as TAF and then import all say from tensor flow.
+
+27
+00:01:59.250 --> 00:02:02.270
+Dark hair start layers import.
+
+28
+00:02:02.290 --> 00:02:07.840
+And we'll be using dense and since we're dealing with kind of to these images here we'll have to reshape
+
+29
+00:02:07.840 --> 00:02:10.260
+them as well as flatten them.
+
+30
+00:02:10.260 --> 00:02:15.180
+Now this is a very simple discriminator and generator that we're gonna be producing because we don't
+
+31
+00:02:15.180 --> 00:02:18.400
+actually worry right now about using convolution layers.
+
+32
+00:02:18.480 --> 00:02:21.410
+We'll actually just do this all with essentially dense layers.
+
+33
+00:02:21.750 --> 00:02:30.610
+And then finally we'll say from tensor flow dot curious dot models import sequential.
+
+34
+00:02:30.720 --> 00:02:31.020
+All right.
+
+35
+00:02:31.020 --> 00:02:32.430
+So we have our imports ready to go.
+
+36
+00:02:32.490 --> 00:02:37.530
+Let's create our sequential model for the discriminator and then we're going to add a couple of things
+
+37
+00:02:37.530 --> 00:02:38.280
+here.
+
+38
+00:02:38.280 --> 00:02:47.410
+We'll say discriminator and we'll add in the first flatten layer because as to the images we need to
+
+39
+00:02:47.410 --> 00:02:55.260
+flatten them so the input shape it's expecting is a 28 by 20 image.
+
+40
+00:02:55.320 --> 00:02:57.520
+Make sure that's a list here.
+
+41
+00:02:57.570 --> 00:02:59.400
+So it's 28 by 28.
+
+42
+00:02:59.670 --> 00:03:00.780
+And then we flatten it out.
+
+43
+00:03:01.140 --> 00:03:03.570
+So that means we can then apply our dense layers.
+
+44
+00:03:03.570 --> 00:03:07.530
+So all this discriminator is trying to do is is this image real or not.
+
+45
+00:03:08.020 --> 00:03:10.940
+So let's go ahead and add some dense layers.
+
+46
+00:03:11.010 --> 00:03:14.390
+We'll go ahead and just choose some arbitrary values here.
+
+47
+00:03:14.580 --> 00:03:19.680
+We'll say we go from those seven hundred eighty four in the flatten layer to then a dense layer of 150
+
+48
+00:03:20.250 --> 00:03:28.500
+activation is rectified linear unit and then we'll add in one more layer here dense layer.
+
+49
+00:03:28.510 --> 00:03:34.960
+Go ahead add kind of a hundred more neurons start bringing it down rectified linear unit and then if
+
+50
+00:03:34.960 --> 00:03:39.020
+you want you could add more or more layers to make the discriminator harder to fool.
+
+51
+00:03:39.190 --> 00:03:43.920
+But this should be enough for our particular use case of this simple only zero data set.
+
+52
+00:03:43.960 --> 00:03:51.980
+So after this we're going to do is add in our final output layer just labeling it here so you can add
+
+53
+00:03:52.010 --> 00:03:56.240
+more layers if you want try to make the discriminator harder to full but eventually at the end what
+
+54
+00:03:56.240 --> 00:04:02.600
+you need is a dense layer we've actually just one neuron and it's one neuron regardless of how many
+
+55
+00:04:02.990 --> 00:04:09.370
+digits you're actually working with because recall we're trying to classify digits as 0 1 2 3 etc..
+
+56
+00:04:09.560 --> 00:04:15.620
+All we're trying to do at the discriminator is a binary classification of is this image real or is it
+
+57
+00:04:15.620 --> 00:04:16.370
+fake.
+
+58
+00:04:16.490 --> 00:04:22.850
+And if you're doing a binary classification then your final output layer is just one neuron with the
+
+59
+00:04:22.850 --> 00:04:27.660
+activation function of sigmoid OK so there's a discriminator.
+
+60
+00:04:27.660 --> 00:04:34.770
+And then finally we say discriminator and we compile this with the binary cross entropy loss because
+
+61
+00:04:34.770 --> 00:04:39.460
+again it's just trying to see if an image is fake or if it's real.
+
+62
+00:04:41.920 --> 00:04:44.770
+It's not trying to tell is it a 1 0 7 et cetera.
+
+63
+00:04:45.140 --> 00:04:45.360
+OK.
+
+64
+00:04:45.370 --> 00:04:46.750
+So that's a discriminator.
+
+65
+00:04:46.750 --> 00:04:47.600
+Pretty straightforward.
+
+66
+00:04:47.620 --> 00:04:49.270
+Just creates that sequential model.
+
+67
+00:04:49.270 --> 00:04:50.640
+You can add in more dense layers.
+
+68
+00:04:50.680 --> 00:04:55.900
+Obviously the more complex your discriminator network is the harder it is to fool because it should
+
+69
+00:04:55.900 --> 00:04:59.350
+be able to have more neurons and be able to learn more.
+
+70
+00:04:59.440 --> 00:05:03.340
+But again kind of depends on what your actual dataset is.
+
+71
+00:05:03.340 --> 00:05:05.250
+And then let's go out and create the generator.
+
+72
+00:05:05.290 --> 00:05:05.500
+All right.
+
+73
+00:05:05.500 --> 00:05:12.640
+The first step in creating our generator is to actually choose the coatings size that is to say the
+
+74
+00:05:12.670 --> 00:05:14.220
+latent representation.
+
+75
+00:05:14.320 --> 00:05:21.610
+And this is really similar to our discussion on auto encoders recall the auto encoders went from some
+
+76
+00:05:21.610 --> 00:05:22.550
+number of features.
+
+77
+00:05:22.570 --> 00:05:27.910
+And if we're doing it with this data for example 784 and then they kept going down to something like
+
+78
+00:05:28.780 --> 00:05:36.010
+150 keep going down to let's say 30 and then we expanded it back out we went then back to 150 and then
+
+79
+00:05:36.010 --> 00:05:37.850
+back to 780.
+
+80
+00:05:37.870 --> 00:05:39.860
+So this is what we would do as an example.
+
+81
+00:05:39.910 --> 00:05:44.170
+And essentially we have to decide on what this middle number is.
+
+82
+00:05:44.260 --> 00:05:49.930
+And this middle number recall is some sort of lower dimensionality encoding.
+
+83
+00:05:49.930 --> 00:05:59.560
+So the actual generator looks a lot like this decoder part where it's taking some sort of encoding and
+
+84
+00:05:59.560 --> 00:06:05.890
+then expanding it back out to generate some sort of output that will try to fool discriminator.
+
+85
+00:06:05.890 --> 00:06:11.680
+So our case what's going to happen is the generator looks a lot like a decoder essentially taking some
+
+86
+00:06:11.680 --> 00:06:17.890
+number starting from some encoding size or coatings size and then expanding it back out to generate
+
+87
+00:06:17.980 --> 00:06:24.190
+an image that will then be compiled and pass the discriminator to see whether or not it falls to discriminator.
+
+88
+00:06:24.190 --> 00:06:29.760
+So you have to choose some sort of coding size and there's no right or wrong answer here.
+
+89
+00:06:29.760 --> 00:06:33.880
+It's essentially how low do you want to go inside of this decoder.
+
+90
+00:06:33.880 --> 00:06:38.140
+And typically it should be a lot less than your original feature set.
+
+91
+00:06:38.560 --> 00:06:42.320
+So our original feature set recall here is seven hundred and eighty four.
+
+92
+00:06:42.490 --> 00:06:48.610
+If you make it too small however then there really isn't enough to start off with to actually learn
+
+93
+00:06:48.610 --> 00:06:50.180
+from and generate images.
+
+94
+00:06:50.200 --> 00:06:56.350
+So what we're going to do here is since we have a pixel size of seven hundred eighty four pixels.
+
+95
+00:06:56.350 --> 00:07:02.230
+Let's go ahead and choose an encoding size of one hundred that is substantially less than seven hundred
+
+96
+00:07:02.260 --> 00:07:02.960
+eighty four.
+
+97
+00:07:03.070 --> 00:07:07.650
+But not so small where the generator is just not going to have enough to start off with as a latent
+
+98
+00:07:07.660 --> 00:07:08.560
+representation.
+
+99
+00:07:08.710 --> 00:07:13.450
+So again this one hundred kind of signifies what this 30 was.
+
+100
+00:07:13.660 --> 00:07:19.990
+So we would go from like 100 to 150 to 780 for etc. and our generator is essentially going to look like
+
+101
+00:07:20.590 --> 00:07:23.520
+that back half of the auto encoder the decoder part.
+
+102
+00:07:23.650 --> 00:07:28.990
+So we choose some coding size recall it should be less than the total number of features you're working
+
+103
+00:07:28.990 --> 00:07:33.450
+with but not so little that you really have nothing to learn off of.
+
+104
+00:07:33.550 --> 00:07:36.220
+And it's something you can play around with and experiment.
+
+105
+00:07:36.280 --> 00:07:44.170
+So you create this generator as a sequential model and then listener adding the layers to it.
+
+106
+00:07:44.170 --> 00:07:47.350
+So generator we add in some dense layer.
+
+107
+00:07:47.470 --> 00:07:55.120
+We'll go ahead and match our first layer to our coding size give it an activation of rectified linear
+
+108
+00:07:55.120 --> 00:08:02.610
+unit and then finally give it an input shape of the actual coatings size
+
+109
+00:08:06.890 --> 00:08:13.820
+so keep in mind this one hundred we technically chose it off this coding size but it's not reliant on
+
+110
+00:08:13.820 --> 00:08:18.520
+it what is actually reliant on this first layering and generator is the input shape.
+
+111
+00:08:18.620 --> 00:08:22.860
+So you could mess around with this and expand this to immediately to 150 if you wanted to.
+
+112
+00:08:22.940 --> 00:08:27.530
+But in our case we're going to take this one hundred encoding size first layer and counters 100 neurons
+
+113
+00:08:27.890 --> 00:08:29.490
+and then we'll start expanding it back out.
+
+114
+00:08:29.530 --> 00:08:31.360
+So let's make the next one 150.
+
+115
+00:08:31.490 --> 00:08:36.680
+Again this should feel really familiar because it looks a lot like the decoder from our auto encoder
+
+116
+00:08:36.680 --> 00:08:37.190
+lectures.
+
+117
+00:08:37.790 --> 00:08:38.690
+So we'll say generator.
+
+118
+00:08:38.690 --> 00:08:43.640
+Go ahead and Adam's copying pasting here in other dense layer but instead we'll expand that back out
+
+119
+00:08:43.640 --> 00:08:44.450
+to 150.
+
+120
+00:08:45.370 --> 00:08:49.360
+And if you want to try to make the model more robust you can add more decoding layers.
+
+121
+00:08:49.430 --> 00:08:58.790
+But in our case we'll just take this here paste it in and go ahead expand this back out to 780 for the
+
+122
+00:08:58.790 --> 00:09:06.470
+last thing we need to remember is our discriminator expects a 2D input as a 28 by 28 our generator right
+
+123
+00:09:06.470 --> 00:09:09.880
+now is just producing this flat vector of seven eighty four.
+
+124
+00:09:09.950 --> 00:09:18.380
+So what we need to do is we need the generator to finally reshape its output to match what the discriminator
+
+125
+00:09:18.380 --> 00:09:25.800
+expects which is a shape of 28 by 28 and there's your generator.
+
+126
+00:09:25.960 --> 00:09:30.000
+OK so we have the discriminator.
+
+127
+00:09:30.010 --> 00:09:34.630
+Notice we compiled the discriminator but we don't actually compile the generator.
+
+128
+00:09:34.630 --> 00:09:41.560
+So instead what we actually do is we create our generator of adversarial network as a sequential model
+
+129
+00:09:42.430 --> 00:09:50.290
+and we join together the generator and the discriminator and then to start things off.
+
+130
+00:09:50.290 --> 00:09:51.840
+What we say is that discriminator
+
+131
+00:09:54.830 --> 00:09:56.320
+not trainable.
+
+132
+00:09:56.490 --> 00:09:58.430
+So she knows this is trainable.
+
+133
+00:09:58.500 --> 00:10:01.340
+That's a attribute of discriminator itself.
+
+134
+00:10:01.560 --> 00:10:04.740
+Set that equal to False.
+
+135
+00:10:04.920 --> 00:10:15.140
+And then finally let's go ahead and take our game and compile it we'll go ahead and choose binary cross
+
+136
+00:10:15.140 --> 00:10:20.930
+entropy as our loss and you can use an optimizer whichever one you want.
+
+137
+00:10:21.050 --> 00:10:24.230
+You can use stochastic gradient descent and choose slower learning rate.
+
+138
+00:10:24.230 --> 00:10:27.870
+We'll go ahead and just choose atom here and compile it.
+
+139
+00:10:28.350 --> 00:10:30.570
+So a couple of things going on that I want to mention here.
+
+140
+00:10:30.570 --> 00:10:33.730
+Specifically these two lines of discriminator trainable equal false.
+
+141
+00:10:33.900 --> 00:10:35.730
+And again as well as a generator.
+
+142
+00:10:35.730 --> 00:10:40.900
+So couple things we want to really clarify here is the discriminator itself.
+
+143
+00:10:41.040 --> 00:10:46.350
+Recall regardless of how many different categories you have in your original dataset all it's doing
+
+144
+00:10:46.740 --> 00:10:49.410
+is saying what is real and what is fake.
+
+145
+00:10:49.410 --> 00:10:54.990
+So by definition if it's only two categories of what's real what's fake doesn't matter if it's classifying
+
+146
+00:10:55.150 --> 00:10:59.880
+will it it's not really classifying but determining whatever image dataset whether it's m this people's
+
+147
+00:10:59.880 --> 00:11:01.370
+faces et cetera.
+
+148
+00:11:01.500 --> 00:11:08.250
+This is a binary cross entropy loss because it's a binary classifier then the generator itself.
+
+149
+00:11:08.250 --> 00:11:14.730
+The reason we're not compiling it is because later on we'll see it's only trained through this fool
+
+150
+00:11:14.790 --> 00:11:15.540
+Gan model.
+
+151
+00:11:15.540 --> 00:11:19.740
+So that's the reason why we're not compiling the generator and then the Gan model.
+
+152
+00:11:19.740 --> 00:11:26.190
+You'll eventually realize that this fool model itself is also a binary classifier so it can then also
+
+153
+00:11:26.190 --> 00:11:28.590
+use this binary cross entropy loss.
+
+154
+00:11:28.950 --> 00:11:34.230
+And then finally what's important here is the way Caris works the discriminator should not be trained
+
+155
+00:11:34.530 --> 00:11:36.300
+during the second phase.
+
+156
+00:11:36.330 --> 00:11:44.130
+So we end up doing is we make it non trainable here by sending it equal to False and we'll see how essentially
+
+157
+00:11:44.220 --> 00:11:50.220
+these three lines of code all come together during our training loop because we really have a special
+
+158
+00:11:50.220 --> 00:11:56.230
+case here of two models kind of pitted against each other to hopefully produce realistic looking images.
+
+159
+00:11:56.280 --> 00:11:58.890
+We can't just use our regular dot fit command.
+
+160
+00:11:59.010 --> 00:12:05.740
+So coming up next we need to do is actually setup our batches for our training loop.
+
+161
+00:12:05.970 --> 00:12:09.480
+Again we have this set of two models.
+
+162
+00:12:09.480 --> 00:12:14.400
+We've combined them discriminator is first set as trainable equal to False in order to compile it here
+
+163
+00:12:14.850 --> 00:12:18.690
+and we'll see how this all comes together in the training loop coming up in the next lecture.
+
+164
+00:12:18.690 --> 00:12:19.230
+I'll see you there.

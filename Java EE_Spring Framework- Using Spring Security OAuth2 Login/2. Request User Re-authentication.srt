@@ -1,0 +1,180 @@
+1
+00:00:01,840 --> 00:00:06,900
+Say we want the user to reauthenticate, because we're using OpenID Connect,
+
+2
+00:00:06,900 --> 00:00:11,110
+we can add a parameter to the authorization request to Keycloak,
+
+3
+00:00:11,110 --> 00:00:14,620
+requesting the auth server to reauthenticate the user.
+
+4
+00:00:14,620 --> 00:00:18,850
+You can request full authentication with login,
+
+5
+00:00:18,850 --> 00:00:23,040
+or just reconsent, or to select a different account.
+
+6
+00:00:23,040 --> 00:00:23,880
+To achieve this,
+
+7
+00:00:23,880 --> 00:00:27,850
+we need to customize the authorization request to include this parameter,
+
+8
+00:00:27,850 --> 00:00:31,370
+so we need a CustomAuthorizationRequestResolver.
+
+9
+00:00:31,370 --> 00:00:35,540
+Here, we have a wrapper implementation over the default version,
+
+10
+00:00:35,540 --> 00:00:39,770
+implementing the AuthorizationRequestResolverInterface
+
+11
+00:00:39,770 --> 00:00:42,620
+and overriding the two resolve methods.
+
+12
+00:00:42,620 --> 00:00:44,380
+Then, in the resolve method,
+
+13
+00:00:44,380 --> 00:00:49,730
+we can use the default and then append the additional parameters.
+
+14
+00:00:49,730 --> 00:00:56,840
+In this case, we're going to prompt the user to relog in.
+
+15
+00:00:56,840 --> 00:00:59,910
+If we restart our application, you can see,
+
+16
+00:00:59,910 --> 00:01:01,940
+if we log out, this time,
+
+17
+00:01:01,940 --> 00:01:06,200
+Keycloak prompts us to reauthenticate as the parameter was
+
+18
+00:01:06,200 --> 00:01:08,540
+included in the authorization request.
+
+19
+00:01:08,540 --> 00:01:12,260
+Now, one thing to note about this feature is,
+
+20
+00:01:12,260 --> 00:01:14,140
+currently, as it stands,
+
+21
+00:01:14,140 --> 00:01:18,940
+the client cannot be certain the user actually reauthenticated
+
+22
+00:01:18,940 --> 00:01:21,780
+as this redirect goes through the browser,
+
+23
+00:01:21,780 --> 00:01:25,790
+so a malicious plug‑in could potentially remove it and
+
+24
+00:01:25,790 --> 00:01:27,800
+result in the user not reauthenticating.
+
+25
+00:01:27,800 --> 00:01:31,730
+The user could also bypass it themselves by removing it
+
+26
+00:01:31,730 --> 00:01:34,740
+from the request and pasting the URL,
+
+27
+00:01:34,740 --> 00:01:38,730
+hence this should not be used as a feature to allow users to
+
+28
+00:01:38,730 --> 00:01:42,330
+sign out and log in with another account,
+
+29
+00:01:42,330 --> 00:01:45,730
+hence this feature should ideally be used only to allow
+
+30
+00:01:45,730 --> 00:01:48,520
+users to switch accounts rather than say,
+
+31
+00:01:48,520 --> 00:01:52,940
+to reauthenticate the user before a sensitive action.
+
+32
+00:01:52,940 --> 00:01:55,830
+And passing in this parameter does not result in the
+
+33
+00:01:55,830 --> 00:01:58,340
+user's session being terminated.
+
+34
+00:01:58,340 --> 00:02:03,940
+Now, having said that, you could check the auth_time property in the ID token.
+
+35
+00:02:03,940 --> 00:02:06,660
+So if the user did reauthenticate,
+
+36
+00:02:06,660 --> 00:02:10,350
+then they should have a new ID token and the auth_time
+
+37
+00:02:10,350 --> 00:02:13,510
+should represent when they logged in,
+
+38
+00:02:13,510 --> 00:02:17,980
+so you could validate that they actually did reauthenticate using this field.
+
+39
+00:02:17,980 --> 00:02:23,140
+Additionally, you could also use the max_age parameter instead of the prompt,
+
+40
+00:02:23,140 --> 00:02:27,740
+so setting it 0 should have the same effect as prompt=login.
+
+41
+00:02:27,740 --> 00:02:32,480
+The OpenID Connect spec also mandates that the auth_time be
+
+42
+00:02:32,480 --> 00:02:35,980
+included if you use this parameter; however,
+
+43
+00:02:35,980 --> 00:02:41,640
+I have found that most providers include the auth_time even for prompt=login.
+
+44
+00:02:41,640 --> 00:02:42,260
+Next,
+
+45
+00:02:42,260 --> 00:02:50,000
+let's look at how we can log a user out from both the application and the authorization server.
+

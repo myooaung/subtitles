@@ -1,0 +1,328 @@
+WEBVTT
+
+00:02.910 --> 00:08.180
+I mentioned that Ionic caches pages, these stack of pages
+
+00:08.400 --> 00:14.250
+and that explains why in the last module we had this back that when we deleted a recipe, it was still
+
+00:14.250 --> 00:15.450
+there.
+
+00:15.450 --> 00:21.390
+It's important to understand how the Angular lifecycle behaves and how it differs
+
+00:21.390 --> 00:27.350
+when we're talking about a page that was loaded with the Angular router and that is therefore indirectly
+
+00:27.360 --> 00:35.100
+also controlled by Ionic. In regular Angular components, no matter if we're using them by embedding their
+
+00:35.100 --> 00:42.390
+selector into our templates or by loading them via routing, we have a certain lifecycle but we also
+
+00:42.390 --> 00:44.930
+have a special lifecycle for the components
+
+00:44.940 --> 00:51.720
+we did load via routing and I will call them Ionic pages here though these are regular Angular components,
+
+00:51.930 --> 00:52.800
+just components
+
+00:52.800 --> 00:58.290
+we loaded via the Angular router and which are therefore indirectly controlled by Ionic.
+
+00:58.290 --> 01:02.850
+So for the regular Angular components, we have the ngOnInit,
+
+01:02.850 --> 01:05.960
+then we also have other lifecycle hooks like ngOnChanges
+
+01:05.970 --> 01:07.930
+but that's not so important here
+
+01:07.980 --> 01:15.890
+and if we in a web for example go to a different page, we have ngOnDestroy. Now that will be called
+
+01:15.890 --> 01:20.870
+when the component is basically removed and when it's really at this post.
+
+01:21.020 --> 01:27.650
+Now for Ionic pages, because of that caching mechanism we got some new lifecycle methods. We got 
+
+01:27.690 --> 01:31.700
+ionViewWillEnter for example and that will run after ngOnInit,
+
+01:31.700 --> 01:37.010
+we also got ionViewDidEnter which also runs after that and also after WillEnter.
+
+01:37.150 --> 01:38.650
+Now the difference here is 
+
+01:38.690 --> 01:44.870
+ionViewWillEnter basically execute right before the content of the page has been loaded and is displayed
+
+01:44.870 --> 01:49.500
+on the screen you could say and ionViewDidEnter will be called right after that.
+
+01:49.760 --> 01:57.590
+Both are called whenever a page becomes visible and that is important because with caching, if a page
+
+01:57.650 --> 02:03.560
+is still in cache and you are just not seeing it because another page is on top of it, on that stack
+
+02:03.560 --> 02:06.740
+of pages, it will actually never be destroyed
+
+02:06.740 --> 02:12.290
+so ngOnDestroy will never be called and ngOnInit will also never be called when you go back to
+
+02:12.290 --> 02:18.110
+that page which is still on the stack of pages. ionViewWillEnter and DidEnter will be called because
+
+02:18.140 --> 02:23.180
+these are called whenever the page becomes visible, when it becomes the top of that stack of pages
+
+02:23.180 --> 02:29.210
+so to say. And since ngOnDestroy never gets called but you might still want to do some cleanup work,
+
+02:29.540 --> 02:33.130
+you also get ionViewWillLeave and ionViewDidLeave
+
+02:33.380 --> 02:39.800
+and these also are called whenever the page becomes invisible so to say, whenever a new page is on top
+
+02:39.800 --> 02:40.380
+of it
+
+02:40.550 --> 02:45.410
+but it will also be called in places where ngOnDestroy is not called, which is the case if it's
+
+02:45.410 --> 02:50.260
+just not the topmost page of the stack anymore but still on the stack.
+
+02:50.330 --> 02:56.810
+So let's have a look at this in practice. Here is the little recipes project we worked on and which
+
+02:56.810 --> 02:58.110
+we debugged and so on
+
+02:58.280 --> 02:59.960
+and here is our code for that.
+
+03:00.050 --> 03:06.500
+Now I'm in the recipes.page.ts file, in our main starting page, this page here and there we have
+
+03:06.530 --> 03:07.760
+ngOnInit.
+
+03:07.760 --> 03:14.660
+Here we load the recipes and as we found out in the debugging module, our problem is that ngOnInit
+
+03:15.050 --> 03:16.240
+is called initially,
+
+03:16.250 --> 03:20.930
+so when I reload that page, we do see that loaded recipes log here
+
+03:20.930 --> 03:26.960
+but if I then go to another page and I go back and I clear the console so that we can really see all
+
+03:26.960 --> 03:34.130
+new logs, we see nothing there because ngOnInit is not executed again because this starting
+
+03:34.130 --> 03:39.800
+page is on the stack of pages and it is still on that stack when we go to the detail page, the detail
+
+03:39.800 --> 03:43.910
+page is now just on top of that stack which is why we see that.
+
+03:44.060 --> 03:50.770
+So that means that this starting page, the recipes page was never deleted. To verify this,
+
+03:50.840 --> 03:55.070
+let's include the onDestroy interface, so let's implement it,
+
+03:55.070 --> 03:59.150
+make sure you also import onDestroy from @angular/core
+
+03:59.180 --> 04:02.750
+and that forces us to add ngOnDestroy here and
+
+04:03.030 --> 04:06.270
+there, I'll console log ngOnDestroy.
+
+04:07.250 --> 04:15.440
+Now if we save that and we let this reload, we still see our loaded recipes log from ngOnInit
+
+04:15.450 --> 04:20.990
+and if I go to another page, well we don't see ngOnDestroy being logged because that page is not
+
+04:20.990 --> 04:22.500
+destroyed,
+
+04:22.580 --> 04:29.510
+let's now add ionViewDidEnter and so on. You just add them as normal methods like this, ionViewDidEnter
+
+04:29.510 --> 04:36.560
+and you don't need to implement any interface and there let me console log ionViewDidEnter
+
+04:37.110 --> 04:41.990
+and we of course don't just have DidEnter, we also have WillEnter and I mentioned that WillEnter will
+
+04:41.990 --> 04:43.250
+run before DidEnter,
+
+04:43.280 --> 04:49.880
+so let's add it there logically, doesn't matter for the functionality but makes sense to kind of order it
+
+04:50.000 --> 04:51.470
+in the order it will execute,
+
+04:55.820 --> 05:04.460
+like that and let's also add the other two lifecycle hooks, ionViewWillLeave and there I of course
+
+05:04.460 --> 05:14.980
+want to log ionViewWillLeave and then also ionViewDidLeave where I unsurprisingly will log
+
+05:15.250 --> 05:18.340
+ionViewDidLeave.
+
+05:18.900 --> 05:24.090
+So now we have all these important lifecycle hooks in place and now let's wait for this page to reload
+
+05:24.380 --> 05:30.090
+and we see loaded recipes from ngOnInit but then we also see ionViewWillEnter and ionViewDidEnter.
+
+05:30.090 --> 05:38.040
+If we now go to Schnitzel, we see ionViewWillLeave which actually is logged when our leaving
+
+05:38.040 --> 05:43.020
+animation starts and ionViewDidLeave which is executed when we really left,
+
+05:43.020 --> 05:48.990
+so when that animation finished. We don't see ngOnDestroy because again, the page isn't destroyed,
+
+05:48.990 --> 05:56.400
+it's still on the stack of pages. If I now clear my console to only see new logs, if we go back, we see
+
+05:56.400 --> 06:04.500
+WillEnter when our animation starts and DidEnter again. This now of course means that we now have places
+
+06:04.500 --> 06:11.070
+to load our data in a way that it's always loaded when this page becomes visible and for that, we could
+
+06:11.070 --> 06:18.200
+use ionViewWillEnter or DidEnter. For example here in ionViewWillEnter, I set my recipes now
+
+06:18.240 --> 06:24.210
+just as I did it before in ngOnInit and there I'll change the log to just ngOnInit because we're not
+
+06:24.210 --> 06:34.530
+really logging any recipes anymore. If I now save that and we let this app reload, we see ngOnInit,
+
+06:34.550 --> 06:39.410
+then we see undefined which is actually output from this console log which makes sense because these
+
+06:39.410 --> 06:42.320
+recipes are undefined at this point of time,
+
+06:42.410 --> 06:47.420
+we haven't loaded them yet. We load them here in ionViewWillEnter though and therefore we see them
+
+06:47.420 --> 06:47.950
+here
+
+06:48.170 --> 06:53.950
+and now if I go to spaghetti and I delete them and I therefore am navigated back,
+
+06:54.140 --> 07:00.470
+they are removed here too because ionViewWillEnter runs again, this in turn now loads our updated
+
+07:00.470 --> 07:03.920
+recipes and therefore we're all good.
+
+07:03.950 --> 07:09.560
+Now if you're wondering when ngOnDestroy runs, well you can see that in the recipe detail page,
+
+07:10.100 --> 07:20.700
+there if I implement onDestroy and I now just copy my lifecycle hooks from the recipes page, all these
+
+07:20.700 --> 07:27.690
+lifecycle hooks are now copied over in the recipe detail page, let me add them here and of course I don't
+
+07:27.690 --> 07:31.080
+want to load any recipes in ionViewWillEnter so I'll remove that,
+
+07:31.200 --> 07:34.400
+other than that I'm just logging the lifecycle hook names.
+
+07:34.680 --> 07:41.160
+So now with that, let's also log ngOnInit so that we can see when that runs, ngOnInit
+
+07:41.160 --> 07:42.150
+like this.
+
+07:42.220 --> 07:50.850
+And now if we save this, let's reload, let's clear the console and let's go to Schnitzel, we see 
+
+07:50.880 --> 07:51.310
+ngOnInit,
+
+07:51.320 --> 07:57.780
+ionViewWillLeave, WillEnter, DidEnter, DidLeave and that of course, WillLeave is coming from
+
+07:57.780 --> 08:02.520
+the recipes page, DidLeave is also coming from that and you can see that WillLeave and WillEnter
+
+08:02.600 --> 08:03.230
+a line,
+
+08:03.240 --> 08:09.780
+so when WillLeave starts in the old page, WillEnter in a new page and when entering is done
+
+08:09.780 --> 08:14.790
+in a new page, leaving is done in the old page which makes sense because these hooks basically wait
+
+08:14.790 --> 08:17.290
+for the animation to finish.
+
+08:17.310 --> 08:24.840
+Now if I delete that Schnitzel here, you see ngOnDestroy gets called here too because when the topmost
+
+08:24.840 --> 08:29.440
+page is popped off the stack of pages, it's really gone from that stack of pages,
+
+08:29.490 --> 08:34.700
+it's not hidden by some other page, the page we're going back to is not getting pushed on top,
+
+08:34.740 --> 08:40.230
+instead the pop page is really removed and what's removed from the stack is removed from the cache you
+
+08:40.230 --> 08:46.050
+could say and therefore ngOnDestroy runs, of course by the way not just when I delete a recipe
+
+08:46.170 --> 08:52.910
+but also when I simply navigate back. So this is this stack of pages and how Ionic caches pages
+
+08:52.910 --> 08:53.780
+for you,
+
+08:53.780 --> 08:55.030
+why is this important?
+
+08:55.130 --> 09:01.970
+Because you have to be aware of the fact that ngOnInit and ngOnDestroy will not run on every page
+
+09:02.000 --> 09:03.230
+every time you leave it,
+
+09:03.230 --> 09:08.660
+it depends on whether you are popping the page or you're pushing a new page on top of it and therefore
+
+09:08.660 --> 09:11.610
+you should rely on these ionView hooks here
+
+09:11.660 --> 09:17.750
+if you need to do some state or data updating whenever a page becomes visible or invisible so to say.

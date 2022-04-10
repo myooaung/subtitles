@@ -1,0 +1,417 @@
+WEBVTT
+1
+00:00:00.340 --> 00:00:05.470
+The StubInboundChannelAdapterConfig is a Spring configuration class.
+
+2
+00:00:05.470 --> 00:00:07.350
+It defines two channels.
+
+3
+00:00:07.350 --> 00:00:11.050
+The resevervationFromStubChannel is the channel to which
+
+4
+00:00:11.050 --> 00:00:13.460
+individual reservations will be published,
+
+5
+00:00:13.460 --> 00:00:18.390
+and the reservationListFromStubChannel is the channel to which a list of
+
+6
+00:00:18.390 --> 00:00:22.540
+reservations will be published from our stub message source.
+
+7
+00:00:22.540 --> 00:00:26.230
+The stubMessageSource method is a MessageSource bean that
+
+8
+00:00:26.230 --> 00:00:30.470
+returns a list of reservations and is annotated by the
+
+9
+00:00:30.470 --> 00:00:32.320
+InboundChannelAdaptor annotation,
+
+10
+00:00:32.320 --> 00:00:34.300
+which publishes messages to the
+
+11
+00:00:34.300 --> 00:00:39.440
+reservationListFromStubChannel and includes a 5‑second poller.
+
+12
+00:00:39.440 --> 00:00:44.140
+The method body creates a new message source using a Lambda expression.
+
+13
+00:00:44.140 --> 00:00:48.150
+It receives no arguments and returns a list of reservations
+
+14
+00:00:48.150 --> 00:00:51.120
+with two hard‑coded reservations in it.
+
+15
+00:00:51.120 --> 00:00:54.930
+The Splitter receives the list of reservations from the
+
+16
+00:00:54.930 --> 00:00:59.000
+reservationListFromStubChannel and publishes individual
+
+17
+00:00:59.000 --> 00:01:02.500
+reservations to the reservationFromStubChannel.
+
+18
+00:01:02.500 --> 00:01:07.350
+A reservation is a plain old Java object that manages an ID,
+
+19
+00:01:07.350 --> 00:01:10.440
+a name, a status, and a version number.
+
+20
+00:01:10.440 --> 00:01:15.620
+The reservation listener is a Spring service with a service activator that
+
+21
+00:01:15.620 --> 00:01:19.700
+listens for messages on the reservationFromStubChannel.
+
+22
+00:01:19.700 --> 00:01:23.530
+It has two gateways wired into it that we'll review shortly.
+
+23
+00:01:23.530 --> 00:01:27.220
+The publishReservationGateway is used to publish a
+
+24
+00:01:27.220 --> 00:01:30.940
+reservation to the reservation web service,
+
+25
+00:01:30.940 --> 00:01:34.230
+and the getReservationGateway is used to retrieve a
+
+26
+00:01:34.230 --> 00:01:37.440
+reservation from the reservation web service.
+
+27
+00:01:37.440 --> 00:01:42.580
+The handle reservation method extracts the reservation payload and logs it.
+
+28
+00:01:42.580 --> 00:01:46.640
+It then publishes a new message with the reservation as its
+
+29
+00:01:46.640 --> 00:01:49.800
+payload to the publishReservationGateway.
+
+30
+00:01:49.800 --> 00:01:54.360
+One important step that we add in here is that we need to set the
+
+31
+00:01:54.360 --> 00:01:57.710
+HTTP content type header to application/json.
+
+32
+00:01:57.710 --> 00:02:03.930
+The HttpRequestExecutingMessageHandler, which we'll see in a minute,
+
+33
+00:02:03.930 --> 00:02:08.620
+will automatically serialize the reservation to a JSON string,
+
+34
+00:02:08.620 --> 00:02:13.390
+but only if we set the message's CONTENT_TYPE header to application/json.
+
+35
+00:02:13.390 --> 00:02:15.090
+If we don't,
+
+36
+00:02:15.090 --> 00:02:19.420
+then it will see the reservation as a serialized Java object and
+
+37
+00:02:19.420 --> 00:02:22.400
+the whole serialization process will fail.
+
+38
+00:02:22.400 --> 00:02:23.370
+Finally,
+
+39
+00:02:23.370 --> 00:02:27.060
+after the published reservation method has successfully published
+
+40
+00:02:27.060 --> 00:02:30.040
+the reservation to the reservation web service,
+
+41
+00:02:30.040 --> 00:02:34.700
+we use the getReservationGateway to retrieve the reservation with the
+
+42
+00:02:34.700 --> 00:02:40.160
+specified ID from the reservation web service and log it.
+
+43
+00:02:40.160 --> 00:02:45.220
+The HttpOutboundChannelAdapterConfig is a Spring configuration class that
+
+44
+00:02:45.220 --> 00:02:49.910
+allows us to post a reservation to the reservation web service/ It defines a
+
+45
+00:02:49.910 --> 00:02:55.260
+toReservationServiceChannel and a MessageHandler bean with a service activator
+
+46
+00:02:55.260 --> 00:02:57.940
+that listens for messages on that channel.
+
+47
+00:02:57.940 --> 00:03:01.940
+We create a new HttpRequestExecutingMessageHandler,
+
+48
+00:03:01.940 --> 00:03:05.840
+specifying the URL upon which we want to operate.
+
+49
+00:03:05.840 --> 00:03:08.390
+If you started the reservation web service,
+
+50
+00:03:08.390 --> 00:03:11.880
+it should be running on localhost 7080,
+
+51
+00:03:11.880 --> 00:03:17.040
+and we're going to post a new reservation to the slash reservation resource.
+
+52
+00:03:17.040 --> 00:03:22.340
+Speaking of which, on the next line, we set the HttpMethod to post.
+
+53
+00:03:22.340 --> 00:03:26.340
+Finally, we set its ExpectReply value to false,
+
+54
+00:03:26.340 --> 00:03:30.160
+because we're not going to handle the response from the web service.
+
+55
+00:03:30.160 --> 00:03:32.590
+We create a messaging gateway named
+
+56
+00:03:32.590 --> 00:03:36.410
+PublishedReservationGateway that publishes a message with the
+
+57
+00:03:36.410 --> 00:03:40.390
+reservation payload to the toReservationServiceChannel.
+
+58
+00:03:40.390 --> 00:03:43.610
+That's all we need to do to invoke a web service call.
+
+59
+00:03:43.610 --> 00:03:48.440
+The HttpGatewayOutboundConfig is the Spring configuration
+
+60
+00:03:48.440 --> 00:03:51.650
+class that handles the retrieval of a reservation from
+
+61
+00:03:51.650 --> 00:03:53.470
+the reservation web service.
+
+62
+00:03:53.470 --> 00:03:55.220
+It's a little more complicated,
+
+63
+00:03:55.220 --> 00:03:58.900
+because we're going to include a variable in our URL,
+
+64
+00:03:58.900 --> 00:04:02.550
+and we're going to need to handle the response from the web service.
+
+65
+00:04:02.550 --> 00:04:04.090
+We define two channels,
+
+66
+00:04:04.090 --> 00:04:08.210
+the getReservationChannel is the channel to which we request a
+
+67
+00:04:08.210 --> 00:04:11.140
+reservation from the reservation web service,
+
+68
+00:04:11.140 --> 00:04:15.210
+and the getReservationReplyChannel is the channel to which the
+
+69
+00:04:15.210 --> 00:04:19.350
+MessageHandler will publish the response from the web service.
+
+70
+00:04:19.350 --> 00:04:24.300
+The httpOutboundGateway method creates a MessageHandler bean and
+
+71
+00:04:24.300 --> 00:04:28.170
+is annotated with a service activator that listens for messages
+
+72
+00:04:28.170 --> 00:04:30.440
+published to the getReservationChannel.
+
+73
+00:04:30.440 --> 00:04:35.360
+We create an HttpRequestExecutingMessageHandler specifying the
+
+74
+00:04:35.360 --> 00:04:38.050
+URL of the service that we want to invoke.
+
+75
+00:04:38.050 --> 00:04:41.990
+In this case, the URL contains a variable named reservationId,
+
+76
+00:04:41.990 --> 00:04:45.060
+which is denoted by curly braces.
+
+77
+00:04:45.060 --> 00:04:50.800
+We set these HTTP method to get and then we specify that we expect to reply,
+
+78
+00:04:50.800 --> 00:04:54.040
+and that reply should be of type reservation.
+
+79
+00:04:54.040 --> 00:04:57.310
+Next, we create a spring expression language expression,
+
+80
+00:04:57.310 --> 00:04:58.140
+part sir,
+
+81
+00:04:58.140 --> 00:05:02.560
+and then set the Docker variable expressions to resolve the
+
+82
+00:05:02.560 --> 00:05:05.600
+reservation IDE to the payload of the message.
+
+83
+00:05:05.600 --> 00:05:08.130
+Finally, we set the Output Channel,
+
+84
+00:05:08.130 --> 00:05:12.200
+which is the channel to which the message handler should publish the response
+
+85
+00:05:12.200 --> 00:05:16.140
+of the web service call to the getReservationReplyChannel.
+
+86
+00:05:16.140 --> 00:05:16.880
+Finally,
+
+87
+00:05:16.880 --> 00:05:20.890
+we create a messaging gateway named getReservationGateway that
+
+88
+00:05:20.890 --> 00:05:24.990
+publishes messages to the getReservationChannel and listens for
+
+89
+00:05:24.990 --> 00:05:28.030
+replies on the getReservationReplyChannel.
+
+90
+00:05:28.030 --> 00:05:32.990
+The getReservation method accepts the IDE of a reservation to retrieve,
+
+91
+00:05:32.990 --> 00:05:36.900
+which will become the payload of the message and is the reason
+
+92
+00:05:36.900 --> 00:05:41.120
+that our URI variable expression resolves the message payload to
+
+93
+00:05:41.120 --> 00:05:45.500
+the reservation ID variable and returns the reservation that it
+
+94
+00:05:45.500 --> 00:05:47.850
+receives in the reply channel.
+
+95
+00:05:47.850 --> 00:05:53.140
+The HTTPExampleApplication is a command line Spring Boot application.
+
+96
+00:05:53.140 --> 00:05:55.770
+All of the action will happen in the background,
+
+97
+00:05:55.770 --> 00:05:59.640
+so it's simply waits for 5 seconds and then exits.
+
+98
+00:05:59.640 --> 00:06:04.250
+Let's run the application and review the logs. From the logs, we
+
+99
+00:06:04.250 --> 00:06:08.240
+can see that the reservation listener received the reservation from
+
+100
+00:06:08.240 --> 00:06:12.410
+the channel, and published it to the reservation web service, and
+
+101
+00:06:12.410 --> 00:06:16.120
+then we can see that it was able to retrieve the reservation from
+
+102
+00:06:16.120 --> 00:06:17.340
+the web service.
+
+103
+00:06:17.340 --> 00:06:22.940
+And if we open a web browser to localhost 7080 /reservations, we
+
+104
+00:06:22.940 --> 00:06:28.000
+can see that the reservation web service does, in fact, have both reservations.
+

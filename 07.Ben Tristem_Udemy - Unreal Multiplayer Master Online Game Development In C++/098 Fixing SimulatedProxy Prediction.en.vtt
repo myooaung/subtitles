@@ -1,0 +1,796 @@
+WEBVTT
+1
+00:00:04.520 --> 00:00:06.020
+Hello and welcome in this lecture.
+
+2
+00:00:06.020 --> 00:00:11.240
+We are going to fix that pesky bug that we had with a server going at a ridiculous speed he can see
+
+3
+00:00:11.240 --> 00:00:13.910
+the server is going at a normal speed.
+
+4
+00:00:14.090 --> 00:00:19.240
+And we're also going to fix the bug where the simulated proxy was coming across really jolting.
+
+5
+00:00:19.250 --> 00:00:23.270
+Here you can see it's moving nice and smoothly with the type of interpolation we've had before.
+
+6
+00:00:23.270 --> 00:00:28.010
+Sure there's a bit of jumping around but we've got it to the stage where it was before if you looked
+
+7
+00:00:28.130 --> 00:00:32.860
+at your simulated proxy before you'll have seen that it was jumping and it wasn't moving smoothly.
+
+8
+00:00:32.870 --> 00:00:38.150
+We're also going to have it so that the autonomous proxy is still working as it should be with no jumps.
+
+9
+00:00:38.150 --> 00:00:39.660
+Even if there is lag.
+
+10
+00:00:39.920 --> 00:00:46.930
+So let's jump right in and see how this is done so at the end of the last lecture we saw that our authority
+
+11
+00:00:47.260 --> 00:00:49.430
+when driving around was driving around a little bit.
+
+12
+00:00:49.450 --> 00:00:50.880
+Super quickly.
+
+13
+00:00:50.980 --> 00:00:55.780
+Now I'm going to go over the reason why this is so if you still wanted a chance to have a go at debugging
+
+14
+00:00:55.780 --> 00:00:56.860
+these are self-imposed video.
+
+15
+00:00:56.860 --> 00:01:03.660
+Now before I spoil it for you but the reason is that we need to ensure the server simulates only once.
+
+16
+00:01:03.670 --> 00:01:04.410
+What do I mean by this.
+
+17
+00:01:04.420 --> 00:01:11.800
+If we go into Visual Studio and read through the tick function as if we were the server we'll go through
+
+18
+00:01:11.800 --> 00:01:14.500
+this tick function and we'll say first of all is locally controlled.
+
+19
+00:01:14.580 --> 00:01:18.160
+Yes because we are in control of our own car.
+
+20
+00:01:18.160 --> 00:01:23.830
+Then we go ahead and create a move we'll say if not has authority where we do have authorities and not
+
+21
+00:01:23.830 --> 00:01:28.960
+has authority or be false so we don't execute the bit inside this if statement then we go on to do a
+
+22
+00:01:28.960 --> 00:01:32.830
+server send a move and then we simulate the move.
+
+23
+00:01:32.980 --> 00:01:34.630
+What actually happens in service and move.
+
+24
+00:01:34.630 --> 00:01:40.120
+Well we call the implementation even though there's no APC required in order to do this because we are
+
+25
+00:01:40.150 --> 00:01:44.500
+already on the server it would go ahead and call the implementation just so that it is behaving in the
+
+26
+00:01:44.500 --> 00:01:47.050
+same way as it would behave on any any of the other clients.
+
+27
+00:01:47.320 --> 00:01:51.980
+And what it does is it itself calls simulate move and updates the service date.
+
+28
+00:01:52.120 --> 00:01:56.920
+That's useful because we do need to update the service date in order for all the simulated proxies to
+
+29
+00:01:56.980 --> 00:01:58.140
+get the right state.
+
+30
+00:01:58.150 --> 00:02:04.300
+But the problem is in calling simulate move because we are doing this twice now we're also simulating
+
+31
+00:02:04.300 --> 00:02:06.220
+move in the tick.
+
+32
+00:02:06.220 --> 00:02:13.180
+So the simplest thing to do is to say let's take this simulate move that's happening in tick and just
+
+33
+00:02:13.180 --> 00:02:21.010
+move it to the place where we say not has authority which is equivalent to saying that it is the autonomous
+
+34
+00:02:21.010 --> 00:02:27.000
+proxy and in fact this is starting to get a little bit hard to read so we're going to do a little mini
+
+35
+00:02:27.000 --> 00:02:30.900
+refactor just after we've checked that this works.
+
+36
+00:02:30.900 --> 00:02:36.060
+So again the reason for doing this is that we want to make sure the simulate move only happens when
+
+37
+00:02:36.060 --> 00:02:37.830
+we're adding that unacknowledged me to the queue.
+
+38
+00:02:37.830 --> 00:02:44.160
+Only when we are an autonomous proxy because if we are the server is in control of their own porn then
+
+39
+00:02:44.220 --> 00:02:46.800
+we want to be careful about doing this.
+
+40
+00:02:46.860 --> 00:02:53.250
+So we're gonna go over check it out in the real Ed drive around our authority and sure enough now we're
+
+41
+00:02:53.250 --> 00:02:54.900
+going at a sensible speed.
+
+42
+00:02:55.530 --> 00:02:56.660
+So I'm happy with that.
+
+43
+00:02:56.820 --> 00:02:58.920
+Now I said that this was getting a bit hard to read.
+
+44
+00:02:58.920 --> 00:03:04.230
+Now one of the things that's telling me this is hard to read is the fact that we've got multiple indentation
+
+45
+00:03:04.230 --> 00:03:04.630
+levels.
+
+46
+00:03:04.650 --> 00:03:09.130
+So we've got this if is locally controlling and if not has authority.
+
+47
+00:03:09.420 --> 00:03:16.050
+Well I'd rather do is have a part of the tick that is responsible for when we are the authority and
+
+48
+00:03:16.050 --> 00:03:24.510
+have a part of the Take That is responsible for when we are a authoritative server or a pawn on the
+
+49
+00:03:24.510 --> 00:03:25.720
+authority.
+
+50
+00:03:25.740 --> 00:03:27.510
+So that's quite easy to do.
+
+51
+00:03:27.640 --> 00:03:31.710
+What we're going to do here is we'll do instead of if locally controlled.
+
+52
+00:03:31.720 --> 00:03:37.160
+Going to have two separate statements one is going to be if role equal equals.
+
+53
+00:03:37.270 --> 00:03:45.530
+And in this case we're just gonna go for the role authority like so and in here we can do all the things
+
+54
+00:03:45.530 --> 00:03:46.430
+that we do in authority.
+
+55
+00:03:46.430 --> 00:03:51.380
+Now I'm gonna duplicate code because at this point I don't think it's going to cause too much code duplication
+
+56
+00:03:51.500 --> 00:03:53.010
+and so I'm not too worried.
+
+57
+00:03:53.090 --> 00:03:57.020
+So what we're gonna do is we're going to create the move we're gonna simulate the move add it to the
+
+58
+00:03:57.020 --> 00:04:01.430
+unacknowledged move Q Which kind of makes sense and is easy to read and then we're going to send it
+
+59
+00:04:01.430 --> 00:04:02.470
+up to the server.
+
+60
+00:04:02.540 --> 00:04:03.190
+So that's what we do.
+
+61
+00:04:03.200 --> 00:04:06.350
+If we are sorry not the role authority but the role.
+
+62
+00:04:06.710 --> 00:04:08.840
+Autonomous proxy.
+
+63
+00:04:08.840 --> 00:04:09.950
+Fair enough.
+
+64
+00:04:09.950 --> 00:04:11.490
+What about if we are the server.
+
+65
+00:04:12.020 --> 00:04:14.600
+Well there's actually two cases if we're the server right.
+
+66
+00:04:14.720 --> 00:04:19.210
+Because in one case we might just be the authority but it's controlled elsewhere.
+
+67
+00:04:19.730 --> 00:04:23.630
+So if we do role authority then there are two cases.
+
+68
+00:04:23.630 --> 00:04:28.900
+And how do we distinguish between whether we are the one that is in control of the porn or whether there's
+
+69
+00:04:28.940 --> 00:04:31.800
+an autonomous proxy somewhere else.
+
+70
+00:04:31.820 --> 00:04:38.660
+Well that is using a property called the remote role you can get hold of the remote role with quite
+
+71
+00:04:38.660 --> 00:04:45.870
+simply get remote role like this and it works exactly the same as the other roles.
+
+72
+00:04:45.870 --> 00:04:53.650
+So what I'm going to say is that we want the case where the remote role is not autonomous proxy.
+
+73
+00:04:53.640 --> 00:04:58.860
+How you might be saying which remote because as an authority I've got some simulated proxies and simultaneous
+
+74
+00:04:58.990 --> 00:04:59.490
+proxies.
+
+75
+00:04:59.950 --> 00:05:04.660
+Well by default if there is an autonomous proxy the room the remote role will be autonomous proxy if
+
+76
+00:05:04.660 --> 00:05:10.420
+there are no autonomous proxies meaning that the server itself is the authority and controlling and
+
+77
+00:05:10.420 --> 00:05:15.010
+essentially the autonomous proxy for this thing then its role will be simulated proxy.
+
+78
+00:05:15.010 --> 00:05:24.180
+So what we're saying is that this local role has to be authority and the get remote role if I can type
+
+79
+00:05:24.180 --> 00:05:30.450
+it correctly has got to be roll and simulated proxy.
+
+80
+00:05:30.570 --> 00:05:37.850
+So this means that we are the ones in control and I'm going to put a little comment there to that effect.
+
+81
+00:05:37.870 --> 00:05:42.070
+We are the server and in control of the porn.
+
+82
+00:05:42.070 --> 00:05:47.560
+Hi Sam here from the future with a quick note for you about current versions of unreal it can be quite
+
+83
+00:05:47.620 --> 00:05:51.360
+unpredictable what the server will respond with.
+
+84
+00:05:51.360 --> 00:05:56.440
+Get remote roles sometimes it's simulated proxy sometimes it is autonomous proxy depending on whether
+
+85
+00:05:56.440 --> 00:05:58.520
+you're playing in the editor or standalone.
+
+86
+00:05:58.840 --> 00:06:04.520
+So I would recommend instead of using this expression remote role equals simulated proxy.
+
+87
+00:06:04.540 --> 00:06:10.840
+You just use the is locally controlled method from up above.
+
+88
+00:06:10.870 --> 00:06:13.110
+That's what I'm going to say in the comment.
+
+89
+00:06:13.120 --> 00:06:16.600
+That's what this thing means and that's a function get remote role.
+
+90
+00:06:16.600 --> 00:06:18.190
+So I will treat it as such.
+
+91
+00:06:18.980 --> 00:06:19.540
+Okay.
+
+92
+00:06:19.600 --> 00:06:23.050
+And if that's the case then we know that it's very simple.
+
+93
+00:06:23.050 --> 00:06:28.630
+What we've got to do is go ahead and create the move which we'll do and then we don't have to simulate
+
+94
+00:06:28.630 --> 00:06:28.900
+the move.
+
+95
+00:06:28.900 --> 00:06:34.480
+We don't have to acknowledge the move we just got to send that move to the server which we'll call the
+
+96
+00:06:34.480 --> 00:06:40.030
+implementation here locally and update all the simulated proxies.
+
+97
+00:06:40.030 --> 00:06:45.370
+That means that now I can remove this complicated if statement and replace it with a rather more hopefully
+
+98
+00:06:45.460 --> 00:06:47.530
+simple if statement here.
+
+99
+00:06:47.530 --> 00:06:53.380
+So we should build this and check that so the bill was successful let's go over into real just check
+
+100
+00:06:53.410 --> 00:06:56.160
+that we can still drive around.
+
+101
+00:06:56.230 --> 00:06:57.590
+Looks like we can.
+
+102
+00:06:57.670 --> 00:06:59.110
+How about the autonomous proxy.
+
+103
+00:06:59.110 --> 00:07:00.680
+Does he still work.
+
+104
+00:07:00.760 --> 00:07:05.110
+I drive around with him and go and drive in front of our server.
+
+105
+00:07:05.230 --> 00:07:08.930
+See does he still drive around.
+
+106
+00:07:08.930 --> 00:07:10.270
+Yes yes he does.
+
+107
+00:07:10.310 --> 00:07:10.670
+Excellent.
+
+108
+00:07:10.670 --> 00:07:12.800
+So that seems to have worked correctly.
+
+109
+00:07:12.800 --> 00:07:14.150
+Now one more problem.
+
+110
+00:07:14.150 --> 00:07:22.070
+Our local prediction on the client if we go ahead and play as the server and I drive my server around
+
+111
+00:07:22.070 --> 00:07:29.050
+you can see that on the autonomous proxy you put them side by side so it's really visible as the autonomous
+
+112
+00:07:29.050 --> 00:07:33.820
+proxy I'm seeing the simulated proxy jolting around.
+
+113
+00:07:33.850 --> 00:07:40.210
+So it's not doing that local client prediction like we used to have it do now what I want to do is for
+
+114
+00:07:40.210 --> 00:07:46.270
+you to have a go implementing that so here is that challenge definition to fix the client prediction.
+
+115
+00:07:46.270 --> 00:07:47.980
+So why is the client jumping around.
+
+116
+00:07:47.980 --> 00:07:53.560
+What could we do between updates to make sure it doesn't jump around and go ahead and implement your
+
+117
+00:07:53.560 --> 00:07:54.030
+solution.
+
+118
+00:07:54.040 --> 00:07:58.200
+So pause the video and have a go at this okay.
+
+119
+00:07:58.200 --> 00:07:58.710
+Welcome back.
+
+120
+00:07:58.710 --> 00:08:01.080
+Hopefully this is very simple.
+
+121
+00:08:01.140 --> 00:08:05.490
+Now what we've done in the past is we've been simulating locally however.
+
+122
+00:08:05.530 --> 00:08:11.250
+Currently you can see in our tick we have no if statement for these simulated proxy the simulated proxy
+
+123
+00:08:11.260 --> 00:08:12.540
+does nothing on tech.
+
+124
+00:08:12.540 --> 00:08:16.710
+The only time it gets its state updated is on rep server state.
+
+125
+00:08:16.710 --> 00:08:19.620
+You can see here the set at actor transform is what setting it.
+
+126
+00:08:19.890 --> 00:08:24.000
+It's also setting a velocity that because we do nothing on tick with that velocity it's not actually
+
+127
+00:08:24.000 --> 00:08:25.350
+moving because of it.
+
+128
+00:08:25.380 --> 00:08:29.870
+So we do need to start doing something on tick and what should that be.
+
+129
+00:08:29.880 --> 00:08:34.050
+Well we could easily just simulate but what move are we going to simulate.
+
+130
+00:08:34.050 --> 00:08:37.190
+Well we've got that in the server state as the last move.
+
+131
+00:08:37.200 --> 00:08:43.740
+So very simply I'm going to add in a new if statement it's gonna be if role is equal to role and then
+
+132
+00:08:43.740 --> 00:08:45.540
+it's going to be the simulated proxy.
+
+133
+00:08:45.540 --> 00:08:48.980
+So that currently role is simulated proxy up here we've got the remote role.
+
+134
+00:08:48.990 --> 00:08:58.910
+But if the role on this machine is simulated proxy then we can go ahead and do a simulate move with
+
+135
+00:08:58.910 --> 00:09:02.660
+the argument being the server state DOT last move.
+
+136
+00:09:02.660 --> 00:09:08.240
+So that is going to get us the last move executed on the server and we're going to just keep playing
+
+137
+00:09:08.240 --> 00:09:13.420
+that like we've done in the past when we've had replicated down the inputs.
+
+138
+00:09:13.640 --> 00:09:18.770
+So I'm gonna go ahead and build that and see if that's gonna give us a smoother local prediction on
+
+139
+00:09:18.770 --> 00:09:19.470
+the client.
+
+140
+00:09:19.470 --> 00:09:20.750
+Well it's built which is wonderful.
+
+141
+00:09:20.810 --> 00:09:31.340
+Let's go over to unreal hit play and get both actors in the world we've still got a glitch where they
+
+142
+00:09:31.340 --> 00:09:32.560
+don't always spawn.
+
+143
+00:09:32.600 --> 00:09:39.320
+Let's get our authority on the left the what's on his proxy on the right let's drive the authority around
+
+144
+00:09:39.320 --> 00:09:44.660
+in front of the autonomous proxy now you can see instantly it's going to be much much smoother we are
+
+145
+00:09:44.660 --> 00:09:49.880
+still seeing some little defects which we have seen before which is that it carries on turning for a
+
+146
+00:09:49.880 --> 00:09:56.120
+little while after we've turned and so it has to glitch back into place now that's as good as we've
+
+147
+00:09:56.130 --> 00:09:57.920
+got it too but can we do better.
+
+148
+00:09:57.920 --> 00:10:00.690
+Can we make smoother predictions than this.
+
+149
+00:10:00.710 --> 00:10:01.370
+Let's have a look.
+
+150
+00:10:01.790 --> 00:10:04.860
+So currently what we've got is this.
+
+151
+00:10:04.970 --> 00:10:08.310
+This is the path that happens on the server this white line.
+
+152
+00:10:08.420 --> 00:10:11.750
+You can see we're going a straight line and we decide start turning then we're going to straight line
+
+153
+00:10:11.750 --> 00:10:13.270
+for a bit then we turn a bit more.
+
+154
+00:10:13.430 --> 00:10:15.750
+So that's what's going on on the server.
+
+155
+00:10:15.950 --> 00:10:17.330
+Now these are the updates come through.
+
+156
+00:10:17.330 --> 00:10:22.040
+First we get this update and this update tells us that we should start simulating that's what we do
+
+157
+00:10:22.040 --> 00:10:23.540
+with this orange dotted line.
+
+158
+00:10:23.540 --> 00:10:25.600
+We simulate a head carrying on with that move.
+
+159
+00:10:25.610 --> 00:10:30.330
+There's no turning information but we do have the velocity so we carry on along that trajectory.
+
+160
+00:10:30.560 --> 00:10:32.050
+Then we get another update.
+
+161
+00:10:32.120 --> 00:10:33.750
+We carry on along that trajectory.
+
+162
+00:10:33.740 --> 00:10:38.540
+Now notice something we've departed from that white line on the server because we haven't had an update
+
+163
+00:10:38.900 --> 00:10:42.800
+yet that has told us that there is a turn when we finally get the update.
+
+164
+00:10:42.810 --> 00:10:45.100
+It's partway through the turn already.
+
+165
+00:10:45.110 --> 00:10:50.570
+So we have to jump back to be on that turn which is the thing that we're seeing in the game if you want
+
+166
+00:10:50.570 --> 00:10:55.790
+to convince yourself possibly and have a look when you turn on the server and see what happens from
+
+167
+00:10:55.790 --> 00:11:01.130
+the autonomous proxies point of view and then we carry on turning you see that we're turning a little
+
+168
+00:11:01.130 --> 00:11:06.210
+bit too far because we didn't get the information we didn't get the message that we've stopped turning
+
+169
+00:11:06.210 --> 00:11:07.310
+the carry on turning.
+
+170
+00:11:07.430 --> 00:11:11.150
+And so we had to be reset back in place and we carry on turning and so on.
+
+171
+00:11:11.150 --> 00:11:16.490
+So we end up with quite a lot of jolting resets which are very visible.
+
+172
+00:11:16.490 --> 00:11:22.340
+You know even if it hadn't made the right trajectory it would have been less visible than the fact that
+
+173
+00:11:22.340 --> 00:11:24.800
+we keep having to jump and correct.
+
+174
+00:11:24.800 --> 00:11:28.580
+So how could we do better than having to jump and correct.
+
+175
+00:11:28.700 --> 00:11:31.680
+Well we do something called interpolated the client's position.
+
+176
+00:11:31.850 --> 00:11:33.230
+Let's have a look at how that works.
+
+177
+00:11:33.230 --> 00:11:38.570
+So we get our first update but instead of simulating right away we hold off until we get another update
+
+178
+00:11:38.930 --> 00:11:44.820
+when we've got that other update we can start to interpolate meaning slowly move between the first position
+
+179
+00:11:44.820 --> 00:11:47.420
+and the second position using this orange line.
+
+180
+00:11:47.450 --> 00:11:48.260
+So far so good.
+
+181
+00:11:48.260 --> 00:11:54.710
+More or less the same as the first example when we get our third point back from the server instead
+
+182
+00:11:54.770 --> 00:12:00.730
+of trying to carry on with the move that was coming from the server last.
+
+183
+00:12:00.800 --> 00:12:03.670
+We are going to be interpolate in between the two.
+
+184
+00:12:03.680 --> 00:12:07.760
+Now notice we're always a step behind in this scenario but at least we're not jumping.
+
+185
+00:12:07.760 --> 00:12:12.260
+So again to be interpolated here in a straight line obviously it's not the move that happened on the
+
+186
+00:12:12.260 --> 00:12:16.910
+server and it's going to look slightly different on the clients but at least we're not jumping around.
+
+187
+00:12:16.910 --> 00:12:20.930
+Similarly when we get this other points we are going to go in a straight line between the two.
+
+188
+00:12:20.930 --> 00:12:27.410
+Now you can do some slightly smarter interpolation than doing this but as a starting point at least
+
+189
+00:12:27.410 --> 00:12:29.080
+this would stop us from jumping around.
+
+190
+00:12:29.090 --> 00:12:30.910
+That's what we gonna be working towards now.
+
+191
+00:12:30.940 --> 00:12:36.260
+At the moment our code is a little bit tricky if we go and have a look at visual studio and have a look
+
+192
+00:12:36.260 --> 00:12:42.770
+at our class you'll see that it is over 200 lines long and it's doing many things it is doing input
+
+193
+00:12:42.890 --> 00:12:49.850
+set up it is doing simulation of movement for a simulation of physics with all of the fields and properties
+
+194
+00:12:49.850 --> 00:12:53.110
+to do with the simulation of physics it's also doing on the replication code.
+
+195
+00:12:53.180 --> 00:12:57.740
+So that's at least three things that I can think of that it's doing and it makes it really hard for
+
+196
+00:12:57.740 --> 00:12:59.480
+us to keep expanding on this.
+
+197
+00:12:59.480 --> 00:13:04.370
+It's just got an X complexity that's growing out of control and that makes it very tricky.
+
+198
+00:13:04.370 --> 00:13:09.470
+So the next few lectures are gonna be about trying to manage that complexity and break this uber class
+
+199
+00:13:09.530 --> 00:13:12.260
+into a few parts and I'll see you at.

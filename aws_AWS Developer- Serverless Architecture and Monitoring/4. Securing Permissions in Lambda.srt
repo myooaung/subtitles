@@ -1,0 +1,324 @@
+1
+00:00:00,940 --> 00:00:05,310
+Serverless architecture introduces some new patterns that make it difficult
+
+2
+00:00:05,310 --> 00:00:09,040
+to know what you should care about in terms of security.
+
+3
+00:00:09,040 --> 00:00:13,320
+AWS handles many of the security concerns of your app with Lambda,
+
+4
+00:00:13,320 --> 00:00:16,410
+so there are really only a couple of considerations.
+
+5
+00:00:16,410 --> 00:00:18,400
+When lambdas execute,
+
+6
+00:00:18,400 --> 00:00:21,870
+they assume an IAM role for permissions for use when
+
+7
+00:00:21,870 --> 00:00:25,740
+accessing any resources other than themselves.
+
+8
+00:00:25,740 --> 00:00:30,500
+These IAM roles should follow the principle of least privilege, which I
+
+9
+00:00:30,500 --> 00:00:34,340
+covered in a previous course in this AWS Developer path.
+
+10
+00:00:34,340 --> 00:00:38,060
+To quickly restate the principle of least privilege says
+
+11
+00:00:38,060 --> 00:00:41,070
+that a resource should only be given the permissions it
+
+12
+00:00:41,070 --> 00:00:43,940
+absolutely needs and no more.
+
+13
+00:00:43,940 --> 00:00:45,320
+In the case of lambdas,
+
+14
+00:00:45,320 --> 00:00:50,190
+this means that the permissions in a lambda's role should only be what it needs.
+
+15
+00:00:50,190 --> 00:00:53,710
+In the demo application, most lambdas have one function.
+
+16
+00:00:53,710 --> 00:00:57,640
+So, it's likely that most will have their own role.
+
+17
+00:00:57,640 --> 00:00:58,240
+Indeed,
+
+18
+00:00:58,240 --> 00:01:01,940
+Amazon recommends that every lambda function have its own
+
+19
+00:01:01,940 --> 00:01:04,490
+unique role and that none should share.
+
+20
+00:01:04,490 --> 00:01:06,640
+For our demo application,
+
+21
+00:01:06,640 --> 00:01:11,140
+I don't know if we have to go that far since we have a few lambdas that
+
+22
+00:01:11,140 --> 00:01:14,790
+would require the exact same permissions for a role.
+
+23
+00:01:14,790 --> 00:01:18,120
+When we deployed our demo application with the Serverless Framework,
+
+24
+00:01:18,120 --> 00:01:21,500
+it set up the functions with all the same IAM role.
+
+25
+00:01:21,500 --> 00:01:25,240
+If you look in the serverless.yml configuration file,
+
+26
+00:01:25,240 --> 00:01:28,540
+you can see the permissions that were configured on that role.
+
+27
+00:01:28,540 --> 00:01:32,420
+We've got access to CloudFront and access to Kinesis,
+
+28
+00:01:32,420 --> 00:01:36,340
+both not limited to any specific resource.
+
+29
+00:01:36,340 --> 00:01:39,810
+I'd like to trim this down for a few lambdas so we can
+
+30
+00:01:39,810 --> 00:01:41,940
+make our application more secure.
+
+31
+00:01:41,940 --> 00:01:44,310
+Let's start by creating the role.
+
+32
+00:01:44,310 --> 00:01:47,770
+We can do this from inside the lambda we want to modify.
+
+33
+00:01:47,770 --> 00:01:50,230
+So, go to the Lambda dashboard.
+
+34
+00:01:50,230 --> 00:01:54,540
+Select the function ending in processAction.
+
+35
+00:01:54,540 --> 00:01:57,630
+This lambda consumes records from the Kinesis Stream
+
+36
+00:01:57,630 --> 00:01:59,660
+and saves them to our database.
+
+37
+00:01:59,660 --> 00:02:03,620
+Scroll to the Configuration tab and then select the
+
+38
+00:02:03,620 --> 00:02:07,140
+Permissions menu option on the left.
+
+39
+00:02:07,140 --> 00:02:09,190
+In the Resource summary section,
+
+40
+00:02:09,190 --> 00:02:13,960
+this box here is a drop‑down that shows what services and
+
+41
+00:02:13,960 --> 00:02:18,200
+resources the lambda already has permissions for based on
+
+42
+00:02:18,200 --> 00:02:20,340
+the role that is attached.
+
+43
+00:02:20,340 --> 00:02:24,530
+Since this lambda is really only receiving records from Kinesis,
+
+44
+00:02:24,530 --> 00:02:28,920
+it doesn't need access to something like CloudFront. Above the
+
+45
+00:02:28,920 --> 00:02:32,860
+Resource summary section is the execution role.
+
+46
+00:02:32,860 --> 00:02:37,960
+As you can see, this lambda already has a role attached to it. But I want to
+
+47
+00:02:37,960 --> 00:02:43,980
+create a new one with some fine‑tuned permissions that will be appropriate for
+
+48
+00:02:43,980 --> 00:02:48,740
+this lambda specifically. Click the Edit button,
+
+49
+00:02:48,740 --> 00:02:52,940
+then scroll down and look in the Execution role section.
+
+50
+00:02:52,940 --> 00:02:57,270
+Lambda gives you the option to use an existing role or
+
+51
+00:02:57,270 --> 00:03:00,970
+create a new one with some policy templates.
+
+52
+00:03:00,970 --> 00:03:05,620
+These templates really aren't specific enough for what I want.
+
+53
+00:03:05,620 --> 00:03:10,060
+So, I want to go ahead and create a new role. We'll do that in
+
+54
+00:03:10,060 --> 00:03:13,240
+another tab, and then we'll come back here,
+
+55
+00:03:13,240 --> 00:03:18,690
+refresh the existing role drop‑down, and then select it. So to do that,
+
+56
+00:03:18,690 --> 00:03:22,360
+we'll need to first manually create that new role.
+
+57
+00:03:22,360 --> 00:03:28,240
+So click on this very tiny IAM console link right here.
+
+58
+00:03:28,240 --> 00:03:31,060
+It'll open up a new tab to create the role.
+
+59
+00:03:31,060 --> 00:03:34,110
+We will be creating this role for a lambda function.
+
+60
+00:03:34,110 --> 00:03:38,040
+So, select Lambda here and then click Next.
+
+61
+00:03:38,040 --> 00:03:42,410
+AWS has already created a managed policy that is specifically
+
+62
+00:03:42,410 --> 00:03:45,920
+designed for lambdas that consume Kinesis Streams.
+
+63
+00:03:45,920 --> 00:03:49,350
+If you search for lambdakinesis, all one word,
+
+64
+00:03:49,350 --> 00:03:55,400
+you'll see the policy AWSLambdaKinesisExecutionRole, which gives access to
+
+65
+00:03:55,400 --> 00:04:00,240
+write to CloudWatch Logs and read from Kinesis Streams.
+
+66
+00:04:00,240 --> 00:04:05,590
+Next, search for lambdavpc, all one word, and select the
+
+67
+00:04:05,590 --> 00:04:11,070
+AWSLambdaVPCAccessExecutionRole, which will allow our lambda to
+
+68
+00:04:11,070 --> 00:04:14,640
+interact with VPC network interfaces.
+
+69
+00:04:14,640 --> 00:04:18,010
+Now our role has all the permissions our lambda needs and no
+
+70
+00:04:18,010 --> 00:04:22,520
+more. Click Next and then Review. Now we'll give the role a
+
+71
+00:04:22,520 --> 00:04:26,280
+name that links it to the lambda it's used for. So enter
+
+72
+00:04:26,280 --> 00:04:32,240
+trash_panda_buffet_processAction.
+
+73
+00:04:32,240 --> 00:04:35,330
+Finally, click Create role. From here,
+
+74
+00:04:35,330 --> 00:04:39,040
+go back to the Lambda function tab. Click the Refresh button next
+
+75
+00:04:39,040 --> 00:04:43,080
+to this drop‑down to update the list of available roles and then
+
+76
+00:04:43,080 --> 00:04:46,040
+select the role that we just created.
+
+77
+00:04:46,040 --> 00:04:50,280
+Now the processAction lambda function has only the permissions
+
+78
+00:04:50,280 --> 00:04:52,900
+it absolutely needs for what it's doing,
+
+79
+00:04:52,900 --> 00:04:55,440
+effectively locking it down.
+
+80
+00:04:55,440 --> 00:04:58,690
+You can perform similar actions for the other lambdas in our
+
+81
+00:04:58,690 --> 00:05:06,000
+demo application to restrict what they have access to, but we won't do that here for time's sake.
+

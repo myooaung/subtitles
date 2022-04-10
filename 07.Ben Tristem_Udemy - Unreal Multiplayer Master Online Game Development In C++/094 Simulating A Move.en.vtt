@@ -1,0 +1,688 @@
+WEBVTT
+1
+00:00:04.400 --> 00:00:05.890
+Hello and welcome in this lecture.
+
+2
+00:00:05.900 --> 00:00:13.220
+We are one step closer in refactoring towards the goal of being able to replay and moves locally so
+
+3
+00:00:13.220 --> 00:00:15.840
+that we aren't skipping backwards in a laggy scenario.
+
+4
+00:00:16.040 --> 00:00:21.260
+And in this letter it's all about this method here that I got highlighted the simulate move method and
+
+5
+00:00:21.260 --> 00:00:26.210
+figure out how we can simulate a moon so that it's consistent both on the server and on the client.
+
+6
+00:00:26.210 --> 00:00:27.900
+Let's dive in and see how it's done.
+
+7
+00:00:28.770 --> 00:00:32.860
+So in the last letter we left a handful of tattoos in the C plus pass code.
+
+8
+00:00:32.970 --> 00:00:39.120
+So let's have a look and see if any of these jump out of it at us as the first thing that we could tackle.
+
+9
+00:00:39.120 --> 00:00:40.650
+So I've got the update.
+
+10
+00:00:40.650 --> 00:00:45.510
+The last move that's definitely something we're going to need to do make a better validation mode that
+
+11
+00:00:45.510 --> 00:00:50.730
+can wait that's just about cheating and you know in testing and making sure it works we don't need to
+
+12
+00:00:50.730 --> 00:00:58.230
+get quite there yet and we've got the set the time on the move again something that may be useful maybe
+
+13
+00:00:58.230 --> 00:00:59.270
+not yet.
+
+14
+00:00:59.280 --> 00:01:05.340
+What we're going to be doing now is the following We're going to be looking at the bit highlighted in
+
+15
+00:01:05.340 --> 00:01:09.210
+green on this slide of the pseudo code which is the simulate move.
+
+16
+00:01:09.210 --> 00:01:11.790
+Now you might be saying but Sam we're already simulating the move.
+
+17
+00:01:11.810 --> 00:01:14.460
+Yes we are but not quite.
+
+18
+00:01:14.460 --> 00:01:19.110
+We're simulating something with the same inputs as the move but it might end up being different because
+
+19
+00:01:19.110 --> 00:01:23.120
+the timestep is using the tick from that of the server.
+
+20
+00:01:23.130 --> 00:01:28.110
+So what we're going to want to do is pull out a new method which we are going to call simulate move
+
+21
+00:01:28.740 --> 00:01:32.890
+give it a signature implement it and call it from the server.
+
+22
+00:01:32.910 --> 00:01:38.820
+When we receive a move and call it on the client when we are first creating that move to simulate it
+
+23
+00:01:38.820 --> 00:01:41.640
+locally and later Ron will be using it.
+
+24
+00:01:41.640 --> 00:01:47.950
+Also when we are replaying the unacknowledged moves so this is going to be a very useful method indeed.
+
+25
+00:01:48.000 --> 00:01:49.870
+That's what the going to be laying the groundwork.
+
+26
+00:01:49.980 --> 00:01:55.330
+So let's go into the head file have a little think what should simulate move do simulate move on going
+
+27
+00:01:55.330 --> 00:01:58.930
+to put right the top of the privat functions.
+
+28
+00:01:59.130 --> 00:02:06.240
+And it's not going to return anything because it's simulating it on this actor going to be called simulate
+
+29
+00:02:06.240 --> 00:02:08.940
+move as already indicated.
+
+30
+00:02:08.940 --> 00:02:12.150
+And we are going to have to give it something.
+
+31
+00:02:12.150 --> 00:02:12.890
+What are we going to give it.
+
+32
+00:02:12.900 --> 00:02:15.180
+Well kind of seems obvious from the name doesn't it.
+
+33
+00:02:15.180 --> 00:02:18.390
+It should be a f go cart move.
+
+34
+00:02:18.390 --> 00:02:25.200
+Let me just copy that name from the struct And that's what we're going to pass to simulate mover the
+
+35
+00:02:25.310 --> 00:02:28.590
+go cart move called move and a semicolon.
+
+36
+00:02:28.590 --> 00:02:30.470
+So that is going to be.
+
+37
+00:02:31.340 --> 00:02:39.380
+The method that we want and I am going to go and stick it just let's see above the get air resistance.
+
+38
+00:02:39.510 --> 00:02:41.930
+After all the replication stuff and a tick.
+
+39
+00:02:42.170 --> 00:02:44.420
+And I'm going to implement.
+
+40
+00:02:45.370 --> 00:02:48.690
+Or give it at least the namespace of our go kart.
+
+41
+00:02:48.700 --> 00:02:51.580
+Now I'm not going to go ahead and implement it just yet.
+
+42
+00:02:51.610 --> 00:02:55.600
+But instead what I'm going to show you is how we are going to use it and you're going to be implementing
+
+43
+00:02:55.600 --> 00:02:56.460
+it a challenge.
+
+44
+00:02:56.620 --> 00:03:01.180
+So we're going to be using it to update the canonical States we're going to simulate the move and then
+
+45
+00:03:01.180 --> 00:03:03.750
+we're going to send the canonical state to the clients.
+
+46
+00:03:03.790 --> 00:03:09.550
+We know that this happens where on received move or in actual fact it's now called the server centre
+
+47
+00:03:09.550 --> 00:03:11.770
+move implementation.
+
+48
+00:03:11.770 --> 00:03:16.450
+And you can see that at the moment the way we are doing simulation is simply to set the throttles set
+
+49
+00:03:16.450 --> 00:03:22.510
+the steering for it which is not really what we want is it what we want to be doing instead is calling
+
+50
+00:03:22.510 --> 00:03:25.800
+assimulate move with the move that we just received.
+
+51
+00:03:25.850 --> 00:03:32.830
+Mike so and then after we have simulated the move we can update the canonical state so we can say that
+
+52
+00:03:32.920 --> 00:03:34.330
+our service state.
+
+53
+00:03:35.460 --> 00:03:42.110
+Like so dot last move is equal to the move that we just simulated because that's the last move that
+
+54
+00:03:42.110 --> 00:03:47.640
+was simulated and then is the service state DOT transform is just going to be equal to well actually
+
+55
+00:03:47.790 --> 00:03:53.430
+all this stuff that we currently got tick this stuff including the update last move so we can go ahead
+
+56
+00:03:53.490 --> 00:03:55.190
+and pull all of that out.
+
+57
+00:03:56.160 --> 00:04:00.480
+In fact it means we don't need this if statement with has authority any more simplifying a tick down
+
+58
+00:04:00.480 --> 00:04:06.930
+which is nice and we can stick that in to our implementation we're going to move to do we've got want
+
+59
+00:04:06.930 --> 00:04:12.030
+to do less now because we've set and move and that makes sense doesn't it.
+
+60
+00:04:12.030 --> 00:04:15.020
+We've got basically what it's saying here check that move is an idiot.
+
+61
+00:04:15.020 --> 00:04:18.660
+We're skipping that for now simulating the move using a function that youre going to have to implement
+
+62
+00:04:19.140 --> 00:04:25.220
+and sending the canonical States for clients including the transform the velocity and the last move
+
+63
+00:04:25.230 --> 00:04:32.670
+crucially that we had thats great because now that we have removed the necessity for having the throttle
+
+64
+00:04:32.730 --> 00:04:40.740
+and steering throw We dont need those to be replicated anymore so let's go to Don H and remove the replication
+
+65
+00:04:40.740 --> 00:04:48.780
+for that they're now being replicated entirely using the state the server state.
+
+66
+00:04:48.780 --> 00:04:54.810
+We do still need them there because they are a way of getting our input from where it's being used as
+
+67
+00:04:54.810 --> 00:04:58.710
+input to where it is being used in the tech.
+
+68
+00:04:58.720 --> 00:05:01.110
+So where it's being set to where it's being used in the tech.
+
+69
+00:05:01.460 --> 00:05:01.880
+Okay.
+
+70
+00:05:01.890 --> 00:05:08.190
+And we do want to go ahead and remove the replication on that throttle and steering throw we can go
+
+71
+00:05:08.190 --> 00:05:09.450
+ahead and build that.
+
+72
+00:05:09.450 --> 00:05:11.480
+Just to make sure it runs okay.
+
+73
+00:05:11.490 --> 00:05:15.960
+So builds which leads me to think that all the reds quigley's that were there are just there because
+
+74
+00:05:16.020 --> 00:05:18.380
+the built system and quite caught up.
+
+75
+00:05:18.720 --> 00:05:23.150
+So obviously this isn't going to work yet because we need to implement the simulate move.
+
+76
+00:05:23.550 --> 00:05:27.110
+And that's going to be your challenge to implement simulate and move.
+
+77
+00:05:27.240 --> 00:05:31.650
+So you're going to put out a tick basically you can pull most of the code that's already existing in
+
+78
+00:05:31.650 --> 00:05:33.670
+tick because we're not doing anything new here.
+
+79
+00:05:33.720 --> 00:05:38.340
+We know how to simulate moots but were going to have to change a few things like where will you get
+
+80
+00:05:38.340 --> 00:05:40.720
+the input data and where will you get the data.
+
+81
+00:05:40.720 --> 00:05:44.940
+Time to have a think about these things and go ahead and implement simulate move both video and have
+
+82
+00:05:44.940 --> 00:05:45.440
+a go.
+
+83
+00:05:46.800 --> 00:05:47.940
+Okay welcome back.
+
+84
+00:05:47.940 --> 00:05:51.080
+Let's dive into doing this simulation.
+
+85
+00:05:51.300 --> 00:05:54.640
+So as I said Tich is going to be our source of inspiration.
+
+86
+00:05:54.660 --> 00:06:02.940
+We've got a move here from is locally controlled and we've got all this stuff that we are currently
+
+87
+00:06:02.940 --> 00:06:08.060
+doing there including drawing a debug string which I think we can get rid of at this stage.
+
+88
+00:06:08.070 --> 00:06:11.610
+We don't need the authority in knowing whether it's authority or not.
+
+89
+00:06:11.650 --> 00:06:12.630
+Actually we can just leave it.
+
+90
+00:06:12.630 --> 00:06:14.060
+We can just leave it in tic.
+
+91
+00:06:14.130 --> 00:06:16.920
+Certainly not to do with simulating a movie so we can leave that.
+
+92
+00:06:16.920 --> 00:06:18.550
+How about dating a location for a lost.
+
+93
+00:06:18.570 --> 00:06:19.420
+Yes.
+
+94
+00:06:19.620 --> 00:06:20.530
+Apply rotation.
+
+95
+00:06:20.550 --> 00:06:20.970
+Yes.
+
+96
+00:06:20.970 --> 00:06:23.480
+Also to do with a move velocity updating the velocity.
+
+97
+00:06:23.490 --> 00:06:23.880
+Yes.
+
+98
+00:06:23.880 --> 00:06:26.570
+Also to do with updating the state due to a move.
+
+99
+00:06:26.760 --> 00:06:30.220
+Acceleration yes force yes yes yes.
+
+100
+00:06:30.240 --> 00:06:37.660
+All these lines from the line 70 down to 81 on my screen are the simulation of a move.
+
+101
+00:06:37.660 --> 00:06:43.260
+So I'm going to go and cut these out and stick them in my simulate move function.
+
+102
+00:06:43.260 --> 00:06:48.010
+Now you'll notice we will get some reds quigley's in here because of Delta time.
+
+103
+00:06:48.300 --> 00:06:50.270
+But that's not the first thing I'm going to tackle.
+
+104
+00:06:50.280 --> 00:06:53.040
+Why I'm first going to tackle is where do I get the input data.
+
+105
+00:06:53.130 --> 00:06:57.860
+Because I don't want to just get the input data from the actor.
+
+106
+00:06:58.170 --> 00:07:02.430
+That's maybe not correct especially if we're not being locally controlled.
+
+107
+00:07:02.520 --> 00:07:05.910
+No what we want to get it from is the move that's been passed in.
+
+108
+00:07:05.910 --> 00:07:11.230
+We want to know exactly the throttle data of this move at this time start with its delta time.
+
+109
+00:07:11.430 --> 00:07:15.160
+So were going to replace throttle with Move throttle.
+
+110
+00:07:15.180 --> 00:07:17.100
+What about the moved or steering throw.
+
+111
+00:07:17.100 --> 00:07:23.520
+Well that's actually buried unfortunately somewhere inside apply rotation so if we go to apply rotations
+
+112
+00:07:23.580 --> 00:07:29.820
+implementation you can see that it has a steering throw in here and it's just reaching up to the actor
+
+113
+00:07:29.820 --> 00:07:30.530
+to get that.
+
+114
+00:07:30.720 --> 00:07:37.050
+Well what we can do is we can expose that in as a parameter in Apply rotation so let's go up to the
+
+115
+00:07:37.140 --> 00:07:44.230
+definition of apply rotation where it has it takes a flow time it's going to take a float steering throw.
+
+116
+00:07:45.270 --> 00:07:51.660
+And if I copy that in to the signature in the implementation as well then everything will be hunky dory
+
+117
+00:07:51.720 --> 00:07:57.390
+and that steering throw is going to change colour hopefully to be grey on your studio which indicates
+
+118
+00:07:57.390 --> 00:08:02.070
+that it's a local variable rather than a variable up at the level of this act.
+
+119
+00:08:02.330 --> 00:08:04.670
+Okay so that's all good.
+
+120
+00:08:04.680 --> 00:08:09.590
+We've got a ply rotation should now be pretty pretty good.
+
+121
+00:08:09.600 --> 00:08:12.870
+We need to pass in to apply rotation obviously the throat.
+
+122
+00:08:12.900 --> 00:08:18.520
+So we're going to do a move dot steering throw to pass it the correct steering throw in into apply rotation.
+
+123
+00:08:18.690 --> 00:08:24.330
+So now all that data about input is coming in through the move and not directly from the act.
+
+124
+00:08:24.780 --> 00:08:27.060
+Very useful if we're not actually locally controlled.
+
+125
+00:08:27.330 --> 00:08:30.720
+Then where will we get the delta time that's the red squiggly.
+
+126
+00:08:30.720 --> 00:08:35.910
+I was telling you about well we're also going to get that from the move because remember we want it
+
+127
+00:08:35.940 --> 00:08:38.230
+to be simulated in exactly the same way.
+
+128
+00:08:38.250 --> 00:08:44.700
+And that requires that the errors are going to have to be the same the errors of integration.
+
+129
+00:08:44.910 --> 00:08:49.890
+We know that's what we're doing here is a new map of integration we're not worried too much about having
+
+130
+00:08:49.890 --> 00:08:52.480
+some small errors as long as they're not too visually visible.
+
+131
+00:08:52.620 --> 00:08:59.370
+But we are worried about having different results on client server so we're sending the time step for
+
+132
+00:08:59.370 --> 00:09:00.810
+this move.
+
+133
+00:09:00.810 --> 00:09:04.650
+And we must make sure that we use the time step when Reece simulating it so that we get exactly the
+
+134
+00:09:04.650 --> 00:09:06.100
+same result.
+
+135
+00:09:06.120 --> 00:09:06.950
+So that's what I've done.
+
+136
+00:09:06.960 --> 00:09:12.100
+I've gone and put moved the time in front of all the references to Delta time in assimulate move in
+
+137
+00:09:12.110 --> 00:09:14.700
+knacker's check that we don't have time anywhere else.
+
+138
+00:09:14.700 --> 00:09:19.350
+I don't think so because they're all being passed in this argument anyway which was a clever move for
+
+139
+00:09:19.350 --> 00:09:19.770
+us.
+
+140
+00:09:19.920 --> 00:09:20.230
+Okay.
+
+141
+00:09:20.250 --> 00:09:25.830
+So simulate move is now pretty much implemented so let's go ahead and build make sure that we haven't
+
+142
+00:09:25.830 --> 00:09:28.000
+got any build errors and test it out.
+
+143
+00:09:28.440 --> 00:09:34.470
+Okay so the build was successful Let's hop on over into visual studio sorry into one real and hit play
+
+144
+00:09:34.740 --> 00:09:38.690
+and go and control our autonomous proxy that's driving around.
+
+145
+00:09:38.700 --> 00:09:44.370
+Now you'll notice that he is driving pretty smoothly on the server but the updates we're getting from
+
+146
+00:09:45.210 --> 00:09:48.810
+on the or Thomas proxy side are very laggy indeed.
+
+147
+00:09:48.840 --> 00:09:56.250
+The reason that they're laggy is because I've forgotten to call simulate when we are the controlling
+
+148
+00:09:56.760 --> 00:09:58.380
+autonomous proxy.
+
+149
+00:09:58.410 --> 00:10:04.260
+So here we've got in tic is locally controlled have gone ahead and created a move and we sent the move
+
+150
+00:10:04.260 --> 00:10:07.300
+to the server but we've forgotten to call simulate ourselves.
+
+151
+00:10:07.380 --> 00:10:14.190
+So we have to go simulate move with that particular move for the very astute among you you may have
+
+152
+00:10:14.190 --> 00:10:19.080
+noticed that I've just introduced a bug there because the server is locally controlled and so we are
+
+153
+00:10:19.080 --> 00:10:22.380
+calling simulate move multiple times on the server.
+
+154
+00:10:22.380 --> 00:10:23.650
+Not a great thing.
+
+155
+00:10:23.670 --> 00:10:25.830
+So this is going to be fixed in a later lecture.
+
+156
+00:10:25.830 --> 00:10:30.930
+The exact letter name is on the screen now fixed fixing a simulated proxy is where it's going to be
+
+157
+00:10:30.930 --> 00:10:31.660
+called.
+
+158
+00:10:31.710 --> 00:10:33.150
+So don't worry about the bug.
+
+159
+00:10:33.150 --> 00:10:36.190
+You can try and fix it yourself or you can wait till that lecture.
+
+160
+00:10:36.400 --> 00:10:37.860
+That should do the trick.
+
+161
+00:10:37.860 --> 00:10:40.320
+Just checking that it's also been called in send move.
+
+162
+00:10:40.350 --> 00:10:44.370
+Implementation of course that is that's why we are getting to see anything at all.
+
+163
+00:10:44.640 --> 00:10:49.070
+And if we go ahead and build that hopefully it will be running a lot smoother.
+
+164
+00:10:49.420 --> 00:10:56.900
+Build successful that's tried out hit play with the autonomous proxy side drive around.
+
+165
+00:10:56.910 --> 00:10:58.860
+Yes he's looking smooth now.
+
+166
+00:10:58.890 --> 00:11:04.110
+We're also able to see him moving on the server which is Happy Days.
+
+167
+00:11:04.210 --> 00:11:07.340
+Just check that we aren't losing our position.
+
+168
+00:11:07.350 --> 00:11:09.630
+No we seem to be in exactly the same position.
+
+169
+00:11:09.630 --> 00:11:15.960
+The only problem now is obviously a lag if we set our lag to very large then we're getting our usual
+
+170
+00:11:15.960 --> 00:11:21.180
+kind of resetting because we still haven't implemented our resetting queue and that's going to be the
+
+171
+00:11:21.180 --> 00:11:23.130
+work of next lecture.
+
+172
+00:11:23.130 --> 00:11:25.550
+So I will see you in that lecture.

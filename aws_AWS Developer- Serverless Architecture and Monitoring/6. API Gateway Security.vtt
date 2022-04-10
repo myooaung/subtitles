@@ -1,0 +1,377 @@
+WEBVTT
+1
+00:00:00.940 --> 00:00:04.610
+Most lambda event sources are from inside AWS,
+
+2
+00:00:04.610 --> 00:00:07.590
+like Kinesis Streams or CloudWatch Events.
+
+3
+00:00:07.590 --> 00:00:12.430
+You don't need to authenticate the caller because it's AWS itself.
+
+4
+00:00:12.430 --> 00:00:16.290
+With API Gateway, especially with lambda proxies,
+
+5
+00:00:16.290 --> 00:00:18.740
+you're getting traffic from who knows where.
+
+6
+00:00:18.740 --> 00:00:22.020
+If you don't have some type of authentication in place,
+
+7
+00:00:22.020 --> 00:00:24.850
+you're opening up your application to attack.
+
+8
+00:00:24.850 --> 00:00:29.550
+API Gateway has preempted this type of vulnerability by building in
+
+9
+00:00:29.550 --> 00:00:32.960
+the ability to use authorizers on your endpoints.
+
+10
+00:00:32.960 --> 00:00:37.940
+These can be either custom lambda functions that you've built yourself,
+
+11
+00:00:37.940 --> 00:00:40.800
+Cognito integration to let it manage users,
+
+12
+00:00:40.800 --> 00:00:42.660
+or IAM integration.
+
+13
+00:00:42.660 --> 00:00:46.960
+An authorizer is a little different than something that does authentication.
+
+14
+00:00:46.960 --> 00:00:47.520
+Ultimately,
+
+15
+00:00:47.520 --> 00:00:52.360
+the authorizer should return an AWS IAM policy saying
+
+16
+00:00:52.360 --> 00:00:55.240
+what the caller can and cannot do.
+
+17
+00:00:55.240 --> 00:00:58.290
+If you use the authorizer like an authenticator,
+
+18
+00:00:58.290 --> 00:01:02.240
+you can return a deny all or an accept for specific
+
+19
+00:01:02.240 --> 00:01:04.910
+services based on some initial endpoint,
+
+20
+00:01:04.910 --> 00:01:06.630
+like a header or cookie.
+
+21
+00:01:06.630 --> 00:01:08.280
+For our demo application,
+
+22
+00:01:08.280 --> 00:01:12.250
+we're going to configure a custom lambda function authorizer.
+
+23
+00:01:12.250 --> 00:01:19.220
+Take a look in the code base in the src/lambda folder at the game.js file.
+
+24
+00:01:19.220 --> 00:01:24.040
+At the bottom, there's a verify function being exported.
+
+25
+00:01:24.040 --> 00:01:28.350
+This function looks at the gameId query parameter on the event,
+
+26
+00:01:28.350 --> 00:01:30.530
+then retrieves the game from the database,
+
+27
+00:01:30.530 --> 00:01:34.500
+and then returns an unauthorized payload if it isn't found.
+
+28
+00:01:34.500 --> 00:01:38.440
+If it is found, it returns an authorized payload.
+
+29
+00:01:38.440 --> 00:01:40.550
+We're going to use this function to slightly
+
+30
+00:01:40.550 --> 00:01:42.810
+authenticate our sendAction endpoint.
+
+31
+00:01:42.810 --> 00:01:46.140
+I say slightly because to truly authenticate,
+
+32
+00:01:46.140 --> 00:01:49.040
+we'd want to lock down all the endpoints and use
+
+33
+00:01:49.040 --> 00:01:51.640
+something like a cookie‑based system.
+
+34
+00:01:51.640 --> 00:01:54.680
+This slight authentication should be plenty to
+
+35
+00:01:54.680 --> 00:01:58.840
+demonstrate how API Gateway authorizers work.
+
+36
+00:01:58.840 --> 00:02:01.920
+If you want to see what the authorizer payloads look like,
+
+37
+00:02:01.920 --> 00:02:07.890
+go one more step down into the lib folder and open the response.js file.
+
+38
+00:02:07.890 --> 00:02:12.270
+At the bottom are two functions, authorized and unauthorized.
+
+39
+00:02:12.270 --> 00:02:16.510
+These return that JSON that API Gateway is looking for,
+
+40
+00:02:16.510 --> 00:02:22.530
+specifically a principalId, aka an ID for the user who made the call,
+
+41
+00:02:22.530 --> 00:02:26.340
+and a policy document saying what the user can do.
+
+42
+00:02:26.340 --> 00:02:29.110
+You could make the principalId unique or meaningful,
+
+43
+00:02:29.110 --> 00:02:32.140
+but user is fine for our purposes.
+
+44
+00:02:32.140 --> 00:02:34.060
+The policy document is what changes.
+
+45
+00:02:34.060 --> 00:02:35.750
+In the authorized function,
+
+46
+00:02:35.750 --> 00:02:40.700
+you'll see it says the user is allowed to invoke any API,
+
+47
+00:02:40.700 --> 00:02:43.720
+specifically an API Gateway endpoint, The
+
+48
+00:02:43.720 --> 00:02:46.330
+unauthorized function says the opposite.
+
+49
+00:02:46.330 --> 00:02:48.510
+It's denying that access.
+
+50
+00:02:48.510 --> 00:02:52.200
+The authorizer returns these payloads according to some input,
+
+51
+00:02:52.200 --> 00:02:56.860
+and then the API Gateway endpoint processes it to determine whether the
+
+52
+00:02:56.860 --> 00:03:00.540
+user should or should not be able to invoke the endpoint.
+
+53
+00:03:00.540 --> 00:03:01.220
+In this way,
+
+54
+00:03:01.220 --> 00:03:07.640
+we're giving and denying access based on the existence of a valid gameId.
+
+55
+00:03:07.640 --> 00:03:10.630
+Now let's set up this authorizer in API Gateway.
+
+56
+00:03:10.630 --> 00:03:15.920
+With the trash‑panda‑buffet API selected, go to the Authorizers section.
+
+57
+00:03:15.920 --> 00:03:19.200
+Click the Create New Authorizer button.
+
+58
+00:03:19.200 --> 00:03:22.850
+For the name, enter gameId_authorizer.
+
+59
+00:03:22.850 --> 00:03:27.570
+For the type, ensure Lambda is selected.
+
+60
+00:03:27.570 --> 00:03:31.730
+In the Lambda Function input, make sure your region is selected,
+
+61
+00:03:31.730 --> 00:03:35.130
+and select the gameVerify function.
+
+62
+00:03:35.130 --> 00:03:38.840
+With the event payload, you could use a header token,
+
+63
+00:03:38.840 --> 00:03:41.890
+but we'll be looking at query parameters instead,
+
+64
+00:03:41.890 --> 00:03:43.960
+so select Request.
+
+65
+00:03:43.960 --> 00:03:49.400
+Then click the drop‑down that says Header and select Query String instead.
+
+66
+00:03:49.400 --> 00:03:53.260
+In the input box, enter gameId in camelCase.
+
+67
+00:03:53.260 --> 00:03:57.810
+This is the query string parameter it'll pass into your authorizer.
+
+68
+00:03:57.810 --> 00:04:03.610
+The authorization caching works based on the same identity source being passed.
+
+69
+00:04:03.610 --> 00:04:07.360
+This means if another request comes in with the same gameId,
+
+70
+00:04:07.360 --> 00:04:09.660
+it'll cache the authorization result.
+
+71
+00:04:09.660 --> 00:04:15.940
+This is enabled automatically and will cache for 5 minutes based on this TTL.
+
+72
+00:04:15.940 --> 00:04:19.400
+This may not be the behavior you want in your application, but we can leave it
+
+73
+00:04:19.400 --> 00:04:25.860
+enabled here. Now click Create and then Grant & Create. Our authorizer is
+
+74
+00:04:25.860 --> 00:04:30.670
+created now, and if you want to test it out, click this Test link and enter
+
+75
+00:04:30.670 --> 00:04:36.540
+something to pass in as a gameId. Because it's probably not a valid gameId, you
+
+76
+00:04:36.540 --> 00:04:41.860
+should get a response code of 200. And in the last log message, it should say
+
+77
+00:04:41.860 --> 00:04:47.300
+that it's using your valid authorizer policy. The policy in question is here
+
+78
+00:04:47.300 --> 00:04:52.790
+and has the Invoke API action denied. So your authorization test was
+
+79
+00:04:52.790 --> 00:04:58.630
+successful, and if a request had come in with that gameId, it would have denied
+
+80
+00:04:58.630 --> 00:05:02.790
+it access to the endpoint because it wasn't valid. Now let's hook this
+
+81
+00:05:02.790 --> 00:05:07.950
+authorizer up. We first need to refresh the page so our resources will load in
+
+82
+00:05:07.950 --> 00:05:15.040
+the new authorizer as an option and then go to Resources and the action POST.
+
+83
+00:05:15.040 --> 00:05:21.080
+Click the Method Request box again and then the pencil next to Authorization.
+
+84
+00:05:21.080 --> 00:05:27.780
+In this drop‑down, you should see the gameId authorizer we just created. Select
+
+85
+00:05:27.780 --> 00:05:30.740
+that and click the check button.
+
+86
+00:05:30.740 --> 00:05:34.160
+The last step is to deploy these changes. So, click the
+
+87
+00:05:34.160 --> 00:05:39.970
+Actions drop‑down and select Deploy API. Then, select the
+
+88
+00:05:39.970 --> 00:05:44.440
+dev stage and then click Deploy.
+
+89
+00:05:44.440 --> 00:05:48.780
+Now, at least one of our API endpoints is doing some slight
+
+90
+00:05:48.780 --> 00:05:52.430
+authentication, so we're on the right track to have a more
+
+91
+00:05:52.430 --> 00:05:55.300
+secure API. To complete this,
+
+92
+00:05:55.300 --> 00:05:58.760
+you could add the same authorizer to any endpoint that
+
+93
+00:05:58.760 --> 00:06:01.640
+gets a gameId as a query perimeter.
+
+94
+00:06:01.640 --> 00:06:08.000
+Next, let's take a look at a different type of event source for serverless applications.
+

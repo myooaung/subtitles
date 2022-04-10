@@ -1,0 +1,472 @@
+WEBVTT
+1
+00:00:04.520 --> 00:00:10.070
+So we've had our fair share of race conditions and one of the latest ones that we fixed is this one
+
+2
+00:00:10.070 --> 00:00:11.400
+in the saving wrapper.
+
+3
+00:00:11.630 --> 00:00:16.670
+But students are still having some and it depends basically on your setup.
+
+4
+00:00:16.670 --> 00:00:21.050
+You might be doing something slightly differently to me and be getting a race condition that's probably
+
+5
+00:00:21.050 --> 00:00:26.270
+because you don't yet understand what can cause them and the situations we have to look out for.
+
+6
+00:00:26.270 --> 00:00:31.610
+Be careful for and what guidelines we can put in place to prevent ourselves from having these race conditions.
+
+7
+00:00:31.700 --> 00:00:35.110
+So that's what the subject of this lecture and the subsequent lectures is going to be.
+
+8
+00:00:35.420 --> 00:00:38.060
+Basically what are hazards and race conditions.
+
+9
+00:00:38.060 --> 00:00:38.240
+Okay.
+
+10
+00:00:38.250 --> 00:00:40.580
+Well hazards that's a new word was a data hazard.
+
+11
+00:00:40.580 --> 00:00:47.480
+Well this is a word that comes from CPR you architecture and it's pretty much about the dependency of
+
+12
+00:00:47.480 --> 00:00:49.420
+data between instructions.
+
+13
+00:00:49.430 --> 00:00:52.090
+So there are a few different types of hazard.
+
+14
+00:00:52.190 --> 00:00:58.220
+The first one is what's known as a read after right has it and this is the situation where you have
+
+15
+00:00:58.280 --> 00:01:05.330
+one line of code which does a right to variable a and then a subsequent line of code that reads from
+
+16
+00:01:05.360 --> 00:01:05.560
+a.
+
+17
+00:01:05.570 --> 00:01:09.330
+That's what's called a read after right because the read happens after the right.
+
+18
+00:01:09.330 --> 00:01:15.020
+Now obviously if you change the order of these two lines of code then you are going to get a problem
+
+19
+00:01:15.050 --> 00:01:20.000
+because A is going to get the wrong value it's going to get a different value B will end up with a different
+
+20
+00:01:20.000 --> 00:01:22.530
+value and your code has changed in functionality.
+
+21
+00:01:22.670 --> 00:01:29.090
+There is another type of hazard called a right after right conflict and this one's quite odd but basically
+
+22
+00:01:29.110 --> 00:01:34.670
+it is if you are writing to a variable and then subsequently writing a variable a again with a new value
+
+23
+00:01:34.950 --> 00:01:39.560
+you would expect that after this you have the value from the second right not the first.
+
+24
+00:01:39.620 --> 00:01:44.600
+If you reorder those obviously that goes wrong and actually we've had an example of this and I will
+
+25
+00:01:44.600 --> 00:01:49.310
+show you later on we've had an example of a right after right we've had an example of a read after right
+
+26
+00:01:49.340 --> 00:01:50.130
+as well.
+
+27
+00:01:50.150 --> 00:01:54.830
+Now the final one which is very rare and I'm just mentioning it for completeness sake is a right after
+
+28
+00:01:54.830 --> 00:01:55.940
+read conflict.
+
+29
+00:01:56.090 --> 00:02:02.310
+In this case we are expecting to write to a variable after we have read from it.
+
+30
+00:02:02.540 --> 00:02:07.820
+If we reorder it basically what happens is that this first read will have a different value and that
+
+31
+00:02:07.820 --> 00:02:13.880
+doesn't make sense but we rarely see these kinds of conflicts at least in our code but we mostly see
+
+32
+00:02:13.880 --> 00:02:16.340
+read after rights and right after rights.
+
+33
+00:02:16.340 --> 00:02:22.490
+Now this is just a bit of jargon but it's gonna help us understand the underpinnings of why these things
+
+34
+00:02:22.490 --> 00:02:23.600
+go wrong in the first place.
+
+35
+00:02:24.620 --> 00:02:31.190
+So when can we get a race condition happening in our code because this isn't on a CPSU and we're not
+
+36
+00:02:31.190 --> 00:02:37.580
+doing multi threaded stuff so we don't expect things to be coming in and happening at the same time.
+
+37
+00:02:38.060 --> 00:02:43.730
+But there are race conditions still because we can sometimes expect things to happen in a certain order.
+
+38
+00:02:43.730 --> 00:02:48.950
+So for example I have a start method here that rights to variable a by the way this is the exact example
+
+39
+00:02:48.950 --> 00:02:51.790
+from the read after right from the previous night.
+
+40
+00:02:51.890 --> 00:02:58.040
+So in writings a in starts and we're reading from a to calculate B in update B and you might say Well
+
+41
+00:02:58.040 --> 00:03:04.640
+that seems ok no race condition there but you'd be wrong because we might have a start method of a different
+
+42
+00:03:04.640 --> 00:03:11.420
+class calling update B and because we don't know which order this is going to happen in is this update
+
+43
+00:03:11.420 --> 00:03:14.330
+going to get called first or is this update going to get called first.
+
+44
+00:03:14.330 --> 00:03:19.480
+We got a race condition basically based on completely arbitrary factors which is no good.
+
+45
+00:03:19.520 --> 00:03:25.220
+So what's required for a race condition is that we have a little bit of state that is being written
+
+46
+00:03:25.220 --> 00:03:31.250
+too and usually it is being written to in a method like start or awake that we don't know the order
+
+47
+00:03:31.250 --> 00:03:32.900
+that they happen in between classes.
+
+48
+00:03:32.930 --> 00:03:37.670
+So start is a good example of something that could have its order easily flipped around.
+
+49
+00:03:37.790 --> 00:03:45.470
+And so then we have to combine that state is being set in start with some where where it could be either
+
+50
+00:03:45.470 --> 00:03:51.320
+written two or read from in a public method and that public method could easily be called from start
+
+51
+00:03:51.380 --> 00:03:52.810
+even if it's not being called from start.
+
+52
+00:03:52.820 --> 00:03:55.160
+Now it could be in future.
+
+53
+00:03:55.160 --> 00:04:01.670
+So what I'd like to do is as a challenge can you find any races in the code that are outstanding or
+
+54
+00:04:01.670 --> 00:04:03.150
+that we have previously fixed.
+
+55
+00:04:03.410 --> 00:04:06.020
+So look for any start awake methods.
+
+56
+00:04:06.020 --> 00:04:08.030
+That's the first place you're going to go.
+
+57
+00:04:08.030 --> 00:04:14.210
+I'd like you to find the ones that are writing to some state and then finally is there anything that
+
+58
+00:04:14.210 --> 00:04:15.470
+could race with this.
+
+59
+00:04:15.470 --> 00:04:19.910
+Is there a public method that also writes to the state or reads from this state.
+
+60
+00:04:19.940 --> 00:04:21.690
+Is there any way that it could be racing.
+
+61
+00:04:21.800 --> 00:04:25.400
+See if there is a race condition and if you actually find one that's great.
+
+62
+00:04:25.400 --> 00:04:29.660
+Go ahead and post it in the forum and say Yeah found a race condition in my code.
+
+63
+00:04:29.660 --> 00:04:31.330
+Here is where it is now.
+
+64
+00:04:31.340 --> 00:04:32.780
+This can be quite laborious process.
+
+65
+00:04:32.780 --> 00:04:37.700
+So in the next lecture I'm going to go over some guidelines to prevent us from actually writing these
+
+66
+00:04:37.700 --> 00:04:39.200
+kinds of race conditions.
+
+67
+00:04:39.440 --> 00:04:42.100
+OK suppose Vidya and her go okay.
+
+68
+00:04:42.110 --> 00:04:42.680
+Welcome back.
+
+69
+00:04:42.740 --> 00:04:46.980
+So the first place I'm thinking of that we have fixed.
+
+70
+00:04:46.970 --> 00:04:53.500
+I'm gonna go through the ones that we already noticed and fixed first of all we have base stats.
+
+71
+00:04:53.570 --> 00:04:54.860
+So what was happening in base stats.
+
+72
+00:04:54.860 --> 00:04:57.350
+Well start is a start method obviously.
+
+73
+00:04:57.380 --> 00:05:03.770
+We were writing some state which was current level to initialize our current level but current level
+
+74
+00:05:03.770 --> 00:05:06.320
+was being read from in various locations.
+
+75
+00:05:06.320 --> 00:05:11.810
+It was being read from in private update level but that's private so it couldn't have been read from
+
+76
+00:05:11.810 --> 00:05:12.560
+out of here.
+
+77
+00:05:12.560 --> 00:05:17.480
+You do have to be careful of the things that call update level as well because that could be called
+
+78
+00:05:17.480 --> 00:05:17.900
+in start.
+
+79
+00:05:17.900 --> 00:05:22.490
+Who knows maybe on experience gained would be called in start in which case we would be reading current
+
+80
+00:05:22.490 --> 00:05:27.530
+level in start and we have the potential for a read after right conflict.
+
+81
+00:05:27.530 --> 00:05:31.570
+But the actual place we had at issue was in debt level.
+
+82
+00:05:31.580 --> 00:05:35.140
+So get level was actually being read in start.
+
+83
+00:05:35.230 --> 00:05:38.780
+If we right click on it and find all references we can see where that was.
+
+84
+00:05:38.780 --> 00:05:42.980
+It was in the level display no it wasn't in that level display where was grade level being called Oh
+
+85
+00:05:43.340 --> 00:05:48.980
+I think yes it's one of these examples get level is actually being called Inside base stats and base
+
+86
+00:05:49.280 --> 00:05:49.900
+get base stat.
+
+87
+00:05:49.940 --> 00:05:55.930
+It's being called within get stat and get stat itself find all references is being called within.
+
+88
+00:05:55.940 --> 00:05:57.680
+I believe the start of health.
+
+89
+00:05:57.690 --> 00:05:58.490
+They go.
+
+90
+00:05:58.490 --> 00:05:59.630
+So that's your race condition.
+
+91
+00:05:59.630 --> 00:06:07.430
+You've got the start of health and you've got the start of base stats which is setting current level
+
+92
+00:06:07.760 --> 00:06:13.340
+so they're both essentially accessing current level you can't really see it is quite buried down very
+
+93
+00:06:13.340 --> 00:06:15.620
+deeply which is why we need some guidelines.
+
+94
+00:06:15.650 --> 00:06:17.000
+So what are these guidelines.
+
+95
+00:06:17.000 --> 00:06:22.700
+Well the first guideline is we never ever call any methods in a wake.
+
+96
+00:06:22.730 --> 00:06:29.030
+Well we do call some methods in awake but we never call any methods that are on mono behaviors or scripts
+
+97
+00:06:29.030 --> 00:06:29.990
+of all objects.
+
+98
+00:06:29.990 --> 00:06:33.500
+These two types both themselves have awake methods.
+
+99
+00:06:33.500 --> 00:06:35.530
+So there is the potential for race conditions.
+
+100
+00:06:35.540 --> 00:06:37.220
+If we call things in a wake.
+
+101
+00:06:37.370 --> 00:06:43.720
+So we use awake exclusively for setting up ourselves with data that we already have.
+
+102
+00:06:44.420 --> 00:06:46.270
+And that's all we should do in a week.
+
+103
+00:06:46.300 --> 00:06:52.470
+Now all state should be safe to access by the time we get to see all the starts being called.
+
+104
+00:06:52.520 --> 00:06:57.710
+So that means that we would need to be really careful we need to check all uses of variables that are
+
+105
+00:06:57.710 --> 00:06:59.800
+initialized in start.
+
+106
+00:06:59.840 --> 00:07:03.700
+So for example we have health points which is being initialized in start.
+
+107
+00:07:03.710 --> 00:07:09.380
+We need to be really careful about where this is getting used because basically it's not safe to read
+
+108
+00:07:09.380 --> 00:07:10.850
+this at start time.
+
+109
+00:07:10.850 --> 00:07:16.760
+It's only state for read it after our staff has been executed and that's no good because it could race
+
+110
+00:07:16.760 --> 00:07:17.940
+with other starts.
+
+111
+00:07:17.990 --> 00:07:24.260
+So we need to find some ways of protecting things like this sort of like we did with current level that
+
+112
+00:07:24.260 --> 00:07:29.750
+has been protected because we had current level being calculated in start but we also calculated it
+
+113
+00:07:29.750 --> 00:07:30.560
+from the ghetto.
+
+114
+00:07:30.560 --> 00:07:36.320
+So anytime we use this getter we are automatically calculating we're going to find a more robust way
+
+115
+00:07:36.320 --> 00:07:38.320
+of doing this in the long term.
+
+116
+00:07:38.360 --> 00:07:43.910
+But for now I'm going to leave it at that for this lecture we now have got an overview of what data
+
+117
+00:07:43.910 --> 00:07:48.710
+hazards are and how race conditions occur especially in start and awake methods.
+
+118
+00:07:48.860 --> 00:07:54.590
+In the next lecture we're going to be looking at sanitizing our usage of awake so I will see that.

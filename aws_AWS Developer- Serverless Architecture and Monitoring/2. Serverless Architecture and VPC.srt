@@ -1,0 +1,304 @@
+1
+00:00:00,940 --> 00:00:03,140
+Serverless architecture involves many
+
+2
+00:00:03,140 --> 00:00:06,200
+interconnected resources working in concert.
+
+3
+00:00:06,200 --> 00:00:11,840
+Some of those resources will need to be located inside a virtual private cloud,
+
+4
+00:00:11,840 --> 00:00:13,540
+like your databases.
+
+5
+00:00:13,540 --> 00:00:18,980
+Connecting to a resource in a VPC requires some calculated forethought and
+
+6
+00:00:18,980 --> 00:00:22,320
+definitely adds some complexity to your architecture.
+
+7
+00:00:22,320 --> 00:00:26,320
+You will want some resources in your VPC to be
+
+8
+00:00:26,320 --> 00:00:28,940
+accessible from the outside world.
+
+9
+00:00:28,940 --> 00:00:31,300
+Take a lambda function, for example.
+
+10
+00:00:31,300 --> 00:00:36,370
+Our demo application has a lambda that returns a random trash panda.
+
+11
+00:00:36,370 --> 00:00:40,590
+That function is accessed through an API gateway endpoint.
+
+12
+00:00:40,590 --> 00:00:43,820
+The lambda function is inside the VPC,
+
+13
+00:00:43,820 --> 00:00:47,730
+but the API gateway endpoint is able to give access
+
+14
+00:00:47,730 --> 00:00:50,260
+to the lambda through the VPC.
+
+15
+00:00:50,260 --> 00:00:52,780
+So, to be a little bit more explicit,
+
+16
+00:00:52,780 --> 00:00:57,260
+API Gateways can connect to lambda functions that are inside
+
+17
+00:00:57,260 --> 00:01:00,740
+a VPC and allow access to the internet.
+
+18
+00:01:00,740 --> 00:01:03,460
+There are other resources in your serverless architecture that
+
+19
+00:01:03,460 --> 00:01:06,380
+you won't want to have public access to.
+
+20
+00:01:06,380 --> 00:01:11,440
+One example from our demo project is the RDS database instance.
+
+21
+00:01:11,440 --> 00:01:14,250
+These should be well protected from the outside world,
+
+22
+00:01:14,250 --> 00:01:21,240
+and RDS instances actually are required to be created inside a VPC in AWS.
+
+23
+00:01:21,240 --> 00:01:22,240
+In our demo project,
+
+24
+00:01:22,240 --> 00:01:27,030
+we have many lambda functions that read or write to the database instance.
+
+25
+00:01:27,030 --> 00:01:30,910
+Connecting resources in a VPC to resources not in a
+
+26
+00:01:30,910 --> 00:01:34,360
+VPC is a difficult problem to solve.
+
+27
+00:01:34,360 --> 00:01:36,340
+In the case of RDS instances,
+
+28
+00:01:36,340 --> 00:01:42,140
+one thing you could do is to make the RDS instance open to the public via the
+
+29
+00:01:42,140 --> 00:01:47,090
+instance configuration and configure the database security group to give
+
+30
+00:01:47,090 --> 00:01:50,520
+access to the security group used by the lambda.
+
+31
+00:01:50,520 --> 00:01:53,050
+While this should be fairly secure since the
+
+32
+00:01:53,050 --> 00:01:55,840
+security group is controlling access,
+
+33
+00:01:55,840 --> 00:02:01,140
+it means assigning a public IP address to the database instance.
+
+34
+00:02:01,140 --> 00:02:05,260
+Any time there is a public IP for a resource, it creates an attack vector.
+
+35
+00:02:05,260 --> 00:02:09,640
+For this reason, I'd recommend not adopting this approach.
+
+36
+00:02:09,640 --> 00:02:11,140
+The next approach is the simplest.
+
+37
+00:02:11,140 --> 00:02:14,460
+Just put the resources in the same VPC.
+
+38
+00:02:14,460 --> 00:02:18,080
+In the case of our lambda and RDS instance,
+
+39
+00:02:18,080 --> 00:02:21,660
+this gives the lambda instant access to the database and
+
+40
+00:02:21,660 --> 00:02:25,140
+avoids having the database open to the public.
+
+41
+00:02:25,140 --> 00:02:29,610
+The downside to this simple approach is that by putting the lambda in a VPC,
+
+42
+00:02:29,610 --> 00:02:33,040
+it cuts off the lambda's access to the public internet.
+
+43
+00:02:33,040 --> 00:02:36,400
+For many of the lambda functions in our demo project,
+
+44
+00:02:36,400 --> 00:02:39,610
+this is fine since the function only writes some data to
+
+45
+00:02:39,610 --> 00:02:42,190
+the database or returns some data.
+
+46
+00:02:42,190 --> 00:02:46,800
+With API Gateway providing the outside internet access to the lambda,
+
+47
+00:02:46,800 --> 00:02:48,940
+everything works fine.
+
+48
+00:02:48,940 --> 00:02:52,860
+But complications arise when you want your VPC‑located lambda
+
+49
+00:02:52,860 --> 00:02:57,500
+function to access a resource like DynamoDB or Kinesis.
+
+50
+00:02:57,500 --> 00:03:02,960
+These services and a few others in AWS use REST endpoints to communicate,
+
+51
+00:03:02,960 --> 00:03:06,940
+meaning that requests go out into the public internet.
+
+52
+00:03:06,940 --> 00:03:10,590
+If your lambda is cut off from the internet because it's in a VPC,
+
+53
+00:03:10,590 --> 00:03:14,040
+then communication to these services is cut off as well.
+
+54
+00:03:14,040 --> 00:03:16,890
+The third approach, which will resolve this issue,
+
+55
+00:03:16,890 --> 00:03:21,070
+is to properly configure your VPC to have internet access
+
+56
+00:03:21,070 --> 00:03:23,660
+by creating a NAT gateway resource.
+
+57
+00:03:23,660 --> 00:03:25,600
+Here's what that would look like.
+
+58
+00:03:25,600 --> 00:03:30,840
+You would create the NAT gateway in a public subnet inside your VPC.
+
+59
+00:03:30,840 --> 00:03:32,740
+Then, in the private subnets,
+
+60
+00:03:32,740 --> 00:03:37,540
+you would change the routing table rules to send all non internal
+
+61
+00:03:37,540 --> 00:03:41,180
+traffic to the NAT gateway for internet access.
+
+62
+00:03:41,180 --> 00:03:46,540
+This used to be the correct way to connect your non‑VPC resources together.
+
+63
+00:03:46,540 --> 00:03:49,560
+But a new service, AWS PrivateLink,
+
+64
+00:03:49,560 --> 00:03:54,850
+was just introduced at the end of 2017 and provides a better way to do this.
+
+65
+00:03:54,850 --> 00:03:58,980
+PrivateLink lets you create VPC endpoints that connect
+
+66
+00:03:58,980 --> 00:04:06,040
+to nearly all public AWS services, including services like DynamoDB and Kinesis.
+
+67
+00:04:06,040 --> 00:04:09,990
+The way this works is that you create an endpoint in your VPC
+
+68
+00:04:09,990 --> 00:04:14,650
+that connects to certain subnets and allows them to access AWS
+
+69
+00:04:14,650 --> 00:04:17,940
+service endpoints without leaving AWS.
+
+70
+00:04:17,940 --> 00:04:22,200
+This is much more secure and can sometimes be even faster.
+
+71
+00:04:22,200 --> 00:04:25,950
+You have to create an endpoint for each AWS service, and
+
+72
+00:04:25,950 --> 00:04:28,700
+that endpoint creates a network interface that gives
+
+73
+00:04:28,700 --> 00:04:32,140
+direct access to that AWS service.
+
+74
+00:04:32,140 --> 00:04:34,310
+Since PrivateLink was introduced,
+
+75
+00:04:34,310 --> 00:04:37,620
+it has become the preferred way to keep your AWS traffic
+
+76
+00:04:37,620 --> 00:04:45,000
+secure. In the next video, let's create a VPC endpoint to see how PrivateLink works.
+

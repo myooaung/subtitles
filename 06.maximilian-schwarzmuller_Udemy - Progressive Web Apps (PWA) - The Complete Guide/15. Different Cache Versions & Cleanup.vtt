@@ -1,0 +1,256 @@
+WEBVTT
+
+00:02.140 --> 00:07.990
+In the last lecture we started improving our caching set up by assigning version numbers and hence making
+
+00:07.990 --> 00:14.530
+sure that we don't interfere with existing caches while still changing our service worker file to cater
+
+00:14.530 --> 00:16.490
+for updates.
+
+00:16.510 --> 00:22.630
+Now I need to clean up the old cache too though, because otherwise not only do we crowd our cache storage
+
+00:22.660 --> 00:29.860
+because we add more and more caches, equally bad we also fetch outdated versions as you see in our application.
+
+00:30.190 --> 00:32.810
+So let's fix that by adding some cleanup code,
+
+00:32.830 --> 00:36.520
+where do you clean up the old cache then?
+
+00:36.710 --> 00:43.010
+The first inclination might be to do that in the install step too, right after cache addAll, but keep
+
+00:43.010 --> 00:46.520
+in mind, why do we use a different version number?
+
+00:46.520 --> 00:51.830
+Because we didn't want to mess with the old cache because it's still getting used, for the same reason
+
+00:51.830 --> 00:57.430
+we certainly shouldn't clean up the old cache here because that might break our application.
+
+00:57.710 --> 01:04.370
+A better place to do cleanup work is in the activate event because this will only be executed once the
+
+01:04.370 --> 01:06.180
+user closed all pages,
+
+01:06.200 --> 01:09.750
+all tabs and open the application in a new one.
+
+01:09.950 --> 01:15.990
+So now it's safe to update the cache because now we're not in a running application anymore.
+
+01:16.460 --> 01:20.450
+So here I want to do my cleanup work and I will use
+
+01:20.450 --> 01:27.320
+event wait until here to again wait until we're done with the clean up before we continue because again,
+
+01:27.320 --> 01:29.760
+we're doing some work on the cache
+
+01:30.020 --> 01:35.690
+and if we don't wait for this to finish, we might react to a fetch event and serve that from the old
+
+01:35.690 --> 01:37.520
+cache which we're about to tear down,
+
+01:37.520 --> 01:40.630
+so probably not what we want. In there,
+
+01:40.760 --> 01:45.840
+I'll now use the caches object again, referring to the general cache storage
+
+01:45.980 --> 01:52.250
+and then here I want to use keys. Now you learned about this and keys gives you back the keys of all the
+
+01:52.250 --> 01:56.030
+sub-caches in your cache storage,
+
+01:56.030 --> 02:02.720
+so as in our case if we have three caches here, static, dynamic and static-v2, we would get back
+
+02:02.720 --> 02:05.290
+an array with static, dynamic and static-v2,
+
+02:05.300 --> 02:07.990
+so just a couple of strings, the names of our caches,
+
+02:08.030 --> 02:10.400
+this is what this gives us back.
+
+02:10.400 --> 02:16.640
+It gives us back this information as a promise, so I will chain then and in that function, we now have
+
+02:16.640 --> 02:22.400
+the finished key list which again because it's important, is just an array of strings with the names
+
+02:22.400 --> 02:23.990
+of our caches, three
+
+02:23.990 --> 02:26.700
+in our case right now but could be more of course.
+
+02:27.110 --> 02:30.690
+I then want to return promise all here,
+
+02:30.710 --> 02:33.340
+we haven't learned about this method yet. Promise
+
+02:33.410 --> 02:40.520
+all takes an array of promises and waits for all of them to finish, so that we only return from this
+
+02:40.520 --> 02:43.860
+function once we're really done with the cleanup.
+
+02:43.880 --> 02:49.870
+Now we don't have an array of promises yet though, we have an array of keys, of cache names.
+
+02:50.270 --> 02:52.550
+Well we can convert this into promises,
+
+02:52.610 --> 02:55.380
+so let's take the key list and yes let's use map.
+
+02:55.460 --> 03:00.890
+Map is a default Javascript array operator which allows us to transform an array,
+
+03:01.040 --> 03:05.140
+so we want to transform this array of strings into an array of promises.
+
+03:05.270 --> 03:09.590
+Map takes a function which will be executed on each array element,
+
+03:09.620 --> 03:14.430
+so each element in the key list array which again is just a string, I'll name it key here,
+
+03:14.450 --> 03:16.350
+you can give this argument any name you want,
+
+03:16.370 --> 03:23.570
+it will be populated automatically because this function is executed automatically. In there,
+
+03:23.910 --> 03:34.540
+I now want to check if the key, if that is not equal to my updated cache name, static-v2, if it's
+
+03:34.540 --> 03:36.850
+not equal to that, I want to delete it.
+
+03:37.060 --> 03:41.570
+The same is true for my dynamic cache because I want to keep that too, it's still named dynamic,
+
+03:41.680 --> 03:44.920
+so I'll also check if it's not equal,
+
+03:44.920 --> 03:54.240
+so if key is not equal to dynamic. If it's neither equal to our static cache, the current nor
+
+03:54.250 --> 03:58.440
+to the current dynamic one, I want to get rid of it because then it's the old one.
+
+03:58.540 --> 03:59.530
+So here, I
+
+03:59.770 --> 04:10.960
+will first of all console log service worker and then removing old cache and I'll pass the key so that
+
+04:10.950 --> 04:12.660
+we can see which cache was removed.
+
+04:12.790 --> 04:19.850
+This won't remove it though of course, it's just an info log, instead here I will return caches
+
+04:19.900 --> 04:22.300
+delete the key.
+
+04:22.300 --> 04:27.640
+Now delete is another method we can use on the cache storage and as it sounds, it deletes a cache with
+
+04:27.640 --> 04:28.420
+a given name,
+
+04:28.420 --> 04:29.550
+so this is a string,
+
+04:29.560 --> 04:36.160
+this is the key we identified as outdated and caches delete returns a promise which makes sure that
+
+04:36.400 --> 04:42.910
+since we use map here, we replaced the string we had in key list with the fitting promise
+
+04:43.060 --> 04:50.300
+and by the way, if this is not met, so if we have static-v2 or dynamic, it returns null,
+
+04:50.320 --> 04:55.180
+so it will simply replace the given string in key list with nothing.
+
+04:55.180 --> 05:01.720
+So in the end, we will have an array of promises, promises from the caches delete method and we'll wait
+
+05:01.720 --> 05:08.020
+for all these operations to finish before we then return and therefore know that we're done with the
+
+05:08.020 --> 05:10.150
+cleanup work.
+
+05:10.150 --> 05:15.820
+So with that, let's save this, let's go back to our application then and let's reload this,
+
+05:15.880 --> 05:20.710
+we did some work in the service worker, so now we need to activate this. Before I do that,
+
+05:20.710 --> 05:26.530
+let's click on console, we see installation is finished and now we'll cleanly do this by closing the old tab
+
+05:26.530 --> 05:29.350
+and opening a new one. In that new tab,
+
+05:29.350 --> 05:35.410
+let me open the console and you see installing pre-caching activating and there we have removing
+
+05:35.410 --> 05:42.340
+old cache static, which makes sense because we have a static-v2 version. And in application on our cache storage,
+
+05:42.580 --> 05:49.690
+you indeed don't see the old cache anymore and therefore, we use the new cache with the new feed.js file
+
+05:49.810 --> 05:54.490
+with the black colored text again because that is when I changed this to.
+
+05:54.520 --> 05:56.470
+Now if I change this to white,
+
+05:56.470 --> 06:03.220
+all I have to do is go back to the service worker and bump that version up here and down here and we
+
+06:03.220 --> 06:08.110
+will optimize this soon so that we don't have to change it in multiple places but with these changes
+
+06:08.110 --> 06:09.090
+in place,
+
+06:09.130 --> 06:15.960
+now if I save this, close the tab and reopen it, you will see that as soon as I,
+
+06:16.450 --> 06:20.300
+well do this one more time because of course now it just got installed,
+
+06:20.320 --> 06:21.710
+so now it got activated,
+
+06:21.730 --> 06:24.400
+now we have the white text here.
+
+06:24.400 --> 06:28.450
+So this is now how we can manage the versions and clean up old caches.
+
+06:28.480 --> 06:34.600
+Of course it's a bit cumbersome to edit this name all over the file, so let's optimize this in the next
+
+06:34.600 --> 06:34.990
+lecture.

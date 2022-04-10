@@ -1,0 +1,511 @@
+WEBVTT
+
+00:02.280 --> 00:08.550
+Let's go back to the case that we have a brand new app so I'm going to uninstall this application here
+
+00:08.550 --> 00:13.690
+and rebuild it with npm run ios. There
+
+00:13.690 --> 00:20.860
+I'll connect my debugger and then reload it and we're not logged in because we have no valid token
+
+00:21.810 --> 00:30.440
+and there, what we will be able to see is that once I do log in, we of course reach the next place here
+
+00:30.440 --> 00:37.740
+in our app but we also then see that we get this object, we use expiresIn and we use the token,
+
+00:37.910 --> 00:45.710
+we also get that strange refresh token. Now unlike the ID token, the refresh token never expires and
+
+00:45.710 --> 00:53.240
+we can exchange it with an ID token, with a fresh one, so we can use the refresh token to get a new
+
+00:53.240 --> 00:54.500
+ID token
+
+00:54.770 --> 01:00.560
+and that sounds like a good fallback for cases where we don't have a valid ID token anymore.
+
+01:00.830 --> 01:04.060
+We could check if we do have a refresh token at least
+
+01:04.160 --> 01:09.100
+and if we do, we could try to use that to get a new token.
+
+01:09.290 --> 01:11.080
+Now for that I'll do two things,
+
+01:11.090 --> 01:19.550
+first of all when logging in, I want to store these refresh token so I'll add a news item with ap auth
+
+01:19.820 --> 01:28.190
+and now refresh token as an identifier and it is the refresh token which I expect to get as an argument
+
+01:28.190 --> 01:28.830
+here.
+
+01:29.120 --> 01:36.310
+So let's add refresh token as a third argument to auth store token and let's make sure we pass it,
+
+01:36.440 --> 01:42.320
+so here when we execute this, I will send parsed response,
+
+01:42.320 --> 01:50.660
+refresh token to that function, so to the auth store token function here. That's just the identifier
+
+01:50.660 --> 01:53.720
+we have here, refresh token.
+
+01:53.840 --> 01:57.410
+So I'm passing this to this function, I'm storing it in the storage,
+
+01:57.410 --> 02:04.370
+now here in auth get token, the refresh token is relevant to us when we try to get a token but we
+
+02:04.370 --> 02:10.570
+see it expired or we see well we got no token in the storage,
+
+02:10.610 --> 02:12.950
+well maybe we got a refresh storage.
+
+02:13.040 --> 02:18.020
+So here where I dispatch auth clear storage, before clearing everything,
+
+02:18.020 --> 02:22.220
+I should try to save the day with a refresh token,
+
+02:22.220 --> 02:31.700
+so there I can execute async storage, get item and get ap auth refresh token, that identifier we specified
+
+02:32.270 --> 02:33.230
+and then chain and
+
+02:33.260 --> 02:37.410
+then call and a catch call, catch call, catch method.
+
+02:37.760 --> 02:45.800
+Here I can safely reject everything, in the then block however,
+
+02:46.830 --> 02:52.470
+I get a new chance of getting a fresh token, here
+
+02:52.830 --> 03:01.180
+we get the refresh token we stored and now we can send another http request to get a new token.
+
+03:01.220 --> 03:07.500
+I by the way only want to clear everything here in this case, in the error case where I call reject,
+
+03:07.500 --> 03:11.220
+there I also call dispatch auth clear storage.
+
+03:11.280 --> 03:16.830
+Now here where I get the refresh token, I want to send a new fetch request,
+
+03:17.010 --> 03:21.110
+we need to find out which url to target though.
+
+03:22.020 --> 03:28.410
+For that let's visit the firebase docs and there, we have a method, exchange a refresh token for an ID
+
+03:28.410 --> 03:28.910
+token,
+
+03:28.920 --> 03:29.480
+perfect,
+
+03:29.520 --> 03:31.320
+that's just what we need.
+
+03:31.320 --> 03:38.190
+It's this url we need to send our request to then and then we need to pass the grant type which
+
+03:38.190 --> 03:44.430
+should always be a string refresh token and the refresh token and also note that this is not an application
+
+03:44.430 --> 03:50.930
+request but a xwww form url encoded one.
+
+03:51.010 --> 03:55.740
+So I'll first of all paste in this url and we will need the API key here,
+
+03:55.810 --> 03:58.420
+now we do have the API key here,
+
+03:58.420 --> 04:03.690
+I will pull it out of this function and create some global constant in this file here,
+
+04:03.760 --> 04:04.200
+I'll write it
+
+04:04.260 --> 04:10.330
+all uppercase to make it really clear that this is basically a global function of this key, of this file,
+
+04:10.690 --> 04:11.560
+API key,
+
+04:11.560 --> 04:16.950
+now since I change the casing and the way we write it let's replace it here
+
+04:17.380 --> 04:19.890
+and now we can use that API key down there too.
+
+04:20.170 --> 04:24.550
+So let's simply add it here,
+
+04:24.550 --> 04:26.380
+the API key,
+
+04:26.470 --> 04:31.600
+now we need to send some additional data or configure this request,
+
+04:31.630 --> 04:34.950
+the method will be post.
+
+04:35.170 --> 04:43.900
+We need to set some headers because the content type will be the one we see here in the docs,
+
+04:43.970 --> 04:49.540
+application xwww form url encoded, so set it up like this.
+
+04:50.450 --> 04:58.310
+Now we also need to add a body here and that body is a string where we have to have this grant type,
+
+04:58.360 --> 05:03.550
+that's the first property we have to set and that should be a string value of refresh token and then
+
+05:03.550 --> 05:06.440
+the refresh token which should be the refresh token,
+
+05:07.460 --> 05:19.410
+so grant type will be refresh token and then we have refresh token which should be the refresh token
+
+05:19.410 --> 05:19.890
+we got,
+
+05:19.890 --> 05:31.210
+so here, the refresh token we have here. With that, return this fetch call here, chain a then call where we get the
+
+05:31.210 --> 05:34.660
+response which we can log to the console to see if it works
+
+05:34.750 --> 05:37.290
+and then we get this catch block anyways.
+
+05:37.660 --> 05:45.490
+Now one thing I want to do to test this is I'll comment out async storage set expiry date so that we can
+
+05:45.790 --> 05:50.520
+get into a case where we have a refresh token stored but have no expiry date,
+
+05:50.590 --> 05:55.840
+so that we make it into this part, so that we don't have to wait for that hour essentially.
+
+05:55.840 --> 06:02.620
+With that, I will uninstall the application and rebuild and reinstall it to clear my async storage,
+
+06:02.620 --> 06:08.950
+so let me rerun npm run ios, let's connect this to the debugger
+
+06:09.300 --> 06:14.400
+and now let's log in and this should work fine because there, we won't touch the functionality
+
+06:14.640 --> 06:20.380
+but now if I reload, let's see, now I got a response here, status is 400 though,
+
+06:21.890 --> 06:25.220
+invalid grant type, yeah,
+
+06:25.450 --> 06:31.820
+I added single quotation marks here which I shouldn't, should just be refresh token like this.
+
+06:31.840 --> 06:35.680
+So now if we uninstall this,
+
+06:39.380 --> 06:40.610
+try this one more time,
+
+06:43.500 --> 06:45.800
+let's first of all connect to the debugger again,
+
+06:47.600 --> 06:54.590
+let's then log in so that the token and refresh token gets stored, let's reload and now we get a 200
+
+06:54.640 --> 06:56.760
+response, that looks good,
+
+06:56.780 --> 07:05.750
+in which we get an access token, a new expiresIn field, a new refresh token
+
+07:05.960 --> 07:10.520
+and if we scroll further to the right, a new ID token.
+
+07:10.700 --> 07:13.890
+So indeed we got new data here,
+
+07:14.420 --> 07:20.720
+so let's simply not log the response here but use a response.json instead,
+
+07:21.430 --> 07:30.340
+then we get back our parsed response and there, I essentially now want to again check if we do have a
+
+07:30.340 --> 07:30.860
+token.
+
+07:30.880 --> 07:39.100
+So if parsed response has this ID_token field, that is how it's named here, then we can continue,
+
+07:39.500 --> 07:40.420
+else
+
+07:40.690 --> 07:47.920
+I simply want to dispatch my clear storage command because now I really have no chance of continuing,
+
+07:48.190 --> 07:49.880
+can remove that catch block here,
+
+07:49.900 --> 07:54.500
+we checked what's wrong there anyway because we weren't inside that promise function anymore
+
+07:54.640 --> 08:00.160
+but here dispatch can now be called, we can clear the storage because now we try to get a new token with
+
+08:00.160 --> 08:06.280
+the refresh token, we just didn't succeed and always note we only reach this if we had an error
+
+08:06.310 --> 08:07.760
+before.
+
+08:07.900 --> 08:20.340
+So now here, we do have our new token, so refresh token worked and we can now use this ID token to
+
+08:20.340 --> 08:21.660
+store it,
+
+08:21.720 --> 08:30.420
+so I'll comment in this async storage set item expiry date thing here and essentially, I now want to
+
+08:30.420 --> 08:36.120
+trigger auth store token because I got the token expiresIn refresh token, all of that is received
+
+08:36.120 --> 08:37.440
+by that response
+
+08:37.680 --> 08:47.840
+and then here, I want to dispatch auth store token to store my parsed response and there it's ID underscore
+
+08:47.840 --> 08:54.760
+token parsed response expires underscore in and parsed response
+
+08:54.950 --> 09:00.000
+refresh underscore token. So to store all that new data,
+
+09:00.200 --> 09:02.000
+here I restructure this,
+
+09:02.090 --> 09:05.750
+I want to store all that new data in the store again.
+
+09:06.390 --> 09:14.690
+And now I'll go up and change expiresIn here when I store the expiry date to 22 simulates 20 seconds
+
+09:15.010 --> 09:16.960
+just to see if it works
+
+09:16.970 --> 09:23.540
+because now we should have the effect that for 20 seconds, it works fine, then our token will expire but
+
+09:23.540 --> 09:28.100
+it should fetch a new one and therefore should still work fine.
+
+09:29.020 --> 09:31.270
+Now let's try if that's the case,
+
+09:31.270 --> 09:35.980
+for that I will uninstall my application here
+
+09:37.320 --> 09:40.690
+and then rerun npm run ios to rebuild ios,
+
+09:40.710 --> 09:46.640
+now let's connect the debugger
+
+09:47.730 --> 09:49.990
+and let's log in here
+
+09:51.680 --> 09:55.130
+and now we should be able to log in, find places, I got none,
+
+09:55.170 --> 10:01.350
+I deleted them all but if I reload, it still should work, if I kill the app and load it like this which
+
+10:01.350 --> 10:02.970
+is essentially the same process,
+
+10:03.120 --> 10:12.010
+it still works, now after 20 seconds once they are over, reloading the app should touch still work I guess,
+
+10:12.010 --> 10:13.790
+so let's try this.
+
+10:13.840 --> 10:19.860
+No, we end up on this screen but we see refresh token worked down there,
+
+10:20.230 --> 10:25.900
+so we actually got into the place where we successfully use the refresh token here.
+
+10:25.940 --> 10:33.070
+Now the problem here is that we dispatch auth store token, so we store a new token so the next time we
+
+10:33.070 --> 10:33.430
+reload,
+
+10:33.430 --> 10:36.280
+we actually do get redirected again
+
+10:36.640 --> 10:39.470
+but at that very request that failed,
+
+10:39.490 --> 10:45.740
+so where we had the situation of not having a valid token, we just forget one crucial thing,
+
+10:45.880 --> 10:52.520
+we don't try to auto sign in thereafter, we just store our token and we don't need to dispatch auto
+
+10:52.600 --> 10:56.210
+sign in because we're still in auth get token here,
+
+10:56.320 --> 10:59.910
+it's a long action creator but still we are in there,
+
+10:59.920 --> 11:06.310
+so instead what we need to do is we just need to make sure that auth get token returns a token.
+
+11:06.310 --> 11:11.530
+So in this case where we store our new token, storing it isn't enough,
+
+11:11.620 --> 11:20.620
+we also simply should besides dispatching this action, return our fetched tokens, so parsed response ID
+
+11:20.620 --> 11:27.240
+token, return it here so that we don't just store it for the future but that we can immediately use it.
+
+11:28.400 --> 11:31.460
+Now with that, it still would have one flaw,
+
+11:31.580 --> 11:34.290
+if we return the ID token here, that's nice
+
+11:34.550 --> 11:41.090
+but here in the else block where we dispatch auth clear storage, this essentially also doesn't throw
+
+11:41.090 --> 11:49.140
+an error, so in the end we will always go into this then block even if we got no token
+
+11:49.310 --> 11:51.610
+because again this will not throw an error
+
+11:51.650 --> 11:55.530
+so we don't get into this catch block, that's just how promises work.
+
+11:55.820 --> 11:59.510
+Additionally returning promise here after this isn't correct,
+
+11:59.510 --> 12:02.000
+we should return this whole block
+
+12:02.270 --> 12:10.300
+and now here, I can chain another then call here after this catch block which will always be executed
+
+12:10.410 --> 12:12.920
+therefore, so after this catch block
+
+12:12.920 --> 12:14.990
+here, I'll add another
+
+12:14.990 --> 12:21.390
+then block and in there, I potentially get the token and I'll
+
+12:21.520 --> 12:24.650
+just check if we don't have a token here,
+
+12:24.880 --> 12:28.170
+if we don't, then I will throw a new error,
+
+12:28.270 --> 12:32.470
+hence ensuring that we make it into this catch block
+
+12:32.710 --> 12:41.100
+otherwise I will return the token, so that's some in-between step to make sure that we don't run into
+
+12:41.100 --> 12:43.200
+any messy situation.
+
+12:43.200 --> 12:49.800
+Now one additional thing, to ensure that this then call gets called, I need to return async storage get
+
+12:49.800 --> 12:53.840
+item here in the catch block so that I return this promise chain,
+
+12:53.910 --> 13:02.230
+so that this then block doesn't run before this inner promise chain is done. With that let's uninstall
+
+13:02.230 --> 13:06.340
+this app one more time and rebuild it and reinstall it,
+
+13:06.340 --> 13:11.750
+now keep in mind expiry date is still set to 20 seconds to see if this behaves as it should.
+
+13:13.440 --> 13:15.950
+So let's first of all attach the debugger
+
+13:20.590 --> 13:22.650
+and let's submit this
+
+13:22.690 --> 13:31.840
+and of course this works and we can close this, interesting is what happens after 20 seconds though
+
+13:32.930 --> 13:36.820
+and to me, it now always seems to work.
+
+13:36.950 --> 13:41.150
+So this now looks as it should look, it works as it should work,
+
+13:41.150 --> 13:49.650
+let's also try this on Android, so I will uninstall my Android app too to clear all the storage I might
+
+13:49.650 --> 13:54.800
+have there and rerun npm run Android
+
+13:54.840 --> 13:58.760
+and now let's try this here. Let's log in,
+
+14:01.660 --> 14:10.620
+this of course works, let's now close this process here and let's reload it and we are logged in
+
+14:10.620 --> 14:13.320
+automatically and now I'll manually reload
+
+14:13.560 --> 14:22.310
+and here too, I assume that 20 seconds should have been gone by, should have gone by by now
+
+14:22.470 --> 14:27.200
+and still it looks like we successfully log in every time I reload.
+
+14:27.420 --> 14:29.270
+So this is working, with that
+
+14:29.280 --> 14:35.520
+let's go back and switch this back to use the original expiresIn timing and not the 20 seconds.
+
+14:35.850 --> 14:41.670
+And now with that let's continue, we did a lot of work here but now we got a workflow or an authentication
+
+14:41.680 --> 14:45.300
+flow that really is flexible and keeps the user authenticated
+
+14:45.300 --> 14:46.840
+if you want that.
+
+14:46.920 --> 14:52.290
+Now let's also make sure that if the user wants, he can log out with the sign out button here.

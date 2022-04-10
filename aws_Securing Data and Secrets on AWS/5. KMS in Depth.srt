@@ -1,0 +1,396 @@
+1
+00:00:01,090 --> 00:00:06,140
+So let's talk a little more about KMS in depth, starting with key rotation.
+
+2
+00:00:06,140 --> 00:00:10,440
+Key rotation is what happens when we update a key's backing material,
+
+3
+00:00:10,440 --> 00:00:15,060
+and AWS saves the old key material so you will always be able to decrypt
+
+4
+00:00:15,060 --> 00:00:19,680
+information that was previously encrypted with an old backing key.
+
+5
+00:00:19,680 --> 00:00:23,490
+Now for the standard AWS managed keys, and these are,
+
+6
+00:00:23,490 --> 00:00:27,940
+of course, the default keys you see for each service in each region,
+
+7
+00:00:27,940 --> 00:00:32,140
+the key material is automatically rotated every three years.
+
+8
+00:00:32,140 --> 00:00:34,160
+You can't change or disable this,
+
+9
+00:00:34,160 --> 00:00:38,060
+and this rotation happens in a way that is completely transparent to you,
+
+10
+00:00:38,060 --> 00:00:40,870
+and when a key is automatically rotated,
+
+11
+00:00:40,870 --> 00:00:44,750
+you don't actually need to update any references to keys in your application,
+
+12
+00:00:44,750 --> 00:00:48,240
+because it's only the keys backing material that has changed,
+
+13
+00:00:48,240 --> 00:00:51,310
+not its ID or alias.
+
+14
+00:00:51,310 --> 00:00:56,050
+For a customer‑managed CMK with AWS‑generated key material,
+
+15
+00:00:56,050 --> 00:01:00,490
+the key material can optionally be rotated automatically every year,
+
+16
+00:01:00,490 --> 00:01:03,490
+but you must enable this yourself.
+
+17
+00:01:03,490 --> 00:01:06,800
+So notice this is every one year, and not every three years,
+
+18
+00:01:06,800 --> 00:01:09,640
+like the AWS‑managed keys.
+
+19
+00:01:09,640 --> 00:01:13,870
+But for a customer‑managed CMK with imported key material,
+
+20
+00:01:13,870 --> 00:01:16,820
+there is no automatic rotation option at all,
+
+21
+00:01:16,820 --> 00:01:20,640
+you must manually rotate the key material yourself,
+
+22
+00:01:20,640 --> 00:01:23,300
+which involves creating a new CMK,
+
+23
+00:01:23,300 --> 00:01:26,460
+importing the new material, and updating the existing
+
+24
+00:01:26,460 --> 00:01:29,670
+key's alias to point to this new CMK.
+
+25
+00:01:29,670 --> 00:01:33,070
+I'll talk about the process for doing this in the demo.
+
+26
+00:01:33,070 --> 00:01:36,660
+Now there is one advantage to importing your own key material,
+
+27
+00:01:36,660 --> 00:01:39,700
+which is that you have total control over the key rotation
+
+28
+00:01:39,700 --> 00:01:44,140
+schedule when you have AWS‑generated key material.
+
+29
+00:01:44,140 --> 00:01:47,320
+So that's both for the AWS‑managed and customer‑managed
+
+30
+00:01:47,320 --> 00:01:50,910
+CMKs with AWS‑generated key material.
+
+31
+00:01:50,910 --> 00:01:53,620
+The three and one year rotation schedules for these
+
+32
+00:01:53,620 --> 00:01:57,830
+are fixed and cannot be changed, but with imported key material,
+
+33
+00:01:57,830 --> 00:02:01,470
+you could rotate it every six months, or every month, or
+
+34
+00:02:01,470 --> 00:02:04,110
+whatever is required in your environment.
+
+35
+00:02:04,110 --> 00:02:10,000
+Let's hop over to the KMS console and I'll show you what I'm talking about.
+
+36
+00:02:10,000 --> 00:02:14,640
+In this demo, I'll show you how to create new customer master keys.
+
+37
+00:02:14,640 --> 00:02:19,170
+I'll create a CMK with AWS‑generated key material, then I'll create
+
+38
+00:02:19,170 --> 00:02:24,540
+another key and discuss how to import your own key material.
+
+39
+00:02:24,540 --> 00:02:26,770
+Now here we are in the console.
+
+40
+00:02:26,770 --> 00:02:31,070
+I'll go to kms, and you see I don't have any keys yet,
+
+41
+00:02:31,070 --> 00:02:35,840
+so I'll go over here and click Create key. By default, keys you
+
+42
+00:02:35,840 --> 00:02:39,320
+create in KMS are what are called symmetric keys.
+
+43
+00:02:39,320 --> 00:02:43,870
+These keys never leave AWS unencrypted, which is obviously a best practice.
+
+44
+00:02:43,870 --> 00:02:45,510
+Now you could choose asymmetric here,
+
+45
+00:02:45,510 --> 00:02:49,430
+but I'll leave this as symmetric, and then show you the advanced options here,
+
+46
+00:02:49,430 --> 00:02:53,510
+which is where I choose between KMS for the key material origin,
+
+47
+00:02:53,510 --> 00:02:57,300
+which is AWS‑managed key material, or external,
+
+48
+00:02:57,300 --> 00:03:00,440
+which means I would import my own key material.
+
+49
+00:03:00,440 --> 00:03:02,640
+You see CloudHSM is also an option here,
+
+50
+00:03:02,640 --> 00:03:04,240
+and we'll discuss that a little bit later on in
+
+51
+00:03:04,240 --> 00:03:09,580
+this module, but for this example, I'll choose KMS and click Next.
+
+52
+00:03:09,580 --> 00:03:11,910
+Now here's where I give the key and alias,
+
+53
+00:03:11,910 --> 00:03:17,290
+so I'll call this mycmk, and I won't worry about any tags for now.
+
+54
+00:03:17,290 --> 00:03:20,320
+Now here on the next screen is where we set up the elements of the key
+
+55
+00:03:20,320 --> 00:03:24,630
+policy, which we'll discuss more in a bit, but here we can choose key
+
+56
+00:03:24,630 --> 00:03:29,520
+administrators, so the users and roles who can administer the key, and
+
+57
+00:03:29,520 --> 00:03:33,730
+I'll choose my awscourse account for now, and we'll grant that account
+
+58
+00:03:33,730 --> 00:03:37,410
+permissions to delete the key as well; and this permission is an
+
+59
+00:03:37,410 --> 00:03:42,330
+important one, because deleting a key is usually not a good idea, and in fact,
+
+60
+00:03:42,330 --> 00:03:46,190
+if you do attempt to delete a key, you can't just delete it right away.
+
+61
+00:03:46,190 --> 00:03:49,250
+AWS will force you to choose a waiting period between
+
+62
+00:03:49,250 --> 00:03:53,430
+seven and 30 days before the key is actually deleted, and
+
+63
+00:03:53,430 --> 00:03:54,900
+there's good reason for this.
+
+64
+00:03:54,900 --> 00:03:58,300
+If you delete a key and let's say there's an EBS volume out there or
+
+65
+00:03:58,300 --> 00:04:01,220
+something else that's using that key for encryption,
+
+66
+00:04:01,220 --> 00:04:03,180
+you're going to need to copy the data off of that
+
+67
+00:04:03,180 --> 00:04:06,790
+volume while it's still attached, or you won't have access to it anymore,
+
+68
+00:04:06,790 --> 00:04:10,510
+and I'll click Next, and now we can choose the users and roles who have
+
+69
+00:04:10,510 --> 00:04:14,820
+permission to actually use this key to encrypt and decrypt data.
+
+70
+00:04:14,820 --> 00:04:15,330
+So again,
+
+71
+00:04:15,330 --> 00:04:19,310
+I'll choose my awscourse account, and you'll see here, I could actually
+
+72
+00:04:19,310 --> 00:04:23,840
+add another AWS account here for cross account access.
+
+73
+00:04:23,840 --> 00:04:27,330
+Now I'll click Next, and here's the default key policy.
+
+74
+00:04:27,330 --> 00:04:29,240
+We won't go through this right now, we'll talk through it
+
+75
+00:04:29,240 --> 00:04:33,630
+in more detail later in this module, and now quickly here,
+
+76
+00:04:33,630 --> 00:04:38,240
+I'll just show you how we could create a CMK with imported key material.
+
+77
+00:04:38,240 --> 00:04:42,230
+So we'll click Create key again, we'll choose symmetric, and this
+
+78
+00:04:42,230 --> 00:04:45,360
+time under Advanced options. we'll choose external for our key
+
+79
+00:04:45,360 --> 00:04:48,050
+material origin, and before I proceed,
+
+80
+00:04:48,050 --> 00:04:51,820
+I have to acknowledge that I understand the security availability
+
+81
+00:04:51,820 --> 00:04:55,280
+and durability implications associated with this.
+
+82
+00:04:55,280 --> 00:04:59,040
+So I'll click Next, and again I have to give my key an alias,
+
+83
+00:04:59,040 --> 00:05:04,600
+so I'll call this one myimportedmaterialkey, and click Next.
+
+84
+00:05:04,600 --> 00:05:11,970
+I'll choose the same key administrator and key usage permissions, and so
+
+85
+00:05:11,970 --> 00:05:15,950
+here is our key policy, and now when I click Finish,
+
+86
+00:05:15,950 --> 00:05:20,940
+you'll see that I'm being prompted to download a wrapping key and import token.
+
+87
+00:05:20,940 --> 00:05:23,900
+So the actual process here is beyond the scope of the exam.
+
+88
+00:05:23,900 --> 00:05:26,250
+But what you would do here is click download,
+
+89
+00:05:26,250 --> 00:05:27,860
+and once you've saved this file,
+
+90
+00:05:27,860 --> 00:05:31,820
+you basically have 24 hours to use the wrapping key to encrypt your
+
+91
+00:05:31,820 --> 00:05:35,840
+own key material, and you could use something like OpenSSL to do this
+
+92
+00:05:35,840 --> 00:05:39,560
+encryption, but then you come back here and you upload the file
+
+93
+00:05:39,560 --> 00:05:41,930
+containing your wrapped key material,
+
+94
+00:05:41,930 --> 00:05:45,820
+as well as the import token from the file you originally downloaded.
+
+95
+00:05:45,820 --> 00:05:49,660
+Then you click upload key material, and now you have a CMK
+
+96
+00:05:49,660 --> 00:05:52,890
+with imported key material, and keep in mind that if you
+
+97
+00:05:52,890 --> 00:05:54,800
+wanted to rotate this key,
+
+98
+00:05:54,800 --> 00:06:00,370
+you would create a new CMK, import your new key material using the same process,
+
+99
+00:06:00,370 --> 00:06:09,000
+and then update the alias to point to this new CMK, and that's how we create new customer master keys in KMS.
+

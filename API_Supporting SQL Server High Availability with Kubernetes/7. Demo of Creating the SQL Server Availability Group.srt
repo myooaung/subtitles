@@ -1,0 +1,668 @@
+1
+00:00:00,440 --> 00:00:01,400
+Okay.
+
+2
+00:00:01,400 --> 00:00:05,440
+Now let's get ready to jump into the SQL Server portion of this code.
+
+3
+00:00:05,440 --> 00:00:06,350
+First,
+
+4
+00:00:06,350 --> 00:00:09,340
+we're going to go ahead and look at creating the
+
+5
+00:00:09,340 --> 00:00:11,940
+primary availability group replica.
+
+6
+00:00:11,940 --> 00:00:15,630
+Then we're going to take the master key we create there and copy that
+
+7
+00:00:15,630 --> 00:00:18,910
+master key to the two different secondary replicas.
+
+8
+00:00:18,910 --> 00:00:22,720
+Next, we're going to go ahead and create the first secondary replica.
+
+9
+00:00:22,720 --> 00:00:26,140
+Then we're going to create the second secondary replica.
+
+10
+00:00:26,140 --> 00:00:28,200
+Then we're going to test the availability group,
+
+11
+00:00:28,200 --> 00:00:30,920
+and we're going to watch it replicate some transactions
+
+12
+00:00:30,920 --> 00:00:34,540
+between the primary node and the secondaries.
+
+13
+00:00:34,540 --> 00:00:38,470
+And then we're going to test a failover to see how Kubernetes
+
+14
+00:00:38,470 --> 00:00:42,140
+is providing availability for this cluster.
+
+15
+00:00:42,140 --> 00:00:47,240
+Okay, at this point, we have our three‑node Kubernetes cluster up and running,
+
+16
+00:00:47,240 --> 00:00:49,980
+but we don't have an availability group onto it.
+
+17
+00:00:49,980 --> 00:00:53,540
+So let's go ahead and connect into it,
+
+18
+00:00:53,540 --> 00:00:57,740
+and we're going to go ahead and create our availability group.
+
+19
+00:00:57,740 --> 00:00:58,520
+So first,
+
+20
+00:00:58,520 --> 00:01:03,400
+let's go ahead and fire up Azure Data Studio, and here, we're going to
+
+21
+00:01:03,400 --> 00:01:07,260
+go ahead and you can see we're going to collect the IP addresses for
+
+22
+00:01:07,260 --> 00:01:10,930
+each of the different nodes, then we're going to go ahead and start
+
+23
+00:01:10,930 --> 00:01:16,690
+Azure Data Studio, so it's waiting for us to hit Enter, and now here
+
+24
+00:01:16,690 --> 00:01:19,340
+comes Azure Data Studio.
+
+25
+00:01:19,340 --> 00:01:25,940
+Next, let's go ahead and connect into our primary node.
+
+26
+00:01:25,940 --> 00:01:26,460
+Okay,
+
+27
+00:01:26,460 --> 00:01:29,680
+so here it is in our list of servers, remember, we connected to it just a
+
+28
+00:01:29,680 --> 00:01:35,940
+little while ago, so let's go ahead and give it the password.
+
+29
+00:01:35,940 --> 00:01:40,110
+And now that we have our connection into the primary or
+
+30
+00:01:40,110 --> 00:01:42,440
+what's going to be the primary server,
+
+31
+00:01:42,440 --> 00:01:49,790
+let's go ahead and open up our script that's going to
+
+32
+00:01:49,790 --> 00:01:54,000
+go ahead and create the primary, and that's what we can see here.
+
+33
+00:01:54,000 --> 00:01:58,030
+Let's scroll to the top. At the top, you can see where we're creating that
+
+34
+00:01:58,030 --> 00:02:02,890
+master database and inserting a few rows into it, setting our database
+
+35
+00:02:02,890 --> 00:02:06,040
+recovery to full and backing up the database,
+
+36
+00:02:06,040 --> 00:02:11,240
+creating a login, and then below that, our master key and certificate.
+
+37
+00:02:11,240 --> 00:02:15,220
+And then we're backing up that certificate to a file that we're
+
+38
+00:02:15,220 --> 00:02:17,640
+going to later share with the secondaries.
+
+39
+00:02:17,640 --> 00:02:19,740
+If we scroll down a little bit,
+
+40
+00:02:19,740 --> 00:02:27,340
+you can see where we're going to go ahead and create our endpoint on Port 5022,
+
+41
+00:02:27,340 --> 00:02:31,200
+and after that, we're going to go ahead and create our availability
+
+42
+00:02:31,200 --> 00:02:37,340
+group called K8S, or Kubernetes S availability group.
+
+43
+00:02:37,340 --> 00:02:41,460
+Then we're going to add our different replicas, our primary replica,
+
+44
+00:02:41,460 --> 00:02:44,550
+and we're going to set it up as a synchronous, our
+
+45
+00:02:44,550 --> 00:02:45,960
+seeding is going to be automatic,
+
+46
+00:02:45,960 --> 00:02:49,680
+which means it's going to copy the database that we add to it automatically to
+
+47
+00:02:49,680 --> 00:02:54,560
+the secondaries, and our failover mode is going to be manual because this is a
+
+48
+00:02:54,560 --> 00:02:57,270
+cluster list availability group. Beneath that,
+
+49
+00:02:57,270 --> 00:03:00,160
+you can see where we create the two secondary replicas,
+
+50
+00:03:00,160 --> 00:03:06,390
+mssql‑secondary1, mssql‑secondary2. Secondary1 is a
+
+51
+00:03:06,390 --> 00:03:08,450
+synchronous availability replica,
+
+52
+00:03:08,450 --> 00:03:15,000
+while secondary2 is using asynchronous commit mode. And then at the bottom,
+
+53
+00:03:15,000 --> 00:03:18,130
+you can see where we're going to go ahead and add a database to
+
+54
+00:03:18,130 --> 00:03:21,220
+our availability group and this is our sample database that we
+
+55
+00:03:21,220 --> 00:03:23,540
+loaded a few rows into earlier.
+
+56
+00:03:23,540 --> 00:03:28,600
+Alright, let's go ahead and run it. So at this point,
+
+57
+00:03:28,600 --> 00:03:33,420
+it's going to go ahead and go through our script lines, it is going to add the
+
+58
+00:03:33,420 --> 00:03:38,010
+rows to the database, it's going to back up the database,
+
+59
+00:03:38,010 --> 00:03:40,610
+and then it's going to go ahead and create our
+
+60
+00:03:40,610 --> 00:03:44,240
+endpoint and our availability group.
+
+61
+00:03:44,240 --> 00:03:47,580
+If we go over and look at our server objects, now you'll
+
+62
+00:03:47,580 --> 00:03:50,040
+be able to see our endpoint out there,
+
+63
+00:03:50,040 --> 00:03:54,210
+and there is our AG_endpoint that we created.
+
+64
+00:03:54,210 --> 00:04:02,140
+Now, the next thing is to copy that certificate over to the secondary replicas.
+
+65
+00:04:02,140 --> 00:04:09,340
+To do that, we're going to go back to Visual Studio Code,
+
+66
+00:04:09,340 --> 00:04:14,800
+and we're going to open up step11_copy_certificate, and you can
+
+67
+00:04:14,800 --> 00:04:19,970
+see if we look at this, we are getting the different pod names
+
+68
+00:04:19,970 --> 00:04:22,440
+for our primary and two secondaries.
+
+69
+00:04:22,440 --> 00:04:25,850
+We're going to copy the certificate first to our local system,
+
+70
+00:04:25,850 --> 00:04:29,440
+and then we're going to turn around and copy it to each of the secondaries.
+
+71
+00:04:29,440 --> 00:04:32,710
+And again, we have to do that because, unfortunately,
+
+72
+00:04:32,710 --> 00:04:40,210
+I was not able to copy from pod to pod, so that's a workaround for that.
+
+73
+00:04:40,210 --> 00:04:42,470
+And here you can see it's going ahead and copying the
+
+74
+00:04:42,470 --> 00:04:47,290
+certificates. And at that point,
+
+75
+00:04:47,290 --> 00:04:52,420
+the certificate is on each of those secondary nodes. And next,
+
+76
+00:04:52,420 --> 00:04:59,440
+we're going to open up a connection to our secondary servers.
+
+77
+00:04:59,440 --> 00:05:03,480
+So there that should be our first secondary. We're going to
+
+78
+00:05:03,480 --> 00:05:09,240
+log in to it as SA, give it our password.
+
+79
+00:05:09,240 --> 00:05:09,800
+Okay,
+
+80
+00:05:09,800 --> 00:05:14,930
+and there is our first secondary replica that is now up and you can
+
+81
+00:05:14,930 --> 00:05:18,720
+check out our computer name mssql‑secondary1.
+
+82
+00:05:18,720 --> 00:05:26,740
+Now we're going to run a query on this system, our script that's
+
+83
+00:05:26,740 --> 00:05:30,020
+going to create it out of S1 and here we go,
+
+84
+00:05:30,020 --> 00:05:36,750
+create_secondaryAG. And you can see, again here, it's going
+
+85
+00:05:36,750 --> 00:05:40,600
+to use the master database, it's going to create a login,
+
+86
+00:05:40,600 --> 00:05:42,800
+it's going to create a certificate.
+
+87
+00:05:42,800 --> 00:05:43,720
+In this case,
+
+88
+00:05:43,720 --> 00:05:46,680
+it's creating the certificate based upon our
+
+89
+00:05:46,680 --> 00:05:49,440
+certificate that has been backed up,
+
+90
+00:05:49,440 --> 00:05:53,230
+and it's going out to the file system to find that certificate,
+
+91
+00:05:53,230 --> 00:05:56,440
+and we copied it in here just a little bit ago.
+
+92
+00:05:56,440 --> 00:05:59,140
+Then it's going to go ahead and create the endpoint,
+
+93
+00:05:59,140 --> 00:06:03,730
+and at that point, it's going to go ahead and add this replica.
+
+94
+00:06:03,730 --> 00:06:07,640
+So let's go ahead and run this.
+
+95
+00:06:07,640 --> 00:06:12,740
+Now it's going to go ahead and it's working at creating our secondary replica,
+
+96
+00:06:12,740 --> 00:06:15,440
+and it has gone ahead and finished it.
+
+97
+00:06:15,440 --> 00:06:21,360
+Now we're going to do the same thing on secondary replica 2. So first,
+
+98
+00:06:21,360 --> 00:06:24,900
+let's open a connection to our other server,
+
+99
+00:06:24,900 --> 00:06:30,340
+and this is our secondary replica, so we'll put in its IP address.
+
+100
+00:06:30,340 --> 00:06:34,830
+We'll give it on its sign on.
+
+101
+00:06:34,830 --> 00:06:38,580
+And now we're connected to secondary Replica 2. Now,
+
+102
+00:06:38,580 --> 00:06:45,940
+let's go ahead and open the script to add it up to our availability group,
+
+103
+00:06:45,940 --> 00:06:49,660
+and here, you can see this is very much like the one we ran on secondary
+
+104
+00:06:49,660 --> 00:06:53,430
+replica 1. Again, we're going to create the log in, we're going to create
+
+105
+00:06:53,430 --> 00:06:58,030
+the master key, we're going to use a certificate from the file, and then
+
+106
+00:06:58,030 --> 00:06:59,940
+we're going to create our endpoint.
+
+107
+00:06:59,940 --> 00:07:05,840
+So let's go ahead and run it.
+
+108
+00:07:05,840 --> 00:07:08,780
+At this point, it has gone ahead and completed,
+
+109
+00:07:08,780 --> 00:07:13,540
+and now our availability group is completed.
+
+110
+00:07:13,540 --> 00:07:16,770
+So if we now go ahead and look at databases,
+
+111
+00:07:16,770 --> 00:07:19,520
+let's see our sample database should definitely exist on the
+
+112
+00:07:19,520 --> 00:07:22,890
+primary, so we're opening up our primary databases,
+
+113
+00:07:22,890 --> 00:07:23,550
+and there it is.
+
+114
+00:07:23,550 --> 00:07:25,740
+Remember, we used automatic seeding,
+
+115
+00:07:25,740 --> 00:07:29,350
+so it should take it just a second before that database and
+
+116
+00:07:29,350 --> 00:07:31,560
+makes it out to both of the secondaries,
+
+117
+00:07:31,560 --> 00:07:35,140
+and you can see that it is definitely there.
+
+118
+00:07:35,140 --> 00:07:37,920
+Now let's go back to the primary,
+
+119
+00:07:37,920 --> 00:07:43,040
+and we're going to insert some additional data into this database.
+
+120
+00:07:43,040 --> 00:07:49,140
+So let's take a sample insert statement and let's go ahead and run it.
+
+121
+00:07:49,140 --> 00:07:54,120
+And now we've gone ahead and we've inserted 49 rows into our database.
+
+122
+00:07:54,120 --> 00:07:59,000
+Now let's go ahead and take a quick look over at let's say
+
+123
+00:07:59,000 --> 00:08:04,640
+the one in secondary replica number two.
+
+124
+00:08:04,640 --> 00:08:12,680
+So let's go ahead and open up our table and let's
+
+125
+00:08:12,680 --> 00:08:16,520
+select the top 1,000 rows here.
+
+126
+00:08:16,520 --> 00:08:18,570
+And at this point, there is all our data.
+
+127
+00:08:18,570 --> 00:08:22,400
+You can see it duplicated over very quickly.
+
+128
+00:08:22,400 --> 00:08:28,740
+Now, at this point, we're ready to go ahead and test a failover.
+
+129
+00:08:28,740 --> 00:08:31,800
+So I flipped back to Azure Data Studio.
+
+130
+00:08:31,800 --> 00:08:35,200
+So here is our code that's going to go ahead and demo a failover.
+
+131
+00:08:35,200 --> 00:08:37,310
+We're going to retrieve the pod name.
+
+132
+00:08:37,310 --> 00:08:39,590
+We're going to go ahead and kill a pod.
+
+133
+00:08:39,590 --> 00:08:41,460
+We're going to wait a couple of seconds and then
+
+134
+00:08:41,460 --> 00:08:44,740
+we're going to see the running pods.
+
+135
+00:08:44,740 --> 00:08:49,440
+So let's go ahead and execute this, step14.
+
+136
+00:08:49,440 --> 00:08:57,240
+So now it's going to go ahead and delete the pod, this takes it just a second.
+
+137
+00:08:57,240 --> 00:08:59,440
+Now it's going to wait a couple seconds,
+
+138
+00:08:59,440 --> 00:09:03,040
+and at this point, it has gone ahead and retrieve the pod.
+
+139
+00:09:03,040 --> 00:09:07,040
+Now our pod is in container creating, that won't take it long to
+
+140
+00:09:07,040 --> 00:09:11,470
+do. So let's go back over now, and in Azure Data Studio, we'll go
+
+141
+00:09:11,470 --> 00:09:16,250
+back to our primary, we'll bring up our database, and we'll
+
+142
+00:09:16,250 --> 00:09:18,840
+retrieve the rows from here.
+
+143
+00:09:18,840 --> 00:09:23,060
+We'll open up our database and you can see it's responding just like
+
+144
+00:09:23,060 --> 00:09:26,750
+it normally would so the container is already created, and we'll
+
+145
+00:09:26,750 --> 00:09:29,160
+select the top 1,000 rows from the container,
+
+146
+00:09:29,160 --> 00:09:30,640
+and there they are.
+
+147
+00:09:30,640 --> 00:09:35,790
+Now Azure Data Studio is not capable of managing availability groups, it's
+
+148
+00:09:35,790 --> 00:09:39,420
+really more of a development tool, but SQL Server does have another
+
+149
+00:09:39,420 --> 00:09:42,840
+management tool called SQL Server Management Studio,
+
+150
+00:09:42,840 --> 00:09:45,920
+and that's what you see here. And now, we're going to
+
+151
+00:09:45,920 --> 00:09:48,160
+take SQL Server Management Studio,
+
+152
+00:09:48,160 --> 00:09:53,240
+and we're going to connect in to our availability group,
+
+153
+00:09:53,240 --> 00:10:00,300
+and we are going to see how you can manage it from SQL Server Management Studio,
+
+154
+00:10:00,300 --> 00:10:04,740
+just like any other availability group.
+
+155
+00:10:04,740 --> 00:10:07,240
+And it's connecting.
+
+156
+00:10:07,240 --> 00:10:11,180
+And if we go down and we expand always on availability,
+
+157
+00:10:11,180 --> 00:10:13,690
+you can see our availability groups.
+
+158
+00:10:13,690 --> 00:10:20,640
+There is the one we just created K8sAG. We can go down and expand our replicas.
+
+159
+00:10:20,640 --> 00:10:24,270
+You can see there is our primary replica, our secondary replica
+
+160
+00:10:24,270 --> 00:10:28,740
+1, and secondary replica 2. And if we look at our availability
+
+161
+00:10:28,740 --> 00:10:34,240
+databases, there is our test database.
+
+162
+00:10:34,240 --> 00:10:39,470
+We have the ability to manage it from here. We can also show the dashboard,
+
+163
+00:10:39,470 --> 00:10:42,790
+which basically shows the health of our availability group.
+
+164
+00:10:42,790 --> 00:10:43,770
+And again,
+
+165
+00:10:43,770 --> 00:10:48,550
+this is our availability group that is spanning our Kubernetes cluster, and
+
+166
+00:10:48,550 --> 00:10:53,270
+you can see that at this point, all the nodes are basically healthy and you
+
+167
+00:10:53,270 --> 00:11:00,000
+can see our primary and our two secondaries, and at this point, you can see that they're both synchronized.
+

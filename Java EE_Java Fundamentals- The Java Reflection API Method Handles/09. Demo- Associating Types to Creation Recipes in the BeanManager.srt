@@ -1,0 +1,424 @@
+1
+00:00:01,781 --> 00:00:05,509
+This getInstance static method in BeanManager is
+
+2
+00:00:05,509 --> 00:00:09,257
+used in a naive Singleton pattern.
+
+3
+00:00:09,257 --> 00:00:13,953
+This is not how you should create Singletons in production applications,
+
+4
+00:00:13,953 --> 00:00:16,134
+but this is just an example.
+
+5
+00:00:16,134 --> 00:00:19,742
+So this is going to return the BeanManager instance.
+
+6
+00:00:19,742 --> 00:00:24,581
+Let's get rid of this code, create this as a field,
+
+7
+00:00:24,581 --> 00:00:29,888
+private static BeanManager instance, and we are going to create it here,
+
+8
+00:00:29,888 --> 00:00:31,499
+new BeanManager.
+
+9
+00:00:31,499 --> 00:00:35,379
+Let us make this constructor private BeanManager.
+
+10
+00:00:35,379 --> 00:00:38,044
+Here, in the construction of this object,
+
+11
+00:00:38,044 --> 00:00:43,843
+we need to check all the classes and all the methods that have been
+
+12
+00:00:43,843 --> 00:00:48,649
+annotated with this Provides annotation because a BeanManager needs to
+
+13
+00:00:48,649 --> 00:00:53,831
+know all the types that it will have to inject in the fields of the
+
+14
+00:00:53,831 --> 00:00:55,962
+object it will have to create.
+
+15
+00:00:55,962 --> 00:00:56,644
+So for that,
+
+16
+00:00:56,644 --> 00:01:01,302
+it needs to have a list of all the classes of the application that can
+
+17
+00:01:01,302 --> 00:01:05,582
+have Provides annotation on some of the methods.
+
+18
+00:01:05,582 --> 00:01:10,293
+Now getting this list of classes is quite tricky to say the least,
+
+19
+00:01:10,293 --> 00:01:11,394
+and, in fact,
+
+20
+00:01:11,394 --> 00:01:15,783
+there is no way in the JDK to simply get the list of the
+
+21
+00:01:15,783 --> 00:01:19,089
+classes that have been loaded by an application.
+
+22
+00:01:19,089 --> 00:01:22,413
+There are several outside APIs to do that,
+
+23
+00:01:22,413 --> 00:01:27,488
+including Guava, for instance, or another API called Reflections,
+
+24
+00:01:27,488 --> 00:01:30,919
+but those APIs are not part of the JDK.
+
+25
+00:01:30,919 --> 00:01:34,262
+So since this is not really the problem we want to deal with,
+
+26
+00:01:34,262 --> 00:01:40,306
+we are going to create this list by hand just by List.of and pass
+
+27
+00:01:40,306 --> 00:01:44,420
+the H2ConnectionProvider class to this List.
+
+28
+00:01:44,420 --> 00:01:50,485
+Let me put this in a variable, which is just a List of Class of question mark,
+
+29
+00:01:50,485 --> 00:01:53,458
+and those are the classes I want to deal with.
+
+30
+00:01:53,458 --> 00:01:55,160
+Once again, in a real application,
+
+31
+00:01:55,160 --> 00:02:00,313
+you will have to write some code here to get the proper list of the classes.
+
+32
+00:02:00,313 --> 00:02:03,469
+And then for all the classes in those classes,
+
+33
+00:02:03,469 --> 00:02:07,929
+we need to check all the methods that have been
+
+34
+00:02:07,929 --> 00:02:10,673
+annotated with this Provides annotation.
+
+35
+00:02:10,673 --> 00:02:14,983
+So let me get the DeclaredMethods from those classes,
+
+36
+00:02:14,983 --> 00:02:19,908
+put this in a variable, and for each of those methods,
+
+37
+00:02:19,908 --> 00:02:21,562
+this is a method,
+
+38
+00:02:21,562 --> 00:02:27,226
+I want to check if the Provides annotation is on this method or not,
+
+39
+00:02:27,226 --> 00:02:32,325
+so I'm just going to call getAnnotation Provides.class.
+
+40
+00:02:32,325 --> 00:02:35,726
+So this is an object of type Provides.
+
+41
+00:02:35,726 --> 00:02:38,659
+And if this annotation is not null,
+
+42
+00:02:38,659 --> 00:02:42,700
+then I have a method that is a provider that is going to
+
+43
+00:02:42,700 --> 00:02:44,627
+be able to create an object from it.
+
+44
+00:02:44,627 --> 00:02:48,416
+What is the type of the object this method can create?
+
+45
+00:02:48,416 --> 00:02:51,777
+This is the written type of that method.
+
+46
+00:02:51,777 --> 00:02:53,752
+Let us put this in a variable.
+
+47
+00:02:53,752 --> 00:02:55,773
+This is the returnType of that method.
+
+48
+00:02:55,773 --> 00:03:00,209
+And now what I want to store in a registry associated to this
+
+49
+00:03:00,209 --> 00:03:04,004
+return type is something that is going to be able to invoke that
+
+50
+00:03:04,004 --> 00:03:07,428
+method with no arguments and get the result.
+
+51
+00:03:07,428 --> 00:03:08,132
+So in fact,
+
+52
+00:03:08,132 --> 00:03:11,847
+what I want to associate with this type is a recipe to be
+
+53
+00:03:11,847 --> 00:03:14,384
+able to create an instance of this type.
+
+54
+00:03:14,384 --> 00:03:17,581
+And this recipe is the invocation of the method.
+
+55
+00:03:17,581 --> 00:03:19,026
+It's not the method itself.
+
+56
+00:03:19,026 --> 00:03:21,432
+It's really the invocation of the method.
+
+57
+00:03:21,432 --> 00:03:23,499
+So, in fact, this should be a Supplier.
+
+58
+00:03:23,499 --> 00:03:27,284
+A Supplier is a lambda expression that does not take any
+
+59
+00:03:27,284 --> 00:03:28,770
+argument and that returns something,
+
+60
+00:03:28,770 --> 00:03:31,687
+and this something is going to be created by
+
+61
+00:03:31,687 --> 00:03:34,193
+invoking the method I am looking at.
+
+62
+00:03:34,193 --> 00:03:39,476
+So the basic code I need to write here is method.invoke.
+
+63
+00:03:39,476 --> 00:03:41,607
+It is not supposed to take any argument,
+
+64
+00:03:41,607 --> 00:03:43,880
+but it supposed to be invoked on an object.
+
+65
+00:03:43,880 --> 00:03:47,553
+And this object should be an instance of the class I'm
+
+66
+00:03:47,553 --> 00:03:50,020
+looking at if this method is not static.
+
+67
+00:03:50,020 --> 00:03:53,150
+And if this method is static, then it can be new.
+
+68
+00:03:53,150 --> 00:03:57,132
+So let me create an instance of this class, getConstructor.
+
+69
+00:03:57,132 --> 00:03:59,754
+I'm reaching the no-arg constructor.
+
+70
+00:03:59,754 --> 00:04:00,721
+Call newInstance on that,
+
+71
+00:04:00,721 --> 00:04:04,461
+and this is going to be an instance of Object because I
+
+72
+00:04:04,461 --> 00:04:07,515
+have no information on this class,
+
+73
+00:04:07,515 --> 00:04:10,457
+and this method is going to be invoked on that object.
+
+74
+00:04:10,457 --> 00:04:14,313
+And this is basically the correct object I need to return.
+
+75
+00:04:14,313 --> 00:04:18,827
+This code should be invoked if the method I'm looking at is not static.
+
+76
+00:04:18,827 --> 00:04:19,996
+So to check that,
+
+77
+00:04:19,996 --> 00:04:24,992
+I need to call the Modifier.isStatic factory method on
+
+78
+00:04:24,992 --> 00:04:29,917
+the method.getModifiers integer, and of course,
+
+79
+00:04:29,917 --> 00:04:33,530
+this code should be invoked if this method is not static.
+
+80
+00:04:33,530 --> 00:04:34,482
+So like that.
+
+81
+00:04:34,482 --> 00:04:36,198
+And if it is static,
+
+82
+00:04:36,198 --> 00:04:41,642
+that I can directly return the invocation of this method on the null object.
+
+83
+00:04:41,642 --> 00:04:45,248
+This is the way the API has been created.
+
+84
+00:04:45,248 --> 00:04:47,094
+Let me add this.
+
+85
+00:04:47,094 --> 00:04:50,750
+Of course, all this code is throwing exceptions.
+
+86
+00:04:50,750 --> 00:04:53,549
+Let me wrap this in a try/catch.
+
+87
+00:04:53,549 --> 00:04:57,165
+I'm not really interested in this collection of exceptions,
+
+88
+00:04:57,165 --> 00:05:02,600
+but I still need to be aware that an exception has been thrown by this code.
+
+89
+00:05:02,600 --> 00:05:05,580
+So I'm going to rethrow this exception in the
+
+90
+00:05:05,580 --> 00:05:09,232
+RuntimeException that does not need to be called.
+
+91
+00:05:09,232 --> 00:05:13,191
+RuntimeException created on the real exception that has been thrown.
+
+92
+00:05:13,191 --> 00:05:13,518
+Right.
+
+93
+00:05:13,518 --> 00:05:15,481
+So I have my return type.
+
+94
+00:05:15,481 --> 00:05:16,571
+I have my supplier.
+
+95
+00:05:16,571 --> 00:05:19,171
+Now I need to store this in a registry.
+
+96
+00:05:19,171 --> 00:05:24,229
+So let me put this in a registry, the returnType, and the supplier.
+
+97
+00:05:24,229 --> 00:05:27,706
+All I need to do is create this registry as a field.
+
+98
+00:05:27,706 --> 00:05:30,517
+This field is, of course, a Map.
+
+99
+00:05:30,517 --> 00:05:32,767
+The key of that Map are types,
+
+100
+00:05:32,767 --> 00:05:38,214
+so Class of question mark and the values the Supplier of question mark.
+
+101
+00:05:38,214 --> 00:05:44,476
+And I can get the default implementation of Map, which is basic HashMap.
+
+102
+00:05:44,476 --> 00:05:47,504
+And if I put this registry.put here,
+
+103
+00:05:47,504 --> 00:05:50,857
+it will not work because I am inside the Supplier there,
+
+104
+00:05:50,857 --> 00:05:52,933
+so I need to put it here.
+
+105
+00:05:52,933 --> 00:05:57,200
+So this code is just creating an instance of my BeanManager,
+
+106
+00:05:57,200 --> 00:06:10,000
+and it provides in a registry an association between the types it will need to inject and the recipe to create the instances of those types.
+

@@ -1,0 +1,262 @@
+WEBVTT
+
+00:02.150 --> 00:03.850
+In the last lecture, we fixed some errors
+
+00:03.860 --> 00:08.780
+but I mentioned that there are also more subtle issues in our application right now.
+
+00:09.170 --> 00:11.260
+Let's start with the caches here.
+
+00:11.450 --> 00:19.220
+Now the static cache is occupied or filled with things we pre-cached, the dynamic cache obviously populated
+
+00:19.220 --> 00:23.330
+with things we stored after we fetch them from the network.
+
+00:23.330 --> 00:29.810
+Now one issue we have is that currently, we're storing everything in the dynamic cache we fetched, right?
+
+00:29.890 --> 00:30.810
+Everything.
+
+00:30.860 --> 00:38.540
+We don't check if it makes sense to store it, like for example here, this request to HTTP bin and get some
+
+00:38.540 --> 00:40.130
+content, here
+
+00:40.130 --> 00:41.990
+it of course fulfills a purpose,
+
+00:41.990 --> 00:47.510
+we can see that card because we're not really using the value here but imagine you reach out to a server
+
+00:47.540 --> 00:52.510
+where you fetch some JSON data and that data changes frequently.
+
+00:52.520 --> 00:57.700
+Now all of a sudden, you maybe don't want to cache that because then you always get old data.
+
+00:57.890 --> 01:05.630
+Now there are some caching strategies to cater for that but still, caching JSON data is not really what
+
+01:05.990 --> 01:10.600
+this is for, is not really what you want to use the cache storage for,
+
+01:10.850 --> 01:17.840
+you should generally aim to store files there, not JSON files, simply images, CSS, JavaScript,
+
+01:17.880 --> 01:21.280
+HTML, that is what the cache storage is for.
+
+01:21.440 --> 01:28.610
+Now we'll take care about how and where to cache JSON data or any data you fetch later in this course,
+
+01:28.610 --> 01:30.400
+for now I'll leave it like this
+
+01:30.500 --> 01:34.080
+but I wanted to bring it to your attention and we will fix it later.
+
+01:34.490 --> 01:39.150
+Another crucial issue we have is, well let me show it to you.
+
+01:39.500 --> 01:41.680
+Let's go to the feed.js
+
+01:41.680 --> 01:47.940
+file where we create that card and let's change something about that card.
+
+01:48.230 --> 01:55.790
+Let's maybe give this card title text element, this San Francisco trip text here, let's give it some white
+
+01:55.820 --> 01:58.070
+text to maybe make it easier to read.
+
+01:58.460 --> 02:09.230
+So here I will simply access card title text element and set the style, the color to white using Javascript.
+
+02:09.310 --> 02:14.890
+If we go back to the application, make sure you have internet access, so make sure you're not offline
+
+02:15.400 --> 02:22.380
+and reload, you'll see it stays black. Now under application, no new service worker is waiting to get installed
+
+02:22.520 --> 02:29.710
+because we didn't change the service worker code, so therefore the old file is still equal to the new or
+
+02:29.710 --> 02:33.820
+current file and hence Chrome doesn't try to install the new one.
+
+02:33.890 --> 02:41.960
+This has one crucial implication, we're fetching the asset from the cache and in that cache here,
+
+02:42.260 --> 02:48.500
+we still have our, well cached version of the feed.js file which of course doesn't have our change
+
+02:48.530 --> 02:53.430
+in it. Now we would pre-cache the file and add it
+
+02:53.450 --> 02:58.970
+if we installed a new service worker but this is not happening here because we didn't change the service
+
+02:58.970 --> 02:59.950
+worker.
+
+03:00.110 --> 03:06.120
+Now of course one thing we can do is, we can add some code to the service worker to force an update,
+
+03:06.200 --> 03:07.350
+let's do that.
+
+03:07.550 --> 03:14.120
+Let's make this very simple by adding a comment here, to simply just change the file.
+
+03:14.120 --> 03:21.050
+Now if we save this and we reload the application here, a new service worker is trying to get activated,
+
+03:21.050 --> 03:22.690
+let's activate it here,
+
+03:22.880 --> 03:25.340
+therefore it will install the new
+
+03:25.370 --> 03:29.490
+asset and now it's white and if we reload, it's still white.
+
+03:29.510 --> 03:32.540
+Obviously this is not how you should do it,
+
+03:32.540 --> 03:35.850
+this is not how you want to update your files.
+
+03:35.960 --> 03:40.570
+We change something in a normal Javascript file and we add a comment to the service worker,
+
+03:40.700 --> 03:43.100
+definitely not a good practice,
+
+03:43.100 --> 03:48.640
+instead we want to manage cache versions. You do need to update your service worker
+
+03:48.650 --> 03:53.930
+if you change your other Javascript code, there is no way around this because you have cached versions of
+
+03:53.930 --> 03:55.100
+your old code,
+
+03:55.100 --> 03:59.020
+if you change something about your app, you need to update your service worker
+
+03:59.270 --> 04:04.750
+but of course you don't want to do that by adding a comment to it, instead
+
+04:04.970 --> 04:11.680
+a common way of fixing or handling this is to give your caches names or versions. It's named
+
+04:11.680 --> 04:12.780
+static already,
+
+04:12.920 --> 04:19.880
+let's maybe name it static-v2. This will now ensure that for one we change the service worker
+
+04:19.880 --> 04:27.810
+file but that we also cache all the updated files or all the files actually into a new sub-cache
+
+04:28.220 --> 04:34.540
+and by doing this, we ensure that we always update our cache if we update a file because we change the
+
+04:34.550 --> 04:35.440
+version number here,
+
+04:35.450 --> 04:41.210
+hence a new service worker gets installed and we stored the updated files in the new cache.
+
+04:41.210 --> 04:45.190
+Why do we use a new cache and not use the old one?
+
+04:45.380 --> 04:51.980
+Well besides the fact that we need to change the service worker file, if we store it in the old cache, somehow
+
+04:51.980 --> 04:58.330
+the old cache might still be used by the page because keep in mind, the installation step executes immediately,
+
+04:58.340 --> 05:00.770
+we're waiting for activation not for installation.
+
+05:01.100 --> 05:07.040
+So if we overwrite or change something in the old cache, we might change the cache which is currently
+
+05:07.040 --> 05:10.150
+getting used by the web application and we don't want to do that,
+
+05:10.160 --> 05:14.190
+we don't want to break the application because we mess around with the cache,
+
+05:14.300 --> 05:16.310
+hence we store it in a new one.
+
+05:16.310 --> 05:21.350
+Of course this means that we add more and more sub-caches but I'll walk you through how to clean it
+
+05:21.350 --> 05:22.990
+up in the next lectures too.
+
+05:23.210 --> 05:25.670
+So for now, let's go with that approach,
+
+05:25.730 --> 05:30.240
+so we not only change the feed.js file and edit this white text,
+
+05:30.500 --> 05:34.090
+let's change it back to black here to see that this works,
+
+05:34.130 --> 05:39.730
+we also changed the service worker file and stored the static assets in a new cache.
+
+05:40.280 --> 05:43.400
+Let's save this and let's go back to our application,
+
+05:43.610 --> 05:48.400
+let's reload it and go back to application here too. You see installation is running
+
+05:48.650 --> 05:55.110
+and you already see that in the cache, even though I haven't activated the new service worker,
+
+05:55.190 --> 06:00.590
+we get this new static-v2 version which holds the same content as static but behind the scenes, we
+
+06:00.590 --> 06:02.190
+know that the feed.js
+
+06:02.210 --> 06:04.610
+file will be updated.
+
+06:05.120 --> 06:12.930
+So now therefore if I reload this page, nothing happens obviously because the service worker isn't updated
+
+06:13.220 --> 06:17.030
+but if I skip waiting here and sometimes this just doesn't work,
+
+06:17.030 --> 06:22.480
+so if I open a new console in that case then, it still doesn't work.
+
+06:22.530 --> 06:30.530
+Why? Well this is related to us having multiple caches here, we have static and static-v2 and feed.js
+
+06:30.540 --> 06:37.160
+is found in both. Now in the fetch here, we just check if it's present,
+
+06:37.180 --> 06:44.530
+if the request is present in any of our caches. So therefore it finds that the old static cache too and
+
+06:44.530 --> 06:46.480
+still serves us the old version
+
+06:46.870 --> 06:50.340
+which is why we definitely need to clean up that old version.
+
+06:50.680 --> 06:54.200
+Let's see how we clean up old caches in the next lecture.

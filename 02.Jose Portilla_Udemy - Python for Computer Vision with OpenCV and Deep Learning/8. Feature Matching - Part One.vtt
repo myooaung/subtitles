@@ -1,0 +1,740 @@
+WEBVTT
+1
+00:00:05.190 --> 00:00:09.890
+Welcome back in this lecture we're going to discuss feature matching.
+
+2
+00:00:09.950 --> 00:00:15.120
+But first I'd like to welcome you to more or less the unofficial halfway point of the course.
+
+3
+00:00:15.320 --> 00:00:21.080
+So far we've learned a lot of technical syntax but we haven't really been able to apply it to more complex
+
+4
+00:00:21.080 --> 00:00:23.430
+computer vision applications.
+
+5
+00:00:23.430 --> 00:00:29.390
+This is not the point in the course where I like to say we can begin to do quote unquote cool computer
+
+6
+00:00:29.390 --> 00:00:33.740
+vision applications things that are really applicable to real world situations.
+
+7
+00:00:33.740 --> 00:00:38.030
+So from now on we're really going to be focusing on using our technical knowledge and syntax skills
+
+8
+00:00:38.240 --> 00:00:43.870
+with open C-v to create programs that are directly applicable to realistic situations.
+
+9
+00:00:43.880 --> 00:00:49.070
+We had a kind of eat our vegetables first learning about things like edge detection and image processing
+
+10
+00:00:49.340 --> 00:00:54.890
+and just video basics but now we can really focus on some of the more complex and advanced algorithms
+
+11
+00:00:55.160 --> 00:00:59.780
+that open CV containers that are directly applicable to things like real world images.
+
+12
+00:01:00.830 --> 00:01:03.830
+And we're going to begin this by talking about feature matching.
+
+13
+00:01:03.950 --> 00:01:09.260
+We've already seen template matching to find objects within a larger image but it required an exact
+
+14
+00:01:09.350 --> 00:01:14.530
+copy of the image to be within the image you're looking for such as we're looking for the dog's face
+
+15
+00:01:14.810 --> 00:01:16.820
+within the larger image of the dog.
+
+16
+00:01:16.820 --> 00:01:21.500
+Often in real world situations you're not going to have the exact picture of that dog's face.
+
+17
+00:01:21.680 --> 00:01:28.500
+So what we're going to do then is move on to feature matching and what feature matching does is it basically
+
+18
+00:01:28.500 --> 00:01:33.180
+extracts defining key features from an input image using a lot of the techniques that we've already
+
+19
+00:01:33.180 --> 00:01:36.770
+learned things like corner edge detection and contrair detection.
+
+20
+00:01:37.020 --> 00:01:42.210
+And then using a distance calculation it's going to find all the matches and a secondary image.
+
+21
+00:01:42.210 --> 00:01:47.970
+And what this means is we are no longer required to have an exact copy of the target image beat within
+
+22
+00:01:48.060 --> 00:01:49.440
+the secondary image.
+
+23
+00:01:49.470 --> 00:01:55.500
+So going back to the dog example I can now get some sort of generic picture of that dog's face looking
+
+24
+00:01:55.500 --> 00:02:01.650
+to the side and we can then use feature matching to see if we have some sort of likely feature match
+
+25
+00:02:01.920 --> 00:02:02.960
+in a larger image.
+
+26
+00:02:03.000 --> 00:02:05.620
+I no longer need that exact template to be there.
+
+27
+00:02:06.960 --> 00:02:12.060
+So here's another example of that on the left hand side we have our target image that we're looking
+
+28
+00:02:12.060 --> 00:02:18.930
+for and notice here is just a box of some sort of preprocessed food and on the right image we have the
+
+29
+00:02:18.930 --> 00:02:20.970
+actual image that we're searching.
+
+30
+00:02:20.970 --> 00:02:23.330
+Notice that the box is rotated.
+
+31
+00:02:23.340 --> 00:02:28.950
+It's not the exact image and with feature matching we can actually link up and see key features and
+
+32
+00:02:28.950 --> 00:02:30.370
+then link to where they match.
+
+33
+00:02:30.420 --> 00:02:31.640
+The secondary image.
+
+34
+00:02:31.710 --> 00:02:37.530
+We no longer need to scan as we did in template matching for a exact match.
+
+35
+00:02:37.550 --> 00:02:42.470
+This means this is a really powerful technique for real world applications where you're only going to
+
+36
+00:02:42.470 --> 00:02:49.460
+have a base image that is not an exact copy of what you expect to see in the secondary image and we're
+
+37
+00:02:49.460 --> 00:02:54.290
+going to be checking out three methods the first being brute force matching with or be the Scripters
+
+38
+00:02:54.590 --> 00:02:58.420
+the second being brute force matching with Sif descriptors and the ratio test.
+
+39
+00:02:58.580 --> 00:03:04.350
+And then the third one being the Flann based matcher what we're going to be testing is just a generic
+
+40
+00:03:04.350 --> 00:03:10.180
+serial image and seeing if we can find it's matching box in a real world image of the cereal aisle.
+
+41
+00:03:10.350 --> 00:03:10.860
+OK.
+
+42
+00:03:11.070 --> 00:03:12.300
+Let's get started.
+
+43
+00:03:12.300 --> 00:03:12.590
+All right.
+
+44
+00:03:12.600 --> 00:03:14.530
+Here I am at the Jupiter lab.
+
+45
+00:03:14.550 --> 00:03:18.590
+I've opened up a new notebook and I went ahead and copied and pasted from the feature matching note
+
+46
+00:03:18.600 --> 00:03:19.180
+book.
+
+47
+00:03:19.230 --> 00:03:23.610
+These import lines that we're gonna be using as well as the display function.
+
+48
+00:03:23.620 --> 00:03:27.370
+Notice the display function already has the same map default as gray.
+
+49
+00:03:27.540 --> 00:03:31.160
+So I will be using this to show the images a little larger first.
+
+50
+00:03:31.380 --> 00:03:34.470
+Let's go ahead and read in the images.
+
+51
+00:03:34.470 --> 00:03:38.280
+The first image we're going to call resus because it's say Reese's puffs cereal box.
+
+52
+00:03:38.340 --> 00:03:45.480
+So I will say CB2 image read data and then if you start typing out recess you should see a recent Puff's
+
+53
+00:03:45.810 --> 00:03:50.960
+thought PMG and pasan a zero so you can read it in as a greyscale.
+
+54
+00:03:50.970 --> 00:03:54.430
+This is the queery image.
+
+55
+00:03:54.560 --> 00:03:59.300
+So we're going to be essentially asking for where it's matching in the secondary image.
+
+56
+00:03:59.300 --> 00:04:00.650
+Our target image.
+
+57
+00:04:00.650 --> 00:04:03.900
+So if we scroll down here we can see the box of Reese's puffs.
+
+58
+00:04:04.010 --> 00:04:08.810
+You should notice that it's not really a photo of a box of recent puffs it's an actual just kind of
+
+59
+00:04:08.810 --> 00:04:12.790
+printout of the fronts of some typical racist puffs.
+
+60
+00:04:12.800 --> 00:04:14.620
+So that's what's really nice about this method.
+
+61
+00:04:14.660 --> 00:04:20.020
+I don't need an exact photo or an exact template of what I expect to see in my target image.
+
+62
+00:04:20.150 --> 00:04:22.230
+So it's actually take a look at the target image.
+
+63
+00:04:22.280 --> 00:04:23.660
+We're going to call that image.
+
+64
+00:04:23.840 --> 00:04:32.860
+Cereals to image read and will say data and if you start typing out many you should see many serials
+
+65
+00:04:32.860 --> 00:04:39.430
+that they paid pasand zero there and then let's display what cereal looks like.
+
+66
+00:04:40.170 --> 00:04:41.570
+And here's the cereals.
+
+67
+00:04:41.590 --> 00:04:44.790
+Notice this is actually a real picture of a cereal aisle.
+
+68
+00:04:44.970 --> 00:04:47.030
+And we have tons of different cereal some of them.
+
+69
+00:04:47.040 --> 00:04:48.470
+The boxes are a little crooked.
+
+70
+00:04:48.750 --> 00:04:52.160
+They're not exactly angled exactly towards the camera so they're not.
+
+71
+00:04:52.230 --> 00:04:55.150
+And none of them are actually front facing in the exact same way.
+
+72
+00:04:55.170 --> 00:05:00.420
+This images if you look over here on the bottom left this is the Reeses puffs cereal box.
+
+73
+00:05:00.420 --> 00:05:04.530
+You should also notice that it's not it's not exactly the exact same cereal box.
+
+74
+00:05:04.530 --> 00:05:09.720
+If we come back up to this original image this one here has family size at the top of the recent puff
+
+75
+00:05:09.720 --> 00:05:10.570
+cereal box.
+
+76
+00:05:10.830 --> 00:05:14.280
+And this is just a normal box of recesses not family size.
+
+77
+00:05:14.280 --> 00:05:18.160
+So keep in mind some of these other boxes do have family size on them.
+
+78
+00:05:18.180 --> 00:05:21.190
+So lucky charms and cinnamon toast crunch and Cheerios.
+
+79
+00:05:21.390 --> 00:05:23.770
+These all say family size at the top of them.
+
+80
+00:05:23.820 --> 00:05:26.270
+So that may affect our feature matching.
+
+81
+00:05:26.310 --> 00:05:31.050
+We may get some matches on the family size but then we get some matches on this Reese's puffs cereal
+
+82
+00:05:31.080 --> 00:05:31.640
+as well.
+
+83
+00:05:31.650 --> 00:05:35.010
+So we'll be exploring all of that through the three different methods.
+
+84
+00:05:35.890 --> 00:05:37.110
+First of all I'm going to do.
+
+85
+00:05:37.380 --> 00:05:43.170
+It's called brute force detection with RB descriptors and the first thing we do is we actually create
+
+86
+00:05:43.170 --> 00:05:54.810
+the detector so we will say oh our A B is equal to C-v 2 and then say oh Arbi underscore create and
+
+87
+00:05:54.810 --> 00:05:56.760
+this is now our detector object.
+
+88
+00:05:56.820 --> 00:06:03.200
+And what we do is we find the key points and descriptors off of this object so we say Oh.
+
+89
+00:06:03.210 --> 00:06:07.500
+RB dot and then start typing at the text.
+
+90
+00:06:07.500 --> 00:06:14.650
+And if you tab auto complete you want the text and compute and we're going to pasan resus.
+
+91
+00:06:14.690 --> 00:06:19.480
+So the image that we're looking for and then the second première are going to pass and is none.
+
+92
+00:06:19.520 --> 00:06:21.810
+So it takes in a possible mask.
+
+93
+00:06:21.830 --> 00:06:23.360
+We're not actually masking anything here.
+
+94
+00:06:23.360 --> 00:06:28.830
+So we're going to say there is no mask and this returns back to things key points.
+
+95
+00:06:29.650 --> 00:06:36.340
+And then there are descriptions so if you take a shift tab here to take the key points and compute the
+
+96
+00:06:36.340 --> 00:06:36.790
+script there.
+
+97
+00:06:36.790 --> 00:06:37.770
+So those are the two things.
+
+98
+00:06:37.780 --> 00:06:45.190
+It's returning here which we will call K.P. 1 and descriptors as the last one we're going to copy and
+
+99
+00:06:45.190 --> 00:06:48.430
+paste this and do the exact same thing.
+
+100
+00:06:48.550 --> 00:06:50.580
+But for cereals.
+
+101
+00:06:50.740 --> 00:06:57.740
+And then we'll change these from one to K.P. to end these two.
+
+102
+00:06:57.740 --> 00:06:58.160
+All right.
+
+103
+00:06:58.340 --> 00:07:04.310
+So all we're doing here is we created this detection object which detects computes features and then
+
+104
+00:07:04.310 --> 00:07:06.720
+we ran it on both the resus and cereals.
+
+105
+00:07:06.740 --> 00:07:10.790
+Essentially the target image and the larger secondary image.
+
+106
+00:07:10.790 --> 00:07:16.260
+Once you've done that it's time to create the matching objects as brute force matching.
+
+107
+00:07:16.370 --> 00:07:19.580
+So you going to see where the most matching is taking place.
+
+108
+00:07:19.900 --> 00:07:21.630
+So I'll say B-F for brute force.
+
+109
+00:07:21.770 --> 00:07:30.560
+And then we say CB2 brute force matcher and then one of the arguments I can provide here is actually
+
+110
+00:07:30.560 --> 00:07:36.200
+it's not detailed in the docstring is the actual way it's going to detect those matches and we can use
+
+111
+00:07:36.200 --> 00:07:45.750
+a default which is CB2 norm underscore hamming and then we'll also specify cross-check equal to Troost
+
+112
+00:07:45.900 --> 00:07:49.020
+essentially just a bunch of default printers here.
+
+113
+00:07:49.380 --> 00:07:53.150
+And then what we have is we can actually check where the matches occur.
+
+114
+00:07:53.640 --> 00:07:58.670
+We will say matches is equal to B-F matches.
+
+115
+00:07:58.700 --> 00:08:00.480
+Sorry B-F match.
+
+116
+00:08:00.560 --> 00:08:02.960
+And you can tag autocomplete to make sure that's correct.
+
+117
+00:08:03.020 --> 00:08:03.920
+B.F. match.
+
+118
+00:08:03.950 --> 00:08:12.140
+And we're going to pass into the Scripters we passen descriptors of set 1 and the Scripters of set to.
+
+119
+00:08:12.150 --> 00:08:16.780
+So now we have our matches and then we're going to sort them in order of their distance.
+
+120
+00:08:16.830 --> 00:08:21.720
+Lots of different ways you can do this really come away and you see this in the documentation is to
+
+121
+00:08:21.720 --> 00:08:25.200
+use a land expression along with the sorted method.
+
+122
+00:08:25.230 --> 00:08:35.350
+So what they like to do in the documentation is state that matches is equal to sorted matches where
+
+123
+00:08:35.410 --> 00:08:41.760
+key is equal to lambda X colon X thought distance.
+
+124
+00:08:42.530 --> 00:08:43.970
+So what does that actually mean.
+
+125
+00:08:43.970 --> 00:08:44.740
+Sorry it's distance.
+
+126
+00:08:44.750 --> 00:08:45.620
+No es there.
+
+127
+00:08:45.800 --> 00:08:47.900
+Well let's take a fresh look.
+
+128
+00:08:48.020 --> 00:08:50.030
+This matches what it actually is.
+
+129
+00:08:50.090 --> 00:08:53.270
+They are a bunch of specialized match objects.
+
+130
+00:08:53.450 --> 00:08:56.310
+And if we take a look at just one of them.
+
+131
+00:08:56.430 --> 00:08:58.900
+So let's take a look at a single match here.
+
+132
+00:08:58.920 --> 00:09:07.300
+So we'll say matches 0 and then take a look at a single match dot and then hit tab and you'll see that
+
+133
+00:09:07.300 --> 00:09:08.810
+they have a bunch of attributes.
+
+134
+00:09:08.810 --> 00:09:13.870
+You have a training index query but more importantly they have this distance attribute and the distance
+
+135
+00:09:13.900 --> 00:09:17.560
+attribute essentially clarifies how good of a match it was.
+
+136
+00:09:17.560 --> 00:09:23.330
+So the less distance it has that means it's better of a match the more distance it has.
+
+137
+00:09:23.470 --> 00:09:25.450
+Essentially means it's a worse match.
+
+138
+00:09:25.450 --> 00:09:28.810
+So what we can do is we can actually then sort these by distance.
+
+139
+00:09:28.930 --> 00:09:30.160
+You could do it with a for loop.
+
+140
+00:09:30.160 --> 00:09:35.640
+So just going around calculating but this kind of a clean one liner way of doing that.
+
+141
+00:09:35.680 --> 00:09:40.090
+So instead of manually checking the distance and then appending it to a fresh list we can do is just
+
+142
+00:09:40.090 --> 00:09:45.520
+call the sorted pass and the matches and then pasand this keyword on sorted of how we actually want
+
+143
+00:09:45.520 --> 00:09:50.290
+to match them or sort them I should say we're going to sort them by that distance attribute.
+
+144
+00:09:50.380 --> 00:09:55.930
+So now that we have our matches these matches are now sorted by their distance attribute.
+
+145
+00:09:55.930 --> 00:10:01.310
+Then we're going to say Riis's matches is equal to.
+
+146
+00:10:01.390 --> 00:10:06.330
+And we actually have a convenient function called draw matches.
+
+147
+00:10:06.330 --> 00:10:08.710
+So given these match objects we can then draw them.
+
+148
+00:10:08.820 --> 00:10:17.270
+So we will say receives and then we provide K.P. one the key points on PCs then we say cereal.
+
+149
+00:10:17.280 --> 00:10:21.840
+Make sure you spell that right and then say the key points to for the cereal.
+
+150
+00:10:22.230 --> 00:10:24.080
+And then you can provide all the matches.
+
+151
+00:10:24.090 --> 00:10:28.980
+But if you actually checked the length of the matches after you sort them out we're going to say check
+
+152
+00:10:28.980 --> 00:10:31.120
+the length of matches.
+
+153
+00:10:31.210 --> 00:10:33.120
+There's two hundred sixty five matches.
+
+154
+00:10:33.120 --> 00:10:35.100
+That's probably too much to visually display.
+
+155
+00:10:35.250 --> 00:10:37.240
+So let's just choose maybe the first 25.
+
+156
+00:10:37.350 --> 00:10:41.520
+So we're going to index matches starting from the beginning all the way to 25.
+
+157
+00:10:41.520 --> 00:10:45.300
+Isn't she just slicing a piece of that list for the matches.
+
+158
+00:10:45.300 --> 00:10:50.110
+The next parameter are going to provide is none because it's essentially asking if you want a mask there.
+
+159
+00:10:50.130 --> 00:10:54.980
+We don't want a mask and then finally we'll say flags and set that equal to two that essentially defines
+
+160
+00:10:54.990 --> 00:10:57.170
+how it's actually going to draw the matching.
+
+161
+00:10:57.180 --> 00:10:58.360
+So go ahead and run that.
+
+162
+00:10:58.410 --> 00:11:03.690
+And what's really nice about this function is it automatically then sticks together both your a target
+
+163
+00:11:03.690 --> 00:11:08.670
+image here that your queering and then the secondary larger image and then it's going to draw lines
+
+164
+00:11:08.910 --> 00:11:11.190
+of where it thinks it found that matches.
+
+165
+00:11:11.190 --> 00:11:13.920
+According to this detecting compute.
+
+166
+00:11:13.920 --> 00:11:15.890
+And you'll notice this one actually doesn't do that well.
+
+167
+00:11:16.110 --> 00:11:19.210
+We'll see some other ones in just a little bit that perform much better.
+
+168
+00:11:19.240 --> 00:11:22.580
+We're going to see Rhys's matches display that.
+
+169
+00:11:23.010 --> 00:11:23.850
+And here you go.
+
+170
+00:11:23.850 --> 00:11:26.420
+So here are the top 25 matches features.
+
+171
+00:11:26.520 --> 00:11:28.830
+You can see right now that none of them are very good.
+
+172
+00:11:28.830 --> 00:11:31.890
+In fact none of them actually even point to Reese's puffs.
+
+173
+00:11:31.920 --> 00:11:37.410
+So this sort of brute force protection with or be Scriptures doesn't always work especially if your
+
+174
+00:11:37.410 --> 00:11:42.110
+image doesn't really look like the target image or the image that you're queering.
+
+175
+00:11:42.180 --> 00:11:44.190
+And there's a couple of problems of our image.
+
+176
+00:11:44.190 --> 00:11:50.920
+One is that we have this family size which isn't even present in the box of the other one.
+
+177
+00:11:51.030 --> 00:11:55.860
+And then the other issue is that it's a little distorted here because it's twisted a little bit and
+
+178
+00:11:55.860 --> 00:11:56.560
+it's on the bottom.
+
+179
+00:11:56.560 --> 00:12:03.580
+Plus we have a lot of other objects in this picture that look very similar to the target image.
+
+180
+00:12:03.600 --> 00:12:08.690
+So for these sort of tasks we're going to need some more sophisticated methods of feature matching.
+
+181
+00:12:08.850 --> 00:12:11.140
+And we're going to set up those two much better methods.
+
+182
+00:12:11.160 --> 00:12:13.480
+In part two of this lecture series.
+
+183
+00:12:13.530 --> 00:12:17.250
+So coming up next we're going to check out brute force matching with SIFF descriptors and the ratio
+
+184
+00:12:17.250 --> 00:12:22.530
+test and the Flann based matter which we'll be able to detect the match over here on this Reese's puffs
+
+185
+00:12:22.650 --> 00:12:24.780
+box cereal we'll see at the next lecture.

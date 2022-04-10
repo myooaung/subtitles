@@ -1,0 +1,409 @@
+WEBVTT
+1
+00:00:01.940 --> 00:00:06.940
+So to do this, we use something called an AccessControlContext.
+
+2
+00:00:06.940 --> 00:00:13.040
+And in fact, this is what the underlying JRE uses all along.
+
+3
+00:00:13.040 --> 00:00:20.340
+So the AccessControlContext provides security context information.
+
+4
+00:00:20.340 --> 00:00:23.580
+It essentially gives us back the complete security context,
+
+5
+00:00:23.580 --> 00:00:27.100
+i.e., so if you're on a given thread in a given stack frame,
+
+6
+00:00:27.100 --> 00:00:30.290
+and we ask for the AccessControlContext,
+
+7
+00:00:30.290 --> 00:00:33.430
+what we'll get back from this is the complete security
+
+8
+00:00:33.430 --> 00:00:36.990
+context for where we are currently, so where we are in the stack frame,
+
+9
+00:00:36.990 --> 00:00:39.170
+where we are inside the call.
+
+10
+00:00:39.170 --> 00:00:43.440
+And the AccessControlContext is actually what the
+
+11
+00:00:43.440 --> 00:00:47.340
+AccessController uses when it does its stack walk.
+
+12
+00:00:47.340 --> 00:00:52.090
+For each stack frame, the AccessController actually reaches out,
+
+13
+00:00:52.090 --> 00:00:57.820
+obtains an AccessControlContext, and uses that to do its security checks.
+
+14
+00:00:57.820 --> 00:01:00.400
+And the way it does the security checks is by calling
+
+15
+00:01:00.400 --> 00:01:04.740
+accessControlContext.checkPermission.
+
+16
+00:01:04.740 --> 00:01:09.330
+If this call in the current frame succeeds, we go to the next stack frame.
+
+17
+00:01:09.330 --> 00:01:12.410
+On the next stack frame, we get an AccessControlContext,
+
+18
+00:01:12.410 --> 00:01:16.450
+we call its checkPermission, and then we keep walking up the stack frame.
+
+19
+00:01:16.450 --> 00:01:21.210
+And another job of the AccessControlContext is to manage the ProtectionDomains.
+
+20
+00:01:21.210 --> 00:01:25.260
+So the AccessControlContext will eliminate duplicate ProtectionDomains,
+
+21
+00:01:25.260 --> 00:01:30.940
+for example, to make sure these things aren't checked multiple times.
+
+22
+00:01:30.940 --> 00:01:32.460
+So how do we get an AccessControlContext?
+
+23
+00:01:32.460 --> 00:01:35.870
+Well, we can get one of these things in one of three ways.
+
+24
+00:01:35.870 --> 00:01:40.210
+We can call AccessController.getContext,
+
+25
+00:01:40.210 --> 00:01:43.850
+and that gives us the AccessControlContext of the
+
+26
+00:01:43.850 --> 00:01:47.140
+current thread they'll be running on.
+
+27
+00:01:47.140 --> 00:01:50.990
+We can also do the new AccessControlContext and pass to
+
+28
+00:01:50.990 --> 00:01:53.320
+it an the array of ProtectionDomains.
+
+29
+00:01:53.320 --> 00:01:58.360
+Or we can create a new AccessControlContext and pass it
+
+30
+00:01:58.360 --> 00:02:02.420
+something called a DomainCombiner. When something tries to
+
+31
+00:02:02.420 --> 00:02:06.880
+use the AccessControlContext, they call the DomainCombiner's combine method,
+
+32
+00:02:06.880 --> 00:02:09.920
+and it's the job of the DomainCombiner's combine method to
+
+33
+00:02:09.920 --> 00:02:13.310
+combine together the ProtectionDomains that are going to be
+
+34
+00:02:13.310 --> 00:02:15.820
+used by this AccessControlContext.
+
+35
+00:02:15.820 --> 00:02:20.140
+So you can see in the first case we can give access to the
+
+36
+00:02:20.140 --> 00:02:23.640
+AccessControlContext that's used by the JRE by default.
+
+37
+00:02:23.640 --> 00:02:27.650
+In the second case, we can create an AccessControlContext out of clean cloth.
+
+38
+00:02:27.650 --> 00:02:29.390
+And in the third case,
+
+39
+00:02:29.390 --> 00:02:33.550
+we can create an AccessControlContext by using information from the current
+
+40
+00:02:33.550 --> 00:02:38.940
+control context and other information that we provide.
+
+41
+00:02:38.940 --> 00:02:40.680
+So where's this typically used?
+
+42
+00:02:40.680 --> 00:02:41.890
+Now we can use this directly,
+
+43
+00:02:41.890 --> 00:02:45.360
+so we can use the AccessControlContext to do a checkPermission.
+
+44
+00:02:45.360 --> 00:02:47.560
+And again, just like the AccessController,
+
+45
+00:02:47.560 --> 00:02:51.640
+it will throw a security exception if the check fails.
+
+46
+00:02:51.640 --> 00:02:54.920
+However, this does not do a stack walk.
+
+47
+00:02:54.920 --> 00:02:57.580
+So the AccessControlContext here will just check that
+
+48
+00:02:57.580 --> 00:03:01.040
+this stack frame has permission.
+
+49
+00:03:01.040 --> 00:03:03.260
+So if you need that fine‑grained check,
+
+50
+00:03:03.260 --> 00:03:06.690
+you'd use the accessControlContext.checkPermission rather than the
+
+51
+00:03:06.690 --> 00:03:09.440
+AccessController checkPermission . And we see some code here.
+
+52
+00:03:09.440 --> 00:03:11.830
+We're not seeing how we got the AccessControlContext
+
+53
+00:03:11.830 --> 00:03:13.540
+here; we just know we have one.
+
+54
+00:03:13.540 --> 00:03:15.410
+Once we have one, we can call this checkPermission,
+
+55
+00:03:15.410 --> 00:03:17.490
+and we can pass it a PropertyPermission.
+
+56
+00:03:17.490 --> 00:03:18.170
+So in this case,
+
+57
+00:03:18.170 --> 00:03:22.390
+we're looking to see if I can read or write for a given property.
+
+58
+00:03:22.390 --> 00:03:25.640
+Now, the most likely use of AccessControlContext,
+
+59
+00:03:25.640 --> 00:03:31.580
+though, is to do something called a privileged block execution.
+
+60
+00:03:31.580 --> 00:03:32.570
+And what this does is,
+
+61
+00:03:32.570 --> 00:03:35.740
+it sets the context on the call stack and essentially
+
+62
+00:03:35.740 --> 00:03:38.200
+prevents the stack walk going any further.
+
+63
+00:03:38.200 --> 00:03:42.380
+The way we do this is by creating something called a PrivilegedAction.
+
+64
+00:03:42.380 --> 00:03:45.690
+The PrivilegedAction has a run method.
+
+65
+00:03:45.690 --> 00:03:49.850
+We do the check inside the run method, but that prevents the stack walk,
+
+66
+00:03:49.850 --> 00:03:52.640
+as we only check things inside the run method.
+
+67
+00:03:52.640 --> 00:03:54.090
+So the code looks like this.
+
+68
+00:03:54.090 --> 00:03:58.580
+We call AccessController.doPrivileged and we create a new
+
+69
+00:03:58.580 --> 00:04:00.930
+PrivilegedAction with a run method.
+
+70
+00:04:00.930 --> 00:04:04.540
+When we do this, the run method will execute.
+
+71
+00:04:04.540 --> 00:04:06.760
+Notice that we can pass this an
+
+72
+00:04:06.760 --> 00:04:09.820
+AccessControlContext to use inside the run method,
+
+73
+00:04:09.820 --> 00:04:13.840
+or we can just use the current AccessControlContext.
+
+74
+00:04:13.840 --> 00:04:17.520
+Either way, the code that runs inside this run method,
+
+75
+00:04:17.520 --> 00:04:21.340
+the AccessController permission check is done here.
+
+76
+00:04:21.340 --> 00:04:24.840
+We don't try and walk the stack any further.
+
+77
+00:04:24.840 --> 00:04:26.670
+So earlier, we saw this slide,
+
+78
+00:04:26.670 --> 00:04:30.180
+and here we said that we have two methods on the stack frame.
+
+79
+00:04:30.180 --> 00:04:31.560
+We have the Main method,
+
+80
+00:04:31.560 --> 00:04:35.890
+and then we create a FileWriter, and we have the FileWriter's write method.
+
+81
+00:04:35.890 --> 00:04:40.200
+And we said that the FileWriter is always trusted because the FileWriter
+
+82
+00:04:40.200 --> 00:04:44.110
+comes from the JRE libraries, that location's always trusted,
+
+83
+00:04:44.110 --> 00:04:46.740
+but that the Main method may not be trusted.
+
+84
+00:04:46.740 --> 00:04:49.700
+And in this case, we said that we have a full stack walk.
+
+85
+00:04:49.700 --> 00:04:53.650
+So when we call writer.write, that will be trusted.
+
+86
+00:04:53.650 --> 00:04:55.400
+But that's not good enough, so we walk up the stack
+
+87
+00:04:55.400 --> 00:04:59.240
+frame, and Main is untrusted, and that throws an exception.
+
+88
+00:04:59.240 --> 00:05:00.160
+So we said we had this.
+
+89
+00:05:00.160 --> 00:05:04.960
+We call Main, Main calls writer.write, Main is untrusted,
+
+90
+00:05:04.960 --> 00:05:06.830
+but FileWriter was trusted.
+
+91
+00:05:06.830 --> 00:05:09.790
+And this was an issue, and it was an issue because,
+
+92
+00:05:09.790 --> 00:05:13.970
+as we just said, if one of those things on the stack frame is untrusted,
+
+93
+00:05:13.970 --> 00:05:17.540
+then we'd like an exception to be thrown.
+
+94
+00:05:17.540 --> 00:05:20.100
+However, sometimes that's not the scenario.
+
+95
+00:05:20.100 --> 00:05:22.830
+Sometimes the scenario is that something on the stack frame is
+
+96
+00:05:22.830 --> 00:05:26.290
+untrusted, but there is something trusted on the stack frame
+
+97
+00:05:26.290 --> 00:05:30.690
+that you want to always trust, regardless of the context.
+
+98
+00:05:30.690 --> 00:05:33.380
+So imagine a scenario where you're trying to audit code,
+
+99
+00:05:33.380 --> 00:05:36.810
+for example. That audit class might always want to be trusted.
+
+100
+00:05:36.810 --> 00:05:39.840
+You always want to write the audit message out, regardless of
+
+101
+00:05:39.840 --> 00:05:43.990
+whatever else is on the stack frame. And that's what we get
+
+102
+00:05:43.990 --> 00:05:53.000
+by using privileged execution. So let's take a look at a demo of that now.
+

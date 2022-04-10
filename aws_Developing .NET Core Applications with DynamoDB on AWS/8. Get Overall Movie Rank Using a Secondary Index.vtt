@@ -1,0 +1,293 @@
+WEBVTT
+1
+00:00:02.399 --> 00:00:03.197
+For our last endpoint,
+
+2
+00:00:03.197 --> 00:00:06.659
+we want to be able to give the average ranking for a specific
+
+3
+00:00:06.659 --> 00:00:10.781
+movie based on all users that have ranked a movie.
+
+4
+00:00:10.781 --> 00:00:11.312
+Up until now,
+
+5
+00:00:11.312 --> 00:00:15.730
+we have been able to get everything we wanted using the partition and sort
+
+6
+00:00:15.730 --> 00:00:19.477
+key that we set when we created our MovieRank table.
+
+7
+00:00:19.477 --> 00:00:22.275
+To be able to get all ranked movies from all users,
+
+8
+00:00:22.275 --> 00:00:25.156
+we will be using our secondary index.
+
+9
+00:00:25.156 --> 00:00:28.119
+We could use the scan function, but as we know,
+
+10
+00:00:28.119 --> 00:00:32.463
+the scan method is expensive, so it makes sense to create a secondary index,
+
+11
+00:00:32.463 --> 00:00:36.470
+so we can use the query method instead.
+
+12
+00:00:36.470 --> 00:00:41.684
+We will add our HttpGet attribute, and add a route with squiggly brackets,
+
+13
+00:00:41.684 --> 00:00:42.629
+movieName/ranking.
+
+14
+00:00:42.629 --> 00:00:47.770
+Our method will return our Task MovieRankResponse,
+
+15
+00:00:47.770 --> 00:00:53.006
+and our method name will be GetMoviesRanking.
+
+16
+00:00:53.006 --> 00:00:54.965
+We will add movieName into the method's parameters,
+
+17
+00:00:54.965 --> 00:00:57.433
+and inside our method,
+
+18
+00:00:57.433 --> 00:01:00.501
+we will call off to our MovieRankedService class to
+
+19
+00:01:00.501 --> 00:01:05.013
+a method called GetMovieRank, and pass in the movieName.
+
+20
+00:01:05.013 --> 00:01:10.114
+We'll also pass back the result that we get back to our user.
+
+21
+00:01:10.114 --> 00:01:17.172
+In our MovieRankService class, we'll create a method named GetMovieRank,
+
+22
+00:01:17.172 --> 00:01:20.530
+and add our movieName parameter.
+
+23
+00:01:20.530 --> 00:01:21.359
+Inside our method,
+
+24
+00:01:21.359 --> 00:01:26.971
+we'll call off to our MovieRepository class to a method named GetMovieRank,
+
+25
+00:01:26.971 --> 00:01:30.325
+and pass in the movieName.
+
+26
+00:01:30.325 --> 00:01:32.583
+We still have a bit more code to add into this method,
+
+27
+00:01:32.583 --> 00:01:35.747
+but we'll first jump into the MovieRankRepository class,
+
+28
+00:01:35.747 --> 00:01:39.567
+and create the code needed to get our movie and their
+
+29
+00:01:39.567 --> 00:01:42.540
+rankings using our secondary index.
+
+30
+00:01:42.540 --> 00:01:45.657
+Inside our MovieRankRepository class,
+
+31
+00:01:45.657 --> 00:01:49.442
+we will create a method with a return type of Task IEnumerable MovieDb,
+
+32
+00:01:49.442 --> 00:01:53.655
+and call our method GetMovieRank.
+
+33
+00:01:53.655 --> 00:01:57.706
+We will have a movieName parameter, and inside our method,
+
+34
+00:01:57.706 --> 00:02:02.645
+we need to create a new DynamoDBOperationConfig.
+
+35
+00:02:02.645 --> 00:02:07.460
+And inside this, we'll set the index name of our secondary index.
+
+36
+00:02:07.460 --> 00:02:12.700
+In our case, we named our index MovieName-index.
+
+37
+00:02:12.700 --> 00:02:13.870
+Using our DynamoDB context,
+
+38
+00:02:13.870 --> 00:02:18.724
+we can use the QueryAsync method with the MovieDb type argument,
+
+39
+00:02:18.724 --> 00:02:23.270
+and pass into this method the movieName and also
+
+40
+00:02:23.270 --> 00:02:25.409
+our config that we created above.
+
+41
+00:02:25.409 --> 00:02:30.544
+We need to add GetRemainingAsync to tell DynamoDB to give us all results.
+
+42
+00:02:30.544 --> 00:02:36.944
+We also need to add the secondary index attribute to our MovieDb class.
+
+43
+00:02:36.944 --> 00:02:38.904
+So let's head over to our MovieDb class,
+
+44
+00:02:38.904 --> 00:02:46.737
+and add in DynamoDBGlobalSecondaryIndexHashKey above MovieName.
+
+45
+00:02:46.737 --> 00:02:52.479
+As you might remember, we set our secondary index partition key as MovieName.
+
+46
+00:02:52.479 --> 00:02:54.967
+We'll add our GetMovieRank method to our interface,
+
+47
+00:02:54.967 --> 00:02:57.504
+and we'll head back to our MovieService class.
+
+48
+00:02:57.504 --> 00:02:59.642
+As it stands now,
+
+49
+00:02:59.642 --> 00:03:02.861
+we will get back the movie we are requesting with
+
+50
+00:03:02.861 --> 00:03:05.950
+all the rankings from all users.
+
+51
+00:03:05.950 --> 00:03:10.350
+However, we want to get the overall ranking of that specific movie.
+
+52
+00:03:10.350 --> 00:03:13.841
+So we need to add a little C# code here in order to do that.
+
+53
+00:03:13.841 --> 00:03:18.487
+We'll use the Math.Round, and inside the Math.Round method,
+
+54
+00:03:18.487 --> 00:03:22.465
+we will use our response that we got back from DynamoDB,
+
+55
+00:03:22.465 --> 00:03:25.368
+and use the link Select method.
+
+56
+00:03:25.368 --> 00:03:29.519
+Here we can say x lambda, x.Ranking .Average,
+
+57
+00:03:29.519 --> 00:03:36.250
+and this will take all our separate rankings and average them for us.
+
+58
+00:03:36.250 --> 00:03:39.073
+We'll add the System and link using statement.
+
+59
+00:03:39.073 --> 00:03:42.372
+We then want to return back to the user a MovieRankResponse.
+
+60
+00:03:42.372 --> 00:03:46.460
+First we need to head over to our MovieRankResponse
+
+61
+00:03:46.460 --> 00:03:53.433
+class and add in two properties, MovieName and OverallRanking.
+
+62
+00:03:53.433 --> 00:03:58.442
+Back in our MovieRankService class, we will now say return new MovieRankResponse,
+
+63
+00:03:58.442 --> 00:04:02.400
+and map our response MovieName to movieName,
+
+64
+00:04:02.400 --> 00:04:07.640
+and the overallRanking with our ranking average that we worked out above.
+
+65
+00:04:07.640 --> 00:04:09.732
+We'll add this method to our IMovieRankService interface,
+
+66
+00:04:09.732 --> 00:04:15.671
+we'll save our application, and we'll build it.
+
+67
+00:04:15.671 --> 00:04:18.407
+If we run our application, and we head over to Postman,
+
+68
+00:04:18.407 --> 00:04:24.487
+we can enter our localhost and port, along with a movie name.
+
+69
+00:04:24.487 --> 00:04:28.915
+Here we'll use The Secret at Purple Hill with /ranking.
+
+70
+00:04:28.915 --> 00:04:31.412
+We'll hit Send,
+
+71
+00:04:31.412 --> 00:04:36.314
+and we've got back an overall ranking for the movie The Secret at Purple Hill.
+
+72
+00:04:36.314 --> 00:04:39.962
+This has used all user's rankings and given us the
+
+73
+00:04:39.962 --> 00:04:46.000
+average ranking for that movie. I'll also save this to our MovieRank collection.
+

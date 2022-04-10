@@ -1,0 +1,873 @@
+WEBVTT
+1
+00:00:04.387 --> 00:00:08.184
+But the first bit that I'm going to show you is this tool Locust,
+
+2
+00:00:08.184 --> 00:00:14.882
+which we're going to use to beat up on that Elastic Beanstalk instance
+
+3
+00:00:14.882 --> 00:00:21.375
+that we created yesterday with our TodoMVC application.
+
+4
+00:00:21.375 --> 00:00:21.722
+So,
+
+5
+00:00:21.722 --> 00:00:26.899
+the first bit that you're going to want to note about using Locust is if
+
+6
+00:00:26.899 --> 00:00:32.605
+you're on a MAC or if you're on an operating system that limits the number of
+
+7
+00:00:32.605 --> 00:00:37.037
+open files that any process can have at given time,
+
+8
+00:00:37.037 --> 00:00:40.860
+you are going to need to raise that limit to use Locust because
+
+9
+00:00:40.860 --> 00:00:46.310
+it does open a file on the file system for every simulated user
+
+10
+00:00:46.310 --> 00:00:48.730
+that it throws against your system.
+
+11
+00:00:48.730 --> 00:00:53.722
+On a MAC, the command to do that is ulimit -n 1000,
+
+12
+00:00:53.722 --> 00:00:58.166
+and that, in the context of this terminal session,
+
+13
+00:00:58.166 --> 00:01:02.608
+will raise the possible open files to, in this case,
+
+14
+00:01:02.608 --> 00:01:03.496
+a 1000.
+
+15
+00:01:03.496 --> 00:01:05.150
+You can raise it up a little bit more from there,
+
+16
+00:01:05.150 --> 00:01:09.148
+but it has to be more than however many concurrent users
+
+17
+00:01:09.148 --> 00:01:12.934
+you want to test in your application.
+
+18
+00:01:12.934 --> 00:01:15.630
+If you haven't installed Locust,
+
+19
+00:01:15.630 --> 00:01:21.562
+the easiest way to do it is to pip install locust.
+
+20
+00:01:21.562 --> 00:01:25.490
+I think it might be actually locustio, one of those two.
+
+21
+00:01:25.490 --> 00:01:31.621
+And it'll be installed using the pip package manager.
+
+22
+00:01:31.621 --> 00:01:33.998
+And once you have it installed on your system,
+
+23
+00:01:33.998 --> 00:01:37.474
+you'll have this command called locust to which you will
+
+24
+00:01:37.474 --> 00:01:41.123
+pass a host that you want to test against,
+
+25
+00:01:41.123 --> 00:01:48.255
+and it'll run a simulated load against the server that you pass in this command.
+
+26
+00:01:48.255 --> 00:01:54.539
+But before you do that, you have to create something called a locust file.
+
+27
+00:01:54.539 --> 00:01:59.438
+And I have a very simple one here that's going to generate
+
+28
+00:01:59.438 --> 00:02:04.248
+a whole bunch of requests and push a whole bunch of fake
+
+29
+00:02:04.248 --> 00:02:06.809
+data into our todos database.
+
+30
+00:02:06.809 --> 00:02:16.415
+So, at the core of this is a Python class called a UserBehavior,
+
+31
+00:02:16.415 --> 00:02:24.071
+and that class has a set of tasks that it can execute against your website.
+
+32
+00:02:24.071 --> 00:02:29.088
+So, with each of these Python functions,
+
+33
+00:02:29.088 --> 00:02:35.393
+they are passed an instance of the Locust object,
+
+34
+00:02:35.393 --> 00:02:44.368
+and each Locust object has a HTTP client which you can use to send a post
+
+35
+00:02:44.368 --> 00:02:48.854
+request or a get request to the host of your choosing.
+
+36
+00:02:48.854 --> 00:02:52.007
+And you can also pass in parameters like,
+
+37
+00:02:52.007 --> 00:02:58.602
+in this case, I'm generating some fake text to put into the todo items.
+
+38
+00:02:58.602 --> 00:03:04.092
+So it's another package called faker, which generates some fake data,
+
+39
+00:03:04.092 --> 00:03:09.457
+some lorem ipsum text that'll insert into a todo list item.
+
+40
+00:03:09.457 --> 00:03:13.448
+Then we'll set the completed for each of these items to false.
+
+41
+00:03:13.448 --> 00:03:17.446
+And then the other action we have is a read against our API,
+
+42
+00:03:17.446 --> 00:03:24.338
+which will, by default, grab the last 1000 todo items from the database.
+
+43
+00:03:24.338 --> 00:03:25.594
+In our behavior,
+
+44
+00:03:25.594 --> 00:03:31.092
+we define that for every 1 create operation we want to execute 5 reads.
+
+45
+00:03:31.092 --> 00:03:33.390
+And you can, in your Python code,
+
+46
+00:03:33.390 --> 00:03:38.160
+kind of tweak this to be as close to an actual usage scenario
+
+47
+00:03:38.160 --> 00:03:44.393
+for a user of your site as you possibly can.
+
+48
+00:03:44.393 --> 00:03:44.811
+Question?
+
+49
+00:03:44.811 --> 00:03:49.407
+Do they have any safeguards in the tool to prevent you
+
+50
+00:03:49.407 --> 00:03:51.215
+from doing nefarious things with this?
+
+51
+00:03:51.215 --> 00:03:54.548
+It seems like you could --- Like denial of service.
+
+52
+00:03:54.548 --> 00:03:56.234
+Right.
+
+53
+00:03:56.234 --> 00:03:58.252
+Not in the tool.
+
+54
+00:03:58.252 --> 00:03:58.756
+No,
+
+55
+00:03:58.756 --> 00:04:04.696
+I mean I think most applications probably will blacklist an IP eventually
+
+56
+00:04:04.696 --> 00:04:09.934
+like if it seems to be involved in some evil doing.
+
+57
+00:04:09.934 --> 00:04:15.210
+But generally, that's like --- yeah, I guess it's not Locust's problem.
+
+58
+00:04:15.210 --> 00:04:20.128
+It's more of an our problem as application developers.
+
+59
+00:04:20.128 --> 00:04:21.681
+But that's its job.
+
+60
+00:04:21.681 --> 00:04:27.924
+It's job is to simulate high amounts of load against an application.
+
+61
+00:04:27.924 --> 00:04:35.253
+So, here we have in the WebsiteUser class,
+
+62
+00:04:35.253 --> 00:04:40.880
+we set our set of tasks to be some kind of user behavior,
+
+63
+00:04:40.880 --> 00:04:46.075
+and then we specify a min and a max wait time,
+
+64
+00:04:46.075 --> 00:04:48.023
+which will, in milliseconds,
+
+65
+00:04:48.023 --> 00:04:52.090
+determine like a lower bound and an upper bound between requests
+
+66
+00:04:52.090 --> 00:04:55.000
+from this simulated user in the application.
+
+67
+00:04:55.000 --> 00:04:59.196
+And there's a ton more that you can do.
+
+68
+00:04:59.196 --> 00:05:01.957
+You can send login requests.
+
+69
+00:05:01.957 --> 00:05:06.543
+You can --- excuse me, let me shut these down here.
+
+70
+00:05:06.543 --> 00:05:10.066
+You can send login requests so you can get authentication
+
+71
+00:05:10.066 --> 00:05:13.334
+cookies back and execute authenticated requests.
+
+72
+00:05:13.334 --> 00:05:20.286
+There are lots of different ways you can configure this simulated session.
+
+73
+00:05:20.286 --> 00:05:23.226
+So, once we have our Locust file generated,
+
+74
+00:05:23.226 --> 00:05:29.921
+we're going to use the Locast command to target this todomvc-plusplus
+
+75
+00:05:29.921 --> 00:05:36.508
+instance running on elasticbeanstalk in the us-west-2 region.
+
+76
+00:05:36.508 --> 00:05:38.545
+So, when we start that up,
+
+77
+00:05:38.545 --> 00:05:44.245
+that's going to start a local web server that I can open
+
+78
+00:05:44.245 --> 00:05:50.213
+up here in my browser on port 8089.
+
+79
+00:05:50.213 --> 00:05:51.943
+And it's going to ask us for two things.
+
+80
+00:05:51.943 --> 00:05:56.444
+It's going to be the number of users to simulate and the hatch rate,
+
+81
+00:05:56.444 --> 00:06:01.613
+which is how often users are added to the list of users that
+
+82
+00:06:01.613 --> 00:06:04.272
+are going to be spamming our application.
+
+83
+00:06:04.272 --> 00:06:05.439
+So for starters,
+
+84
+00:06:05.439 --> 00:06:09.018
+maybe we'll start with something relatively small for 100
+
+85
+00:06:09.018 --> 00:06:12.868
+users hatching at a rate of 10 per second.
+
+86
+00:06:12.868 --> 00:06:19.480
+We're going to launch that load at our website and see how we're doing.
+
+87
+00:06:19.480 --> 00:06:24.971
+So, as we are executing the test and we can execute it for as long as we like,
+
+88
+00:06:24.971 --> 00:06:32.102
+we see the number of requests going into our get and our post endpoints.
+
+89
+00:06:32.102 --> 00:06:35.233
+It starts to mount slowly over time.
+
+90
+00:06:35.233 --> 00:06:40.404
+And with 100 users on prior tests, I think it tops out at around,
+
+91
+00:06:40.404 --> 00:06:43.863
+with these settings, it'll be like around 20,
+
+92
+00:06:43.863 --> 00:06:45.885
+25 requests per second.
+
+93
+00:06:45.885 --> 00:06:51.295
+And, we can see the min and the max time for a response,
+
+94
+00:06:51.295 --> 00:06:53.411
+and that time is in milliseconds.
+
+95
+00:06:53.411 --> 00:06:56.751
+And then we can look at the average and the median
+
+96
+00:06:56.751 --> 00:06:59.902
+response times from the server as well.
+
+97
+00:06:59.902 --> 00:07:03.142
+So for a load like this one,
+
+98
+00:07:03.142 --> 00:07:07.764
+our server is usually able to respond in a reasonable amount of time.
+
+99
+00:07:07.764 --> 00:07:13.011
+The post //todos is where you create a new one is quite a bit faster,
+
+100
+00:07:13.011 --> 00:07:16.478
+returning in an average of about 127 milliseconds,
+
+101
+00:07:16.478 --> 00:07:19.828
+but that read, because I have been spamming this quite a bit,
+
+102
+00:07:19.828 --> 00:07:21.609
+there are quite a few records in the database,
+
+103
+00:07:21.609 --> 00:07:28.611
+it's a little bit slower at about 400 milliseconds on average.
+
+104
+00:07:28.611 --> 00:07:35.748
+And it's creeping up a little bit already as we're starting to tax
+
+105
+00:07:35.748 --> 00:07:40.391
+our Elastic Beanstalk instances a little bit more.
+
+106
+00:07:40.391 --> 00:07:42.795
+But, our instances do stay up.
+
+107
+00:07:42.795 --> 00:07:48.414
+We haven't seen any failures or 500s yet, so that is a good thing.
+
+108
+00:07:48.414 --> 00:07:53.959
+Now to see what's kind of happening on the other end of this,
+
+109
+00:07:53.959 --> 00:07:57.683
+let's go into the Elastic Beanstalk administrative interface.
+
+110
+00:07:57.683 --> 00:08:00.888
+If we look at the health section here,
+
+111
+00:08:00.888 --> 00:08:05.811
+we can take a look at what's actually going on with the EC2
+
+112
+00:08:05.811 --> 00:08:07.930
+instances that are serving this traffic.
+
+113
+00:08:07.930 --> 00:08:10.561
+So right now with our scaling roles as they are,
+
+114
+00:08:10.561 --> 00:08:14.585
+we only have a single instance which is serving all of this traffic.
+
+115
+00:08:14.585 --> 00:08:22.222
+And it's CPU utilization is hovering at right around 50%.
+
+116
+00:08:22.222 --> 00:08:24.096
+So, at the moment,
+
+117
+00:08:24.096 --> 00:08:30.743
+this single instance is not having too much trouble keeping up with the load,
+
+118
+00:08:30.743 --> 00:08:36.722
+although our average response times do keep creeping up so that's
+
+119
+00:08:36.722 --> 00:08:40.590
+probably something that we could investigate.
+
+120
+00:08:40.590 --> 00:08:42.351
+If we turn up the heat a little bit,
+
+121
+00:08:42.351 --> 00:08:46.475
+then we can start to see like where our application is going to break down.
+
+122
+00:08:46.475 --> 00:08:52.054
+So I'll stop this test, and I'll create a new one.
+
+123
+00:08:52.054 --> 00:08:53.963
+And this time,
+
+124
+00:08:53.963 --> 00:08:58.416
+we'll simulate 900 concurrent users maybe hatching
+
+125
+00:08:58.416 --> 00:09:03.481
+at a rate of about 25 per second,
+
+126
+00:09:03.481 --> 00:09:10.294
+which is going to really start taxing our poor little T2 micro
+
+127
+00:09:10.294 --> 00:09:13.633
+instance running on Elastic Beanstalk right now.
+
+128
+00:09:13.633 --> 00:09:20.589
+So we can already see the average response times going way up as
+
+129
+00:09:20.589 --> 00:09:26.176
+our single instance struggles to keep up with what is a pretty
+
+130
+00:09:26.176 --> 00:09:29.474
+heavy load for its current configuration.
+
+131
+00:09:29.474 --> 00:09:32.772
+And if we go back over here to our health check,
+
+132
+00:09:32.772 --> 00:09:36.632
+we can see, yeah, it's already starting to blow up a little bit.
+
+133
+00:09:36.632 --> 00:09:40.915
+Our CPU usage has creeped up to about 92%,
+
+134
+00:09:40.915 --> 00:09:44.787
+so it's starting to be taxed a little more.
+
+135
+00:09:44.787 --> 00:09:49.990
+But what we should see in a minute or so is Elastic Beanstalk
+
+136
+00:09:49.990 --> 00:09:54.542
+reacting to this situation and our auto-scaling group is
+
+137
+00:09:54.542 --> 00:09:58.036
+actually going to provision another instance of our application
+
+138
+00:09:58.036 --> 00:10:01.349
+to start serving this traffic.
+
+139
+00:10:01.349 --> 00:10:05.967
+It does take a minute, but we can configure those preferences.
+
+140
+00:10:05.967 --> 00:10:10.165
+I've actually been messing around with this a little bit and this is
+
+141
+00:10:10.165 --> 00:10:12.235
+something that you can do as you're load testing your application to
+
+142
+00:10:12.235 --> 00:10:18.554
+see like what kind of scaling criteria you can bring to bear to
+
+143
+00:10:18.554 --> 00:10:21.507
+ensure a consistent response time.
+
+144
+00:10:21.507 --> 00:10:26.412
+So, if I look at the scaling configuration,
+
+145
+00:10:26.412 --> 00:10:32.889
+I can take a look at like my auto scaling options.
+
+146
+00:10:32.889 --> 00:10:34.762
+I fiddled with these a little bit from the default.
+
+147
+00:10:34.762 --> 00:10:40.046
+The default was having a minimum of one instance available and a maximum of 4.
+
+148
+00:10:40.046 --> 00:10:44.536
+I tuned up the maximum instances to 6.
+
+149
+00:10:44.536 --> 00:10:47.782
+And I also tuned down this scaling cooldown.
+
+150
+00:10:47.782 --> 00:10:49.816
+Sixty seconds is going to be far too short,
+
+151
+00:10:49.816 --> 00:10:53.063
+but I wanted to make sure we saw some more instances
+
+152
+00:10:53.063 --> 00:10:55.333
+getting provisioned during the test here.
+
+153
+00:10:55.333 --> 00:10:58.184
+So this is basically the delay time.
+
+154
+00:10:58.184 --> 00:11:03.085
+So after some condition is reached where it's decided that
+
+155
+00:11:03.085 --> 00:11:06.770
+another instance needs to be provisioned,
+
+156
+00:11:06.770 --> 00:11:13.288
+this is the cooldown in seconds that Amazon will for sure wait until it
+
+157
+00:11:13.288 --> 00:11:17.238
+provisions another instance to start serving traffic.
+
+158
+00:11:17.238 --> 00:11:18.772
+And the scaling triggers,
+
+159
+00:11:18.772 --> 00:11:23.432
+these you'll want to tune based on what you're able to
+
+160
+00:11:23.432 --> 00:11:25.555
+discover about your application.
+
+161
+00:11:25.555 --> 00:11:27.364
+In the default settings,
+
+162
+00:11:27.364 --> 00:11:34.059
+I look at the amount of data that you're pushing out over the network,
+
+163
+00:11:34.059 --> 00:11:38.259
+but there are other bits here as well.
+
+164
+00:11:38.259 --> 00:11:41.423
+The one that we might take a look at using instead for this
+
+165
+00:11:41.423 --> 00:11:46.732
+application is maybe CPUUtilization where we could take a
+
+166
+00:11:46.732 --> 00:11:50.573
+look at the upper threshold, which would be maybe 90.
+
+167
+00:11:50.573 --> 00:11:54.151
+We can change the unit of measurement to percentage.
+
+168
+00:11:54.151 --> 00:11:59.561
+So if the CPU threshold reaches 90 or 80%,
+
+169
+00:11:59.561 --> 00:12:05.328
+that's when we'd actually start looking at spinning up another instance,
+
+170
+00:12:05.328 --> 00:12:08.101
+and then we can also set the lower threshold for when
+
+171
+00:12:08.101 --> 00:12:11.737
+it's time to rotate an instance out.
+
+172
+00:12:11.737 --> 00:12:17.743
+So I'll cancel that for now, head back to the dashboard,
+
+173
+00:12:17.743 --> 00:12:22.723
+and what we should see is our environment is okay,
+
+174
+00:12:22.723 --> 00:12:25.462
+but as more instances are being available,
+
+175
+00:12:25.462 --> 00:12:31.561
+Locust is going to continue to suck up the ability to pepper them with requests.
+
+176
+00:12:31.561 --> 00:12:35.035
+And we can see their average response time is now up
+
+177
+00:12:35.035 --> 00:12:41.391
+to about 17 seconds on average, which is not awesome.
+
+178
+00:12:41.391 --> 00:12:44.476
+But, to help spread the load a little bit,
+
+179
+00:12:44.476 --> 00:12:51.595
+we do have another instance that was just brought online 2 minutes ago.
+
+180
+00:12:51.595 --> 00:12:55.201
+And it looks like it hasn't started serving very much traffic yet.
+
+181
+00:12:55.201 --> 00:12:57.665
+It must have been provisioned recently,
+
+182
+00:12:57.665 --> 00:13:01.583
+but now it is up to 92% utilization as well.
+
+183
+00:13:01.583 --> 00:13:05.089
+So, we're going to probably, at this level of load,
+
+184
+00:13:05.089 --> 00:13:08.849
+max out each of these tiny little servers pretty quick.
+
+185
+00:13:08.849 --> 00:13:12.073
+But, the good news is we're not falling over.
+
+186
+00:13:12.073 --> 00:13:16.053
+Well, it looks like we have had some failures,
+
+187
+00:13:16.053 --> 00:13:19.149
+quite a few actually at this level.
+
+188
+00:13:19.149 --> 00:13:22.438
+At the lower levels I was testing, I wasn't actually seeing any failures.
+
+189
+00:13:22.438 --> 00:13:24.961
+But that's what you want to start to check and see like at what level
+
+190
+00:13:24.961 --> 00:13:27.899
+your application is going to start to break down.
+
+191
+00:13:27.899 --> 00:13:31.761
+And what we can look at when we have the failures over
+
+192
+00:13:31.761 --> 00:13:36.220
+here is the error that we're getting from the HTTP client
+
+193
+00:13:36.220 --> 00:13:38.403
+which is running the request.
+
+194
+00:13:38.403 --> 00:13:46.043
+Here we can see we have a 504 error against our Elastic Beanstalk instance,
+
+195
+00:13:46.043 --> 00:13:52.558
+which is probably related to just not having the --- the timeouts are
+
+196
+00:13:52.558 --> 00:13:57.287
+happening because we just lack the capacity to service the number of
+
+197
+00:13:57.287 --> 00:14:01.402
+requests that are coming up against the service.
+
+198
+00:14:01.402 --> 00:14:03.828
+So, based on our criteria,
+
+199
+00:14:03.828 --> 00:14:07.947
+we'll probably continue to provision instances up until 6.
+
+200
+00:14:07.947 --> 00:14:15.301
+But the primary thing I wanted to show here was the ability to use this
+
+201
+00:14:15.301 --> 00:14:21.375
+tool to at least understand how much traffic your website can take
+
+202
+00:14:21.375 --> 00:14:24.475
+before it is completely brought to its knees.
+
+203
+00:14:24.475 --> 00:14:24.810
+So,
+
+204
+00:14:24.810 --> 00:14:28.159
+a site like --- there are a few like random
+
+205
+00:14:28.159 --> 00:14:30.942
+statistics out there that you can find,
+
+206
+00:14:30.942 --> 00:14:35.830
+like an open street map serves about 10-20 requests per second.
+
+207
+00:14:35.830 --> 00:14:38.078
+There are a lot of sites which serve actually quite a bit
+
+208
+00:14:38.078 --> 00:14:41.011
+more across many thousands of servers.
+
+209
+00:14:41.011 --> 00:14:44.848
+But based on your site's traffic,
+
+210
+00:14:44.848 --> 00:14:49.084
+you can ensure that at certain levels of concurrent users
+
+211
+00:14:49.084 --> 00:14:54.479
+you're going to remain available at that level.
+
+212
+00:14:54.479 --> 00:14:57.511
+So that is Locust.
+
+213
+00:14:57.511 --> 00:15:02.471
+We'll let my poor Elastic Beanstalk instance relax a little bit.
+
+214
+00:15:02.471 --> 00:15:08.024
+But after a test like this, we see that with the size of the instances we have,
+
+215
+00:15:08.024 --> 00:15:14.872
+we definitely become CPU bound really fast at those high levels of traffic.
+
+216
+00:15:14.872 --> 00:15:18.021
+So that is Locust.
+
+217
+00:15:18.021 --> 00:15:19.596
+It's, again,
+
+218
+00:15:19.596 --> 00:15:28.000
+my favorite tool that I've found for doing this kind of load testing stuff. Definitely recommend that you check it out.
+

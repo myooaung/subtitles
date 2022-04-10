@@ -1,0 +1,372 @@
+1
+00:00:01,818 --> 00:00:04,042
+Once your application grows, and there are dozens,
+
+2
+00:00:04,042 --> 00:00:08,663
+hundreds, or even possibly thousands of message types on your queues or topics,
+
+3
+00:00:08,663 --> 00:00:11,298
+maintaining message serializers becomes a real hassle.
+
+4
+00:00:11,298 --> 00:00:12,704
+For every new message type,
+
+5
+00:00:12,704 --> 00:00:17,238
+we need to decide how best to represent that object as a JMS message.
+
+6
+00:00:17,238 --> 00:00:19,006
+How do you break the object members down,
+
+7
+00:00:19,006 --> 00:00:21,994
+do you store them as message properties or in the body?
+
+8
+00:00:21,994 --> 00:00:25,920
+In my experience, for the most part, I don't really care.
+
+9
+00:00:25,920 --> 00:00:28,649
+I'm more concerned about delivering business value,
+
+10
+00:00:28,649 --> 00:00:30,958
+writing boilerplate serialization routines in my mind
+
+11
+00:00:30,958 --> 00:00:32,952
+takes my focus away from this task.
+
+12
+00:00:32,952 --> 00:00:35,699
+So for the majority of applications I work with,
+
+13
+00:00:35,699 --> 00:00:39,802
+I use some form of message converter that takes standard Java objects
+
+14
+00:00:39,802 --> 00:00:43,122
+and converts them into some form of version stream,
+
+15
+00:00:43,122 --> 00:00:45,708
+suitable for an easy and efficient serialization.
+
+16
+00:00:45,708 --> 00:00:48,724
+The standard JMS implementations allow you to serialize an
+
+17
+00:00:48,724 --> 00:00:50,689
+object directly using the object message type,
+
+18
+00:00:50,689 --> 00:00:54,390
+but there isn't really a concept of versioning in Java serialization,
+
+19
+00:00:54,390 --> 00:00:57,583
+therefore I generally find this inadequate.
+
+20
+00:00:57,583 --> 00:01:00,712
+So what I tend to do is create another Bean that can be used to
+
+21
+00:01:00,712 --> 00:01:03,920
+serialize and deserialize business objects into a form that can be
+
+22
+00:01:03,920 --> 00:01:05,275
+easily placed on the JMS destination.
+
+23
+00:01:05,275 --> 00:01:09,182
+There was an example of this in the module on using Spring Framework.
+
+24
+00:01:09,182 --> 00:01:13,088
+And in fact even without using the Spring Framework as a whole,
+
+25
+00:01:13,088 --> 00:01:15,723
+it is possible to use the JMS message converters available in
+
+26
+00:01:15,723 --> 00:01:17,674
+the Spring Framework JMS support libraries.
+
+27
+00:01:17,674 --> 00:01:21,094
+So if you really want a simple way of doing this,
+
+28
+00:01:21,094 --> 00:01:22,735
+then I'll suggest looking at those.
+
+29
+00:01:22,735 --> 00:01:24,238
+If not, and you want to roll your own,
+
+30
+00:01:24,238 --> 00:01:27,864
+then I thought I would provide a simple example of how you can go about this.
+
+31
+00:01:27,864 --> 00:01:31,018
+So here is a simple interface called MessageConverter.
+
+32
+00:01:31,018 --> 00:01:33,581
+It has two methods, one which serializes a message,
+
+33
+00:01:33,581 --> 00:01:36,607
+and another which deserializes it, pretty obvious.
+
+34
+00:01:36,607 --> 00:01:41,351
+The serialize method takes a JMS context as a parameter and
+
+35
+00:01:41,351 --> 00:01:43,135
+the business object to be serialized.
+
+36
+00:01:43,135 --> 00:01:45,665
+If you do not have access to the JMS 2 libraries,
+
+37
+00:01:45,665 --> 00:01:50,406
+then you would need to replace the JMSContext with a JMSSession object instead.
+
+38
+00:01:50,406 --> 00:01:54,634
+The deserialize method simply takes the JMSMessage as a parameter.
+
+39
+00:01:54,634 --> 00:01:57,018
+So, I've created an implementation of the messageConvert,
+
+40
+00:01:57,018 --> 00:01:59,133
+which I'm calling JsonMessageConverter,
+
+41
+00:01:59,133 --> 00:02:03,009
+as that is the serialized technique I will be using.
+
+42
+00:02:03,009 --> 00:02:03,256
+Now,
+
+43
+00:02:03,256 --> 00:02:05,847
+I'm not saying JSON is the most efficient format into
+
+44
+00:02:05,847 --> 00:02:07,574
+which you can serialize your objects,
+
+45
+00:02:07,574 --> 00:02:11,076
+both in terms of compute and physical size once serialized; however,
+
+46
+00:02:11,076 --> 00:02:12,071
+it is one of the easiest,
+
+47
+00:02:12,071 --> 00:02:14,529
+and the same concepts can be used for some other format,
+
+48
+00:02:14,529 --> 00:02:16,940
+be that binary or textual.
+
+49
+00:02:16,940 --> 00:02:20,512
+Inside my MessageConverter, I've implemented the serialize method,
+
+50
+00:02:20,512 --> 00:02:24,883
+which I use the JMSContext to create a new text message,
+
+51
+00:02:24,883 --> 00:02:27,798
+and then call this other method called writeContextToTextMessage.
+
+52
+00:02:27,798 --> 00:02:32,499
+I'm going to be using Jackson 2 for mapping my objects into and from JSON.
+
+53
+00:02:32,499 --> 00:02:35,080
+The main object used for this is the ObjectMapper.
+
+54
+00:02:35,080 --> 00:02:38,739
+It has a large number of configuration options that allow
+
+55
+00:02:38,739 --> 00:02:42,875
+it to be extended for serializing unknown types or known
+
+56
+00:02:42,875 --> 00:02:43,738
+types in different formats.
+
+57
+00:02:43,738 --> 00:02:46,231
+I'm not going to go into it here, but if required,
+
+58
+00:02:46,231 --> 00:02:48,272
+go and look up the documentation for it.
+
+59
+00:02:48,272 --> 00:02:50,395
+In the writeContentsToTextMessage method,
+
+60
+00:02:50,395 --> 00:02:54,884
+I'm using the ObjectMapper to convert the business object into a string,
+
+61
+00:02:54,884 --> 00:02:56,659
+which is in the JSON format.
+
+62
+00:02:56,659 --> 00:03:00,292
+I'm then placing a string within the main body of the text message.
+
+63
+00:03:00,292 --> 00:03:03,241
+I'm also setting a string property with the fully-qualified name
+
+64
+00:03:03,241 --> 00:03:06,165
+of the business object we are serializing.
+
+65
+00:03:06,165 --> 00:03:08,630
+The deserialize method is the opposite,
+
+66
+00:03:08,630 --> 00:03:10,822
+I'll read the fully-qualified class name from the
+
+67
+00:03:10,822 --> 00:03:12,504
+string property on the message.
+
+68
+00:03:12,504 --> 00:03:17,170
+I then find the class for that name, and pass it to the Jackson 2 objectMapper,
+
+69
+00:03:17,170 --> 00:03:19,578
+which reads the contents of the message body and
+
+70
+00:03:19,578 --> 00:03:21,770
+converts it back into our business object.
+
+71
+00:03:21,770 --> 00:03:26,256
+So let's see how this affects our message senders and message-driven Beans.
+
+72
+00:03:26,256 --> 00:03:27,948
+in the JMS 2 messageSender,
+
+73
+00:03:27,948 --> 00:03:31,008
+I'm declaring an overloaded version of the sendMessage method,
+
+74
+00:03:31,008 --> 00:03:33,859
+which takes the destination as the first parameter,
+
+75
+00:03:33,859 --> 00:03:38,147
+the second parameter, however, is now a generic business object.
+
+76
+00:03:38,147 --> 00:03:41,237
+The implementation of this method is now fairly simple.
+
+77
+00:03:41,237 --> 00:03:43,723
+I inject the messageConverter object I've created,
+
+78
+00:03:43,723 --> 00:03:47,236
+I could then use this to serialize my business object
+
+79
+00:03:47,236 --> 00:03:50,026
+into a JMS message and simply send it.
+
+80
+00:03:50,026 --> 00:03:53,893
+So let's briefly look at the client for this, which is the emailSender.
+
+81
+00:03:53,893 --> 00:03:56,715
+I've now created another method called sendEmail,
+
+82
+00:03:56,715 --> 00:03:59,381
+which takes an email object as the parameter.
+
+83
+00:03:59,381 --> 00:04:02,991
+This can now very simply call our messageSender with the name of
+
+84
+00:04:02,991 --> 00:04:05,461
+the destination and the email object itself.
+
+85
+00:04:05,461 --> 00:04:07,740
+Receiving a message isn't much different.
+
+86
+00:04:07,740 --> 00:04:12,968
+In my message-driven Bean, I again inject the messageConverter EJB,
+
+87
+00:04:12,968 --> 00:04:16,007
+this time when I receive a message, I call deserialize,
+
+88
+00:04:16,007 --> 00:04:17,982
+and get an instance of my business object,
+
+89
+00:04:17,982 --> 00:04:19,470
+which in this case is an email,
+
+90
+00:04:19,470 --> 00:04:21,694
+and therefore I output the contents to the console.
+
+91
+00:04:21,694 --> 00:04:25,359
+So the advantage of this approach is that we are working
+
+92
+00:04:25,359 --> 00:04:26,738
+directly with our business object.
+
+93
+00:04:26,738 --> 00:04:35,000
+All the JMS APIs and implementations are not getting in the way of that, so it reads as much cleaner code.
+

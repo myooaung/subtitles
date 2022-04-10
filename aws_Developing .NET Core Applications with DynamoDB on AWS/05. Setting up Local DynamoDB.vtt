@@ -1,0 +1,401 @@
+WEBVTT
+1
+00:00:00.940 --> 00:00:03.840
+Let's create our TestContext class.
+
+2
+00:00:03.840 --> 00:00:08.940
+This class will contain the code to spin up, an in‑memory test server.
+
+3
+00:00:08.940 --> 00:00:15.710
+It will configure how HTTP Client and download and run our local DynamoDB Docker
+
+4
+00:00:15.710 --> 00:00:22.520
+image. In our TestContext class, the first thing that we'll be adding is these
+
+5
+00:00:22.520 --> 00:00:28.100
+IAsyncLifetime interface. Adding this interface allows us to bring in the
+
+6
+00:00:28.100 --> 00:00:32.040
+initialize async and dispose async methods.
+
+7
+00:00:32.040 --> 00:00:36.540
+These methods will run straight after our constructor of the class.
+
+8
+00:00:36.540 --> 00:00:37.610
+You might be thinking,
+
+9
+00:00:37.610 --> 00:00:41.180
+why might we need this when we can call or initialize any
+
+10
+00:00:41.180 --> 00:00:43.740
+method from inside our constructor?
+
+11
+00:00:43.740 --> 00:00:44.400
+Well,
+
+12
+00:00:44.400 --> 00:00:48.720
+the next piece of code that we'll be adding to this class will be to pull down,
+
+13
+00:00:48.720 --> 00:00:53.300
+run, and start our local instance of DynamoDB inside a Docker
+
+14
+00:00:53.300 --> 00:00:57.890
+container. The InitializeAsync and DisposeAsync methods are
+
+15
+00:00:57.890 --> 00:01:02.120
+asynchronous and calling asynchronous methods from a constructor is
+
+16
+00:01:02.120 --> 00:01:05.640
+tough work when trying to avoid async deadlocks.
+
+17
+00:01:05.640 --> 00:01:08.600
+Thankfully, XUnit has us covered.
+
+18
+00:01:08.600 --> 00:01:12.440
+Let's create the InitializeAsync method and add the appropriate using
+
+19
+00:01:12.440 --> 00:01:19.910
+statements. Using the Docker .NET library, we are going to set up our
+
+20
+00:01:19.910 --> 00:01:24.550
+client that allows us to interact with our Docker engine. To quickly
+
+21
+00:01:24.550 --> 00:01:29.110
+explain what the Docker engine is, the Docker engine is the underlying
+
+22
+00:01:29.110 --> 00:01:33.990
+client server technology that builds and runs containers using Docker's
+
+23
+00:01:33.990 --> 00:01:36.440
+components and services.
+
+24
+00:01:36.440 --> 00:01:39.610
+At the top of our class, we will add a field with the type
+
+25
+00:01:39.610 --> 00:01:44.780
+DockerClient named _dockerClient, and we'll add the Docker
+
+26
+00:01:44.780 --> 00:01:48.980
+.NET using statement. Next,
+
+27
+00:01:48.980 --> 00:01:52.550
+we will initialize and configure our client inside our class'
+
+28
+00:01:52.550 --> 00:01:56.690
+constructor. Using our field that we have created above,
+
+29
+00:01:56.690 --> 00:02:02.920
+we will say _dockerClient new DockerClientConfiguration, and we need to pass
+
+30
+00:02:02.920 --> 00:02:08.760
+in the URL required to talk to the Docker engine. To do this, we can use a
+
+31
+00:02:08.760 --> 00:02:18.180
+named pipe and we'll chain onto this method CreateClient. Now we have our
+
+32
+00:02:18.180 --> 00:02:23.670
+client set up, we can write the code needed to pull our Docker image. We want
+
+33
+00:02:23.670 --> 00:02:30.030
+to use a local instance of DynamoDB, so we'll pull down the Amazon DynamoDB
+
+34
+00:02:30.030 --> 00:02:37.960
+‑local. We create a method named PullImage, and using our dockerClient, we
+
+35
+00:02:37.960 --> 00:02:43.970
+were used the method .Images.createImageAsync. We need to new up an
+
+36
+00:02:43.970 --> 00:02:51.800
+ImagesCreateParameters where we can pass in our Docker image name. Using the
+
+37
+00:02:51.800 --> 00:02:57.570
+FromImages property, we will add the image that we want to pull down. Because
+
+38
+00:02:57.570 --> 00:03:01.990
+we'll be using this image in multiple places, we will add a constant to the
+
+39
+00:03:01.990 --> 00:03:05.240
+top of our class that will store our image name.
+
+40
+00:03:05.240 --> 00:03:10.740
+In our case, we want to use the Amazon DynamoDB local Docker image.
+
+41
+00:03:10.740 --> 00:03:16.540
+As you might have seen, we have passed this into our FromImage property.
+
+42
+00:03:16.540 --> 00:03:19.540
+We will also add the property name Tag.
+
+43
+00:03:19.540 --> 00:03:22.770
+We want to grab the latest DynamoDB image so we'll
+
+44
+00:03:22.770 --> 00:03:25.740
+add latest to the tag property.
+
+45
+00:03:25.740 --> 00:03:28.440
+We new up an auth config.
+
+46
+00:03:28.440 --> 00:03:32.840
+If we needed to add a username and password to access our Docker image,
+
+47
+00:03:32.840 --> 00:03:34.640
+we could add that here.
+
+48
+00:03:34.640 --> 00:03:35.220
+However,
+
+49
+00:03:35.220 --> 00:03:38.730
+we are able to download the DynamoDB local Docker image
+
+50
+00:03:38.730 --> 00:03:42.240
+anonymously, so we can lead this empty.
+
+51
+00:03:42.240 --> 00:03:45.840
+We are also required to initialize the Progress class.
+
+52
+00:03:45.840 --> 00:03:48.310
+This gives us the ability to check on the progress
+
+53
+00:03:48.310 --> 00:03:50.240
+of pulling down the Docker image.
+
+54
+00:03:50.240 --> 00:03:52.840
+For now, we'll leave this blank.
+
+55
+00:03:52.840 --> 00:03:53.630
+Finally,
+
+56
+00:03:53.630 --> 00:03:58.340
+we'll add a call to our PullImage method inside our InitializeAsync method.
+
+57
+00:03:58.340 --> 00:04:04.040
+Remember that this method will be run directly after the class's constructor.
+
+58
+00:04:04.040 --> 00:04:08.940
+Now that we have our image, we want to create and start our Docker container.
+
+59
+00:04:08.940 --> 00:04:12.540
+Let's create a method named StartContainer.
+
+60
+00:04:12.540 --> 00:04:13.820
+Inside this method,
+
+61
+00:04:13.820 --> 00:04:18.110
+we will create a variable named response, and using the dockerClient,
+
+62
+00:04:18.110 --> 00:04:22.270
+we will say Containers.CreateContainerAsync and new
+
+63
+00:04:22.270 --> 00:04:24.940
+up a create container parameters.
+
+64
+00:04:24.940 --> 00:04:29.440
+This is where we are able to set up our container parameters.
+
+65
+00:04:29.440 --> 00:04:33.540
+We will pass in the Docker image that we've just pulled down.
+
+66
+00:04:33.540 --> 00:04:37.690
+We want to expose the port 8000 to allow us to interact with our
+
+67
+00:04:37.690 --> 00:04:41.830
+Docker container. Inside the exposed port property,
+
+68
+00:04:41.830 --> 00:04:48.740
+we want to new up a dictionary with a key of string and value of empty strut.
+
+69
+00:04:48.740 --> 00:04:52.740
+This is what's required by the exposed port property.
+
+70
+00:04:52.740 --> 00:04:58.330
+Then we'll add to the dictionary the key 8000 and default EmptyStruct as the
+
+71
+00:04:58.330 --> 00:05:06.240
+value. We next want to add to the hostconfig property.
+
+72
+00:05:06.240 --> 00:05:10.670
+So we'll say new HostConflg PortBindings and add the
+
+73
+00:05:10.670 --> 00:05:14.640
+dictionary string list port binding.
+
+74
+00:05:14.640 --> 00:05:16.220
+Inside this dictionary,
+
+75
+00:05:16.220 --> 00:05:21.000
+we will add the key of 8000, and for the value, we will add
+
+76
+00:05:21.000 --> 00:05:26.440
+PortBinding assigning it to the HostPort property of 8000.
+
+77
+00:05:26.440 --> 00:05:28.760
+We need to ensure that all of our ports are
+
+78
+00:05:28.760 --> 00:05:30.980
+published when our container starts up.
+
+79
+00:05:30.980 --> 00:05:34.800
+So we'll add PublishAllPorts = true.
+
+80
+00:05:34.800 --> 00:05:38.750
+This ensures that all ports are published and we have access to them
+
+81
+00:05:38.750 --> 00:05:42.740
+allowing us to interact with our Docker container.
+
+82
+00:05:42.740 --> 00:05:45.090
+Using the response that we get back from the
+
+83
+00:05:45.090 --> 00:05:49.210
+CreateContainerAsync call, we store the container ID into a
+
+84
+00:05:49.210 --> 00:05:56.040
+field named _containerid and say = response.ID.
+
+85
+00:05:56.040 --> 00:05:58.530
+We don't have a container ID field yet,
+
+86
+00:05:58.530 --> 00:06:02.940
+so let's add that to the top of our class.
+
+87
+00:06:02.940 --> 00:06:05.690
+Now we can add the code needed to start our
+
+88
+00:06:05.690 --> 00:06:09.070
+container. Again, using our dockerClient,
+
+89
+00:06:09.070 --> 00:06:14.410
+we will say Containers.StartContainerAsync and pass in the containerId
+
+90
+00:06:14.410 --> 00:06:19.160
+and we don't need to add any container start parameters so we'll just
+
+91
+00:06:19.160 --> 00:06:24.820
+say null. And we add a call to the StartContainer method inside our
+
+92
+00:06:24.820 --> 00:06:28.960
+InitializeAsync method. When our tasks are finished running, we want
+
+93
+00:06:28.960 --> 00:06:30.940
+to kill our container.
+
+94
+00:06:30.940 --> 00:06:34.340
+Let's add the DisposeAsync method to our class.
+
+95
+00:06:34.340 --> 00:06:35.270
+If you remember,
+
+96
+00:06:35.270 --> 00:06:41.340
+this is part of the IAsyncLifetime interface that we added to our class earlier.
+
+97
+00:06:41.340 --> 00:06:42.530
+Inside this method,
+
+98
+00:06:42.530 --> 00:06:46.740
+we will first check to make sure that the container ID exists.
+
+99
+00:06:46.740 --> 00:06:48.690
+If the container ID exists,
+
+100
+00:06:48.690 --> 00:07:01.000
+then we'll use the dockerClient to call .Containers.KillContainerAsync and pass in the container ID in an empty ContainerKillParameters.
+

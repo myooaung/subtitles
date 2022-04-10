@@ -1,0 +1,353 @@
+WEBVTT
+1
+00:00:01.140 --> 00:00:02.450
+In this demo,
+
+2
+00:00:02.450 --> 00:00:07.120
+we're first going to learn about how you can use local
+
+3
+00:00:07.120 --> 00:00:10.840
+assets to build a Lambda‑backed API.
+
+4
+00:00:10.840 --> 00:00:16.740
+So you're going to see how although the Lambda function is stored locally,
+
+5
+00:00:16.740 --> 00:00:22.440
+CDK is still able to deploy the Lambda function.
+
+6
+00:00:22.440 --> 00:00:23.340
+Secondly,
+
+7
+00:00:23.340 --> 00:00:28.650
+we'll talk about how you can use additional CDK
+
+8
+00:00:28.650 --> 00:00:31.600
+modules using Python setup tools.
+
+9
+00:00:31.600 --> 00:00:37.480
+Remember that each AWS service can actually have its own CDK module,
+
+10
+00:00:37.480 --> 00:00:40.440
+and you will need to import each one.
+
+11
+00:00:40.440 --> 00:00:46.640
+Third, you're going to actually deploy the app using the CDK CLI.
+
+12
+00:00:46.640 --> 00:00:54.440
+And finally, we're going to view these resulting resources on CloudFormation.
+
+13
+00:00:54.440 --> 00:00:54.840
+Now,
+
+14
+00:00:54.840 --> 00:00:57.450
+let's first take a look at the Lambda function that we're
+
+15
+00:00:57.450 --> 00:01:00.840
+actually going to end up deploying.
+
+16
+00:01:00.840 --> 00:01:02.750
+You can see here on my left side,
+
+17
+00:01:02.750 --> 00:01:08.340
+I have a Lambda API folder with a welcome.py file.
+
+18
+00:01:08.340 --> 00:01:11.130
+This is a very straightforward Lambda function.
+
+19
+00:01:11.130 --> 00:01:15.790
+All it does is it takes in a query string parameter,
+
+20
+00:01:15.790 --> 00:01:22.740
+and then it returns that query string parameter as a Hello message.
+
+21
+00:01:22.740 --> 00:01:26.530
+So if we pass in the query parameter name,
+
+22
+00:01:26.530 --> 00:01:32.040
+then it's going to say Hello name or Hello, Zenon.
+
+23
+00:01:32.040 --> 00:01:39.440
+This just returns a plain text type, so nothing fancy, just a simple API.
+
+24
+00:01:39.440 --> 00:01:45.840
+We need to put this, however, behind an API gateway.
+
+25
+00:01:45.840 --> 00:01:49.040
+Now, let's look at the app.py file.
+
+26
+00:01:49.040 --> 00:01:54.890
+We will need to change this app.py file into something that can
+
+27
+00:01:54.890 --> 00:02:00.740
+create our Lambda function and API gateway.
+
+28
+00:02:00.740 --> 00:02:03.940
+Now, let's first look at what we have so far.
+
+29
+00:02:03.940 --> 00:02:05.070
+So far,
+
+30
+00:02:05.070 --> 00:02:15.240
+we have this app.py file which creates an app object from the core CDK library.
+
+31
+00:02:15.240 --> 00:02:20.750
+This app object is actually passed to the infrastructure CDK
+
+32
+00:02:20.750 --> 00:02:26.140
+stack constructor as the stack's scope.
+
+33
+00:02:26.140 --> 00:02:30.680
+We're also passing in a label for this stack.
+
+34
+00:02:30.680 --> 00:02:35.760
+This label will actually be the name of the CloudFormation stack
+
+35
+00:02:35.760 --> 00:02:38.330
+that the CDK template is going to provision,
+
+36
+00:02:38.330 --> 00:02:42.240
+so this is just an arbitrary label.
+
+37
+00:02:42.240 --> 00:02:46.410
+Finally, we need to pass in the context information.
+
+38
+00:02:46.410 --> 00:02:47.310
+Particularly,
+
+39
+00:02:47.310 --> 00:02:56.540
+we need to pass in what environment information we need to deploy this stack in.
+
+40
+00:02:56.540 --> 00:03:03.550
+In this case, we're deploying this stack to the us‑west‑2 region,
+
+41
+00:03:03.550 --> 00:03:07.950
+and we'll show later how we can change this to whatever default
+
+42
+00:03:07.950 --> 00:03:13.040
+region is configured in your CDK environment.
+
+43
+00:03:13.040 --> 00:03:17.030
+We will also need to edit the stack that was created
+
+44
+00:03:17.030 --> 00:03:20.340
+from the default CDK template.
+
+45
+00:03:20.340 --> 00:03:23.950
+This current stack just deploys an sqs.Queue.
+
+46
+00:03:23.950 --> 00:03:25.670
+We don't want an sqs.Queue.
+
+47
+00:03:25.670 --> 00:03:32.740
+So we're going to remove all of the contents of this stack,
+
+48
+00:03:32.740 --> 00:03:36.350
+and we're also going to remove all of the libraries that we
+
+49
+00:03:36.350 --> 00:03:42.140
+imported because we don't need any of these libraries.
+
+50
+00:03:42.140 --> 00:03:47.630
+Let's actually import the libraries we're going to use for this Lambda function.
+
+51
+00:03:47.630 --> 00:03:51.140
+So I'm going to import the Lambda library,
+
+52
+00:03:51.140 --> 00:03:58.740
+and I'm going to import the AWS API Gateway library as well.
+
+53
+00:03:58.740 --> 00:04:01.410
+Let's also choose more meaningful names,
+
+54
+00:04:01.410 --> 00:04:05.260
+and we're going to call this class the LambdaStack.
+
+55
+00:04:05.260 --> 00:04:09.740
+We're also going to rename this file into Lambda_Stack.
+
+56
+00:04:09.740 --> 00:04:14.340
+Now, let's take a look at the components of this function.
+
+57
+00:04:14.340 --> 00:04:20.150
+First off, the constructor of this class again takes in the scope,
+
+58
+00:04:20.150 --> 00:04:25.440
+which is the application that we're creating in app.py,
+
+59
+00:04:25.440 --> 00:04:31.370
+the id, which is of type string or just the label for this stack,
+
+60
+00:04:31.370 --> 00:04:35.410
+as well as additional arguments that could be the context,
+
+61
+00:04:35.410 --> 00:04:41.040
+for example, the environment you want this stack to be deployed in.
+
+62
+00:04:41.040 --> 00:04:47.140
+Now, like any Python class, we're going to start by initializing the constructor,
+
+63
+00:04:47.140 --> 00:04:55.040
+so we're going to keep this line from the original CDK default app.
+
+64
+00:04:55.040 --> 00:05:01.530
+Now, let's create our hello_function, so we're going to create hello_function,
+
+65
+00:05:01.530 --> 00:05:05.540
+which is of type lambda.Function.
+
+66
+00:05:05.540 --> 00:05:11.640
+Now, lambda.Function takes in several arguments for its constructor.
+
+67
+00:05:11.640 --> 00:05:14.080
+So we're going to pass in the self,
+
+68
+00:05:14.080 --> 00:05:19.130
+we're then going to pass in the label for this lambda.Function.
+
+69
+00:05:19.130 --> 00:05:23.240
+In this case, WelcomeHandler.
+
+70
+00:05:23.240 --> 00:05:28.200
+We're also going to pass in the runtime environment for this lambda.Function.
+
+71
+00:05:28.200 --> 00:05:35.740
+So the runtime environment for this lambda.Function is going to be Python 3.7.
+
+72
+00:05:35.740 --> 00:05:42.780
+This lambda.Function runtime is actually part of the AWS CDK libraries,
+
+73
+00:05:42.780 --> 00:05:48.540
+so we just put lambda.Runtime.PYTHON_3_7.
+
+74
+00:05:48.540 --> 00:05:52.900
+Finally, we need to specify where our code is located.
+
+75
+00:05:52.900 --> 00:06:01.540
+Notice here that our code is located in our local environment.
+
+76
+00:06:01.540 --> 00:06:02.030
+Finally,
+
+77
+00:06:02.030 --> 00:06:04.910
+we need to specify what the handler function is
+
+78
+00:06:04.910 --> 00:06:08.140
+going to be for this Lambda code.
+
+79
+00:06:08.140 --> 00:06:10.120
+Next, we need to specify our API gateway,
+
+80
+00:06:10.120 --> 00:06:16.340
+or we need to provision our API gateway.
+
+81
+00:06:16.340 --> 00:06:21.040
+So we're going to create an API gateway.
+
+82
+00:06:21.040 --> 00:06:24.910
+So here, you can see that I am creating an apigw,
+
+83
+00:06:24.910 --> 00:06:28.930
+a LambdaRestApi, then I am passing in the stack,
+
+84
+00:06:28.930 --> 00:06:30.740
+as well as part of the constructor.
+
+85
+00:06:30.740 --> 00:06:35.040
+I'm just naming this a generic name, Endpoint,
+
+86
+00:06:35.040 --> 00:06:37.940
+and then I need to specify a handler.
+
+87
+00:06:37.940 --> 00:06:42.140
+The handler here is going to be hello_function.
+
+88
+00:06:42.140 --> 00:06:55.000
+This links our lambda.Function to this apigw, and that's actually all you need to do to create your Lambda function.
+

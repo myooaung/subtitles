@@ -1,0 +1,204 @@
+1
+00:00:01,520 --> 00:00:05,860
+SQS works on a process of client sending messages to the queue and
+
+2
+00:00:05,860 --> 00:00:09,370
+then consumers polling for messages on the queue.
+
+3
+00:00:09,370 --> 00:00:14,770
+This is sort of like the lifecycle of a message in SQS. With sending
+
+4
+00:00:14,770 --> 00:00:18,170
+messages, the process is simple enough. The messages are just sent and the
+
+5
+00:00:18,170 --> 00:00:21,640
+client continues on, but polling is a different story.
+
+6
+00:00:21,640 --> 00:00:24,800
+What happens when there are multiple consumers polling a
+
+7
+00:00:24,800 --> 00:00:28,400
+single queue? What happens if a consumer polls for
+
+8
+00:00:28,400 --> 00:00:31,340
+messages, but then can't process them?
+
+9
+00:00:31,340 --> 00:00:33,730
+SQS has solutions for these scenarios,
+
+10
+00:00:33,730 --> 00:00:35,840
+which is what we're going to talk about here.
+
+11
+00:00:35,840 --> 00:00:38,360
+When a message comes into the queue,
+
+12
+00:00:38,360 --> 00:00:43,230
+it may or may not be visible to consumers immediately depending on the
+
+13
+00:00:43,230 --> 00:00:47,390
+delay seconds attribute. This delay seconds attribute will delay the
+
+14
+00:00:47,390 --> 00:00:52,260
+visibility of a message in the queue for a given number of seconds when
+
+15
+00:00:52,260 --> 00:00:55,140
+the message initially arrives in the queue.
+
+16
+00:00:55,140 --> 00:00:58,180
+Once the message is visible and a consumer reads it,
+
+17
+00:00:58,180 --> 00:01:02,300
+another attribute comes into play, the visibility timeout.
+
+18
+00:01:02,300 --> 00:01:05,930
+Once a message is read, it is considered in flight.
+
+19
+00:01:05,930 --> 00:01:08,260
+This means the message is still in the queue,
+
+20
+00:01:08,260 --> 00:01:12,060
+but it's not visible to consumers. Until the visibility timeout
+
+21
+00:01:12,060 --> 00:01:15,380
+runs its course, the message will stay in the queue and be
+
+22
+00:01:15,380 --> 00:01:19,280
+invisible. If the visibility timeout runs out,
+
+23
+00:01:19,280 --> 00:01:24,380
+then the message becomes visible to consumers again and they can then read it,
+
+24
+00:01:24,380 --> 00:01:28,540
+which starts the visibility timer all over again for that message.
+
+25
+00:01:28,540 --> 00:01:29,440
+Because of this,
+
+26
+00:01:29,440 --> 00:01:34,340
+a consumer should delete a message once they finish processing the message.
+
+27
+00:01:34,340 --> 00:01:36,900
+The visibility timeout gives consumers time to
+
+28
+00:01:36,900 --> 00:01:39,840
+process messages and then delete them.
+
+29
+00:01:39,840 --> 00:01:43,050
+Here's a diagram showing the life of a message with both
+
+30
+00:01:43,050 --> 00:01:46,340
+delay seconds and visibility timeout.
+
+31
+00:01:46,340 --> 00:01:47,000
+In this case,
+
+32
+00:01:47,000 --> 00:01:52,040
+the message isn't deleted and so it becomes visible again for consumers.
+
+33
+00:01:52,040 --> 00:01:53,650
+But in this next diagram,
+
+34
+00:01:53,650 --> 00:01:58,570
+the message is. deleted in time by its consumer. This is the ideal
+
+35
+00:01:58,570 --> 00:02:03,860
+lifecycle for a message in SQS. Both the visibility timeout and delay
+
+36
+00:02:03,860 --> 00:02:07,140
+seconds can have default values set on the queue,
+
+37
+00:02:07,140 --> 00:02:11,000
+but each message added to the queue can override those values and
+
+38
+00:02:11,000 --> 00:02:15,820
+provide specific delay seconds when sending a message or specific
+
+39
+00:02:15,820 --> 00:02:19,740
+visibility timeout seconds when consuming messages.
+
+40
+00:02:19,740 --> 00:02:23,330
+Another default value you can set on your queue is how long
+
+41
+00:02:23,330 --> 00:02:27,280
+consumers should wait when they're polling for messages.
+
+42
+00:02:27,280 --> 00:02:32,050
+This can be set up to 20 seconds. If any messages are available or
+
+43
+00:02:32,050 --> 00:02:35,650
+come available while the consumer is waiting the consumer will
+
+44
+00:02:35,650 --> 00:02:38,240
+immediately return with the new messages.
+
+45
+00:02:38,240 --> 00:02:40,010
+This is called long polling,
+
+46
+00:02:40,010 --> 00:02:43,750
+and it can be useful because you are charged for SQS by
+
+47
+00:02:43,750 --> 00:02:47,440
+each request made. Requests are either requests to read a
+
+48
+00:02:47,440 --> 00:02:49,740
+message or to write a message.
+
+49
+00:02:49,740 --> 00:02:54,920
+So by using a balance of long polling and how frequently you read messages,
+
+50
+00:02:54,920 --> 00:02:59,110
+you should try to strike a good balance that makes it economically feasible to
+
+51
+00:02:59,110 --> 00:03:09,000
+use SQS for messaging, and also, highly performant. In the next clip, we're going to create our SQS queue for sending race results.
+

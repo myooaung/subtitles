@@ -1,0 +1,413 @@
+WEBVTT
+1
+00:00:01.102 --> 00:00:02.613
+Now in most enterprise installations,
+
+2
+00:00:02.613 --> 00:00:06.524
+you will more than likely have some sort of requirement or
+
+3
+00:00:06.524 --> 00:00:08.203
+service-level agreement around uptime.
+
+4
+00:00:08.203 --> 00:00:11.575
+Generally, you have at least two of everything for redundancy purposes.
+
+5
+00:00:11.575 --> 00:00:13.892
+Using JMS is no exception.
+
+6
+00:00:13.892 --> 00:00:17.583
+You should use a JMS provider that provides a good HA architecture,
+
+7
+00:00:17.583 --> 00:00:22.763
+is clustered in some way, and has reliable and fast failover.
+
+8
+00:00:22.763 --> 00:00:25.597
+This is done differently by every JMS provider,
+
+9
+00:00:25.597 --> 00:00:27.906
+and you really need to look at the documentation,
+
+10
+00:00:27.906 --> 00:00:29.461
+and best consider what is best for your environment,
+
+11
+00:00:29.461 --> 00:00:34.236
+therefore, I can't really go into detail on it here.
+
+12
+00:00:34.236 --> 00:00:38.140
+What I will look at is ways you can use the JMS APIs to
+
+13
+00:00:38.140 --> 00:00:40.353
+allow for high availability and throughput.
+
+14
+00:00:40.353 --> 00:00:42.649
+Let's look at an example.
+
+15
+00:00:42.649 --> 00:00:46.146
+So in this example piece of code, I'm not doing anything particularly fancy.
+
+16
+00:00:46.146 --> 00:00:50.274
+I've got a class that registers a messageListener on a queue.
+
+17
+00:00:50.274 --> 00:00:53.341
+The messageListener is this class called DelayingMessageListener,
+
+18
+00:00:53.341 --> 00:00:56.379
+and if we look at that, it's pretty simple.
+
+19
+00:00:56.379 --> 00:00:57.388
+It takes two parameters,
+
+20
+00:00:57.388 --> 00:01:01.066
+an ID that we can use to identify the instance of the delaying message listener,
+
+21
+00:01:01.066 --> 00:01:03.474
+which we'll see in use in a little bit,
+
+22
+00:01:03.474 --> 00:01:08.444
+and also a time in milliseconds for which the thread goes to sleep.
+
+23
+00:01:08.444 --> 00:01:12.380
+The reason for this is to mimic some processing that takes a little bit of time.
+
+24
+00:01:12.380 --> 00:01:14.963
+Now I've set the delay I'm using to 200 ms,
+
+25
+00:01:14.963 --> 00:01:19.634
+so it will take at least 200 ms to process every message.
+
+26
+00:01:19.634 --> 00:01:24.315
+If I have 100 messages, then it will take at least 20 seconds to process those.
+
+27
+00:01:24.315 --> 00:01:25.436
+Just to show that,
+
+28
+00:01:25.436 --> 00:01:29.062
+I'm first using this small application to put 100 messages on the queue.
+
+29
+00:01:29.062 --> 00:01:34.036
+Then I'll start up my example app, and it will start processing those messages.
+
+30
+00:01:34.036 --> 00:01:38.023
+Now in some large-scale systems I've worked in,
+
+31
+00:01:38.023 --> 00:01:41.418
+there could be millions of messages being processed every day,
+
+32
+00:01:41.418 --> 00:01:46.659
+so if we can only do 120 seconds, then we're pretty much in trouble.
+
+33
+00:01:46.659 --> 00:01:48.870
+So how could we improve on that?
+
+34
+00:01:48.870 --> 00:01:51.712
+Well, the obvious answer is to start more consumers.
+
+35
+00:01:51.712 --> 00:01:57.248
+I can do that by running multiple instances of my application, so let's do that.
+
+36
+00:01:57.248 --> 00:02:00.799
+So let's start say another three instances.
+
+37
+00:02:00.799 --> 00:02:02.460
+So now with 4 processes running,
+
+38
+00:02:02.460 --> 00:02:05.409
+I'm going to put another 100 messages on the queue.
+
+39
+00:02:05.409 --> 00:02:07.431
+So a couple of important things,
+
+40
+00:02:07.431 --> 00:02:11.321
+one you can see it makes it easy to scale your application by
+
+41
+00:02:11.321 --> 00:02:14.178
+simply starting more instances of your application,
+
+42
+00:02:14.178 --> 00:02:18.985
+but secondly, and just as important, if any one of those four application fails,
+
+43
+00:02:18.985 --> 00:02:22.794
+then the other three will continue, and have the data to sent to them,
+
+44
+00:02:22.794 --> 00:02:24.901
+and also take up the additional load.
+
+45
+00:02:24.901 --> 00:02:27.130
+So it provides additional throughput,
+
+46
+00:02:27.130 --> 00:02:30.250
+but it also provides a highly-available solution.
+
+47
+00:02:30.250 --> 00:02:34.311
+As long as you consider where those applications are running,
+
+48
+00:02:34.311 --> 00:02:34.710
+for example,
+
+49
+00:02:34.710 --> 00:02:36.951
+you need to consider having them on different physical machines
+
+50
+00:02:36.951 --> 00:02:40.063
+or virtual machines in different data centers,
+
+51
+00:02:40.063 --> 00:02:40.508
+etc.
+
+52
+00:02:40.508 --> 00:02:40.852
+So,
+
+53
+00:02:40.852 --> 00:02:44.531
+we have seen that the load is being load balanced
+
+54
+00:02:44.531 --> 00:02:46.948
+roughly equally between all the consumers,
+
+55
+00:02:46.948 --> 00:02:50.466
+so this is great and required for a highly-available system,
+
+56
+00:02:50.466 --> 00:02:54.726
+but possibly it may also be a slight waste of resources,
+
+57
+00:02:54.726 --> 00:03:00.217
+for example, starting up a number of these services across multiple JVMs,
+
+58
+00:03:00.217 --> 00:03:02.251
+especially on the same virtual machine or physical machine
+
+59
+00:03:02.251 --> 00:03:06.347
+requires all the base memory for the JVM metaspace,
+
+60
+00:03:06.347 --> 00:03:06.831
+etc.
+
+61
+00:03:06.831 --> 00:03:09.520
+So it might be just as good in some applications to
+
+62
+00:03:09.520 --> 00:03:12.464
+create multiple consumers per JVM.
+
+63
+00:03:12.464 --> 00:03:16.933
+To demonstrate that, I've got another example piece of code.
+
+64
+00:03:16.933 --> 00:03:20.936
+In this case, I've got a for loop, and I'm creating a new session and consumer,
+
+65
+00:03:20.936 --> 00:03:23.541
+and storing those in a couple of lists.
+
+66
+00:03:23.541 --> 00:03:26.143
+This is mainly so I can clean up the resources later on
+
+67
+00:03:26.143 --> 00:03:28.706
+as you can see in the shutdown method.
+
+68
+00:03:28.706 --> 00:03:33.943
+In this case, each consumer is another instance of the delaying message listener,
+
+69
+00:03:33.943 --> 00:03:37.469
+and this time I'm passing in the index of the for loop as the name,
+
+70
+00:03:37.469 --> 00:03:39.413
+which helps to determine which consumer is
+
+71
+00:03:39.413 --> 00:03:41.995
+processing data in the console output.
+
+72
+00:03:41.995 --> 00:03:44.622
+So let's run this application up.
+
+73
+00:03:44.622 --> 00:03:47.247
+The example application automatically puts 100
+
+74
+00:03:47.247 --> 00:03:50.308
+messages on the queue when it starts.
+
+75
+00:03:50.308 --> 00:03:51.028
+From the output,
+
+76
+00:03:51.028 --> 00:03:54.397
+we can see that the load is shared among the consumers fairly equally.
+
+77
+00:03:54.397 --> 00:03:55.691
+Now as I've said,
+
+78
+00:03:55.691 --> 00:03:59.870
+you would need to run a number of these components on different
+
+79
+00:03:59.870 --> 00:04:03.688
+virtual machines in different data centers to allow for failover
+
+80
+00:04:03.688 --> 00:04:05.238
+and high-availability use case.
+
+81
+00:04:05.238 --> 00:04:08.003
+I'm going to show you a third example, which I would generally recommend,
+
+82
+00:04:08.003 --> 00:04:11.656
+which is showing the use of the default messageListener
+
+83
+00:04:11.656 --> 00:04:13.334
+container from the Spring Framework.
+
+84
+00:04:13.334 --> 00:04:16.536
+Now even if you don't use the full Spring Framework,
+
+85
+00:04:16.536 --> 00:04:18.525
+you can still use this class standalone.
+
+86
+00:04:18.525 --> 00:04:23.920
+It's available in the Spring-JMS library, and I would highly recommend it.
+
+87
+00:04:23.920 --> 00:04:24.255
+Why?
+
+88
+00:04:24.255 --> 00:04:28.608
+Well it already takes care of many of the concerns we've talked about.
+
+89
+00:04:28.608 --> 00:04:31.717
+It takes care of the connection session consumer caching for you,
+
+90
+00:04:31.717 --> 00:04:36.582
+and caters from multiple consumers, and can scale up and down based on demand.
+
+91
+00:04:36.582 --> 00:04:39.620
+It also takes care of automatically reconnecting to the JMS
+
+92
+00:04:39.620 --> 00:04:41.996
+broker if the connection should fail.
+
+93
+00:04:41.996 --> 00:04:44.689
+To demonstrate that, I'll start this example up.
+
+94
+00:04:44.689 --> 00:04:49.399
+And again we can see it consumes the messages as we would expect.
+
+95
+00:04:49.399 --> 00:04:53.941
+And it's actually doing that across five concurrent consumers.
+
+96
+00:04:53.941 --> 00:04:57.548
+But now if I jump to the console, and stop the ActiveMQ broker,
+
+97
+00:04:57.548 --> 00:05:00.697
+then I can see my application has detected the connection failure,
+
+98
+00:05:00.697 --> 00:05:02.559
+and is attempting to reconnect.
+
+99
+00:05:02.559 --> 00:05:06.012
+If I restart the broker again, then after a short time,
+
+100
+00:05:06.012 --> 00:05:10.537
+we no longer see any errors, and we can see a connection is established again.
+
+101
+00:05:10.537 --> 00:05:13.044
+And just to prove the point,
+
+102
+00:05:13.044 --> 00:05:16.137
+if I go back to the MessageSender application I have,
+
+103
+00:05:16.137 --> 00:05:25.000
+and send through 100 messages to the broker, then we can see from the consumer output that it is receiving those messages.
+

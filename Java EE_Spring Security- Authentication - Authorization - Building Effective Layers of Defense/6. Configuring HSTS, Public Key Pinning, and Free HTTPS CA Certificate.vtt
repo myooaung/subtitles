@@ -1,0 +1,445 @@
+WEBVTT
+1
+00:00:01.988 --> 00:00:07.635
+Now what this header does is informs the browser that your site requires HTTPS.
+
+2
+00:00:07.635 --> 00:00:09.739
+The user browser would then cache this,
+
+3
+00:00:09.739 --> 00:00:12.532
+and all future subsequent requests will automatically be
+
+4
+00:00:12.532 --> 00:00:18.741
+defaulted to HTTPS by the browser, even if your user specifies HTTP.
+
+5
+00:00:18.741 --> 00:00:21.812
+Now this is great for protecting against man-in-the-middle attacks.
+
+6
+00:00:21.812 --> 00:00:24.522
+It also prevents your user from accepting any
+
+7
+00:00:24.522 --> 00:00:27.340
+invalid certificate for that domain.
+
+8
+00:00:27.340 --> 00:00:30.005
+Now in order for the browser to accept the HSTS header,
+
+9
+00:00:30.005 --> 00:00:34.799
+you need a valid certificate signed by a certificate authority.
+
+10
+00:00:34.799 --> 00:00:36.560
+Once you have this in place,
+
+11
+00:00:36.560 --> 00:00:39.218
+the user's browser will accept the HSTS header
+
+12
+00:00:39.218 --> 00:00:42.600
+provided by Spring Security by default.
+
+13
+00:00:42.600 --> 00:00:46.798
+Because the current certificate is not signed by a certificate authority,
+
+14
+00:00:46.798 --> 00:00:49.467
+your users get that scary browser warning.
+
+15
+00:00:49.467 --> 00:00:52.773
+They then have to add the exception manually and have that
+
+16
+00:00:52.773 --> 00:00:56.158
+annoying broken handbag in the top-left corner,
+
+17
+00:00:56.158 --> 00:00:58.168
+which just doesn't look professional.
+
+18
+00:00:58.168 --> 00:01:03.325
+With Let's Encrypt, you can get a domain validation certificate for free.
+
+19
+00:01:03.325 --> 00:01:05.695
+So your users don't have to deal with that annoying warning
+
+20
+00:01:05.695 --> 00:01:08.966
+and can have the confidence that the server they're
+
+21
+00:01:08.966 --> 00:01:11.987
+connecting to actually owns that domain.
+
+22
+00:01:11.987 --> 00:01:17.489
+In this demo, I will show you how to generate certificates with Let's Encrypt,
+
+23
+00:01:17.489 --> 00:01:21.860
+how to configure your Spring Boot application with these certificates,
+
+24
+00:01:21.860 --> 00:01:24.924
+and how to renew expired certificates.
+
+25
+00:01:24.924 --> 00:01:28.267
+Let's Encrypt uses automated certificate management
+
+26
+00:01:28.267 --> 00:01:32.336
+environment protocol to verify that you control the domain
+
+27
+00:01:32.336 --> 00:01:34.716
+address without any human intervention.
+
+28
+00:01:34.716 --> 00:01:37.880
+You do this by cloning the source of the certbot from Git.
+
+29
+00:01:37.880 --> 00:01:41.566
+The certbot runs a small web server behind the scenes to
+
+30
+00:01:41.566 --> 00:01:45.478
+communicate with Let's Encrypt to verify that you control
+
+31
+00:01:45.478 --> 00:01:47.653
+that server and own that domain.
+
+32
+00:01:47.653 --> 00:01:50.486
+It then generates and renews keys for you.
+
+33
+00:01:50.486 --> 00:01:51.285
+You need to, however,
+
+34
+00:01:51.285 --> 00:01:54.552
+make sure that port 80 is open for outbound and that
+
+35
+00:01:54.552 --> 00:01:58.051
+you have Python 2012.7 installed.
+
+36
+00:01:58.051 --> 00:02:00.642
+Now in order to properly demonstrate this, I need a domain.
+
+37
+00:02:00.642 --> 00:02:04.182
+So I borrowed one from a site that I'm in the middle of working on,
+
+38
+00:02:04.182 --> 00:02:07.518
+kasiaphotos, which is not very synonymous with crypto,
+
+39
+00:02:07.518 --> 00:02:09.887
+but it will do for this demo.
+
+40
+00:02:09.887 --> 00:02:13.709
+Now if we run the following command, the -w indicates the web root,
+
+41
+00:02:13.709 --> 00:02:17.848
+and the -d indicates the domain you want to certify.
+
+42
+00:02:17.848 --> 00:02:20.630
+The keys will then be generated in the following directory where
+
+43
+00:02:20.630 --> 00:02:24.004
+Let's Encrypt will generate the PEM files.
+
+44
+00:02:24.004 --> 00:02:26.194
+Now Spring actually doesn't support this format.
+
+45
+00:02:26.194 --> 00:02:30.256
+It actually supports PKCS 12.
+
+46
+00:02:30.256 --> 00:02:34.653
+However, we can use OpenSSL to convert between those two formats.
+
+47
+00:02:34.653 --> 00:02:36.912
+So once we've converted the keystore,
+
+48
+00:02:36.912 --> 00:02:39.404
+we can now update these Spring properties files
+
+49
+00:02:39.404 --> 00:02:41.873
+with the new keystore information.
+
+50
+00:02:41.873 --> 00:02:43.442
+Now there is a vulnerability here.
+
+51
+00:02:43.442 --> 00:02:46.576
+You can see that the key-store-password is in plain text,
+
+52
+00:02:46.576 --> 00:02:50.051
+and also there is the location of the key.
+
+53
+00:02:50.051 --> 00:02:54.252
+Now this make it vulnerable if your server is breached or if a hacker
+
+54
+00:02:54.252 --> 00:02:58.349
+manages to get the source or the release artifact.
+
+55
+00:02:58.349 --> 00:03:00.633
+Now many organizations have central Nexus
+
+56
+00:03:00.633 --> 00:03:03.854
+repositories where everyone has access to,
+
+57
+00:03:03.854 --> 00:03:06.498
+so anyone can easily download the release artifact,
+
+58
+00:03:06.498 --> 00:03:10.223
+or they could just fork or clone the Git repository
+
+59
+00:03:10.223 --> 00:03:15.109
+as in many organizations now, they're promoting an open source culture.
+
+60
+00:03:15.109 --> 00:03:17.856
+Now I can't recall how many times I've reviewed code with really
+
+61
+00:03:17.856 --> 00:03:21.577
+great implementations for security only to find these details in
+
+62
+00:03:21.577 --> 00:03:23.268
+plain text in the properties file.
+
+63
+00:03:23.268 --> 00:03:26.874
+Now in the next module, you will learn how to secure these details.
+
+64
+00:03:26.874 --> 00:03:29.311
+For now for the purpose of this demo, this is fine.
+
+65
+00:03:29.311 --> 00:03:34.137
+Now if we refresh the page, we now have the green lock or,
+
+66
+00:03:34.137 --> 00:03:40.495
+accordingly to my wife, the green handbag.
+
+67
+00:03:40.495 --> 00:03:44.932
+The cert is valid for 90 days, and renewing it is very simple.
+
+68
+00:03:44.932 --> 00:03:47.779
+We just run the renew command on the certbot.
+
+69
+00:03:47.779 --> 00:03:51.520
+Now the HSTS header should be accepted by the browser.
+
+70
+00:03:51.520 --> 00:03:56.743
+As you can see, the first HTTP request is now redirected to HTTP.
+
+71
+00:03:56.743 --> 00:03:59.731
+But notice that the latency was 0.
+
+72
+00:03:59.731 --> 00:04:01.553
+The browser didn't even send the request out.
+
+73
+00:04:01.553 --> 00:04:05.527
+It just automatically redirected to HTTPS.
+
+74
+00:04:05.527 --> 00:04:10.123
+You may have probably noticed that the very first request to your
+
+75
+00:04:10.123 --> 00:04:13.930
+site from the browser is still vulnerable as the browser will not
+
+76
+00:04:13.930 --> 00:04:17.447
+have the HSTS header details cached yet.
+
+77
+00:04:17.447 --> 00:04:20.236
+The HTTP request would be send to the server.
+
+78
+00:04:20.236 --> 00:04:25.078
+The server will send the HTTP response with the redirect to HTTPS.
+
+79
+00:04:25.078 --> 00:04:28.424
+And only after the first HTTPS request responds will the
+
+80
+00:04:28.424 --> 00:04:31.302
+HSTS be enabled for all future requests.
+
+81
+00:04:31.302 --> 00:04:31.731
+Hence,
+
+82
+00:04:31.731 --> 00:04:35.375
+the hacker has a small window of opportunity to
+
+83
+00:04:35.375 --> 00:04:38.443
+perform a man-in-the-middle attack.
+
+84
+00:04:38.443 --> 00:04:40.224
+There is a solution to this.
+
+85
+00:04:40.224 --> 00:04:44.524
+You can have your domain included in the browser's preloaded host list.
+
+86
+00:04:44.524 --> 00:04:46.777
+Now most browsers support this now.
+
+87
+00:04:46.777 --> 00:04:50.412
+For more information about submitting your domain for inclusion,
+
+88
+00:04:50.412 --> 00:04:53.021
+go to the following website.
+
+89
+00:04:53.021 --> 00:04:57.777
+Now one final header worth mentioning is the HTTP public key pinning.
+
+90
+00:04:57.777 --> 00:05:00.610
+It's an optional header you can configure.
+
+91
+00:05:00.610 --> 00:05:05.307
+Now public key pinning in another TOFU, trust on first use,
+
+92
+00:05:05.307 --> 00:05:10.525
+aimed at addressing the issue of a certificate authority being compromised.
+
+93
+00:05:10.525 --> 00:05:12.935
+You could enable this header and add the public keys
+
+94
+00:05:12.935 --> 00:05:15.303
+you want to associate with your site,
+
+95
+00:05:15.303 --> 00:05:18.552
+as well as the period of time it's valid for.
+
+96
+00:05:18.552 --> 00:05:22.132
+Now in the header filter object, there is a method,
+
+97
+00:05:22.132 --> 00:05:28.369
+httpPublicKeyPinning, where you can add the Sha256Pins of the public keys.
+
+98
+00:05:28.369 --> 00:05:31.290
+Now the first time your user's browser receives this header,
+
+99
+00:05:31.290 --> 00:05:33.312
+it will cache the keys.
+
+100
+00:05:33.312 --> 00:05:35.667
+Now for all subsequent responses from your domain,
+
+101
+00:05:35.667 --> 00:05:38.873
+the browser will expect them to be encrypted with the
+
+102
+00:05:38.873 --> 00:05:41.842
+following keys or their request will be blocked.
+
+103
+00:05:41.842 --> 00:05:45.601
+However, Chrome has decided to deprecate its support for this header,
+
+104
+00:05:45.601 --> 00:05:48.806
+and other browsers might probably follow their lead mainly because
+
+105
+00:05:48.806 --> 00:05:52.336
+it can be used for hackers to ransom your site.
+
+106
+00:05:52.336 --> 00:05:55.871
+If your server gets hacked and the hacker manages to inject
+
+107
+00:05:55.871 --> 00:05:58.999
+spoof headers into the responses to your users,
+
+108
+00:05:58.999 --> 00:06:01.815
+then those users will no longer be able to access
+
+109
+00:06:01.815 --> 00:06:04.204
+your site for up to 1 year even.
+
+110
+00:06:04.204 --> 00:06:06.851
+Also, if you lose your keys or want to change them,
+
+111
+00:06:06.851 --> 00:06:14.000
+you can't do it without a lot of your current users being blocked from your site.
+

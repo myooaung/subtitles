@@ -1,0 +1,975 @@
+WEBVTT
+0
+1
+00:00:00.560 --> 00:00:07.790
+So our app is looking pretty nice, but up till now, there's always been a really serious bug that we haven't
+1
+
+2
+00:00:07.790 --> 00:00:10.220
+yet discovered in our app.
+2
+
+3
+00:00:10.220 --> 00:00:15.590
+Now, if you've been playing around with the app quite a bit, you might have discovered this bug already.
+3
+
+4
+00:00:15.590 --> 00:00:18.090
+But if you haven't, let me show you what it is.
+4
+
+5
+00:00:18.260 --> 00:00:25.030
+Now, I'm going to add a whole bunch of new items into our itemArray, so that when I run my app, I'm going
+5
+
+6
+00:00:25.030 --> 00:00:27.750
+to have more than three cells.
+6
+
+7
+00:00:27.800 --> 00:00:33.110
+In fact, I'm going to have more cells than the table view can possibly display.
+7
+
+8
+00:00:33.110 --> 00:00:37.370
+So when I scroll, you can see that even though the table view is at "j,"
+8
+
+9
+00:00:37.430 --> 00:00:40.250
+if I keep going, it goes all the way down to "o," right?
+9
+
+10
+00:00:40.820 --> 00:00:48.680
+So, now if I click on the first cell and it checks the first cell, and I scroll down to the bottom,
+10
+
+11
+00:00:48.680 --> 00:00:55.460
+you can see that for some bizarre reason, our cell that's called "n" is also checked.
+11
+
+12
+00:00:55.460 --> 00:01:01.360
+And if I uncheck it and I scroll back, my first cell is no longer checked.
+12
+
+13
+00:01:01.370 --> 00:01:07.520
+So what on earth is going on here and what is happening with all this strange behavior?
+13
+
+14
+00:01:08.120 --> 00:01:15.290
+Well, the answer to this lies in the fact that table view cells
+14
+
+15
+00:01:15.290 --> 00:01:24.880
+gets reused, and that's what this line means when we're calling dequeueReusableCell,
+15
+
+16
+00:01:24.950 --> 00:01:25.670
+right?
+16
+
+17
+00:01:25.790 --> 00:01:32.780
+We're saying that go and find that prototype cell code TodoItemsCell inside Main.storyboard and
+17
+
+18
+00:01:32.780 --> 00:01:36.890
+generate a whole bunch of it that we can reuse.
+18
+
+19
+00:01:36.950 --> 00:01:44.810
+So that means when the first cell gets rolled off the table view and it's no longer visible, it actually
+19
+
+20
+00:01:45.260 --> 00:01:52.990
+goes all the way around and comes back underneath as a new reusable cell.
+20
+
+21
+00:01:53.000 --> 00:01:55.540
+So how can we prove that this is true?
+21
+
+22
+00:01:55.550 --> 00:02:01.960
+Do you remember the last time when I asked you as a challenge, why is it that we need this
+22
+
+23
+00:02:01.970 --> 00:02:11.360
+tableView.dequeueReusableCell method, instead of something like let cell equals a new object of type UITableViewCell.
+23
+
+24
+00:02:11.360 --> 00:02:20.900
+and we say the style is, let's say, default, reuseIdentifier is the same as we've got here, so that reusable
+24
+
+25
+00:02:20.900 --> 00:02:25.580
+prototype cell that we had. I'm just going to comment that out and let's run it.
+25
+
+26
+00:02:25.580 --> 00:02:35.640
+Now, if I check the first object and I scroll my table view until my cell disappears off the screen and
+26
+
+27
+00:02:35.660 --> 00:02:43.200
+I pull it back, you'll see that that checkmark has disappeared, and that's because the checking or
+27
+
+28
+00:02:43.200 --> 00:02:51.470
+unchecking, I'm setting a property on the cell. And once the cell disappears off the screen, it gets deallocated
+28
+
+29
+00:02:51.500 --> 00:02:52.810
+and destroyed.
+29
+
+30
+00:02:52.880 --> 00:02:58.670
+And when I scroll it back, I'm actually getting a brand-new cell that's getting this message put in.
+30
+
+31
+00:02:58.820 --> 00:03:08.300
+Now, on the other hand, say, if I use dequeueReusableCell, then in this case, when I check the first cell, I scroll
+31
+
+32
+00:03:08.300 --> 00:03:16.100
+it up and at the point when that cell disappears off the screen, it comes around the table view and gets
+32
+
+33
+00:03:16.160 --> 00:03:25.790
+reinitialized at the bottom as a new table view cell. And because it's being reused, that property that
+33
+
+34
+00:03:25.790 --> 00:03:32.000
+checked accessory is still present here. And that's why we're getting this rather odd behaviors because
+34
+
+35
+00:03:32.000 --> 00:03:34.850
+we're reusing our cells.
+35
+
+36
+00:03:34.910 --> 00:03:41.720
+So we found the problem and the problem is that we need to associate a property, not with the cell, but
+36
+
+37
+00:03:41.720 --> 00:03:43.280
+with our data.
+37
+
+38
+00:03:43.610 --> 00:03:50.840
+So in order for us to assign a checkmark or no checkmark to each of these items, we need a way to be
+38
+
+39
+00:03:50.840 --> 00:03:56.510
+able to associate each item with a property checked or unchecked.
+39
+
+40
+00:03:56.510 --> 00:03:58.470
+Now, how can we do that?
+40
+
+41
+00:03:58.520 --> 00:04:01.970
+We certainly can't do it using just a plain old array.
+41
+
+42
+00:04:01.970 --> 00:04:11.150
+But if you pause the video and have a think about how you can associate a property with each of these
+42
+
+43
+00:04:11.210 --> 00:04:19.740
+items, and see if you can come up with the solution.
+43
+
+44
+00:04:19.980 --> 00:04:20.340
+All right.
+44
+
+45
+00:04:20.350 --> 00:04:25.630
+So some of the solutions that you guys might have thought of were maybe instead of using an array, it's
+45
+
+46
+00:04:25.630 --> 00:04:34.480
+maybe to use a dictionary where you can have key-value pairs, or at a much better solution, would be creating
+46
+
+47
+00:04:34.690 --> 00:04:35.680
+a model,
+47
+
+48
+00:04:35.680 --> 00:04:42.490
+and we've spoken about MVC in the past when we did Quizzler. And now this is another scenario where you
+48
+
+49
+00:04:42.490 --> 00:04:51.820
+start to see the beauty and the reasons why we need to start separating our models, our views, and our controllers.
+49
+
+50
+00:04:51.820 --> 00:04:58.900
+So let's go ahead and build a data model where each of our items are objects that can have properties
+50
+
+51
+00:04:58.930 --> 00:05:05.380
+including the title of the item, and also a done or not done Boolean.
+51
+
+52
+00:05:05.380 --> 00:05:13.060
+So this is a good time point to pause the video and build a new class called item which we can use to
+52
+
+53
+00:05:13.060 --> 00:05:20.740
+store two properties, one property is a string called title which is where we're going to save the titles
+53
+
+54
+00:05:20.860 --> 00:05:27.310
+of our to-dos, and the other one is called done which is a Boolean property where we're going to save
+54
+
+55
+00:05:27.490 --> 00:05:30.310
+whether if the item was checked off or not.
+55
+
+56
+00:05:30.310 --> 00:05:35.190
+So pause the video and give that a go.
+56
+
+57
+00:05:35.290 --> 00:05:35.770
+All right.
+57
+
+58
+00:05:35.770 --> 00:05:43.120
+So let's go over to File, New File, and let's create a brand-new Swift File.
+58
+
+59
+00:05:43.120 --> 00:05:51.130
+Next, we're gonna call our file Item and we're gonna put our Item into its own folder,
+59
+
+60
+00:05:51.160 --> 00:06:02.230
+so New Group from Selection. And the folder is going to be called Data Model. And we'll make a New Group
+60
+
+61
+00:06:02.770 --> 00:06:08.380
+with our TodoListViewController and we'll call it Controllers, and we'll also while we're at it,
+61
+
+62
+00:06:08.380 --> 00:06:13.660
+might as well put Main.storyboard into a Views folder.
+62
+
+63
+00:06:13.660 --> 00:06:14.290
+All right.
+63
+
+64
+00:06:14.290 --> 00:06:21.880
+And finally, I'm just gonna put the Assets and the LaunchScreen together as a group, and I'll call it
+64
+
+65
+00:06:22.240 --> 00:06:30.620
+Supporting Files. That just gets rid of it and declutters and makes our structure a little bit more clear.
+65
+
+66
+00:06:30.640 --> 00:06:38.470
+All right, let's head into Item and we're going to create a new class that's called Item.
+66
+
+67
+00:06:38.470 --> 00:06:45.640
+Now, of course, you don't actually have to name your class the same as the file name, 
+67
+
+68
+00:06:45.640 --> 00:06:48.150
+but in 99.999 recurring cases,
+68
+
+69
+00:06:48.340 --> 00:06:53.600
+everybody does this, and it will be very, very odd if these two are not the same,
+69
+
+70
+00:06:53.620 --> 00:06:54.790
+and it's very confusing.
+70
+
+71
+00:06:54.790 --> 00:06:58.290
+So try to keep these two exactly the same.
+71
+
+72
+00:06:58.330 --> 00:06:58.550
+Okay.
+72
+
+73
+00:06:58.590 --> 00:07:05.760
+So we'll have a property called title and this is going to be a string.
+73
+
+74
+00:07:05.940 --> 00:07:11.690
+And by default, we'll say it's just an empty string. And then we're gonna create another property called
+74
+
+75
+00:07:11.800 --> 00:07:12.640
+done
+75
+
+76
+00:07:12.880 --> 00:07:22.260
+and this is going to be a Boolean. And by default, all items will start off as being not done,
+76
+
+77
+00:07:22.260 --> 00:07:24.780
+so we'll set that as false.
+77
+
+78
+00:07:24.870 --> 00:07:31.500
+So let's go ahead and hit save and go back to our TodoListViewController, and we can start creating
+78
+
+79
+00:07:31.500 --> 00:07:32.860
+some of these items.
+79
+
+80
+00:07:32.880 --> 00:07:42.810
+So I'm just going to common out this line and I'm going to create a new item and I'm going to use our
+80
+
+81
+00:07:42.900 --> 00:07:45.000
+Item class to do that.
+81
+
+82
+00:07:45.360 --> 00:07:55.170
+And our new Item is a new object of the type item and newItem.title is going to be equal to this.
+82
+
+83
+00:07:56.190 --> 00:08:02.240
+And instead of having an array of hardcoded string objects, I'm going to turn this itemArray into an
+83
+
+84
+00:08:02.240 --> 00:08:04.690
+array of Item objects.
+84
+
+85
+00:08:04.890 --> 00:08:10.580
+So none of what we've done so far should be new to you because we've done all of this and more inside
+85
+
+86
+00:08:10.580 --> 00:08:11.110
+Quizzler.
+86
+
+87
+00:08:11.420 --> 00:08:17.600
+So if you're at all confused about MVC or models-views-controllers, then be sure to have a look back
+87
+
+88
+00:08:17.600 --> 00:08:21.320
+at the Quizzler module where we go into this in much more detail.
+88
+
+89
+00:08:21.320 --> 00:08:30.950
+So, now we can say itemArray.append and we're going to pend the newElement which is called
+89
+
+90
+00:08:30.980 --> 00:08:31.520
+newItem.
+90
+
+91
+00:08:31.790 --> 00:08:38.210
+So I'm just gonna go and copy and paste this for times' sake and I'm going to amend the code so that
+91
+
+92
+00:08:38.210 --> 00:08:43.830
+we end up with newItem2 and newItem3. In addition to that, in order for our code to work,
+92
+
+93
+00:08:43.850 --> 00:08:50.630
+we need to fix it in a couple of places because we're changing from an array of strings to an array
+93
+
+94
+00:08:50.720 --> 00:08:52.430
+of item objects.
+94
+
+95
+00:08:52.430 --> 00:08:58.550
+So if we go down here, itemArray.count is still valid because we have an array that has this property
+95
+
+96
+00:08:58.550 --> 00:08:59.570
+.count.
+96
+
+97
+00:08:59.570 --> 00:09:02.750
+It doesn't matter if it's an array of strings or array of objects.
+97
+
+98
+00:09:02.750 --> 00:09:08.840
+But this part, where we set the cell.textLabel.text property, we need to change because itemArray
+98
+
+99
+00:09:08.840 --> 00:09:13.190
+at indexPath.row is going to return an item object.
+99
+
+100
+00:09:13.190 --> 00:09:19.070
+And what we need to do is we actually need to tap into its title property using the dot notation and
+100
+
+101
+00:09:19.070 --> 00:09:22.890
+we also need to change the code where we're adding new items.
+101
+
+102
+00:09:22.940 --> 00:09:29.660
+So here where we're saying self.itemArray.append(textField.text!) That doesn't really work.
+102
+
+103
+00:09:29.660 --> 00:09:38.180
+Instead we have to create a newItem that is of the class Item, and we're going to say newItem.title
+103
+
+104
+00:09:38.690 --> 00:09:49.820
+= textField.text, and then we can say self.itemArray. append, and the thing that we append is
+104
+
+105
+00:09:49.820 --> 00:09:52.640
+now going to be our newItem.
+105
+
+106
+00:09:52.700 --> 00:09:55.920
+And now if we hit run, let's see what happens.
+106
+
+107
+00:09:55.940 --> 00:10:03.140
+So our app is now working using item objects, instead of a hardcoded array, but we still haven't fixed
+107
+
+108
+00:10:03.230 --> 00:10:07.670
+our checkmark problem because we haven't yet changed the done property
+108
+
+109
+00:10:07.670 --> 00:10:13.960
+when we toggle the checkmark. Also, we've not updated the code for our add button yet.
+109
+
+110
+00:10:14.000 --> 00:10:17.650
+In fact, if you click on the add button now, the Apple crash.
+110
+
+111
+00:10:17.840 --> 00:10:23.240
+But let's do one thing at a time, let's fix the done property first, and we'll tackle the add button in
+111
+
+112
+00:10:23.240 --> 00:10:25.090
+one of the upcoming lessons.
+112
+
+113
+00:10:25.160 --> 00:10:28.400
+So inside didSelectRowAt indexPath,
+113
+
+114
+00:10:28.400 --> 00:10:36.320
+let's set the property of the selected item. So we can tap into itemArray and we can tap into the item
+114
+
+115
+00:10:36.410 --> 00:10:37.790
+at indexPath.row,
+115
+
+116
+00:10:37.790 --> 00:10:45.590
+i.e., the current item object that's selected, and we can set the done property to equal the opposite
+116
+
+117
+00:10:45.950 --> 00:10:47.440
+of what it used to be.
+117
+
+118
+00:10:47.450 --> 00:10:52.670
+So, if it used to be false, then we want to change it to true, and if it's used be true, then we want to change
+118
+
+119
+00:10:52.670 --> 00:10:53.740
+it to false.
+119
+
+120
+00:10:53.780 --> 00:11:03.440
+Now, the long way of doing this is by saying if itemArray [indexPath.row].done = false, then
+120
+
+121
+00:11:03.440 --> 00:11:11.860
+in that case, we want to set the itemArray [indexPath.row].done to true.
+121
+
+122
+00:11:12.080 --> 00:11:23.180
+Otherwise, we're going to say itemArray [indexPath.row].done = false, and that's what's
+122
+
+123
+00:11:23.210 --> 00:11:24.340
+at the toggling, right?
+123
+
+124
+00:11:24.770 --> 00:11:30.530
+And we can add a bit of code to our selfForRowAt indexPath which if you remember is the delegate method
+124
+
+125
+00:11:30.530 --> 00:11:39.410
+that figures out how we should display each of the cells. And we can say if itemArray[indexPath.row]
+125
+
+126
+00:11:39.830 --> 00:11:51.950
+.done = true, then in that case, we're going to set the cell.accessoryType
+126
+
+127
+00:11:52.280 --> 00:11:52.950
+= checkmark,
+127
+
+128
+00:11:53.330 --> 00:12:00.030
+and otherwise, we're going to set the cell.accessoryType = .none.
+128
+
+129
+00:12:00.080 --> 00:12:03.870
+So that means we can get rid of these three lines of code.
+129
+
+130
+00:12:03.890 --> 00:12:10.250
+Now, our code is incredibly wordy at the moment, but it's good to have it like this when we can test it
+130
+
+131
+00:12:10.310 --> 00:12:16.130
+and see if it works before we start refactoring and making things look a bit simpler and cutting down
+131
+
+132
+00:12:16.190 --> 00:12:17.490
+our lines of code.
+132
+
+133
+00:12:17.510 --> 00:12:25.010
+So, now when we select our cells, you can see that we've actually broken our app because while it's selecting
+133
+
+134
+00:12:25.010 --> 00:12:29.800
+and deselecting, it's not changing the checkmark one bit.
+134
+
+135
+00:12:29.810 --> 00:12:32.840
+Now, why might that be?
+135
+
+136
+00:12:32.840 --> 00:12:39.320
+The reason is because cellForRowAt indexPath is called initially when the table view gets loaded up.
+136
+
+137
+00:12:39.440 --> 00:12:43.520
+And at that time point, none of our items are done,
+137
+
+138
+00:12:43.520 --> 00:12:46.120
+so none of them get an accessory mark.
+138
+
+139
+00:12:46.320 --> 00:12:54.380
+So if we change one of these, let's make the first one, for example, newItem.done = true,
+139
+
+140
+00:12:54.380 --> 00:13:01.430
+then you can run your app and confirm to yourself that your code is actually working, this part,
+140
+
+141
+00:13:01.520 --> 00:13:06.770
+or we say, if itemArray[indexPath.row].done, then make the checkmark.
+141
+
+142
+00:13:06.890 --> 00:13:11.510
+It's working because you can see when we first load up our app, you see that checkmark there.
+142
+
+143
+00:13:12.050 --> 00:13:20.720
+So the problem that we have to solve then is how do we get this delegate method to trigger again once
+143
+
+144
+00:13:20.720 --> 00:13:23.710
+we've changed the items done property.
+144
+
+145
+00:13:23.750 --> 00:13:31.400
+So the magical method here is tableView.reloadData. And we've seen this before and we've used
+145
+
+146
+00:13:31.400 --> 00:13:33.110
+it before in FlashChat.
+146
+
+147
+00:13:33.320 --> 00:13:40.880
+But what it basically does is that it forces the table view to call its Datasource Methods again, so
+147
+
+148
+00:13:40.880 --> 00:13:44.330
+that it reloads the data that's meant to be inside.
+148
+
+149
+00:13:44.540 --> 00:13:54.770
+So if we go ahead and put a print statement here, "cellForRowAt indexPath Called," you can see that
+149
+
+150
+00:13:54.770 --> 00:14:02.330
+it got called three times iterating through our array of items when the table view first loaded up.
+150
+
+151
+00:14:02.480 --> 00:14:09.560
+And now when I select one of these cells and I trigger the didSelectRow delegate method and we've
+151
+
+152
+00:14:09.560 --> 00:14:16.350
+set our done properties and we get to this line where it says tableView.reloadData, then we're
+152
+
+153
+00:14:16.350 --> 00:14:18.590
+going to see it called a couple more times.
+153
+
+154
+00:14:18.830 --> 00:14:24.840
+So watch as I select one of these and you can see that we've got three more printouts of
+154
+
+155
+00:14:24.860 --> 00:14:30.560
+cellForRowAt indexPath because the table view is refreshed and it's called that delegate method cellForRowAt indexPath
+155
+
+156
+00:14:30.830 --> 00:14:38.500
+three more times for every single item we have in our array. And now our checkmarks also work,
+156
+
+157
+00:14:38.600 --> 00:14:39.760
+right?
+157
+
+158
+00:14:39.770 --> 00:14:40.130
+Brilliant.
+158
+
+159
+00:14:40.400 --> 00:14:46.380
+So, now let's check and make sure that we've solved that bug that we had earlier on.
+159
+
+160
+00:14:46.400 --> 00:14:53.510
+So if we go underneath the three items that we carefully initialized and appended, I'm going to paste
+160
+
+161
+00:14:53.510 --> 00:15:00.560
+in just a whole bunch of appends of our newItem3 to the end of our itemArray, and that just adds
+161
+
+162
+00:15:00.620 --> 00:15:05.090
+way more items so that we can actually fill up our table view.
+162
+
+163
+00:15:05.240 --> 00:15:11.900
+So, now, say, if I check these first two cells and I scroll down to the bottom, you can see that we no longer
+163
+
+164
+00:15:11.900 --> 00:15:17.930
+have that cell reuse problem, and it's because in every single one of these cells, were checking to see
+164
+
+165
+00:15:17.930 --> 00:15:25.550
+what is the done property for each item, and we're displaying the checkmark depending on what that property
+165
+
+166
+00:15:25.550 --> 00:15:27.110
+is whether if it's true or false.
+166
+
+167
+00:15:27.110 --> 00:15:33.720
+So, now that we've confirmed we've solved that bug, let's go back and refactor our code. And I'm gonna
+167
+
+168
+00:15:33.740 --> 00:15:35.750
+get rid of all of this.
+168
+
+169
+00:15:35.810 --> 00:15:40.550
+Let's go back and refactor our code so that everything is more succinct.
+169
+
+170
+00:15:40.550 --> 00:15:46.460
+So the first thing that I want to change is all of this and this is very, very inelegant, and I'll show
+170
+
+171
+00:15:46.460 --> 00:15:55.740
+you why. Because instead of doing all of this, what I could have said is itemArray[indexPath.row]
+171
+
+172
+00:15:55.820 --> 00:16:05.810
+.done property equals the opposite of !itemArray[indexPath.row]
+172
+
+173
+00:16:06.810 --> 00:16:14.010
+.done. So that single line replaces all of these,
+173
+
+174
+00:16:14.020 --> 00:16:16.230
+what, five lines of code,
+174
+
+175
+00:16:16.360 --> 00:16:18.750
+and it does exactly the same thing.
+175
+
+176
+00:16:18.820 --> 00:16:26.710
+It sets the done property on the current item in the itemArray to the opposite of what it is right
+176
+
+177
+00:16:26.710 --> 00:16:27.110
+now.
+177
+
+178
+00:16:27.160 --> 00:16:33.450
+If it's true, it becomes false. If it's false, it becomes true. And it's all using this NOT operator,
+178
+
+179
+00:16:33.520 --> 00:16:38.670
+basically reversing what it used to be. Because Booleans can only have one or two states,
+179
+
+180
+00:16:38.680 --> 00:16:39.670
+true or false,
+180
+
+181
+00:16:39.670 --> 00:16:42.950
+so if we put the NOT true, then it becomes false.
+181
+
+182
+00:16:42.970 --> 00:16:47.830
+If we put NOT false, then it becomes true. So we can go ahead and delete all of that.
+182
+
+183
+00:16:47.950 --> 00:16:53.020
+Now, the next thing that I want to address is I'm going to delete these two lines because we don't need
+183
+
+184
+00:16:53.020 --> 00:16:53.880
+it anymore.
+184
+
+185
+00:16:54.010 --> 00:17:01.630
+And here, instead of using itemArray[indexPath.row many times, I'm just going to create a new
+185
+
+186
+00:17:01.630 --> 00:17:08.100
+constant code item and I'm going to set it to equal itemArray[indexPath.row].
+186
+
+187
+00:17:08.110 --> 00:17:13.210
+So this item is now the item that we're currently trying to set up for the cell.
+187
+
+188
+00:17:13.210 --> 00:17:20.490
+So then instead of writing this, I can simply write item.title. Instead of writing this,
+188
+
+189
+00:17:20.530 --> 00:17:27.760
+I can simply write item.done. But we can go even further than that to make this bit of code a lot
+189
+
+190
+00:17:27.760 --> 00:17:29.730
+shorter and a lot more elegant.
+190
+
+191
+00:17:30.040 --> 00:17:34.450
+And in order to do that, we're going to use the ternary operator.
+191
+
+192
+00:17:34.450 --> 00:17:38.740
+And this is, again, something that's not unique to Swift.
+192
+
+193
+00:17:38.740 --> 00:17:44.500
+It's seen in a lot of programming languages, but it's a really neat way of cutting down some code when
+193
+
+194
+00:17:44.500 --> 00:17:46.320
+we don't want to be so wordy.
+194
+
+195
+00:17:46.360 --> 00:17:50.830
+So to learn all about the Swift ternary operator, I will see you on the next lesson.

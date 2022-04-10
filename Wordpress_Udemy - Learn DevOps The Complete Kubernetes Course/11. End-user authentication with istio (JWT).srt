@@ -1,0 +1,1403 @@
+1
+1
+
+00:00:00,200  -->  00:00:01,990
+<v Edward>In this lecture, I'll still talk about</v>
+2
+
+2
+
+00:00:01,990  -->  00:00:05,203
+security, but now about End-user authentication.
+3
+
+3
+
+00:00:06,380  -->  00:00:08,980
+Up until now, I've talked about service-to-service
+4
+
+4
+
+00:00:08,980  -->  00:00:12,570
+communication; I showed you how to enable mutual TLS
+5
+
+5
+
+00:00:12,570  -->  00:00:14,613
+for service-to-service authentication.
+6
+
+6
+
+00:00:15,800  -->  00:00:17,990
+After having strong identities using the
+7
+
+7
+
+00:00:17,990  -->  00:00:21,050
+x.509 certificates that mutual TLS provides,
+8
+
+8
+
+00:00:21,050  -->  00:00:24,447
+I showed you how to use role based access control (RBAC).
+9
+
+9
+
+00:00:26,553  -->  00:00:28,380
+In this lecture, I will explain
+10
+
+10
+
+00:00:28,380  -->  00:00:30,763
+end-user to service authentication.
+11
+
+11
+
+00:00:31,970  -->  00:00:34,290
+Istio currently supports JWT tokens
+12
+
+12
+
+00:00:34,290  -->  00:00:36,013
+to authenticate end-users.
+13
+
+13
+
+00:00:37,890  -->  00:00:40,700
+JWT stands for JSON web tokens.
+14
+
+14
+
+00:00:40,700  -->  00:00:43,710
+It's an open standard for representing claims securely
+15
+
+15
+
+00:00:43,710  -->  00:00:48,500
+between two parties; see jwt.io for more information.
+16
+
+16
+
+00:00:48,500  -->  00:00:50,860
+It's a website created by Auth0
+17
+
+17
+
+00:00:50,860  -->  00:00:54,203
+and explains JWT tokens in a really simple way.
+18
+
+18
+
+00:00:55,200  -->  00:00:57,620
+In our implementation, we will receive
+19
+
+19
+
+00:00:57,620  -->  00:00:59,960
+a JWT token from an authentication
+20
+
+20
+
+00:00:59,960  -->  00:01:01,573
+server after logging in.
+21
+
+21
+
+00:01:02,520  -->  00:01:04,710
+It will still be our hello world app,
+22
+
+22
+
+00:01:04,710  -->  00:01:07,010
+so the app that we have been using until now
+23
+
+23
+
+00:01:07,010  -->  00:01:08,470
+we can also log into it,
+24
+
+24
+
+00:01:08,470  -->  00:01:10,963
+and then we will receive a JWT token.
+25
+
+25
+
+00:01:12,470  -->  00:01:14,900
+The app will provide us with a token,
+26
+
+26
+
+00:01:14,900  -->  00:01:19,090
+this JWT token, that is signed with a key.
+27
+
+27
+
+00:01:19,090  -->  00:01:21,470
+The data is not encrypted, but the token
+28
+
+28
+
+00:01:21,470  -->  00:01:24,210
+contains a signature, which can be
+29
+
+29
+
+00:01:24,210  -->  00:01:26,250
+verified to see whether it was
+30
+
+30
+
+00:01:26,250  -->  00:01:28,033
+really created by the server.
+31
+
+31
+
+00:01:29,040  -->  00:01:31,920
+Only the server has the private key,
+32
+
+32
+
+00:01:31,920  -->  00:01:36,030
+so we cannot recreate or tamper with the token.
+33
+
+33
+
+00:01:36,030  -->  00:01:38,100
+If you would change anything in this token,
+34
+
+34
+
+00:01:38,100  -->  00:01:40,460
+then the signature wouldn't be valid anymore
+35
+
+35
+
+00:01:40,460  -->  00:01:42,820
+because the signature is calculated based on
+36
+
+36
+
+00:01:42,820  -->  00:01:44,210
+the contents of this token
+37
+
+37
+
+00:01:44,210  -->  00:01:46,020
+and then it would not work anymore.
+38
+
+38
+
+00:01:46,020  -->  00:01:48,396
+So, it's only the server who could issue
+39
+
+39
+
+00:01:48,396  -->  00:01:51,013
+a token because it has the private key.
+40
+
+40
+
+00:01:52,610  -->  00:01:54,583
+This is an example of a token.
+41
+
+41
+
+00:01:55,550  -->  00:01:58,960
+It consists of three parts divided by a dot.
+42
+
+42
+
+00:01:58,960  -->  00:02:02,090
+So, here the three parts have different colors.
+43
+
+43
+
+00:02:02,090  -->  00:02:04,910
+The first part contains the headers,
+44
+
+44
+
+00:02:04,910  -->  00:02:07,047
+the second part contains the payload,
+45
+
+45
+
+00:02:07,047  -->  00:02:08,930
+and the third part is a signature
+46
+
+46
+
+00:02:08,930  -->  00:02:11,973
+based on the headers and the payload.
+47
+
+47
+
+00:02:13,870  -->  00:02:17,543
+You can use jwt.io to decode the token.
+48
+
+48
+
+00:02:18,610  -->  00:02:23,177
+The headers are, in this case, alg from algorithm, HS256.
+49
+
+49
+
+00:02:25,000  -->  00:02:29,210
+This is a symmetric encryption algorithm, so you just have
+50
+
+50
+
+00:02:29,210  -->  00:02:31,890
+a key, some text that you use, and then if you have
+51
+
+51
+
+00:02:31,890  -->  00:02:34,390
+this text, this password, then you can
+52
+
+52
+
+00:02:34,390  -->  00:02:36,600
+encrypt and encrypt it.
+53
+
+53
+
+00:02:36,600  -->  00:02:38,860
+We are not going to use HS256.
+54
+
+54
+
+00:02:38,860  -->  00:02:43,070
+We going to use RS256, which is asymmetric,
+55
+
+55
+
+00:02:43,070  -->  00:02:45,380
+so you have a private and a public key,
+56
+
+56
+
+00:02:45,380  -->  00:02:47,773
+not just one password or key.
+57
+
+57
+
+00:02:48,650  -->  00:02:50,020
+This now has advantage
+58
+
+58
+
+00:02:50,020  -->  00:02:52,820
+that we can make the signature using our private key
+59
+
+59
+
+00:02:52,820  -->  00:02:55,040
+and that we can give someone our public key
+60
+
+60
+
+00:02:55,040  -->  00:02:57,600
+that can then verify the signature.
+61
+
+61
+
+00:02:57,600  -->  00:02:59,630
+How this exactly works, I will show you
+62
+
+62
+
+00:02:59,630  -->  00:03:02,560
+in a diagram in one of the next slides.
+63
+
+63
+
+00:03:02,560  -->  00:03:05,680
+The second argument here is typ; you just JWT,
+64
+
+64
+
+00:03:05,680  -->  00:03:07,100
+so these are some headers
+65
+
+65
+
+00:03:07,100  -->  00:03:10,633
+that can be used then to interpret this JWT.
+66
+
+66
+
+00:03:11,730  -->  00:03:13,590
+The body you choose for the bodies
+67
+
+67
+
+00:03:14,660  -->  00:03:16,440
+there are some keys attached meaning
+68
+
+68
+
+00:03:16,440  -->  00:03:18,000
+and then there are keys that you can just
+69
+
+69
+
+00:03:18,000  -->  00:03:19,930
+make up two stores for (mumbles).
+70
+
+70
+
+00:03:21,010  -->  00:03:23,460
+Here we have sub, stands for subject.
+71
+
+71
+
+00:03:23,460  -->  00:03:26,470
+This can be a URL, a website, it can be anything;
+72
+
+72
+
+00:03:26,470  -->  00:03:28,033
+what this token is about.
+73
+
+73
+
+00:03:28,910  -->  00:03:30,240
+Then we have the name; the name
+74
+
+74
+
+00:03:30,240  -->  00:03:32,510
+is something that we chose ourself.
+75
+
+75
+
+00:03:32,510  -->  00:03:34,080
+It's John Doe in this case,
+76
+
+76
+
+00:03:34,080  -->  00:03:36,450
+so this can be used by an application code
+77
+
+77
+
+00:03:36,450  -->  00:03:38,653
+to see who is logging in, for example.
+78
+
+78
+
+00:03:39,620  -->  00:03:41,910
+Iat stands for issued at
+79
+
+79
+
+00:03:41,910  -->  00:03:44,260
+and this is a timestamp to see when
+80
+
+80
+
+00:03:44,260  -->  00:03:45,630
+this token was issued.
+81
+
+81
+
+00:03:45,630  -->  00:03:47,750
+And this we can use later on as well.
+82
+
+82
+
+00:03:47,750  -->  00:03:49,810
+We can also have expiration if the token
+83
+
+83
+
+00:03:49,810  -->  00:03:51,673
+needs to expire after a certain time.
+84
+
+84
+
+00:03:54,040  -->  00:03:55,970
+In web apps using authentication,
+85
+
+85
+
+00:03:55,970  -->  00:03:58,440
+the server can issue a JWT token when
+86
+
+86
+
+00:03:58,440  -->  00:03:59,970
+the user is authenticated,
+87
+
+87
+
+00:03:59,970  -->  00:04:02,890
+and that is what our hello world is going to do.
+88
+
+88
+
+00:04:02,890  -->  00:04:05,230
+In the JWT payload, data can be stored,
+89
+
+89
+
+00:04:05,230  -->  00:04:07,563
+like a user name, but also groups and so on.
+90
+
+90
+
+00:04:08,400  -->  00:04:10,480
+This can then used later by the app,
+91
+
+91
+
+00:04:10,480  -->  00:04:13,230
+when the user sends new requests.
+92
+
+92
+
+00:04:13,230  -->  00:04:14,330
+Now we know the log in,
+93
+
+93
+
+00:04:14,330  -->  00:04:17,040
+we know the user, we know the group,
+94
+
+94
+
+00:04:17,040  -->  00:04:19,590
+we can then see if the user has access
+95
+
+95
+
+00:04:19,590  -->  00:04:21,393
+to multi (mumbles) requests.
+96
+
+96
+
+00:04:22,600  -->  00:04:24,750
+If the signature in a token is valid,
+97
+
+97
+
+00:04:24,750  -->  00:04:26,723
+then the JWT is valid, and the data
+98
+
+98
+
+00:04:26,723  -->  00:04:28,200
+within a token can be used.
+99
+
+99
+
+00:04:28,200  -->  00:04:30,150
+So, it's important in the application code
+100
+
+100
+
+00:04:30,150  -->  00:04:32,680
+to always verify the signature,
+101
+
+101
+
+00:04:32,680  -->  00:04:35,803
+so to make sure that nobody change this data in this token.
+102
+
+102
+
+00:04:36,770  -->  00:04:38,930
+This can also be used as an alternative approach
+103
+
+103
+
+00:04:38,930  -->  00:04:40,970
+to server sessions, in this case
+104
+
+104
+
+00:04:40,970  -->  00:04:44,113
+some session data is stored local at the client.
+105
+
+105
+
+00:04:45,000  -->  00:04:47,670
+In building web apps, you can have local sessions
+106
+
+106
+
+00:04:47,670  -->  00:04:49,320
+stored or remote sessions stored.
+107
+
+107
+
+00:04:50,230  -->  00:04:52,510
+JWT tokens are sometimes used as a session store,
+108
+
+108
+
+00:04:52,510  -->  00:04:55,420
+as well, because you can store data in it.
+109
+
+109
+
+00:04:55,420  -->  00:04:57,900
+We are just going to store some data in it
+110
+
+110
+
+00:04:57,900  -->  00:05:00,820
+to then make decisions in our app
+111
+
+111
+
+00:05:00,820  -->  00:05:03,867
+to see whether someone has access to this servers.
+112
+
+112
+
+00:05:05,380  -->  00:05:07,540
+Using microservices, every app would have
+113
+
+113
+
+00:05:07,540  -->  00:05:09,213
+to be separately configured.
+114
+
+114
+
+00:05:10,330  -->  00:05:13,520
+Every service would need to validate the token, so
+115
+
+115
+
+00:05:13,520  -->  00:05:15,046
+when the token comes in,
+116
+
+116
+
+00:05:15,046  -->  00:05:16,590
+if you have lots of microservices,
+117
+
+117
+
+00:05:16,590  -->  00:05:19,840
+maybe lots of languages, you all have to have library
+118
+
+118
+
+00:05:19,840  -->  00:05:21,840
+to interpret this JWT token
+119
+
+119
+
+00:05:21,840  -->  00:05:24,010
+and you have to validate the token
+120
+
+120
+
+00:05:24,010  -->  00:05:25,463
+by validating the signature.
+121
+
+121
+
+00:05:26,380  -->  00:05:28,470
+Once validated, the service would need to check
+122
+
+122
+
+00:05:28,470  -->  00:05:29,910
+whether the user has access to this
+123
+
+123
+
+00:05:29,910  -->  00:05:33,730
+service, which is authorization.
+124
+
+124
+
+00:05:33,730  -->  00:05:36,130
+With istio, this can be taken away from
+125
+
+125
+
+00:05:36,130  -->  00:05:37,850
+app code and managed centrally.
+126
+
+126
+
+00:05:37,850  -->  00:05:39,370
+This is a really big thing.
+127
+
+127
+
+00:05:39,370  -->  00:05:41,820
+You can take away this from the application development
+128
+
+128
+
+00:05:41,820  -->  00:05:44,080
+and bring this in a dev ops world
+129
+
+129
+
+00:05:44,080  -->  00:05:49,080
+because you can then manage the JWT sessions in istio
+130
+
+130
+
+00:05:49,700  -->  00:05:52,870
+and do the authentication and authorization
+131
+
+131
+
+00:05:52,870  -->  00:05:54,830
+using this JWT token,
+132
+
+132
+
+00:05:54,830  -->  00:05:57,720
+and this change from that dev team
+133
+
+133
+
+00:05:57,720  -->  00:06:00,500
+to the dev ops team is actually really big.
+134
+
+134
+
+00:06:00,500  -->  00:06:02,850
+You can configure the JWT token,
+135
+
+135
+
+00:06:02,850  -->  00:06:05,060
+the signature, and the properties
+136
+
+136
+
+00:06:05,060  -->  00:06:07,490
+you expect in istio and then create policies
+137
+
+137
+
+00:06:07,490  -->  00:06:10,580
+to allow or disallow access to a service.
+138
+
+138
+
+00:06:10,580  -->  00:06:12,280
+You still need to tell istio,
+139
+
+139
+
+00:06:12,280  -->  00:06:14,230
+this is a token that I expect,
+140
+
+140
+
+00:06:14,230  -->  00:06:16,650
+this is how you have to verify the token,
+141
+
+141
+
+00:06:16,650  -->  00:06:20,140
+and then you can configure policies on the services
+142
+
+142
+
+00:06:20,140  -->  00:06:23,713
+based on properties within this JWT token.
+143
+
+143
+
+00:06:24,850  -->  00:06:27,550
+For example, the hello app can only be accessed
+144
+
+144
+
+00:06:27,550  -->  00:06:29,423
+if the user is authenticated.
+145
+
+145
+
+00:06:30,290  -->  00:06:34,470
+The sidecar envoy will verify the validity
+146
+
+146
+
+00:06:34,470  -->  00:06:37,063
+of the signature to make sure the token is valid.
+147
+
+147
+
+00:06:38,603  -->  00:06:39,436
+How does this work?
+148
+
+148
+
+00:06:39,436  -->  00:06:40,410
+We have a client,
+149
+
+149
+
+00:06:40,410  -->  00:06:42,620
+client communicates with the istio-ingress
+150
+
+150
+
+00:06:42,620  -->  00:06:45,870
+and the istio-ingress is then going to redirect the client
+151
+
+151
+
+00:06:45,870  -->  00:06:50,307
+to either the hello-authenticator or the hello pod.
+152
+
+152
+
+00:06:51,560  -->  00:06:53,950
+What you want to achieve is that
+153
+
+153
+
+00:06:53,950  -->  00:06:56,070
+everyone can try and authenticate themselves,
+154
+
+154
+
+00:06:56,070  -->  00:06:57,911
+but the hello pod is only accessible
+155
+
+155
+
+00:06:57,911  -->  00:06:59,843
+if you are authenticated.
+156
+
+156
+
+00:07:00,720  -->  00:07:02,680
+We don't want to put any authentication logic
+157
+
+157
+
+00:07:02,680  -->  00:07:03,530
+in the hello pod.
+158
+
+158
+
+00:07:04,710  -->  00:07:06,350
+We don't want turn on authentication
+159
+
+159
+
+00:07:06,350  -->  00:07:08,920
+authorization in the code.
+160
+
+160
+
+00:07:08,920  -->  00:07:10,160
+In this case, istio will
+161
+
+161
+
+00:07:10,160  -->  00:07:12,893
+manage authentication authorization for that user.
+162
+
+162
+
+00:07:14,040  -->  00:07:17,880
+First, client needs to authenticate itself,
+163
+
+163
+
+00:07:17,880  -->  00:07:22,880
+so it's going to go to /login, and this /login
+164
+
+164
+
+00:07:23,110  -->  00:07:24,963
+will reply the JWT token.
+165
+
+165
+
+00:07:25,890  -->  00:07:29,120
+The app is really simple, so you just apply a login.
+166
+
+166
+
+00:07:29,120  -->  00:07:30,600
+It doesn't really check on passwords
+167
+
+167
+
+00:07:30,600  -->  00:07:33,510
+and then you're logged in, you get the JWT token.
+168
+
+168
+
+00:07:33,510  -->  00:07:36,070
+If you're writing your own authentication server
+169
+
+169
+
+00:07:36,070  -->  00:07:40,440
+then, obviously, you need to check on a password, as well.
+170
+
+170
+
+00:07:40,440  -->  00:07:44,200
+Or on whatever you need to authenticate yourself.
+171
+
+171
+
+00:07:44,200  -->  00:07:46,010
+Once a client has this JWT token,
+172
+
+172
+
+00:07:46,010  -->  00:07:48,630
+it can contact the hello pod
+173
+
+173
+
+00:07:48,630  -->  00:07:51,440
+using this JWT token, so it will send
+174
+
+174
+
+00:07:51,440  -->  00:07:55,120
+the request to get the main page
+175
+
+175
+
+00:07:55,120  -->  00:07:58,593
+together with the JWT token to the app.
+176
+
+176
+
+00:07:59,900  -->  00:08:01,590
+It will end up at the Envoy proxy
+177
+
+177
+
+00:08:01,590  -->  00:08:03,850
+and the envoy proxy, rather than just
+178
+
+178
+
+00:08:04,900  -->  00:08:06,870
+routing the request to the hello app,
+179
+
+179
+
+00:08:06,870  -->  00:08:10,300
+it will first have to validate this JWT token.
+180
+
+180
+
+00:08:10,300  -->  00:08:12,000
+It can only validate the JWT token
+181
+
+181
+
+00:08:12,000  -->  00:08:14,210
+if it has the public key
+182
+
+182
+
+00:08:14,210  -->  00:08:17,490
+because the JWT token has a signature,
+183
+
+183
+
+00:08:17,490  -->  00:08:20,460
+but it still needs to validate whether it's correct.
+184
+
+184
+
+00:08:20,460  -->  00:08:22,120
+It doesn't have the private key
+185
+
+185
+
+00:08:22,120  -->  00:08:24,070
+because that would be an unsecure.
+186
+
+186
+
+00:08:24,070  -->  00:08:27,043
+The private key is only on the hello-auth pod,
+187
+
+187
+
+00:08:28,500  -->  00:08:31,170
+so the hello-auth pod created this JWT token
+188
+
+188
+
+00:08:31,170  -->  00:08:32,460
+using the private key,
+189
+
+189
+
+00:08:32,460  -->  00:08:33,620
+but it can still be verified
+190
+
+190
+
+00:08:33,620  -->  00:08:37,620
+using a public key, so this is a RSA encryption algorithm
+191
+
+191
+
+00:08:37,620  -->  00:08:41,050
+that is being used just like with HSA keys.
+192
+
+192
+
+00:08:41,050  -->  00:08:43,660
+To know this public key, it needs to download it first.
+193
+
+193
+
+00:08:43,660  -->  00:08:45,400
+We are going to dial istio,
+194
+
+194
+
+00:08:45,400  -->  00:08:47,010
+where it can download it.
+195
+
+195
+
+00:08:47,010  -->  00:08:49,410
+And, typically, it's downloadable at the same microservice
+196
+
+196
+
+00:08:49,410  -->  00:08:53,050
+that signed the JWT token.
+197
+
+197
+
+00:08:53,050  -->  00:08:55,780
+This URL is hard coded in the Policy,
+198
+
+198
+
+00:08:55,780  -->  00:08:57,680
+so here we have the configuration JWT.
+199
+
+199
+
+00:08:58,540  -->  00:08:59,990
+We're looking for the issuer
+200
+
+200
+
+00:08:59,990  -->  00:09:01,490
+in this JWT token
+201
+
+201
+
+00:09:01,490  -->  00:09:04,620
+that is equal to, to this, so
+202
+
+202
+
+00:09:04,620  -->  00:09:06,110
+this hello-auth app
+203
+
+203
+
+00:09:06,110  -->  00:09:08,560
+when it created this JWT token,
+204
+
+204
+
+00:09:08,560  -->  00:09:11,587
+this is the issuer that it configured in this token.
+205
+
+205
+
+00:09:11,587  -->  00:09:13,780
+It's just a key value pair
+206
+
+206
+
+00:09:13,780  -->  00:09:15,740
+that needs to be the same.
+207
+
+207
+
+00:09:15,740  -->  00:09:17,050
+And if you need to verify it,
+208
+
+208
+
+00:09:17,050  -->  00:09:18,661
+you need to go to this URL:
+209
+
+209
+
+00:09:18,661  -->  00:09:23,661
+authkubernetesnewtechacademy/well-known/jwks.json,
+210
+
+210
+
+00:09:24,357  -->  00:09:28,441
+and in this jwks.json, we have the public key.
+211
+
+211
+
+00:09:28,441  -->  00:09:30,565
+The envoy proxy will go to this URL,
+212
+
+212
+
+00:09:30,565  -->  00:09:32,060
+which is our hello-auth
+213
+
+213
+
+00:09:32,060  -->  00:09:35,320
+and will retrieve this jwks.json,
+214
+
+214
+
+00:09:35,320  -->  00:09:37,870
+and, in this file, we have the public key.
+215
+
+215
+
+00:09:37,870  -->  00:09:39,770
+And once envoy has the public key,
+216
+
+216
+
+00:09:39,770  -->  00:09:42,820
+it can validate this JWT token.
+217
+
+217
+
+00:09:42,820  -->  00:09:44,820
+Once the JWT is valid
+218
+
+218
+
+00:09:44,820  -->  00:09:47,140
+and the issuer is equal to this string
+219
+
+219
+
+00:09:47,140  -->  00:09:48,670
+that is configured in the policy,
+220
+
+220
+
+00:09:48,670  -->  00:09:51,190
+then it will grant access to the clients
+221
+
+221
+
+00:09:51,190  -->  00:09:53,000
+to access the hello pod.
+222
+
+222
+
+00:09:53,000  -->  00:09:55,200
+If the client tampered with the JWT token,
+223
+
+223
+
+00:09:55,200  -->  00:09:56,590
+it will not validate,
+224
+
+224
+
+00:09:56,590  -->  00:09:57,940
+if the issuer is not correct,
+225
+
+225
+
+00:09:57,940  -->  00:09:59,500
+access will not granted.
+226
+
+226
+
+00:09:59,500  -->  00:10:01,290
+Only if everything is correct,
+227
+
+227
+
+00:10:01,290  -->  00:10:04,683
+then access will be granted to the client.
+228
+
+228
+
+00:10:05,880  -->  00:10:08,210
+So this way we can build an authentication
+229
+
+229
+
+00:10:08,210  -->  00:10:10,180
+mechanism for the end-user
+230
+
+230
+
+00:10:10,180  -->  00:10:13,710
+without having every microservice know how
+231
+
+231
+
+00:10:13,710  -->  00:10:15,910
+the authentication mechanism works.
+232
+
+232
+
+00:10:15,910  -->  00:10:19,679
+The hello pod doesn't need to know anything about the JWT.
+233
+
+233
+
+00:10:19,679  -->  00:10:22,740
+It will all be handled by istio and the sidecar.
+234
+
+234
+
+00:10:22,740  -->  00:10:25,953
+In the next demo, I will show you exactly this.

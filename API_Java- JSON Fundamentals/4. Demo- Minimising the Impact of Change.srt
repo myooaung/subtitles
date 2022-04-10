@@ -1,0 +1,560 @@
+1
+00:00:01,833 --> 00:00:05,700
+Any successful system will live in production for a while and
+
+2
+00:00:05,700 --> 00:00:08,189
+change over time beyond its initial design.
+
+3
+00:00:08,189 --> 00:00:12,170
+That means that the software will need to evolve its design and
+
+4
+00:00:12,170 --> 00:00:14,812
+possibly change its schema and API over time.
+
+5
+00:00:14,812 --> 00:00:16,238
+When writing your software,
+
+6
+00:00:16,238 --> 00:00:21,096
+you can look into how to minimize the impact of these changes and how to write
+
+7
+00:00:21,096 --> 00:00:25,168
+software that needs as little code as possible to be changed.
+
+8
+00:00:25,168 --> 00:00:27,583
+One cool trick, in BuzzFeed terminology,
+
+9
+00:00:27,583 --> 00:00:33,376
+is to minimize the impact of change by only trying to extract or depend upon
+
+10
+00:00:33,376 --> 00:00:37,540
+the information that you need when consuming a JSON document.
+
+11
+00:00:37,540 --> 00:00:40,794
+That means that when an unrelated part of the schema of the document changes,
+
+12
+00:00:40,794 --> 00:00:42,412
+your code doesn't break.
+
+13
+00:00:42,412 --> 00:00:45,243
+It makes you less vulnerable to changes.
+
+14
+00:00:45,243 --> 00:00:49,183
+For example, in our examples where we're approving or denying bank loans,
+
+15
+00:00:49,183 --> 00:00:51,812
+we shouldn't try and validate and check the entire
+
+16
+00:00:51,812 --> 00:00:55,370
+document matches our expectations, only the income and loan amount,
+
+17
+00:00:55,370 --> 00:00:56,827
+the values that we need.
+
+18
+00:00:56,827 --> 00:00:57,118
+Now,
+
+19
+00:00:57,118 --> 00:01:01,415
+you might think that this means that binding APIs are out of bounds entirely,
+
+20
+00:01:01,415 --> 00:01:05,691
+but actually the default behavior with Jackson when a field is missing
+
+21
+00:01:05,691 --> 00:01:08,726
+in the JSON document is to leave the field null.
+
+22
+00:01:08,726 --> 00:01:10,524
+This initially sounds like a bad idea.
+
+23
+00:01:10,524 --> 00:01:13,386
+It means you may have to check some fields for null values,
+
+24
+00:01:13,386 --> 00:01:16,822
+but it does mean that you're less susceptible to breaking when consuming
+
+25
+00:01:16,822 --> 00:01:20,657
+JSON documents from a producer that has evolved its API.
+
+26
+00:01:20,657 --> 00:01:22,991
+In order to put this theory into practice,
+
+27
+00:01:22,991 --> 00:01:26,630
+we'll next show you a demo where we make some small
+
+28
+00:01:26,630 --> 00:01:28,896
+changes to our bank loan document.
+
+29
+00:01:28,896 --> 00:01:32,540
+We're going to add, remove, and rename some fields.
+
+30
+00:01:32,540 --> 00:01:37,697
+And, we shall see how the different APIs cope with these situations.
+
+31
+00:01:37,697 --> 00:01:40,059
+We'll look at how you can support two different versions
+
+32
+00:01:40,059 --> 00:01:44,264
+that have a small change fairly easily.
+
+33
+00:01:44,264 --> 00:01:48,308
+In order to demonstrate the problems we have with evolving APIs,
+
+34
+00:01:48,308 --> 00:01:55,749
+I've taken our BANK_LOAN_FILE and I've just created an evolved versions here.
+
+35
+00:01:55,749 --> 00:01:58,450
+That was exactly the same initially as the previous version
+
+36
+00:01:58,450 --> 00:02:00,233
+that we've seen in our previous examples,
+
+37
+00:02:00,233 --> 00:02:03,708
+but I'm going to modify it in this demo and show you what happens
+
+38
+00:02:03,708 --> 00:02:06,018
+when we run the modified version with the code.
+
+39
+00:02:06,018 --> 00:02:08,548
+But firstly, let's just recap what we've got here.
+
+40
+00:02:08,548 --> 00:02:14,703
+I've got a method that extracts information from the JSON file using a DOM API.
+
+41
+00:02:14,703 --> 00:02:18,063
+And what it just does is it calculates the totalIncome
+
+42
+00:02:18,063 --> 00:02:20,216
+and the amount from that InputStream.
+
+43
+00:02:20,216 --> 00:02:24,192
+This is basically the same logic as we saw in our
+
+44
+00:02:24,192 --> 00:02:25,816
+servlet example for the DOM API.
+
+45
+00:02:25,816 --> 00:02:26,629
+And in fact,
+
+46
+00:02:26,629 --> 00:02:29,798
+the code snippets here to start with are exactly the same as we
+
+47
+00:02:29,798 --> 00:02:32,798
+saw in the servlet examples for all three APIs.
+
+48
+00:02:32,798 --> 00:02:37,776
+The DOM version just looks up the JsonNode for the loanDetails field,
+
+49
+00:02:37,776 --> 00:02:43,504
+checks it exists, and if so, finds the amount value from the loanDetails object.
+
+50
+00:02:43,504 --> 00:02:47,035
+To get the totalIncome, it looks up a JsonNode for the jobs,
+
+51
+00:02:47,035 --> 00:02:51,308
+iterates over the elements, and then returns the totalIncome.
+
+52
+00:02:51,308 --> 00:02:55,832
+So if we run this code, we can see it works fine, just as we would expect.
+
+53
+00:02:55,832 --> 00:03:01,148
+Similarly, with the binding API, we use our BasicLoanApplication object,
+
+54
+00:03:01,148 --> 00:03:06,144
+bind a value out, and get the totalIncome from the jobs list,
+
+55
+00:03:06,144 --> 00:03:09,720
+the amount to be borrowed in the loan from the amount
+
+56
+00:03:09,720 --> 00:03:11,345
+field of the loanDetails object.
+
+57
+00:03:11,345 --> 00:03:13,478
+And if I just quickly run that,
+
+58
+00:03:13,478 --> 00:03:18,398
+you can see that we get the same results as we did before.
+
+59
+00:03:18,398 --> 00:03:21,377
+And finally, with the streaming API.
+
+60
+00:03:21,377 --> 00:03:21,871
+Cool.
+
+61
+00:03:21,871 --> 00:03:23,352
+Nice and simple.
+
+62
+00:03:23,352 --> 00:03:28,289
+So let's take this same code and evolve our schema.
+
+63
+00:03:28,289 --> 00:03:31,360
+So the first thing I'm going to do is I'm going to take this
+
+64
+00:03:31,360 --> 00:03:36,119
+purposeOfLoan field and I am going to remove it and we'll see what
+
+65
+00:03:36,119 --> 00:03:40,898
+happens to these different versions when we remove it.
+
+66
+00:03:40,898 --> 00:03:46,599
+As we can see, we don't depend upon that information at all in the DOM API.
+
+67
+00:03:46,599 --> 00:03:47,796
+So it works fine.
+
+68
+00:03:47,796 --> 00:03:50,488
+Now the binding API, as I mentioned in Jackson,
+
+69
+00:03:50,488 --> 00:03:53,111
+if there's a missing field, it will return null as the field.
+
+70
+00:03:53,111 --> 00:03:55,864
+So by not depending upon that information and not
+
+71
+00:03:55,864 --> 00:03:57,594
+validating the information we didn't need,
+
+72
+00:03:57,594 --> 00:04:01,103
+that works fine in the presence of removing a field,
+
+73
+00:04:01,103 --> 00:04:04,206
+and so does the streaming API.
+
+74
+00:04:04,206 --> 00:04:04,848
+Simple.
+
+75
+00:04:04,848 --> 00:04:09,344
+So, let's try adding a field now.
+
+76
+00:04:09,344 --> 00:04:12,103
+We're going to add some comments about the person in question.
+
+77
+00:04:12,103 --> 00:04:16,375
+We're going to just say Mrs Joan Smith, she seems trustworthy.
+
+78
+00:04:16,375 --> 00:04:21,975
+And we'll see what happens with these different APIs.
+
+79
+00:04:21,975 --> 00:04:26,139
+Again, the DOM API works in the presence of removing a field.
+
+80
+00:04:26,139 --> 00:04:31,231
+If we try the binding API, we see we get a big exception.
+
+81
+00:04:31,231 --> 00:04:34,249
+So all that says is you've got a UnrecognizedPropertyException
+
+82
+00:04:34,249 --> 00:04:36,303
+and an unrecognized field called comments.
+
+83
+00:04:36,303 --> 00:04:39,973
+I don't know what to do with that in my API.
+
+84
+00:04:39,973 --> 00:04:43,587
+So this is a problem that you have with the binding API.
+
+85
+00:04:43,587 --> 00:04:45,858
+If we want to solve that problem in the binding API,
+
+86
+00:04:45,858 --> 00:04:53,136
+we basically need to add a new field in here called comments.
+
+87
+00:04:53,136 --> 00:04:55,029
+And add a getter and setter for it.
+
+88
+00:04:55,029 --> 00:04:57,445
+Even though we don't actually use the information there.
+
+89
+00:04:57,445 --> 00:05:02,423
+So someone adding a field to an API, if you're relying on the binding API,
+
+90
+00:05:02,423 --> 00:05:04,216
+can potentially break your usage.
+
+91
+00:05:04,216 --> 00:05:06,985
+And we can check in with the streaming API.
+
+92
+00:05:06,985 --> 00:05:09,652
+I'm going to stream the API, just stream through the tokens,
+
+93
+00:05:09,652 --> 00:05:13,205
+and looks for things with annualIncome and amount in there.
+
+94
+00:05:13,205 --> 00:05:15,684
+So if we try that with the streaming API,
+
+95
+00:05:15,684 --> 00:05:18,449
+we can see it works fine even with the added field.
+
+96
+00:05:18,449 --> 00:05:19,117
+There's no problem.
+
+97
+00:05:19,117 --> 00:05:22,980
+So for adding a field, the binding API is a little bit more fiddly.
+
+98
+00:05:22,980 --> 00:05:25,116
+Now let's try renaming a field.
+
+99
+00:05:25,116 --> 00:05:27,664
+So first, I've got a loanDetails object,
+
+100
+00:05:27,664 --> 00:05:31,784
+and suppose the API changes so it now says loanInfo,
+
+101
+00:05:31,784 --> 00:05:34,233
+if there's a new version.
+
+102
+00:05:34,233 --> 00:05:35,702
+What happens then?
+
+103
+00:05:35,702 --> 00:05:38,422
+If we try and extract it using the DOM API,
+
+104
+00:05:38,422 --> 00:05:42,033
+we see that the code runs, but the amount is now 0.
+
+105
+00:05:42,033 --> 00:05:44,341
+So that's a bit of a problem.
+
+106
+00:05:44,341 --> 00:05:46,589
+Why is the amount now 0?
+
+107
+00:05:46,589 --> 00:05:49,960
+Well, we were still having a loanDetails getter here.
+
+108
+00:05:49,960 --> 00:05:53,416
+So if we wanted to support both versions of the code,
+
+109
+00:05:53,416 --> 00:05:59,319
+what we'd have to do is say look up the previous API where it says loanDetails
+
+110
+00:05:59,319 --> 00:06:04,843
+and then attempt to get the field where it says loanInfo.
+
+111
+00:06:04,843 --> 00:06:08,882
+And if we rerun that now, we can see it parses with the evolved API.
+
+112
+00:06:08,882 --> 00:06:12,024
+So that was easy enough to fix.
+
+113
+00:06:12,024 --> 00:06:14,269
+What about the binding API?
+
+114
+00:06:14,269 --> 00:06:15,879
+Well, again, we fail fast.
+
+115
+00:06:15,879 --> 00:06:17,488
+We get this big exception.
+
+116
+00:06:17,488 --> 00:06:19,734
+It says look, there's an unrecognized field,
+
+117
+00:06:19,734 --> 00:06:23,364
+loanInfo, and the binding API is a little bit more fiddly to fix.
+
+118
+00:06:23,364 --> 00:06:32,022
+So first thing we need to do is add another field in here called loanInfo.
+
+119
+00:06:32,022 --> 00:06:33,828
+And add a getter and setter for it.
+
+120
+00:06:33,828 --> 00:06:38,642
+Now if we do that, and rerun the code, we can see that it parses okay,
+
+121
+00:06:38,642 --> 00:06:41,274
+but then we get a NullPointerException here.
+
+122
+00:06:41,274 --> 00:06:46,145
+So, again, we need to say look, find the loanDetails objects.
+
+123
+00:06:46,145 --> 00:06:47,794
+If the loanDetails object is null, i.
+
+124
+00:06:47,794 --> 00:06:48,029
+e.
+
+125
+00:06:48,029 --> 00:06:51,978
+if it's missing from the parsed JSON, take that loanApplication,
+
+126
+00:06:51,978 --> 00:06:55,659
+get the loanInfo object because that's what it's been renamed to,
+
+127
+00:06:55,659 --> 00:06:56,417
+and put it in there.
+
+128
+00:06:56,417 --> 00:06:58,982
+So this is how you kind of support multiple different versions
+
+129
+00:06:58,982 --> 00:07:01,520
+that you've renamed and then that code works.
+
+130
+00:07:01,520 --> 00:07:05,694
+A bit fiddly than the DOM API, but we still got there.
+
+131
+00:07:05,694 --> 00:07:08,258
+And finally, let's try the streaming API.
+
+132
+00:07:08,258 --> 00:07:09,986
+And the streaming API just worked out of the box.
+
+133
+00:07:09,986 --> 00:07:11,259
+Now, that's really good.
+
+134
+00:07:11,259 --> 00:07:14,796
+So this is an example of how the streaming API depended,
+
+135
+00:07:14,796 --> 00:07:16,479
+though we wrote this code,
+
+136
+00:07:16,479 --> 00:07:19,781
+depended less upon the structure of the JSON than the other versions did.
+
+137
+00:07:19,781 --> 00:07:22,272
+It just looked for the information and sucked it out.
+
+138
+00:07:22,272 --> 00:07:24,855
+And sometimes it's worth writing code, that way,
+
+139
+00:07:24,855 --> 00:07:27,739
+even if it requires a bit more code up front,
+
+140
+00:07:27,739 --> 00:07:36,000
+if it enables you to be more flexible as time goes on and support schema changes more easily.
+

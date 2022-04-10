@@ -1,0 +1,221 @@
+WEBVTT
+1
+00:00:01.548 --> 00:00:04.392
+Spring also provides persistent token Remember me.
+
+2
+00:00:04.392 --> 00:00:07.770
+The way this works is that rather than providing the signature
+
+3
+00:00:07.770 --> 00:00:10.938
+in the cookie with the user's credentials,
+
+4
+00:00:10.938 --> 00:00:14.437
+Spring validates that the token exists in the database.
+
+5
+00:00:14.437 --> 00:00:17.332
+The cookies only contain a series identifier.
+
+6
+00:00:17.332 --> 00:00:21.816
+This identifies the initial login of a user and remains consistent each time a
+
+7
+00:00:21.816 --> 00:00:25.437
+user is automatically logged in with the remember- me cookie.
+
+8
+00:00:25.437 --> 00:00:26.779
+The token value,
+
+9
+00:00:26.779 --> 00:00:30.028
+a unique value that changes each time a user is
+
+10
+00:00:30.028 --> 00:00:33.130
+authenticated using the remember-me cookie.
+
+11
+00:00:33.130 --> 00:00:37.196
+Basically, if the session expires and the remember-me cookie is present,
+
+12
+00:00:37.196 --> 00:00:41.535
+it will look at the database using the series identifier
+
+13
+00:00:41.535 --> 00:00:45.528
+and confirm the token value matches, authenticating the user,
+
+14
+00:00:45.528 --> 00:00:49.323
+and then generating a new token value for each time.
+
+15
+00:00:49.323 --> 00:00:53.790
+Now the benefits include no credentials in the cookie.
+
+16
+00:00:53.790 --> 00:00:57.124
+If the remember-me cookie is leaked and used by a third party,
+
+17
+00:00:57.124 --> 00:01:00.169
+the next time the user accesses the page,
+
+18
+00:01:00.169 --> 00:01:02.850
+their token value will be out of date.
+
+19
+00:01:02.850 --> 00:01:07.046
+A warning with the last access date can be presented to the user.
+
+20
+00:01:07.046 --> 00:01:11.798
+The user can then simply log out or re- authenticate with Remember me,
+
+21
+00:01:11.798 --> 00:01:14.190
+invalidating the hacker's cookie.
+
+22
+00:01:14.190 --> 00:01:16.279
+Setting is up is easy.
+
+23
+00:01:16.279 --> 00:01:17.962
+If you are using a database,
+
+24
+00:01:17.962 --> 00:01:20.781
+then all you need to do is create the following table.
+
+25
+00:01:20.781 --> 00:01:24.737
+Spring provides a JDBC token repository.
+
+26
+00:01:24.737 --> 00:01:28.798
+You just provide it with your data source and add it to the Remember me
+
+27
+00:01:28.798 --> 00:01:32.752
+filter builder using the tokenRepository property.
+
+28
+00:01:32.752 --> 00:01:34.423
+Spring will do the rest.
+
+29
+00:01:34.423 --> 00:01:40.041
+Now in our case, we are using MongoDB, so we need a custom one.
+
+30
+00:01:40.041 --> 00:01:42.163
+Simply create a class that implements the
+
+31
+00:01:42.163 --> 00:01:48.285
+PersistentTokenRepository interface and overrides the createNewToken,
+
+32
+00:01:48.285 --> 00:01:53.774
+updateToken, getTokenForSeries, and removeTokens method.
+
+33
+00:01:53.774 --> 00:01:59.276
+Add the Component annotation, inject it into your Configuration class,
+
+34
+00:01:59.276 --> 00:02:03.091
+and add it to the tokenRepository property.
+
+35
+00:02:03.091 --> 00:02:06.717
+Now if authentication is performed by the Remember me filter and
+
+36
+00:02:06.717 --> 00:02:10.226
+the user has two- factor authentication enabled,
+
+37
+00:02:10.226 --> 00:02:14.836
+then you need to forward them to the two- factor authentication login page.
+
+38
+00:02:14.836 --> 00:02:20.385
+Hence, we also need to add the authenticationSuccessHandler to do that.
+
+39
+00:02:20.385 --> 00:02:21.383
+That's it.
+
+40
+00:02:21.383 --> 00:02:23.879
+Spring will do the rest.
+
+41
+00:02:23.879 --> 00:02:27.368
+Again, if a third party gets the cookie,
+
+42
+00:02:27.368 --> 00:02:31.769
+they will have access to the site until the user accesses the site again.
+
+43
+00:02:31.769 --> 00:02:36.669
+And if the hacker gets a hold of the data in the persisting login table,
+
+44
+00:02:36.669 --> 00:02:40.295
+then they can use it to bypass the login page and,
+
+45
+00:02:40.295 --> 00:02:43.584
+in effect, get around bcrypt.
+
+46
+00:02:43.584 --> 00:02:43.863
+Hence,
+
+47
+00:02:43.863 --> 00:02:47.440
+it is good practice to request the user to re-authenticate
+
+48
+00:02:47.440 --> 00:02:50.451
+before performing any sensitive operations,
+
+49
+00:02:50.451 --> 00:02:53.446
+like transferring funds, changing passwords,
+
+50
+00:02:53.446 --> 00:02:55.620
+accessing sensitive data.
+
+51
+00:02:55.620 --> 00:02:56.924
+Just think of Amazon.
+
+52
+00:02:56.924 --> 00:02:59.360
+They allow you to view the product catalog,
+
+53
+00:02:59.360 --> 00:03:01.549
+add items to your basket without have to
+
+54
+00:03:01.549 --> 00:03:05.038
+re-authenticate if you have a persistent cookie.
+
+55
+00:03:05.038 --> 00:03:16.000
+However, as soon as you check out, they will ask you to re-authenticate. Hence, you need to find the right balance between user experience and security.
+

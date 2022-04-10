@@ -1,0 +1,309 @@
+WEBVTT
+1
+00:00:02.540 --> 00:00:06.690
+Let's look at an example of deploying two different versions of the API
+
+2
+00:00:06.690 --> 00:00:11.190
+behind a load balancer with rules that check for a custom Accept‑version
+
+3
+00:00:11.190 --> 00:00:15.350
+header, then route the calls based on the value of that header. We'll also
+
+4
+00:00:15.350 --> 00:00:19.620
+add a default with a helpful error message in case clients forget to include
+
+5
+00:00:19.620 --> 00:00:22.070
+the version header with their call.
+
+6
+00:00:22.070 --> 00:00:26.700
+Let's modify our v1 project from using the URI for our
+
+7
+00:00:26.700 --> 00:00:29.150
+version to using a custom header.
+
+8
+00:00:29.150 --> 00:00:33.040
+We won't need the basePath property anymore, so we'll get rid of that.
+
+9
+00:00:33.040 --> 00:00:35.300
+Our example service will be the same,
+
+10
+00:00:35.300 --> 00:00:38.200
+but let's change the message a little bit to make it clear that this is
+
+11
+00:00:38.200 --> 00:00:42.140
+version 1. The Employee entity is going to be the same,
+
+12
+00:00:42.140 --> 00:00:46.360
+and the artifact will be 1.0. Let's go ahead and build the executable
+
+13
+00:00:46.360 --> 00:00:52.320
+JAR so we can deploy this to the server. With a successful build, we
+
+14
+00:00:52.320 --> 00:00:55.640
+can copy the 1.0 version up to the server.
+
+15
+00:00:55.640 --> 00:00:59.640
+I've got the JAR on the server, and we'll fire it up.
+
+16
+00:00:59.640 --> 00:01:05.010
+Next, let's switch to the branch with the v2 version. Here
+
+17
+00:01:05.010 --> 00:01:08.140
+we're configured to build a 2.0 artifact,
+
+18
+00:01:08.140 --> 00:01:12.530
+the employee service is modified to include a required department
+
+19
+00:01:12.530 --> 00:01:16.340
+attributes, the schedule service is the same, we'll just add some
+
+20
+00:01:16.340 --> 00:01:20.100
+clarification that this is the v2 schedule, and we'll no longer
+
+21
+00:01:20.100 --> 00:01:23.040
+need the basePath property.
+
+22
+00:01:23.040 --> 00:01:24.940
+Let's go ahead and build this.
+
+23
+00:01:24.940 --> 00:01:29.440
+The build is a success, so we'll copy the 2.0 JAR up to the server.
+
+24
+00:01:29.440 --> 00:01:34.640
+Now we have the 2.0 version copied to the service, so we'll fire it up.
+
+25
+00:01:34.640 --> 00:01:37.410
+Let's take a look at the rules for the load balancer.
+
+26
+00:01:37.410 --> 00:01:41.540
+It's listening on port 80, then there are two different rules.
+
+27
+00:01:41.540 --> 00:01:44.720
+If the Accept‑version header is v1, then it will
+
+28
+00:01:44.720 --> 00:01:47.650
+forward to our application v1 deployment.
+
+29
+00:01:47.650 --> 00:01:50.820
+If the header Accept‑version is v2,
+
+30
+00:01:50.820 --> 00:01:54.490
+then it will forward to our application v2 deployment.
+
+31
+00:01:54.490 --> 00:01:57.740
+Let's hit these endpoints and see how it works.
+
+32
+00:01:57.740 --> 00:02:00.310
+We'll start with the v1 schedule.
+
+33
+00:02:00.310 --> 00:02:05.340
+Notice how there is no versioning in the URI, but we are including the
+
+34
+00:02:05.340 --> 00:02:11.030
+Accept‑version header with a v1 value, and we see the expected value that our
+
+35
+00:02:11.030 --> 00:02:17.890
+v1 schedule is Monday through Friday, 9‑9. Let's hit the employees endpoint.
+
+36
+00:02:17.890 --> 00:02:22.390
+Currently, 0 employees because, again, we're using an in‑memory database and
+
+37
+00:02:22.390 --> 00:02:24.700
+we've just started the application.
+
+38
+00:02:24.700 --> 00:02:30.240
+Let's add an employee named craig and title developer,
+
+39
+00:02:30.240 --> 00:02:33.390
+and we'll double check the value.
+
+40
+00:02:33.390 --> 00:02:37.940
+We can see that one element was returned, and it's craig, developer.
+
+41
+00:02:37.940 --> 00:02:42.930
+Now let's hit the v2 service. Again, notice the same URL, there's nothing
+
+42
+00:02:42.930 --> 00:02:49.440
+different about the URL, but now the except version header is v2,
+
+43
+00:02:49.440 --> 00:02:53.750
+and we get our expected value that the v2 schedule is Monday through Wednesday,
+
+44
+00:02:53.750 --> 00:02:55.050
+6‑6.
+
+45
+00:02:55.050 --> 00:03:01.930
+Let's check v2 employees, 0 elements, nothing there yet, so let's add an
+
+46
+00:03:01.930 --> 00:03:07.750
+employee. We'll do william, developer, and recall that v2 has a required
+
+47
+00:03:07.750 --> 00:03:12.530
+attribute of department, so we'll say research.
+
+48
+00:03:12.530 --> 00:03:15.250
+The call was successful, and when we get employees,
+
+49
+00:03:15.250 --> 00:03:20.000
+we can see one element, and it's william, developer, in research.
+
+50
+00:03:20.000 --> 00:03:23.040
+What happens if we try to hit the employees endpoint
+
+51
+00:03:23.040 --> 00:03:25.650
+without including the custom header?
+
+52
+00:03:25.650 --> 00:03:28.340
+Let's try it and see.
+
+53
+00:03:28.340 --> 00:03:31.040
+Notice how we get a 404 Not Found.
+
+54
+00:03:31.040 --> 00:03:35.040
+We can also see the custom message that we've added in the load balancer.
+
+55
+00:03:35.040 --> 00:03:38.870
+Be sure to include Accept‑version header with the version you want
+
+56
+00:03:38.870 --> 00:03:43.940
+to use. Current supported versions are v1 and v2.
+
+57
+00:03:43.940 --> 00:03:48.060
+That error message was simply the default action on the load balancer.
+
+58
+00:03:48.060 --> 00:03:51.580
+We can take a look at this and see that if the request was
+
+59
+00:03:51.580 --> 00:03:54.440
+not routed by any of the previous rules,
+
+60
+00:03:54.440 --> 00:04:00.470
+which we're looking for the Accept‑version header and the value of v1 or v2,
+
+61
+00:04:00.470 --> 00:04:03.690
+then we're returning a fixed response.
+
+62
+00:04:03.690 --> 00:04:04.490
+In this case,
+
+63
+00:04:04.490 --> 00:04:08.790
+it's a 404 code with some information to help the user remember that they
+
+64
+00:04:08.790 --> 00:04:12.700
+need to include the custom header called Accept‑version,
+
+65
+00:04:12.700 --> 00:04:17.090
+and that the current versions supported are v1 and v2.
+
+66
+00:04:17.090 --> 00:04:20.470
+This is a great way to leverage your load balancer to remind
+
+67
+00:04:20.470 --> 00:04:24.700
+your users that versioning for your Spring Data REST API is
+
+68
+00:04:24.700 --> 00:04:27.120
+being implemented with custom headers,
+
+69
+00:04:27.120 --> 00:04:33.540
+and those custom headers must be included for the calls to be routed correctly.
+
+70
+00:04:33.540 --> 00:04:37.400
+Congratulations! You've seen how to add a custom header to
+
+71
+00:04:37.400 --> 00:04:40.600
+version a service and some limitations of this approach in
+
+72
+00:04:40.600 --> 00:04:42.640
+your Spring Data REST service.
+
+73
+00:04:42.640 --> 00:04:45.890
+We then covered how to use your router or proxy server
+
+74
+00:04:45.890 --> 00:04:48.290
+to read the custom version headers,
+
+75
+00:04:48.290 --> 00:04:51.420
+allowing you to use this approach with your Spring Data REST
+
+76
+00:04:51.420 --> 00:04:54.920
+service without sacrificing the convenience of letting Spring
+
+77
+00:04:54.920 --> 00:05:01.000
+manage the entities for you. I hope you have found this valuable, and thank you for watching.
+

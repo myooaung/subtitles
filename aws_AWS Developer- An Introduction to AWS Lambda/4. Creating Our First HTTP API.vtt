@@ -1,0 +1,621 @@
+WEBVTT
+1
+00:00:01.040 --> 00:00:03.170
+So let's review the application we'll be building in
+
+2
+00:00:03.170 --> 00:00:05.620
+this demo, the New Customers Service.
+
+3
+00:00:05.620 --> 00:00:08.700
+It'll start with an API Gateway request that then gets
+
+4
+00:00:08.700 --> 00:00:10.560
+routed over to a Lambda function.
+
+5
+00:00:10.560 --> 00:00:14.680
+That Lambda function will then validate the request, and if it looks correct,
+
+6
+00:00:14.680 --> 00:00:20.240
+save it in DynamoDB, essentially adding a new user to that DynamoDB table.
+
+7
+00:00:20.240 --> 00:00:21.030
+In this process,
+
+8
+00:00:21.030 --> 00:00:24.770
+the Lambda function will use bundled libraries in order to interact with
+
+9
+00:00:24.770 --> 00:00:29.290
+DynamoDB, and it'll also send an email to an administrator as soon as that
+
+10
+00:00:29.290 --> 00:00:33.040
+user has been saved correctly in DynamoDB.
+
+11
+00:00:33.040 --> 00:00:35.460
+So let's review exactly how this works in the demo
+
+12
+00:00:35.460 --> 00:00:37.240
+and the steps that it'll take.
+
+13
+00:00:37.240 --> 00:00:40.720
+We'll start by deploying our infrastructure using a boilerplate Lambda
+
+14
+00:00:40.720 --> 00:00:45.210
+function and in API Gateway event for that Lambda function. From there,
+
+15
+00:00:45.210 --> 00:00:48.050
+we'll learn how to add a DynamoDB resource,
+
+16
+00:00:48.050 --> 00:00:51.450
+and then we'll get started creating our actual function. We'll look at how
+
+17
+00:00:51.450 --> 00:00:54.670
+we can process the API Gateway event that's coming in,
+
+18
+00:00:54.670 --> 00:00:59.040
+and we'll look at how we can work with DynamoDB using the boto3 library.
+
+19
+00:00:59.040 --> 00:01:02.940
+So let's get started. Back over here in VS Code, I've loaded up
+
+20
+00:01:02.940 --> 00:01:05.890
+the application we created in the previous demo.
+
+21
+00:01:05.890 --> 00:01:08.440
+Now, in order to continue building onto this application,
+
+22
+00:01:08.440 --> 00:01:11.780
+I want to first remove the service that we just created with Serverless.
+
+23
+00:01:11.780 --> 00:01:14.430
+So I'll use the serverless remove command,
+
+24
+00:01:14.430 --> 00:01:16.500
+and this will go through the process of checking for
+
+25
+00:01:16.500 --> 00:01:19.380
+everything that I just deployed inside of AWS and
+
+26
+00:01:19.380 --> 00:01:21.560
+removing all of those different items.
+
+27
+00:01:21.560 --> 00:01:25.100
+In this case, it'll just be the Lambda function that I ended up deploying.
+
+28
+00:01:25.100 --> 00:01:27.020
+Now this isn't necessary every time you're working
+
+29
+00:01:27.020 --> 00:01:28.910
+with the Serverless Framework, but in this case,
+
+30
+00:01:28.910 --> 00:01:32.170
+we're building on the exact same application, so I just like to remove some
+
+31
+00:01:32.170 --> 00:01:35.260
+extraneous resources so we can start from scratch again.
+
+32
+00:01:35.260 --> 00:01:39.090
+So let's go ahead and go back into serverless.yml and start adding what
+
+33
+00:01:39.090 --> 00:01:42.890
+we need in order to get working with our user service.
+
+34
+00:01:42.890 --> 00:01:46.020
+The first thing I want to point out about serverless.yml is that we
+
+35
+00:01:46.020 --> 00:01:49.130
+have these app and org values at the top of our file, the
+
+36
+00:01:49.130 --> 00:01:53.170
+gpc‑api‑app and the org of pluralsightfernando.
+
+37
+00:01:53.170 --> 00:01:57.160
+Both of these are what's allowing us to hook into the Serverless Dashboard,
+
+38
+00:01:57.160 --> 00:02:00.300
+so you'll need to change these values to reflect whatever your app
+
+39
+00:02:00.300 --> 00:02:03.420
+and your org name are. These should've been added for you in this
+
+40
+00:02:03.420 --> 00:02:06.540
+example by default when you were following the bootstrapping process
+
+41
+00:02:06.540 --> 00:02:08.240
+in creating your own account.
+
+42
+00:02:08.240 --> 00:02:09.050
+But if they weren't,
+
+43
+00:02:09.050 --> 00:02:12.260
+you'll need update those. Now, the first step we'll need to take is
+
+44
+00:02:12.260 --> 00:02:16.740
+to add a section in the provider for the specific permissions we want
+
+45
+00:02:16.740 --> 00:02:18.870
+this function to have. Now, by default,
+
+46
+00:02:18.870 --> 00:02:22.410
+whatever is stored inside the provider section as an IAM role
+
+47
+00:02:22.410 --> 00:02:25.670
+statement will be applied to all the functions inside of this
+
+48
+00:02:25.670 --> 00:02:27.640
+Serverless Framework service.
+
+49
+00:02:27.640 --> 00:02:32.670
+So how can we set these IAM role permissions? We'll use an iamRoleStatements
+
+50
+00:02:32.670 --> 00:02:37.290
+section here, and then inside of this, we'll give it different attributes
+
+51
+00:02:37.290 --> 00:02:39.880
+that are related to the permissions that we need.
+
+52
+00:02:39.880 --> 00:02:40.050
+Now,
+
+53
+00:02:40.050 --> 00:02:43.260
+all of the code for this section is located inside of the
+
+54
+00:02:43.260 --> 00:02:47.090
+serverless_helper.txt file that I've provided for this module,
+
+55
+00:02:47.090 --> 00:02:50.600
+and you can also see the final code for this demo inside of the
+
+56
+00:02:50.600 --> 00:02:52.130
+course files for this course.
+
+57
+00:02:52.130 --> 00:02:55.600
+So take a look at that at any point if you'd like something to reference.
+
+58
+00:02:55.600 --> 00:02:59.410
+So I'm going to copy and paste in my iamRoleStatement here, and inside of
+
+59
+00:02:59.410 --> 00:03:03.220
+this iamRoleStatement, you can see that there is the Effect of Allow, the
+
+60
+00:03:03.220 --> 00:03:07.060
+Action of dynamodb:PutItem, and the Resource that corresponds to a
+
+61
+00:03:07.060 --> 00:03:10.900
+DynamoDB table called users in us‑east‑1.
+
+62
+00:03:10.900 --> 00:03:13.190
+Now we'll need to create that table in a later section of this
+
+63
+00:03:13.190 --> 00:03:17.300
+serverless.yml file. Later on, if we wanted to add more permissions,
+
+64
+00:03:17.300 --> 00:03:22.940
+we could go into this Action section and add something like dynamodb:GetItem,
+
+65
+00:03:22.940 --> 00:03:26.210
+and this might help us get items back out of DynamoDB.
+
+66
+00:03:26.210 --> 00:03:28.090
+We could also add the Query here if that's
+
+67
+00:03:28.090 --> 00:03:29.780
+something we were doing in our service.
+
+68
+00:03:29.780 --> 00:03:33.440
+But because this service is purely responsible for putting items
+
+69
+00:03:33.440 --> 00:03:37.310
+into DynamoDB and then alerting a user using SES,
+
+70
+00:03:37.310 --> 00:03:40.180
+we'll just keep this PutItem here for now.
+
+71
+00:03:40.180 --> 00:03:40.300
+Now,
+
+72
+00:03:40.300 --> 00:03:43.310
+we're also going to need to add permissions for the Simple Email Service,
+
+73
+00:03:43.310 --> 00:03:47.920
+so let's go ahead and add that here too. We'll do SES:* for all the
+
+74
+00:03:47.920 --> 00:03:51.700
+different actions underneath SES. You should feel free to go back in here
+
+75
+00:03:51.700 --> 00:03:53.890
+and trim down the permissions later on.
+
+76
+00:03:53.890 --> 00:03:56.550
+The next step, after adding the IAM permissions,
+
+77
+00:03:56.550 --> 00:04:01.240
+will be to add the configuration for the HTTP API that we'd like to create.
+
+78
+00:04:01.240 --> 00:04:04.690
+Now, in this case, we'd already created a function called hello.
+
+79
+00:04:04.690 --> 00:04:07.600
+I want to change this function name that we just removed to something
+
+80
+00:04:07.600 --> 00:04:10.900
+called createUser, and then I'm also going to want to change the
+
+81
+00:04:10.900 --> 00:04:14.680
+handler from handler.hello to handler.handler.
+
+82
+00:04:14.680 --> 00:04:18.240
+This will just mean that we'll need to change the function name inside of
+
+83
+00:04:18.240 --> 00:04:22.380
+handler.py to handler so that we can refer to it properly.
+
+84
+00:04:22.380 --> 00:04:22.910
+Now, after this,
+
+85
+00:04:22.910 --> 00:04:26.910
+I want to create an event for this function. So we could create events like the
+
+86
+00:04:26.910 --> 00:04:29.840
+scheduled events we saw in earlier sections of the course,
+
+87
+00:04:29.840 --> 00:04:30.640
+but in this case,
+
+88
+00:04:30.640 --> 00:04:33.000
+I want to do something that will allow me to create an
+
+89
+00:04:33.000 --> 00:04:35.860
+HTTP API and get triggered from that.
+
+90
+00:04:35.860 --> 00:04:38.490
+So I'm going to go in here and type this out,
+
+91
+00:04:38.490 --> 00:04:42.040
+and in this case, I want this to be http is my event type,
+
+92
+00:04:42.040 --> 00:04:45.570
+so I'll do that, and I'll have to add a few more spaces here,
+
+93
+00:04:45.570 --> 00:04:48.480
+and then I'll set up a path for this event.
+
+94
+00:04:48.480 --> 00:04:51.830
+So I want this path to start with user here, and then I also
+
+95
+00:04:51.830 --> 00:04:54.610
+want a method. Because we're going to be creating users, I
+
+96
+00:04:54.610 --> 00:04:56.840
+want to have a post method here,
+
+97
+00:04:56.840 --> 00:05:00.250
+and I also want to allow this to work across different
+
+98
+00:05:00.250 --> 00:05:02.810
+domains, so I'm going to do cross origin resource sharing
+
+99
+00:05:02.810 --> 00:05:05.280
+here and then set this up as true.
+
+100
+00:05:05.280 --> 00:05:07.640
+Now that this has all been set up here,
+
+101
+00:05:07.640 --> 00:05:11.820
+we should be able to deploy an API using this, but I'll need to go back into the
+
+102
+00:05:11.820 --> 00:05:15.720
+handler section here and change this from hello to handler.
+
+103
+00:05:15.720 --> 00:05:16.580
+Now, once I save that,
+
+104
+00:05:16.580 --> 00:05:19.410
+I should be able to close this out, and we can open back up our
+
+105
+00:05:19.410 --> 00:05:22.460
+terminal, and let's clear the screen from our stack removal from
+
+106
+00:05:22.460 --> 00:05:26.410
+previously, and now let's run serverless deploy again.
+
+107
+00:05:26.410 --> 00:05:30.970
+Now, so far, we have a serverless.yml file that's about 22 lines long.
+
+108
+00:05:30.970 --> 00:05:33.330
+Now if we wanted to compare this once again to what
+
+109
+00:05:33.330 --> 00:05:35.510
+CloudFormation would require us to build,
+
+110
+00:05:35.510 --> 00:05:38.230
+we can go in here to our cloudformation‑template and
+
+111
+00:05:38.230 --> 00:05:40.240
+see how long this ends up being.
+
+112
+00:05:40.240 --> 00:05:42.070
+Now it looks like just from what we added,
+
+113
+00:05:42.070 --> 00:05:46.110
+we've got a CloudFormation template that's around 616 lines.
+
+114
+00:05:46.110 --> 00:05:50.070
+So you can see again why I'm using the serverless.yml file instead
+
+115
+00:05:50.070 --> 00:05:53.530
+of using CloudFormation. It does compile to CloudFormation from
+
+116
+00:05:53.530 --> 00:05:57.000
+that serviceless.yml file, giving us the same benefits of the
+
+117
+00:05:57.000 --> 00:05:58.540
+Infrastructure as Code tool,
+
+118
+00:05:58.540 --> 00:06:02.070
+but it lets us write this in a simpler syntax without having to go in
+
+119
+00:06:02.070 --> 00:06:05.170
+and create every single individual AWS resource,
+
+120
+00:06:05.170 --> 00:06:08.590
+like all of the resources affiliated with the API Gateway.
+
+121
+00:06:08.590 --> 00:06:12.200
+So let's scroll up and see what our deployment is doing so far. It
+
+122
+00:06:12.200 --> 00:06:15.600
+looks like it's started packaging everything up in here, installed
+
+123
+00:06:15.600 --> 00:06:18.690
+everything it needed for the CloudFormation resource, and then it's
+
+124
+00:06:18.690 --> 00:06:22.250
+gone through and started uploading things to S3 and creating
+
+125
+00:06:22.250 --> 00:06:23.990
+everything in CloudFormation.
+
+126
+00:06:23.990 --> 00:06:25.640
+Now, once this process finishes,
+
+127
+00:06:25.640 --> 00:06:29.600
+we should also get an API endpoint that we could use inside
+
+128
+00:06:29.600 --> 00:06:32.140
+of something like Postman to send data in.
+
+129
+00:06:32.140 --> 00:06:35.590
+However, because we didn't update our handler to really do anything,
+
+130
+00:06:35.590 --> 00:06:37.280
+it's not really going to end up doing much.
+
+131
+00:06:37.280 --> 00:06:40.250
+Let's go over to the handler now and see what would happen. Now, inside of
+
+132
+00:06:40.250 --> 00:06:42.850
+here, it looks like our handler is going to create an event body, and then
+
+133
+00:06:42.850 --> 00:06:46.640
+it's just going to return some details to us.
+
+134
+00:06:46.640 --> 00:06:49.340
+So it looks like my deployment has finished, and if I wanted to,
+
+135
+00:06:49.340 --> 00:06:52.030
+I could review this in the Serverless Dashboard there, but I'm going
+
+136
+00:06:52.030 --> 00:06:54.830
+to scroll up and find this post endpoint here.
+
+137
+00:06:54.830 --> 00:06:54.980
+Now,
+
+138
+00:06:54.980 --> 00:06:58.650
+this is the HTTP API endpoint that was created for us automatically by
+
+139
+00:06:58.650 --> 00:07:02.175
+the Serverless Framework after it created all the API Gateway resources.
+
+140
+00:07:02.175 --> 00:07:06.070
+So I'm going to copy this here and go over to Postman, and inside of
+
+141
+00:07:06.070 --> 00:07:08.240
+Postman I'll create a new request here.
+
+142
+00:07:08.240 --> 00:07:11.760
+Now it's going to be for a POST endpoint, so let's put that in there.
+
+143
+00:07:11.760 --> 00:07:14.710
+And we shouldn't actually need to do much inside of
+
+144
+00:07:14.710 --> 00:07:16.290
+this POST endpoint to test it out.
+
+145
+00:07:16.290 --> 00:07:18.870
+I'm going to send this is a blank request here, and you'll see
+
+146
+00:07:18.870 --> 00:07:21.220
+that the function executed successfully.
+
+147
+00:07:21.220 --> 00:07:21.720
+Now,
+
+148
+00:07:21.720 --> 00:07:24.710
+the reason that this is returning everything like this, without us even
+
+149
+00:07:24.710 --> 00:07:29.080
+putting data into a JSON blob and sending it through to the endpoint, is
+
+150
+00:07:29.080 --> 00:07:32.170
+because the handler function that we defined has really just defined this
+
+151
+00:07:32.170 --> 00:07:35.740
+and sent some information back out. We're going to need to update that in
+
+152
+00:07:35.740 --> 00:07:39.610
+order to make sure that it can record information into DynamoDB and then
+
+153
+00:07:39.610 --> 00:07:43.070
+let us know that we have a new user in our database by sending an email out
+
+154
+00:07:43.070 --> 00:07:44.340
+to SES.
+
+155
+00:07:44.340 --> 00:07:50.000
+So let's take a look at how we could do that and how we could add a DynamoDB resource in the next video.
+

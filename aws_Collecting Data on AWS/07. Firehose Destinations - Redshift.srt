@@ -1,0 +1,224 @@
+1
+00:00:01,140 --> 00:00:03,420
+Now let's look at how we can send data to Amazon
+
+2
+00:00:03,420 --> 00:00:06,240
+Redshift using Kinesis Firehose.
+
+3
+00:00:06,240 --> 00:00:09,620
+First, let's set up a similar example to our earlier videos.
+
+4
+00:00:09,620 --> 00:00:10,420
+In this case,
+
+5
+00:00:10,420 --> 00:00:14,480
+we'll have data in a Kinesis Firehose, and we'll have an intermediate S3
+
+6
+00:00:14,480 --> 00:00:17,840
+bucket where we send data into before it goes to Redshift.
+
+7
+00:00:17,840 --> 00:00:22,340
+Now, finally, we'll have our Redshift cluster set up and ready to adjust data.
+
+8
+00:00:22,340 --> 00:00:26,110
+The first thing that'll happen is the data will fill up either a buffer size,
+
+9
+00:00:26,110 --> 00:00:29,380
+or the buffer interval in Kinesis Firehose will run out.
+
+10
+00:00:29,380 --> 00:00:33,190
+Then that data will be sent over to the intermediate bucket.
+
+11
+00:00:33,190 --> 00:00:33,600
+Now,
+
+12
+00:00:33,600 --> 00:00:37,830
+this data will stay in this S3 bucket until a Redshift COPY
+
+13
+00:00:37,830 --> 00:00:42,020
+command is run from inside Redshift to take this intermediate S3
+
+14
+00:00:42,020 --> 00:00:44,650
+bucket data and put it into Redshift.
+
+15
+00:00:44,650 --> 00:00:44,900
+Now,
+
+16
+00:00:44,900 --> 00:00:49,350
+if any data isn't successfully copied into Redshift and we have some
+
+17
+00:00:49,350 --> 00:00:51,490
+sort of error when we're trying to send it in,
+
+18
+00:00:51,490 --> 00:00:55,260
+then that data would still be stored inside of S3, and we'd be able to
+
+19
+00:00:55,260 --> 00:00:58,340
+review any errors that we had when sending it in.
+
+20
+00:00:58,340 --> 00:01:00,440
+Now, in another example with Redshift,
+
+21
+00:01:00,440 --> 00:01:03,690
+we might start with some data inside of Kinesis Firehose,
+
+22
+00:01:03,690 --> 00:01:07,020
+and we might want to transform this data before we send it along.
+
+23
+00:01:07,020 --> 00:01:10,570
+We would use AWS Lambda again to take this data into
+
+24
+00:01:10,570 --> 00:01:13,150
+Lambda functions and process it.
+
+25
+00:01:13,150 --> 00:01:14,230
+And when we do this,
+
+26
+00:01:14,230 --> 00:01:18,110
+we would also once again have either successfully processed data
+
+27
+00:01:18,110 --> 00:01:20,770
+or records we want to drop because they're irrelevant and we
+
+28
+00:01:20,770 --> 00:01:22,340
+don't want to send them into Redshift.
+
+29
+00:01:22,340 --> 00:01:24,230
+And this would happen in our processing.
+
+30
+00:01:24,230 --> 00:01:24,740
+Or,
+
+31
+00:01:24,740 --> 00:01:27,400
+we might also have failures come up when we're trying to
+
+32
+00:01:27,400 --> 00:01:29,600
+process the data but aren't able to.
+
+33
+00:01:29,600 --> 00:01:30,470
+Now, with this,
+
+34
+00:01:30,470 --> 00:01:33,000
+we would then send our successful records and any
+
+35
+00:01:33,000 --> 00:01:35,330
+failures over to two different places,
+
+36
+00:01:35,330 --> 00:01:38,860
+and we would drop the dropped records and not include them anywhere.
+
+37
+00:01:38,860 --> 00:01:41,840
+Now the successful records would go into the intermediate
+
+38
+00:01:41,840 --> 00:01:44,540
+bucket before being copied into Redshift.
+
+39
+00:01:44,540 --> 00:01:47,900
+And those failed records, where we weren't able to transform them,
+
+40
+00:01:47,900 --> 00:01:50,790
+would just stay inside of the S3 bucket, and then we would
+
+41
+00:01:50,790 --> 00:01:53,040
+look at them later to see why they failed.
+
+42
+00:01:53,040 --> 00:01:57,350
+Now, for another example, we might add a little bit more complexity here,
+
+43
+00:01:57,350 --> 00:02:02,340
+where we'd have an intermediate S3 bucket and a backup bucket for our data.
+
+44
+00:02:02,340 --> 00:02:04,620
+We'd have the data come into Kinesis Firehose,
+
+45
+00:02:04,620 --> 00:02:07,690
+and we'd take a copy of it and put it inside of the backup
+
+46
+00:02:07,690 --> 00:02:09,970
+S3 bucket without changing anything.
+
+47
+00:02:09,970 --> 00:02:10,260
+Then,
+
+48
+00:02:10,260 --> 00:02:12,910
+we could still go through the entire process of
+
+49
+00:02:12,910 --> 00:02:16,090
+transforming our data inside of AWS Lambda,
+
+50
+00:02:16,090 --> 00:02:18,620
+where we'd use the Lambda function to process everything in
+
+51
+00:02:18,620 --> 00:02:21,440
+there and either get successfully processed,
+
+52
+00:02:21,440 --> 00:02:22,350
+dropped records,
+
+53
+00:02:22,350 --> 00:02:26,090
+or failed records over from Kinesis Firehose into the
+
+54
+00:02:26,090 --> 00:02:29,740
+intermediate bucket and, finally, over to the Redshift cluster.
+
+55
+00:02:29,740 --> 00:02:33,450
+So, now you know a few of the different ways we can use Kinesis Firehose,
+
+56
+00:02:33,450 --> 00:02:42,000
+AWS Lambda, and how we'll use S3 to get data from Kinesis Firehose into Amazon Redshift.
+

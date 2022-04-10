@@ -1,0 +1,765 @@
+WEBVTT
+1
+00:00:02.040 --> 00:00:04.740
+Okay, it's finally time to get busy refactoring.
+
+2
+00:00:04.740 --> 00:00:06.690
+You've seen the application in execution,
+
+3
+00:00:06.690 --> 00:00:08.640
+and we've taken a lap through the constructs in the
+
+4
+00:00:08.640 --> 00:00:10.740
+main monolith TypeScript file.
+
+5
+00:00:10.740 --> 00:00:13.540
+Let's see our functional stack plan.
+
+6
+00:00:13.540 --> 00:00:17.150
+So in just one slide, let's look at our functional stack design.
+
+7
+00:00:17.150 --> 00:00:20.040
+This is the order in which we build and deploy each stack.
+
+8
+00:00:20.040 --> 00:00:22.230
+The order is logical, as you'll see,
+
+9
+00:00:22.230 --> 00:00:24.740
+in relationship to needed dependencies between stacks.
+
+10
+00:00:24.740 --> 00:00:29.200
+First and foremost, a relatively easy stack to start with is a data stack.
+
+11
+00:00:29.200 --> 00:00:32.130
+In our application, this consists of a Dynamo database,
+
+12
+00:00:32.130 --> 00:00:34.940
+which has no dependencies on any other stacks.
+
+13
+00:00:34.940 --> 00:00:37.740
+To that end, it's a great place to start refactoring.
+
+14
+00:00:37.740 --> 00:00:39.640
+Next, we build our storage stack.
+
+15
+00:00:39.640 --> 00:00:43.090
+In many cases, several other resources and stacks depend on these resources,
+
+16
+00:00:43.090 --> 00:00:45.860
+so it's logically early in the dependency chain.
+
+17
+00:00:45.860 --> 00:00:49.700
+That includes the S3 buckets we need for the CodeBuild and CodePipeline objects,
+
+18
+00:00:49.700 --> 00:00:53.440
+as well as the buckets we need for our web application to run in.
+
+19
+00:00:53.440 --> 00:00:56.350
+As we're deploying from S3 in this rendition of the application,
+
+20
+00:00:56.350 --> 00:01:00.140
+an S3 bucket deployment is included in the storage stack.
+
+21
+00:01:00.140 --> 00:01:03.040
+After that, we build our content delivery network stack,
+
+22
+00:01:03.040 --> 00:01:04.790
+which includes our CloudFront objects.
+
+23
+00:01:04.790 --> 00:01:06.590
+CloudFront generally takes a little longer,
+
+24
+00:01:06.590 --> 00:01:10.510
+as I showed earlier to deploy, so it's nice to have it early in the process.
+
+25
+00:01:10.510 --> 00:01:13.460
+In addition, to teach a bit of stack dependency lessons,
+
+26
+00:01:13.460 --> 00:01:16.660
+we use the CDN and storage stacks to illustrate that point in an
+
+27
+00:01:16.660 --> 00:01:19.840
+elementary way before we get into heavier dependencies.
+
+28
+00:01:19.840 --> 00:01:23.040
+Then we build our serverless stack, which houses our Lambda functions.
+
+29
+00:01:23.040 --> 00:01:26.260
+Keep in mind, we aren't using a serverless framework here in the demo app.
+
+30
+00:01:26.260 --> 00:01:30.840
+I'm using the term serverless to represent no VPC or EC2 resources.
+
+31
+00:01:30.840 --> 00:01:31.890
+After our Lambda stack,
+
+32
+00:01:31.890 --> 00:01:34.430
+we build our identity management stack where we set up
+
+33
+00:01:34.430 --> 00:01:36.940
+our cognito user and identity pool.
+
+34
+00:01:36.940 --> 00:01:38.640
+Then, as we now have Lambdas set up,
+
+35
+00:01:38.640 --> 00:01:41.480
+we can build our API stack consisting of our primary
+
+36
+00:01:41.480 --> 00:01:43.740
+API gateway for our application.
+
+37
+00:01:43.740 --> 00:01:45.120
+Once all those are in place,
+
+38
+00:01:45.120 --> 00:01:48.530
+we can press forward with the complexities of the code deployment objects.
+
+39
+00:01:48.530 --> 00:01:51.430
+These include CodeBuild and CodePipeline projects.
+
+40
+00:01:51.430 --> 00:01:55.040
+In general, these depend on just about everything else we have so far.
+
+41
+00:01:55.040 --> 00:01:57.550
+Lastly, it would be prudent to set up a security stack.
+
+42
+00:01:57.550 --> 00:02:00.740
+which houses all our IAM roles and policies.
+
+43
+00:02:00.740 --> 00:02:02.600
+In most cases, this is a great practice.
+
+44
+00:02:02.600 --> 00:02:06.230
+For our demo application, I'm not going to strip out all the IAM objects,
+
+45
+00:02:06.230 --> 00:02:08.460
+as it tends to cloud the learning process.
+
+46
+00:02:08.460 --> 00:02:10.980
+You end up passing around a lot of roles and policies,
+
+47
+00:02:10.980 --> 00:02:13.770
+which is usually fine in the real world; however,
+
+48
+00:02:13.770 --> 00:02:17.540
+I want to ensure that the demo application is as easy to understand as possible.
+
+49
+00:02:17.540 --> 00:02:18.130
+To that end,
+
+50
+00:02:18.130 --> 00:02:22.640
+policies and roles are created in line with their constituent resources.
+
+51
+00:02:22.640 --> 00:02:24.210
+In the first refactoring demo,
+
+52
+00:02:24.210 --> 00:02:27.080
+we're going to segregate our database and storage objects into
+
+53
+00:02:27.080 --> 00:02:30.440
+our new data and storage independent stacks.
+
+54
+00:02:30.440 --> 00:02:35.140
+So to get started refactoring, I've made a little text‑based checklist here,
+
+55
+00:02:35.140 --> 00:02:39.070
+and I'll include this in the course materials file as well,
+
+56
+00:02:39.070 --> 00:02:40.010
+if you want to follow along.
+
+57
+00:02:40.010 --> 00:02:42.480
+It's fairly simple what I'm actually going through.
+
+58
+00:02:42.480 --> 00:02:45.820
+Really quickly, as a general rule, I generally run an ncu ‑u,
+
+59
+00:02:45.820 --> 00:02:49.760
+and do an npm update to make sure my packages are always up to date.
+
+60
+00:02:49.760 --> 00:02:52.410
+Now, if you go globally install npm check updates,
+
+61
+00:02:52.410 --> 00:02:56.700
+you can run this, and then your CDK packages will at least always be up to date.
+
+62
+00:02:56.700 --> 00:02:59.170
+Amazon changes them almost every day, every week,
+
+63
+00:02:59.170 --> 00:03:00.180
+several times a week,
+
+64
+00:03:00.180 --> 00:03:03.740
+so you'll wake up the next morning and everything will be a few versions ahead.
+
+65
+00:03:03.740 --> 00:03:06.960
+So the first thing that we're going to do is I'm going to go into the cdk.json,
+
+66
+00:03:06.960 --> 00:03:11.230
+and I'm going to rename the main application file where we instantiate our app.
+
+67
+00:03:11.230 --> 00:03:14.370
+Before I change this, it had multi full stack in it, right?
+
+68
+00:03:14.370 --> 00:03:16.280
+So I'm going to go ahead and change this to full stack.
+
+69
+00:03:16.280 --> 00:03:18.550
+After that, obviously, I'm going to go into the bin folder.
+
+70
+00:03:18.550 --> 00:03:20.810
+and I'm going to rename that TypeScript file itself.
+
+71
+00:03:20.810 --> 00:03:23.840
+From there, what I'm going to do is create a stacks directory,
+
+72
+00:03:23.840 --> 00:03:26.270
+which you can see I actually already have underneath,
+
+73
+00:03:26.270 --> 00:03:28.820
+which I'll create two sub folders, a database sub folder,
+
+74
+00:03:28.820 --> 00:03:30.640
+and an S3 sub folder.
+
+75
+00:03:30.640 --> 00:03:31.490
+And then inside of those,
+
+76
+00:03:31.490 --> 00:03:34.860
+I've created the database TypeScript file and the S3 TypeScript file.
+
+77
+00:03:34.860 --> 00:03:36.840
+And then once we get our code moved over,
+
+78
+00:03:36.840 --> 00:03:38.920
+we'll have to go in and change our full stack file to
+
+79
+00:03:38.920 --> 00:03:40.640
+instantiate everything properly.
+
+80
+00:03:40.640 --> 00:03:43.810
+So, first and foremost, again, you can see there's the stacks directory.
+
+81
+00:03:43.810 --> 00:03:47.540
+Inside the stacks directory, I have the database and S3 folders.
+
+82
+00:03:47.540 --> 00:03:50.580
+So let's go look really quickly at the database TypeScript file.
+
+83
+00:03:50.580 --> 00:03:53.060
+And again, as I said, plain vanilla here, right?
+
+84
+00:03:53.060 --> 00:03:55.910
+I've basically just imported CDK IAM.
+
+85
+00:03:55.910 --> 00:03:57.710
+I know I'm going to have some database code in here,
+
+86
+00:03:57.710 --> 00:04:01.190
+so I've imported the DynamoDB package as well.
+
+87
+00:04:01.190 --> 00:04:03.140
+So nothing really magical going on here.
+
+88
+00:04:03.140 --> 00:04:05.990
+So let's go ahead and go back over to the full stack,
+
+89
+00:04:05.990 --> 00:04:09.440
+and let's copy and paste that code in.
+
+90
+00:04:09.440 --> 00:04:15.540
+So I'll just grab the whole region, go back to my database file,
+
+91
+00:04:15.540 --> 00:04:17.020
+and I'm going to copy everything in, right?
+
+92
+00:04:17.020 --> 00:04:19.500
+Now, obviously, we know something's going to be wrong.
+
+93
+00:04:19.500 --> 00:04:21.080
+I mean, we would hope something would be wrong.
+
+94
+00:04:21.080 --> 00:04:23.440
+So let's go back up and take a look.
+
+95
+00:04:23.440 --> 00:04:26.440
+For the most part, everything is okay.
+
+96
+00:04:26.440 --> 00:04:27.960
+It's complaining a little bit, obviously,
+
+97
+00:04:27.960 --> 00:04:32.300
+about the project name and table name, which were member variables,
+
+98
+00:04:32.300 --> 00:04:36.240
+if you remember from the original class file right there,
+
+99
+00:04:36.240 --> 00:04:36.530
+right?
+
+100
+00:04:36.530 --> 00:04:40.130
+So fairly simple here on getting this resolved.
+
+101
+00:04:40.130 --> 00:04:42.970
+What we're going to do is we're going to start using a properties pattern,
+
+102
+00:04:42.970 --> 00:04:44.280
+in which case we're going to start creating
+
+103
+00:04:44.280 --> 00:04:46.540
+interfaces inside of each class file.
+
+104
+00:04:46.540 --> 00:04:49.840
+So let me go ahead and grab this to copy and paste.
+
+105
+00:04:49.840 --> 00:04:53.940
+And there we go, we've got a DatabaseStackProps interface.
+
+106
+00:04:53.940 --> 00:04:59.440
+So let me go ahead and inject that in the class now, instead of stack props.
+
+107
+00:04:59.440 --> 00:05:03.340
+And now, instead of using this,
+
+108
+00:05:03.340 --> 00:05:08.940
+I just have to change that to props in both situations.
+
+109
+00:05:08.940 --> 00:05:09.660
+And there we go.
+
+110
+00:05:09.660 --> 00:05:13.970
+Our class is actually working fine, but at that point, we're good.
+
+111
+00:05:13.970 --> 00:05:16.900
+The class is perfectly happy at this point.
+
+112
+00:05:16.900 --> 00:05:21.740
+So let's go over and do the same thing on the S3 side.
+
+113
+00:05:21.740 --> 00:05:23.750
+If I get that S3 TypeScript file open.
+
+114
+00:05:23.750 --> 00:05:27.160
+I've done the same thing; I've imported S3 IAM core.
+
+115
+00:05:27.160 --> 00:05:29.770
+I know there's an S3 deployment as well in the code,
+
+116
+00:05:29.770 --> 00:05:32.570
+so I've added the S3 package as well. I went ahead
+
+117
+00:05:32.570 --> 00:05:35.140
+and moved over the file as well, that was getRandomInt,
+
+118
+00:05:35.140 --> 00:05:37.640
+because all that was used for was literally just making
+
+119
+00:05:37.640 --> 00:05:40.240
+sure that our S3 buckets had unique names.
+
+120
+00:05:40.240 --> 00:05:46.800
+So let's go over and grab that code, copy that, and paste it.
+
+121
+00:05:46.800 --> 00:05:49.790
+Fairly similar situation here.
+
+122
+00:05:49.790 --> 00:05:52.910
+It's really only complaining about the properties that we were using,
+
+123
+00:05:52.910 --> 00:05:56.440
+that again, were member variables in our primary class.
+
+124
+00:05:56.440 --> 00:06:01.840
+So if I go over now and just grab another simple interface,
+
+125
+00:06:01.840 --> 00:06:07.040
+and paste that in, and then grab those S3 stack properties,
+
+126
+00:06:07.040 --> 00:06:10.440
+and inject those in the class.
+
+127
+00:06:10.440 --> 00:06:14.650
+All we need to do at this point is just change that back to props,
+
+128
+00:06:14.650 --> 00:06:19.260
+we'll copy and paste that.
+
+129
+00:06:19.260 --> 00:06:26.040
+Pretty good, all the way down so far.
+
+130
+00:06:26.040 --> 00:06:27.050
+And we're good, right?
+
+131
+00:06:27.050 --> 00:06:30.110
+So both of those two classes are now created,
+
+132
+00:06:30.110 --> 00:06:34.790
+our stacks are distributed, and they're living in different class files.
+
+133
+00:06:34.790 --> 00:06:40.140
+So let me make sure both of those are saved, Ctrl+S on both of those.
+
+134
+00:06:40.140 --> 00:06:41.580
+And now what was next, right?
+
+135
+00:06:41.580 --> 00:06:43.500
+From here, we need to go back in,
+
+136
+00:06:43.500 --> 00:06:45.800
+and we need to update our full‑stack.ts file where
+
+137
+00:06:45.800 --> 00:06:47.450
+we instantiate our application.
+
+138
+00:06:47.450 --> 00:06:50.630
+So if I go back into that file, fairly simple right out of the gate,
+
+139
+00:06:50.630 --> 00:06:54.530
+although we are no longer going to instantiate a masterful stack single stack.
+
+140
+00:06:54.530 --> 00:06:56.880
+So I'm going to go ahead and delete the reference to it
+
+141
+00:06:56.880 --> 00:07:01.140
+completely and delete the instantiation as well.
+
+142
+00:07:01.140 --> 00:07:05.040
+And now what we need to do is we need to grab those two class files.
+
+143
+00:07:05.040 --> 00:07:05.490
+Here we go.
+
+144
+00:07:05.490 --> 00:07:07.100
+So now I have the database stack pulled in,
+
+145
+00:07:07.100 --> 00:07:08.650
+the S3 stack pulled in,
+
+146
+00:07:08.650 --> 00:07:11.470
+and now we can actually instantiate those objects independently.
+
+147
+00:07:11.470 --> 00:07:13.830
+So again, with just a little simple copying and pasting,
+
+148
+00:07:13.830 --> 00:07:16.510
+as supposed to typing in the line of code,
+
+149
+00:07:16.510 --> 00:07:18.150
+paste those in.
+
+150
+00:07:18.150 --> 00:07:20.140
+Wait a minute, hold on, what we do with these props?
+
+151
+00:07:20.140 --> 00:07:22.130
+Alright, well, same situation right here.
+
+152
+00:07:22.130 --> 00:07:25.180
+We're going to start using a properties pattern that is a very common
+
+153
+00:07:25.180 --> 00:07:28.990
+and popular pattern in CDK applications by which all your properties
+
+154
+00:07:28.990 --> 00:07:31.780
+are controlled and passed in appropriately,
+
+155
+00:07:31.780 --> 00:07:34.470
+interfaces dictate exactly what happens,
+
+156
+00:07:34.470 --> 00:07:36.600
+and what is required inside of each class,
+
+157
+00:07:36.600 --> 00:07:37.140
+right?
+
+158
+00:07:37.140 --> 00:07:40.440
+So now I have a props subject, and we know that needs to be passed in, right?
+
+159
+00:07:40.440 --> 00:07:42.940
+Oh, I can see what's wrong already in my properties.
+
+160
+00:07:42.940 --> 00:07:48.120
+I had the interface incorrect, exactly the reason why we use an interface.
+
+161
+00:07:48.120 --> 00:07:48.530
+There we go,
+
+162
+00:07:48.530 --> 00:07:52.440
+it dictates exactly what makes its way into the class and what the class needs.
+
+163
+00:07:52.440 --> 00:07:55.940
+We should be all good at this point to run a TSC.
+
+164
+00:07:55.940 --> 00:07:57.600
+Everything is all clean and happy.
+
+165
+00:07:57.600 --> 00:08:01.970
+So at this point now, if I do a cdk ls, I'm going to have two stacks.
+
+166
+00:08:01.970 --> 00:08:05.160
+Obviously, they're not connected together; they're just independent stacks,
+
+167
+00:08:05.160 --> 00:08:07.490
+but let's go ahead and use our InfViz tool.
+
+168
+00:08:07.490 --> 00:08:09.200
+Let's deploy these.
+
+169
+00:08:09.200 --> 00:08:13.740
+Now if I just cdk deploy, it's going to tell me which stack you want to deploy,
+
+170
+00:08:13.740 --> 00:08:15.180
+which is exactly what it did.
+
+171
+00:08:15.180 --> 00:08:20.320
+But if I do a cdk deploy, and I give it a star or a wildcard in this case,
+
+172
+00:08:20.320 --> 00:08:23.230
+it's actually going to go ahead and deploy every stack in the list.
+
+173
+00:08:23.230 --> 00:08:26.540
+Now, keep in mind, if you do have stacks that are dependent on each other,
+
+174
+00:08:26.540 --> 00:08:27.890
+they'll actually auto‑deploy.
+
+175
+00:08:27.890 --> 00:08:31.070
+So if these two were depending on each other, deploying one would deploy both.
+
+176
+00:08:31.070 --> 00:08:34.240
+So let's deploy that, and let's go look at a live view of the infrastructure.
+
+177
+00:08:34.240 --> 00:08:35.440
+Be right back.
+
+178
+00:08:35.440 --> 00:08:37.650
+So now that both stacks deployed successfully,
+
+179
+00:08:37.650 --> 00:08:41.040
+let's go take a look at the new resources inside of the InfViz console.
+
+180
+00:08:41.040 --> 00:08:42.530
+So here we are, back in InfViz.
+
+181
+00:08:42.530 --> 00:08:44.790
+I want to go hit Configuration, General,
+
+182
+00:08:44.790 --> 00:08:50.140
+and I'm going to re‑import the data, and then go back over to configuration
+
+183
+00:08:50.140 --> 00:08:52.940
+and hide the infrastructure that we don't want to see.
+
+184
+00:08:52.940 --> 00:09:01.040
+Let's clear everything and just show Dynamo and S3.
+
+185
+00:09:01.040 --> 00:09:01.590
+There we go.
+
+186
+00:09:01.590 --> 00:09:03.300
+We have all the buckets that we created.
+
+187
+00:09:03.300 --> 00:09:06.680
+Here's our Dynamo database, and we're all happy.
+
+188
+00:09:06.680 --> 00:09:09.470
+So the next thing we're going to do is we're going to add the CloudFront stack,
+
+189
+00:09:09.470 --> 00:09:10.760
+which has some dependencies.
+
+190
+00:09:10.760 --> 00:09:13.050
+Obviously, the website bucket is the source.
+
+191
+00:09:13.050 --> 00:09:18.000
+So the next clips are going to talk a little bit more about inter‑stack communication.
+

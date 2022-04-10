@@ -1,0 +1,1133 @@
+WEBVTT
+1
+00:00:01.110 --> 00:00:02.910
+<v Instructor>So, this is part two</v>
+
+2
+00:00:02.910 --> 00:00:05.230
+of calculating the review statistics.
+
+3
+00:00:05.230 --> 00:00:08.873
+This time, for when a review is updated or deleted.
+
+4
+00:00:10.780 --> 00:00:13.310
+And this part is actually a bit harder
+
+5
+00:00:13.310 --> 00:00:15.450
+because, keep in mind that a review
+
+6
+00:00:15.450 --> 00:00:17.730
+is updated or deleted using
+
+7
+00:00:19.829 --> 00:00:21.246
+findByIdAndUpdate
+
+8
+00:00:25.490 --> 00:00:28.277
+or also findByIdAndDelete, right?
+
+9
+00:00:33.540 --> 00:00:37.020
+So for these, we actually do not have document middleware,
+
+10
+00:00:37.020 --> 00:00:39.830
+but only query middleware, okay.
+
+11
+00:00:39.830 --> 00:00:42.630
+And so in the query, we actually don't have direct access
+
+12
+00:00:42.630 --> 00:00:46.140
+to the document in order to then do something similar
+
+13
+00:00:46.140 --> 00:00:48.300
+to this, okay.
+
+14
+00:00:48.300 --> 00:00:51.380
+Because, remember, we need access to the current review,
+
+15
+00:00:51.380 --> 00:00:54.130
+so that from there, we can extract the tour ID,
+
+16
+00:00:54.130 --> 00:00:58.030
+and then calculate the statistics from there, right,
+
+17
+00:00:58.030 --> 00:01:00.130
+but again, for these hooks here,
+
+18
+00:01:00.130 --> 00:01:02.830
+we only have query middleware, okay.
+
+19
+00:01:02.830 --> 00:01:04.890
+But let me now show you a nice trick
+
+20
+00:01:04.890 --> 00:01:07.610
+to actually go around this limitation.
+
+21
+00:01:07.610 --> 00:01:10.040
+So, we're going to implement a pre-middleware
+
+22
+00:01:10.040 --> 00:01:14.073
+for these hooks, for these events basically.
+
+23
+00:01:15.860 --> 00:01:19.730
+So pre, and then again I'm going to use
+
+24
+00:01:19.730 --> 00:01:22.870
+a regular expression for a string starting
+
+25
+00:01:22.870 --> 00:01:25.457
+with findOneAnd and that's it.
+
+26
+00:01:28.641 --> 00:01:30.410
+And so this one is then going to work
+
+27
+00:01:30.410 --> 00:01:33.970
+for findOneAndUpdate, and findOneAndDelete
+
+28
+00:01:34.830 --> 00:01:37.150
+because, remember that behind the scenes,
+
+29
+00:01:37.150 --> 00:01:40.480
+findByIdAndUpdate is only just a shorthand
+
+30
+00:01:40.480 --> 00:01:44.750
+for findOneAndUpdate with the current ID, right.
+
+31
+00:01:44.750 --> 00:01:48.530
+So here, we actually need to use the findOneAndDelete
+
+32
+00:01:48.530 --> 00:01:52.833
+and findOneAndUpdate middleware hooks, all right.
+
+33
+00:01:55.500 --> 00:01:59.970
+So, function, and it gets the next keyword
+
+34
+00:01:59.970 --> 00:02:02.420
+because it's pre-middleware.
+
+35
+00:02:02.420 --> 00:02:05.310
+So, remember that the goal is to get access
+
+36
+00:02:05.310 --> 00:02:07.990
+to the current review document, okay,
+
+37
+00:02:07.990 --> 00:02:11.280
+but here the, this keyword is the current query.
+
+38
+00:02:11.280 --> 00:02:13.650
+Now, how are we going to go around this?
+
+39
+00:02:13.650 --> 00:02:16.150
+Well, we can basically execute a query,
+
+40
+00:02:16.150 --> 00:02:18.200
+and then that will give us the document
+
+41
+00:02:18.200 --> 00:02:20.040
+that's currently being processed.
+
+42
+00:02:20.040 --> 00:02:22.650
+So in order to do that, we can use findOne.
+
+43
+00:02:25.590 --> 00:02:26.590
+And that's it.
+
+44
+00:02:26.590 --> 00:02:29.740
+So then all we need to do is await this query
+
+45
+00:02:29.740 --> 00:02:31.090
+and then save it somewhere.
+
+46
+00:02:34.140 --> 00:02:38.850
+So let's call it r, which is gonna stand for review, okay.
+
+47
+00:02:38.850 --> 00:02:40.763
+Then save it as async.
+
+48
+00:02:42.650 --> 00:02:43.773
+And, that's it.
+
+49
+00:02:45.000 --> 00:02:47.830
+And just to make sure that this works here,
+
+50
+00:02:47.830 --> 00:02:52.340
+let's for now just log this to the console, okay.
+
+51
+00:02:52.340 --> 00:02:55.080
+So without doing any calculations,
+
+52
+00:02:55.080 --> 00:02:56.760
+all we're really interested in
+
+53
+00:02:56.760 --> 00:02:59.960
+is to see if this nice trick here works.
+
+54
+00:02:59.960 --> 00:03:02.410
+So basically, the trick of going around
+
+55
+00:03:02.410 --> 00:03:04.070
+that in a query midddleware,
+
+56
+00:03:04.070 --> 00:03:05.853
+we only have access to the query.
+
+57
+00:03:06.890 --> 00:03:09.850
+So again, we need to get access to the document,
+
+58
+00:03:09.850 --> 00:03:13.210
+and so we basically execute this query
+
+59
+00:03:13.210 --> 00:03:14.463
+by using findOne.
+
+60
+00:03:15.620 --> 00:03:20.603
+All right, so let's update a review,
+
+61
+00:03:22.570 --> 00:03:26.313
+and so let's actually update the last one that we did,
+
+62
+00:03:31.310 --> 00:03:33.050
+all right, and the rating,
+
+63
+00:03:33.050 --> 00:03:35.010
+now let's actually set it to four.
+
+64
+00:03:35.010 --> 00:03:37.080
+So it was five before
+
+65
+00:03:38.130 --> 00:03:42.023
+and so now we are changing it to four.
+
+66
+00:03:43.040 --> 00:03:44.083
+So it sent that,
+
+67
+00:03:46.900 --> 00:03:50.620
+and here is the review.
+
+68
+00:03:50.620 --> 00:03:53.140
+Now of course, the rating is still set to five
+
+69
+00:03:53.140 --> 00:03:56.130
+at this point, because this findOne here
+
+70
+00:03:56.130 --> 00:03:58.850
+really gets the document from the database,
+
+71
+00:03:58.850 --> 00:04:01.660
+and so at this point of time, in pre,
+
+72
+00:04:01.660 --> 00:04:04.900
+it still didn't persist any changes to the database,
+
+73
+00:04:04.900 --> 00:04:06.540
+and so it was five before,
+
+74
+00:04:06.540 --> 00:04:08.990
+and so now it's still gonna be five.
+
+75
+00:04:08.990 --> 00:04:10.460
+But that doesn't really matter here
+
+76
+00:04:10.460 --> 00:04:13.750
+because all we are interested in is this ID.
+
+77
+00:04:13.750 --> 00:04:16.580
+Actually, this tour ID, right,
+
+78
+00:04:16.580 --> 00:04:18.350
+because that is what we're gonna need
+
+79
+00:04:18.350 --> 00:04:21.220
+in order to calculate the average ratings.
+
+80
+00:04:21.220 --> 00:04:24.363
+Okay, and so now, let's actually use that function.
+
+81
+00:04:25.240 --> 00:04:27.850
+Okay, now, let's think about this
+
+82
+00:04:27.850 --> 00:04:32.190
+because if we were to use this calcAverageRatings function
+
+83
+00:04:32.190 --> 00:04:33.850
+at this point in time,
+
+84
+00:04:33.850 --> 00:04:36.100
+then we would calculate the statistics
+
+85
+00:04:36.100 --> 00:04:39.490
+using the non-updated data, okay.
+
+86
+00:04:39.490 --> 00:04:42.390
+And so that's the exact same reason why up here,
+
+87
+00:04:42.390 --> 00:04:45.400
+we also needed to use post and not pre,
+
+88
+00:04:45.400 --> 00:04:48.650
+okay, because only after the document is already saved
+
+89
+00:04:48.650 --> 00:04:50.620
+to the database it makes sense
+
+90
+00:04:50.620 --> 00:04:52.850
+to then calculate the ratings.
+
+91
+00:04:52.850 --> 00:04:55.570
+And so here, it's the exact same thing,
+
+92
+00:04:55.570 --> 00:04:58.650
+with the big difference that we cannot simply change
+
+93
+00:04:58.650 --> 00:05:00.533
+this pre to post.
+
+94
+00:05:01.390 --> 00:05:04.500
+So we cannot do that because at this point in time
+
+95
+00:05:04.500 --> 00:05:07.260
+we no longer have access to the query
+
+96
+00:05:07.260 --> 00:05:10.410
+because the query has already executed, right,
+
+97
+00:05:10.410 --> 00:05:11.500
+and so without the query,
+
+98
+00:05:11.500 --> 00:05:13.670
+we cannot save the review document,
+
+99
+00:05:13.670 --> 00:05:16.410
+and we can then not run this function.
+
+100
+00:05:16.410 --> 00:05:20.360
+So, this is really confusing, I understand,
+
+101
+00:05:20.360 --> 00:05:23.710
+but I really decided to create this lecture in this way
+
+102
+00:05:23.710 --> 00:05:25.790
+because, well, it's really the only solution
+
+103
+00:05:25.790 --> 00:05:28.730
+around this problem, and it's a really great exercise
+
+104
+00:05:28.730 --> 00:05:32.240
+for you to basically understand this Hello Experience.
+
+105
+00:05:32.240 --> 00:05:35.833
+So, the solution for this is to now use post,
+
+106
+00:05:37.520 --> 00:05:40.690
+so, reviewSchema, then basically the same,
+
+107
+00:05:40.690 --> 00:05:44.460
+so let's just, actually let's just copy all of this,
+
+108
+00:05:44.460 --> 00:05:47.640
+make our lives a bit easier,
+
+109
+00:05:47.640 --> 00:05:50.033
+get rid of this, and get rid of the next.
+
+110
+00:05:51.850 --> 00:05:54.320
+Here, we also need to call next, okay,
+
+111
+00:05:54.320 --> 00:05:58.170
+but then we do it post, okay.
+
+112
+00:05:58.170 --> 00:05:59.730
+And so now this point in time,
+
+113
+00:05:59.730 --> 00:06:01.840
+so after the query has already finished,
+
+114
+00:06:01.840 --> 00:06:04.700
+and so therefore the review has been updated,
+
+115
+00:06:04.700 --> 00:06:06.290
+this is a perfect point in time
+
+116
+00:06:06.290 --> 00:06:08.283
+where we can then call this function.
+
+117
+00:06:09.510 --> 00:06:12.720
+So, calculate average ratings.
+
+118
+00:06:12.720 --> 00:06:15.930
+But where do we now get the tour ID from?
+
+119
+00:06:15.930 --> 00:06:17.860
+Well, we're gonna have to use a trick
+
+120
+00:06:17.860 --> 00:06:21.260
+which is basically to pass data from the pre-middleware
+
+121
+00:06:21.260 --> 00:06:23.000
+to the post middleware.
+
+122
+00:06:23.000 --> 00:06:26.690
+And so instead of saving this document to a simple variable,
+
+123
+00:06:26.690 --> 00:06:30.403
+we're gonna save it to this.r.
+
+124
+00:06:31.750 --> 00:06:35.773
+So basically, we create a property on this variable.
+
+125
+00:06:36.700 --> 00:06:40.390
+Okay, and so now here, we still have access to that.
+
+126
+00:06:40.390 --> 00:06:45.350
+And so now, we can say this.r, which remember is the review,
+
+127
+00:06:45.350 --> 00:06:47.603
+and then .tour.
+
+128
+00:06:49.220 --> 00:06:53.300
+So, this is again quite confusing,
+
+129
+00:06:53.300 --> 00:06:56.850
+but again also quite fun once you understand
+
+130
+00:06:56.850 --> 00:06:58.873
+how this really works, okay.
+
+131
+00:06:59.800 --> 00:07:03.200
+Now, again, we need something like this here
+
+132
+00:07:03.200 --> 00:07:06.320
+in order to actually call this function here
+
+133
+00:07:06.320 --> 00:07:08.460
+because remember that this in fact
+
+134
+00:07:08.460 --> 00:07:12.570
+is a static method, and so we need to call it on the model.
+
+135
+00:07:12.570 --> 00:07:15.500
+Now where is this model in this case?
+
+136
+00:07:15.500 --> 00:07:20.500
+Well, it's at this.r,
+
+137
+00:07:20.848 --> 00:07:22.550
+which is in this case, equivalent
+
+138
+00:07:22.550 --> 00:07:25.113
+to this this here in this middleware,
+
+139
+00:07:26.427 --> 00:07:29.217
+.constructor.calcAverageRatings.
+
+140
+00:07:31.860 --> 00:07:35.403
+Woo, that looks quite overwhelming, doesn't it?
+
+141
+00:07:36.600 --> 00:07:38.100
+Of course, we have to await it,
+
+142
+00:07:38.100 --> 00:07:42.600
+so that's why we declared this as async, okay.
+
+143
+00:07:42.600 --> 00:07:46.210
+So, again, we basically used this way here
+
+144
+00:07:46.210 --> 00:07:48.530
+of passing the data from the pre-middleware
+
+145
+00:07:48.530 --> 00:07:50.930
+to the post middleware, and so then here
+
+146
+00:07:50.930 --> 00:07:55.060
+we retrieved the review document from this variable.
+
+147
+00:07:55.060 --> 00:07:59.970
+Okay, and again, we did have to do it in this way
+
+148
+00:07:59.970 --> 00:08:01.317
+because at this point in time here,
+
+149
+00:08:01.317 --> 00:08:03.550
+the query was already executed,
+
+150
+00:08:03.550 --> 00:08:06.783
+and so we could not do this here.
+
+151
+00:08:11.950 --> 00:08:16.753
+And let's actually write that down; does NOT work here,
+
+152
+00:08:19.690 --> 00:08:21.253
+query has already executed.
+
+153
+00:08:22.610 --> 00:08:24.130
+Great, and with this,
+
+154
+00:08:24.130 --> 00:08:27.103
+we should actually now be ready to test this.
+
+155
+00:08:28.100 --> 00:08:32.850
+So let's go ahead and update this one here once more,
+
+156
+00:08:32.850 --> 00:08:37.493
+and set it to a rating of one, all right.
+
+157
+00:08:39.160 --> 00:08:41.060
+Let's now let's take a look here,
+
+158
+00:08:41.060 --> 00:08:44.020
+until you see that the number of ratings is still five,
+
+159
+00:08:44.020 --> 00:08:46.620
+but the average is now only three,
+
+160
+00:08:46.620 --> 00:08:49.220
+and now the question is if this really updated
+
+161
+00:08:49.220 --> 00:08:50.593
+also on the tour,
+
+162
+00:08:53.740 --> 00:08:58.150
+and, yep, indeed, it did.
+
+163
+00:08:58.150 --> 00:09:02.040
+So, five ratings with an average of three.
+
+164
+00:09:02.040 --> 00:09:06.220
+Great, let's now update another one.
+
+165
+00:09:06.220 --> 00:09:09.543
+So, in order to that, let's get all our reviews,
+
+166
+00:09:11.570 --> 00:09:14.280
+and actually we do not want all of them,
+
+167
+00:09:14.280 --> 00:09:16.201
+but only the last one.
+
+168
+00:09:16.201 --> 00:09:18.730
+And here I still I have this filter,
+
+169
+00:09:18.730 --> 00:09:20.253
+so I should get rid of that,
+
+170
+00:09:21.650 --> 00:09:26.650
+so we get all 65 results, so all of these reviews,
+
+171
+00:09:26.980 --> 00:09:29.280
+but we only want the last ones,
+
+172
+00:09:29.280 --> 00:09:31.073
+so the ones that we just created.
+
+173
+00:09:32.820 --> 00:09:34.160
+So let's update...
+
+174
+00:09:37.570 --> 00:09:42.090
+I'm not sure, because actually they're not in order here.
+
+175
+00:09:42.090 --> 00:09:47.090
+Let's, okay, so here we have the most recent ones.
+
+176
+00:09:47.490 --> 00:09:50.963
+So let me now update this one here, to let's say, four,
+
+177
+00:09:56.540 --> 00:09:59.410
+just as a final test, and so that should
+
+178
+00:09:59.410 --> 00:10:01.173
+bring the average up a little bit.
+
+179
+00:10:02.490 --> 00:10:04.090
+And indeed it did.
+
+180
+00:10:04.090 --> 00:10:07.400
+So, 3.6 now, and of course, the number is still five
+
+181
+00:10:07.400 --> 00:10:10.400
+because you didn't add a new review.
+
+182
+00:10:10.400 --> 00:10:12.700
+So it works great on update,
+
+183
+00:10:12.700 --> 00:10:15.463
+let's now actually also test it with deleting.
+
+184
+00:10:17.470 --> 00:10:21.710
+So let's go ahead and delete the review that we just updated
+
+185
+00:10:23.350 --> 00:10:26.860
+and so now we should be down to only four,
+
+186
+00:10:26.860 --> 00:10:28.550
+and indeed, here we are.
+
+187
+00:10:28.550 --> 00:10:30.100
+So now, only four.
+
+188
+00:10:30.100 --> 00:10:32.053
+And let's actually delete all of them.
+
+189
+00:10:35.410 --> 00:10:36.723
+So, this one is next.
+
+190
+00:10:45.038 --> 00:10:46.180
+Ah, here we are.
+
+191
+00:10:46.180 --> 00:10:47.303
+Then also this one.
+
+192
+00:10:53.560 --> 00:10:55.760
+So, now we should be down to three only
+
+193
+00:10:56.970 --> 00:11:00.350
+or, actually, we only just have two left
+
+194
+00:11:00.350 --> 00:11:01.893
+with an average of four.
+
+195
+00:11:05.600 --> 00:11:08.300
+So let's see which one we have still left.
+
+196
+00:11:08.300 --> 00:11:12.330
+So it's this one with three and this one with five.
+
+197
+00:11:12.330 --> 00:11:15.203
+And so that's why we have this average of four.
+
+198
+00:11:19.210 --> 00:11:21.320
+So let's get rid of this one
+
+199
+00:11:21.320 --> 00:11:25.020
+and so now our average should be five, right?
+
+200
+00:11:25.020 --> 00:11:26.340
+Or actually three
+
+201
+00:11:26.340 --> 00:11:29.340
+because the only one that's left has three.
+
+202
+00:11:29.340 --> 00:11:33.350
+And now the final test, deleting the last one,
+
+203
+00:11:33.350 --> 00:11:35.993
+just to see what's gonna happen once we do that.
+
+204
+00:11:41.070 --> 00:11:42.530
+And, we get an error here.
+
+205
+00:11:42.530 --> 00:11:46.400
+So, cannot read property nRating of undefined.
+
+206
+00:11:46.400 --> 00:11:50.683
+So that's calcAverageRatings at line number 69.
+
+207
+00:11:53.280 --> 00:11:54.903
+So, don't know what this is.
+
+208
+00:11:55.760 --> 00:12:00.440
+So, line 69, and so, it's this problem here.
+
+209
+00:12:00.440 --> 00:12:03.530
+So we're trying to read nRating of undefined.
+
+210
+00:12:03.530 --> 00:12:06.420
+So stats zero is basically undefined.
+
+211
+00:12:06.420 --> 00:12:09.400
+And that's because if there are no document
+
+212
+00:12:09.400 --> 00:12:11.780
+matching this query here basically,
+
+213
+00:12:11.780 --> 00:12:13.947
+well then we simply get back an empty array.
+
+214
+00:12:13.947 --> 00:12:17.100
+And so that's actually exactly what we have down here.
+
+215
+00:12:17.100 --> 00:12:19.350
+So this is the stats array
+
+216
+00:12:19.350 --> 00:12:22.630
+and so right now it doesn't have any results, okay,
+
+217
+00:12:22.630 --> 00:12:25.500
+so we should only execute this piece of code here
+
+218
+00:12:25.500 --> 00:12:28.653
+whenever we actually do have something in the stats array.
+
+219
+00:12:29.810 --> 00:12:30.903
+So let's do that.
+
+220
+00:12:31.760 --> 00:12:36.760
+So if stats.length is greater than zero,
+
+221
+00:12:40.090 --> 00:12:42.623
+well, then do this.
+
+222
+00:12:45.450 --> 00:12:48.100
+And if not, well, basically that means
+
+223
+00:12:48.100 --> 00:12:50.260
+that all our reviews are gone,
+
+224
+00:12:50.260 --> 00:12:54.280
+well then we basically want to go back to the default.
+
+225
+00:12:54.280 --> 00:12:58.780
+So we're gonna set it then to the quantity of zero
+
+226
+00:12:58.780 --> 00:13:02.030
+and the average of 4.5, which remember,
+
+227
+00:13:02.030 --> 00:13:04.943
+is the default when there are no reviews at all.
+
+228
+00:13:08.540 --> 00:13:10.823
+So let's quickly create a new review,
+
+229
+00:13:12.200 --> 00:13:13.150
+and it can be this,
+
+230
+00:13:15.880 --> 00:13:19.400
+all right, so we're back to having one rating,
+
+231
+00:13:19.400 --> 00:13:20.780
+and now delete it right away,
+
+232
+00:13:20.780 --> 00:13:24.963
+just to test that piece of code we just wrote,
+
+233
+00:13:28.080 --> 00:13:30.310
+just to see it here as well,
+
+234
+00:13:30.310 --> 00:13:32.573
+so one rating, average five.
+
+235
+00:13:33.850 --> 00:13:36.113
+And now when we delete it,
+
+236
+00:13:38.910 --> 00:13:41.790
+we no longer get an error.
+
+237
+00:13:41.790 --> 00:13:45.630
+And on our tour, we are back to zero
+
+238
+00:13:45.630 --> 00:13:48.450
+and a default of 4.5.
+
+239
+00:13:48.450 --> 00:13:51.560
+All right, all right, all right, perfect.
+
+240
+00:13:51.560 --> 00:13:54.920
+So let's again take just a quick second here
+
+241
+00:13:54.920 --> 00:13:57.090
+to recap what we just did.
+
+242
+00:13:57.090 --> 00:13:59.970
+So in order to be able to run this function here
+
+243
+00:13:59.970 --> 00:14:02.320
+also on update and on delete,
+
+244
+00:14:02.320 --> 00:14:04.590
+we actually need to use the query middleware
+
+245
+00:14:04.590 --> 00:14:07.110
+that Mongoose gives us for these situations.
+
+246
+00:14:07.110 --> 00:14:11.230
+Okay, so, we do not have a handy document middleware,
+
+247
+00:14:11.230 --> 00:14:13.140
+which works, for these functions,
+
+248
+00:14:13.140 --> 00:14:15.880
+but instead we need to use the query middleware,
+
+249
+00:14:15.880 --> 00:14:18.660
+and in that one, we do not directly have access
+
+250
+00:14:18.660 --> 00:14:20.090
+to the current document.
+
+251
+00:14:20.090 --> 00:14:21.540
+And so we need to go around that
+
+252
+00:14:21.540 --> 00:14:24.870
+by using this findOne here, and so basically retrieving
+
+253
+00:14:24.870 --> 00:14:27.340
+the current document from the database.
+
+254
+00:14:27.340 --> 00:14:30.450
+We then store it on the current query variable,
+
+255
+00:14:30.450 --> 00:14:32.950
+and so that's this, and by doing that,
+
+256
+00:14:32.950 --> 00:14:36.480
+we then get access to it in the post middleware.
+
+257
+00:14:36.480 --> 00:14:38.610
+And it's then only in the post middleware
+
+258
+00:14:38.610 --> 00:14:42.500
+where we actually calculate the statistics for reviews.
+
+259
+00:14:42.500 --> 00:14:44.370
+And remember that we do it this way
+
+260
+00:14:44.370 --> 00:14:47.380
+because if we did it right in this middleware function,
+
+261
+00:14:47.380 --> 00:14:50.100
+then the underlying data would not have been updated
+
+262
+00:14:50.100 --> 00:14:53.150
+at that point and so the calculated statistics
+
+263
+00:14:53.150 --> 00:14:55.150
+would not really be up to date.
+
+264
+00:14:55.150 --> 00:14:56.540
+And so that's why we used
+
+265
+00:14:56.540 --> 00:14:58.963
+this two-step process here basically.
+
+266
+00:15:00.020 --> 00:15:02.220
+Now, let's get rid of this console.log here,
+
+267
+00:15:03.130 --> 00:15:06.883
+since we're finished now, and also of these statistics.
+
+268
+00:15:08.270 --> 00:15:11.390
+So, I hope that this was fun to you
+
+269
+00:15:11.390 --> 00:15:13.890
+and not all too overwhelming.
+
+270
+00:15:13.890 --> 00:15:16.390
+I designed this exercise specifically
+
+271
+00:15:16.390 --> 00:15:19.270
+so that we could solve a real world business problem
+
+272
+00:15:19.270 --> 00:15:22.150
+by using all the tools that Mongoose gives us.
+
+273
+00:15:22.150 --> 00:15:24.500
+And so, with that, I hope that you learned a bit better
+
+274
+00:15:24.500 --> 00:15:26.980
+how to work with all these different middlewares
+
+275
+00:15:26.980 --> 00:15:29.220
+in different situations whenever needed
+
+276
+00:15:29.220 --> 00:15:31.640
+in a real world situation.
+
+277
+00:15:31.640 --> 00:15:35.700
+So, great job for finishing this quite challenging lecture
+
+278
+00:15:35.700 --> 00:15:39.030
+and for still being with me at this point of the course.
+
+279
+00:15:39.030 --> 00:15:40.594
+It's really good for me to see,
+
+280
+00:15:40.594 --> 00:15:43.500
+so I'm really happy about that.
+
+281
+00:15:43.500 --> 00:15:46.780
+But anyway, there's still some more great content coming up
+
+282
+00:15:46.780 --> 00:15:48.290
+in this section actually,
+
+283
+00:15:48.290 --> 00:15:51.723
+and so let's now move on together, right to the next video.
+

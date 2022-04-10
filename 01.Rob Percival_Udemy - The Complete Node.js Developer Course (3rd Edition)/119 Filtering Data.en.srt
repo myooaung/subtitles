@@ -1,0 +1,607 @@
+1
+00:00:00,210 --> 00:00:06,240
+In this video we're going to focus on setting up helpful options for the consumers of our API to use
+
+2
+00:00:06,510 --> 00:00:12,210
+these options are going to allow them to better target the data they're trying to fetch.
+
+3
+00:00:12,210 --> 00:00:19,220
+Now the route we'll be focusing on in this video and in the next two videos is over in the task router.
+
+4
+00:00:19,290 --> 00:00:21,580
+It is the second drought right here.
+
+5
+00:00:21,580 --> 00:00:26,200
+The get tasks route where you can fetch all of your tasks.
+
+6
+00:00:26,220 --> 00:00:27,960
+Now why this route.
+
+7
+00:00:27,990 --> 00:00:34,260
+We have a dozen or so different routes between the tasks and the user router but the only one we're
+
+8
+00:00:34,260 --> 00:00:37,080
+going to add these options to is this one.
+
+9
+00:00:37,080 --> 00:00:43,650
+That's because this is the only one that's sending back an array of data with all of the other routes
+
+10
+00:00:43,680 --> 00:00:44,310
+we get back.
+
+11
+00:00:44,310 --> 00:00:51,150
+A single document with this one we could potentially get back hundreds or thousands of documents depending
+
+12
+00:00:51,150 --> 00:00:53,520
+on how many are in the database.
+
+13
+00:00:53,550 --> 00:00:54,390
+So why is that.
+
+14
+00:00:54,450 --> 00:01:00,420
+Well imagine I'm using the app for a couple of years and I go ahead and add a couple of tasks each day
+
+15
+00:01:00,420 --> 00:01:01,640
+knocking them out.
+
+16
+00:01:01,710 --> 00:01:07,740
+Eventually I'm gonna have so many tasks in the database and using this request to fetch all of them
+
+17
+00:01:07,950 --> 00:01:14,040
+is going to do two things one it's going to be slow because it has to fetch so many old and unnecessary
+
+18
+00:01:14,040 --> 00:01:20,340
+documents and two it's gonna be fetching things that the user interface isn't going to actually use
+
+19
+00:01:20,730 --> 00:01:25,660
+if I'm just trying to render the three tasks that I have not completed.
+
+20
+00:01:25,710 --> 00:01:31,280
+There's no reason I should also have to fetch the other two thousand that are already completed.
+
+21
+00:01:31,320 --> 00:01:37,440
+So what we're going to do is set up helpful options allowing the consumer of the API to better target
+
+22
+00:01:37,500 --> 00:01:44,250
+the data they want to get and we're going to do this using the query string as part of the U R L structure.
+
+23
+00:01:44,400 --> 00:01:50,040
+And this is something we saw with the weather app way back when just to refresh your memory if we go
+
+24
+00:01:50,040 --> 00:01:57,750
+into the weather app and we open up inside of utilize our forecast file in here we had set up latitude
+
+25
+00:01:57,780 --> 00:02:04,980
+and longitude as part of the U.R.L. that was via a U.R.L. parameter where it's part of the U RL structure
+
+26
+00:02:05,430 --> 00:02:06,940
+over in geo code.
+
+27
+00:02:06,960 --> 00:02:09,400
+We had done it using the query string.
+
+28
+00:02:09,510 --> 00:02:15,510
+Right here we started with the question mark and we set up access token sending an equal to the following
+
+29
+00:02:15,510 --> 00:02:16,240
+value.
+
+30
+00:02:16,350 --> 00:02:19,570
+Then we used a limit to limit it to the first result.
+
+31
+00:02:19,590 --> 00:02:25,440
+So this is the approach that we're gonna be taking to allow the user to customize which task data they
+
+32
+00:02:25,440 --> 00:02:26,460
+get back.
+
+33
+00:02:26,520 --> 00:02:31,740
+So I'm going to collapse the weather app folder and I'll close down those two files and we're gonna
+
+34
+00:02:31,770 --> 00:02:35,880
+start to focus on actually setting that up for get tasks.
+
+35
+00:02:35,880 --> 00:02:40,350
+Let's explore the you are L structure we'll be using before we actually write any code.
+
+36
+00:02:40,350 --> 00:02:43,230
+Right here it is get forward slash tasks.
+
+37
+00:02:43,230 --> 00:02:49,890
+Now this is still going to return all of the tasks both incomplete and complete that you've ever created
+
+38
+00:02:50,190 --> 00:02:58,500
+but optionally if you want to you can use the query string to set completed equal to true or false if
+
+39
+00:02:58,500 --> 00:03:05,040
+you set completed equal to False you'll only get back the tasks that you still need to do the incomplete
+
+40
+00:03:05,040 --> 00:03:11,310
+ones where completed is false if you set completed to true when making the request you're only going
+
+41
+00:03:11,310 --> 00:03:16,350
+to get back the ones that you've already done and this could be useful if you're trying to show the
+
+42
+00:03:16,350 --> 00:03:22,320
+user some sort of archive page where they can see all of the tasks they've finished and now let's go
+
+43
+00:03:22,320 --> 00:03:25,950
+ahead and set up the router down below to actually support this.
+
+44
+00:03:26,070 --> 00:03:31,200
+And the first thing we need to be able to do is limit what tasks we get back.
+
+45
+00:03:31,200 --> 00:03:38,220
+Now if we were using tasks that find we know how we could get that done by providing that first object
+
+46
+00:03:38,400 --> 00:03:44,710
+and specifying completed to be true or false but we can also do the same thing with populate.
+
+47
+00:03:44,730 --> 00:03:49,740
+So let's see what that looks like right here we're going to customize a populate.
+
+48
+00:03:49,740 --> 00:03:53,550
+No longer are we going to provide just these string tasks.
+
+49
+00:03:53,550 --> 00:03:56,760
+Instead we're going to provide an object.
+
+50
+00:03:56,760 --> 00:04:00,630
+Now we still need to let it know we're trying to populate the tasks.
+
+51
+00:04:00,630 --> 00:04:07,640
+If we provide an object it expects that property name to be set on the following path.
+
+52
+00:04:07,680 --> 00:04:10,110
+So path will equal tasks.
+
+53
+00:04:10,110 --> 00:04:13,460
+So what we've done is we haven't changed any of the behavior yet.
+
+54
+00:04:13,560 --> 00:04:20,280
+All we've done is refactoring it allowing us to explore new options and one of the new options we have
+
+55
+00:04:20,340 --> 00:04:22,710
+access to is match.
+
+56
+00:04:22,710 --> 00:04:29,160
+Match is an object and in here we can specify exactly which tasks we're trying to match.
+
+57
+00:04:29,160 --> 00:04:34,470
+For example I could match those where it completed is equal to true.
+
+58
+00:04:34,470 --> 00:04:40,320
+Now I'm only going to get the tasks that I've already completed over inside of postmen.
+
+59
+00:04:40,320 --> 00:04:47,880
+I have created a task for this user and it is incomplete which means that if I do run read tasks I would
+
+60
+00:04:47,880 --> 00:04:49,770
+expect to get nothing back.
+
+61
+00:04:49,800 --> 00:04:52,070
+And that's exactly what happens.
+
+62
+00:04:52,170 --> 00:04:58,620
+Now if I were to switch completed two faults I would expect to get my one task back I'll save the file
+
+63
+00:04:59,030 --> 00:05:05,420
+rerun the same request from postmen once again and that is exactly what shows up so in the end of the
+
+64
+00:05:05,420 --> 00:05:05,770
+day.
+
+65
+00:05:05,780 --> 00:05:07,570
+This is exactly what we want to do.
+
+66
+00:05:07,580 --> 00:05:14,600
+We want to customize this object but we want to do it based off of the query string values provide it.
+
+67
+00:05:14,630 --> 00:05:19,760
+So let's go ahead and kick things off by setting it up over in the U.R.L. and figuring out how we can
+
+68
+00:05:19,760 --> 00:05:22,520
+access it and express right here.
+
+69
+00:05:22,520 --> 00:05:28,400
+What I'm going to do is set up the query string using the question mark and I am going to set completed
+
+70
+00:05:28,760 --> 00:05:30,470
+equal to true.
+
+71
+00:05:30,500 --> 00:05:36,440
+Now once again down below we can see that it's automatically set up that key value pair under the parameter
+
+72
+00:05:36,470 --> 00:05:37,340
+tab.
+
+73
+00:05:37,340 --> 00:05:40,870
+And we can go ahead and fire this off to send off the request.
+
+74
+00:05:40,880 --> 00:05:42,310
+Now it still works.
+
+75
+00:05:42,320 --> 00:05:45,830
+It's just not using that data over inside Express.
+
+76
+00:05:45,860 --> 00:05:51,620
+Let's go ahead and actually change that by setting things up on line one of our handler function.
+
+77
+00:05:51,620 --> 00:05:58,100
+Now we've already used request dot query in the weather application we had done this to get the address
+
+78
+00:05:58,100 --> 00:05:59,990
+for the end point we created.
+
+79
+00:05:59,990 --> 00:06:08,000
+We had used request dot query dot address in this case request dot query dot completed is going to contain
+
+80
+00:06:08,000 --> 00:06:14,530
+the value that was used whether it's true false nothing or some other string altogether.
+
+81
+00:06:14,540 --> 00:06:20,480
+Now it's our job to figure out what we should provide on match should completed be false should it be
+
+82
+00:06:20,480 --> 00:06:23,270
+true or should it not exist altogether.
+
+83
+00:06:23,270 --> 00:06:26,390
+Remember if we don't provide completed at all.
+
+84
+00:06:26,390 --> 00:06:31,320
+I want to be able to get all tasks back regardless of their completed value.
+
+85
+00:06:31,490 --> 00:06:36,260
+So to get this done and what we're actually going to do is the following We're going to start off by
+
+86
+00:06:36,260 --> 00:06:42,590
+creating an object which will store in a variable called match then down below.
+
+87
+00:06:42,680 --> 00:06:48,410
+We're going to use that as the value we provide for match and since they have the same name we can use
+
+88
+00:06:48,410 --> 00:06:50,280
+the property shorthand.
+
+89
+00:06:50,360 --> 00:06:57,860
+Now along the way we are going to potentially make some modifications to the match object if completed
+
+90
+00:06:57,890 --> 00:07:00,210
+is not provided we won't change it at all.
+
+91
+00:07:00,290 --> 00:07:06,980
+Getting all tasks back both complete and incomplete if completed is provided we will set a completed
+
+92
+00:07:06,980 --> 00:07:10,420
+property on match to the correct boolean value.
+
+93
+00:07:10,430 --> 00:07:14,750
+So right here we can set up our if statement to start to get this process done.
+
+94
+00:07:14,990 --> 00:07:20,130
+What I'm gonna do is set up if and we are going to see if completed was provided.
+
+95
+00:07:20,240 --> 00:07:27,460
+I'm gonna look at request dot query dot completed and then down below we'll go ahead and do something.
+
+96
+00:07:27,470 --> 00:07:29,660
+If a value was provided.
+
+97
+00:07:29,660 --> 00:07:36,110
+Now in this case we're trying to set match dot completed equal to a Boolean.
+
+98
+00:07:36,110 --> 00:07:42,470
+Now even if someone types true what we get back is not a boolean it is D string true.
+
+99
+00:07:42,470 --> 00:07:48,410
+If someone types in faults what we get back is not a boolean it is D string false.
+
+100
+00:07:48,410 --> 00:07:55,930
+So it's not as easy as just setting request dot query dot completed equal to that value.
+
+101
+00:07:55,940 --> 00:07:58,370
+This is not going to work as expected.
+
+102
+00:07:58,370 --> 00:07:59,050
+And why.
+
+103
+00:07:59,060 --> 00:08:04,720
+Because we're not setting completed equal to a Boolean or setting an equal to a string.
+
+104
+00:08:04,820 --> 00:08:09,420
+It's gonna be our job to take this and convert it into a boolean value.
+
+105
+00:08:09,500 --> 00:08:16,510
+What we're going to do is see if completed equals right here the string true.
+
+106
+00:08:16,580 --> 00:08:22,660
+So if this which is a string equals D string true we'll set completed equal to true.
+
+107
+00:08:23,120 --> 00:08:30,560
+If this a string does not equal true whether it's false or anything else we'll set completed equal to
+
+108
+00:08:30,560 --> 00:08:31,640
+False.
+
+109
+00:08:31,640 --> 00:08:37,070
+This is gonna give us exactly what we want where you have three options for specifying which types of
+
+110
+00:08:37,070 --> 00:08:39,290
+tasks you want to get back.
+
+111
+00:08:39,290 --> 00:08:44,810
+Now that we have this in place we can actually test out our work from over inside a postman.
+
+112
+00:08:44,870 --> 00:08:50,630
+I'm going to save the tasks router and I'll leave this little line comment in place so we can remember
+
+113
+00:08:50,630 --> 00:08:55,980
+the various ways we can request our data and I'll head over to postman and the first thing we're going
+
+114
+00:08:55,980 --> 00:08:59,110
+to need to do is create a couple of more tasks.
+
+115
+00:08:59,120 --> 00:09:02,580
+So we have some more interesting data to work with.
+
+116
+00:09:02,600 --> 00:09:08,450
+Now in this video and in the next two we're going to continue to modify tasks and it'll be easier for
+
+117
+00:09:08,450 --> 00:09:11,910
+us to make sure that our projects work as expected.
+
+118
+00:09:11,960 --> 00:09:18,890
+If me and you have the exact same task data I only have one task so far for this user and what I'm going
+
+119
+00:09:18,890 --> 00:09:26,720
+to do is actually remove it and start from scratch so I'll fire off a quick delete task request to remove
+
+120
+00:09:26,750 --> 00:09:33,200
+that task and once it's removed we'll head back over to create task and to give us some interesting
+
+121
+00:09:33,200 --> 00:09:33,800
+data.
+
+122
+00:09:33,860 --> 00:09:36,940
+We're going to create four tasks right here.
+
+123
+00:09:37,040 --> 00:09:44,160
+The first one will be called first and we are going to set the completed value equal to true.
+
+124
+00:09:44,210 --> 00:09:46,300
+I'd recommend using the exact same data.
+
+125
+00:09:46,310 --> 00:09:50,490
+So it's easy for you to verify that your app is working as expected.
+
+126
+00:09:50,510 --> 00:09:54,410
+I'm going to fire this off and down below we can see it's been created.
+
+127
+00:09:54,410 --> 00:09:57,380
+Next up I'll create a task with the description.
+
+128
+00:09:57,380 --> 00:10:03,130
+Second and I will the completed value for this one to false that's been created.
+
+129
+00:10:03,130 --> 00:10:04,300
+Down below.
+
+130
+00:10:04,300 --> 00:10:05,850
+We're going to create two more.
+
+131
+00:10:05,890 --> 00:10:12,130
+The next one will have the description of third since it is our third task I will toggle this back to
+
+132
+00:10:12,130 --> 00:10:16,130
+a completed value of true which is showing up down below.
+
+133
+00:10:16,240 --> 00:10:23,470
+And then finally the fourth task with a description of fourth and a completed value of false.
+
+134
+00:10:23,470 --> 00:10:28,870
+So I'm trying to give us some variable data so we can actually see how all of this is going to work
+
+135
+00:10:28,870 --> 00:10:30,270
+in the real world.
+
+136
+00:10:30,280 --> 00:10:34,210
+We have some tasks that are completed and others that are not.
+
+137
+00:10:34,360 --> 00:10:38,800
+Now back over here let's go ahead and remove the query string and fire that request off.
+
+138
+00:10:38,800 --> 00:10:44,880
+We should see our four tasks I have first second third and fourth.
+
+139
+00:10:44,920 --> 00:10:49,850
+Now I'm going to set up completed once again and make sure it's working as expected.
+
+140
+00:10:49,900 --> 00:10:56,680
+So if I set completed equal to true I would expect to see first and third the two tasks which are completed
+
+141
+00:10:56,890 --> 00:11:00,060
+and that is exactly what I'm getting down below.
+
+142
+00:11:00,070 --> 00:11:07,030
+Now if I were to set completed equal to False or anything else I would expect to see just second and
+
+143
+00:11:07,030 --> 00:11:11,080
+fourth which are my two tasks that have not been completed.
+
+144
+00:11:11,140 --> 00:11:11,920
+And there we go.
+
+145
+00:11:11,920 --> 00:11:15,370
+They're showing up as expected which is fantastic.
+
+146
+00:11:15,370 --> 00:11:21,400
+So now there are three ways you can fetch your tasks you can get all of them or just the complete ones
+
+147
+00:11:21,580 --> 00:11:24,170
+or just the incomplete ones.
+
+148
+00:11:24,250 --> 00:11:29,740
+Now that we have this in place we're going to move on to the next video and continue to learn how we
+
+149
+00:11:29,740 --> 00:11:31,930
+can customize this request.
+
+150
+00:11:31,930 --> 00:11:34,510
+The next thing we're going to talk about is Paget nation.
+
+151
+00:11:34,510 --> 00:11:38,000
+It is a really important topic which I'm excited to get to.
+
+152
+00:11:38,020 --> 00:11:40,410
+So let's go ahead and jump right in.

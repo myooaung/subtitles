@@ -1,0 +1,533 @@
+WEBVTT
+1
+00:00:02.189 --> 00:00:05.233
+Under the covers by adding the starter dependencies,
+
+2
+00:00:05.233 --> 00:00:09.474
+all the required Spring Security dependencies for
+
+3
+00:00:09.474 --> 00:00:12.455
+OAuth2 client are sourced for you.
+
+4
+00:00:12.455 --> 00:00:16.081
+So you don't have to go hunt them down yourself.
+
+5
+00:00:16.081 --> 00:00:22.269
+Because this is an MVC web application, Spring Boot plugged in a servlet filter,
+
+6
+00:00:22.269 --> 00:00:27.840
+the delegating filter chain proxy, into the embedded Tomcat web server.
+
+7
+00:00:27.840 --> 00:00:30.609
+If your typical Spring MVC application,
+
+8
+00:00:30.609 --> 00:00:32.848
+requests are routed to the dispatcher servlet,
+
+9
+00:00:32.848 --> 00:00:37.966
+which in turn routes them to the appropriate servlets to be actioned.
+
+10
+00:00:37.966 --> 00:00:42.413
+In order to secure these requests, Spring Boot adds a Spring Security filter,
+
+11
+00:00:42.413 --> 00:00:44.988
+the delegating filter chain proxy.
+
+12
+00:00:44.988 --> 00:00:48.250
+This sits in front of the servlets and intercepts all requests
+
+13
+00:00:48.250 --> 00:00:52.686
+to perform the security tasks and checks before allowing them
+
+14
+00:00:52.686 --> 00:00:55.069
+to be actioned by the servlets.
+
+15
+00:00:55.069 --> 00:00:59.346
+The delegated filter chain proxy delegates the request to a FilterChainProxy,
+
+16
+00:00:59.346 --> 00:01:05.444
+which in turn assigns them to the appropriate SecurityFilterChain.
+
+17
+00:01:05.444 --> 00:01:09.292
+Now filter chains are simply collections of filters that perform
+
+18
+00:01:09.292 --> 00:01:12.715
+the security tasks and checks on the requests.
+
+19
+00:01:12.715 --> 00:01:15.586
+You could have multiple filter chains in your application that
+
+20
+00:01:15.586 --> 00:01:18.450
+specialize in dealing with different requests.
+
+21
+00:01:18.450 --> 00:01:18.804
+Example,
+
+22
+00:01:18.804 --> 00:01:23.202
+you could require that all requests to the admin URL use digest
+
+23
+00:01:23.202 --> 00:01:29.134
+authentication while all other requests use basic authentication.
+
+24
+00:01:29.134 --> 00:01:31.284
+Hence, you would configure two filter chains,
+
+25
+00:01:31.284 --> 00:01:36.697
+one with a DigestAuthenticationFilter with a request matcher for the
+
+26
+00:01:36.697 --> 00:01:40.784
+admin URL and another filter chain with a BasicAuthenticationFilter and
+
+27
+00:01:40.784 --> 00:01:46.124
+a request matcher for all the other URLs.
+
+28
+00:01:46.124 --> 00:01:47.124
+As the requests come in,
+
+29
+00:01:47.124 --> 00:01:48.906
+the delegating filter will route them to the appropriate
+
+30
+00:01:48.906 --> 00:01:50.939
+filter chain for the security checks.
+
+31
+00:01:50.939 --> 00:01:56.123
+And only once the request passes the security checks is it
+
+32
+00:01:56.123 --> 00:01:58.743
+allowed to proceed to the dispatcher servlet.
+
+33
+00:01:58.743 --> 00:01:59.783
+To see this in action,
+
+34
+00:01:59.783 --> 00:02:03.839
+let's put a breakpoint into the FilterChainProxy and see the
+
+35
+00:02:03.839 --> 00:02:06.107
+filter chains that Spring Boot configured.
+
+36
+00:02:06.107 --> 00:02:08.341
+Now there are three filter chains.
+
+37
+00:02:08.341 --> 00:02:10.205
+The first two we can just ignore.
+
+38
+00:02:10.205 --> 00:02:16.811
+They just catch requests to the /css, the /webjars URL and simply do nothing.
+
+39
+00:02:16.811 --> 00:02:19.348
+It's because in our existing demo app, Configuration,
+
+40
+00:02:19.348 --> 00:02:24.097
+we instructed Spring Security to ignore those paths as,
+
+41
+00:02:24.097 --> 00:02:26.249
+by default, Spring Security blocks everything,
+
+42
+00:02:26.249 --> 00:02:30.001
+and we want our unsecured pages like the registration and
+
+43
+00:02:30.001 --> 00:02:33.417
+login to also be styled and have JavaScript even though
+
+44
+00:02:33.417 --> 00:02:35.790
+the user's not authenticated.
+
+45
+00:02:35.790 --> 00:02:38.599
+Now the third filter chain handles all our configured
+
+46
+00:02:38.599 --> 00:02:40.980
+authentication and authorization.
+
+47
+00:02:40.980 --> 00:02:42.952
+It has three key filters,
+
+48
+00:02:42.952 --> 00:02:47.289
+the username and password authentication filter because our application still
+
+49
+00:02:47.289 --> 00:02:52.861
+has its own form login configured and both the OAuth2LoginAuthenticationFilter
+
+50
+00:02:52.861 --> 00:02:58.606
+and OAuth2AuthorizationRequestRedirectFilter.
+
+51
+00:02:58.606 --> 00:03:03.248
+Now these two handle the OAuth2 authorization code grant flow.
+
+52
+00:03:03.248 --> 00:03:06.040
+If we use our select sign-in with an OAuth2 provider,
+
+53
+00:03:06.040 --> 00:03:08.101
+like Google or Facebook,
+
+54
+00:03:08.101 --> 00:03:12.604
+the browser will send the request to the OAuth2 authorization URI with
+
+55
+00:03:12.604 --> 00:03:17.002
+the provider's registrationId as a path variable.
+
+56
+00:03:17.002 --> 00:03:19.675
+In our case, it would be in either Facebook or Google.
+
+57
+00:03:19.675 --> 00:03:22.680
+This request will then be intercepted by the
+
+58
+00:03:22.680 --> 00:03:29.780
+OAuth2AuthorizationRequestRedirectFilter,
+
+59
+00:03:29.780 --> 00:03:34.984
+which will generate the redirect URI for the authorization server,
+
+60
+00:03:34.984 --> 00:03:38.977
+which would include the CLIENT_ID, the requested scopes,
+
+61
+00:03:38.977 --> 00:03:43.738
+in this case openid, to indicate we want the OpenID Connect flow,
+
+62
+00:03:43.738 --> 00:03:48.923
+the response_type, indicating we want the authorization code grants,
+
+63
+00:03:48.923 --> 00:03:51.520
+and optionally a unique state nonce.
+
+64
+00:03:51.520 --> 00:03:56.291
+It will also cache this request in the user's session for future validations
+
+65
+00:03:56.291 --> 00:04:00.239
+once Google and Facebook respond back to check the state nonce.
+
+66
+00:04:00.239 --> 00:04:03.922
+Now the redirect requests will be sent via the user's browser.
+
+67
+00:04:03.922 --> 00:04:06.314
+This is known as a front channel request.
+
+68
+00:04:06.314 --> 00:04:09.411
+The browser will then forward it to the authorization provider,
+
+69
+00:04:09.411 --> 00:04:11.448
+in this case either Google or Facebook.
+
+70
+00:04:11.448 --> 00:04:14.658
+The provider can now look up the client ID,
+
+71
+00:04:14.658 --> 00:04:15.739
+authenticate the user,
+
+72
+00:04:15.739 --> 00:04:20.615
+and ask if they consent to provide the client with the requested scopes.
+
+73
+00:04:20.615 --> 00:04:22.996
+If the user agrees,
+
+74
+00:04:22.996 --> 00:04:27.282
+the provider sends a redirect request to the user's browser using the
+
+75
+00:04:27.282 --> 00:04:30.698
+redirect URI provided in the initial request from the client,
+
+76
+00:04:30.698 --> 00:04:36.749
+this time to the login/oauth2/code endpoint on the client.
+
+77
+00:04:36.749 --> 00:04:42.070
+The authorization server will include an authorization code and the state nonce.
+
+78
+00:04:42.070 --> 00:04:42.722
+Now on the client,
+
+79
+00:04:42.722 --> 00:04:48.089
+this time the OAuth2LoginAuthenticationFilter will intercept the request.
+
+80
+00:04:48.089 --> 00:04:51.755
+It will first validate the request by retrieving the state nonce from the
+
+81
+00:04:51.755 --> 00:04:54.691
+session and comparing it against the one in the request.
+
+82
+00:04:54.691 --> 00:04:58.901
+This is to protect against cross-site request forgery,
+
+83
+00:04:58.901 --> 00:05:05.249
+then delegate to the AuthenticationManager to perform the actual authentication.
+
+84
+00:05:05.249 --> 00:05:09.639
+The manager will consult with its authentication providers.
+
+85
+00:05:09.639 --> 00:05:13.031
+Now there are many flavors of authentication providers depending on
+
+86
+00:05:13.031 --> 00:05:18.099
+the grant type or if it's OpenID Connect or OAuth2.
+
+87
+00:05:18.099 --> 00:05:20.603
+Now for the authorization code grant,
+
+88
+00:05:20.603 --> 00:05:24.452
+the provider first exchanges the authorization code for the
+
+89
+00:05:24.452 --> 00:05:29.107
+access token and optionally a refresh token from the token
+
+90
+00:05:29.107 --> 00:05:31.868
+endpoint on the authentication server.
+
+91
+00:05:31.868 --> 00:05:34.778
+You will also need to include the client-id and secret,
+
+92
+00:05:34.778 --> 00:05:38.064
+by default, in the basic authentication header.
+
+93
+00:05:38.064 --> 00:05:40.990
+If the OpenID Connect scope was included,
+
+94
+00:05:40.990 --> 00:05:44.160
+then it will also retrieve an ID token.
+
+95
+00:05:44.160 --> 00:05:46.534
+It will then validate the token returned.
+
+96
+00:05:46.534 --> 00:05:47.375
+Now once validated,
+
+97
+00:05:47.375 --> 00:05:50.467
+it needs to call the userinfo endpoint to retrieve
+
+98
+00:05:50.467 --> 00:05:53.477
+all the resource owner's claims.
+
+99
+00:05:53.477 --> 00:05:57.894
+To do this, it uses a user service, which come in two flavors,
+
+100
+00:05:57.894 --> 00:06:01.244
+an OAuth2 version and an OpenID Connect version.
+
+101
+00:06:01.244 --> 00:06:07.153
+The user service uses the access token against the userinfo endpoint,
+
+102
+00:06:07.153 --> 00:06:08.283
+retrieves the claims,
+
+103
+00:06:08.283 --> 00:06:13.215
+and packages them up into an OAuth2 or OpenID Connect user object,
+
+104
+00:06:13.215 --> 00:06:16.273
+returning that back to the provider.
+
+105
+00:06:16.273 --> 00:06:19.798
+The authentication provider then maps the scopes into granted
+
+106
+00:06:19.798 --> 00:06:22.566
+authorities and packages up the user object,
+
+107
+00:06:22.566 --> 00:06:23.956
+granted authorities,
+
+108
+00:06:23.956 --> 00:06:30.576
+etc., into an authentication object of type OAuth2LoginAuthenticationToken,
+
+109
+00:06:30.576 --> 00:06:32.414
+returning that back to the AuthenticationManager,
+
+110
+00:06:32.414 --> 00:06:37.493
+which then forwards it back to the OAuth2LoginAuthenticationFilter.
+
+111
+00:06:37.493 --> 00:06:40.204
+The filter will add the authentication to the security
+
+112
+00:06:40.204 --> 00:06:44.423
+context held in the SecurityContextHolder.
+
+113
+00:06:44.423 --> 00:06:45.526
+The holders is a thread local,
+
+114
+00:06:45.526 --> 00:06:48.069
+so you can access it anywhere in your code to
+
+115
+00:06:48.069 --> 00:06:50.203
+achieve the authenticated principal.
+
+116
+00:06:50.203 --> 00:06:55.259
+Now additionally, the filter will create an OAuth2 authorization client object,
+
+117
+00:06:55.259 --> 00:06:59.826
+which encapsulates the client metadata, like the token endpoint,
+
+118
+00:06:59.826 --> 00:07:04.068
+userinfo endpoint, client-secret, and the validated tokens,
+
+119
+00:07:04.068 --> 00:07:07.116
+like the access, refresh, or ID token,
+
+120
+00:07:07.116 --> 00:07:11.741
+and then stores this object in the OAuth2AuthorizedClientService,
+
+121
+00:07:11.741 --> 00:07:14.950
+which you can then wire into any of your classes if you need to retrieve
+
+122
+00:07:14.950 --> 00:07:18.275
+the authorized client in case you need any of the tokens.
+
+123
+00:07:18.275 --> 00:07:23.508
+Perhaps you want to use the refresh token to get a new access token or ID token.
+
+124
+00:07:23.508 --> 00:07:26.476
+Now if we drill into the filters in debug mode,
+
+125
+00:07:26.476 --> 00:07:31.210
+we can browse for all the components set up for us by Spring Boot,
+
+126
+00:07:31.210 --> 00:07:34.124
+like the OAuth2LoginAuthenticationFilter.
+
+127
+00:07:34.124 --> 00:07:36.811
+You can see its AuthenticationManager,
+
+128
+00:07:36.811 --> 00:07:42.806
+and you can see it has the OpenID and OAuth2 providers user services.
+
+129
+00:07:42.806 --> 00:07:46.512
+And all these were set up with just a few lines of configuration.
+
+130
+00:07:46.512 --> 00:07:46.738
+Next,
+
+131
+00:07:46.738 --> 00:07:49.896
+we will see how Spring Boot configured everything and its
+
+132
+00:07:49.896 --> 00:07:53.229
+decision- making process as you will need to customize and
+
+133
+00:07:53.229 --> 00:08:01.000
+override these decisions to tailor the framework to your application's unique security requirements.
+

@@ -1,0 +1,385 @@
+WEBVTT
+1
+00:00:01.075 --> 00:00:04.564
+We will enhance the TrackZilla system to use declarative transaction
+
+2
+00:00:04.564 --> 00:00:09.673
+management and effectively roll back transactions.
+
+3
+00:00:09.673 --> 00:00:12.029
+I've opened the project in IntelliJ.
+
+4
+00:00:12.029 --> 00:00:14.497
+If you're following along with me in the code,
+
+5
+00:00:14.497 --> 00:00:19.850
+I've updated the code to take full advantage of Spring Data JPA by removing
+
+6
+00:00:19.850 --> 00:00:24.720
+the entity manager and relying fully on JpaRepository.
+
+7
+00:00:24.720 --> 00:00:28.739
+I remove the DAOs completely leaving only the interfaces.
+
+8
+00:00:28.739 --> 00:00:32.061
+I did this for the ReleaseDAO.
+
+9
+00:00:32.061 --> 00:00:35.568
+Notice it now extends JpaRepository.
+
+10
+00:00:35.568 --> 00:00:40.846
+I did this for the TicketDAO and the ApplicationDAO.
+
+11
+00:00:40.846 --> 00:00:44.919
+I also reorganized the scheduleRelease method.
+
+12
+00:00:44.919 --> 00:00:49.956
+So that's found in the ReleaseService down here on line 36.
+
+13
+00:00:49.956 --> 00:00:52.711
+It is now a bit more modular.
+
+14
+00:00:52.711 --> 00:00:54.284
+Now if you remember,
+
+15
+00:00:54.284 --> 00:00:57.431
+scheduleRelease is a two-step process that needs to
+
+16
+00:00:57.431 --> 00:00:59.556
+complete as one logical unit.
+
+17
+00:00:59.556 --> 00:01:04.515
+And if any piece fails, the entire transaction should fail.
+
+18
+00:01:04.515 --> 00:01:07.527
+So here, first, we create the tickets.
+
+19
+00:01:07.527 --> 00:01:11.079
+And then we assign the tickets to a release.
+
+20
+00:01:11.079 --> 00:01:13.864
+And if you notice, at the very top of our ReleaseService,
+
+21
+00:01:13.864 --> 00:01:17.521
+we have the @Transactional annotation.
+
+22
+00:01:17.521 --> 00:01:22.578
+I've also added detailed logging so that we can see the transaction output.
+
+23
+00:01:22.578 --> 00:01:24.201
+So if you navigate to application.
+
+24
+00:01:24.201 --> 00:01:27.143
+properties and notice here on line 18,
+
+25
+00:01:27.143 --> 00:01:30.863
+I've set it to trace the transaction behavior.
+
+26
+00:01:30.863 --> 00:01:32.899
+The application is up and running.
+
+27
+00:01:32.899 --> 00:01:37.186
+Let's exercise the scheduleRelease code by going to Postman.
+
+28
+00:01:37.186 --> 00:01:39.894
+We are posting to the schedule API.
+
+29
+00:01:39.894 --> 00:01:41.940
+We are sending this body.
+
+30
+00:01:41.940 --> 00:01:45.275
+It's going to send the list of tickets that need to be created.
+
+31
+00:01:45.275 --> 00:01:50.340
+It's also going to send the ID that the tickets should be associated to.
+
+32
+00:01:50.340 --> 00:01:53.308
+So let's click Send.
+
+33
+00:01:53.308 --> 00:01:56.071
+We see a status here of 200 OK.
+
+34
+00:01:56.071 --> 00:01:59.676
+So let's navigate back to IntelliJ and look at the output log.
+
+35
+00:01:59.676 --> 00:02:04.763
+In the log, we should see where the records are being inserted.
+
+36
+00:02:04.763 --> 00:02:08.724
+So let's search for insert into.
+
+37
+00:02:08.724 --> 00:02:13.882
+So here we see where the records are being inserted into the ticket table,
+
+38
+00:02:13.882 --> 00:02:17.128
+into the release ticket table, etc.
+
+39
+00:02:17.128 --> 00:02:21.432
+Let's navigate to the H2 console and see what's in the database.
+
+40
+00:02:21.432 --> 00:02:23.889
+Select TICKET, click Run.
+
+41
+00:02:23.889 --> 00:02:27.766
+We see four tickets in the completed status as expected.
+
+42
+00:02:27.766 --> 00:02:32.276
+So this transaction was able to complete as one logical unit.
+
+43
+00:02:32.276 --> 00:02:35.963
+So now let's test out the rollback capabilities when
+
+44
+00:02:35.963 --> 00:02:38.924
+using the @Transactional annotation.
+
+45
+00:02:38.924 --> 00:02:42.191
+So let's navigate back to Postman,
+
+46
+00:02:42.191 --> 00:02:48.072
+and let's select this post that calls the schedule API.
+
+47
+00:02:48.072 --> 00:02:50.307
+Let's look at the body.
+
+48
+00:02:50.307 --> 00:02:55.538
+So I am expecting this transaction to fail because I'm trying to
+
+49
+00:02:55.538 --> 00:02:58.759
+assign tickets to a release that doesn't exist,
+
+50
+00:02:58.759 --> 00:03:00.426
+release 0 doesn't exist.
+
+51
+00:03:00.426 --> 00:03:05.696
+And so we should see the tickets created and then rolled back.
+
+52
+00:03:05.696 --> 00:03:07.058
+So let's test this.
+
+53
+00:03:07.058 --> 00:03:08.079
+Let's click Send.
+
+54
+00:03:08.079 --> 00:03:11.020
+Notice here we have a 500 Internal Server Error.
+
+55
+00:03:11.020 --> 00:03:12.664
+That's to be expected.
+
+56
+00:03:12.664 --> 00:03:16.351
+Let's navigate back to IntelliJ and look at the log.
+
+57
+00:03:16.351 --> 00:03:19.283
+Let's search the log for rollback.
+
+58
+00:03:19.283 --> 00:03:22.674
+So here it's applying the default rules.
+
+59
+00:03:22.674 --> 00:03:26.125
+And so it initiates a transaction rollback.
+
+60
+00:03:26.125 --> 00:03:32.169
+So when we go to H2 and select tickets, it should be empty.
+
+61
+00:03:32.169 --> 00:03:34.921
+So let's navigate back to IntelliJ.
+
+62
+00:03:34.921 --> 00:03:42.042
+And now let's make changes to how rollbacks are handled.
+
+63
+00:03:42.042 --> 00:03:46.745
+So let's say I do not want to roll back whenever we see
+
+64
+00:03:46.745 --> 00:03:48.889
+the error No Such Element exception.
+
+65
+00:03:48.889 --> 00:03:51.355
+So this is going to happen when we try to assign
+
+66
+00:03:51.355 --> 00:03:53.561
+tickets to a release that doesn't exist,
+
+67
+00:03:53.561 --> 00:03:55.294
+to that release 0.
+
+68
+00:03:55.294 --> 00:04:00.894
+So we can control that by going to the ReleaseService and changing the
+
+69
+00:04:00.894 --> 00:04:05.418
+transaction advice on this @Transactional annotation.
+
+70
+00:04:05.418 --> 00:04:18.042
+So, specifically, let's say noRollbackFor NoSuchElementException.
+
+71
+00:04:18.042 --> 00:04:24.565
+So let's navigate back to Postman.
+
+72
+00:04:24.565 --> 00:04:25.038
+And, again,
+
+73
+00:04:25.038 --> 00:04:29.212
+notice we're trying to assign tickets to a release ID that doesn't exist.
+
+74
+00:04:29.212 --> 00:04:30.638
+Let's click Send.
+
+75
+00:04:30.638 --> 00:04:34.412
+So we see this 500 Internal Server Error.
+
+76
+00:04:34.412 --> 00:04:36.119
+That's to be expected.
+
+77
+00:04:36.119 --> 00:04:39.425
+But now we should see records in our database.
+
+78
+00:04:39.425 --> 00:04:43.088
+So let's navigate back there and click Run.
+
+79
+00:04:43.088 --> 00:04:46.758
+And so we still see our four tickets here.
+
+80
+00:04:46.758 --> 00:04:51.559
+Notice the status isn't Completed because we did not get to that step
+
+81
+00:04:51.559 --> 00:04:54.873
+of the transaction because the transaction failed.
+
+82
+00:04:54.873 --> 00:04:58.879
+Now, again, we turned off the rollback feature,
+
+83
+00:04:58.879 --> 00:05:02.070
+and so our tickets still show up here.
+
+84
+00:05:02.070 --> 00:05:06.140
+So now let's navigate back to IntelliJ and test out the propagation.
+
+85
+00:05:06.140 --> 00:05:08.715
+So here I'm still in the ReleaseService,
+
+86
+00:05:08.715 --> 00:05:14.451
+and now let's change the transaction advice or the parameters that we pass.
+
+87
+00:05:14.451 --> 00:05:21.456
+So now let's pass in propagation, and we are going to say Propagation.
+
+88
+00:05:21.456 --> 00:05:25.723
+REQUIRES_NEW, and we are going to set the readOnly flag to true.
+
+89
+00:05:25.723 --> 00:05:29.152
+We are requiring the flow to start a new transaction,
+
+90
+00:05:29.152 --> 00:05:33.940
+and then by setting readOnly to true, writes cannot be made.
+
+91
+00:05:33.940 --> 00:05:37.709
+So let's exercise this by navigating back to Postman.
+
+92
+00:05:37.709 --> 00:05:42.384
+Let's select this one that is assigning to a release that already exists.
+
+93
+00:05:42.384 --> 00:05:43.451
+Let's click Send.
+
+94
+00:05:43.451 --> 00:05:46.655
+And, great, we see a status of 200.
+
+95
+00:05:46.655 --> 00:05:53.200
+Now let's navigate to the H2 console and see if there are actually any tickets.
+
+96
+00:05:53.200 --> 00:06:02.000
+Select Ticket and click Run, and there are no tickets because we set readOnly to true.
+

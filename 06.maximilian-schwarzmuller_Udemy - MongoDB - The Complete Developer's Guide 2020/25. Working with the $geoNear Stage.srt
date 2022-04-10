@@ -1,0 +1,247 @@
+1
+00:00:02,140 --> 00:00:10,900
+Now that we have data stored in a new collection, let's use that new collection and let's create an index,
+
+2
+00:00:10,930 --> 00:00:19,300
+a geo index in there so that we can actually use the geonear stage which also exists in the aggregation
+
+3
+00:00:19,300 --> 00:00:27,790
+framework. For this I'll create an index on the location field with db transformed persons create index
+
+4
+00:00:27,850 --> 00:00:30,520
+as we did it in the geospatial module,
+
+5
+00:00:30,520 --> 00:00:35,880
+this is the field name and we want to have a 2D sphere index on that.
+
+6
+00:00:36,370 --> 00:00:42,620
+So now with that index created, we can use transform persons for geolocation queries and also for the
+
+7
+00:00:42,670 --> 00:00:50,610
+geolocation or the geospatial aggregation pipeline step. I'll run the pipeline I'll build now against
+
+8
+00:00:50,680 --> 00:00:52,290
+transformed persons
+
+9
+00:00:52,500 --> 00:00:58,740
+and I want to use a special stage which is built for working with geo data,
+
+10
+00:00:58,950 --> 00:01:06,470
+the $geoNear stage. Now geoNear takes a bunch of input to configure it.
+
+11
+00:01:06,630 --> 00:01:13,620
+First of all we need to define the point where we are for which we want to find close points because geoNear
+
+12
+00:01:13,650 --> 00:01:21,420
+allows us to simply find elements in our collection, documents in our collection which are close to our
+
+13
+00:01:21,420 --> 00:01:22,390
+current position,
+
+14
+00:01:22,410 --> 00:01:23,870
+that is what geoNear does.
+
+15
+00:01:24,690 --> 00:01:32,400
+Now for this, I need to pick a location and I will take the coordinates I have here to guarantee that
+
+16
+00:01:32,400 --> 00:01:36,130
+I am at least close to at least one document in my collection,
+
+17
+00:01:37,570 --> 00:01:40,330
+near is not just a pair of coordinates though,
+
+18
+00:01:40,510 --> 00:01:42,060
+it's a geo json object,
+
+19
+00:01:42,160 --> 00:01:48,280
+so we have to define a point and then the coordinates and these are now two coordinates, longitude
+
+20
+00:01:48,280 --> 00:01:56,170
+and latitude and I will slightly modify that so that I dont have exactly the same location,
+
+21
+00:01:56,200 --> 00:02:01,920
+so now we have that near parameter filled out.
+
+22
+00:02:01,920 --> 00:02:07,980
+Next we can define a max distance in meters,
+
+23
+00:02:08,140 --> 00:02:12,900
+let's say we want to have like ten thousand meters, so 10 kilometers,
+
+24
+00:02:13,180 --> 00:02:18,640
+you can also limit the amount of results you want to retrieve and you can do this in this step instead
+
+25
+00:02:18,640 --> 00:02:25,750
+of with a limit stage to do this more efficiently and just request this amount of documents instead
+
+26
+00:02:25,750 --> 00:02:31,110
+of getting all and then limiting it in a new pipeline stage after you already fetched all,
+
+27
+00:02:31,110 --> 00:02:38,320
+so let's say we want to limit it to 10 and we could also add a query here where we filter for other things.
+
+28
+00:02:38,320 --> 00:02:44,400
+Now this is available because geoNear has to be the first element in a pipeline, if you want to use
+
+29
+00:02:44,400 --> 00:02:44,920
+geoNear,
+
+30
+00:02:44,950 --> 00:02:51,640
+it has to be the first element in the pipeline because it needs to use that index and the first pipeline
+
+31
+00:02:51,670 --> 00:02:56,560
+element is the only element with direct access to the collection, other pipeline stages
+
+32
+00:02:56,560 --> 00:02:59,350
+just get the output of the previous pipeline stage,
+
+33
+00:02:59,350 --> 00:03:02,460
+this is the only element with direct access to the collection.
+
+34
+00:03:02,860 --> 00:03:08,600
+So therefore if you have any other filters which you want to run directly on the collection, you can add it
+
+35
+00:03:08,620 --> 00:03:11,030
+here and mongodb will
+
+36
+00:03:11,380 --> 00:03:17,860
+well basically execute a very efficient query against the collection and not force you to then use a
+
+37
+00:03:17,860 --> 00:03:24,910
+match stage as a next step which well might mean that you have to fetch all data in order to be able
+
+38
+00:03:24,910 --> 00:03:26,440
+to match in the next step.
+
+39
+00:03:26,740 --> 00:03:33,590
+So here we could look for persons who are male for example or female to mix it up.
+
+40
+00:03:33,610 --> 00:03:40,540
+Now with that, there is one more field we have to specify and that is the distance field, whoops distance field
+
+41
+00:03:40,690 --> 00:03:47,460
+because geoNear will actually also give us back the distance that is calculated between our point and the document
+
+42
+00:03:47,470 --> 00:03:55,830
+it found and we can tell mongodb in which new field it should store that and I'll just name it distance,
+
+43
+00:03:55,930 --> 00:03:58,000
+this name is up to you.
+
+44
+00:03:58,160 --> 00:03:59,960
+Now let's give it a try,
+
+45
+00:04:00,270 --> 00:04:08,440
+pretty agregate should be in the right positions and I find no results which is of course my fault because
+
+46
+00:04:08,470 --> 00:04:13,850
+if I have a look into transformed persons, we see there is no gender in there.
+
+47
+00:04:14,020 --> 00:04:15,130
+Yeah,
+
+48
+00:04:15,140 --> 00:04:19,100
+so let's fix this and let's maybe look for a different query,
+
+49
+00:04:19,450 --> 00:04:25,820
+let's look for age greater than 30.
+
+50
+00:04:25,830 --> 00:04:26,150
+Ok
+
+51
+00:04:26,160 --> 00:04:28,910
+so let's try this again with the new query,
+
+52
+00:04:30,090 --> 00:04:32,020
+then I get no results,
+
+53
+00:04:32,040 --> 00:04:34,080
+well maybe the distance is the problem,
+
+54
+00:04:34,110 --> 00:04:35,120
+let's improve that
+
+55
+00:04:35,140 --> 00:04:42,810
+and let's go from 10 kilometers to a thousand kilometers, so one million meters and now this looks better,
+
+56
+00:04:42,820 --> 00:04:48,610
+now I have some results. And there, you can also see this new distance field was added to the output,
+
+57
+00:04:48,610 --> 00:04:52,190
+this is the distance of this person to me,
+
+58
+00:04:52,570 --> 00:04:55,210
+so you see 10 kilometers was a bit too optimistic,
+
+59
+00:04:55,210 --> 00:04:57,770
+they're all like six hundred kilometers away from me
+
+60
+00:04:58,870 --> 00:05:02,650
+and this is how you can use geoNear as a pipeline stage.
+
+61
+00:05:02,650 --> 00:05:08,170
+One of the most important things to remember here is that it has to be the first stage, thereafter you
+
+62
+00:05:08,170 --> 00:05:13,680
+can of course add all the other stages in the way I described it in the rest of this module.

@@ -1,0 +1,790 @@
+WEBVTT
+
+00:02.220 --> 00:08.950
+So we learned how we can store data in firebase, that's working great but it's not storing the image.
+
+00:08.960 --> 00:15.300
+Now actually what we could theoretically do and what would be very bad to be honest, I mentioned that
+
+00:15.330 --> 00:22.860
+in pick image, we also get the image as a base64 string and it is just a string.
+
+00:22.860 --> 00:32.010
+Theoretically what we could do is we could just store that string here in firebase but it's a super
+
+00:32.010 --> 00:38.190
+long and big string and this is not what this data storage is made for, it's not a file storage and even
+
+00:38.190 --> 00:42.600
+though it's a string, it technically is like a file, it contains the whole image data,
+
+00:42.900 --> 00:47.060
+so I strongly recommend not doing this, it's not a good practice,
+
+00:47.060 --> 00:48.600
+not at all.
+
+00:48.630 --> 00:51.810
+Instead firebase has this storage option it has,
+
+00:51.810 --> 00:53.710
+it comes with storage attached to it
+
+00:53.730 --> 01:02.370
+but the issue with that is that this storage is really only accessible through our SDK, through the firebase
+
+01:02.400 --> 01:03.560
+SDK.
+
+01:03.570 --> 01:07.900
+Now they have a javascript SDK, you can go visit the docs to learn more about it,
+
+01:08.100 --> 01:13.520
+you can use that SDK to send http requests and that would work and you can use it to access the storage
+
+01:13.530 --> 01:15.980
+and that would not really work.
+
+01:15.990 --> 01:22.170
+The reason for this is that it's not really working nicely together with react native at least right
+
+01:22.200 --> 01:22.670
+now,
+
+01:22.710 --> 01:30.630
+so using the SDK for storing images is not a reliable way, it leads to errors and it does not work right
+
+01:30.630 --> 01:32.070
+now as it should,
+
+01:32.130 --> 01:39.270
+therefore this does not work and we can't use it. Now the storage unlike the database also has no API we
+
+01:39.270 --> 01:40.600
+can easily target
+
+01:40.980 --> 01:47.850
+but firebase has another cool feature we can use to work around that, firebase cloud functions. Cloud
+
+01:47.850 --> 01:54.260
+functions are basically on-demand code repositories we can execute and that's the cool thing,
+
+01:54.270 --> 01:58.420
+we can also target from outside like a restful API.
+
+01:58.650 --> 02:02.980
+So we will be able to send the request to some url of our definition
+
+02:03.090 --> 02:10.560
+and when we do this, then a specific function will run and execute code and there, we can write code to
+
+02:10.620 --> 02:18.330
+accept an image, then do something with it and mainly store it in storage which we can access from within
+
+02:18.330 --> 02:19.120
+function
+
+02:19.170 --> 02:24.330
+since that runs not on our client but on firebase. Sounds a bit complex,
+
+02:24.330 --> 02:27.840
+again this is really only because we're using firebase here as a demo,
+
+02:27.870 --> 02:33.450
+if you have your own backend, you're writing your code anyways but this approach here will work really
+
+02:33.450 --> 02:34.630
+well with firebase
+
+02:34.740 --> 02:42.370
+if you don't want or can't use the SDK. For this, we need to write a so called cloud function
+
+02:42.470 --> 02:43.100
+but no worries
+
+02:43.100 --> 02:44.510
+that's really easy.
+
+02:44.540 --> 02:46.890
+We need one extra tool for that though,
+
+02:46.920 --> 02:50.850
+the firebase tools which really allow us to write such a function.
+
+02:51.050 --> 02:55.830
+We install that through npm and we install it globally on our machine,
+
+02:55.850 --> 02:59.660
+that is why on Mac I use sudo here to get the right permissions,
+
+02:59.660 --> 03:01.060
+on Windows, you don't need that
+
+03:01.080 --> 03:04.130
+and depending on your setup, you also don't need that on Mac
+
+03:04.370 --> 03:14.380
+and then I run npm install -g and then it's firebase-tools. Hitting enter will prompt you to
+
+03:14.380 --> 03:21.660
+enter your password or it may prompt you to do so and thereafter it will download these firebase tools. Now the
+
+03:21.760 --> 03:22.610
+firebase tools,
+
+03:22.630 --> 03:29.140
+that's just a cli that makes it easy to put this project under control of firebase which sounds bigger
+
+03:29.140 --> 03:35.570
+than it is, in the end it just makes it very convenient to write and deploy a cloud function here.
+
+03:35.890 --> 03:36.970
+So I will do just that,
+
+03:36.970 --> 03:37.420
+I'll write
+
+03:37.420 --> 03:44.050
+firebase init and make sure that you type this whilst being navigated into your root project folder
+
+03:44.050 --> 03:44.320
+here,
+
+03:44.320 --> 03:51.310
+so of that project and then it'll just ask you what you want to use. Now the default is that you want
+
+03:51.310 --> 03:57.730
+to use that database but you can navigate down to functions and hit space to check this and you can check
+
+03:57.760 --> 03:58.760
+other options too
+
+03:58.780 --> 04:00.200
+but you need none of these,
+
+04:00.250 --> 04:00.660
+no,
+
+04:00.660 --> 04:01.670
+also not storage,
+
+04:01.690 --> 04:03.760
+we're not going to use it like that,
+
+04:03.760 --> 04:06.530
+we only plan on using functions here.
+
+04:07.490 --> 04:14.000
+So therefore let's now hit enter and it will now ask you which project you want to use,
+
+04:14.000 --> 04:17.030
+you could add a new one but I want to use awesome places,
+
+04:17.150 --> 04:23.630
+hit enter after selecting this and then it asks you if you want to install dependencies with npm and
+
+04:23.630 --> 04:27.320
+it's talking about sub-dependencies of that cloud function,
+
+04:27.350 --> 04:31.090
+so hit y for yes here and thereafter,
+
+04:31.140 --> 04:37.050
+after hitting enter, it will do just that and finish up the set up.
+
+04:37.430 --> 04:42.560
+If you get errors like these here by the way, you may ignore that, these are in-between errors where a
+
+04:42.560 --> 04:47.360
+fallback should be taken so it shouldn't fail with these errors, it should just throw them in between
+
+04:47.360 --> 04:48.540
+but recover
+
+04:48.980 --> 04:52.520
+and by the end, it should finish successfully.
+
+04:52.520 --> 04:57.800
+Now with all that, what we got is we got a new firebase.json file which is empty,
+
+04:57.800 --> 05:01.630
+we got a firebaserc file which basically holds a reference to the project
+
+05:01.640 --> 05:02.850
+and here your project that
+
+05:02.870 --> 05:06.460
+you should of course be, also use your or add to your project
+
+05:06.490 --> 05:13.430
+if you ever download my attached files from this point on and we get this new functions folder and there,
+
+05:13.460 --> 05:18.800
+you get a couple of pre-built files and it's the index.js file we will work on and where we will write
+
+05:18.890 --> 05:20.390
+our function.
+
+05:20.390 --> 05:26.900
+There you actually already have one commented out, you can comment in, this represents a function you
+
+05:26.900 --> 05:31.320
+will be able to target via http due to this functions
+
+05:31.340 --> 05:33.090
+https on request
+
+05:33.170 --> 05:38.120
+event listener. Now dive into the firebase cloud function docs if you want to learn more about them
+
+05:38.120 --> 05:39.420
+and your different options,
+
+05:39.440 --> 05:42.880
+this is how you create a function that can be targeted
+
+05:42.880 --> 05:43.320
+via
+
+05:43.340 --> 05:49.930
+http request. This part here is actually what will be part of the url you target,
+
+05:50.060 --> 05:52.520
+so feel free to change this,
+
+05:52.550 --> 05:54.040
+I will simply name it
+
+05:55.200 --> 05:58.680
+store image, like this.
+
+05:58.740 --> 06:04.430
+Now inside this function here, you see you get a request and a response and we're writing this with nodejs,
+
+06:04.480 --> 06:05.980
+that's one restriction,
+
+06:06.000 --> 06:09.330
+you have to use nodejs here, you can't use a different language,
+
+06:09.360 --> 06:10.770
+if you want to use a different language,
+
+06:10.800 --> 06:13.560
+write your own backend, that's basically how it is.
+
+06:13.560 --> 06:19.350
+So here we can use nodejs and if you ever work with Express, this is basically how it works in here
+
+06:19.350 --> 06:19.720
+too,
+
+06:19.730 --> 06:25.590
+you get a request and a response object, by the end of everything you have to send a response, in between
+
+06:25.620 --> 06:28.770
+you can use the request to get data and so on.
+
+06:28.820 --> 06:37.020
+Now the steps we have to make here, we want to make is we want to simply use this request, extract the
+
+06:37.020 --> 06:42.300
+image, store the image in the firebase cloud storage and then return a response
+
+06:42.300 --> 06:50.750
+once we're done, that is the goal of this function here. Now to do that, we need another external package
+
+06:51.700 --> 06:58.900
+so navigate into the functions folder with cd functions and in there, you now can install npm install
+
+06:59.230 --> 07:08.200
+--save, the package I want to install is now @google-cloud/storage because the
+
+07:08.200 --> 07:14.460
+firebase storage is based on the Google Cloud storage and this is some useful SDK we can use to conveniently
+
+07:14.470 --> 07:16.500
+store data in there.
+
+07:16.510 --> 07:23.260
+We will also need one additional package which I also install with npm install --save,
+
+07:23.290 --> 07:30.830
+it's called cors and this is required to allow access to our function from other origins,
+
+07:30.880 --> 07:35.670
+so from apps not running on the same server as our firebase app does
+
+07:36.070 --> 07:37.720
+and this of course will be the case,
+
+07:37.780 --> 07:43.270
+our app will run on a native device and therefore not on the same server, it's not served by the same
+
+07:43.270 --> 07:50.200
+server and therefore by default as a security mechanism, we would not be able to send requests to our
+
+07:50.350 --> 07:53.580
+server or the server would not accept them.
+
+07:53.590 --> 07:57.440
+Now with the cors middleware, we can basically say it's fine,
+
+07:57.500 --> 07:58.960
+this url,
+
+07:58.960 --> 08:05.590
+this code can be targeted from other origins and you typically implement this on restful APIs otherwise
+
+08:05.590 --> 08:09.190
+they would not really fulfill their role as restful APIs.
+
+08:09.430 --> 08:17.710
+With that let's write our code here to store some data and that code will now use a couple of different
+
+08:18.250 --> 08:19.030
+steps,
+
+08:19.060 --> 08:25.570
+the first step is to use this cors middleware or this cors package we just imported or we just added,
+
+08:25.570 --> 08:27.370
+for this to use it,
+
+08:27.400 --> 08:31.070
+we have to add it here in this function at the top as an import
+
+08:31.270 --> 08:37.420
+and since we're in a nodejs environment, we use the nodejs import syntax with comment js format,
+
+08:37.510 --> 08:40.120
+so with require and so on.
+
+08:40.180 --> 08:47.530
+So I'm creating a new constant, cors and I required the cors package and in this package, I then actually will
+
+08:47.560 --> 08:53.530
+execute a function where I configure it and where I set origin to true
+
+08:53.530 --> 08:56.890
+to make sure that any origin can access this.
+
+08:56.920 --> 08:58.060
+This alone won't do it
+
+08:58.210 --> 09:06.520
+but now we can use this cors constant here and we actually use it as a function now, inside of our
+
+09:06.610 --> 09:07.790
+cloud function code,
+
+09:07.790 --> 09:16.090
+so inside of this method here which is passed to on request. There we use cors and first of all, we
+
+09:16.090 --> 09:19.480
+need to forward the request to the cors function,
+
+09:19.480 --> 09:26.260
+we need to forward the response and thereafter we have a function that will be executed with cors
+
+09:26.350 --> 09:31.660
+enabled, so the rest of your code will now go into this function.
+
+09:31.660 --> 09:33.990
+There you don't need to get any arguments,
+
+09:34.120 --> 09:39.600
+you can now write your code in there and every other code will go in there indeed.
+
+09:39.610 --> 09:45.080
+Now the idea in here is to extract the image and to store it, for this I'll
+
+09:45.110 --> 09:52.720
+first of all parse the request body and firebase already does some parsing for us but we need to do
+
+09:52.720 --> 09:53.790
+more,
+
+09:53.800 --> 09:57.990
+I will create a new constant and name it body and I will use the json API
+
+09:58.010 --> 10:01.690
+nodejs gives us where I can use parse to parse
+
+10:01.700 --> 10:03.540
+request.body,
+
+10:03.660 --> 10:09.250
+so the request object provided by firebase has a body but we need to parse this with json to turn it
+
+10:09.610 --> 10:11.960
+into a javascript object.
+
+10:12.040 --> 10:14.750
+This body will now contain our image,
+
+10:14.770 --> 10:20.920
+not right now, we haven't set up any request that would target this but I expect this body to have an image
+
+10:20.920 --> 10:29.830
+property so that we can extract the image through that. Next of all, we of course also need to write this
+
+10:29.830 --> 10:33.420
+file, save this file to cloud storage, for this,
+
+10:33.440 --> 10:39.370
+I temporarily need to save it here and this will be automatically removed by firebase when our function
+
+10:39.370 --> 10:40.620
+execution finished
+
+10:41.020 --> 10:47.830
+but I will temporarily save it here to then forward it to Google cloud storage. For that, I'll create another constant,
+
+10:47.920 --> 10:51.990
+fs for file service and will require fs here,
+
+10:52.000 --> 10:53.160
+we don't need to install it,
+
+10:53.170 --> 10:56.130
+it's a default nodejs package instead
+
+10:56.680 --> 11:00.840
+and fs has some useful functions for working with files.
+
+11:01.000 --> 11:07.820
+So in here, I will call fs and then there is writeFileSync which means that we'll write the file and
+
+11:07.820 --> 11:09.850
+block the execution until it's done.
+
+11:10.810 --> 11:18.520
+Now we need to store that file and I will store it in a path which we design here, in a tmp, so temp
+
+11:18.610 --> 11:19.420
+folder,
+
+11:19.420 --> 11:21.060
+make sure to get this correctly,
+
+11:21.070 --> 11:27.790
+this is a folder firebase cloud functions have access to and a folder which will be cleared regularly and
+
+11:27.790 --> 11:34.910
+then I will create a new file in here and just name it uploaded-image.jpg,
+
+11:34.930 --> 11:39.210
+the good thing is we will just receive jpg files by the client here.
+
+11:39.340 --> 11:44.020
+So here I will use that, the second argument I passed to this 
+
+11:44.020 --> 11:51.570
+writeFileSync method is the image I actually want to store in this place. So here, that is body.image,
+
+11:51.610 --> 11:55.210
+again I expect to have this image property on the parse body,
+
+11:55.210 --> 12:01.270
+this is something we'll have to ensure as we send the requests. The third argument defines the format
+
+12:01.300 --> 12:03.270
+of this data we get,
+
+12:03.280 --> 12:05.720
+now this will be base64,
+
+12:06.010 --> 12:12.300
+make sure to spell this correctly, it tells writeFileSync how to turn this into this image file
+
+12:12.370 --> 12:19.870
+and since we get the data, the image in base64 format too, we will send this to our cloud function
+
+12:19.870 --> 12:25.770
+in the end to then there convert it into a real image with this function or with this writeFileSync
+
+12:25.780 --> 12:26.770
+function.
+
+12:26.770 --> 12:32.900
+Now the fourth and last argument I pass here is a function which will be executed if that failed,
+
+12:33.230 --> 12:35.460
+it's an arrow function here
+
+12:35.710 --> 12:43.360
+and in case of an error, I will for one log this, you can access the firebase cloud function logs
+
+12:45.040 --> 12:52.870
+but I also will then return a response. I will return response and on there, I will call status to set
+
+12:52.870 --> 13:00.400
+the status code to 500 to indicate that it failed on the server and pass some json payload
+
+13:00.790 --> 13:07.330
+where I essentially pass an error object which contains the error message I'm fetching here, so that
+
+13:07.330 --> 13:08.940
+we also send this to the client
+
+13:09.130 --> 13:14.170
+and I do return here so that the execution of the code won't continue,
+
+13:14.170 --> 13:16.540
+so that we return this and we're done
+
+13:16.630 --> 13:22.890
+and since this run synchronously, it won't continue executing before it either succeeded or failed.
+
+13:22.900 --> 13:25.250
+Now we only reached the next line if it succeeded
+
+13:25.250 --> 13:29.500
+therefore and here I now want to store it on Google Cloud storage,
+
+13:29.500 --> 13:34.810
+so on the firebase cloud storage which as I said builds up on that. For that, I'll create a new constant and
+
+13:34.810 --> 13:42.200
+I'll name it bucket, firebase cloud storage thinks in bucket, so bucket holds your files. For that I need that
+
+13:42.230 --> 13:45.870
+Google Cloud Storage package we previously installed,
+
+13:45.890 --> 13:54.790
+so at the top I'm also going to import this, I'll name it gcs here maybe and I will require @Google
+
+13:54.790 --> 14:03.960
+Cloud Storage, this alone won't do the trick though, to have access rights,
+
+14:04.020 --> 14:07.220
+we need to pass some configuration to this import,
+
+14:07.260 --> 14:09.510
+so to the object we're importing,
+
+14:09.660 --> 14:14.610
+so I'm going to create a new concept above this import which I'll name gcconfig for Google Cloud
+
+14:14.610 --> 14:20.040
+config and this should be a javascript object which needs to have two properties.
+
+14:20.130 --> 14:28.260
+The project ID, the firebase project ID to which this should be connected and a key file name which is a file you
+
+14:28.260 --> 14:32.510
+can download from your firebase project which holds credentials,
+
+14:32.550 --> 14:37.850
+this package we'll then temporarily use to access your firebase project.
+
+14:37.860 --> 14:40.850
+So we need to get this file
+
+14:41.220 --> 14:45.590
+and how do we get it?
+
+14:45.620 --> 14:48.580
+We move over to the firebase project and on the gear
+
+14:48.620 --> 14:49.670
+icon here at the top,
+
+14:49.700 --> 14:52.710
+you click on project settings, there
+
+14:52.730 --> 15:01.190
+choose service accounts and there, you now leave nodejs checked and simply generate a new private key,
+
+15:02.340 --> 15:09.340
+click generate key and this gives you a file which you can download. Make sure to store this file in
+
+15:09.340 --> 15:13.060
+your functions folder in your project folder,
+
+15:13.060 --> 15:17.360
+you can then rename this, just make sure that it ends with .json,
+
+15:17.380 --> 15:19.310
+here I'm going to name it
+
+15:19.510 --> 15:21.810
+awesome-places.json
+
+15:22.120 --> 15:25.260
+and again store it in that folder.
+
+15:27.840 --> 15:32.030
+So now here we get this awesome-places.json file here with all that data,
+
+15:32.310 --> 15:34.680
+it's that file that we should point to,
+
+15:34.960 --> 15:37.980
+so here in key file name, I just entered the name,
+
+15:38.040 --> 15:38.960
+.
+
+15:39.920 --> 15:41.600
+awesome-places.json 
+
+15:41.600 --> 15:45.450
+and since once we deployed this, the whole functions folder will be deployed,
+
+15:45.620 --> 15:48.610
+it will automatically be able to resolve this.
+
+15:48.740 --> 15:51.020
+We also need to pass the project ID,
+
+15:51.110 --> 15:56.500
+now you can get this, also left too early here from your settings page,
+
+15:56.600 --> 16:03.260
+there you got your project ID, make sure to copy the entire ID and thereafter, go back and enter it here.
+
+16:03.310 --> 16:05.640
+Now also make sure to pick your values here,
+
+16:05.660 --> 16:08.460
+I will shut down my project once I'm done recording.
+
+16:08.900 --> 16:11.350
+Now with that, we get this gcconfig object,
+
+16:11.390 --> 16:18.530
+I will now pass this here as an argument to this function we essentially immediately execute here on
+
+16:18.530 --> 16:19.760
+this import,
+
+16:19.970 --> 16:20.570
+so I'll pass
+
+16:20.570 --> 16:25.800
+gcconfig to it and this will ensure that we have access rights.
+
+16:25.880 --> 16:29.880
+Now with that all done, we can scroll down and continue creating our bucket,
+
+16:29.930 --> 16:36.410
+there we now use gcs we just initialised and configured Google Cloud Storage SDK and I will call
+
+16:36.410 --> 16:42.170
+bucket here to create a new bucket or target a bucket to be precise, not create a new one, target a bucket.
+
+16:42.910 --> 16:49.640
+Now you can find out the bucket name by clicking on storage in your firebase project, get started,
+
+16:49.640 --> 16:50.410
+got it
+
+16:52.020 --> 16:59.190
+and there, pick this name without the gs// part at the beginning.
+
+16:59.190 --> 17:04.770
+This is what you now enter here as a bucket name, so that it can target this existing bucket to store your
+
+17:04.770 --> 17:06.030
+files.
+
+17:06.120 --> 17:08.120
+With that we get the buckets set up,
+
+17:08.250 --> 17:11.180
+now we can use bucket upload to do just that,
+
+17:11.190 --> 17:12.670
+upload a file. For that,
+
+17:12.690 --> 17:17.460
+we first of all pass a path and that of course is the path we already set up here where we stored
+
+17:17.460 --> 17:18.970
+our file temporarily,
+
+17:19.110 --> 17:20.880
+so let's pass it here.
+
+17:21.210 --> 17:26.040
+The second argument is then an object where we configure this upload request,
+
+17:26.050 --> 17:29.610
+now here we need to do some important configurations.
+
+17:29.610 --> 17:36.570
+First of all, we need to specify the upload type and set this to media because it's a media file, then
+
+17:36.570 --> 17:40.910
+important, the destination, where should it be stored in your bucket
+
+17:40.950 --> 17:42.750
+and there you can define any path,
+
+17:43.020 --> 17:49.140
+I want to have a /places folder and in there, I will now store that file,
+
+17:50.080 --> 17:52.960
+so here I will add the file.
+
+17:53.290 --> 17:58.510
+Now this file maybe should receive a unique ID, for that
+
+17:58.510 --> 18:05.170
+I will install another package which generates this ID, so with npm install --save, I will install
+
+18:05.170 --> 18:05.950
+the package
+
+18:05.950 --> 18:12.060
+uuid-v4 which can be used to generate just that, unique IDs.
+
+18:12.090 --> 18:15.030
+Once this is installed, we have to import it at the top,
+
+18:15.040 --> 18:19.880
+I'm storing it in a constant named uuid, let's maybe write it like this,
+
+18:20.770 --> 18:28.210
+name doesn't matter though and import uuid-v4 and there, I now want to store my unique ID,
+
+18:28.300 --> 18:32.040
+now I will generate it ahead of time here, maybe like this,
+
+18:32.150 --> 18:39.440
+const uuid, all lowercase is uuid and now you just execute it as a function and pass this here and
+
+18:39.440 --> 18:45.400
+then also add .jpg as a file extension because it still is a jpg file.
+
+18:45.410 --> 18:47.870
+The next configuration you have to add is the metadata,
+
+18:48.380 --> 18:51.930
+here I'll add the content type
+
+18:51.940 --> 18:56.100
+which should be image/jpg to inform firebase what it really is
+
+18:57.470 --> 19:00.620
+and I will add something very important here,
+
+19:00.800 --> 19:07.070
+the firebase storage download tokens.
+
+19:07.070 --> 19:12.220
+This will be required to get a convenient download link for firebase in the end,
+
+19:12.250 --> 19:15.900
+so let's add it like this, this should be your unique ID.
+
+19:17.310 --> 19:21.000
+Now with that we're storing this, in the next lecture
+
+19:21.000 --> 19:22.590
+we'll continue, finish this up
+
+19:22.590 --> 19:24.420
+and then also send a request to it.

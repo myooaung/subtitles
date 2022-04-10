@@ -1,0 +1,492 @@
+WEBVTT
+1
+00:00:04.170 --> 00:00:04.910
+Hello and welcome.
+
+2
+00:00:04.920 --> 00:00:10.260
+In this lecture we're gonna be looking at how we can fix our health system and the saving system to
+
+3
+00:00:10.260 --> 00:00:17.010
+avoid a bug where enemies come back to life at some particular and weird incantations of saving and
+
+4
+00:00:17.010 --> 00:00:17.790
+reloading.
+
+5
+00:00:17.790 --> 00:00:21.730
+So let's dive in and see what the bug is in the first place and then how to fix it.
+
+6
+00:00:22.820 --> 00:00:24.080
+So we got a bug in health.
+
+7
+00:00:24.080 --> 00:00:26.490
+Let's see how this is currently manifesting.
+
+8
+00:00:26.600 --> 00:00:30.890
+The easiest way is gonna be for me to first delete my save file so I can show you all the reproduction
+
+9
+00:00:30.890 --> 00:00:31.670
+steps.
+
+10
+00:00:31.670 --> 00:00:38.000
+Then we're gonna go over into unity and hit play and what we're gonna notice is that if I go and kill
+
+11
+00:00:38.120 --> 00:00:42.470
+this god or any god particularly it doesn't really matter anything with a health component really is
+
+12
+00:00:42.470 --> 00:00:44.420
+going to do the trick.
+
+13
+00:00:44.420 --> 00:00:45.250
+He gets killed.
+
+14
+00:00:45.290 --> 00:00:45.640
+Fine.
+
+15
+00:00:45.650 --> 00:00:46.590
+That's okay.
+
+16
+00:00:46.820 --> 00:00:53.270
+Now what happens is I can save this and then leave the game and then reload.
+
+17
+00:00:53.270 --> 00:00:55.730
+And obviously the God is dead.
+
+18
+00:00:55.760 --> 00:00:56.910
+Seems normal right.
+
+19
+00:00:56.990 --> 00:00:58.520
+But what happens now.
+
+20
+00:00:58.520 --> 00:01:05.300
+If I hit save again and then reload the game one more time what's going to happen.
+
+21
+00:01:05.300 --> 00:01:07.100
+Well the god is actually alive again.
+
+22
+00:01:07.100 --> 00:01:08.870
+Why was that the case.
+
+23
+00:01:08.870 --> 00:01:16.460
+Well let me run through this one more time so if I delete save and then go and hit play obviously I
+
+24
+00:01:16.460 --> 00:01:19.460
+start off my default location lock and pick up the sword.
+
+25
+00:01:19.490 --> 00:01:21.160
+That's the quickest way of killing this God.
+
+26
+00:01:21.320 --> 00:01:23.780
+And then I whack the God a few times.
+
+27
+00:01:24.080 --> 00:01:31.680
+And sure enough I think if we go and find this god go to the scene and go to enemies in which enemy
+
+28
+00:01:31.680 --> 00:01:33.050
+are we talking about is this enemy.
+
+29
+00:01:33.080 --> 00:01:35.720
+Yes it is and have a look at his health component.
+
+30
+00:01:35.720 --> 00:01:38.030
+You can see his health points zero as we would expect.
+
+31
+00:01:38.510 --> 00:01:45.680
+So sure enough in the game we go ahead and save and we quit and then come back and we should be back
+
+32
+00:01:45.680 --> 00:01:47.390
+to the god being dead.
+
+33
+00:01:47.480 --> 00:01:51.490
+But actually if we go and have a look at our health component you will notice.
+
+34
+00:01:51.920 --> 00:01:57.310
+Whereas the health component for our enemy that select the enemy's health components here it is.
+
+35
+00:01:57.380 --> 00:01:59.740
+You can see that its health points are faulty.
+
+36
+00:01:59.750 --> 00:02:00.770
+So what's going on there.
+
+37
+00:02:00.770 --> 00:02:02.560
+Why are its health points 40.
+
+38
+00:02:02.570 --> 00:02:05.000
+That explains why if we save and quit again.
+
+39
+00:02:05.100 --> 00:02:08.240
+He's alive because he's not got zero health points.
+
+40
+00:02:08.240 --> 00:02:13.760
+So what's actually going on is if we go and have a look at our health component going to close all the
+
+41
+00:02:13.790 --> 00:02:19.820
+others just to make it super clear in the health component we've got two places the or few places that
+
+42
+00:02:19.820 --> 00:02:21.530
+update our health points.
+
+43
+00:02:21.530 --> 00:02:27.410
+So where could these health points be set to forty one places and start in fact this is quite a likely
+
+44
+00:02:27.410 --> 00:02:27.890
+candidate.
+
+45
+00:02:27.890 --> 00:02:30.230
+That's the first option take damage.
+
+46
+00:02:30.230 --> 00:02:31.730
+Could we have taken negative damage.
+
+47
+00:02:31.730 --> 00:02:34.120
+Seems unlikely is no point where we're doing that.
+
+48
+00:02:34.280 --> 00:02:38.660
+We aren't modifying it and get percentage not doing at modifying and capture state but we are modifying
+
+49
+00:02:38.660 --> 00:02:39.690
+and restore state.
+
+50
+00:02:39.950 --> 00:02:46.340
+So the two places that could modify the health points are restore state and start and what we've actually
+
+51
+00:02:46.340 --> 00:02:49.100
+got here is a race condition happening between the two.
+
+52
+00:02:49.130 --> 00:02:57.470
+So what's happening when we load from our save file in the first instance is that we are getting restore
+
+53
+00:02:57.470 --> 00:03:04.700
+state called First it is setting zero health points because the enemy is dead but then start gets called
+
+54
+00:03:04.700 --> 00:03:07.130
+afterwards and it sets the maximum health points.
+
+55
+00:03:07.130 --> 00:03:13.000
+Mind you because restore state actually set the health points first and checked whether they were lessons
+
+56
+00:03:13.040 --> 00:03:15.800
+zero and then died if appropriate.
+
+57
+00:03:15.890 --> 00:03:20.830
+We saw the dying animation we saw that the God was dead even though it had 40 health points thereafter
+
+58
+00:03:20.900 --> 00:03:23.320
+because the start reset it to 40.
+
+59
+00:03:23.420 --> 00:03:26.870
+So that's a really weird bug and that should definitely not be happening like this.
+
+60
+00:03:26.900 --> 00:03:33.920
+So have a think if you can think of a way If start is always called after the restore state just no
+
+61
+00:03:33.920 --> 00:03:34.790
+challenge like this.
+
+62
+00:03:34.790 --> 00:03:40.070
+See if you can think of a way of making sure we don't set the health points.
+
+63
+00:03:40.070 --> 00:03:45.980
+If we have already restored the health points pause a video and have a go OK.
+
+64
+00:03:45.980 --> 00:03:50.750
+So one way you could've done this is with a boolean you could have said hey we've got a restore state
+
+65
+00:03:50.840 --> 00:03:55.920
+it's happened so we're not going to set the health points we could have a boolean specially for that.
+
+66
+00:03:55.970 --> 00:04:00.290
+What I'm gonna do is actually turn our health points not into a serialized field because actually we
+
+67
+00:04:00.290 --> 00:04:03.990
+don't need them there we can visualize the health points through our UI.
+
+68
+00:04:04.160 --> 00:04:09.770
+I'm going to set the default health points to B minus one f so a negative health value which you should
+
+69
+00:04:09.770 --> 00:04:14.810
+never be able to obtain unless it's just this on initialized value.
+
+70
+00:04:14.840 --> 00:04:20.270
+So what I'm going to do is say well if we've restored health points then they are going to be greater
+
+71
+00:04:20.330 --> 00:04:21.590
+than minus one.
+
+72
+00:04:21.710 --> 00:04:22.910
+So that's fine.
+
+73
+00:04:22.910 --> 00:04:28.520
+But if we haven't then they are going to be less than less than 0 0 minus 1.
+
+74
+00:04:28.520 --> 00:04:34.910
+So I'm going to say if health points are less than zero we know that we haven't been restoring them
+
+75
+00:04:34.910 --> 00:04:40.430
+yet they haven't been restored and that we need to set up some default health points in which case we
+
+76
+00:04:40.430 --> 00:04:43.640
+can get those default health points from base stat.
+
+77
+00:04:43.640 --> 00:04:44.880
+So let's give this a go.
+
+78
+00:04:44.900 --> 00:04:50.600
+I'm gonna go back over into unity and again I'm just going to clear out my save file to make it super
+
+79
+00:04:50.600 --> 00:04:55.970
+clear in fact because we're deleting the save file so often I'm going to make a key binding for it in
+
+80
+00:04:55.970 --> 00:04:56.730
+our game.
+
+81
+00:04:56.780 --> 00:05:04.790
+So if I go to our saving wrapper I want to be able to call into the saving system to delete.
+
+82
+00:05:04.790 --> 00:05:13.930
+So I'm going to create a public void delete method in the saving wrapper and we are going to do a get
+
+83
+00:05:14.050 --> 00:05:22.180
+components saving system a saving system that would go and we're gonna call dot delete which does not
+
+84
+00:05:22.240 --> 00:05:27.850
+exist at present and we're going to call delete on that default save file and we're going to set up
+
+85
+00:05:27.850 --> 00:05:29.620
+a key binding in update.
+
+86
+00:05:29.620 --> 00:05:39.080
+So it's gonna be if the input gets key down is gonna be the key code I'm gonna use delete the delete
+
+87
+00:05:39.080 --> 00:05:43.520
+key because you don't really use it for anything else in the game we're going to cool that delete method
+
+88
+00:05:44.390 --> 00:05:48.560
+and then if you want to try and fill out the delete method if you know the saving system or you've done
+
+89
+00:05:48.560 --> 00:05:50.480
+the saving system section then go ahead.
+
+90
+00:05:50.480 --> 00:05:57.170
+If you haven't and don't want to then just follow along and type what I type so I'm going to go over
+
+91
+00:05:57.170 --> 00:05:59.450
+to our savings system.
+
+92
+00:05:59.450 --> 00:06:00.230
+Saving.
+
+93
+00:06:00.230 --> 00:06:01.570
+Saving system here it is.
+
+94
+00:06:01.820 --> 00:06:04.780
+And I'm gonna create a new public and load.
+
+95
+00:06:05.060 --> 00:06:07.640
+So it's gonna be public void.
+
+96
+00:06:07.760 --> 00:06:15.140
+Delete string save file and it's not even going to do anything particularly clever.
+
+97
+00:06:15.150 --> 00:06:21.360
+We're just gonna use the file dot delete method that is provided by C shop and we're going to build
+
+98
+00:06:21.420 --> 00:06:25.520
+the path from let's have a look where do we get our path.
+
+99
+00:06:25.520 --> 00:06:28.680
+If we do load file what has load file getting the path.
+
+100
+00:06:28.680 --> 00:06:29.180
+Here we go.
+
+101
+00:06:29.340 --> 00:06:33.190
+Get path from save file so we tell it to save file name.
+
+102
+00:06:33.390 --> 00:06:35.660
+And it finds the whole file system path.
+
+103
+00:06:35.670 --> 00:06:38.520
+By that and actually pretty much do delete.
+
+104
+00:06:38.520 --> 00:06:45.940
+So now hopefully if I just reload I'd expect to hit delete and see it disappear from the file system
+
+105
+00:06:45.970 --> 00:06:46.510
+which it has.
+
+106
+00:06:46.510 --> 00:06:47.050
+Fantastic.
+
+107
+00:06:47.050 --> 00:06:51.820
+So now I can delete the save file without having to go to this folder which is nice.
+
+108
+00:06:51.970 --> 00:06:54.940
+So if you restart the game at this point we should be from scratch.
+
+109
+00:06:54.940 --> 00:06:55.500
+Fantastic.
+
+110
+00:06:55.530 --> 00:06:59.980
+So I'm gonna get the sword go and kill the enemy and check that our bug has disappeared so remember
+
+111
+00:07:00.370 --> 00:07:02.520
+it was reproduced by killing the enemy.
+
+112
+00:07:02.620 --> 00:07:06.040
+Saving reloading the game which point the enemy should look dead.
+
+113
+00:07:06.190 --> 00:07:07.250
+Yep looks dead.
+
+114
+00:07:07.420 --> 00:07:13.060
+And just to check what we were seeing is that if we have the enemy selected in the hierarchy and look
+
+115
+00:07:13.060 --> 00:07:18.430
+at their health components they actually had 40 health points in this case we can't see the health points
+
+116
+00:07:18.460 --> 00:07:23.530
+because well we've removed them from being a sterilized field so we're just gonna go ahead and hit save
+
+117
+00:07:24.130 --> 00:07:29.590
+and then recycle one more time and this time the enemy should still be dead Hopefully indeed the enemy
+
+118
+00:07:29.590 --> 00:07:30.060
+is still dead.
+
+119
+00:07:30.090 --> 00:07:35.980
+So we haven't successfully fixed that race condition in the health system and along the way we also
+
+120
+00:07:35.980 --> 00:07:41.110
+added a function to delete and clear our save file for debugging purposes in the next video we're gonna
+
+121
+00:07:41.110 --> 00:07:48.010
+look at how we can use Unity or C sharp events actually in order to save us from having to recalculate
+
+122
+00:07:48.010 --> 00:07:50.260
+the level every single frame.
+
+123
+00:07:50.290 --> 00:07:50.750
+I'll see you there.

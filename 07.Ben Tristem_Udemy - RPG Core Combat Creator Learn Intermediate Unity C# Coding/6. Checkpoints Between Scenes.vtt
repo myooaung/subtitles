@@ -1,0 +1,684 @@
+WEBVTT
+1
+00:00:04.380 --> 00:00:05.280
+Hello and welcome.
+
+2
+00:00:05.280 --> 00:00:10.800
+This game I have got some state I killed this guard I go and have a look at my player and have a look
+
+3
+00:00:10.800 --> 00:00:15.090
+at his health you can see that his help points are down one hundred and seventy now if I go over into
+
+4
+00:00:15.090 --> 00:00:23.010
+the other world in my sandbox too it's gonna go and load up the sandbox too obviously and if I locate
+
+5
+00:00:23.070 --> 00:00:28.890
+my player again you will see that his health is still hundred and seventy so it's remembered the health
+
+6
+00:00:28.890 --> 00:00:34.650
+of my player between the two scenes a little bit of state being transferred between scenes but also
+
+7
+00:00:34.650 --> 00:00:39.240
+if I go back to sandbox one you can see that the guard there is still dead.
+
+8
+00:00:39.360 --> 00:00:45.030
+So we're creating this illusion of having a persistent world even though we've got multiple scenes and
+
+9
+00:00:45.090 --> 00:00:48.480
+objects being created and destroyed as we go between scenes.
+
+10
+00:00:48.480 --> 00:00:50.310
+Let's dive in and see how to achieve it.
+
+11
+00:00:51.980 --> 00:00:54.920
+So we've got a particular state of the environment.
+
+12
+00:00:54.920 --> 00:00:57.500
+This guy is dead My health is decreased.
+
+13
+00:00:57.500 --> 00:01:05.840
+And what we'd like to happen is that if I go through the portal in two seemed to then go back to scene
+
+14
+00:01:05.840 --> 00:01:12.920
+one what I would expect to see is that that dead guy is still dead and my health is still down now as
+
+15
+00:01:12.920 --> 00:01:13.310
+it happens.
+
+16
+00:01:13.310 --> 00:01:15.420
+That is not what is currently happening.
+
+17
+00:01:15.440 --> 00:01:20.540
+And the reason for that is that we have not told that to be what is happening of course I can go and
+
+18
+00:01:20.870 --> 00:01:28.460
+reload using the elk but that's not how we wanted to behave we want this behavior to be automatic.
+
+19
+00:01:28.460 --> 00:01:32.540
+Essentially we want our portals sort of to act like checkpoints.
+
+20
+00:01:32.660 --> 00:01:36.270
+So let's have a look at our portal transition code.
+
+21
+00:01:36.320 --> 00:01:37.460
+What is it doing.
+
+22
+00:01:37.520 --> 00:01:42.110
+First of all it is setting this game object to don't destroy on load so that we don't get rid of the
+
+23
+00:01:42.110 --> 00:01:45.380
+portal until the new world has loaded up.
+
+24
+00:01:45.650 --> 00:01:52.520
+Then we are finding our theta and we are fading out gradually over time once we have finished fading
+
+25
+00:01:52.550 --> 00:01:54.400
+out and this is hence the yield return.
+
+26
+00:01:54.470 --> 00:02:00.890
+We are loading the next scene and once that scene loading has finished we are finding a corresponding
+
+27
+00:02:00.890 --> 00:02:07.950
+portal updating our player to that new portal location that's going on down here on line 45 then we're
+
+28
+00:02:07.970 --> 00:02:12.800
+waiting for a certain amount of time just for the probably for the camera to stabilize and then we are
+
+29
+00:02:12.800 --> 00:02:15.100
+fading back in.
+
+30
+00:02:15.110 --> 00:02:17.420
+Finally we destroy this portal.
+
+31
+00:02:17.600 --> 00:02:20.580
+Now in this process we want to do two things.
+
+32
+00:02:20.600 --> 00:02:23.980
+First of all we wanted to save the state of the world.
+
+33
+00:02:24.020 --> 00:02:30.110
+We just came from so that when we go back there it will all be as it was before.
+
+34
+00:02:30.110 --> 00:02:33.220
+Second thing we want to do is load the state of the world.
+
+35
+00:02:33.230 --> 00:02:38.720
+We are going in to now with these two things this would allow us to go back and forth between the worlds
+
+36
+00:02:39.140 --> 00:02:41.380
+without losing any of the state.
+
+37
+00:02:41.420 --> 00:02:46.040
+So where should this be where should we were doing the loading where it should be doing the saving.
+
+38
+00:02:46.050 --> 00:02:47.220
+Have a little think.
+
+39
+00:02:47.270 --> 00:02:51.460
+Where would you be putting the two now for the loading.
+
+40
+00:02:51.460 --> 00:02:58.390
+I am going to do for the saving rather I'm going to do it just before we transition away from the scene
+
+41
+00:02:58.390 --> 00:03:00.800
+so just after we've done a fade out.
+
+42
+00:03:01.090 --> 00:03:06.980
+This is where we want to save current level now.
+
+43
+00:03:07.070 --> 00:03:12.360
+Afterwards we wants to be reloading our level.
+
+44
+00:03:12.570 --> 00:03:13.920
+Where do we think that should be.
+
+45
+00:03:13.920 --> 00:03:17.170
+Well that should be just after we finished loading the new level.
+
+46
+00:03:17.250 --> 00:03:23.220
+But before we have started updating the players position to the other portal that should happen regardless.
+
+47
+00:03:23.220 --> 00:03:24.540
+So we can have a load.
+
+48
+00:03:24.540 --> 00:03:27.540
+Current level in here.
+
+49
+00:03:27.540 --> 00:03:33.240
+Now these two functions already exist on our saving wrapper and that's what we should use not go straight
+
+50
+00:03:33.240 --> 00:03:36.170
+to the saving system because we go through the saving wrapper.
+
+51
+00:03:36.180 --> 00:03:40.160
+It's going to use the correct default save file.
+
+52
+00:03:40.520 --> 00:03:43.680
+OK so little mini challenge for you.
+
+53
+00:03:43.680 --> 00:03:52.170
+See if you can call to the saving wrapper and call save and call load from those two locations that
+
+54
+00:03:52.170 --> 00:04:01.270
+I've commented in Portal OK so the first thing we have to do is set save and load to be public so that
+
+55
+00:04:01.270 --> 00:04:03.340
+we can call them from outside.
+
+56
+00:04:03.790 --> 00:04:07.860
+The next thing say saving wrapper and closed by accident.
+
+57
+00:04:07.870 --> 00:04:09.590
+That was just me flubbing the keys.
+
+58
+00:04:09.600 --> 00:04:10.380
+Anyway we don't need it.
+
+59
+00:04:10.390 --> 00:04:11.720
+So it's fine.
+
+60
+00:04:11.740 --> 00:04:16.600
+I'm going to do here is get hold of the saving wrap and I'll go and do it the same way as we did with
+
+61
+00:04:16.600 --> 00:04:17.310
+the fighter.
+
+62
+00:04:17.440 --> 00:04:19.580
+I'm going to do it by doing a find object of type.
+
+63
+00:04:19.580 --> 00:04:26.570
+So it's gonna be the saving wrapper and just call it the wrapper for short hair because it's should
+
+64
+00:04:26.570 --> 00:04:29.120
+be quite clear in the context.
+
+65
+00:04:29.120 --> 00:04:32.030
+Now we're going to do a find object of type.
+
+66
+00:04:32.120 --> 00:04:39.110
+Call it the saving wrapper get get the type of saving wrapper and that should have us the wrapper.
+
+67
+00:04:39.110 --> 00:04:42.990
+Next up we want to do a wrapper dot safe.
+
+68
+00:04:43.010 --> 00:04:44.530
+Very very straightforward.
+
+69
+00:04:44.960 --> 00:04:51.260
+And then down here we still got the reference remember saving wrapper doesn't go anywhere it's a persistent
+
+70
+00:04:51.260 --> 00:04:55.130
+object so our reference is still valid after we've loaded the new scene.
+
+71
+00:04:55.130 --> 00:05:00.790
+So what we want to do is do a wrapper dot load it should be as simple as that.
+
+72
+00:05:00.790 --> 00:05:03.640
+We should have saving and loading happening between scenes.
+
+73
+00:05:03.650 --> 00:05:04.710
+So let's give it a shot.
+
+74
+00:05:04.720 --> 00:05:07.170
+I'm gonna go and hit play.
+
+75
+00:05:07.280 --> 00:05:13.800
+I'm going to load the state where the enemy is dead you could go ahead and create some state for yourself
+
+76
+00:05:14.430 --> 00:05:20.690
+and then we're going to leave the world which should trigger save it seems to have done in the concert
+
+77
+00:05:20.710 --> 00:05:22.170
+it so trigger to save.
+
+78
+00:05:22.260 --> 00:05:22.980
+Let's see.
+
+79
+00:05:22.980 --> 00:05:30.290
+I'll go back into that world and what I'd expect to see is that the enemy is still dead.
+
+80
+00:05:30.310 --> 00:05:31.750
+Indeed he seems to be.
+
+81
+00:05:31.750 --> 00:05:33.560
+So now I'm going to do one more test.
+
+82
+00:05:33.610 --> 00:05:39.150
+I'm going to add some state that wasn't in that original save and check that the saving is working correctly
+
+83
+00:05:39.160 --> 00:05:46.180
+I'm going to kill this dude and go back into scene 2 and then back into scene 1 and let's see if God
+
+84
+00:05:46.210 --> 00:05:47.410
+number 2 is still dead.
+
+85
+00:05:47.440 --> 00:05:48.310
+Yes he is.
+
+86
+00:05:48.310 --> 00:05:54.660
+So saving and loading is now working between scenes here's one slight spanner to add into the mix though
+
+87
+00:05:55.050 --> 00:05:58.810
+by go ahead and find my player and the Inspector.
+
+88
+00:05:58.860 --> 00:06:02.790
+Have a look at his health so at the moment he's got one hundred and thirty health points I would expect
+
+89
+00:06:02.820 --> 00:06:04.440
+that if I go through.
+
+90
+00:06:04.440 --> 00:06:05.480
+Interesting too.
+
+91
+00:06:05.700 --> 00:06:09.990
+And go and find my player in the inspectors a core player.
+
+92
+00:06:09.990 --> 00:06:11.100
+Find his health here.
+
+93
+00:06:11.190 --> 00:06:11.730
+Oh no.
+
+94
+00:06:11.730 --> 00:06:16.170
+He has 200 health points so something's clearly going wrong here.
+
+95
+00:06:16.170 --> 00:06:18.280
+He's not getting the same health points.
+
+96
+00:06:18.420 --> 00:06:25.050
+Why could that be now the reason for this is that the saver Bill entity has a different unique identifier
+
+97
+00:06:25.080 --> 00:06:30.390
+in each of the scenes and that's normal that's what should happen because you don't want to be accidentally
+
+98
+00:06:30.390 --> 00:06:32.180
+sharing state between scenes.
+
+99
+00:06:32.730 --> 00:06:36.180
+But sometimes you want to do that deliberately.
+
+100
+00:06:36.180 --> 00:06:43.080
+In this case what we need to do is actually go and change the unique identifier on the prefab that we
+
+101
+00:06:43.080 --> 00:06:47.400
+want to be shared between scenes you might want to do this with the player you might want to do this
+
+102
+00:06:47.400 --> 00:06:49.380
+with other potential characters.
+
+103
+00:06:49.380 --> 00:06:53.400
+To be honest the play is about the only thing I can imagine doing it on at the moment but you might
+
+104
+00:06:53.400 --> 00:06:54.360
+want to do it with other things.
+
+105
+00:06:54.360 --> 00:06:54.920
+Who knows.
+
+106
+00:06:54.930 --> 00:06:57.120
+Depends on how your game works.
+
+107
+00:06:57.120 --> 00:07:01.600
+So we're gonna go to the play a prefab go to the unique identifier I'm just going to call it player.
+
+108
+00:07:01.600 --> 00:07:05.610
+It could be anything you like as long as it's going to be consistent between scenes which because you're
+
+109
+00:07:05.610 --> 00:07:07.860
+setting in the prefab it will be.
+
+110
+00:07:07.860 --> 00:07:13.410
+Now one thing we have to do though is go back to both of our scenes which we currently have updated
+
+111
+00:07:13.410 --> 00:07:19.650
+with unique identifiers and we need to just clear out the override that will be in those scenes automatically
+
+112
+00:07:19.650 --> 00:07:20.100
+generates.
+
+113
+00:07:20.100 --> 00:07:23.020
+You can see there's a unique identifier here set on the player.
+
+114
+00:07:23.070 --> 00:07:23.820
+That's not what we want.
+
+115
+00:07:23.820 --> 00:07:28.950
+If we right click on the unique identifier and just do a revert then it's going to go back to the unique
+
+116
+00:07:28.950 --> 00:07:33.380
+identifier player and it won't try to overwrite that with any sort of unique identifier.
+
+117
+00:07:33.390 --> 00:07:38.250
+If there was one set already in a prefab it won't create a unique identifier.
+
+118
+00:07:38.250 --> 00:07:42.680
+If you leave it empty the unique identifier will be created automatically for you.
+
+119
+00:07:42.690 --> 00:07:44.880
+That's just a nice thing that the system does.
+
+120
+00:07:44.880 --> 00:07:51.470
+Now if we go and find ourselves and another scene the sandbox too we need to do the same thing in there.
+
+121
+00:07:51.750 --> 00:07:58.020
+Going up in a core the player and just reset again its unique identifier and reset that player make
+
+122
+00:07:58.020 --> 00:08:06.360
+sure we save both scenes and then we go into sandbox one hit play and go ahead and hit loads so all
+
+123
+00:08:06.540 --> 00:08:07.600
+of them die.
+
+124
+00:08:07.620 --> 00:08:14.220
+Let's just go and check our health has been set so our health points are actually at 200.
+
+125
+00:08:14.220 --> 00:08:17.100
+The reason for that is we gave it a new unique identifier.
+
+126
+00:08:17.100 --> 00:08:18.780
+That means it couldn't relate.
+
+127
+00:08:18.960 --> 00:08:23.220
+The old salable entity with the new save the land stickers saying the old so bluntly had a different
+
+128
+00:08:23.220 --> 00:08:23.910
+unique identifier.
+
+129
+00:08:23.910 --> 00:08:26.860
+This one has the unique identifier player.
+
+130
+00:08:26.880 --> 00:08:31.710
+So what I'm gonna do is I'm just gonna manually set our health points to 100 and these should get saved
+
+131
+00:08:32.040 --> 00:08:34.110
+when we go between scenes.
+
+132
+00:08:34.110 --> 00:08:35.670
+So I'm gonna leave this scene.
+
+133
+00:08:35.670 --> 00:08:42.210
+It's gonna save the hundred health and it's updated my location in a very funny way and we'll fix that
+
+134
+00:08:42.210 --> 00:08:48.830
+in just a sec but if I go and have a look at my player and have a look at the health points you can
+
+135
+00:08:48.830 --> 00:08:54.020
+see that it has remembered that the health points were 100 in the last scene so it's got that continuity
+
+136
+00:08:54.020 --> 00:09:01.910
+of state between the player and that's actually why our position is very funny as well because our position
+
+137
+00:09:02.270 --> 00:09:07.950
+is based upon the last position that we were in when we left the world.
+
+138
+00:09:08.240 --> 00:09:13.970
+In fact it's a combination of that with the bug I was telling you about with the NAF mesh agent so the
+
+139
+00:09:13.970 --> 00:09:18.950
+way to fix this is actually to do the same thing as we did with the left mesh agent here where we're
+
+140
+00:09:18.950 --> 00:09:25.300
+doing update player because what's going on is that we are loading the state and then we are updates.
+
+141
+00:09:25.370 --> 00:09:31.730
+So we're updating the players location here and loading the state and then when we update a player with
+
+142
+00:09:31.730 --> 00:09:37.070
+the portals location we aren't or we're not remembering to update the nav mesh agent so then have mesh
+
+143
+00:09:37.070 --> 00:09:38.870
+agents getting confused again.
+
+144
+00:09:38.930 --> 00:09:44.030
+So what we need to do here is do in our update plan we're going to do first of all disabling the damage
+
+145
+00:09:44.060 --> 00:09:50.150
+agent so we need to get the nav mesh agent it's going to be player dot get component nav mesh agent.
+
+146
+00:09:50.200 --> 00:09:59.540
+Now you'd have to make sure you include the unity engine I namespace then we can just do enable false
+
+147
+00:09:59.690 --> 00:10:07.970
+like so and then we're gonna do the same thing on the other side just re enabling the nav mesh agent
+
+148
+00:10:09.140 --> 00:10:13.760
+and let's see now whether this is going to work correctly when we go between scenes and is not going
+
+149
+00:10:13.760 --> 00:10:17.600
+to randomly shoot is off to a different location.
+
+150
+00:10:17.690 --> 00:10:20.540
+So I'm just gonna update my health again.
+
+151
+00:10:20.540 --> 00:10:23.110
+So let's go and find our health.
+
+152
+00:10:23.120 --> 00:10:23.510
+Here we go.
+
+153
+00:10:24.020 --> 00:10:31.350
+So that's a 100 I'll go through into the next world and it updates my location correctly.
+
+154
+00:10:31.360 --> 00:10:37.840
+So what's going on is that it's reloading the players state it's even reloading that location but subsequently
+
+155
+00:10:37.870 --> 00:10:43.990
+we are then overwriting the location with the player portals location so that the location information
+
+156
+00:10:44.020 --> 00:10:48.140
+doesn't actually matter it's saying hey we don't care about that location we're just gonna have a writer
+
+157
+00:10:48.140 --> 00:10:52.330
+in the case of the player that's coming through a portal but everything else about that player we will
+
+158
+00:10:52.330 --> 00:10:59.680
+remember as we will see if we open up core player go to the player in the inspector you can see the
+
+159
+00:10:59.680 --> 00:11:04.720
+health points have been remembered and if there was other stuff like inventory and experience points
+
+160
+00:11:05.020 --> 00:11:09.710
+all of that is going to be recalled and brought back in scene 2.
+
+161
+00:11:10.000 --> 00:11:17.710
+And if we just go back into scene one we'll just just to keep this in mind we do in fact if I go to
+
+162
+00:11:17.830 --> 00:11:23.950
+the player again have the health and scene one as well so that's now gone into the save file under the
+
+163
+00:11:23.950 --> 00:11:28.450
+player and it doesn't matter which scene the player comes into he is going to have the same number of
+
+164
+00:11:28.450 --> 00:11:30.160
+health points.
+
+165
+00:11:30.160 --> 00:11:30.880
+Cool stuff.
+
+166
+00:11:30.880 --> 00:11:37.870
+So in the next lecture we are going to be looking at how we can get the last scene we were in to load
+
+167
+00:11:38.200 --> 00:11:45.670
+when we start again because at the moment if I went off in two scene two and I hit save and I leave
+
+168
+00:11:45.670 --> 00:11:50.920
+the game and come back then you're going to notice that it loads me scene one as it always has done
+
+169
+00:11:51.290 --> 00:11:56.800
+but what we really want to happen in a production game is that the last scene you are in is the one
+
+170
+00:11:56.860 --> 00:11:59.750
+that loads we're gonna figure out how to do that in the next lecture.
+
+171
+00:11:59.770 --> 00:12:00.120
+See that.

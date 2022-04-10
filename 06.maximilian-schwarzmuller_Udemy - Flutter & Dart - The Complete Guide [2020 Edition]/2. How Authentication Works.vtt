@@ -1,0 +1,320 @@
+WEBVTT
+1
+00:00:02.480 --> 00:00:06.710
+So how does authentication work then?
+
+2
+00:00:07.310 --> 00:00:13.340
+We have our server, Firebase in this example but can be any server and we have our Flutter app and of
+
+3
+00:00:13.340 --> 00:00:18.770
+course, the goal is that these two communicate and that we might have certain requests we're sending
+
+4
+00:00:18.770 --> 00:00:22.460
+from the Flutter app to the server which actually should be protected,
+
+5
+00:00:22.520 --> 00:00:29.060
+for example placing a order or creating a new product might be something that should only be possible
+
+6
+00:00:29.060 --> 00:00:34.280
+for logged in users or maybe any action should only be possible for logged in users,
+
+7
+00:00:34.280 --> 00:00:38.210
+that of course depends on your use case and which kind of app you're building.
+
+8
+00:00:38.210 --> 00:00:45.170
+So the goal will be that we present some login screen to our users and on that screen, users can enter
+
+9
+00:00:45.200 --> 00:00:48.280
+their credentials and authenticate themselves with the server.
+
+10
+00:00:48.710 --> 00:00:54.320
+So we'll send a password and an e-mail to the server and the server will then either create a new entry
+
+11
+00:00:54.320 --> 00:01:00.110
+for that user and store it in a database or if that already happened and the user tries to login, the
+
+12
+00:01:00.110 --> 00:01:05.660
+server will check and validate the password and if it's correct and matches the e-mail, then the
+
+13
+00:01:05.660 --> 00:01:10.250
+user is treated as authenticated but now the interesting part happens, how does that work?
+
+14
+00:01:10.280 --> 00:01:13.520
+How does the server treat a user as authenticated
+
+15
+00:01:13.640 --> 00:01:15.690
+and how do we manage that?
+
+16
+00:01:15.860 --> 00:01:20.810
+If you have a web development background, and if you don't it's no problem, but if you have that background,
+
+17
+00:01:21.140 --> 00:01:24.830
+you might be aware of the concept of sessions. In web development,
+
+18
+00:01:24.860 --> 00:01:30.620
+you could create sessions on a server to basically store an entry on the server in a database for example
+
+19
+00:01:30.980 --> 00:01:37.630
+that basically logs that a user with a given ID is currently logged in and in your front-end,
+
+20
+00:01:37.640 --> 00:01:44.120
+so in the browser basically, you would also store a cookie which identifies that session, so which has
+
+21
+00:01:44.120 --> 00:01:49.670
+the ID of the entry in the database which in turn knows that this user is logged in and then browser
+
+22
+00:01:49.670 --> 00:01:54.710
+and server can communicate to find out hey the user using this app in this browser is currently
+
+23
+00:01:54.710 --> 00:01:55.120
+logged in.
+
+24
+00:01:55.130 --> 00:01:59.630
+This is how this would work and I'll not go into more details here because this is actually not how
+
+25
+00:01:59.630 --> 00:02:03.010
+this works in Flutter because in Flutter and also in many web apps
+
+26
+00:02:03.020 --> 00:02:04.930
+but here we're building a Flutter app,
+
+27
+00:02:05.030 --> 00:02:10.170
+you work with RESTful APIs and these APIs are stateless. Now
+
+28
+00:02:10.310 --> 00:02:13.040
+this has nothing to do with stateless widgets of course,
+
+29
+00:02:13.040 --> 00:02:16.070
+instead it means that the server,
+
+30
+00:02:16.070 --> 00:02:20.270
+the API does not care about the individual client that connected,
+
+31
+00:02:20.270 --> 00:02:27.310
+we don't store anything in the database that tells us that a certain user of a certain app or website
+
+32
+00:02:27.350 --> 00:02:29.150
+or anything is authenticated,
+
+33
+00:02:29.150 --> 00:02:30.470
+that's not how it works.
+
+34
+00:02:30.470 --> 00:02:35.840
+Instead the job of the API is to provide certain endpoints to which you can send requests and then
+
+35
+00:02:35.840 --> 00:02:37.850
+we simply return an answer,
+
+36
+00:02:37.850 --> 00:02:42.400
+we don't want to take care about managing who's authenticated and who's not.
+
+37
+00:02:42.500 --> 00:02:44.180
+So using a session is not the idea,
+
+38
+00:02:44.180 --> 00:02:46.390
+instead you use a token.
+
+39
+00:02:46.400 --> 00:02:52.310
+The idea behind the token is that once the user logged in, such a token is generated on the server with
+
+40
+00:02:52.310 --> 00:02:57.350
+a certain algorithm and a certain private key that's only known to the server so that the token can't
+
+41
+00:02:57.350 --> 00:03:03.380
+be faked and that token is the end a very long string which is sent back to the Flutter mobile app.
+
+42
+00:03:03.380 --> 00:03:09.560
+Now in the Flutter app, you then go ahead and store that token on the device, not on a server, not in the
+
+43
+00:03:09.560 --> 00:03:12.110
+database in a web but on the device,
+
+44
+00:03:12.110 --> 00:03:19.130
+so in this module, we'll also have a look at on device storage. That token is stored on device because
+
+45
+00:03:19.160 --> 00:03:21.760
+this allows us to read it from there
+
+46
+00:03:21.770 --> 00:03:26.330
+when the app restarts for example because that will clear all the memory we had,
+
+47
+00:03:26.330 --> 00:03:29.080
+so storing the token in a variable would not suffice,
+
+48
+00:03:29.090 --> 00:03:34.610
+that would be lost when the app restarts but storing it on the device storage, on the device hard drive
+
+49
+00:03:34.610 --> 00:03:39.000
+so to say makes sure that we can fetch that token even when the app restarted.
+
+50
+00:03:39.150 --> 00:03:40.890
+But of course the question is yes,
+
+51
+00:03:40.910 --> 00:03:43.530
+what's the idea behind that token?
+
+52
+00:03:43.850 --> 00:03:50.000
+The server now works such that for endpoints which should actually be protected and only be available
+
+53
+00:03:50.000 --> 00:03:52.040
+for logged in users,
+
+54
+00:03:52.040 --> 00:03:56.780
+it requires us to add such a token to the incoming request.
+
+55
+00:03:56.870 --> 00:04:02.780
+So if we send a request to an endpoint which is actually locked down, let's say the endpoint to create
+
+56
+00:04:02.780 --> 00:04:03.680
+a new user,
+
+57
+00:04:03.680 --> 00:04:10.040
+so a post request to a certain URL, then that request will be declined and an error will be sent back
+
+58
+00:04:10.310 --> 00:04:13.370
+if no valid token is attached to the request
+
+59
+00:04:13.430 --> 00:04:17.870
+and of course in this module, you will learn how that attachment of the token works.
+
+60
+00:04:17.870 --> 00:04:24.290
+So only if we have a token and it has to be a valid token created by that server, with that algorithm,
+
+61
+00:04:24.440 --> 00:04:27.140
+with that private key which only the server knows,
+
+62
+00:04:27.230 --> 00:04:30.530
+so only if we attach that token to the request, the server knows
+
+63
+00:04:30.540 --> 00:04:32.420
+OK you got that token,
+
+64
+00:04:32.420 --> 00:04:38.840
+the only source where you could have gotten that token from is me, the server and therefore, you are logged
+
+65
+00:04:38.840 --> 00:04:41.460
+in because you clearly proved that earlier.
+
+66
+00:04:41.570 --> 00:04:45.590
+So the server doesn't have to store that we're logged in, the token tells the server that we are logged
+
+67
+00:04:45.590 --> 00:04:51.130
+in and because of that private key which is used for generating that token which is only known by the
+
+68
+00:04:51.140 --> 00:04:57.830
+server, the server can also tell that that token is not faked or some random string but that that
+
+69
+00:04:57.830 --> 00:05:00.950
+token was created by this server.
+
+70
+00:05:00.990 --> 00:05:03.460
+This is how authentication works, that's a rough idea 
+
+71
+00:05:03.470 --> 00:05:09.240
+and that is what we will implement now in this module. We'll not focus on that server side, on the token
+
+72
+00:05:09.240 --> 00:05:12.480
+generation part because this is no server side course.
+
+73
+00:05:12.480 --> 00:05:17.790
+If you want to learn more about that, you could use a language like NodeJS and I do cover all that
+
+74
+00:05:17.790 --> 00:05:23.610
+behind the scenes server side stuff there in my NodeJS, The Complete Guide Course for example, from
+
+75
+00:05:23.620 --> 00:05:28.350
+Flutter side, we'll only have to take care about storing and managing and attaching that token,
+
+76
+00:05:28.350 --> 00:05:31.140
+so that's what we'll focus on in this module.
+
+77
+00:05:31.140 --> 00:05:36.720
+Thankfully, Firebase has this token creation mechanism built-in and we can easily enable authentication
+
+78
+00:05:36.720 --> 00:05:39.450
+there and lock down our endpoints in Firebase,
+
+79
+00:05:39.450 --> 00:05:42.580
+so we'll have a server that supports all of that automatically.
+
+80
+00:05:42.630 --> 00:05:43.950
+With that, let's dive in.

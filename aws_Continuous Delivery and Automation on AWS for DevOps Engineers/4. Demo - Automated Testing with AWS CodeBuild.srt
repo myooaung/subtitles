@@ -1,0 +1,648 @@
+1
+00:00:01,110 --> 00:00:05,210
+In this demo, we'll learn how we can do automated testing using AWS
+
+2
+00:00:05,210 --> 00:00:09,670
+CodeBuild. First, will review a Flask application that I've put together
+
+3
+00:00:09,670 --> 00:00:12,610
+using Python and some of the tests inside of it.
+
+4
+00:00:12,610 --> 00:00:15,370
+They'll basically just be boilerplate tests that will always
+
+5
+00:00:15,370 --> 00:00:18,850
+pass, but it will help us set up a framework for adding more
+
+6
+00:00:18,850 --> 00:00:21,240
+tests later on to our application.
+
+7
+00:00:21,240 --> 00:00:25,290
+From there, we'll add our application's code to a CodeCommit repository,
+
+8
+00:00:25,290 --> 00:00:28,600
+and then we'll configure CodeBuild for our repository.
+
+9
+00:00:28,600 --> 00:00:32,800
+After that, we'll trigger both a successful and a failed test build
+
+10
+00:00:32,800 --> 00:00:35,450
+and see the results in the CodeBuild console.
+
+11
+00:00:35,450 --> 00:00:40,040
+So, let's go over to our code now and take a look at our application.
+
+12
+00:00:40,040 --> 00:00:42,950
+I've downloaded the code for this particular demo from
+
+13
+00:00:42,950 --> 00:00:45,260
+the material section for this course.
+
+14
+00:00:45,260 --> 00:00:46,250
+If you haven't already,
+
+15
+00:00:46,250 --> 00:00:49,920
+make sure that you've gone into those materials and reviewed the first section
+
+16
+00:00:49,920 --> 00:00:53,730
+of the materials so you know what the installation setup steps are for things
+
+17
+00:00:53,730 --> 00:00:56,960
+like Python and the AWS CLI. Now, importantly,
+
+18
+00:00:56,960 --> 00:00:59,940
+if you haven't already finished the previous modules of this course,
+
+19
+00:00:59,940 --> 00:01:02,970
+you'll need to in order to connect with CodeCommit, as that
+
+20
+00:01:02,970 --> 00:01:05,240
+will be a prerequisite for doing this demo.
+
+21
+00:01:05,240 --> 00:01:07,160
+So assuming you've done all of that,
+
+22
+00:01:07,160 --> 00:01:09,080
+the first thing we'll do is get into this
+
+23
+00:01:09,080 --> 00:01:13,960
+demo1‑automated‑testing‑with‑aws‑codebuild folder. Inside of here, I have a
+
+24
+00:01:13,960 --> 00:01:17,420
+few different things going on, so let's take a look at some of these files.
+
+25
+00:01:17,420 --> 00:01:20,640
+The first and probably most important one related to what I'm
+
+26
+00:01:20,640 --> 00:01:23,450
+doing with CodeBuild is the buildspec file.
+
+27
+00:01:23,450 --> 00:01:26,720
+You'll notice that this is almost exactly the same thing that I
+
+28
+00:01:26,720 --> 00:01:31,050
+showed in an earlier section for my example buildspec file. It's
+
+29
+00:01:31,050 --> 00:01:34,370
+allowing me to set up a Python runtime that will help me run some
+
+30
+00:01:34,370 --> 00:01:36,810
+tests against my application.
+
+31
+00:01:36,810 --> 00:01:39,140
+Now the only different thing about this buildspec
+
+32
+00:01:39,140 --> 00:01:41,240
+file now is that it's not alone.
+
+33
+00:01:41,240 --> 00:01:44,490
+It also comes with a Flask application that I'll be
+
+34
+00:01:44,490 --> 00:01:47,140
+using to test inside of CodeBuild.
+
+35
+00:01:47,140 --> 00:01:49,060
+Now, in this flask.py file,
+
+36
+00:01:49,060 --> 00:01:52,490
+you'll notice I'm importing Flask as a dependency. Now, this means
+
+37
+00:01:52,490 --> 00:01:54,720
+I'll need to install it before I work with it,
+
+38
+00:01:54,720 --> 00:01:58,660
+because Flask isn't included inside of the Python standard library,
+
+39
+00:01:58,660 --> 00:02:02,340
+which includes things like the JSON import that I have on line 1.
+
+40
+00:02:02,340 --> 00:02:02,860
+Basically,
+
+41
+00:02:02,860 --> 00:02:07,190
+what this does is it allows me to set up a web application, in this case,
+
+42
+00:02:07,190 --> 00:02:09,580
+just doing something pretty simple like returning
+
+43
+00:02:09,580 --> 00:02:11,910
+information on a particular user.
+
+44
+00:02:11,910 --> 00:02:16,330
+Now I've made this application basically a bare‑bones application to
+
+45
+00:02:16,330 --> 00:02:20,900
+return user profile information from a data.json file.
+
+46
+00:02:20,900 --> 00:02:21,820
+In reality,
+
+47
+00:02:21,820 --> 00:02:23,850
+what we'd be doing is connecting this over to a
+
+48
+00:02:23,850 --> 00:02:25,950
+database, but to make things simpler,
+
+49
+00:02:25,950 --> 00:02:29,180
+I've just included the data we get from the database inside of this
+
+50
+00:02:29,180 --> 00:02:34,360
+data.json file. And then, everything that's happening in my app.py file
+
+51
+00:02:34,360 --> 00:02:38,570
+will allow me to go in here and grab the relevant data for a particular
+
+52
+00:02:38,570 --> 00:02:43,130
+user from all of the data in here. Inside of app.py, you'll see this
+
+53
+00:02:43,130 --> 00:02:47,170
+happening when I interact with the data.json file, and then run a little
+
+54
+00:02:47,170 --> 00:02:49,140
+bit of code on line 12.
+
+55
+00:02:49,140 --> 00:02:51,670
+If it's not entirely transparent what this does,
+
+56
+00:02:51,670 --> 00:02:54,710
+don't worry. It basically goes into the data.json
+
+57
+00:02:54,710 --> 00:02:57,210
+file and looks up the ID for a user.
+
+58
+00:02:57,210 --> 00:03:01,540
+If it sees the ID for a user, it returns that user's information,
+
+59
+00:03:01,540 --> 00:03:06,140
+and then it sends it back out as JSON to the results for the API. Now,
+
+60
+00:03:06,140 --> 00:03:07,530
+in order to test this,
+
+61
+00:03:07,530 --> 00:03:10,280
+what I've done is included another requirement for
+
+62
+00:03:10,280 --> 00:03:12,710
+this project, and that's pytest.
+
+63
+00:03:12,710 --> 00:03:15,590
+Pytest is one of the most commonly used Python testing
+
+64
+00:03:15,590 --> 00:03:18,280
+frameworks, and in order to use pytest,
+
+65
+00:03:18,280 --> 00:03:20,700
+I have made it a little simpler by including a tests
+
+66
+00:03:20,700 --> 00:03:24,640
+folder that has a tests_routes.py file.
+
+67
+00:03:24,640 --> 00:03:29,960
+Now this is, as you expect, probably going to test the routes in my application.
+
+68
+00:03:29,960 --> 00:03:33,620
+So if I click into here, you'll see that I have one function inside of here,
+
+69
+00:03:33,620 --> 00:03:36,510
+which will be called test_get_user_profile.
+
+70
+00:03:36,510 --> 00:03:40,210
+This will be testing the only route I've included in app.py,
+
+71
+00:03:40,210 --> 00:03:45,740
+which is called if we scroll up to the top here on line 7, the user route.
+
+72
+00:03:45,740 --> 00:03:50,320
+Now, in order to make this test work, I've also created a conftest.py file,
+
+73
+00:03:50,320 --> 00:03:55,410
+which will essentially just mimic the app that I've created in app.py, and we'll
+
+74
+00:03:55,410 --> 00:03:58,760
+be using this to make sure we avoid some other potential issues that might
+
+75
+00:03:58,760 --> 00:04:03,610
+happen if we didn't have the conftest.py file. I won't go into pytest in a ton
+
+76
+00:04:03,610 --> 00:04:06,720
+of detail in this course, because there's a lot of other great courses on
+
+77
+00:04:06,720 --> 00:04:09,010
+Pluralsight that cover it in more detail.
+
+78
+00:04:09,010 --> 00:04:12,380
+So now that we know what most of these files are doing inside of here,
+
+79
+00:04:12,380 --> 00:04:14,930
+let's see how we're actually going to set this up
+
+80
+00:04:14,930 --> 00:04:17,650
+inside of the AWS CodeBuild console.
+
+81
+00:04:17,650 --> 00:04:20,180
+The first thing we'll need to do is to make sure to move
+
+82
+00:04:20,180 --> 00:04:22,990
+this code into a CodeCommit repository.
+
+83
+00:04:22,990 --> 00:04:24,530
+Now, there's a few ways for us to do this,
+
+84
+00:04:24,530 --> 00:04:27,490
+but let's go to the AWS console now to see what they are.
+
+85
+00:04:27,490 --> 00:04:32,360
+The first one would be to go to the services drop‑down and look up code commit,
+
+86
+00:04:32,360 --> 00:04:36,640
+and then from the CodeCommit console we could use the previously existing
+
+87
+00:04:36,640 --> 00:04:40,260
+repository that we might have worked with in earlier modules, and then just
+
+88
+00:04:40,260 --> 00:04:43,640
+update the code in there and then hook that up to CodeBuild.
+
+89
+00:04:43,640 --> 00:04:45,580
+But because I'm not sure if you've done that yet,
+
+90
+00:04:45,580 --> 00:04:49,110
+I'm going to make it a little simpler and just have us create a new repository.
+
+91
+00:04:49,110 --> 00:04:53,700
+We'll call this flasky2, and now we'll know there's a
+
+92
+00:04:53,700 --> 00:04:56,040
+difference between this one and the previous one.
+
+93
+00:04:56,040 --> 00:04:59,640
+Then I'm just going to click Create. Now from here we should hopefully
+
+94
+00:04:59,640 --> 00:05:02,620
+have already gone through the steps in order to make sure we can
+
+95
+00:05:02,620 --> 00:05:04,970
+connect to CodeCommit using our credentials.
+
+96
+00:05:04,970 --> 00:05:06,020
+If you haven't done that,
+
+97
+00:05:06,020 --> 00:05:08,600
+I'm not going to repeat it, so go back to that module on
+
+98
+00:05:08,600 --> 00:05:11,230
+CodeCommit where I explain how to do this entire process.
+
+99
+00:05:11,230 --> 00:05:13,640
+We'll click the SSH step here.
+
+100
+00:05:13,640 --> 00:05:14,930
+And if we haven't done this,
+
+101
+00:05:14,930 --> 00:05:18,340
+they'll be instructions for all of these. But then we can actually just
+
+102
+00:05:18,340 --> 00:05:24,230
+scroll up to the top and click Clone URL, Clone SSH, and then we should
+
+103
+00:05:24,230 --> 00:05:27,580
+have copied the SSH URL for this repository.
+
+104
+00:05:27,580 --> 00:05:31,740
+You can see mine up here in the second notification at the top of the screen.
+
+105
+00:05:31,740 --> 00:05:34,920
+So now that we have this URL cloned, let's go back
+
+106
+00:05:34,920 --> 00:05:37,070
+over to our VS Code editor here.
+
+107
+00:05:37,070 --> 00:05:39,970
+Now this currently isn't a Git repository,
+
+108
+00:05:39,970 --> 00:05:42,540
+but in order to create a Git repository here,
+
+109
+00:05:42,540 --> 00:05:43,870
+we could do one of two things.
+
+110
+00:05:43,870 --> 00:05:47,940
+We could clone that empty repository and then move all the stuff in there,
+
+111
+00:05:47,940 --> 00:05:52,390
+or we could use a command like git init, for initialize, to create this as a
+
+112
+00:05:52,390 --> 00:05:56,940
+repository and then hook it up to the CodeCommit repository.
+
+113
+00:05:56,940 --> 00:06:00,970
+But the easiest way I think to do it right now will probably just be to
+
+114
+00:06:00,970 --> 00:06:05,860
+go git clone, and then to paste in that SSH URL. Now,
+
+115
+00:06:05,860 --> 00:06:09,330
+this should create a new folder inside of our existing folder.
+
+116
+00:06:09,330 --> 00:06:14,040
+So if I list this out here, you should see that we have this flasky2 here.
+
+117
+00:06:14,040 --> 00:06:16,700
+Now, this means that that's our Git repository,
+
+118
+00:06:16,700 --> 00:06:20,570
+not the containing demo1‑automated‑testing‑with‑aws‑codebuild
+
+119
+00:06:20,570 --> 00:06:23,930
+folder, but actually flasky2 is our Git repository.
+
+120
+00:06:23,930 --> 00:06:27,830
+So to fix the fact that we have all this code in the high‑level repository,
+
+121
+00:06:27,830 --> 00:06:31,070
+we're going to move everything from here into that repository.
+
+122
+00:06:31,070 --> 00:06:34,920
+So let me make sure that I scroll out a little bit so you can see this properly.
+
+123
+00:06:34,920 --> 00:06:37,340
+I'm going to use the mv, or move command,
+
+124
+00:06:37,340 --> 00:06:39,930
+and then I'm going to say that I want to move all these
+
+125
+00:06:39,930 --> 00:06:42,340
+different files into the flasky2 folder.
+
+126
+00:06:42,340 --> 00:06:44,700
+So I'm going to do ./*,
+
+127
+00:06:44,700 --> 00:06:48,340
+and that will reference everything in the current directory, and I
+
+128
+00:06:48,340 --> 00:06:52,920
+want to move it into flasky2. Now, this is probably going to fail, and
+
+129
+00:06:52,920 --> 00:06:56,050
+the reason for this is because it's going to pass everything into
+
+130
+00:06:56,050 --> 00:06:59,350
+flasky2, including flasky2 itself.
+
+131
+00:06:59,350 --> 00:07:03,440
+But technically it worked on everything else, so if you see a message like this,
+
+132
+00:07:03,440 --> 00:07:04,340
+don't worry.
+
+133
+00:07:04,340 --> 00:07:08,510
+This command should work on Mac OS's and also Linux OS's, but it's
+
+134
+00:07:08,510 --> 00:07:10,660
+possible if you're doing this on a Windows machine,
+
+135
+00:07:10,660 --> 00:07:13,650
+you might just want to open up the File Explorer and do all this
+
+136
+00:07:13,650 --> 00:07:18,010
+migration that way by moving the files by hand into our flasky2 folder
+
+137
+00:07:18,010 --> 00:07:21,600
+that's now a Git repository. Now, you could do the same thing on a Mac
+
+138
+00:07:21,600 --> 00:07:23,940
+machine or a Linux machine too, if that's easier.
+
+139
+00:07:23,940 --> 00:07:27,620
+So let's change directories into flasky2 now, and then let me
+
+140
+00:07:27,620 --> 00:07:30,920
+clear the screen and let's see what's going on inside of our VS
+
+141
+00:07:30,920 --> 00:07:33,750
+Code editor if I open it up. It looks like everything's been
+
+142
+00:07:33,750 --> 00:07:35,010
+moved in there correctly.
+
+143
+00:07:35,010 --> 00:07:37,150
+So now if I do git status,
+
+144
+00:07:37,150 --> 00:07:41,510
+it should say that we have a bunch of stuff to add to our repository.
+
+145
+00:07:41,510 --> 00:07:42,870
+So in order to do this,
+
+146
+00:07:42,870 --> 00:07:46,340
+we're going to use git add . to add everything inside of here.
+
+147
+00:07:46,340 --> 00:07:50,440
+And we'll do git status one more time, make sure that we've got everything added.
+
+148
+00:07:50,440 --> 00:07:52,840
+Now the next thing we'll need to do is commit these changes.
+
+149
+00:07:52,840 --> 00:07:57,830
+So we'll do git commit ‑m, and this will allow us to pass in a message.
+
+150
+00:07:57,830 --> 00:07:58,310
+In this case,
+
+151
+00:07:58,310 --> 00:08:03,360
+we'll just say first commit, and then we'll hit Enter there. And now we
+
+152
+00:08:03,360 --> 00:08:06,110
+should have everything inside of our Git repository,
+
+153
+00:08:06,110 --> 00:08:09,320
+so we should push it up over to the CodeCommit repository.
+
+154
+00:08:09,320 --> 00:08:12,570
+So let's do git push origin. Now if we wanted to,
+
+155
+00:08:12,570 --> 00:08:14,810
+we could choose a different branch name than master,
+
+156
+00:08:14,810 --> 00:08:18,880
+which is sometimes the default when we call repositories. For simplicity here,
+
+157
+00:08:18,880 --> 00:08:20,440
+I'm just going to keep it as is,
+
+158
+00:08:20,440 --> 00:08:23,540
+and we can push it and have it go over to CodeCommit.
+
+159
+00:08:23,540 --> 00:08:24,810
+So now that it's done,
+
+160
+00:08:24,810 --> 00:08:27,850
+we should be able to go back to the AWS console and just
+
+161
+00:08:27,850 --> 00:08:31,720
+refresh the Repositories screen, click into flasky2, and see
+
+162
+00:08:31,720 --> 00:08:39,000
+our new pieces of code inside of here. And this is where we'll need to be in this demo to start working with CodeBuild.
+

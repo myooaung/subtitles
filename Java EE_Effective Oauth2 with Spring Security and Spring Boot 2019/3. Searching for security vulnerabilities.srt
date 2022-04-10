@@ -1,0 +1,212 @@
+1
+00:00:03,072 --> 00:00:07,489
+By default, the resource server will validate the signature,
+
+2
+00:00:07,489 --> 00:00:10,905
+expiry, and if you provided an issuer URI,
+
+3
+00:00:10,905 --> 00:00:14,474
+it will also check if the issuer matches.
+
+4
+00:00:14,474 --> 00:00:18,024
+In our demo application, if you recall,
+
+5
+00:00:18,024 --> 00:00:22,195
+the portfolio service requests a new access token using the client
+
+6
+00:00:22,195 --> 00:00:26,993
+credentials grant to access the pricing service.
+
+7
+00:00:26,993 --> 00:00:29,418
+Now the development team of the pricing service
+
+8
+00:00:29,418 --> 00:00:34,184
+released some code that logged this token.
+
+9
+00:00:34,184 --> 00:00:38,012
+If we were able to get access to these logs and try to use
+
+10
+00:00:38,012 --> 00:00:40,067
+the token against the portfolio service,
+
+11
+00:00:40,067 --> 00:00:43,273
+we'd get an error back.
+
+12
+00:00:43,273 --> 00:00:47,120
+However, let's look more closely at this error.
+
+13
+00:00:47,120 --> 00:00:50,947
+It's not an authorization error like a 401 Access Denied.
+
+14
+00:00:50,947 --> 00:00:53,394
+It's an application error.
+
+15
+00:00:53,394 --> 00:00:57,123
+The request actually got past Spring Security.
+
+16
+00:00:57,123 --> 00:01:01,484
+The reason it failed was that the token doesn't have the user state,
+
+17
+00:01:01,484 --> 00:01:06,007
+like the username, and the application actually requires that.
+
+18
+00:01:06,007 --> 00:01:09,002
+However, we got through security.
+
+19
+00:01:09,002 --> 00:01:10,811
+We could try other endpoints.
+
+20
+00:01:10,811 --> 00:01:11,573
+In fact,
+
+21
+00:01:11,573 --> 00:01:14,650
+the support service has some endpoints that allow the
+
+22
+00:01:14,650 --> 00:01:16,646
+username to be passed in the query.
+
+23
+00:01:16,646 --> 00:01:20,006
+Now the token, as per the Spring Security resource server,
+
+24
+00:01:20,006 --> 00:01:23,228
+has a valid signature, is not expired,
+
+25
+00:01:23,228 --> 00:01:29,594
+and because all our tokens are issued by the same issuer/realm in Keycloak,
+
+26
+00:01:29,594 --> 00:01:32,880
+the issuer attribute on the JWT also matches.
+
+27
+00:01:32,880 --> 00:01:38,208
+So as far as Spring Security's concerned, the request is authorized.
+
+28
+00:01:38,208 --> 00:01:40,713
+Now this is a classic vulnerability.
+
+29
+00:01:40,713 --> 00:01:44,187
+I've seen many of these time and time again when
+
+30
+00:01:44,187 --> 00:01:49,236
+reviewing security implementations, particularly in distributed systems.
+
+31
+00:01:49,236 --> 00:01:51,577
+It's often services, like the pricing service,
+
+32
+00:01:51,577 --> 00:01:56,403
+that get neglected as developers think what's the worst that could happen?
+
+33
+00:01:56,403 --> 00:01:58,587
+It only provides pricing.
+
+34
+00:01:58,587 --> 00:02:01,560
+However, they can become backdoors into the system,
+
+35
+00:02:01,560 --> 00:02:04,387
+especially when tokens are being passed around.
+
+36
+00:02:04,387 --> 00:02:08,539
+I've even seen many cases where unsecured services were
+
+37
+00:02:08,539 --> 00:02:12,977
+receiving tokens in the header from clients because the
+
+38
+00:02:12,977 --> 00:02:15,601
+RestTemplate or the WebClient was configured to,
+
+39
+00:02:15,601 --> 00:02:16,344
+by default,
+
+40
+00:02:16,344 --> 00:02:20,496
+include the access token on all outbound requests and some new
+
+41
+00:02:20,496 --> 00:02:24,396
+feature required a call to an unsecured service.
+
+42
+00:02:24,396 --> 00:02:26,972
+The developer just wired in the WebClient or
+
+43
+00:02:26,972 --> 00:02:29,457
+RestTemplate without realizing that, by default,
+
+44
+00:02:29,457 --> 00:02:31,891
+it was also including the access token,
+
+45
+00:02:31,891 --> 00:02:37,409
+hence why it's always preferred to include the token manually on
+
+46
+00:02:37,409 --> 00:02:41,941
+all requests rather than doing things by default.
+
+47
+00:02:41,941 --> 00:02:46,549
+Additionally, the exception handling is very poor in this service.
+
+48
+00:02:46,549 --> 00:02:51,221
+It should return a generic error HTTP code and not a stack
+
+49
+00:02:51,221 --> 00:02:54,300
+trace as this gives clues to the hacker.
+
+50
+00:02:54,300 --> 00:03:00,133
+Now one way to prevent the pricing token being used against the portfolio or
+
+51
+00:03:00,133 --> 00:03:05,157
+support service is to validate the audience claim on the JWT.
+
+52
+00:03:05,157 --> 00:03:08,604
+Only tokens intended for the pricing and support
+
+53
+00:03:08,604 --> 00:03:15,000
+service should be accepted by them. We will look at how to do this validation next.
+

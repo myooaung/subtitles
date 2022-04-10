@@ -1,0 +1,739 @@
+1
+00:00:05,690 --> 00:00:09,870
+Hello everyone and welcome to the natural language processing code along lecture.
+
+2
+00:00:10,340 --> 00:00:15,470
+Well we're going to do is work through building a spam detection filter using Python and spark in our
+
+3
+00:00:15,470 --> 00:00:21,470
+dataset consist of volunteers text messages from a study in Singapore and some spam text messages from
+
+4
+00:00:21,470 --> 00:00:26,810
+a UK reporting site and we're going to combine these into a data set consisting of these two types of
+
+5
+00:00:26,810 --> 00:00:32,660
+messages mixed up and then see if we can actually build some sort of filter that can detect a spam message
+
+6
+00:00:32,660 --> 00:00:35,220
+versus what's known as a ham or good message.
+
+7
+00:00:35,360 --> 00:00:36,240
+So let's get started.
+
+8
+00:00:36,260 --> 00:00:40,940
+I'm going to jump over to a new chapter notebook now.
+
+9
+00:00:41,050 --> 00:00:45,560
+Here I am at a new Jupiter note book and all the data and the actual code that goes along with this
+
+10
+00:00:45,560 --> 00:00:50,970
+can be found under the natural language processing folder under the spark from machine learning folder.
+
+11
+00:00:51,190 --> 00:00:56,510
+Well we're going to do is after you start a spark session is import the data will say data is equal
+
+12
+00:00:56,510 --> 00:00:57,600
+to spark.
+
+13
+00:00:57,680 --> 00:01:03,370
+Read that C S V and this dataset it's under a folder called S-M as spam collection.
+
+14
+00:01:03,530 --> 00:01:09,440
+And then under that folder if you start typing with a capital S. there's a spam S-M SS spam collection
+
+15
+00:01:09,500 --> 00:01:15,080
+and there's actually no that see a city on this the schist that actual file name and all say in first
+
+16
+00:01:15,080 --> 00:01:17,060
+schema to be true.
+
+17
+00:01:17,180 --> 00:01:22,450
+And then the lesson you have to do is if you know the data it's actually separated by tabs not by commas.
+
+18
+00:01:22,520 --> 00:01:25,280
+So you can indicate this with a backslash T.
+
+19
+00:01:25,700 --> 00:01:28,780
+So we will run this.
+
+20
+00:01:28,940 --> 00:01:34,730
+Now that we've read in the data if we take a look at what it actually looks like data that show we have
+
+21
+00:01:34,730 --> 00:01:41,070
+this no header essentially the default is c 0 for column 0 and then underscore C-1 for column 1.
+
+22
+00:01:41,100 --> 00:01:46,700
+You can see here the actual label is whether it was a ham message or a spam message and then some sort
+
+23
+00:01:46,700 --> 00:01:48,030
+of sentencing stream.
+
+24
+00:01:48,170 --> 00:01:53,690
+So let's actually relabel these two columns we'll call one of them a class and the other one text and
+
+25
+00:01:53,810 --> 00:01:54,450
+we can do that.
+
+26
+00:01:54,500 --> 00:02:01,980
+It's just grabbing our data and setting it equal to data with column renames just using tab autocomplete
+
+27
+00:02:02,020 --> 00:02:02,770
+there.
+
+28
+00:02:02,770 --> 00:02:12,320
+And I'm going to rename the first column underscore the 0 to class and then do with column rename again
+
+29
+00:02:12,380 --> 00:02:14,070
+on the same object.
+
+30
+00:02:14,450 --> 00:02:20,240
+To do kind of twice in a row and then we'll say underscore C-1 to be labeled text.
+
+31
+00:02:20,270 --> 00:02:21,620
+So we'll run that.
+
+32
+00:02:21,620 --> 00:02:27,310
+And now we show our data we can see here it's called class and text for the actual columns.
+
+33
+00:02:27,310 --> 00:02:27,720
+All right.
+
+34
+00:02:27,970 --> 00:02:33,100
+So now we have to do is actually clean and prepare a data using everything that we learned about with
+
+35
+00:02:33,490 --> 00:02:36,470
+the tools that SPARC comes with.
+
+36
+00:02:36,490 --> 00:02:42,130
+So we'll start with from Paice spark thought school functions.
+
+37
+00:02:42,160 --> 00:02:46,300
+Earlier we showed you how you can create a user defined function for length but there's actually already
+
+38
+00:02:46,300 --> 00:02:49,370
+one included a spark and it's just a length.
+
+39
+00:02:49,870 --> 00:02:56,890
+So we will say that the data is equal to data and we're going to create a new column will say with column
+
+40
+00:02:57,490 --> 00:03:04,690
+and we'll call this length and then we'll just apply the length function we just imported the data text
+
+41
+00:03:04,690 --> 00:03:06,570
+column.
+
+42
+00:03:06,760 --> 00:03:07,540
+There we go.
+
+43
+00:03:07,810 --> 00:03:14,860
+And now when we show this we can see here that we have the actual length of this text column.
+
+44
+00:03:14,930 --> 00:03:19,310
+So it might be interesting to know is to see if there's any major difference between the length of a
+
+45
+00:03:19,310 --> 00:03:23,470
+ham column versus a spam column and we can actually do that for group by.
+
+46
+00:03:23,750 --> 00:03:32,150
+So if I come over here and say data and then I group by and I grouped by the class column and then check
+
+47
+00:03:32,150 --> 00:03:38,980
+the average and then say show what it's going to end up doing is it will average any numerical columns
+
+48
+00:03:38,990 --> 00:03:43,270
+in this case the length column and it will separate them or group them by class.
+
+49
+00:03:43,280 --> 00:03:48,150
+So the average length of a ham text message is seventy one point four.
+
+50
+00:03:48,290 --> 00:03:53,180
+The average length of a spam message is much longer 1:38 so it can already see that there's some sort
+
+51
+00:03:53,180 --> 00:03:58,000
+of clear difference between the averages in length of a ham column versus spam column.
+
+52
+00:03:58,070 --> 00:04:03,290
+Meaning this may be a useful feature and this is essentially feature engineering you take a text which
+
+53
+00:04:03,290 --> 00:04:07,310
+is your raw feature and you feature engineer some other column feature.
+
+54
+00:04:07,310 --> 00:04:10,220
+In this case the actual length of that text.
+
+55
+00:04:10,260 --> 00:04:16,190
+So now let's focus more on things that are specific to natural language processing such as tokenization
+
+56
+00:04:16,190 --> 00:04:22,610
+removing Stoppard's and then the count vectorize or the inverse document frequency and then string indexer.
+
+57
+00:04:22,610 --> 00:04:31,020
+So a lot of stuff to import here will save from Sparke the M-L feature and I'm going to import tokenizer
+
+58
+00:04:31,830 --> 00:04:38,730
+also import stopwatches remover count vector Isar and then let's start this on a new line.
+
+59
+00:04:38,730 --> 00:04:44,630
+Next one's going to do is inversed document frequency and then the string indexer.
+
+60
+00:04:44,630 --> 00:04:49,660
+OK so we'll run that lips and this is on multiple lines any day princes there.
+
+61
+00:04:49,670 --> 00:04:50,360
+There we go.
+
+62
+00:04:50,630 --> 00:04:52,400
+And then let's set it all up.
+
+63
+00:04:52,460 --> 00:04:59,130
+So we'll have our tokenizer object equal to tokenizer it will have an impact column.
+
+64
+00:05:00,770 --> 00:05:07,710
+Be text and the output column is going to just be token text.
+
+65
+00:05:07,710 --> 00:05:14,540
+So we have a tokenizer and then we'll create our stop or remove and that's going to people to a stop
+
+66
+00:05:14,540 --> 00:05:22,580
+words remover and that's going to take the tokens so that input column here is the token text and hopefully
+
+67
+00:05:22,580 --> 00:05:26,410
+you can begin to see the pattern here that we're kind of doing this in steps.
+
+68
+00:05:26,590 --> 00:05:29,980
+And then the output column will call these stop tokens.
+
+69
+00:05:30,440 --> 00:05:35,930
+So this first tokenizer is going to take that sentence and make it into what is essentially a list of
+
+70
+00:05:35,930 --> 00:05:40,880
+tokens or words than the stop words or move or is going to take that list of tokens and remove the really
+
+71
+00:05:40,880 --> 00:05:44,060
+common words that are going to be useful for our analysis.
+
+72
+00:05:44,060 --> 00:05:47,320
+Then the next thing to do is some sort of count vectorization.
+
+73
+00:05:47,630 --> 00:05:51,140
+So we will say count vec is equal to count vectorize.
+
+74
+00:05:51,800 --> 00:05:56,360
+And we'll say input column is equal to the stop tokens.
+
+75
+00:05:57,490 --> 00:05:59,080
+Or stop token I should say.
+
+76
+00:05:59,230 --> 00:06:06,170
+And then the output column we'll call this see underscore VEC for Count vectorization.
+
+77
+00:06:06,250 --> 00:06:06,780
+OK.
+
+78
+00:06:07,030 --> 00:06:11,740
+After this what we probably want to do is some sort of inverse document frequency so we'll say IDF is
+
+79
+00:06:11,740 --> 00:06:20,650
+equal to an idea of where that impot column is that C underscore VAK and then that output column is
+
+80
+00:06:20,650 --> 00:06:25,280
+going to be term frequency inverse document frequency.
+
+81
+00:06:25,300 --> 00:06:25,830
+OK.
+
+82
+00:06:26,110 --> 00:06:37,360
+And then we'll say some ham spam to Numeric is equal to a string indexer and it's going to take the
+
+83
+00:06:37,390 --> 00:06:44,570
+input column of class and then it's going to output column label.
+
+84
+00:06:44,800 --> 00:06:49,480
+So this very last one the Hamps spam to Gnumeric what this does is it actually focuses on this class
+
+85
+00:06:49,480 --> 00:06:54,880
+column spark and M-L live in general can't have classes that are labeled as strings.
+
+86
+00:06:54,880 --> 00:06:56,910
+Other programming languages and other libraries can.
+
+87
+00:06:56,920 --> 00:07:01,660
+But in this case we need Python and Sparke to basically convert these into numbers so zeros and ones.
+
+88
+00:07:01,720 --> 00:07:04,330
+And that's exactly what the spam spam tumeric does.
+
+89
+00:07:04,510 --> 00:07:12,480
+So I'm going to run this and then one going to say from PI sparked by M-L that feature import this vector
+
+90
+00:07:12,480 --> 00:07:13,390
+assembler.
+
+91
+00:07:13,710 --> 00:07:17,250
+So I'll run that and then let's clean this all up.
+
+92
+00:07:17,280 --> 00:07:26,130
+So we'll have Clean-Up be a lips a vector assembler that takes in the input columns of T.F. underscore
+
+93
+00:07:26,150 --> 00:07:36,320
+IDF and the length column and then finally the output column is just gonna be called features OK.
+
+94
+00:07:36,370 --> 00:07:39,730
+So essentially are these two features one of them uses all those tools.
+
+95
+00:07:39,730 --> 00:07:43,870
+The other one which is kind of a simple length test and would be interesting to see if whether or not
+
+96
+00:07:43,870 --> 00:07:47,500
+we did link that that actually improves our model performance.
+
+97
+00:07:47,590 --> 00:07:49,870
+So now it's actually time to build the model.
+
+98
+00:07:50,050 --> 00:07:53,860
+Now it's actually really common for natural language processing when you're doing a classification model
+
+99
+00:07:54,130 --> 00:07:56,110
+to use something called a naive base model.
+
+100
+00:07:56,290 --> 00:08:01,150
+And this is where I really want you to feel around to play with this choice of what classification algorithm
+
+101
+00:08:01,150 --> 00:08:01,740
+to use.
+
+102
+00:08:01,780 --> 00:08:07,030
+We've learned a lot about different classification algorithms so jump to documentation grab some examples
+
+103
+00:08:07,310 --> 00:08:11,380
+of different classifications and then import them here and then play around and see what works best
+
+104
+00:08:11,380 --> 00:08:12,490
+with this dataset.
+
+105
+00:08:12,820 --> 00:08:18,870
+So essentially we can just do it say from Paice park M-L thought classification import.
+
+106
+00:08:18,970 --> 00:08:20,110
+And then it hit tab here.
+
+107
+00:08:20,230 --> 00:08:25,570
+You should be able to see various different classifications some of these are not classification models.
+
+108
+00:08:25,630 --> 00:08:28,440
+They're just different functions that exist within classification.
+
+109
+00:08:28,520 --> 00:08:32,490
+You can see here even have a multilayer perception classifier that's almost like a neural net.
+
+110
+00:08:32,500 --> 00:08:37,870
+So to be interesting and then I'm going to use naive ways that's kind of the classic model to its natural
+
+111
+00:08:37,870 --> 00:08:38,950
+language processing.
+
+112
+00:08:39,280 --> 00:08:41,900
+And then I'm going to use all the defaults for it.
+
+113
+00:08:42,130 --> 00:08:45,280
+So I'll say because these old defaults.
+
+114
+00:08:45,500 --> 00:08:45,980
+OK.
+
+115
+00:08:46,240 --> 00:08:53,320
+Now since I have so many steps and all these feature vectors I'm going to use a pipeline and we can
+
+116
+00:08:53,320 --> 00:08:58,380
+do this by saying from Paice sparked the M-L import pipeline.
+
+117
+00:08:58,560 --> 00:09:07,140
+Then I'll say data preparation pipe is equal to this pipeline and the first thing I'm going to do is
+
+118
+00:09:07,230 --> 00:09:08,250
+I'll do this.
+
+119
+00:09:08,250 --> 00:09:11,760
+Ham spam to Gnumeric so I'll take care of that class called first.
+
+120
+00:09:11,790 --> 00:09:19,530
+All say the various stages is going to be ham spam to Gnumeric then I need to tokenize the words so
+
+121
+00:09:19,530 --> 00:09:26,640
+that's my tokenizer then I need to call stop or move then I need to call the count vectorize raiser
+
+122
+00:09:27,060 --> 00:09:30,060
+then I into the inversed talking a frequency or idea.
+
+123
+00:09:30,360 --> 00:09:37,230
+And then I need to do my cleanup remember that cleanup is just taking the input columns T.F. idea and
+
+124
+00:09:37,230 --> 00:09:42,870
+length and outputting features it's all come back down here and let's run that.
+
+125
+00:09:42,870 --> 00:09:44,500
+So we have our data prep pipeline.
+
+126
+00:09:44,580 --> 00:09:52,290
+So we're going to do is say cleaner is equal to my data prep pipe and then I'm going to fit it to my
+
+127
+00:09:52,290 --> 00:09:53,290
+actual data set.
+
+128
+00:09:54,180 --> 00:09:58,870
+Let that run a little bit and then I'll finally have clean data when I transform it.
+
+129
+00:09:58,890 --> 00:10:02,960
+And if you want you can do that that fit on the data and that transform on one line.
+
+130
+00:10:02,970 --> 00:10:07,200
+I like doing it this way because especially when you're teaching it shows kind of the different steps
+
+131
+00:10:07,200 --> 00:10:07,640
+here.
+
+132
+00:10:07,760 --> 00:10:12,520
+So all say clear that transform data and then that should be my clean data.
+
+133
+00:10:12,690 --> 00:10:15,400
+And now it's time for the actual training and evaluation.
+
+134
+00:10:15,730 --> 00:10:20,560
+So I'll say clean data if I actually show the columns here.
+
+135
+00:10:22,070 --> 00:10:23,270
+I still have a bunch of columns.
+
+136
+00:10:23,270 --> 00:10:25,130
+I basically have a column for all those steps.
+
+137
+00:10:25,310 --> 00:10:29,300
+So what I'm going to do is set it equal to the only columns I want.
+
+138
+00:10:29,750 --> 00:10:31,080
+So it's a little more organized.
+
+139
+00:10:31,490 --> 00:10:39,070
+So I will say select the label and you can pass this as a list if you want to if you get errors not
+
+140
+00:10:39,070 --> 00:10:40,710
+passing as a list.
+
+141
+00:10:40,810 --> 00:10:49,500
+So have the label in the features and now actually show my data what's clean data show the results.
+
+142
+00:10:49,720 --> 00:10:53,940
+I can see here I have my label and my features were not my label is zero on one.
+
+143
+00:10:54,310 --> 00:10:54,890
+OK.
+
+144
+00:10:55,000 --> 00:10:58,630
+So let's get to splitting this up into a training set and test set.
+
+145
+00:10:58,930 --> 00:11:05,880
+So we say training test is equal to that new clean data and I'm going to call a random split on this.
+
+146
+00:11:05,890 --> 00:11:15,360
+Now we can do 17:30 that classic split and then I will finally say my spam detector is equal to my naive
+
+147
+00:11:15,360 --> 00:11:17,340
+base model that I imported earlier.
+
+148
+00:11:17,330 --> 00:11:20,710
+Scroll down and fit that to the training data.
+
+149
+00:11:21,810 --> 00:11:27,950
+And if we actually check out what the data looks like remember our original data pre-print the schema
+
+150
+00:11:28,590 --> 00:11:31,520
+they had the class the text and the length.
+
+151
+00:11:31,520 --> 00:11:33,910
+So now let's create some test results.
+
+152
+00:11:34,990 --> 00:11:47,820
+And set it equal to spam underscore detector and then I'm going to transform my test data run that.
+
+153
+00:11:48,080 --> 00:11:57,900
+And now we can do is show the results or say test results and show them and I can see here I'm a little
+
+154
+00:11:57,900 --> 00:12:01,710
+zoomed in but I have the label the features the raw prediction the probability.
+
+155
+00:12:01,740 --> 00:12:02,740
+And then my prediction.
+
+156
+00:12:02,880 --> 00:12:05,860
+So I don't really want to compare my label versus the prediction.
+
+157
+00:12:06,090 --> 00:12:11,340
+So let's do that by using some sort of evaluation metrics and I'll use the multiclass classification
+
+158
+00:12:11,340 --> 00:12:19,890
+evaluator from PI sparked by MLR evaluation in poor multiclass classification evaluator.
+
+159
+00:12:19,980 --> 00:12:22,990
+And then let's do an accuracy evaluation will say accuracy.
+
+160
+00:12:22,990 --> 00:12:26,130
+Val multiclass classification evaluator.
+
+161
+00:12:26,160 --> 00:12:27,640
+So it's an instance of that.
+
+162
+00:12:27,840 --> 00:12:34,140
+And then when is going to do is say my accuracy is equal to accuracy evaluation.
+
+163
+00:12:35,250 --> 00:12:37,670
+And I'm going to evaluate the test results.
+
+164
+00:12:39,970 --> 00:12:49,920
+Run that and we'll print the results so I'll say accuracy of naive base model and then Prince A.S.C.
+
+165
+00:12:50,460 --> 00:12:55,030
+run that and it looks like we're getting 91 92 percent accuracy.
+
+166
+00:12:55,050 --> 00:13:00,300
+Now that's really not bad considering that we're just taking raw tex applying some feature patients
+
+167
+00:13:00,300 --> 00:13:06,060
+to it and then we actually get a model that can attempt to predict with 92 percent accuracy whether
+
+168
+00:13:06,360 --> 00:13:09,390
+or not something is spam or him.
+
+169
+00:13:09,390 --> 00:13:14,670
+So what I really want you to do in lieu of a consulting project is to come back up to this step where
+
+170
+00:13:14,670 --> 00:13:17,500
+we actually import our classification model.
+
+171
+00:13:17,550 --> 00:13:21,130
+So right here from Paice sparked the MLA classification of Mornay Baise.
+
+172
+00:13:21,240 --> 00:13:26,400
+I want you to switch this for other models such as random force or logistic regression or any of the
+
+173
+00:13:26,400 --> 00:13:30,930
+other classification algorithms that we learn in this course or some of them that we haven't even covered
+
+174
+00:13:30,930 --> 00:13:33,210
+you can jump straight into the documentation.
+
+175
+00:13:33,210 --> 00:13:37,260
+Check out the different classification models that are available to play around some of those parameters
+
+176
+00:13:37,260 --> 00:13:42,540
+and see if we can get even better performance than what we've done here with around 92 percent accuracy.
+
+177
+00:13:42,550 --> 00:13:47,840
+Now remember accuracy is not the only measure of a modest performance or things like precision recall.
+
+178
+00:13:47,850 --> 00:13:51,410
+You could also do area under the curve for an Orosi curve etc..
+
+179
+00:13:51,570 --> 00:13:52,070
+OK.
+
+180
+00:13:52,230 --> 00:13:53,030
+Hope you enjoy this.
+
+181
+00:13:53,040 --> 00:13:57,660
+This is kind of a classic example the state of really common for building some sort of spam detection
+
+182
+00:13:57,660 --> 00:13:58,300
+filter.
+
+183
+00:13:58,410 --> 00:14:02,980
+But personally I haven't seen online an example using a spark in Python.
+
+184
+00:14:03,000 --> 00:14:05,040
+So I hope you enjoyed this project.
+
+185
+00:14:05,040 --> 00:14:07,090
+Thanks and I'll see you at the next lecture.

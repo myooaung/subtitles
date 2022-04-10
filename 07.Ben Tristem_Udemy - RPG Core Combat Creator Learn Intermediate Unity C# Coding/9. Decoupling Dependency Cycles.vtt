@@ -1,0 +1,608 @@
+WEBVTT
+1
+00:00:04.610 --> 00:00:05.420
+Hello and welcome.
+
+2
+00:00:05.420 --> 00:00:09.800
+In this lecture we're going to be cutting our dependency not by introducing something called an action
+
+3
+00:00:09.800 --> 00:00:10.630
+scheduler.
+
+4
+00:00:10.640 --> 00:00:16.640
+The idea will be that when you are attacking something it will cancel the last thing which was movement.
+
+5
+00:00:16.730 --> 00:00:20.480
+And if I am moving away then it will cancel the fighting.
+
+6
+00:00:20.480 --> 00:00:25.610
+So this is all being done via a schedule I can go backwards and forwards cancelling these things attacking
+
+7
+00:00:25.610 --> 00:00:28.060
+things will continue to attack things and so on.
+
+8
+00:00:28.070 --> 00:00:34.790
+So this is the idea we're going to be using an action schedule to tell us what should be canceled and
+
+9
+00:00:34.790 --> 00:00:38.060
+to do that in a way where not everything has to depend on anything else.
+
+10
+00:00:38.060 --> 00:00:44.530
+So we don't have to have combat dependent fighting and sorry movement depending on fighting and we don't
+
+11
+00:00:44.540 --> 00:00:49.130
+have to have movement depend on maybe any other actions that we could do such as picking up inventory
+
+12
+00:00:49.130 --> 00:00:52.640
+items all of that can now be handled through the scheduling.
+
+13
+00:00:52.670 --> 00:00:54.880
+So let's dive in and see how to build it.
+
+14
+00:00:54.920 --> 00:01:00.550
+So we've got this nasty dependency cycle at the moment where combat depends on movement to move.
+
+15
+00:01:00.560 --> 00:01:02.660
+That's fine but vice versa.
+
+16
+00:01:02.660 --> 00:01:06.560
+We've got movement depending on combat to cancel not so great.
+
+17
+00:01:06.590 --> 00:01:08.470
+I think we can do something about that.
+
+18
+00:01:08.480 --> 00:01:11.000
+So how do you go about breaking dependency cycles.
+
+19
+00:01:11.000 --> 00:01:16.070
+Well you think about whether you need to have a direct reference to this thing or whether you can do
+
+20
+00:01:16.070 --> 00:01:20.320
+it via something else that you can both mutually depend on.
+
+21
+00:01:20.330 --> 00:01:21.640
+So that's what we're going to do.
+
+22
+00:01:21.660 --> 00:01:26.330
+Add in a mutual dependency which can break these knots and that's going to be a scheduler.
+
+23
+00:01:26.330 --> 00:01:31.850
+Because we've been talking about these actions and movement action and combat or fighting action and
+
+24
+00:01:32.480 --> 00:01:34.310
+the scheduler would be the perfect place to do that.
+
+25
+00:01:34.310 --> 00:01:38.510
+So when you start a movement action you say hey scheduler I'm starting a movement action.
+
+26
+00:01:38.660 --> 00:01:43.010
+And then when you start a fighting action you say hey scheduler I'm starting a fighting action and it
+
+27
+00:01:43.010 --> 00:01:49.160
+can say hey I know that movement was already running so I need to tell movement to stop before I can
+
+28
+00:01:49.160 --> 00:01:50.780
+tell you to go.
+
+29
+00:01:50.780 --> 00:01:54.200
+And that's what we're going to do with this introduction of a schedule.
+
+30
+00:01:54.230 --> 00:01:57.950
+Now it means that the control flow is still going to be going the same way.
+
+31
+00:01:57.950 --> 00:02:05.090
+By that I mean the movement is still going to be essentially calling to combat but it's not going to
+
+32
+00:02:05.090 --> 00:02:07.690
+know anything about combat in the process.
+
+33
+00:02:07.700 --> 00:02:09.790
+It's going to just talk to the scheduler.
+
+34
+00:02:09.830 --> 00:02:14.150
+The schedule is going to talk to combat and they're all going to be in the next several.
+
+35
+00:02:14.150 --> 00:02:14.740
+Tell us about.
+
+36
+00:02:14.750 --> 00:02:20.000
+Tell you about something that allows us to do execution the opposite way to the dependency.
+
+37
+00:02:20.000 --> 00:02:25.700
+So what I'm saying is that instead of having to have the scheduler depend on combat to call a function
+
+38
+00:02:25.700 --> 00:02:26.690
+in combat.
+
+39
+00:02:26.690 --> 00:02:32.600
+We can have combat depend on scheduler so that scheduler calls to combat.
+
+40
+00:02:32.750 --> 00:02:36.550
+Very strange but we'll have a look at how that works in the next lecture.
+
+41
+00:02:36.650 --> 00:02:38.900
+So don't worry about it just yet.
+
+42
+00:02:38.900 --> 00:02:42.490
+So what we want to do is introduce a new class called a scheduler.
+
+43
+00:02:42.740 --> 00:02:44.560
+So I'm gonna go to core.
+
+44
+00:02:44.570 --> 00:02:45.700
+This is the right place for.
+
+45
+00:02:45.700 --> 00:02:55.060
+I think called Action scheduler C.S. and I'm gonna make him on a behavior y core because we want it
+
+46
+00:02:55.120 --> 00:03:00.880
+to be at the base of things we want it to be dependent upon it's a lower level dependency a lower layer
+
+47
+00:03:00.910 --> 00:03:03.730
+as we are talking about with namespace as before.
+
+48
+00:03:03.730 --> 00:03:06.870
+So let's add a namespace This is getting quite routine for us now.
+
+49
+00:03:06.910 --> 00:03:09.970
+We are namespace core action scheduler.
+
+50
+00:03:09.970 --> 00:03:11.290
+What should its public API be.
+
+51
+00:03:11.290 --> 00:03:12.280
+Let's think about that.
+
+52
+00:03:12.310 --> 00:03:18.250
+Well I'm going to basically start an action is going to be what I'm telling it to do.
+
+53
+00:03:18.400 --> 00:03:19.900
+What should it take.
+
+54
+00:03:19.900 --> 00:03:21.810
+Well let's have a little think about that.
+
+55
+00:03:21.910 --> 00:03:29.530
+We basically want to cancel the mover when the combat starts and fighter starts and we want to cancel
+
+56
+00:03:29.530 --> 00:03:32.020
+fighter when combat when movement starts.
+
+57
+00:03:32.020 --> 00:03:39.070
+So maybe a reference to the mono behavior itself would be the action so mono behavior is going to be
+
+58
+00:03:39.070 --> 00:03:40.170
+an action.
+
+59
+00:03:40.270 --> 00:03:46.450
+So let's just take a second because I think we just hit on a very interesting topic here which is a
+
+60
+00:03:46.450 --> 00:03:52.770
+core to a lot of object oriented design and object oriented programming.
+
+61
+00:03:52.780 --> 00:03:55.510
+In general it's called the substitution principle.
+
+62
+00:03:55.510 --> 00:04:03.310
+The idea is that when you inherit from something in object oriented programming you have to behave exactly
+
+63
+00:04:03.310 --> 00:04:04.720
+like that thing.
+
+64
+00:04:04.720 --> 00:04:10.810
+So for example say we had a missile class and a missile class is something that can be pointed in a
+
+65
+00:04:10.810 --> 00:04:13.620
+direction and launched right.
+
+66
+00:04:13.660 --> 00:04:22.240
+So that means that if my bullet derives from missile then it must be able to be pointed in a direction
+
+67
+00:04:22.270 --> 00:04:25.760
+and launched and you can say that's true of arrow.
+
+68
+00:04:25.780 --> 00:04:26.950
+It can say is true of rocket.
+
+69
+00:04:26.950 --> 00:04:31.800
+If all these things derive from missile then they must be able to be pointed in direction and launched.
+
+70
+00:04:32.140 --> 00:04:40.870
+So that means that the substitution principle says if I have a function that takes in a missile as its
+
+71
+00:04:41.200 --> 00:04:49.480
+argument for example because it wants to launch it for example then what I should be able to do is actually
+
+72
+00:04:49.510 --> 00:04:54.940
+give it a bullet or give it an arrow or give it a rocket and it won't know that it's an arrow rocket
+
+73
+00:04:55.030 --> 00:05:00.640
+or bullet but it can treat it like a missile and it will just do its job without it having to know which
+
+74
+00:05:00.700 --> 00:05:02.260
+of the subtypes it is.
+
+75
+00:05:02.260 --> 00:05:04.070
+That's the substitution principle.
+
+76
+00:05:04.150 --> 00:05:13.030
+You can always substitute a derived type type that inherits from the parent type instead of the parent
+
+77
+00:05:13.030 --> 00:05:13.660
+type.
+
+78
+00:05:13.660 --> 00:05:16.010
+So basically we can replace a bullet.
+
+79
+00:05:16.300 --> 00:05:19.690
+We can pass a bullet to a function instead of a missile.
+
+80
+00:05:19.900 --> 00:05:21.030
+So why does that help us.
+
+81
+00:05:21.030 --> 00:05:27.130
+Because in our case what we've got as the parent classes the mono behavior and the mono behavior we
+
+82
+00:05:27.130 --> 00:05:28.580
+inherit in mover.
+
+83
+00:05:28.600 --> 00:05:34.720
+And we inherited infighter so this means by the substitution principle that our mono behavior action
+
+84
+00:05:35.050 --> 00:05:37.900
+can actually be passed a mover or a fighter.
+
+85
+00:05:37.900 --> 00:05:42.670
+In fact it could also be passed a player controller and so on so forth which isn't quite right but we're
+
+86
+00:05:42.670 --> 00:05:45.330
+going to fix that later on in a follow up lecture.
+
+87
+00:05:45.340 --> 00:05:46.580
+Not in this lecture.
+
+88
+00:05:46.600 --> 00:05:50.710
+So with that said what are we trying to achieve with this substitution of model behavior.
+
+89
+00:05:50.710 --> 00:05:55.320
+Well what we want to be able to do is cancel this action at the right time.
+
+90
+00:05:55.450 --> 00:06:02.260
+So I'm actually going to leave that as a challenge to you folks to cancel or to get cancelled printing
+
+91
+00:06:02.680 --> 00:06:08.500
+because ideally what we'd actually want to do is call cancel on the action model behavior.
+
+92
+00:06:08.800 --> 00:06:12.580
+But because model behavior doesn't have a cancel function.
+
+93
+00:06:12.580 --> 00:06:17.470
+We don't know for sure that's the exact amount of behavior we're being passed in actually has one to
+
+94
+00:06:17.470 --> 00:06:21.550
+know that for sure we're going to need interfaces which are the subject of the next lecture.
+
+95
+00:06:21.550 --> 00:06:26.410
+So what I'm gonna get you to do just for now is instead of calling the function just print that you
+
+96
+00:06:26.410 --> 00:06:28.630
+are going to cancel that action.
+
+97
+00:06:28.630 --> 00:06:30.160
+That's basically all I want.
+
+98
+00:06:30.160 --> 00:06:37.000
+So we should start off by calling start action from both the mover and the fighter in the appropriate
+
+99
+00:06:37.000 --> 00:06:37.900
+places.
+
+100
+00:06:37.900 --> 00:06:43.590
+When you are starting the action then we should cancel the previous action.
+
+101
+00:06:43.600 --> 00:06:46.550
+So I would expect to see a log message at this point.
+
+102
+00:06:46.660 --> 00:06:52.300
+So if you started moving after you've just been fighting I would expect to see that the movie has been
+
+103
+00:06:52.300 --> 00:06:54.940
+cancelled and then it shouldn't cancel itself.
+
+104
+00:06:54.970 --> 00:07:00.910
+So if you start moving again and when you've already started moving it shouldn't print any cancellation.
+
+105
+00:07:00.940 --> 00:07:04.740
+So pause the video and have a go at setting up this mono behavior.
+
+106
+00:07:04.750 --> 00:07:09.210
+Remember you need to add it to your player prefab as well okay.
+
+107
+00:07:09.210 --> 00:07:10.140
+Welcome back.
+
+108
+00:07:10.140 --> 00:07:11.040
+Let's get that going.
+
+109
+00:07:11.040 --> 00:07:15.200
+So what we're gonna need to do is keep a reference to the last action that was running.
+
+110
+00:07:15.240 --> 00:07:22.750
+So it's going to be mono behavior current action and it starts off as no.
+
+111
+00:07:22.800 --> 00:07:30.070
+And then what we're gonna do is we're gonna set that current action in start action like so now that's
+
+112
+00:07:30.100 --> 00:07:34.560
+all well and good but we need to print out when we want to cancel.
+
+113
+00:07:35.220 --> 00:07:36.600
+When should that be so we can.
+
+114
+00:07:36.720 --> 00:07:38.750
+We need to do it before we've overwritten it.
+
+115
+00:07:38.790 --> 00:07:48.970
+So let's do a print then canceling and then I can just add on the current action.
+
+116
+00:07:49.180 --> 00:07:55.230
+So let's put some spaces between here for pretties and coding consistency and let's see what that does.
+
+117
+00:07:55.240 --> 00:08:00.210
+First of all I'm going to need to actually call start action.
+
+118
+00:08:00.280 --> 00:08:09.000
+So maybe you missed this step but we do obviously need to start the action from both mover and the fighter.
+
+119
+00:08:09.700 --> 00:08:15.520
+So where's the logical place to do in fighter when we start the attack saying and do get components
+
+120
+00:08:15.610 --> 00:08:25.740
+of type action central to and we're gonna call start action with this.
+
+121
+00:08:25.770 --> 00:08:31.540
+Now I'm going to need to include the core namespace for this like that and that will work.
+
+122
+00:08:31.540 --> 00:08:36.150
+And then in move we wanted to do the same thing and starting the move action.
+
+123
+00:08:36.370 --> 00:08:40.300
+We need to call start action and we need to include that namespace.
+
+124
+00:08:40.300 --> 00:08:44.550
+So if I go in to play this what's gonna happen.
+
+125
+00:08:44.560 --> 00:08:53.850
+We're going to need to let's see go into player add a component to player call the action scheduler
+
+126
+00:08:54.570 --> 00:09:01.830
+otherwise we'll get null references and we hit play and if I hadn't noticed this we seem to be calling
+
+127
+00:09:01.830 --> 00:09:03.690
+canceling all the time.
+
+128
+00:09:03.720 --> 00:09:09.240
+That's one thing but also that first time we see that first action didn't cancel anything that's because
+
+129
+00:09:09.240 --> 00:09:12.480
+we had a null pointer so we don't want that.
+
+130
+00:09:12.510 --> 00:09:25.850
+So we're going to do if current action is not equal to no then we can print cancelling it's that first
+
+131
+00:09:25.850 --> 00:09:27.170
+thing taken care of.
+
+132
+00:09:27.260 --> 00:09:34.820
+The second thing is that we are canceling when they are when the mover is trying to stop them after
+
+133
+00:09:34.820 --> 00:09:35.300
+the move.
+
+134
+00:09:35.690 --> 00:09:37.220
+So we don't want that to happen.
+
+135
+00:09:37.220 --> 00:09:44.560
+So if the current action is already equal to the action we don't need to take any kind of action.
+
+136
+00:09:44.560 --> 00:09:45.480
+We don't need to set it.
+
+137
+00:09:45.490 --> 00:09:49.930
+We don't need to cancel because it's already running so we can just leave it at that.
+
+138
+00:09:49.960 --> 00:09:51.630
+Let's try that out.
+
+139
+00:09:51.670 --> 00:09:54.370
+Just gonna restart play.
+
+140
+00:09:54.490 --> 00:09:57.990
+Moving around does nothing because we started off with none.
+
+141
+00:09:57.990 --> 00:10:03.200
+There was nothing to cancel so this was the first action and because it's all movement.
+
+142
+00:10:03.250 --> 00:10:08.630
+All these calls to action are going to be just returning because we're already moving.
+
+143
+00:10:08.740 --> 00:10:16.110
+But if I click on the enemy they go it's canceling the mover and if I click away then it's canceling
+
+144
+00:10:16.120 --> 00:10:23.980
+the fighter and vice versa can keep doing that as long as I like okay so that's got us set up with the
+
+145
+00:10:23.980 --> 00:10:29.800
+right kind of cancelling flow in the next video we're going to look at how we can actually call a cancel
+
+146
+00:10:29.800 --> 00:10:36.850
+function on this mono behavior without having to cast it and say hey is it a movie in which case call
+
+147
+00:10:36.850 --> 00:10:38.620
+this function Hey is it a fighter.
+
+148
+00:10:38.620 --> 00:10:44.500
+In which case call this function because that's just a pain in the bum and introduces a lot of dependencies
+
+149
+00:10:44.500 --> 00:10:50.860
+because then our action scheduler is going to be depending on the combat and it's going to be depending
+
+150
+00:10:50.950 --> 00:10:55.900
+on the movement and that's going to create more circuit dependencies so we don't want that.
+
+151
+00:10:55.930 --> 00:11:01.170
+So let's have a look at how we can attain that kind of behavior in the next lecture.
+
+152
+00:11:01.180 --> 00:11:01.600
+See that.

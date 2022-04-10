@@ -1,0 +1,1052 @@
+WEBVTT
+1
+00:00:05.280 --> 00:00:10.710
+Welcome back everyone in this lecture we're going to focus on actually providing our own custom seats
+
+2
+00:00:10.740 --> 00:00:13.400
+or markers with the watershed algorithm.
+
+3
+00:00:13.470 --> 00:00:19.290
+Previously we used a bunch of image processing techniques in order to automatically grab foreground
+
+4
+00:00:19.290 --> 00:00:19.850
+markers.
+
+5
+00:00:19.860 --> 00:00:21.930
+That was the six markers for those pennies.
+
+6
+00:00:22.110 --> 00:00:28.170
+And then we had the watershed algorithm then the side based off those markers where the actual segments
+
+7
+00:00:28.260 --> 00:00:29.270
+should go.
+
+8
+00:00:29.280 --> 00:00:34.980
+However a lot of times with the watershed algorithm it's easier if you can just click on the image yourself
+
+9
+00:00:35.250 --> 00:00:40.200
+and have that as the seed for the marker and then the watershed algorithm will automatically update
+
+10
+00:00:40.500 --> 00:00:43.400
+its segmentation based on the seats you provide.
+
+11
+00:00:43.410 --> 00:00:45.330
+Let's go ahead and see an example of this.
+
+12
+00:00:45.630 --> 00:00:48.510
+All right the program we're actually building will look something like this.
+
+13
+00:00:48.540 --> 00:00:53.770
+We're going to be able to open up an image here or have an image of a road with some sky it's sunset.
+
+14
+00:00:53.820 --> 00:00:55.300
+Notice there's an ocean here.
+
+15
+00:00:55.380 --> 00:00:57.390
+There's some mountains and then there's a bridge.
+
+16
+00:00:57.390 --> 00:01:01.850
+I'm going to be able to selectively click on different segments of this image.
+
+17
+00:01:01.950 --> 00:01:06.510
+So right now I'm clicking and color circle is popping up on the sky.
+
+18
+00:01:06.510 --> 00:01:11.780
+And then I can change color and choose another segment of this image such as these mountains over here.
+
+19
+00:01:11.910 --> 00:01:13.270
+And notice what's happening on the right.
+
+20
+00:01:13.290 --> 00:01:14.680
+This is the watershed algorithm.
+
+21
+00:01:14.700 --> 00:01:19.470
+Automatically updating its segments then it can choose a different color on my keyboard and maybe also
+
+22
+00:01:19.470 --> 00:01:21.000
+segment's out this ocean.
+
+23
+00:01:21.150 --> 00:01:26.040
+So then I'll use that as well and maybe I want one last segment for the bridge so I'll choose another
+
+24
+00:01:26.040 --> 00:01:28.730
+color here and then segment out the bridge.
+
+25
+00:01:28.980 --> 00:01:29.410
+OK.
+
+26
+00:01:29.520 --> 00:01:35.610
+And you you can begin to see how over the custom seeds are able to automatically segment just based
+
+27
+00:01:35.610 --> 00:01:38.510
+off a few points that you provide that share the same color.
+
+28
+00:01:38.580 --> 00:01:43.380
+And if you want to get more complicated than you can start looking at minor adjustments here or then
+
+29
+00:01:43.440 --> 00:01:46.710
+adding more color here on the green cetera.
+
+30
+00:01:46.800 --> 00:01:48.050
+So it's up to you.
+
+31
+00:01:48.150 --> 00:01:52.560
+You want to take this project but hopefully understand the idea is that we're setting seeds and then
+
+32
+00:01:52.560 --> 00:01:54.230
+we're going to automatically segment them.
+
+33
+00:01:54.240 --> 00:01:57.150
+So let's get started by checking out the code.
+
+34
+00:01:57.180 --> 00:02:02.000
+Ok so I already have our basic imports here of CB2 none pie and Matt plotless.
+
+35
+00:02:02.090 --> 00:02:06.310
+The next thing we need to do is actually read in the image and then make a copy of it.
+
+36
+00:02:06.710 --> 00:02:14.930
+So I would call the image road and say to image read and then say data forward slash road image that
+
+37
+00:02:14.950 --> 00:02:15.640
+jpeg.
+
+38
+00:02:15.650 --> 00:02:20.900
+Keep in mind you should be able to extend this idea to any of the image in our data folder or any image
+
+39
+00:02:20.900 --> 00:02:21.820
+you prefer.
+
+40
+00:02:22.160 --> 00:02:25.930
+And then we're going to do is also make a copy of the image that we can play around with.
+
+41
+00:02:26.090 --> 00:02:29.290
+We'll just say N.P. copy of the road.
+
+42
+00:02:29.330 --> 00:02:32.140
+You could also say road copy open and close print sees.
+
+43
+00:02:32.450 --> 00:02:35.590
+Let me quickly show you what this looks like even though we've already seen it.
+
+44
+00:02:35.590 --> 00:02:37.030
+So essentially this image.
+
+45
+00:02:37.070 --> 00:02:41.930
+Notice I won't be doing color correction in this case because we're going to be using open C-v to view
+
+46
+00:02:41.930 --> 00:02:44.280
+the image not map plot lib.
+
+47
+00:02:44.300 --> 00:02:50.060
+So I will comment this out and continue next I want to create an empty space for the results to be drawn
+
+48
+00:02:50.080 --> 00:02:54.360
+onto and I'm going to base this off the shape of the road.
+
+49
+00:02:54.680 --> 00:02:56.010
+So I have road shape here.
+
+50
+00:02:56.060 --> 00:02:58.050
+It's 600 by 800 by 3.
+
+51
+00:02:58.070 --> 00:03:04.560
+Remember if I just add an indexing call Colan to It'll give me back the first to 600 and 800.
+
+52
+00:03:04.580 --> 00:03:06.030
+That's what I'm going to use here.
+
+53
+00:03:06.300 --> 00:03:15.100
+Will say marker image is equal to and set up an image of zeroes of the same shape will say road shape
+
+54
+00:03:15.750 --> 00:03:21.020
+and this will actually just take in the x and y and will be data type.
+
+55
+00:03:21.130 --> 00:03:27.130
+We'll go ahead and have this be 30 integers or 32 bit integers and I'm going to create one more for
+
+56
+00:03:27.130 --> 00:03:36.280
+the segments that will also be drawing on we'll say the zeros and then say a rude shape and then say
+
+57
+00:03:36.280 --> 00:03:40.920
+the type is equal to any you I anti-hate.
+
+58
+00:03:40.930 --> 00:03:43.080
+All right so now I have markers and segments.
+
+59
+00:03:43.090 --> 00:03:49.090
+The main thing to notice here is that the marker image itself its shape is just 600 hundred.
+
+60
+00:03:49.120 --> 00:03:55.270
+The segment's image its shape is 600 100 by three even though they're all just zeros are all black.
+
+61
+00:03:55.300 --> 00:04:00.610
+Next when you decide on how to actually create the colors for the markers for this we're going to use
+
+62
+00:04:00.610 --> 00:04:02.560
+the map Cutlip color mapping.
+
+63
+00:04:02.620 --> 00:04:06.700
+If you check out the link in the documentation that is the link that's in the notebook that leads the
+
+64
+00:04:06.700 --> 00:04:07.830
+documentation.
+
+65
+00:04:07.840 --> 00:04:11.730
+It'll take you to this color maps reference we've already seen this page a little bit when talking about
+
+66
+00:04:11.730 --> 00:04:13.960
+very this versus gray color mapping.
+
+67
+00:04:13.990 --> 00:04:19.790
+If you scroll down you'll notice we have qualitative color maps and these qualitative color maps are
+
+68
+00:04:19.790 --> 00:04:24.110
+going to be indexable that way we can actually just grab colors off of these mappings.
+
+69
+00:04:24.320 --> 00:04:27.390
+So it's up to you which actual Color Mapping you want to choose.
+
+70
+00:04:27.470 --> 00:04:32.780
+Go ahead and just use tab 10 since has really distinct colors in order to use this or you need to say
+
+71
+00:04:32.930 --> 00:04:42.340
+is from map plot live import C.M. then you say see em if you hit tab you'll notice a list of all the
+
+72
+00:04:42.340 --> 00:04:43.410
+color mappings.
+
+73
+00:04:43.480 --> 00:04:45.370
+We're just looking for top 10.
+
+74
+00:04:45.370 --> 00:04:51.880
+And then if you passen a single digit it returns back red green blue and Alpha parameter lowest are
+
+75
+00:04:51.880 --> 00:04:53.730
+all scale between 0 and 1.
+
+76
+00:04:53.740 --> 00:04:58.280
+We're also going to need to change that so that they're skilled between 0 and 255.
+
+77
+00:04:58.510 --> 00:05:03.420
+So the first we're going to do is actually just index off just the red green and blue value.
+
+78
+00:05:03.420 --> 00:05:11.040
+So will say see em tab 10 and we're just going to show the examples for the first one.
+
+79
+00:05:11.280 --> 00:05:17.610
+So if we index Colin three that gives us the red green blue and then all we want to do is multiply this
+
+80
+00:05:17.610 --> 00:05:19.230
+by 255.
+
+81
+00:05:19.230 --> 00:05:23.330
+So we'll cast this as an umpire.
+
+82
+00:05:23.820 --> 00:05:29.040
+And then we can multiply it by 255 and then we get back this array.
+
+83
+00:05:29.250 --> 00:05:35.000
+And the way our function is going to work later on we actually want this to be a tuple.
+
+84
+00:05:35.090 --> 00:05:40.940
+So we're going to want something that at the end of the day looks something like this a tuple of red
+
+85
+00:05:41.060 --> 00:05:42.840
+green and blue values.
+
+86
+00:05:42.860 --> 00:05:47.720
+Keep in mind technically since we're using open C.V we should be switching this red and blue channel
+
+87
+00:05:47.920 --> 00:05:52.100
+but all we really care about is that we have distinct unique colors and this should be good enough for
+
+88
+00:05:52.100 --> 00:05:53.030
+our use case.
+
+89
+00:05:53.060 --> 00:05:57.410
+I would encourage you to explore the color mappings and see how the rest work out but this is enough
+
+90
+00:05:57.410 --> 00:05:58.460
+for our case.
+
+91
+00:05:58.460 --> 00:06:02.770
+So I'm going to functional lies the operation we did here.
+
+92
+00:06:02.880 --> 00:06:08.440
+So I will say DPF create RSGB
+
+93
+00:06:12.160 --> 00:06:16.190
+and then we're going to return this except instead of zero.
+
+94
+00:06:16.450 --> 00:06:18.310
+We're going to say I.
+
+95
+00:06:18.460 --> 00:06:27.030
+And now what I can do is I can say for I in range 10 I take a list of colors.
+
+96
+00:06:27.070 --> 00:06:38.500
+So let's make a and t colors list and then say colors append and then say create R G B of II if you
+
+97
+00:06:38.500 --> 00:06:44.200
+run that and now check out what colors looks like that's exactly what we need a list of tuples here
+
+98
+00:06:44.230 --> 00:06:48.850
+where each tuple is some sort of unique red green and blue color mapping that is related to this color
+
+99
+00:06:48.850 --> 00:06:49.380
+map.
+
+100
+00:06:49.480 --> 00:06:53.240
+Again the channels of red and blue are switched but that's not a big deal for us.
+
+101
+00:06:53.500 --> 00:06:53.860
+OK.
+
+102
+00:06:54.070 --> 00:06:59.410
+So now that we have that ready to go it's time to set up our callback function so we can come back down
+
+103
+00:06:59.410 --> 00:06:59.930
+here.
+
+104
+00:07:00.160 --> 00:07:04.200
+And now it's time to set up the process that you're probably already familiar with.
+
+105
+00:07:04.330 --> 00:07:06.400
+There's essentially three major components.
+
+106
+00:07:06.460 --> 00:07:10.340
+There's the global variables that will be defining.
+
+107
+00:07:10.460 --> 00:07:19.250
+There's the callback function and then there's the wild true loop that actually does things while True.
+
+108
+00:07:19.260 --> 00:07:19.670
+OK.
+
+109
+00:07:19.890 --> 00:07:24.530
+So we're going to separate these into separate cells so we can work on them one at a time.
+
+110
+00:07:24.570 --> 00:07:29.550
+The global variables one that was actually pretty straightforward which is going to have a variable
+
+111
+00:07:29.550 --> 00:07:32.690
+to start off with as the current marker the current marker.
+
+112
+00:07:32.730 --> 00:07:34.890
+This is essentially what was the color choice.
+
+113
+00:07:34.890 --> 00:07:38.310
+So this is the index position for the list of colors.
+
+114
+00:07:38.310 --> 00:07:45.300
+We'll start off at 1 and then we'll say Mark's updated is equal to false.
+
+115
+00:07:45.300 --> 00:07:54.600
+This checks if the markers have actually been updated by the watershed algorithm.
+
+116
+00:07:54.600 --> 00:07:58.460
+OK so two global variables not a whole lot to work with just check of the current marker.
+
+117
+00:07:58.470 --> 00:08:03.780
+What it is will be adjusted depending on the user providing a number input and then check that the markers
+
+118
+00:08:03.780 --> 00:08:04.700
+have been updated.
+
+119
+00:08:05.560 --> 00:08:10.960
+Next it's time for a callback function for it to keep this simple we'll just call it mouse callback
+
+120
+00:08:12.010 --> 00:08:21.110
+and then we'll pass the events the X the Y the flags and then the parameter call and the global variable
+
+121
+00:08:21.110 --> 00:08:21.980
+we're going to take in.
+
+122
+00:08:22.090 --> 00:08:28.510
+Just marks updated this current marker will actually pass that back using the while loop.
+
+123
+00:08:28.820 --> 00:08:32.250
+So we're going to check have the marks been updated.
+
+124
+00:08:32.280 --> 00:08:34.360
+And let's make sure that's a dealer.
+
+125
+00:08:34.370 --> 00:08:36.220
+So has the marks been updated.
+
+126
+00:08:36.250 --> 00:08:45.300
+That's why we're passing in globally and we'll say if the event that's passed back is equal to CB2 events.
+
+127
+00:08:45.670 --> 00:08:51.750
+If the left button is pressed down then the person is clicked and it's time to draw the circle.
+
+128
+00:08:52.070 --> 00:08:56.150
+So how do we actually draw the circle where we need to draw essentially two circles one for tracking
+
+129
+00:08:56.150 --> 00:09:00.950
+the markers that we send back to the watershed algorithm and the other for actually the splaying on
+
+130
+00:09:00.950 --> 00:09:09.910
+the user image that the user is going to see so we will say CB2 circle and we have the marker image.
+
+131
+00:09:10.160 --> 00:09:15.370
+The circle is going to go at positions X and Y where the mouse is currently located will give a radius
+
+132
+00:09:15.370 --> 00:09:15.940
+of 10.
+
+133
+00:09:15.940 --> 00:09:22.910
+You can always play around with that and then we'll passen the current marker.
+
+134
+00:09:23.150 --> 00:09:28.640
+So are more current marker there and then we'll say negative 1.
+
+135
+00:09:28.670 --> 00:09:38.430
+So this guy this circle this is for the markers pass to the watershed call later on.
+
+136
+00:09:38.440 --> 00:09:43.330
+So that's why this actually isn't really a color OK.
+
+137
+00:09:43.460 --> 00:09:49.870
+Next is what the user sees on the road image.
+
+138
+00:09:49.870 --> 00:09:55.030
+So in this case we'll say CB2 circle and on the copy of the road image.
+
+139
+00:09:55.080 --> 00:10:03.300
+So on route copy we'll put a circle on X and Y it have a radius of 10 and then we'll index off that
+
+140
+00:10:03.300 --> 00:10:04.530
+list of colors.
+
+141
+00:10:04.830 --> 00:10:11.910
+The current marker and this one also also be solid so I'll say negative 1 and then we'll just say that
+
+142
+00:10:11.910 --> 00:10:14.670
+the marks have been updated.
+
+143
+00:10:14.910 --> 00:10:17.270
+So say Marks updated is equal to true.
+
+144
+00:10:18.450 --> 00:10:20.490
+So run that also is doing is checking.
+
+145
+00:10:20.500 --> 00:10:23.760
+Did someone click on the left bounce down on that road image.
+
+146
+00:10:23.760 --> 00:10:31.350
+If so ticking over the markers and then also put a circle where the user currently clicked and now it's
+
+147
+00:10:31.350 --> 00:10:36.490
+time for our while true loop but for that we do that we want to connect the callback to a named window
+
+148
+00:10:37.120 --> 00:10:38.430
+so say named window.
+
+149
+00:10:38.730 --> 00:10:48.090
+We will call this road image and then say CB2 And let's set that mouse call back to the road image window
+
+150
+00:10:48.760 --> 00:10:55.570
+and then we'll provide mouse callback then we will say while true.
+
+151
+00:10:55.820 --> 00:10:57.550
+Let me create a little more space here.
+
+152
+00:10:58.440 --> 00:10:59.420
+He will say wild.
+
+153
+00:10:59.420 --> 00:11:00.290
+True.
+
+154
+00:11:00.530 --> 00:11:03.700
+Go ahead and show the image image show.
+
+155
+00:11:03.770 --> 00:11:06.060
+And we're actually showing two windows.
+
+156
+00:11:06.110 --> 00:11:13.600
+One is the results of the watershed segments and that's that window that starts off black.
+
+157
+00:11:13.730 --> 00:11:15.830
+So that's where we have segments remember segments.
+
+158
+00:11:15.840 --> 00:11:22.870
+If we come all the way back up here that was NPC arrows with the exact shape of six hundred eight hundred.
+
+159
+00:11:22.880 --> 00:11:25.380
+And the color channels.
+
+160
+00:11:25.450 --> 00:11:28.000
+So we have segments there ready to go for us.
+
+161
+00:11:28.210 --> 00:11:30.100
+And then we're also be showing the road image.
+
+162
+00:11:30.100 --> 00:11:38.010
+So we'll say CB2 show wrote image and we'll be showing the road copy there as it gets updated.
+
+163
+00:11:39.560 --> 00:11:42.500
+Next we have three main things we need to do.
+
+164
+00:11:42.650 --> 00:11:50.070
+We want to be able to close all windows want to be able to update the color choice and then we want
+
+165
+00:11:50.070 --> 00:11:54.880
+to actually be able to update the markings.
+
+166
+00:11:55.240 --> 00:11:58.030
+So first one that's easiest is just closing all the windows.
+
+167
+00:11:58.060 --> 00:12:07.420
+I will say is equal to CB2 waky wait for a millisecond and then I'll say if K is equal to 27 that stands
+
+168
+00:12:07.420 --> 00:12:08.650
+for the escape key.
+
+169
+00:12:08.710 --> 00:12:09.690
+Go ahead and break.
+
+170
+00:12:09.730 --> 00:12:11.300
+So it hit the escape key.
+
+171
+00:12:11.360 --> 00:12:13.200
+It'll break out of this while true loop.
+
+172
+00:12:13.270 --> 00:12:18.430
+And so at the bottom outside of this wall truly I will say C-v to destroy all windows.
+
+173
+00:12:18.430 --> 00:12:22.870
+Notice again this is outside of this while loop just as we've done in the past.
+
+174
+00:12:24.480 --> 00:12:28.260
+Next we to figure out how to actually update the color choice.
+
+175
+00:12:28.260 --> 00:12:35.940
+So before we do that there's actually going to be kind of a part to that one and it's clearing all the
+
+176
+00:12:35.940 --> 00:12:36.850
+colors.
+
+177
+00:12:36.960 --> 00:12:40.770
+So instead of having to restart this program over and over again in case you want to play around afit
+
+178
+00:12:41.070 --> 00:12:46.980
+we should be able to clear all the colors and we're to do that when the user presses the seat key so
+
+179
+00:12:46.980 --> 00:12:54.690
+clear all the colors upon press and the key will say Elif K is equal to ordinal of lowercase c.
+
+180
+00:12:54.990 --> 00:12:58.200
+So that means that the CQ was pressed.
+
+181
+00:12:58.300 --> 00:13:04.450
+We're going to essentially reset all the copies of all the images we'll say road copy is equal to a
+
+182
+00:13:04.450 --> 00:13:05.230
+copy of rote.
+
+183
+00:13:05.230 --> 00:13:16.130
+You can also use that copy there who will say marker image is equal to zeros road shape colon to else
+
+184
+00:13:16.160 --> 00:13:19.640
+set the data types equal to their integers.
+
+185
+00:13:19.790 --> 00:13:29.220
+So we don't get messed up when they're being drawn on also say segment's is zeros wrote that shape the
+
+186
+00:13:29.220 --> 00:13:31.370
+type is equal to p u.
+
+187
+00:13:31.370 --> 00:13:32.370
+I n t.
+
+188
+00:13:33.440 --> 00:13:33.800
+OK.
+
+189
+00:13:34.020 --> 00:13:39.450
+So this essentially just resets these two images to what we initially had them as up here and these
+
+190
+00:13:39.450 --> 00:13:40.210
+two lines.
+
+191
+00:13:40.230 --> 00:13:42.750
+So it just resets them to black or it's empty.
+
+192
+00:13:44.220 --> 00:13:47.880
+So we have our marker image that's holding all the markers for the watershed algorithm and then we have
+
+193
+00:13:47.880 --> 00:13:53.020
+the actual segments displaying the segments and those will all be cleared if the user presses the C
+
+194
+00:13:53.060 --> 00:13:53.430
+key.
+
+195
+00:13:53.470 --> 00:13:56.130
+And we also make a fresh copy of the road.
+
+196
+00:13:56.130 --> 00:13:58.740
+Next we want to update the color choice.
+
+197
+00:13:58.740 --> 00:14:06.510
+So I'll say if the key being entered is greater than zero and if the characterized version of the key
+
+198
+00:14:06.510 --> 00:14:14.240
+being entered That's the actual number if it is a digit then we're going to do is set the current marker
+
+199
+00:14:15.990 --> 00:14:23.490
+equal to the integer form of the character of K so this k when you actually click on your keyboard it
+
+200
+00:14:23.490 --> 00:14:28.290
+sends a specialized number code and often that will have nothing to do with the actual number being
+
+201
+00:14:28.290 --> 00:14:28.980
+pressed.
+
+202
+00:14:29.010 --> 00:14:32.670
+So I think if you press two on your keyboard it sends back the number 51.
+
+203
+00:14:32.670 --> 00:14:37.760
+So what I want to do is transform that to its corresponding character which is what the S.H. are those.
+
+204
+00:14:37.770 --> 00:14:43.800
+So it turns that key press from 52 to the actual number press 2 and then that's the last string.
+
+205
+00:14:43.800 --> 00:14:48.450
+So then we transform that string into an integer which we can then set as a current marker so that we
+
+206
+00:14:48.450 --> 00:14:50.880
+can do an indexing call up here.
+
+207
+00:14:50.880 --> 00:14:53.920
+OK so all is doing is just basically reading in.
+
+208
+00:14:53.970 --> 00:14:57.800
+What did you press on the keyboard as far as the numbers 1 through 9 are concerned.
+
+209
+00:14:58.240 --> 00:14:58.660
+OK.
+
+210
+00:14:58.950 --> 00:15:03.380
+So we took the current marker and reset our updated color choice.
+
+211
+00:15:03.560 --> 00:15:10.500
+Then if the marks have been updated remember the marks are updated.
+
+212
+00:15:10.540 --> 00:15:15.150
+If someone ever clicks down on the left button to want to update both images.
+
+213
+00:15:15.280 --> 00:15:24.530
+So if the marks have been updated then we'll say marker image copy is equal to a copy of the marker
+
+214
+00:15:24.560 --> 00:15:37.020
+image and then we'll say C.V to we'll call watershed on the road image with the marker image copy.
+
+215
+00:15:37.220 --> 00:15:41.760
+And the reason we do a copy here is because this marker image is still being manipulated in the window.
+
+216
+00:15:41.810 --> 00:15:45.710
+So we want to make a copy of it so we can pass in the copy to the watershed algorithm.
+
+217
+00:15:45.800 --> 00:15:57.220
+Then once you've done that we can say that the segments are equal to zero road that shape for the data
+
+218
+00:15:57.220 --> 00:16:00.670
+type is equal to the 8.
+
+219
+00:16:00.700 --> 00:16:11.540
+Integer I will say for color index in range and we inside the range here.
+
+220
+00:16:11.540 --> 00:16:13.910
+So this the number of markers provided.
+
+221
+00:16:13.910 --> 00:16:18.980
+So one of the other variables we can have a peer in the global variable or the find earlier is just
+
+222
+00:16:19.250 --> 00:16:21.410
+the number of markers we actually intend to use.
+
+223
+00:16:21.410 --> 00:16:26.210
+So let's just say there's markers 10 that would be the numbers zero through nine.
+
+224
+00:16:26.270 --> 00:16:28.250
+So we'll say comments here.
+
+225
+00:16:29.000 --> 00:16:30.750
+Zero through nine.
+
+226
+00:16:30.800 --> 00:16:31.600
+Go ahead and run that.
+
+227
+00:16:31.640 --> 00:16:32.380
+Save it.
+
+228
+00:16:32.390 --> 00:16:33.980
+So have number of markers again.
+
+229
+00:16:33.990 --> 00:16:35.410
+Is this colors list is bigger.
+
+230
+00:16:35.420 --> 00:16:39.860
+You can maybe have more than that but you'll get a little tricky trying to record a number 15 instead
+
+231
+00:16:39.860 --> 00:16:43.100
+of just numbers 0 3 9.
+
+232
+00:16:43.200 --> 00:16:56.810
+So I'll say in range and markers then the segments of marker image copy equal to
+
+233
+00:16:59.780 --> 00:17:06.450
+the color index will then set that equal to the colors at that particular color index.
+
+234
+00:17:06.450 --> 00:17:10.760
+So this is pretty much what is coloring the segments.
+
+235
+00:17:12.000 --> 00:17:16.340
+And it's doing that essentially through a number pi call.
+
+236
+00:17:16.340 --> 00:17:20.430
+OK so we're going to do here is run this and make sure everything works.
+
+237
+00:17:20.470 --> 00:17:22.660
+Go ahead and do shift enter here.
+
+238
+00:17:22.700 --> 00:17:23.990
+So here are images.
+
+239
+00:17:23.990 --> 00:17:26.280
+Let me go ahead and hit see to clear.
+
+240
+00:17:26.390 --> 00:17:32.180
+So anywhere you click you should eventually see a dot and if using tab 10 the first bar is probably
+
+241
+00:17:32.180 --> 00:17:34.940
+going to be blue because that's the one.
+
+242
+00:17:35.000 --> 00:17:41.040
+Unless you happen to switch out the blue and red channels go ahead and on your keyboard hit see and
+
+243
+00:17:41.040 --> 00:17:43.340
+then that should immediately clear again.
+
+244
+00:17:43.380 --> 00:17:45.180
+Next we're going to do is choose a different color.
+
+245
+00:17:45.180 --> 00:17:48.940
+So go ahead and click a number on your keyboard and then click on the sky.
+
+246
+00:17:48.990 --> 00:17:50.640
+So this is number two for me.
+
+247
+00:17:50.820 --> 00:17:56.370
+Click number three on your keyboard and then hit maybe the ocean over here than hit number four on your
+
+248
+00:17:56.370 --> 00:18:02.580
+keyboard and select these little groups of mountains do a couple of clicks here and then maybe select
+
+249
+00:18:02.580 --> 00:18:08.400
+five and go ahead and selects the road and you should eventually see the image segmentation happening
+
+250
+00:18:08.460 --> 00:18:09.750
+over here on the right.
+
+251
+00:18:09.780 --> 00:18:13.520
+Remember you can always hit see to clear out the image again.
+
+252
+00:18:13.530 --> 00:18:16.430
+So let's try this again maybe try the road first.
+
+253
+00:18:16.440 --> 00:18:22.230
+So go ahead and do a couple of lines there for the road then choose the color to do a little bit for
+
+254
+00:18:22.230 --> 00:18:23.150
+the mountains here.
+
+255
+00:18:24.150 --> 00:18:28.500
+Then 3 for the see and then four for the sky.
+
+256
+00:18:28.540 --> 00:18:33.680
+And you can see the image is being segmented based off the marker sees that you provided and really
+
+257
+00:18:33.700 --> 00:18:35.600
+in fact you don't need this many seeds.
+
+258
+00:18:35.830 --> 00:18:40.090
+But it's good practice just in case you know the images quite noisy or something.
+
+259
+00:18:40.090 --> 00:18:40.610
+All right.
+
+260
+00:18:40.750 --> 00:18:42.150
+So that's it for this project.
+
+261
+00:18:42.190 --> 00:18:47.950
+You now understand how to set up your seeds manually based off an image and you can click on it do the
+
+262
+00:18:48.050 --> 00:18:52.570
+callback and then call watershed to automatically segment the image for you.
+
+263
+00:18:52.570 --> 00:18:54.250
+Thanks and we'll see you at the next lecture.

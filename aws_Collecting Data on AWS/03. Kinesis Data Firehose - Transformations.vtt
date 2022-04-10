@@ -1,0 +1,297 @@
+WEBVTT
+1
+00:00:01.140 --> 00:00:04.050
+Now let's look closer at Kinesis Data Firehose and the
+
+2
+00:00:04.050 --> 00:00:07.200
+transformations that it can do on the data before it sends
+
+3
+00:00:07.200 --> 00:00:09.540
+it along to its destination.
+
+4
+00:00:09.540 --> 00:00:11.710
+Now, there's a few limitations we need to know about
+
+5
+00:00:11.710 --> 00:00:14.170
+transformations with Kinesis Data Firehose.
+
+6
+00:00:14.170 --> 00:00:17.720
+The first is that it can only use AWS Lambda.
+
+7
+00:00:17.720 --> 00:00:21.700
+Now this means that it's bound by the same limitations of AWS Lambda functions,
+
+8
+00:00:21.700 --> 00:00:25.900
+both in terms of the length of time that Lambda functions can run and the
+
+9
+00:00:25.900 --> 00:00:29.400
+resource limitations that AWS Lambda functions are subject to.
+
+10
+00:00:29.400 --> 00:00:32.750
+So, certain memory limits and file size limits that it can
+
+11
+00:00:32.750 --> 00:00:35.220
+process are all things we're going to have to keep in mind
+
+12
+00:00:35.220 --> 00:00:36.720
+when processing our data.
+
+13
+00:00:36.720 --> 00:00:37.610
+Fortunately for us,
+
+14
+00:00:37.610 --> 00:00:42.030
+the maximum record size of 1000 KiB does already kind of
+
+15
+00:00:42.030 --> 00:00:45.050
+limit this for us. Now, because of this,
+
+16
+00:00:45.050 --> 00:00:48.550
+the Kinesis Firehose will automatically apply a smaller
+
+17
+00:00:48.550 --> 00:00:51.400
+buffer size limitation to our data.
+
+18
+00:00:51.400 --> 00:00:52.410
+Specifically,
+
+19
+00:00:52.410 --> 00:00:55.440
+it'll have a 3 MB buffer size to make sure that Lambda
+
+20
+00:00:55.440 --> 00:00:59.640
+can process our data without having to run over time and
+
+21
+00:00:59.640 --> 00:01:02.140
+timeout in a Lambda function.
+
+22
+00:01:02.140 --> 00:01:05.160
+So what are some of the ways that Lambda processes our data when
+
+23
+00:01:05.160 --> 00:01:07.810
+we're using them with Kinesis Data Firehose? Well,
+
+24
+00:01:07.810 --> 00:01:10.130
+it'll have a few different transformation states,
+
+25
+00:01:10.130 --> 00:01:12.250
+depending on how effectively it works.
+
+26
+00:01:12.250 --> 00:01:15.680
+It might have an Ok status, which indicates that it's processed a
+
+27
+00:01:15.680 --> 00:01:19.880
+record correctly, and any record could end up in an Ok status, but
+
+28
+00:01:19.880 --> 00:01:21.990
+it could also end up in a Dropped status,
+
+29
+00:01:21.990 --> 00:01:26.010
+which means that we looked at the record using Lambda, and for whatever reason,
+
+30
+00:01:26.010 --> 00:01:28.970
+maybe the data was irrelevant to the things that we were trying
+
+31
+00:01:28.970 --> 00:01:32.230
+to do and aggregate in our Kinesis delivery stream, we might've
+
+32
+00:01:32.230 --> 00:01:34.090
+dropped the record intentionally.
+
+33
+00:01:34.090 --> 00:01:37.690
+And then Lambda will tell the Kinesis delivery Firehose that it did
+
+34
+00:01:37.690 --> 00:01:40.210
+this on purpose so it doesn't think it's an error.
+
+35
+00:01:40.210 --> 00:01:44.130
+Now, we could also fail to process a record, and this means that
+
+36
+00:01:44.130 --> 00:01:48.170
+we could send the failure to S3 for processing later or to
+
+37
+00:01:48.170 --> 00:01:50.740
+review it in a little bit more detail.
+
+38
+00:01:50.740 --> 00:01:53.950
+So now that we understand some of these states and the way
+
+39
+00:01:53.950 --> 00:01:56.700
+that we're going to process some of this data with Lambda and
+
+40
+00:01:56.700 --> 00:01:58.790
+using Kinesis delivery Firehose,
+
+41
+00:01:58.790 --> 00:02:04.240
+let's visualize some transformations for a bunch of different scenarios.
+
+42
+00:02:04.240 --> 00:02:04.870
+First,
+
+43
+00:02:04.870 --> 00:02:06.860
+let's mention that we have a data source with some
+
+44
+00:02:06.860 --> 00:02:09.640
+data in it and a Kinesis Firehose.
+
+45
+00:02:09.640 --> 00:02:12.520
+Now, we might send the data from that data source over to the
+
+46
+00:02:12.520 --> 00:02:17.050
+Kinesis Firehose, and then from there, it would go into the buffer
+
+47
+00:02:17.050 --> 00:02:20.950
+where we might have a buffer interval or a buffer size that limits
+
+48
+00:02:20.950 --> 00:02:24.300
+how much can be sent in there before it's sent over to the data
+
+49
+00:02:24.300 --> 00:02:26.200
+processor, like Lambda.
+
+50
+00:02:26.200 --> 00:02:26.360
+Now,
+
+51
+00:02:26.360 --> 00:02:29.480
+all this data is going to go from the Kinesis Firehose over to
+
+52
+00:02:29.480 --> 00:02:33.370
+Lambda, and this is happening when it hits that buffer size or the
+
+53
+00:02:33.370 --> 00:02:36.680
+buffer interval, Now, from there, Lambda is going to take this
+
+54
+00:02:36.680 --> 00:02:39.580
+data, it's going to go ahead and process it inside of a Lambda
+
+55
+00:02:39.580 --> 00:02:41.680
+function, and when it's done,
+
+56
+00:02:41.680 --> 00:02:44.930
+it should then output the data from the initial format to
+
+57
+00:02:44.930 --> 00:02:49.490
+either an Ok and processed successfully state or potentially a
+
+58
+00:02:49.490 --> 00:02:52.220
+data Dropped state where we remove the data and we don't pass
+
+59
+00:02:52.220 --> 00:02:53.850
+it along to the destination.
+
+60
+00:02:53.850 --> 00:02:54.610
+And, again,
+
+61
+00:02:54.610 --> 00:02:58.400
+it could also send it to a Failed state, where we then need to take a closer
+
+62
+00:02:58.400 --> 00:03:01.420
+look at that data and determine what happened that went wrong.
+
+63
+00:03:01.420 --> 00:03:02.010
+Now, from here,
+
+64
+00:03:02.010 --> 00:03:06.450
+it would then send that data back over to Kinesis Firehose and the dropped
+
+65
+00:03:06.450 --> 00:03:10.970
+data itself would disappear before it sends the data that failed along to
+
+66
+00:03:10.970 --> 00:03:15.960
+an S3 bucket for us to evaluate for why it failed and then sends the data
+
+67
+00:03:15.960 --> 00:03:19.260
+that was successfully processed potentially along to an Amazon
+
+68
+00:03:19.260 --> 00:03:23.360
+Elasticsearch destination or whatever other destination that Kinesis
+
+69
+00:03:23.360 --> 00:03:25.180
+Firehose was configured with.
+
+70
+00:03:25.180 --> 00:03:27.140
+Now we'll take a look at a lot of different examples and
+
+71
+00:03:27.140 --> 00:03:30.270
+possibilities for all the different ways you can use Firehose
+
+72
+00:03:30.270 --> 00:03:32.640
+and different destinations in a little bit.
+
+73
+00:03:32.640 --> 00:03:33.640
+But for right now,
+
+74
+00:03:33.640 --> 00:03:39.000
+let's take a closer look at some of the producers we can use with Kinesis Data Firehose.
+

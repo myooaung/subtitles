@@ -1,0 +1,288 @@
+1
+00:00:00,140 --> 00:00:01,310
+In this section,
+
+2
+00:00:01,310 --> 00:00:04,890
+we're going to review how to create a custom inbound channel adapter.
+
+3
+00:00:04,890 --> 00:00:07,050
+As I mentioned in the previous section,
+
+4
+00:00:07,050 --> 00:00:10,290
+inbound channel adapters use a MessageSource,
+
+5
+00:00:10,290 --> 00:00:14,090
+and we have three options for creating our own custom MessageSource.
+
+6
+00:00:14,090 --> 00:00:18,940
+We can implement one using a Lambda expression in our configuration class,
+
+7
+00:00:18,940 --> 00:00:22,440
+we can directly implement the MessageSource interface,
+
+8
+00:00:22,440 --> 00:00:25,540
+or we can extend the AbstractMessageSource class.
+
+9
+00:00:25,540 --> 00:00:28,790
+To build a MessageSource using a Lambda expression,
+
+10
+00:00:28,790 --> 00:00:31,810
+we first define a MessageSource Bean with an
+
+11
+00:00:31,810 --> 00:00:35,620
+InboundChannelAdaptor annotation that includes a poller.
+
+12
+00:00:35,620 --> 00:00:36,800
+For the method body,
+
+13
+00:00:36,800 --> 00:00:39,980
+we create a new Lambda expression that accepts no
+
+14
+00:00:39,980 --> 00:00:42,340
+arguments and returns a message.
+
+15
+00:00:42,340 --> 00:00:46,640
+In this example, you can see that we create a list of reservations,
+
+16
+00:00:46,640 --> 00:00:49,170
+add two reservations to the list,
+
+17
+00:00:49,170 --> 00:00:52,410
+and return the list as the payload of a message.
+
+18
+00:00:52,410 --> 00:00:55,430
+This is the simplest way of building a MessageSource,
+
+19
+00:00:55,430 --> 00:00:57,470
+but it isn't very reusable.
+
+20
+00:00:57,470 --> 00:01:00,700
+The more robust way of building a MessageSource is to
+
+21
+00:01:00,700 --> 00:01:03,540
+extend the AbstractMessageSource class,
+
+22
+00:01:03,540 --> 00:01:07,030
+especially if we want to build a reusable component.
+
+23
+00:01:07,030 --> 00:01:10,570
+The reason is that it provides support out of the box
+
+24
+00:01:10,570 --> 00:01:14,660
+for Spring's lifecycle management, so classes that extend it,
+
+25
+00:01:14,660 --> 00:01:19,490
+such as the AmqpMessageSource, JDBC polling channel adaptor,
+
+26
+00:01:19,490 --> 00:01:24,740
+and MongoDbMessageSource that we've seen in previous modules become
+
+27
+00:01:24,740 --> 00:01:28,640
+first‑class citizens in the Spring Integration ecosystem.
+
+28
+00:01:28,640 --> 00:01:30,720
+To create a custom MessageSource,
+
+29
+00:01:30,720 --> 00:01:35,140
+we create a class that extends the AbstractMessageSource class and
+
+30
+00:01:35,140 --> 00:01:38,540
+provide an implementation of the doReceive() method.
+
+31
+00:01:38,540 --> 00:01:39,610
+In this case,
+
+32
+00:01:39,610 --> 00:01:44,690
+the DirectoryMonitorMessageSource extends the AbstractMessageSource class,
+
+33
+00:01:44,690 --> 00:01:47,940
+specifying that it can manage any object.
+
+34
+00:01:47,940 --> 00:01:51,970
+We specify that it reads an object rather than a reservation,
+
+35
+00:01:51,970 --> 00:01:54,380
+because we're going to make it generic.
+
+36
+00:01:54,380 --> 00:01:58,340
+When we create it, we'll specify the directory to read from
+
+37
+00:01:58,340 --> 00:02:01,880
+and the entity class to which we want the files in that
+
+38
+00:02:01,880 --> 00:02:04,240
+directory to be deserialized.
+
+39
+00:02:04,240 --> 00:02:08,800
+In the doReceive() method, we list all files in the specified directory,
+
+40
+00:02:08,800 --> 00:02:14,170
+use Jackson to deserialize them into a specific entity class,
+
+41
+00:02:14,170 --> 00:02:16,940
+and then add them to a list of results.
+
+42
+00:02:16,940 --> 00:02:21,310
+We then package that list of results into the payload of a message and return
+
+43
+00:02:21,310 --> 00:02:25,010
+it back to the inbound channel adapter that invoked it.
+
+44
+00:02:25,010 --> 00:02:27,070
+As I mentioned in the previous section,
+
+45
+00:02:27,070 --> 00:02:31,120
+outbound channel adapters use a MessageHandler annotated with a
+
+46
+00:02:31,120 --> 00:02:34,810
+service activator that invokes the handler whenever a message
+
+47
+00:02:34,810 --> 00:02:37,210
+arrives on the specified channel.
+
+48
+00:02:37,210 --> 00:02:42,100
+Again, we can implement our functionality by using a Lambda expression,
+
+49
+00:02:42,100 --> 00:02:44,840
+by implementing the MessageHandler interface,
+
+50
+00:02:44,840 --> 00:02:48,250
+or by extending the AbstractMessageHandler class.
+
+51
+00:02:48,250 --> 00:02:51,670
+To build a MessageHandler using a Lambda expression,
+
+52
+00:02:51,670 --> 00:02:54,790
+we define a MessageHandler Bean annotated with a
+
+53
+00:02:54,790 --> 00:02:57,990
+ServiceActivator that listens on a specific channel.
+
+54
+00:02:57,990 --> 00:02:59,320
+For the message body,
+
+55
+00:02:59,320 --> 00:03:03,510
+we define a Lambda expression that accepts a message and
+
+56
+00:03:03,510 --> 00:03:06,340
+performs some business logic with that message.
+
+57
+00:03:06,340 --> 00:03:10,340
+Because it provides more robust support and is more reusable,
+
+58
+00:03:10,340 --> 00:03:15,430
+we're going to opt to extend the AbstractMessageHandler class for our example.
+
+59
+00:03:15,430 --> 00:03:19,740
+The DirectoryMonitorMessageHandler extends the AbstractMessageHandler
+
+60
+00:03:19,740 --> 00:03:23,880
+class and overrides the handleMessageInternal method.
+
+61
+00:03:23,880 --> 00:03:26,430
+The implementation is pretty simple.
+
+62
+00:03:26,430 --> 00:03:31,620
+It generates a random UUID for a file name and serializes the message
+
+63
+00:03:31,620 --> 00:03:35,650
+payload to that file using a Jackson objectMapper.
+
+64
+00:03:35,650 --> 00:03:38,970
+So let's dive into the code and see this in action.
+
+65
+00:03:38,970 --> 00:03:41,450
+We'll begin by building our application.
+
+66
+00:03:41,450 --> 00:03:46,620
+First, we'll build our DirectoryMonitorMessageSource that will scan a directory,
+
+67
+00:03:46,620 --> 00:03:50,240
+read files from that directory, and publish them to a channel.
+
+68
+00:03:50,240 --> 00:03:53,730
+Then we'll build our DirectoryMonitorMessageHandler that will
+
+69
+00:03:53,730 --> 00:03:57,240
+receive a message and write its payload to a file.
+
+70
+00:03:57,240 --> 00:04:00,390
+We'll set up our configuration classes to use the new
+
+71
+00:04:00,390 --> 00:04:02,800
+MessageSource and MessageHandler.
+
+72
+00:04:02,800 --> 00:04:11,000
+And finally, we'll build our reservation listener and reservation service. Then we'll run the application and validate the results.
+

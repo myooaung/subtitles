@@ -1,0 +1,644 @@
+WEBVTT
+1
+00:00:01.560 --> 00:00:05.460
+All right now do we understand how the browser makes a form submission to our server.
+
+2
+00:00:05.490 --> 00:00:09.720
+We need to figure out how we can somehow access the information that is sent along with the request
+
+3
+00:00:09.930 --> 00:00:14.460
+on our server when we making a get type request for that form submission.
+
+4
+00:00:14.460 --> 00:00:19.050
+Accessing the information was very easy because all the information was stored inside the URL of the
+
+5
+00:00:19.070 --> 00:00:20.560
+request we're making.
+
+6
+00:00:20.640 --> 00:00:26.400
+But now our form is making a request with a method of post which means all the information is instead
+
+7
+00:00:26.580 --> 00:00:29.370
+being appended into the body of the request.
+
+8
+00:00:29.370 --> 00:00:34.260
+So we need to understand how to access this information from our server Believe it or not.
+
+9
+00:00:34.260 --> 00:00:36.490
+It's gonna be just a little bit complicated.
+
+10
+00:00:36.540 --> 00:00:41.260
+We're gonna end up looking at two different ways of getting access to this information on our server.
+
+11
+00:00:41.340 --> 00:00:45.510
+The first way is going to be kind of a behind the scenes look to understand what is really going on.
+
+12
+00:00:45.690 --> 00:00:50.340
+After that will then take a look at a second way that is more of how we handle receiving this information
+
+13
+00:00:50.430 --> 00:00:55.780
+on a real production application on a day to day basis to make sure it's really clear.
+
+14
+00:00:55.780 --> 00:01:01.540
+Our goal right now is to make sure we can add in some code to this request handler right here to take
+
+15
+00:01:01.540 --> 00:01:07.690
+the email password and password confirmation that was provided inside of this request object and actually
+
+16
+00:01:07.690 --> 00:01:09.040
+create a user account with it.
+
+17
+00:01:09.040 --> 00:01:16.900
+So all we're trying to do right now is get access to email password password confirmation
+
+18
+00:01:20.030 --> 00:01:20.350
+OK.
+
+19
+00:01:20.390 --> 00:01:21.310
+So now we understand that.
+
+20
+00:01:21.310 --> 00:01:22.540
+Let's take a look at a diagram.
+
+21
+00:01:22.540 --> 00:01:26.070
+Get a better sense of what is really going on behind the scenes.
+
+22
+00:01:26.220 --> 00:01:26.490
+All right.
+
+23
+00:01:26.490 --> 00:01:26.880
+Here we go.
+
+24
+00:01:28.440 --> 00:01:33.930
+So whenever we make a request from our browser to our server there is not just one single exchange or
+
+25
+00:01:34.320 --> 00:01:36.380
+packet of information that gets sent over.
+
+26
+00:01:36.420 --> 00:01:42.470
+In other words it's not just like one single box that is being sent from our browser to the server instead.
+
+27
+00:01:42.470 --> 00:01:42.750
+All right.
+
+28
+00:01:42.750 --> 00:01:48.180
+Request that we issue is broken up into several different little packets of information that are sent.
+
+29
+00:01:48.180 --> 00:01:53.810
+Bit by bit from the browser to the server in the initial exchange between the browser and the server
+
+30
+00:01:54.020 --> 00:01:57.350
+the browser sends over some H TTP header.
+
+31
+00:01:57.350 --> 00:02:02.210
+This header is essentially just the path that we are looking for along with the method of the request
+
+32
+00:02:02.540 --> 00:02:04.880
+and any relevant headers as well.
+
+33
+00:02:04.970 --> 00:02:10.790
+So in other words when the server first gets wind or notice that there is some incoming request it only
+
+34
+00:02:10.790 --> 00:02:16.730
+understands the path that the request is looking for and the method of the request as well at that point
+
+35
+00:02:16.730 --> 00:02:17.080
+time.
+
+36
+00:02:17.090 --> 00:02:22.880
+It has not yet received the entire request so it doesn't have any firm idea about what information is
+
+37
+00:02:22.880 --> 00:02:30.240
+being sent inside the body of the request namely it doesn't know about this form data right here now.
+
+38
+00:02:30.240 --> 00:02:35.760
+Unfortunately when the browser sends over that first little bit of information to our server our server
+
+39
+00:02:35.880 --> 00:02:42.120
+receives that request with the just the and method and it immediately runs the appropriate callback
+
+40
+00:02:42.120 --> 00:02:43.350
+method.
+
+41
+00:02:43.350 --> 00:02:50.340
+So in other words this function right here is going to be invoked before we have the full request in
+
+42
+00:02:50.340 --> 00:02:55.570
+our hands before we have access to the full thing so in other words.
+
+43
+00:02:55.640 --> 00:03:00.260
+The problem here or the challenge with getting access to the email password password confirmation inside
+
+44
+00:03:00.260 --> 00:03:03.900
+this function is that well we just don't have access to it yet.
+
+45
+00:03:03.910 --> 00:03:05.950
+We don't have the full story.
+
+46
+00:03:06.230 --> 00:03:10.400
+So we have to write out some code inside of here that essentially says hey wait up for just a second
+
+47
+00:03:10.520 --> 00:03:18.070
+let's wait for all that additional information to come in before we run any additional logic so back
+
+48
+00:03:18.070 --> 00:03:24.070
+on the browser after that initial little exchange or negotiation of communication the browser is then
+
+49
+00:03:24.070 --> 00:03:29.380
+going to take a look at all the data that is inside of that form is then going to take all that information
+
+50
+00:03:29.380 --> 00:03:31.890
+side the form and send it over to our server.
+
+51
+00:03:31.900 --> 00:03:33.220
+Bit by bit.
+
+52
+00:03:33.220 --> 00:03:38.110
+So like one little chunk of information and then wait for confirmation that the server received it then
+
+53
+00:03:38.110 --> 00:03:42.850
+the next little chunk and the next little chunk and so on until all the different little chunks of information
+
+54
+00:03:42.910 --> 00:03:48.730
+are sent to our server only at that point does the browser consider the request to be complete or at
+
+55
+00:03:48.730 --> 00:03:55.030
+least the initial sending of information to the server so we need to figure out how to write the code
+
+56
+00:03:55.300 --> 00:04:00.160
+that's going to take all these little chunks of information and essentially assemble them together bit
+
+57
+00:04:00.160 --> 00:04:01.720
+by bit.
+
+58
+00:04:01.720 --> 00:04:06.650
+So let's go back over to our request handler and write out the code that is going to do that tobacco
+
+59
+00:04:06.650 --> 00:04:14.320
+over here and going to remove the comment I just added and replace it with rect on data then I'll pass
+
+60
+00:04:14.320 --> 00:04:19.750
+in a callback function that's gonna receive an argument called data and inside there I'll do a console
+
+61
+00:04:19.750 --> 00:04:21.340
+log of that variable
+
+62
+00:04:24.970 --> 00:04:25.210
+all right.
+
+63
+00:04:25.220 --> 00:04:29.430
+So first off what's going on with the record on and the string of data.
+
+64
+00:04:29.470 --> 00:04:34.640
+Remember back inside the browser we had that ad event listener method that we can use to register a
+
+65
+00:04:34.640 --> 00:04:36.800
+callback whenever some event occurred.
+
+66
+00:04:37.100 --> 00:04:39.470
+The same thing is going on right here.
+
+67
+00:04:39.470 --> 00:04:44.270
+We could think of the Iraq object as being like an HMO element that is going to emit an event at some
+
+68
+00:04:44.270 --> 00:04:45.690
+point time.
+
+69
+00:04:45.740 --> 00:04:50.930
+The on method is just about identical to add event listener.
+
+70
+00:04:50.930 --> 00:04:55.310
+So we're saying that we want to run some callback function when some event occurs.
+
+71
+00:04:55.310 --> 00:04:59.480
+In this case the event that we're waiting for is called the Data event.
+
+72
+00:04:59.480 --> 00:05:06.100
+So the request object emits a data event any time that it receives some bit of data that data is then
+
+73
+00:05:06.100 --> 00:05:09.190
+passed in as the first argument to this callback function.
+
+74
+00:05:09.190 --> 00:05:13.320
+And as you'd guess right now we're just console argument OK.
+
+75
+00:05:13.340 --> 00:05:20.150
+So right away let's do a save of this go back over to our browser.
+
+76
+00:05:20.300 --> 00:05:23.370
+I'm going to navigate back to locals 3000 manually.
+
+77
+00:05:23.570 --> 00:05:28.790
+I'm going to put in some dummy information to my form and then click on sign up now Nothing changed
+
+78
+00:05:28.790 --> 00:05:30.410
+here which is to be expected.
+
+79
+00:05:30.410 --> 00:05:34.120
+Well let's go back over to our terminal which is where that console log should appear.
+
+80
+00:05:34.830 --> 00:05:37.420
+So I'll go to my terminal and here's the console log.
+
+81
+00:05:37.450 --> 00:05:38.570
+Right there.
+
+82
+00:05:38.890 --> 00:05:43.870
+You'll notice that the data object that we received is not some like plain information that is very
+
+83
+00:05:43.870 --> 00:05:45.130
+easy to understand.
+
+84
+00:05:45.130 --> 00:05:50.770
+Instead it comes in the form of something called a buffer a buffer is essentially an array in javascript
+
+85
+00:05:50.770 --> 00:05:53.440
+that contains some raw information.
+
+86
+00:05:53.530 --> 00:05:54.540
+So like Ra Ra.
+
+87
+00:05:54.550 --> 00:05:59.380
+In other words each of these little pairs of numbers right here are hex values and each of them represent
+
+88
+00:05:59.410 --> 00:06:04.720
+a single character inside of the response or the bit of data that we got back from our server or suite
+
+89
+00:06:04.810 --> 00:06:05.910
+that we got from our browser.
+
+90
+00:06:07.440 --> 00:06:13.260
+One thing you'll notice is that we only saw one console log even though I told you that the information
+
+91
+00:06:13.260 --> 00:06:16.350
+that gets communicated is going to come over chunk by chunk.
+
+92
+00:06:16.500 --> 00:06:22.560
+Well in reality each chunk is sent over little piece by piece but usually each chunk is going to be
+
+93
+00:06:22.560 --> 00:06:24.990
+of some minimum size.
+
+94
+00:06:24.990 --> 00:06:29.340
+In other words each chunk can accommodate some amount of information.
+
+95
+00:06:29.340 --> 00:06:33.960
+Right now we are sending over a very small amount of information from the browser to our server.
+
+96
+00:06:34.080 --> 00:06:38.310
+So the a very small amount that we are sending all fits inside of one little chunk.
+
+97
+00:06:38.310 --> 00:06:40.200
+Which is why we only see one data event.
+
+98
+00:06:40.200 --> 00:06:46.060
+It's only it's because we only receive one chunk of information if we were trying to send over much
+
+99
+00:06:46.060 --> 00:06:51.250
+more information like maybe the contents of an entire book many megabytes worth of text.
+
+100
+00:06:51.310 --> 00:06:58.190
+Then we would start to see this kind of chunking behavior instead so as you guess working with the bug
+
+101
+00:06:58.220 --> 00:07:00.400
+buffer is not super helpful.
+
+102
+00:07:00.480 --> 00:07:03.070
+Like we don't really need access to the raw information.
+
+103
+00:07:03.140 --> 00:07:09.140
+What we need is to take this information and convert it into well a plain string so that we can understand
+
+104
+00:07:09.200 --> 00:07:15.860
+exactly what is being communicated to do so we can go back over to our editor on the console log of
+
+105
+00:07:15.860 --> 00:07:18.770
+data so data right now is a buffer object.
+
+106
+00:07:18.780 --> 00:07:24.440
+Remember that is like an array of raw information to turn it into some plain information we can work
+
+107
+00:07:24.440 --> 00:07:24.860
+with.
+
+108
+00:07:24.950 --> 00:07:29.450
+We will call to string UTF 8 on it.
+
+109
+00:07:29.450 --> 00:07:34.160
+That means take all the information in the buffer turn it into a string that is encoded in the UTF 8
+
+110
+00:07:34.160 --> 00:07:41.280
+format so I'm then gonna save that and then going to go back over to my browser.
+
+111
+00:07:41.290 --> 00:07:47.170
+We're going to do the form submission again and see that console log a second time so I'll sign up again.
+
+112
+00:07:48.720 --> 00:07:55.070
+Go to my terminal and now I see the string representation of everything that was inside of the body.
+
+113
+00:07:55.070 --> 00:08:01.020
+So it's the same kind of query string looking thing that we saw inside the URL so now as you can imagine.
+
+114
+00:08:01.050 --> 00:08:06.410
+Well we have to pass this string right here to get the information out of it that we really care about.
+
+115
+00:08:06.480 --> 00:08:08.910
+We don't really have to write out the logic to pass this thing.
+
+116
+00:08:08.910 --> 00:08:12.880
+There are libraries out there to do this kind of passing logic for us.
+
+117
+00:08:12.990 --> 00:08:16.170
+But just as a quick exercise let's do it ourselves.
+
+118
+00:08:16.500 --> 00:08:16.770
+Okay.
+
+119
+00:08:16.800 --> 00:08:22.200
+So back inside of my browser I'm going to take that variable right there.
+
+120
+00:08:22.200 --> 00:08:27.060
+That information that's being communicated and we're going to essentially pass it bit by bit and add
+
+121
+00:08:27.120 --> 00:08:32.070
+all that information into an object to make it easier for us to work with so to get started going to
+
+122
+00:08:32.080 --> 00:08:41.840
+first cut data to string UTF 8 out and assign it to a variable they'll call past and then going to split
+
+123
+00:08:41.840 --> 00:08:50.040
+that thing because it is a string by the ampersand symbol it's now past is going to be an array of strings
+
+124
+00:08:50.250 --> 00:08:56.190
+where each string is going to be email equals something then password equals something then password
+
+125
+00:08:56.190 --> 00:09:02.310
+confirmation equals something so I'm going to take that array of strings I'm going to loop over it.
+
+126
+00:09:02.580 --> 00:09:07.920
+I'm going to take each of those something equals something split it into a kina value and then add them
+
+127
+00:09:07.920 --> 00:09:08.780
+both to an object.
+
+128
+00:09:09.420 --> 00:09:10.870
+Let's just write out the logic for it.
+
+129
+00:09:10.890 --> 00:09:16.020
+I think you'll understand what's going on I'm going to first create an object called form data.
+
+130
+00:09:16.030 --> 00:09:19.990
+This is going to be an object that's going to eventually contain all the information inside the body
+
+131
+00:09:19.990 --> 00:09:27.440
+the request or then use a for of loop to iterate over each pair or Sammy each little grouping of strings
+
+132
+00:09:27.440 --> 00:09:29.190
+inside the passed array.
+
+133
+00:09:29.240 --> 00:09:38.470
+So I'll say for let pair of asked then inside of your pair.
+
+134
+00:09:38.510 --> 00:09:44.950
+Once again is going to be equal to email equal string or password equals blah blah blah and so on.
+
+135
+00:09:44.950 --> 00:09:53.280
+So I'm going to split that based on the equals sign it's all say const key and value are pair dot split
+
+136
+00:09:53.760 --> 00:09:54.930
+on equals.
+
+137
+00:09:54.960 --> 00:09:55.980
+You'll notice I did some.
+
+138
+00:09:56.040 --> 00:09:58.320
+Yes 2015 restructuring right here.
+
+139
+00:09:58.470 --> 00:10:03.480
+So I know that when I call it paradox split I'm going to get back in array of two strings by putting
+
+140
+00:10:03.480 --> 00:10:04.460
+in the brackets right here.
+
+141
+00:10:04.470 --> 00:10:08.640
+It means take the first element out of that array and assign to the key variable.
+
+142
+00:10:08.640 --> 00:10:10.220
+Take the second element out of that a right.
+
+143
+00:10:10.230 --> 00:10:13.140
+And assign it to the a value variable.
+
+144
+00:10:13.150 --> 00:10:19.340
+Now I can use key and value to add that information to my form data object they'll say form data at
+
+145
+00:10:19.340 --> 00:10:27.250
+key equals value and finally after we iterate through all those different pairs I'll do a console log
+
+146
+00:10:27.860 --> 00:10:30.160
+of form data.
+
+147
+00:10:30.170 --> 00:10:33.430
+Now if this logic inside of here looks really confusing that is totally okay.
+
+148
+00:10:33.440 --> 00:10:37.430
+Remember what I'm showing you right now is just kind of a behind the scenes look we're eventually going
+
+149
+00:10:37.430 --> 00:10:41.960
+to use a library that is going to take care of all this stuff for us automatically.
+
+150
+00:10:42.070 --> 00:10:42.240
+All right.
+
+151
+00:10:42.250 --> 00:10:46.300
+So going to save this I'm going to once again go back over to my browser.
+
+152
+00:10:46.510 --> 00:10:53.860
+I'm going to go to locos 3000 entering some fake info and then hit sign up and finally go to my terminal
+
+153
+00:10:54.940 --> 00:11:00.520
+now once over here I can see all that information in a way more usable state no longer is it inside
+
+154
+00:11:00.520 --> 00:11:04.210
+of that confusing object let alone that confusing buffer thing.
+
+155
+00:11:04.210 --> 00:11:11.140
+Now it is inside of a plain javascript object that I can use to work with that information super easily.
+
+156
+00:11:11.140 --> 00:11:15.100
+So now if we want to know the e-mail password password confirmation that the user is trying to sign
+
+157
+00:11:15.160 --> 00:11:21.010
+up to our system with well we can just access each piece of information inside this object.
+
+158
+00:11:21.050 --> 00:11:26.070
+So as you can tell this would be a very ideal way to work with this information.
+
+159
+00:11:26.090 --> 00:11:28.730
+So like I said let's take a pause right here.
+
+160
+00:11:28.730 --> 00:11:33.110
+We're gonna come back the next video and rather than writing out all this stuff on our own we're going
+
+161
+00:11:33.110 --> 00:11:38.510
+to instead use a little library that's going to take care of all this form handling stuff for us automatically.

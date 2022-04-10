@@ -1,0 +1,792 @@
+1
+00:00:00,000 --> 00:00:00,406
+In this section,
+
+2
+00:00:00,406 --> 00:00:02,963
+we're going to review an open-source project called WireMock
+
+3
+00:00:02,963 --> 00:00:06,125
+that enables us to test our inventory service without actually
+
+4
+00:00:06,125 --> 00:00:08,406
+connecting to a real back-end server.
+
+5
+00:00:08,406 --> 00:00:12,532
+WireMock allows you to stub HTTP responses for use in test environments,
+
+6
+00:00:12,532 --> 00:00:13,905
+as well as unit tests.
+
+7
+00:00:13,905 --> 00:00:16,183
+It has many uses and benefits,
+
+8
+00:00:16,183 --> 00:00:18,800
+but there are three specific use cases for which I've
+
+9
+00:00:18,800 --> 00:00:21,090
+adopted WireMock in my projects.
+
+10
+00:00:21,090 --> 00:00:21,782
+First, stubs.
+
+11
+00:00:21,782 --> 00:00:26,296
+WireMock can be used to provide stubs for services that don't yet exist.
+
+12
+00:00:26,296 --> 00:00:26,756
+For example,
+
+13
+00:00:26,756 --> 00:00:28,962
+if you're building a large-scale application with
+
+14
+00:00:28,962 --> 00:00:30,671
+many teams working in parallel,
+
+15
+00:00:30,671 --> 00:00:33,907
+you could pretty easily find yourself working in a pipeline,
+
+16
+00:00:33,907 --> 00:00:35,777
+waiting for other teams to deliver their services
+
+17
+00:00:35,777 --> 00:00:38,012
+before you can implement your own.
+
+18
+00:00:38,012 --> 00:00:41,807
+With WireMock, you can agree on the interface that a service will support,
+
+19
+00:00:41,807 --> 00:00:44,851
+and then work against a stub so the development is not blocked.
+
+20
+00:00:44,851 --> 00:00:47,381
+This is one of the ways that we'll be using WireMock in
+
+21
+00:00:47,381 --> 00:00:49,348
+the inventory management system because,
+
+22
+00:00:49,348 --> 00:00:50,974
+well, that service doesn't currently exist.
+
+23
+00:00:50,974 --> 00:00:51,254
+Next,
+
+24
+00:00:51,254 --> 00:00:54,541
+you can write unit tests for services that make web service calls
+
+25
+00:00:54,541 --> 00:00:57,543
+by pointing those services to WireMock in your test cases and
+
+26
+00:00:57,543 --> 00:00:59,814
+returning a known set of responses.
+
+27
+00:00:59,814 --> 00:01:01,986
+This allows you to test successful code paths,
+
+28
+00:01:01,986 --> 00:01:03,459
+as well as edge cases,
+
+29
+00:01:03,459 --> 00:01:06,119
+such as requesting information about a missing product
+
+30
+00:01:06,119 --> 00:01:08,299
+or simulating authentication errors.
+
+31
+00:01:08,299 --> 00:01:08,507
+Finally,
+
+32
+00:01:08,507 --> 00:01:12,585
+WireMock can be used as a man in the middle to record service call requests
+
+33
+00:01:12,585 --> 00:01:15,203
+and responses and then play them back for testing purposes.
+
+34
+00:01:15,203 --> 00:01:19,425
+We use this often at my company, and when we find a new and unique environment,
+
+35
+00:01:19,425 --> 00:01:22,226
+we build new unit tests that use those recordings.
+
+36
+00:01:22,226 --> 00:01:23,081
+To use WireMock,
+
+37
+00:01:23,081 --> 00:01:26,310
+we create a WireMock server in our unit test and configure
+
+38
+00:01:26,310 --> 00:01:29,154
+the request that we would like to handle and the responses
+
+39
+00:01:29,154 --> 00:01:30,750
+to return for those requests.
+
+40
+00:01:30,750 --> 00:01:33,934
+WireMock has a pretty natural-looking set of classes that make
+
+41
+00:01:33,934 --> 00:01:35,925
+this configuration very straightforward.
+
+42
+00:01:35,925 --> 00:01:40,078
+We will configure the inventory service's URL to point to the WireMock server
+
+43
+00:01:40,078 --> 00:01:43,249
+and then WireMock will return the configured responses.
+
+44
+00:01:43,249 --> 00:01:46,296
+Alternatively, WireMock supports mapping files.
+
+45
+00:01:46,296 --> 00:01:50,949
+A mapping file defines the request to handle and the responses to return.
+
+46
+00:01:50,949 --> 00:01:53,048
+Typically, inside the mapping file,
+
+47
+00:01:53,048 --> 00:01:57,212
+the response points to a file in the __files directory that
+
+48
+00:01:57,212 --> 00:02:00,460
+contains the payload to return as the response body.
+
+49
+00:02:00,460 --> 00:02:03,815
+I'll show you how to use both approaches in the coming example.
+
+50
+00:02:03,815 --> 00:02:05,743
+In the InventoryServiceTest class,
+
+51
+00:02:05,743 --> 00:02:08,772
+we define a WireMockServer instance and then before
+
+52
+00:02:08,772 --> 00:02:11,192
+each test runs we create the instance, start it,
+
+53
+00:02:11,192 --> 00:02:14,579
+and then configure the request and responses that we want to handle.
+
+54
+00:02:14,579 --> 00:02:16,065
+And then after each test case,
+
+55
+00:02:16,065 --> 00:02:20,517
+we stop the WireMockServer so that we have a clean environment for each test.
+
+56
+00:02:20,517 --> 00:02:22,517
+Let's take a look at the source code for the
+
+57
+00:02:22,517 --> 00:02:25,483
+InventoryServiceTest class and see how it works.
+
+58
+00:02:25,483 --> 00:02:29,348
+The InventoryServiceTest is annotated with the SpringBootTest annotation,
+
+59
+00:02:29,348 --> 00:02:33,150
+as well as the TestPropertySource annotation.
+
+60
+00:02:33,150 --> 00:02:36,619
+The TestPropertySource annotation allows you to define the
+
+61
+00:02:36,619 --> 00:02:38,809
+property files to use for this test class.
+
+62
+00:02:38,809 --> 00:02:42,006
+Properties that are defined in these properties files will
+
+63
+00:02:42,006 --> 00:02:43,945
+override properties defined elsewhere.
+
+64
+00:02:43,945 --> 00:02:46,896
+In this example, we have a single properties file,
+
+65
+00:02:46,896 --> 00:02:48,206
+namely test.properties,
+
+66
+00:02:48,206 --> 00:02:52,001
+which overrides our inventory baseUrl property to
+
+67
+00:02:52,001 --> 00:02:55,182
+point to localhost 9999/inventory.
+
+68
+00:02:55,182 --> 00:02:57,748
+This will match the URL for the WireMockServer that
+
+69
+00:02:57,748 --> 00:02:59,917
+we'll create in our test class.
+
+70
+00:02:59,917 --> 00:03:03,032
+The InventoryServiceTest has wired into it the
+
+71
+00:03:03,032 --> 00:03:07,857
+InventoryService that we want to test, and it defines a WireMockServer variable.
+
+72
+00:03:07,857 --> 00:03:08,748
+In the BeforeEach method,
+
+73
+00:03:08,748 --> 00:03:12,928
+we create an instance of the WireMockServer listening on port 9999,
+
+74
+00:03:12,928 --> 00:03:14,165
+and start it,
+
+75
+00:03:14,165 --> 00:03:16,871
+then we configure the request that we want to handle
+
+76
+00:03:16,871 --> 00:03:18,802
+and the corresponding responses.
+
+77
+00:03:18,802 --> 00:03:21,348
+I have statically imported a host of methods that
+
+78
+00:03:21,348 --> 00:03:23,420
+make this handling easy to read.
+
+79
+00:03:23,420 --> 00:03:27,175
+The first request we want to handle reads like this: In the WireMockServer,
+
+80
+00:03:27,175 --> 00:03:34,005
+create a stub for the case of a get request with a urlEqualTo /inventory/1.
+
+81
+00:03:34,005 --> 00:03:35,652
+When this URL is invoked,
+
+82
+00:03:35,652 --> 00:03:40,372
+the WireMockServer will return a response with a header of
+
+83
+00:03:40,372 --> 00:03:44,768
+Content-Type set to application/json with a status of 200,
+
+84
+00:03:44,768 --> 00:03:50,151
+and with a body that is found in the json/inventory- response.json file.
+
+85
+00:03:50,151 --> 00:03:54,197
+From a more technical perspective, the stubFor method accepts a mapping builder,
+
+86
+00:03:54,197 --> 00:03:57,180
+which follows the builder design pattern to build a
+
+87
+00:03:57,180 --> 00:03:59,407
+mapping from a request to a response.
+
+88
+00:03:59,407 --> 00:04:02,861
+The get method handles an HTTP request and accepts a URL
+
+89
+00:04:02,861 --> 00:04:04,990
+pattern to match for that request.
+
+90
+00:04:04,990 --> 00:04:09,480
+The urlEqualTo method produces a URL pattern that performs an
+
+91
+00:04:09,480 --> 00:04:11,689
+equality comparison against its argument,
+
+92
+00:04:11,689 --> 00:04:12,919
+namely, /inventory/1.
+
+93
+00:04:12,919 --> 00:04:20,156
+So essentially, we're matching a GET HTTP request to the exact URL /inventory/1.
+
+94
+00:04:20,156 --> 00:04:22,707
+The next step in configuring the mapping builder is to tell it
+
+95
+00:04:22,707 --> 00:04:25,154
+what to do when it receives the request.
+
+96
+00:04:25,154 --> 00:04:29,463
+The willReturn method accepts aResponse definition builder that also
+
+97
+00:04:29,463 --> 00:04:32,658
+follows the builder design pattern to define the response.
+
+98
+00:04:32,658 --> 00:04:37,191
+AResponse is a static method that creates a new response definition builder
+
+99
+00:04:37,191 --> 00:04:40,583
+that can then be configured with its various with methods.
+
+100
+00:04:40,583 --> 00:04:42,924
+The withHeader method sets the header key values,
+
+101
+00:04:42,924 --> 00:04:47,015
+which sets the Content-Type to application/json in this example.
+
+102
+00:04:47,015 --> 00:04:50,593
+The withStatus method sets the HTTP status code for the response,
+
+103
+00:04:50,593 --> 00:04:52,394
+which is 200 in this example,
+
+104
+00:04:52,394 --> 00:04:55,554
+and the withBodyFile method sets the body of the
+
+105
+00:04:55,554 --> 00:04:57,734
+response to the contents of a file,
+
+106
+00:04:57,734 --> 00:05:01,915
+which is json/inventory- response.json in this example.
+
+107
+00:05:01,915 --> 00:05:04,514
+The inventory- response.json file contains an
+
+108
+00:05:04,514 --> 00:05:09,729
+inventory record with a productId of 1, a quantity of 500,
+
+109
+00:05:09,729 --> 00:05:15,196
+a productName of Super Great Product, and a productCategory of Great Products.
+
+110
+00:05:15,196 --> 00:05:20,216
+The next request we want to handle is for a get request to the /inventory/2 URL.
+
+111
+00:05:20,216 --> 00:05:25,071
+In this case, the wireMockServer will return a status code of 404 NotFound.
+
+112
+00:05:25,071 --> 00:05:25,366
+Finally,
+
+113
+00:05:25,366 --> 00:05:29,421
+we configure the WireMockServer to create a stub for a post request to
+
+114
+00:05:29,421 --> 00:05:34,838
+/inventory/1/purchaseRecord with a Content-Type containing
+
+115
+00:05:34,838 --> 00:05:39,347
+application/json and a body containing product:1 to return a response
+
+116
+00:05:39,347 --> 00:05:41,329
+with a Content-Type of application/json,
+
+117
+00:05:41,329 --> 00:05:44,430
+a 200 OK HTTP response code,
+
+118
+00:05:44,430 --> 00:05:46,674
+and the body that's contained in the
+
+119
+00:05:46,674 --> 00:05:50,507
+json/inventory-response-after- post.json file.
+
+120
+00:05:50,507 --> 00:05:52,296
+The containing method accepts a regular expression
+
+121
+00:05:52,296 --> 00:05:54,277
+string that we want to match on.
+
+122
+00:05:54,277 --> 00:05:57,269
+We use this with our request Content-Type because Spring
+
+123
+00:05:57,269 --> 00:06:02,538
+actually returns application/json;charset=UTF-8,
+
+124
+00:06:02,538 --> 00:06:05,062
+and we'll use it with our request body just to validate that
+
+125
+00:06:05,062 --> 00:06:06,993
+the body contains the string product:1.
+
+126
+00:06:06,993 --> 00:06:08,722
+These are both optional,
+
+127
+00:06:08,722 --> 00:06:11,252
+but if we were posting multiple payloads to this same URL,
+
+128
+00:06:11,252 --> 00:06:14,262
+then this would allow us to differentiate between different posts
+
+129
+00:06:14,262 --> 00:06:17,002
+and potentially return a different response body.
+
+130
+00:06:17,002 --> 00:06:20,053
+The inventory-response-after- post.json file looks just
+
+131
+00:06:20,053 --> 00:06:21,781
+like the inventory- response.json file,
+
+132
+00:06:21,781 --> 00:06:25,236
+but it now has a quantity set to 499 instead of 500.
+
+133
+00:06:25,236 --> 00:06:26,650
+In the AfterEach method,
+
+134
+00:06:26,650 --> 00:06:29,224
+we stop the WireMockServer so that subsequent tests
+
+135
+00:06:29,224 --> 00:06:31,153
+have a clean environment to work with.
+
+136
+00:06:31,153 --> 00:06:35,835
+The first test method that we create is testGetInventoryRecordSuccess.
+
+137
+00:06:35,835 --> 00:06:38,035
+This test invokes the inventoryService's
+
+138
+00:06:38,035 --> 00:06:40,846
+getInventoryRecord method with an argument of 1,
+
+139
+00:06:40,846 --> 00:06:43,462
+which will resolve to a get request to /inventory/1.
+
+140
+00:06:43,462 --> 00:06:47,100
+WireMock will return the contents of the inventory-
+
+141
+00:06:47,100 --> 00:06:51,686
+response.json file to the service, which it returns as an InventoryRecord object.
+
+142
+00:06:51,686 --> 00:06:53,910
+We first verify that the response is present,
+
+143
+00:06:53,910 --> 00:06:57,628
+and then we compare the quantity in the response to 500.
+
+144
+00:06:57,628 --> 00:07:01,040
+The next method is testGetInventoryRecordNotFound.
+
+145
+00:07:01,040 --> 00:07:02,993
+This method invokes the inventory service's
+
+146
+00:07:02,993 --> 00:07:05,804
+getInvetoryRecord method with an argument of 2,
+
+147
+00:07:05,804 --> 00:07:08,444
+which resolves to a GET request to /inventory/2.
+
+148
+00:07:08,444 --> 00:07:13,643
+But we configured the WireMockServer to return a 404 NotFound response code.
+
+149
+00:07:13,643 --> 00:07:14,787
+So in this case,
+
+150
+00:07:14,787 --> 00:07:17,366
+we test the returned Optional InventoryRecord and
+
+151
+00:07:17,366 --> 00:07:19,445
+validate that it's not present.
+
+152
+00:07:19,445 --> 00:07:20,071
+Finally,
+
+153
+00:07:20,071 --> 00:07:22,627
+the testPurchaseProductSuccess method invokes the
+
+154
+00:07:22,627 --> 00:07:24,277
+inventory service's purchaseProduct method,
+
+155
+00:07:24,277 --> 00:07:27,878
+passing a product ID of 1, and a quantity of 1,
+
+156
+00:07:27,878 --> 00:07:30,189
+meaning that we just purchased 1 unit of product 1.
+
+157
+00:07:30,189 --> 00:07:34,954
+This will resolve to a post to /inventory/1/purchaseRecord,
+
+158
+00:07:34,954 --> 00:07:37,499
+which is configured in WireMock to return the contents of the
+
+159
+00:07:37,499 --> 00:07:40,680
+inventory-response-after- post.json file.
+
+160
+00:07:40,680 --> 00:07:42,944
+We validate that a response is returned by the service
+
+161
+00:07:42,944 --> 00:07:45,223
+and check that the quantity is now 499.
+
+162
+00:07:45,223 --> 00:07:49,380
+So I hope you can appreciate what WireMock is doing for us here.
+
+163
+00:07:49,380 --> 00:07:54,197
+The inventoryService is making actual HTTP calls using a Spring RestTemplate,
+
+164
+00:07:54,197 --> 00:07:56,685
+and because we changed its baseUrl property,
+
+165
+00:07:56,685 --> 00:07:59,438
+it's making those HTTP calls against WireMock,
+
+166
+00:07:59,438 --> 00:08:02,580
+and WireMock is configured in the BeforeEach method to return
+
+167
+00:08:02,580 --> 00:08:05,115
+specific JSON responses back to the inventory service.
+
+168
+00:08:05,115 --> 00:08:08,561
+The last thing that we want to look at are mapping files.
+
+169
+00:08:08,561 --> 00:08:10,976
+The syntax for defining our WireMock requests and
+
+170
+00:08:10,976 --> 00:08:15,198
+responses is clean and easy to read, but it would be nice to externalize those,
+
+171
+00:08:15,198 --> 00:08:17,712
+and that's the role of mapping files.
+
+172
+00:08:17,712 --> 00:08:22,261
+Our first mapping file, which is located in src/test/resources/mapping,
+
+173
+00:08:22,261 --> 00:08:24,141
+defines a request and response.
+
+174
+00:08:24,141 --> 00:08:28,860
+The request has a method, which is GET, and has a URL pattern,
+
+175
+00:08:28,860 --> 00:08:30,206
+which is /inventory/1.
+
+176
+00:08:30,206 --> 00:08:31,808
+When the WireMockServer receives this request,
+
+177
+00:08:31,808 --> 00:08:34,469
+then we configure it to return the specified response.
+
+178
+00:08:34,469 --> 00:08:37,586
+The response contains a status code of 200,
+
+179
+00:08:37,586 --> 00:08:41,310
+a headers section that defines the Content-Type to be application/json,
+
+180
+00:08:41,310 --> 00:08:45,597
+and bodyFileName that references the same json/inventory-
+
+181
+00:08:45,597 --> 00:08:49,303
+response.json file that we configured manually.
+
+182
+00:08:49,303 --> 00:08:52,556
+The second mapping file defines that a GET request to
+
+183
+00:08:52,556 --> 00:08:55,527
+/inventory/2 should return a 404 response code.
+
+184
+00:08:55,527 --> 00:08:58,916
+The final mapping file defines that a POST to
+
+185
+00:08:58,916 --> 00:09:04,281
+/inventory/1/purchaseRecord should return a 200 response code,
+
+186
+00:09:04,281 --> 00:09:06,046
+a JSON Content-Type,
+
+187
+00:09:06,046 --> 00:09:10,351
+and the body that's contained in the inventory-response-after- post.json file.
+
+188
+00:09:10,351 --> 00:09:12,943
+These three mapping files do the same thing that we
+
+189
+00:09:12,943 --> 00:09:14,389
+did manually in our source code.
+
+190
+00:09:14,389 --> 00:09:17,764
+I added a new InventoryServiceMappingTest class that performs
+
+191
+00:09:17,764 --> 00:09:19,849
+the exact same test that we just looked at,
+
+192
+00:09:19,849 --> 00:09:22,998
+but removes the manual request response configuration.
+
+193
+00:09:22,998 --> 00:09:26,349
+When the WireMockServer starts, it automatically looks in the mapping directory,
+
+194
+00:09:26,349 --> 00:09:28,588
+finds these mapping files,
+
+195
+00:09:28,588 --> 00:09:32,090
+and configures the request and responses based on the mapping files.
+
+196
+00:09:32,090 --> 00:09:33,304
+So the choice is yours.
+
+197
+00:09:33,304 --> 00:09:35,762
+You can manually configure requests and responses in your
+
+198
+00:09:35,762 --> 00:09:42,000
+code or you can use the mapping files. It all depends on what you're move comfortable with.
+

@@ -1,0 +1,264 @@
+1
+00:00:02,228 --> 00:00:06,583
+A common feature on many web applications is email
+
+2
+00:00:06,583 --> 00:00:08,784
+verification following registration.
+
+3
+00:00:08,784 --> 00:00:12,150
+Now this gives you a number of security benefits.
+
+4
+00:00:12,150 --> 00:00:17,198
+It reduces the effectiveness of registration spam or bot registration,
+
+5
+00:00:17,198 --> 00:00:21,777
+ensures the user actually owns that email and is not someone trying
+
+6
+00:00:21,777 --> 00:00:25,255
+to impersonate the owner for malicious purposes,
+
+7
+00:00:25,255 --> 00:00:29,427
+gives you the ability to contact the person for feedback,
+
+8
+00:00:29,427 --> 00:00:31,115
+notifications, marketing,
+
+9
+00:00:31,115 --> 00:00:34,460
+and also a valid email can be used to automate
+
+10
+00:00:34,460 --> 00:00:37,838
+password reset and account recovery.
+
+11
+00:00:37,838 --> 00:00:40,587
+Let's implement this in our demo app.
+
+12
+00:00:40,587 --> 00:00:44,860
+Add the spring-boot-starter-mail dependency to your POM so
+
+13
+00:00:44,860 --> 00:00:47,206
+that we can send emails from our application.
+
+14
+00:00:47,206 --> 00:00:53,126
+Now for the purpose of the demo, I'm using gmail as my SMTP server.
+
+15
+00:00:53,126 --> 00:00:56,221
+You can add your email server details to the
+
+16
+00:00:56,221 --> 00:00:59,384
+application.yml under the mail property.
+
+17
+00:00:59,384 --> 00:01:03,184
+Now the email registration logic can go into the Registration
+
+18
+00:01:03,184 --> 00:01:06,640
+Controller after saving the new user's profile.
+
+19
+00:01:06,640 --> 00:01:09,768
+However, let's take advantage of Spring event handling.
+
+20
+00:01:09,768 --> 00:01:14,994
+This is a cleaner design approach, adhering to the open and close principle.
+
+21
+00:01:14,994 --> 00:01:16,614
+Now out of the box,
+
+22
+00:01:16,614 --> 00:01:20,826
+Spring provides many authentication events your application can subscribe to.
+
+23
+00:01:20,826 --> 00:01:23,416
+Their names are quite self- explanatory,
+
+24
+00:01:23,416 --> 00:01:27,569
+like the AuthenticationFailureBadCredentialsEvents.
+
+25
+00:01:27,569 --> 00:01:31,371
+You could use this to keep track of invalid logins due to bad
+
+26
+00:01:31,371 --> 00:01:35,290
+credentials provided to perhaps detect DOS attacks,
+
+27
+00:01:35,290 --> 00:01:36,401
+brute force attacks,
+
+28
+00:01:36,401 --> 00:01:41,604
+or to lock or throttle account after a certain number of failures.
+
+29
+00:01:41,604 --> 00:01:46,085
+In our case, none of these suffice, so we need a custom event.
+
+30
+00:01:46,085 --> 00:01:49,000
+To do this, create a class that extends the ApplicationEvents.
+
+31
+00:01:49,000 --> 00:01:55,861
+Here we can simply include the user property and a constructor to set it.
+
+32
+00:01:55,861 --> 00:01:56,206
+Next,
+
+33
+00:01:56,206 --> 00:02:00,419
+you need to create an event listener that implements the ApplicationListener
+
+34
+00:02:00,419 --> 00:02:06,374
+interface and set the new UserRegistrationEvent as the type.
+
+35
+00:02:06,374 --> 00:02:12,036
+Override the onApplicationEvent method, annotate the class as a service,
+
+36
+00:02:12,036 --> 00:02:14,737
+and Spring Boot will do the rest.
+
+37
+00:02:14,737 --> 00:02:18,967
+To send the verification email, you need to generate a unique code,
+
+38
+00:02:18,967 --> 00:02:23,719
+which will be included in the verification link sent to the user's email.
+
+39
+00:02:23,719 --> 00:02:29,680
+Now our site uses MongoDB, so we can use a verification entity.
+
+40
+00:02:29,680 --> 00:02:35,239
+MongoDB actually generates very long, unique identifiers, so I will use this.
+
+41
+00:02:35,239 --> 00:02:37,659
+However, if you are using a traditional database,
+
+42
+00:02:37,659 --> 00:02:40,372
+they generally increment their identifiers,
+
+43
+00:02:40,372 --> 00:02:43,116
+so they can be predicted.
+
+44
+00:02:43,116 --> 00:02:45,809
+Hence, it's not recommended to use that.
+
+45
+00:02:45,809 --> 00:02:48,370
+Now you need to ensure the user cannot access the
+
+46
+00:02:48,370 --> 00:02:50,802
+site until the email is verified.
+
+47
+00:02:50,802 --> 00:02:54,678
+In the UserDetails object that is returned by the UserDetailsService,
+
+48
+00:02:54,678 --> 00:02:59,158
+there are a number of Boolean properties that are quite
+
+49
+00:02:59,158 --> 00:03:05,507
+self-explanatory from account expired, locked or enabled,
+
+50
+00:03:05,507 --> 00:03:07,957
+and credentials expired.
+
+51
+00:03:07,957 --> 00:03:12,597
+If any of these are set to true, the user will not be authenticated,
+
+52
+00:03:12,597 --> 00:03:16,023
+and an exception, an event of that type will be thrown.
+
+53
+00:03:16,023 --> 00:03:19,467
+Now we will use the enabled property.
+
+54
+00:03:19,467 --> 00:03:24,886
+To trigger the event on user registration,
+
+55
+00:03:24,886 --> 00:03:26,305
+in the RegistrationController,
+
+56
+00:03:26,305 --> 00:03:31,056
+we wire in the Spring's authentication eventPublisher and use
+
+57
+00:03:31,056 --> 00:03:32,645
+it to publish the UserRegistrationEvent,
+
+58
+00:03:32,645 --> 00:03:39,080
+passing in the user entity being registered to the constructor.
+
+59
+00:03:39,080 --> 00:03:39,422
+Next,
+
+60
+00:03:39,422 --> 00:03:42,835
+we need a controller class that will handle the verification
+
+61
+00:03:42,835 --> 00:03:46,517
+when the link is clicked to enable the user.
+
+62
+00:03:46,517 --> 00:03:51,886
+We use the ID submitted to look up the username in the verification entity.
+
+63
+00:03:51,886 --> 00:03:57,363
+And if we can find the user, we activate the account.
+
+64
+00:03:57,363 --> 00:04:00,847
+Let's give this a quick test.
+
+65
+00:04:00,847 --> 00:04:04,793
+We now have registered, but we cannot yet login.
+
+66
+00:04:04,793 --> 00:04:12,000
+Let's verify our email and try again. We now have access to this site.
+

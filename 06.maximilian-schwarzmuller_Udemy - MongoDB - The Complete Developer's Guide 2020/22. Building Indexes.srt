@@ -1,0 +1,383 @@
+1
+00:00:02,210 --> 00:00:04,620
+We're almost done with this module,
+
+2
+00:00:04,630 --> 00:00:11,150
+one last word about how you build indexes and with this, I really mean how you add them. You can add them in two
+
+3
+00:00:11,150 --> 00:00:11,500
+ways,
+
+4
+00:00:11,510 --> 00:00:17,570
+in the foreground and in the background. Thus far in the module, we always added indexes in the foreground
+
+5
+00:00:17,570 --> 00:00:21,030
+with create index just as we executed it,
+
+6
+00:00:21,110 --> 00:00:26,610
+now actually something we didn't notice because it always happened instantly basically,
+
+7
+00:00:26,810 --> 00:00:31,560
+actually during the creation, the collection will be locked and you can't edit it,
+
+8
+00:00:32,860 --> 00:00:39,640
+on the other hand, you can also add indexes in the background and the collection will still be accessible.
+
+9
+00:00:39,640 --> 00:00:42,760
+The advantage of the foreground mode is that it's faster,
+
+10
+00:00:42,790 --> 00:00:48,400
+the background is slower but if you have a collection that is used in production, you probably don't
+
+11
+00:00:48,400 --> 00:00:51,540
+want to lock it just because you were adding an index,
+
+12
+00:00:51,550 --> 00:00:58,500
+so let me show you how you can add an index in the background and which difference that makes. To show the
+
+13
+00:00:58,500 --> 00:01:00,770
+difference that this makes,
+
+14
+00:01:00,780 --> 00:01:04,490
+I prepared a javascript file which you find attached to this video,
+
+15
+00:01:04,620 --> 00:01:11,100
+the shell can also execute such files by simply typing mongo and then the file name, credit-rating.js
+
+16
+00:01:11,220 --> 00:01:12,050
+is the file.
+
+17
+00:01:12,180 --> 00:01:18,450
+Now what this will do is that mongo still connects to the server and then it will execute the file
+
+18
+00:01:18,720 --> 00:01:23,300
+and basically execute the commands in there against the server and in that file,
+
+19
+00:01:23,370 --> 00:01:29,540
+I essentially have a loop that will add 1 million documents to a collection with random numbers in there.
+
+20
+00:01:29,880 --> 00:01:34,750
+Now executing this will take quite a while, can take multiple minutes depending on your system, 
+
+21
+00:01:34,770 --> 00:01:40,800
+you can always quit it with control c and you can also of course edit the code to reduce the number
+
+22
+00:01:40,800 --> 00:01:42,660
+of documents that are created.
+
+23
+00:01:42,660 --> 00:01:45,600
+Now I will leave that running and I'll be back once it is finished,
+
+24
+00:01:45,690 --> 00:01:47,500
+again don't worry if it takes a while,
+
+25
+00:01:47,520 --> 00:01:49,140
+that is totally normal.
+
+26
+00:01:49,140 --> 00:01:56,740
+So this completes successfully for me and I can now connect with the mongo command and on the server,
+
+27
+00:01:56,800 --> 00:02:00,780
+let's run show dbs and it's the credit database that was added
+
+28
+00:02:00,780 --> 00:02:09,110
+now so let's use credit and in there, if you show the collections, you should have a ratings collection
+
+29
+00:02:09,570 --> 00:02:14,350
+and if you count that, you should see that there are 1 million documents in there. Now
+
+30
+00:02:14,380 --> 00:02:16,140
+nothing in there is indexed
+
+31
+00:02:16,360 --> 00:02:22,210
+and before we start adding an index in the back or foreground, we can take this as an opportunity to
+
+32
+00:02:22,240 --> 00:02:24,170
+practice indexing a bit more.
+
+33
+00:02:24,250 --> 00:02:28,750
+So let's have a look at ratings and find one element only,
+
+34
+00:02:28,780 --> 00:02:35,080
+this is how a single element looks like, we get an age in there and we get a score for the person and let's now say
+
+35
+00:02:35,080 --> 00:02:39,380
+we want to for example index age.
+
+36
+00:02:39,580 --> 00:02:49,640
+So we can create an index on age in an ascending order and you already see, this now doesn't finish instantly, really
+
+37
+00:02:49,660 --> 00:02:56,210
+quick still but not instantly because we have a million documents which have to be indexed
+
+38
+00:02:56,300 --> 00:03:04,820
+and now let's use that index. For that, I'll use my ratings and I will also explain the results with execution
+
+39
+00:03:04,910 --> 00:03:06,550
+stats
+
+40
+00:03:06,620 --> 00:03:18,860
+and now let's find all ages where people let's say are older than 80.
+
+41
+00:03:18,910 --> 00:03:26,010
+Now here you see close to 100000 keys were examined because this is totally randomly generated
+
+42
+00:03:27,020 --> 00:03:35,320
+and we used an index scan here, where we had to look at all these keys, all the docs and return these docs,
+
+43
+00:03:35,920 --> 00:03:37,460
+took 200 milliseconds.
+
+44
+00:03:37,720 --> 00:03:39,570
+Now let's drop that index
+
+45
+00:03:45,120 --> 00:03:49,250
+with db ratings drop index
+
+46
+00:03:49,260 --> 00:03:52,000
+and we had an index on the age in ascending order so
+
+47
+00:03:52,020 --> 00:04:01,600
+let's drop that and let's rehit this query and there we can already see, this took longer, like 400 milliseconds,
+
+48
+00:04:01,620 --> 00:04:02,740
+so double as long.
+
+49
+00:04:02,790 --> 00:04:04,780
+So the index did already pay off there
+
+50
+00:04:04,950 --> 00:04:07,380
+but of course this is already something you know,
+
+51
+00:04:07,680 --> 00:04:10,980
+now I wanted to show you that the index creation takes time.
+
+52
+00:04:10,980 --> 00:04:17,000
+Now remember I just deleted my index right, so I only have the default index on there right now,
+
+53
+00:04:17,010 --> 00:04:23,220
+so now I will actually create an index and I will show you that this will block us from doing anything
+
+54
+00:04:23,310 --> 00:04:25,890
+with this collection. For that,
+
+55
+00:04:25,920 --> 00:04:33,650
+I will open a new tab in which I also connect to my mongo shell and I will already prepare a query
+
+56
+00:04:33,660 --> 00:04:34,300
+there,
+
+57
+00:04:34,560 --> 00:04:43,280
+so now I'm connected to the same database and there, I will prepare ratings, find one.
+
+58
+00:04:43,450 --> 00:04:47,770
+Now I need to switch quickly later because it doesn't take that long but I'll try to execute this whilst
+
+59
+00:04:47,770 --> 00:04:49,690
+the index is getting created.
+
+60
+00:04:50,080 --> 00:04:53,660
+So now I will create that index on the age again,
+
+61
+00:04:54,100 --> 00:04:55,320
+so I hit enter
+
+62
+00:04:55,780 --> 00:04:58,510
+and you see, this doesn't finish here,
+
+63
+00:04:58,780 --> 00:05:05,290
+it takes a while, it only finishes after this creation is finished essentially.
+
+64
+00:05:05,410 --> 00:05:14,900
+If I drop that index and I prepared to create that again and here, I try to insert one document with
+
+65
+00:05:14,900 --> 00:05:22,280
+let's say a person Id, some random text which of course is not in line with the other IDs which are numbers
+
+66
+00:05:22,310 --> 00:05:23,990
+but it doesn't matter,
+
+67
+00:05:23,990 --> 00:05:31,530
+some score and an age of let's say 90, so I prepared this,
+
+68
+00:05:31,530 --> 00:05:35,690
+I want to insert that person and again create that index and try this,
+
+69
+00:05:35,790 --> 00:05:37,300
+it doesn't finish,
+
+70
+00:05:37,320 --> 00:05:41,260
+it only finishes after the index creation is done,
+
+71
+00:05:41,280 --> 00:05:43,550
+so after the collection is unlocked again.
+
+72
+00:05:43,770 --> 00:05:45,910
+So it's not getting an error here,
+
+73
+00:05:45,960 --> 00:05:49,560
+it is working in the end but whilst the index is getting created,
+
+74
+00:05:49,560 --> 00:05:50,760
+it's not working,
+
+75
+00:05:50,760 --> 00:05:54,030
+it's basically deferred until the index is created.
+
+76
+00:05:54,030 --> 00:05:57,720
+Now our index creation here is still going fairly fast,
+
+77
+00:05:57,780 --> 00:06:05,400
+it didn't take much longer than a second probably but it's not hard to imagine that for more complex indexes
+
+78
+00:06:05,490 --> 00:06:07,260
+like a text index, let's say
+
+79
+00:06:07,390 --> 00:06:15,870
+or for even more documents and more complex documents, that index creation will easily take longer but
+
+80
+00:06:15,870 --> 00:06:22,170
+especially more complex things like text indexes will take much longer and then this will be a problem
+
+81
+00:06:22,410 --> 00:06:28,050
+because then the database or the collection might be locked for a couple of minutes even. So this is
+
+82
+00:06:28,050 --> 00:06:31,040
+not an alternative for a production database,
+
+83
+00:06:31,050 --> 00:06:36,270
+you can't suddenly lock down your entire database and your application is not able to interact with
+
+84
+00:06:36,270 --> 00:06:39,860
+it anymore and that is why you can create it in the background.
+
+85
+00:06:40,170 --> 00:06:43,920
+So let me again prepare this insertion command here
+
+86
+00:06:45,500 --> 00:06:50,360
+and let me go back and first of all drop the index and then prepare the creation again
+
+87
+00:06:50,360 --> 00:06:55,940
+but now with a second argument where we previously sets things like the default language,
+
+88
+00:06:55,940 --> 00:06:58,370
+now I will set background to true.
+
+89
+00:06:58,700 --> 00:07:02,050
+The default is false which means it's created in the foreground
+
+90
+00:07:02,180 --> 00:07:07,880
+but if you set this to true, it will be created differently in a way where the collection doesn't need
+
+91
+00:07:07,880 --> 00:07:09,220
+to be locked.
+
+92
+00:07:09,260 --> 00:07:16,450
+So now if I do this and I hit enter here and I hit enter here, you see it's inserted immediately
+
+93
+00:07:16,670 --> 00:07:23,510
+even though the index creation still blocks this thread, we couldn't enter any other arguments but technically,
+
+94
+00:07:23,780 --> 00:07:28,010
+it happened in the background without locking the collection.
+
+95
+00:07:28,430 --> 00:07:31,900
+So this is a very useful feature for production databases,
+
+96
+00:07:31,910 --> 00:07:37,850
+you don't want to add an index in the foreground there especially not if it will take quite a while.

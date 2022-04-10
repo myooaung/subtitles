@@ -1,0 +1,413 @@
+WEBVTT
+1
+00:00:01.940 --> 00:00:05.870
+In this demo, we are going to add offline capabilities to our application.
+
+2
+00:00:05.870 --> 00:00:08.730
+So, whenever we are not connected to the internet,
+
+3
+00:00:08.730 --> 00:00:13.220
+we are still going to be able to work with the data. Whenever we're offline
+
+4
+00:00:13.220 --> 00:00:16.870
+and then we make a change, the AppSync client will try the operation
+
+5
+00:00:16.870 --> 00:00:19.740
+whenever an internet connection becomes available.
+
+6
+00:00:19.740 --> 00:00:21.040
+While this is great,
+
+7
+00:00:21.040 --> 00:00:23.910
+we want our users to be able to see the data on the UI
+
+8
+00:00:23.910 --> 00:00:25.490
+as soon as they make the changes.
+
+9
+00:00:25.490 --> 00:00:28.540
+This is called an optimistic response.
+
+10
+00:00:28.540 --> 00:00:30.420
+We won't wait for the server to be called,
+
+11
+00:00:30.420 --> 00:00:34.010
+but we are going to add the record to our local cache manually.
+
+12
+00:00:34.010 --> 00:00:36.830
+And, whenever the internet connection becomes available,
+
+13
+00:00:36.830 --> 00:00:40.680
+the AppSync client will update the record automatically. In our
+
+14
+00:00:40.680 --> 00:00:44.450
+createTask function, we're going to update the mutate query to store the
+
+15
+00:00:44.450 --> 00:00:47.940
+data locally when there is no internet connection.
+
+16
+00:00:47.940 --> 00:00:48.570
+First,
+
+17
+00:00:48.570 --> 00:00:56.360
+we need to add the optimisticResponse function. This function needs
+
+18
+00:00:56.360 --> 00:01:00.140
+to output the createGlobomanticsTasks object.
+
+19
+00:01:00.140 --> 00:01:04.440
+Here, we need to specify the typename for our task.
+
+20
+00:01:04.440 --> 00:01:07.390
+The typename is the type of the object that we are
+
+21
+00:01:07.390 --> 00:01:11.430
+mutating. In our case for creating a task, our object is
+
+22
+00:01:11.430 --> 00:01:14.640
+called CreateGlobomanticsTasksInput.
+
+23
+00:01:14.640 --> 00:01:17.280
+To make sure that you type the correct name for your
+
+24
+00:01:17.280 --> 00:01:19.740
+object, you need to navigate to your schema.
+
+25
+00:01:19.740 --> 00:01:23.640
+In our case, in the mutations,
+
+26
+00:01:23.640 --> 00:01:28.100
+we can see that the type is CreateGlobomanticsTasksInput. And
+
+27
+00:01:28.100 --> 00:01:31.700
+then for the update, UpdateGlobomanticsTasksInput, and for
+
+28
+00:01:31.700 --> 00:01:36.740
+delete, it's DeleteGlobomanticsTasksInput.
+
+29
+00:01:36.740 --> 00:01:40.740
+In this case, we only need the CreateGlobomanticsTaskInput type.
+
+30
+00:01:40.740 --> 00:01:45.360
+Let's navigate back to our index.ts file. And beside the typename, we also
+
+31
+00:01:45.360 --> 00:01:49.230
+have to specify an id for our item so it can be used locally.
+
+32
+00:01:49.230 --> 00:01:53.760
+This id might be replaced later by the AppSync client once it syncs the data.
+
+33
+00:01:53.760 --> 00:01:57.030
+But this process will be done automatically, so there's nothing for us
+
+34
+00:01:57.030 --> 00:02:02.100
+to worry. For the id, we use a unique identifier function that we can
+
+35
+00:02:02.100 --> 00:02:04.640
+import from the unique identifier library.
+
+36
+00:02:04.640 --> 00:02:07.710
+Then, after we have specified the id, we specify the
+
+37
+00:02:07.710 --> 00:02:11.540
+rest of the properties, a title, a date, and a description.
+
+38
+00:02:11.540 --> 00:02:12.210
+Normally,
+
+39
+00:02:12.210 --> 00:02:15.750
+we do not pass in a date when we create our item since the date is
+
+40
+00:02:15.750 --> 00:02:19.130
+automatically generated on the back end, but if we're working with it
+
+41
+00:02:19.130 --> 00:02:21.180
+locally, we need to set in as current date.
+
+42
+00:02:21.180 --> 00:02:23.840
+Then, whenever an internet connection becomes available,
+
+43
+00:02:23.840 --> 00:02:25.840
+this property will be updated.
+
+44
+00:02:25.840 --> 00:02:29.720
+Now, that we set up the optimistic response, which will construct our
+
+45
+00:02:29.720 --> 00:02:32.830
+object that we want to insert into our cache, now we need to implement
+
+46
+00:02:32.830 --> 00:02:35.520
+the actual logic of inserting it into the cache.
+
+47
+00:02:35.520 --> 00:02:38.740
+We can do that in the update function.
+
+48
+00:02:38.740 --> 00:02:42.410
+This function will be called whenever the mutation is executed.
+
+49
+00:02:42.410 --> 00:02:44.100
+If there is no internet connection,
+
+50
+00:02:44.100 --> 00:02:48.010
+then this function will be called so we can enter the data in our local cache.
+
+51
+00:02:48.010 --> 00:02:50.360
+Whenever the internet connection becomes available,
+
+52
+00:02:50.360 --> 00:02:53.190
+this function will be called once more, so we have the
+
+53
+00:02:53.190 --> 00:02:55.540
+latest data to enter into our cache.
+
+54
+00:02:55.540 --> 00:02:57.010
+If there is internet connection,
+
+55
+00:02:57.010 --> 00:03:00.220
+then this function will be called only once. As a parameter,
+
+56
+00:03:00.220 --> 00:03:01.660
+it has a cache service,
+
+57
+00:03:01.660 --> 00:03:04.270
+which is a service that we are going to use to store the data
+
+58
+00:03:04.270 --> 00:03:07.470
+locally, and then it has the input from the update,
+
+59
+00:03:07.470 --> 00:03:09.680
+which is the createGlobomanticsTasks data.
+
+60
+00:03:09.680 --> 00:03:12.470
+As a first step, we need to read all the data from the cache.
+
+61
+00:03:12.470 --> 00:03:16.090
+We can do that using the readQuery function and then specifying the
+
+62
+00:03:16.090 --> 00:03:19.170
+GetAllQuery, which will return all our items.
+
+63
+00:03:19.170 --> 00:03:21.370
+Next, we override the items on the
+
+64
+00:03:21.370 --> 00:03:24.380
+listGlobomanticsTasks property on the data object.
+
+65
+00:03:24.380 --> 00:03:29.390
+Here, we're combining into an array the newly‑created item and then the
+
+66
+00:03:29.390 --> 00:03:33.780
+old data, but we are leaving out the item that has the same id as our
+
+67
+00:03:33.780 --> 00:03:37.040
+newly‑created item or newly‑updated item.
+
+68
+00:03:37.040 --> 00:03:39.990
+And finally, we write the data into the cache using the
+
+69
+00:03:39.990 --> 00:03:42.950
+cache.writeQuery function. As parameters, we need to
+
+70
+00:03:42.950 --> 00:03:45.450
+specify the query and then the data.
+
+71
+00:03:45.450 --> 00:03:50.540
+Now, let's save our changes and try this in action.
+
+72
+00:03:50.540 --> 00:03:54.440
+We can simulate a no internet connection scenario by going to the Network
+
+73
+00:03:54.440 --> 00:03:57.840
+tab on our browser and setting the Throttling to Offline.
+
+74
+00:03:57.840 --> 00:04:03.090
+Now, let's add a new task. As soon as we hit Create, our update function
+
+75
+00:04:03.090 --> 00:04:06.130
+should be called. Now, as soon as we added the task,
+
+76
+00:04:06.130 --> 00:04:09.840
+we can see that the update function was called and the
+
+77
+00:04:09.840 --> 00:04:12.870
+createTask function is logged in the console where we can
+
+78
+00:04:12.870 --> 00:04:14.350
+see the details of our task.
+
+79
+00:04:14.350 --> 00:04:19.030
+Since, for fetch policy, we're using network and cache, first,
+
+80
+00:04:19.030 --> 00:04:22.560
+it's loading all the data from the cache, and our offline item was
+
+81
+00:04:22.560 --> 00:04:26.160
+added to the cache, so now it can be displayed in the UI. Whenever an
+
+82
+00:04:26.160 --> 00:04:27.780
+internet connection becomes available,
+
+83
+00:04:27.780 --> 00:04:30.240
+the update function will be called once more.
+
+84
+00:04:30.240 --> 00:04:33.020
+Let's clear the cache and navigate to our Network tab.
+
+85
+00:04:33.020 --> 00:04:36.650
+Now, let's change the Throttling from Offline to Online.
+
+86
+00:04:36.650 --> 00:04:37.950
+And as soon as we do,
+
+87
+00:04:37.950 --> 00:04:39.990
+we are going to see a network call being made to
+
+88
+00:04:39.990 --> 00:04:45.840
+our AppSync back end. And indeed, we have a network call.
+
+89
+00:04:45.840 --> 00:04:47.660
+If we look at the request details,
+
+90
+00:04:47.660 --> 00:04:51.540
+we can see that the createGlobomanticsTasks mutation was sent.
+
+91
+00:04:51.540 --> 00:04:53.740
+And if we navigate back to our console,
+
+92
+00:04:53.740 --> 00:04:56.970
+we can see that the update function was called once more when internet
+
+93
+00:04:56.970 --> 00:05:00.700
+connection became available and new data was sent to the client. Using the
+
+94
+00:05:00.700 --> 00:05:04.740
+local cache and the optimistic response, we can make our user experience
+
+95
+00:05:04.740 --> 00:05:07.050
+seamless by allowing them to continue working,
+
+96
+00:05:07.050 --> 00:05:10.050
+even if they lose internet connection and sync all their
+
+97
+00:05:10.050 --> 00:05:13.350
+changes later. Just like we did with the createTasks mutation
+
+98
+00:05:13.350 --> 00:05:15.080
+where we added the item to the cache,
+
+99
+00:05:15.080 --> 00:05:18.000
+we need to do the same with update and the delete mutations.
+
+100
+00:05:18.000 --> 00:05:21.400
+The logic for the update mutation is going to be exactly the same
+
+101
+00:05:21.400 --> 00:05:25.230
+as the create mutation. And for the deleteTasks mutation, we just
+
+102
+00:05:25.230 --> 00:05:26.910
+need to remove the item from the cache.
+
+103
+00:05:26.910 --> 00:05:34.000
+I'll leave this up to you so you can test your skills, but you can find the final implementation in the exercise files.
+

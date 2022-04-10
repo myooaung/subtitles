@@ -1,0 +1,509 @@
+WEBVTT
+1
+00:00:02.340 --> 00:00:06.740
+AWS AppSync uses resolvers to get or mutate data.
+
+2
+00:00:06.740 --> 00:00:10.820
+Each mutation query or field has resolvers attached to them to
+
+3
+00:00:10.820 --> 00:00:13.820
+perform the specific action of handing the data.
+
+4
+00:00:13.820 --> 00:00:17.000
+For complex cases, when we went to perform multiple operations,
+
+5
+00:00:17.000 --> 00:00:18.970
+we can use pipeline resolvers.
+
+6
+00:00:18.970 --> 00:00:22.930
+A pipeline resolver is just like a resolver that has a
+
+7
+00:00:22.930 --> 00:00:26.840
+BEFORE and AFTER mapping template, and in between,
+
+8
+00:00:26.840 --> 00:00:29.740
+has a list of functions that it executes.
+
+9
+00:00:29.740 --> 00:00:33.440
+The list of functions in a pipeline resolver will run in SQL.
+
+10
+00:00:33.440 --> 00:00:38.540
+Each function output is available to the next function as ctx.prev.result.
+
+11
+00:00:38.540 --> 00:00:43.150
+Our Task Manager create description uses HTML, and the content in
+
+12
+00:00:43.150 --> 00:00:46.240
+the description is rendered as HTML as well,
+
+13
+00:00:46.240 --> 00:00:50.340
+which could open us to cross‑site scripting attacks.
+
+14
+00:00:50.340 --> 00:00:52.540
+For our createGlobomanticsTasks mutation,
+
+15
+00:00:52.540 --> 00:00:55.040
+we are going to create a pipeline resolver.
+
+16
+00:00:55.040 --> 00:00:57.060
+Then, inside this pipeline resolver,
+
+17
+00:00:57.060 --> 00:00:59.300
+we are going to use a Lambda function that will
+
+18
+00:00:59.300 --> 00:01:02.240
+sanitize our HTML and make it safe.
+
+19
+00:01:02.240 --> 00:01:04.030
+From the Lambda Functions portal,
+
+20
+00:01:04.030 --> 00:01:10.740
+let's create a new function using the Create function button.
+
+21
+00:01:10.740 --> 00:01:17.740
+Let's name it appsync‑html‑sanitizer and create our function.
+
+22
+00:01:17.740 --> 00:01:19.090
+Once our function is created,
+
+23
+00:01:19.090 --> 00:01:23.340
+we are going to upload its content from our exercise files.
+
+24
+00:01:23.340 --> 00:01:28.440
+From the Actions, we need to navigate to Upload a .zip file.
+
+25
+00:01:28.440 --> 00:01:30.840
+And then, click the Upload button.
+
+26
+00:01:30.840 --> 00:01:35.270
+You should find in the exercise files a file htmlSanitizer.zip.
+
+27
+00:01:35.270 --> 00:01:40.640
+This function has the logic for sanitizing our HTML and making it safe.
+
+28
+00:01:40.640 --> 00:01:43.570
+Let's upload this file and click Save.
+
+29
+00:01:43.570 --> 00:01:47.910
+And the logic for our function will be found under htmlSanitizer.js file.
+
+30
+00:01:47.910 --> 00:01:52.000
+This function uses the sanitize‑html library and then outputs a
+
+31
+00:01:52.000 --> 00:01:54.880
+clean description from event.input.description,
+
+32
+00:01:54.880 --> 00:01:58.940
+which is the data that we pass into our function.
+
+33
+00:01:58.940 --> 00:02:03.740
+One last thing that we need to change is specify the handler.
+
+34
+00:02:03.740 --> 00:02:09.040
+On the Basic settings page, we need to change the handler.
+
+35
+00:02:09.040 --> 00:02:09.360
+Here,
+
+36
+00:02:09.360 --> 00:02:12.240
+we need to change it from index.handler to
+
+37
+00:02:12.240 --> 00:02:20.140
+src/handlers/htmlSanitizer.handler and then save the changes.
+
+38
+00:02:20.140 --> 00:02:24.440
+Now that we have set up our function, let's navigate back to our AppSync API.
+
+39
+00:02:24.440 --> 00:02:30.340
+First, we need to navigate to Data Sources and add our function as a data source.
+
+40
+00:02:30.340 --> 00:02:35.140
+Here, we need to create a new data source using the Create data source button.
+
+41
+00:02:35.140 --> 00:02:36.740
+And then specify a name.
+
+42
+00:02:36.740 --> 00:02:40.040
+Let's name our data source htmlsanitizer.
+
+43
+00:02:40.040 --> 00:02:43.240
+Next, we need to specify the Data source type.
+
+44
+00:02:43.240 --> 00:02:48.140
+In our case, it's going to be AWS Lambda.
+
+45
+00:02:48.140 --> 00:02:50.940
+Up next, we need to specify the region.
+
+46
+00:02:50.940 --> 00:02:52.720
+In my case, it is US‑EAST‑1.
+
+47
+00:02:52.720 --> 00:02:55.250
+You need to make sure that you select the correct region; otherwise,
+
+48
+00:02:55.250 --> 00:02:57.940
+your function list will not show up.
+
+49
+00:02:57.940 --> 00:03:00.740
+And finally, we need to select our function.
+
+50
+00:03:00.740 --> 00:03:06.140
+The function name was appsync‑html‑sanitizer.
+
+51
+00:03:06.140 --> 00:03:08.360
+For the role, I'm going to choose to create a new role,
+
+52
+00:03:08.360 --> 00:03:11.340
+as this will set up all the permissions for me.
+
+53
+00:03:11.340 --> 00:03:15.140
+And now, let's create our data source.
+
+54
+00:03:15.140 --> 00:03:20.840
+Now that we have our data source, we need to navigate to Functions.
+
+55
+00:03:20.840 --> 00:03:25.640
+Here, let's create a new function using the Create function button.
+
+56
+00:03:25.640 --> 00:03:26.510
+For the data source,
+
+57
+00:03:26.510 --> 00:03:32.340
+we need to specify the newly created data source htmlsanitizer.
+
+58
+00:03:32.340 --> 00:03:38.940
+And then let's name it HtmlSanitizerFunction.
+
+59
+00:03:38.940 --> 00:03:41.570
+We are going to leave the mapping templates as default.
+
+60
+00:03:41.570 --> 00:03:42.850
+But if you wanted to change,
+
+61
+00:03:42.850 --> 00:03:46.240
+we can change the payload here and set it as something else.
+
+62
+00:03:46.240 --> 00:03:51.940
+Right now, I'm setting to all the arguments that are passed into our API.
+
+63
+00:03:51.940 --> 00:03:56.740
+Now, let's save our function using the Create function button.
+
+64
+00:03:56.740 --> 00:04:00.220
+Now that we have our function, we need to navigate to our resolver.
+
+65
+00:04:00.220 --> 00:04:05.440
+We can find the resolvers in the Schema definition.
+
+66
+00:04:05.440 --> 00:04:12.940
+Here, we need to find the createGlobomanticsTasks resolver.
+
+67
+00:04:12.940 --> 00:04:17.240
+On the createGlobomanticsTasks, let's open up the resolver.
+
+68
+00:04:17.240 --> 00:04:21.540
+To create a pipeline resolver, we use the Convert to pipeline resolver.
+
+69
+00:04:21.540 --> 00:04:24.970
+This will automatically convert our existing resolver into
+
+70
+00:04:24.970 --> 00:04:27.640
+a function and then create a pipeline.
+
+71
+00:04:27.640 --> 00:04:28.720
+As we can see,
+
+72
+00:04:28.720 --> 00:04:31.070
+it says that it will create a new function using our
+
+73
+00:04:31.070 --> 00:04:34.620
+existing data source and mapping templates and update this
+
+74
+00:04:34.620 --> 00:04:38.240
+resolver to a pipeline resolver, which is what we want.
+
+75
+00:04:38.240 --> 00:04:41.430
+Now, let's convert our resolver into a pipeline resolver.
+
+76
+00:04:41.430 --> 00:04:42.600
+As we can see,
+
+77
+00:04:42.600 --> 00:04:48.560
+our pipeline resolver has a Before mapping template and After mapping template,
+
+78
+00:04:48.560 --> 00:04:50.840
+which outputs the results to JSON.
+
+79
+00:04:50.840 --> 00:04:53.840
+And then, in between, we have the functions.
+
+80
+00:04:53.840 --> 00:04:56.510
+AppSync already converted our resolver,
+
+81
+00:04:56.510 --> 00:04:58.780
+which was a createGlobomanticsTasks resolver,
+
+82
+00:04:58.780 --> 00:05:00.340
+into a function.
+
+83
+00:05:00.340 --> 00:05:05.240
+So in our case now, the pipeline resolver has only one function to execute.
+
+84
+00:05:05.240 --> 00:05:08.340
+We can add new functions using the Add function button.
+
+85
+00:05:08.340 --> 00:05:11.090
+Here, we are going to use an existing function,
+
+86
+00:05:11.090 --> 00:05:14.140
+which is the HtmlSanitizerFunction.
+
+87
+00:05:14.140 --> 00:05:15.900
+Now, we need to change the order.
+
+88
+00:05:15.900 --> 00:05:18.870
+The HtmlSanitizerFunction needs to be executed before the
+
+89
+00:05:18.870 --> 00:05:21.270
+createGlobomanticsTasks_Function; otherwise,
+
+90
+00:05:21.270 --> 00:05:24.140
+the data will be already stored in our DB.
+
+91
+00:05:24.140 --> 00:05:29.040
+Let's select the HtmlSanitizerFunction and use the Move up button to move it up.
+
+92
+00:05:29.040 --> 00:05:32.440
+And finally, let's save our resolver.
+
+93
+00:05:32.440 --> 00:05:34.180
+Now that the resolver has been saved,
+
+94
+00:05:34.180 --> 00:05:37.140
+we need to update the createGlobomanticsTasks_Function.
+
+95
+00:05:37.140 --> 00:05:40.270
+We need to get the description, not from the input from the client,
+
+96
+00:05:40.270 --> 00:05:45.040
+but from the clean description output from the HtmlSanitizerFunction.
+
+97
+00:05:45.040 --> 00:05:48.740
+We can quickly edit using the Edit button.
+
+98
+00:05:48.740 --> 00:05:51.590
+Here, we need to change where we get the description from.
+
+99
+00:05:51.590 --> 00:05:55.340
+Instead of getting it from ctx.args.input.description,
+
+100
+00:05:55.340 --> 00:05:58.540
+we need to get it from the html‑sanitizer output.
+
+101
+00:05:58.540 --> 00:06:03.030
+The html‑sanitizer output can be found under ctx.prev.result,
+
+102
+00:06:03.030 --> 00:06:05.740
+and we are going to use the cleanDescription field.
+
+103
+00:06:05.740 --> 00:06:09.040
+If you look at our html‑sanitizer‑Lambda function,
+
+104
+00:06:09.040 --> 00:06:13.040
+it outputs an object with the field, cleanDescription.
+
+105
+00:06:13.040 --> 00:06:16.040
+Now let's go ahead and save our changes.
+
+106
+00:06:16.040 --> 00:06:18.010
+Now that we have set up our function,
+
+107
+00:06:18.010 --> 00:06:21.060
+let's navigate back to our client application and test this out.
+
+108
+00:06:21.060 --> 00:06:24.040
+Here, let's start by creating a new task.
+
+109
+00:06:24.040 --> 00:06:26.630
+Let's name this task scripting attack.
+
+110
+00:06:26.630 --> 00:06:31.150
+Now, in the Description, we can actually insert JavaScript code if we wanted to.
+
+111
+00:06:31.150 --> 00:06:33.810
+Here, for example, we can set it so it alerts a message,
+
+112
+00:06:33.810 --> 00:06:35.540
+but we can do much more.
+
+113
+00:06:35.540 --> 00:06:39.150
+Now, if we move from the code view to the normal view,
+
+114
+00:06:39.150 --> 00:06:41.840
+we will see that this script will be executed.
+
+115
+00:06:41.840 --> 00:06:44.640
+And indeed, the script gets executed.
+
+116
+00:06:44.640 --> 00:06:47.610
+Because the editor is rendering the HTML content,
+
+117
+00:06:47.610 --> 00:06:49.190
+it's rendering the script as well.
+
+118
+00:06:49.190 --> 00:06:52.140
+Now, let's say OK and create our task.
+
+119
+00:06:52.140 --> 00:06:56.240
+And now, if we open our new task, we should not get an alert message,
+
+120
+00:06:56.240 --> 00:06:59.340
+as it should have been removed by the html‑sanitizer.
+
+121
+00:06:59.340 --> 00:07:01.340
+And indeed, we do not get it.
+
+122
+00:07:01.340 --> 00:07:02.940
+And if we look into the code view,
+
+123
+00:07:02.940 --> 00:07:05.580
+we see that there is no JavaScript there, and our
+
+124
+00:07:05.580 --> 00:07:07.740
+function execution was successful.
+
+125
+00:07:07.740 --> 00:07:12.080
+Pipeline resolvers are a great tool when we are building large custom APIs.
+
+126
+00:07:12.080 --> 00:07:14.930
+We can execute multiple functions in sequence,
+
+127
+00:07:14.930 --> 00:07:25.000
+and those same functions can be used in other pipeline resolvers, which offers great flexibility and lets us build usable functions.
+

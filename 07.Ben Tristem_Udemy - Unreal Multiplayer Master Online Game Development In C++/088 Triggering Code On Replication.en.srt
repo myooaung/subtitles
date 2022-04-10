@@ -1,0 +1,679 @@
+1
+00:00:04,930 --> 00:00:09,880
+Welcome in this lecture we are going to be making our autonomous proxy smooth again.
+
+2
+00:00:09,880 --> 00:00:13,450
+So here you can see that I'm driving around very smoothly.
+
+3
+00:00:13,450 --> 00:00:18,730
+But no matter what I do with all this slaloming and I've already been playing for a little while the
+
+4
+00:00:18,730 --> 00:00:24,030
+location here that I'm seeing is the same location that we're seeing over on the server.
+
+5
+00:00:24,070 --> 00:00:29,200
+But without having a horrible liking say a little bit of glitching and that's we're going to talk about
+
+6
+00:00:29,230 --> 00:00:34,930
+why that's the case but we're going to figure out how we can make sure that we are simulating between
+
+7
+00:00:34,930 --> 00:00:38,760
+getting our server updates So let's dive in and see how it works.
+
+8
+00:00:39,630 --> 00:00:46,620
+So we can see that the issue right now is that our Thomas proxy is coming across a little bit jittery
+
+9
+00:00:46,680 --> 00:00:51,480
+basically and we want to find out why and we want to find out how to fix it so let's take a little bit
+
+10
+00:00:51,480 --> 00:00:54,660
+of a deep dive on to property replication.
+
+11
+00:00:54,660 --> 00:00:58,800
+So here are two timelines for the server and the client.
+
+12
+00:00:58,830 --> 00:01:04,440
+Now what happens with property replication is that we regularly check on the server whether a particular
+
+13
+00:01:04,440 --> 00:01:05,550
+property has changed.
+
+14
+00:01:05,640 --> 00:01:10,830
+So we do a check if nothing has changed we do nothing to another check.
+
+15
+00:01:10,890 --> 00:01:12,470
+Nothing's changed nothing happens.
+
+16
+00:01:12,570 --> 00:01:19,290
+But if we have a change something denoted by this orange arrow then we get a different kind of check
+
+17
+00:01:19,770 --> 00:01:24,380
+that check says hey something has changed and we need to do something about it.
+
+18
+00:01:24,480 --> 00:01:30,030
+What we do about it is that we send an update to all the clients to for them to update their replicated
+
+19
+00:01:30,030 --> 00:01:34,830
+property and they will set it to whatever the server just saw the update.
+
+20
+00:01:35,310 --> 00:01:39,660
+Now this does happen on a kind of fixed or update interval.
+
+21
+00:01:39,660 --> 00:01:45,540
+So he you can see we kind of had a regular interval here and thats what carries on you keep getting
+
+22
+00:01:45,540 --> 00:01:49,140
+these regular intervals and if you update comes somewhere between the interval.
+
+23
+00:01:49,290 --> 00:01:53,640
+Well it has to wait until the next check and if the next check come through then thats when it gets
+
+24
+00:01:53,640 --> 00:01:55,530
+updated on the client.
+
+25
+00:01:55,530 --> 00:02:00,360
+So it would be useful for us is to actually know when that update has come through rather than just
+
+26
+00:02:00,360 --> 00:02:06,480
+reading the property every tick actually knowing when it has changed and getting some events from that
+
+27
+00:02:06,480 --> 00:02:06,870
+change.
+
+28
+00:02:06,870 --> 00:02:12,240
+Now that is possible in unreel and this does mean that between these events which could be fairly infrequent
+
+29
+00:02:12,240 --> 00:02:18,420
+depending on the network update time then you should be simulating to give a smooth experience to the
+
+30
+00:02:18,420 --> 00:02:18,980
+user.
+
+31
+00:02:19,110 --> 00:02:25,210
+So the first thing is that network update time we actually set it can we stress test that network update
+
+32
+00:02:25,230 --> 00:02:29,390
+time and make it really bad so that we have to do a good job.
+
+33
+00:02:29,590 --> 00:02:30,560
+Well yes we can.
+
+34
+00:02:30,570 --> 00:02:35,130
+And if you go to the documentation which you should be able to find its also linked in the resources
+
+35
+00:02:35,520 --> 00:02:39,750
+you can go and look for the next update frequency as it's called.
+
+36
+00:02:39,790 --> 00:02:42,950
+It's this float here that you can set on the actor.
+
+37
+00:02:42,960 --> 00:02:48,060
+And as it says in the documentation it's how often per second this actor will be considered for replication.
+
+38
+00:02:48,510 --> 00:02:50,030
+So that's what we want to do.
+
+39
+00:02:50,040 --> 00:02:55,190
+We want a set and Net update frequency to make it really bad let's go in to the go kart.
+
+40
+00:02:55,280 --> 00:03:00,110
+So unusual to be trying to make our game worse but it's the stress test it and make it better.
+
+41
+00:03:00,150 --> 00:03:04,110
+So were going to go into begin play go and do an IF has authority.
+
+42
+00:03:04,560 --> 00:03:09,420
+And if we have authority then we're going to go ahead and set this Net update frequency.
+
+43
+00:03:09,450 --> 00:03:13,980
+Now remember it's for frequency not a time that's not the time of the interval but how many times per
+
+44
+00:03:13,980 --> 00:03:15,630
+second we want to update.
+
+45
+00:03:15,630 --> 00:03:21,190
+I'm just going to for one which is going to be basically small I can make it I'm going to go ahead and.
+
+46
+00:03:22,070 --> 00:03:22,600
+Build.
+
+47
+00:03:22,610 --> 00:03:27,680
+So we'll try to make it as small as possible because then the time between will be as large as possible
+
+48
+00:03:27,690 --> 00:03:33,670
+we're going to have 1 second between each update and that's going to make it look really horrible and
+
+49
+00:03:33,670 --> 00:03:39,080
+we're going to do the best we can to ensure we're simulating in the gaps between the updates from the.
+
+50
+00:03:39,740 --> 00:03:46,160
+So that has succeeded to build Let's go over to and real and hit play and see it in action.
+
+51
+00:03:46,190 --> 00:03:50,630
+Except we haven't spawned Probably so Let's escape go and play again.
+
+52
+00:03:50,630 --> 00:03:55,570
+So the spawning issue does still crop up we'll look up into it a bit more hopefully.
+
+53
+00:03:55,700 --> 00:04:00,440
+But if you go and drive your car now with that now update you can see that it's working fine on the
+
+54
+00:04:00,440 --> 00:04:00,780
+server.
+
+55
+00:04:00,800 --> 00:04:08,540
+In fact from the server I can drive it fairly effectively but from the client my word the update once
+
+56
+00:04:08,540 --> 00:04:11,450
+a second is clearly not enough for a driving game.
+
+57
+00:04:11,480 --> 00:04:14,450
+So we're going to need to be able to simulate much much better locally.
+
+58
+00:04:14,480 --> 00:04:19,990
+So to do that we need to know how we can get those notifications and we get the notifications.
+
+59
+00:04:20,000 --> 00:04:22,650
+Well there is a.
+
+60
+00:04:23,760 --> 00:04:29,020
+Parameter for our you property and it is called replicated use.
+
+61
+00:04:29,030 --> 00:04:31,960
+But as you can see the documentation here is rather rather scarse.
+
+62
+00:04:32,070 --> 00:04:36,040
+So I'm going to take you through very simply what it is you need to do with that.
+
+63
+00:04:36,060 --> 00:04:37,770
+Leaving that page hopefully.
+
+64
+00:04:38,430 --> 00:04:40,900
+So let's go over in to Visual Studio.
+
+65
+00:04:40,900 --> 00:04:45,050
+We're going to go to our head of file and hear here we've got our replicated location.
+
+66
+00:04:45,060 --> 00:04:49,010
+We are going to switch out replicated for.
+
+67
+00:04:49,880 --> 00:04:53,720
+Replicate using which is what it's called.
+
+68
+00:04:53,780 --> 00:04:57,830
+In fact replicated using make sure that's correct.
+
+69
+00:04:57,980 --> 00:05:03,170
+And then we need to have a function to give it own going to declare a function that's going to be void
+
+70
+00:05:03,260 --> 00:05:09,410
+and it's going to be on rep as the prefix to it unwrap underscore and then I'm just going to use the
+
+71
+00:05:09,410 --> 00:05:15,640
+name of the property that is triggering for which is replicated location.
+
+72
+00:05:16,090 --> 00:05:16,470
+OK.
+
+73
+00:05:16,530 --> 00:05:21,740
+So not taking any arguments is not returning anything because all it is it's a trigger saying yet that
+
+74
+00:05:21,740 --> 00:05:26,200
+property has been updated and that's what we're going to pass in to you property.
+
+75
+00:05:26,210 --> 00:05:30,980
+Now if you build it now you'll see that there is an issue and that is that this function needs to be
+
+76
+00:05:30,980 --> 00:05:38,450
+a new function for it to be called as an event for our note basically being a replication notification.
+
+77
+00:05:38,450 --> 00:05:44,450
+So getting ahead and build that and going to actually go ahead and implement it is going to give us
+
+78
+00:05:44,450 --> 00:05:49,240
+a warning at the moment that it's not influenza's So I'm going to go over in to the C plus plus now
+
+79
+00:05:49,810 --> 00:05:53,930
+it's going to be used for overriding what's happening ticks I'm going to put it near.
+
+80
+00:05:54,170 --> 00:06:01,770
+Just to show that they are related and I'm going to use it to log out so we don't have any log function
+
+81
+00:06:01,820 --> 00:06:05,750
+here that I can copy for for speed for brevity.
+
+82
+00:06:05,750 --> 00:06:10,780
+So what I'm going to actually have to do is write a long list from scratch you e log.
+
+83
+00:06:12,750 --> 00:06:17,420
+I understand then it's going to be log temp warning.
+
+84
+00:06:18,290 --> 00:06:19,360
+Not waning.
+
+85
+00:06:19,370 --> 00:06:26,600
+And it's going to be text and it's going to say replicated location so we to see what that actually
+
+86
+00:06:26,600 --> 00:06:30,040
+goes ahead and does going go ahead build it and see.
+
+87
+00:06:31,330 --> 00:06:38,960
+Got one error at the moment let's go to an output log and see what that is it's saying unresolved externals.
+
+88
+00:06:39,000 --> 00:06:43,980
+That'll be because in my C++ I've forgotten to name space.
+
+89
+00:06:44,280 --> 00:06:44,760
+Oh dear.
+
+90
+00:06:44,760 --> 00:06:48,610
+So we're doing a cart kilgallen should do the trick.
+
+91
+00:06:50,020 --> 00:06:53,960
+Sure enough that builds So let's go over into the I was.
+
+92
+00:06:54,420 --> 00:07:01,090
+And I hit play and all I can see is that in the log at the bottom Currently there is only two replicated
+
+93
+00:07:01,090 --> 00:07:04,090
+locations coming through is probably the initial ones.
+
+94
+00:07:04,240 --> 00:07:10,720
+But if I give some input then you can see that roughly once a second we are getting some replicated
+
+95
+00:07:10,720 --> 00:07:15,040
+locations coming through and to our car will come to a stop at which point there will be no update to
+
+96
+00:07:15,040 --> 00:07:17,770
+the location so it will stop replicating the location.
+
+97
+00:07:18,110 --> 00:07:18,440
+Okay.
+
+98
+00:07:18,460 --> 00:07:20,380
+So that's how we replicate location.
+
+99
+00:07:20,380 --> 00:07:25,150
+What about the next bit how do we actually go ahead and do the simulation between the old days.
+
+100
+00:07:25,150 --> 00:07:27,080
+Well actually you're going to figure that out.
+
+101
+00:07:27,200 --> 00:07:28,920
+You're going to simulate between updates.
+
+102
+00:07:28,940 --> 00:07:33,740
+So first thing is I personally think that we need to replicate the transform for simplicity.
+
+103
+00:07:33,750 --> 00:07:39,340
+So rather than doing this separate location and rotation I'm going to refactor towards just using the
+
+104
+00:07:39,340 --> 00:07:40,250
+transform.
+
+105
+00:07:40,420 --> 00:07:44,950
+You can choose to do that or not to then I'd like you to ensure that you're simulating locally and in
+
+106
+00:07:44,950 --> 00:07:50,020
+order to do that you going to need to make sure that you only overwrite when there is an update rather
+
+107
+00:07:50,020 --> 00:07:50,950
+than every tick.
+
+108
+00:07:50,950 --> 00:07:53,480
+So pause a video and see if you can figure this out.
+
+109
+00:07:55,040 --> 00:07:56,000
+Okay welcome back.
+
+110
+00:07:56,000 --> 00:07:58,920
+So let's dive in and give it our best shot.
+
+111
+00:07:58,940 --> 00:08:01,520
+So what we're trying to do is simulate between updates.
+
+112
+00:08:01,520 --> 00:08:02,080
+I'm going to do.
+
+113
+00:08:02,090 --> 00:08:05,780
+First of all this refactor towards the transform.
+
+114
+00:08:05,780 --> 00:08:13,340
+So everywhere where we currently have a replicated location I'm going to refactor towards replicated
+
+115
+00:08:13,790 --> 00:08:15,550
+transform instead.
+
+116
+00:08:15,550 --> 00:08:20,260
+So of got replicated location going for replicated transform where the Find Replace in file.
+
+117
+00:08:20,510 --> 00:08:22,630
+Let's go ahead and replace all those.
+
+118
+00:08:23,960 --> 00:08:30,490
+Done all that in the head a file that's go ahead and do the same thing in the C++ file.
+
+119
+00:08:30,920 --> 00:08:32,260
+Replace all of them.
+
+120
+00:08:33,080 --> 00:08:34,520
+And that should pretty much do the trick.
+
+121
+00:08:34,520 --> 00:08:39,290
+Except now we want to get rid of our replicated rotation.
+
+122
+00:08:39,350 --> 00:08:40,340
+Don't need that anymore.
+
+123
+00:08:40,610 --> 00:08:46,300
+And replace the F vector for everybody kids transform with obviously an F transform instead.
+
+124
+00:08:46,510 --> 00:08:47,090
+Okay.
+
+125
+00:08:47,330 --> 00:08:53,400
+So we're going to have to go in and change where we are doing over writing because we're currently getting
+
+126
+00:08:53,420 --> 00:08:55,900
+the actor location which he wants to get.
+
+127
+00:08:55,900 --> 00:09:00,700
+Actor transform instead an semicolon.
+
+128
+00:09:00,720 --> 00:09:03,340
+And we're going to do a set.
+
+129
+00:09:03,370 --> 00:09:06,380
+Actor Transformers set a location.
+
+130
+00:09:08,730 --> 00:09:11,180
+And we were need to do anything with the rotation now.
+
+131
+00:09:11,360 --> 00:09:13,960
+So that's really simplifying things down a little bit.
+
+132
+00:09:14,290 --> 00:09:19,850
+And we're going to have to remove our replicator rotation from the end get lifetime replicated props.
+
+133
+00:09:20,080 --> 00:09:24,220
+So let's build that and see if it's still working as it was before.
+
+134
+00:09:24,910 --> 00:09:30,490
+So just a couple of errors here due to my spelling mistakes it seems that talking about get out transform
+
+135
+00:09:30,490 --> 00:09:31,530
+is undefined.
+
+136
+00:09:31,810 --> 00:09:38,380
+And I think that's just because I've misspelt transform so I can go ahead and build it again.
+
+137
+00:09:39,390 --> 00:09:43,730
+So it looks like there's just one more misspelling of transform in here.
+
+138
+00:09:44,120 --> 00:09:44,840
+Sorry about that.
+
+139
+00:09:44,840 --> 00:09:46,480
+Look go ahead and build it one more time.
+
+140
+00:09:46,490 --> 00:09:48,480
+I guess that's an advantage of a blueprint isn't it.
+
+141
+00:09:48,480 --> 00:09:51,640
+Fewer misspellings So let's go ahead and play.
+
+142
+00:09:51,870 --> 00:09:55,260
+See it's still working with the update on the transform.
+
+143
+00:09:56,070 --> 00:10:03,810
+So I'll go in to my all my autonomous proxy window client one and move around.
+
+144
+00:10:03,810 --> 00:10:05,530
+Yes I still get the rotation yes.
+
+145
+00:10:05,550 --> 00:10:07,200
+The position start dates.
+
+146
+00:10:07,320 --> 00:10:09,480
+So that is working just fine.
+
+147
+00:10:09,480 --> 00:10:18,870
+So we want to make sure that we are only updating or only overwriting when we are getting this rep replication
+
+148
+00:10:19,350 --> 00:10:20,190
+notification.
+
+149
+00:10:20,190 --> 00:10:24,090
+Now this replication notification will only come through on the client so we dont have to check that
+
+150
+00:10:24,090 --> 00:10:28,920
+we are the client or we got to do is over write the transform.
+
+151
+00:10:28,980 --> 00:10:31,040
+Whenever we get this on rep.
+
+152
+00:10:31,050 --> 00:10:37,020
+So thats what I'm going to do set the actor transform so we can get rid of this ELT's but we do still
+
+153
+00:10:37,020 --> 00:10:41,850
+need to set the replicator transform every frame when we are the server.
+
+154
+00:10:41,850 --> 00:10:43,590
+So that is pretty much it.
+
+155
+00:10:43,710 --> 00:10:48,030
+Because now you can see that if were not the server we are going to go ahead and update our location
+
+156
+00:10:48,420 --> 00:10:55,440
+and velocity from our own knowledge of it and only when we get data from the server we're going to overwrite
+
+157
+00:10:55,470 --> 00:10:58,030
+that asset actor transform.
+
+158
+00:10:58,760 --> 00:11:00,290
+So that builds succeeded.
+
+159
+00:11:00,310 --> 00:11:02,430
+Let's actually see whether it's going to work.
+
+160
+00:11:02,430 --> 00:11:09,600
+I'm going to go ahead and play and I'm going to be the autonomous client and you can see I'm definitely
+
+161
+00:11:09,600 --> 00:11:11,850
+getting smooth movement here.
+
+162
+00:11:12,060 --> 00:11:18,530
+And if I am moving around the updates don't seem to be affecting me that very much.
+
+163
+00:11:18,530 --> 00:11:26,160
+I'm pretty much guessing exactly the right thing you can occasionally see it glitch just a tiny little
+
+164
+00:11:26,160 --> 00:11:32,710
+bit just a tiny bit of glitching but for the most part it is very very smooth.
+
+165
+00:11:32,800 --> 00:11:39,450
+And the simulation on the client isn't diverging enough from the server in that one second gap for us
+
+166
+00:11:39,450 --> 00:11:43,010
+to see a significant jump from service client.
+
+167
+00:11:43,020 --> 00:11:47,510
+So this is seems to be working absolutely fantastically really really good.
+
+168
+00:11:47,610 --> 00:11:54,400
+But there is a problem and the problem is going to be a concept called lag or latency and that is going
+
+169
+00:11:54,400 --> 00:11:58,970
+to be the subject of the next lecture we're going to see how we can simulate some lag in our game.
+
+170
+00:11:59,130 --> 00:12:04,730
+And we're going to see well initially what we can do to try and improve on that.

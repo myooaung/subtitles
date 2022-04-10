@@ -1,0 +1,301 @@
+WEBVTT
+1
+00:00:00.140 --> 00:00:02.560
+Let's start with the reservation publisher.
+
+2
+00:00:02.560 --> 00:00:06.480
+The KafkaOutboundConfig class is a Spring configuration class.
+
+3
+00:00:06.480 --> 00:00:09.820
+We start by defining the broker we're going to connect to,
+
+4
+00:00:09.820 --> 00:00:13.540
+which is the local machine on port 9092.
+
+5
+00:00:13.540 --> 00:00:15.030
+We create two channels,
+
+6
+00:00:15.030 --> 00:00:17.660
+the reservationChannel is the channel to which the
+
+7
+00:00:17.660 --> 00:00:20.840
+BazReservationService will publish reservations,
+
+8
+00:00:20.840 --> 00:00:23.090
+which is handled by an objectToJsonTransformer,
+
+9
+00:00:23.090 --> 00:00:27.300
+and the publishReservationToKafka is the channel that
+
+10
+00:00:27.300 --> 00:00:29.460
+publishes the messages to Kafka.
+
+11
+00:00:29.460 --> 00:00:32.480
+The handler method creates a being that's invoked by a
+
+12
+00:00:32.480 --> 00:00:35.130
+ServiceActivater when a message is published to the
+
+13
+00:00:35.130 --> 00:00:37.340
+publishReservationToKafka channel.
+
+14
+00:00:37.340 --> 00:00:41.440
+The KafkaProducerMessageHandler is created with a KafkaTemplate
+
+15
+00:00:41.440 --> 00:00:44.160
+that is configured with a ProducerFactory.
+
+16
+00:00:44.160 --> 00:00:47.250
+The default KafkaProducerFactory is configured with
+
+17
+00:00:47.250 --> 00:00:49.500
+three producer config properties.
+
+18
+00:00:49.500 --> 00:00:54.170
+The BOOTSTRAP_SERVERS_CONFIG specifies the brokerAddress to connect to.
+
+19
+00:00:54.170 --> 00:00:58.320
+The KEY_SERIALIZER_CLASS_CONFIG defines the class name that
+
+20
+00:00:58.320 --> 00:01:01.240
+performs the serialization of the message key,
+
+21
+00:01:01.240 --> 00:01:02.840
+which is the partition name.
+
+22
+00:01:02.840 --> 00:01:03.880
+And finally,
+
+23
+00:01:03.880 --> 00:01:07.890
+the VALUE_SERIALIZER_CLASS_CONFIG defines the class name that
+
+24
+00:01:07.890 --> 00:01:11.030
+performs the serialization of the message value,
+
+25
+00:01:11.030 --> 00:01:12.570
+which is the message payload.
+
+26
+00:01:12.570 --> 00:01:13.840
+For both of these,
+
+27
+00:01:13.840 --> 00:01:17.400
+we use the StringSerializer because we're going to send a JSON
+
+28
+00:01:17.400 --> 00:01:20.550
+string as the message body and a string as the key.
+
+29
+00:01:20.550 --> 00:01:22.730
+With the KafkaTemplate created,
+
+30
+00:01:22.730 --> 00:01:27.360
+we create a KafkaProducerMessageHandler and specify two properties.
+
+31
+00:01:27.360 --> 00:01:32.160
+The TopicExpression sets the name of the topic we want to publish to,
+
+32
+00:01:32.160 --> 00:01:36.860
+and the MessageKeyExpression sets the partition name in that topic.
+
+33
+00:01:36.860 --> 00:01:41.690
+All of this is to say that this message handler will publish its messages to
+
+34
+00:01:41.690 --> 00:01:45.740
+the reservation key partition in the ReservationTopic.
+
+35
+00:01:45.740 --> 00:01:46.260
+Next,
+
+36
+00:01:46.260 --> 00:01:50.360
+we create a messaging gateway named BazReservationGateway that
+
+37
+00:01:50.360 --> 00:01:54.170
+publishes a BazReservation to the reservationChannel when it's
+
+38
+00:01:54.170 --> 00:01:56.430
+published ReservationMethod is called.
+
+39
+00:01:56.430 --> 00:01:59.580
+The BazReservation is a plain old Java object that
+
+40
+00:01:59.580 --> 00:02:02.130
+manages an id and a name field.
+
+41
+00:02:02.130 --> 00:02:05.830
+The BazReservation service is a Spring service with the
+
+42
+00:02:05.830 --> 00:02:09.600
+BazReservationGateway wired into it that publishes a
+
+43
+00:02:09.600 --> 00:02:13.670
+BazReservation to the reservationChannel through the Gateway when
+
+44
+00:02:13.670 --> 00:02:16.320
+it's PublishedReservation method is called.
+
+45
+00:02:16.320 --> 00:02:17.160
+Finally,
+
+46
+00:02:17.160 --> 00:02:21.720
+the BazReservationPublisher application is a Spring boot command line
+
+47
+00:02:21.720 --> 00:02:25.850
+application with the BazReservationService wired into it that
+
+48
+00:02:25.850 --> 00:02:28.880
+publishes 6 reservations through the service,
+
+49
+00:02:28.880 --> 00:02:31.740
+all with a 2 second delay between posts.
+
+50
+00:02:31.740 --> 00:02:33.840
+Now let's look at the receiving end.
+
+51
+00:02:33.840 --> 00:02:37.800
+The KafkaInboundConfig defines a reservationFromKafka
+
+52
+00:02:37.800 --> 00:02:41.540
+Channel and a Kafka message source annotated with the
+
+53
+00:02:41.540 --> 00:02:43.720
+InboundChannelAdapter annotation.
+
+54
+00:02:43.720 --> 00:02:47.580
+This annotation defines the channel to publish messages to,
+
+55
+00:02:47.580 --> 00:02:50.160
+namely the ReservationFromKafka channel,
+
+56
+00:02:50.160 --> 00:02:53.320
+and defines a poller that polls the message source
+
+57
+00:02:53.320 --> 00:02:55.840
+every 1 second for new messages.
+
+58
+00:02:55.840 --> 00:03:00.740
+We create a new KafkaMessageSource using a ConsumerFactory that Spring
+
+59
+00:03:00.740 --> 00:03:05.270
+will automatically create for us when it sees the Spring Kafka libraries
+
+60
+00:03:05.270 --> 00:03:08.490
+in the class path and a ConsumerProperties,
+
+61
+00:03:08.490 --> 00:03:12.750
+which specifies the name of the topic we want to poll and the groupId.
+
+62
+00:03:12.750 --> 00:03:18.110
+Recall that all consumers with the same groupId will consume messages together,
+
+63
+00:03:18.110 --> 00:03:21.210
+but in this case, we only have one consumer,
+
+64
+00:03:21.210 --> 00:03:24.300
+but regardless, we're required to specify the groupId,
+
+65
+00:03:24.300 --> 00:03:27.020
+so we set it to ReservationGroup.
+
+66
+00:03:27.020 --> 00:03:32.020
+The BazReservationListener is a Spring service with a ServiceActivater that
+
+67
+00:03:32.020 --> 00:03:35.940
+handles messages published to the reservationFromKafka channel.
+
+68
+00:03:35.940 --> 00:03:41.100
+We received the message as a JSON string, use a Jackson ObjectMapper to
+
+69
+00:03:41.100 --> 00:03:44.490
+convert it to an object, and then log it. Finally,
+
+70
+00:03:44.490 --> 00:03:48.930
+the KafkaExampleApplication just starts the listener as the Spring boot
+
+71
+00:03:48.930 --> 00:03:52.620
+application loads the beings from the configuration class.
+
+72
+00:03:52.620 --> 00:03:56.880
+Let's run both applications and review the logs. In the
+
+73
+00:03:56.880 --> 00:04:00.410
+BazReservationPublisher application, we can see that the
+
+74
+00:04:00.410 --> 00:04:04.460
+BazReservationService publishes 6 reservations,
+
+75
+00:04:04.460 --> 00:04:12.000
+and in the KafkaExampleApplication, we see that the BazReservationListener receives the 6 reservations.
+

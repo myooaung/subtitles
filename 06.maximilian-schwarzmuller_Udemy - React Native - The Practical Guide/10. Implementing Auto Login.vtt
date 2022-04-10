@@ -1,0 +1,571 @@
+WEBVTT
+
+00:02.100 --> 00:03.360
+So we achieved a lot.
+
+00:03.390 --> 00:05.460
+We're able to write data fetch data.
+
+00:05.460 --> 00:08.190
+Use our token to scope data or to scope.
+
+00:08.190 --> 00:10.950
+Products and orders to our currently locked end user.
+
+00:10.950 --> 00:12.610
+We are able to log in and so on.
+
+00:12.620 --> 00:14.280
+And that's all nice.
+
+00:14.280 --> 00:20.130
+One thing where we're not doing right now is we're not persisting our recessions.
+
+00:20.130 --> 00:23.970
+So to say if I reload I always have to log in again.
+
+00:24.030 --> 00:25.230
+That's not really what I want.
+
+00:25.230 --> 00:31.170
+It would be nice if we could automatically log in if we do have a valid token.
+
+00:31.170 --> 00:38.310
+And for this we need to do two things we need to store the token somewhere on the device not in redux
+
+00:38.310 --> 00:43.110
+because redux is in memory and this will be lost whenever the app restarts.
+
+00:43.110 --> 00:45.920
+So it needs to be somewhere on the hard drive of the device.
+
+00:45.930 --> 00:53.480
+So to say and in addition we need to check that storage whenever our app starts and automatically set
+
+00:53.480 --> 00:58.080
+the token in redux and redirect the user if we do find a valid token there.
+
+00:59.160 --> 01:05.590
+Now let's start with storing because that's a logical first step to a store where we need to import
+
+01:05.590 --> 01:10.090
+something here in what's not in the products action creator.
+
+01:10.090 --> 01:20.810
+But actually here in the off action creator there you need to import async storage from React Native
+
+01:21.930 --> 01:23.280
+with that imported.
+
+01:23.460 --> 01:32.130
+We can use that to then save data to the device async storage is a React Native API that in the end
+
+01:32.130 --> 01:38.370
+uses a key value storage on the device which is available both on ISIS and Android where we can store
+
+01:38.370 --> 01:45.150
+data that persists across app relaunches so which we can use to save data that is not lost when the
+
+01:45.150 --> 01:47.460
+app launches or restarts.
+
+01:47.460 --> 01:52.910
+So add a new function save data to storage or anything like that.
+
+01:53.040 --> 02:00.100
+And there I expect to get my token and my user I.D. the two pieces of data I'm interested in here and
+
+02:00.140 --> 02:08.970
+we can now use the async storage to then set an item which is how you save data and that item which
+
+02:08.970 --> 02:11.560
+you said needs to be a string.
+
+02:11.580 --> 02:14.840
+But first of all you need to define a key and all named user data.
+
+02:14.850 --> 02:19.260
+But that's up to you you will need that key later to retrieve your data.
+
+02:19.330 --> 02:21.170
+And the second value now is a string.
+
+02:21.180 --> 02:26.310
+So the string which you want to save in there and you must save a string essentially.
+
+02:26.440 --> 02:27.340
+Now that's no problem.
+
+02:27.340 --> 02:33.990
+We can use Jason string you fly to convert a javascript object to a string and the object which I want
+
+02:33.990 --> 02:40.200
+to convert is object that holds my token which I get as an argument here and it holds to user idea which
+
+02:40.200 --> 02:41.740
+I get his argument.
+
+02:41.790 --> 02:48.980
+So in the end we then save this object as a string to the device.
+
+02:48.990 --> 02:54.590
+Now we just need to call safe data to storage whenever we're done logging in or signing up.
+
+02:54.590 --> 03:01.080
+So here maybe after dispatching logging we can call safe data to storage and forward rest state DOT
+
+03:01.140 --> 03:08.100
+I.D. token and rest state DOT local I.D. So the same things we use in redux and we definitely want to
+
+03:08.100 --> 03:11.610
+use them there because redux is important for the running application.
+
+03:11.850 --> 03:18.090
+But I also save it to the device for when we want to load it when the app restarts.
+
+03:18.140 --> 03:22.810
+Now however data alone won't do the trick and we of course all need to do it when signing up.
+
+03:22.820 --> 03:28.340
+But that alone won't do the trick we'll need one extra piece of information here before we continue.
+
+03:28.430 --> 03:35.780
+Do you know which we need to know how long the token is valid because you must not forget that eventually
+
+03:36.230 --> 03:42.920
+it will expire which is why for logging in and signing up you get that expires and key in the response
+
+03:43.310 --> 03:50.510
+which tells you in seconds how long it takes until well your token is invalid and firebase won't accept
+
+03:50.510 --> 03:51.510
+that anymore.
+
+03:51.650 --> 03:57.590
+We need to store that information as well because if we later come back if we restart the app after
+
+03:57.590 --> 04:01.390
+free hours our token is probably invalid.
+
+04:01.460 --> 04:04.370
+So we need to know when the token will invalidate.
+
+04:04.370 --> 04:09.800
+So did we would we check that when the app restarts when we check whether we do have a token we know
+
+04:09.800 --> 04:16.460
+whether that token we might find is actually still relevant or whether it's invalid already and we need
+
+04:16.460 --> 04:20.120
+a new token anyways in which case we shouldn't order log into user.
+
+04:20.480 --> 04:23.360
+So I want to store the expiration date.
+
+04:23.360 --> 04:31.180
+Now we'll create expiration date here as a constant a new Date object which in the end should take the
+
+04:31.180 --> 04:35.020
+current date and at the expiry time
+
+04:37.810 --> 04:45.790
+now NEW DAY it takes a Date object but with get time we get the current timestamp in milliseconds since
+
+04:45.790 --> 04:49.590
+the beginning of time so to say which is in the year 1970.
+
+04:49.780 --> 04:51.200
+In javascript.
+
+04:51.570 --> 04:57.630
+So that's an amount in milliseconds and cue that we can add rest data dot expires in.
+
+04:58.210 --> 05:01.720
+This is an amount of seconds.
+
+05:01.720 --> 05:06.910
+So we need to convert this to milliseconds and it's all the strings so we need to convert it to a number.
+
+05:06.910 --> 05:16.490
+So here I'll add a plus here or simply pass and alternatively to convert this to integer and then I
+
+05:16.490 --> 05:23.550
+multiplied it with 1000 to converted from seconds to milliseconds because gets time also gives us milliseconds.
+
+05:23.570 --> 05:29.690
+Now what this gives me is a new timestamp in the future which is the current time plus the expiry time.
+
+05:29.690 --> 05:35.990
+And I wrapped as into a never date object to convert it back from a huge millisecond number to concrete
+
+05:36.110 --> 05:44.520
+timestamp Date object this expiration date is now what we also need to pass to save data to storage.
+
+05:44.530 --> 05:48.880
+So here I expect to get the expiration date as well.
+
+05:48.880 --> 05:51.070
+And we need to enclose this here.
+
+05:51.400 --> 05:55.810
+So here I can name this expiry date maybe to mix things up.
+
+05:55.840 --> 06:05.830
+This is my expiration date and dare I want to call this nice little two I's those string method which
+
+06:05.830 --> 06:11.500
+we can call on date objects because this will convert it to a string in a standardized format which
+
+06:11.500 --> 06:14.240
+I want to save.
+
+06:14.400 --> 06:18.150
+Now this is what I want to do for signing up as well.
+
+06:18.150 --> 06:20.190
+So this can be copied over there.
+
+06:20.520 --> 06:22.120
+And this is what I want to do there as well.
+
+06:22.170 --> 06:26.220
+Create the expiration date and save that to storage.
+
+06:26.220 --> 06:29.220
+Now we're saving that to storage which is nice.
+
+06:29.670 --> 06:35.670
+But now we also need to check this when we're logging in a nice way of doing that is to create a new
+
+06:35.670 --> 06:41.040
+screen and I'll actually create this outside of my existing folders in the screens folder but never
+
+06:41.040 --> 06:47.570
+in shop nor in user and I'll name this startup screen and you can name it whoever you want.
+
+06:47.610 --> 06:54.240
+The idea is that I showed this screen whilst my app is booting up and I'm figuring out where the user
+
+06:54.240 --> 06:55.380
+is authentic or not.
+
+06:55.380 --> 06:56.770
+And this will be super fast.
+
+06:56.790 --> 07:02.350
+Chances are we won't even see that screen when the upstarts in here.
+
+07:02.370 --> 07:06.670
+We create a regular react component by importing react from react.
+
+07:06.910 --> 07:11.120
+And in there I import stuff from React Native to be precise.
+
+07:11.130 --> 07:17.310
+I need a view the activity indicator to show a loading spinner whilst the app is booting up and all
+
+07:17.310 --> 07:23.280
+is established and all the async storage because here I also want to equity async storage to find out
+
+07:23.280 --> 07:26.450
+whether we do have a valid token or not.
+
+07:26.460 --> 07:33.660
+So here I don't have my startup screen component which is a regular react component and the style sheet
+
+07:33.780 --> 07:44.570
+object here with style she'd create and the end we can export these startup screen like this now indie
+
+07:44.580 --> 07:56.450
+component all simply percent the activity indicator here with a size of large and a color of colors
+
+07:56.450 --> 08:05.100
+stock primary and for Dad you need to import that color is constant of course and also assign a little
+
+08:05.100 --> 08:13.520
+style here to the view and I'll just take style start screen here which we can now add to the style
+
+08:13.520 --> 08:16.530
+sheet and that should be very simple.
+
+08:16.690 --> 08:23.690
+Lex one justify content center and a line item center for some vertically and horizontally centered
+
+08:23.720 --> 08:29.870
+content now of course the real important stuff happens above the J is X code.
+
+08:29.870 --> 08:33.520
+This is where we now need to check debasing storage for a valid token.
+
+08:33.620 --> 08:39.820
+And I can do this with the help of use effect which allows me to run some logic here.
+
+08:39.820 --> 08:42.230
+When does component mounted.
+
+08:42.250 --> 08:51.190
+And indeed here I won't need any dependencies because here instead of use effect I now want to add a
+
+08:51.190 --> 08:58.060
+new function which I'll named try sign up or try log in is more fitting and I use the separate function
+
+08:58.090 --> 09:04.390
+because here I want to use async await which I can do by creating that inner function which I can now
+
+09:04.390 --> 09:05.310
+call here.
+
+09:05.410 --> 09:10.840
+Try log in because again async here on this function would you pass to use a fact would not really be
+
+09:10.840 --> 09:14.020
+allowed in here and try log in.
+
+09:14.170 --> 09:21.460
+The goal now is to check the async storage for a valid token so I get my user data here by accessing
+
+09:21.520 --> 09:23.030
+async storage.
+
+09:23.240 --> 09:28.750
+Dot get item and then use the key you used for storing.
+
+09:28.960 --> 09:35.950
+So in my case that's user data but you must use whichever key you used in your off J.S. file in the
+
+09:35.950 --> 09:43.160
+actions folder for storing your data with async storage so I retrieve this note the important thing
+
+09:43.160 --> 09:49.970
+to know here is that get item like all async storage methods actually is asynchronous which means like
+
+09:50.030 --> 09:55.520
+the name suggests I guess which means that you get a promise here so we can await this and this will
+
+09:55.520 --> 09:58.560
+give us back our user data.
+
+09:58.570 --> 10:05.200
+Now this is then D data as a string to convert it to piece of data we can work with.
+
+10:05.230 --> 10:14.410
+I'll have my transformed data with Jason pass user data and this passes a string and Jason format and
+
+10:14.410 --> 10:24.220
+converted to a javascript object or array now before even trying that I'll check if user data is not
+
+10:24.220 --> 10:24.850
+true ish.
+
+10:24.850 --> 10:31.030
+So if it's not set if we can't find any data for that key because then I know we're certainly not locked
+
+10:31.030 --> 10:31.720
+in.
+
+10:31.780 --> 10:36.370
+So here I want to return and not continue and do one important thing.
+
+10:36.370 --> 10:43.810
+I'll use props navigation and navigate to the offscreen because this startup screen has to be added
+
+10:43.810 --> 10:44.770
+to the Navigator.
+
+10:45.190 --> 10:52.960
+So here we can import it import to startup screen from the screens folder of course start startup screen
+
+10:54.070 --> 10:57.590
+and we add it to the main and navigator here.
+
+10:57.760 --> 11:07.190
+So where we also have often shop and there at the very top I add startup and pointed my startup screen.
+
+11:07.350 --> 11:11.490
+This means that this is the first thing I load here.
+
+11:11.490 --> 11:17.010
+Now on this startup screen I'd therefore go to the off screen if we can't find a token so thanks to
+
+11:17.010 --> 11:22.230
+the switch navigator I leave that screen and go to the off screen or to the off stack because I don't
+
+11:22.230 --> 11:28.810
+find a token so if we make it past as a check we at least have some data but the token still might be
+
+11:28.810 --> 11:29.950
+invalid.
+
+11:30.370 --> 11:39.980
+So we will of course have the token the user I.D. and the expiry date which we can extract from the
+
+11:40.520 --> 11:42.770
+transformed data.
+
+11:43.600 --> 11:46.860
+Whips after this line here with this object.
+
+11:46.870 --> 11:54.580
+D structuring syntax and these are the three pieces of data with the free exact same names as I store
+
+11:54.580 --> 11:56.400
+it here in the off J Files.
+
+11:56.410 --> 12:00.700
+Here we have an object with a token user I.D. and expiry date field.
+
+12:00.700 --> 12:03.000
+That's what we store in async storage.
+
+12:03.010 --> 12:08.580
+That's what I can retrieve here.
+
+12:08.610 --> 12:11.360
+Now we need to check whether the token is still valid.
+
+12:11.460 --> 12:20.670
+And for this I can recreate my expiration date by using new data and passing expiry date which is actually
+
+12:20.670 --> 12:23.220
+a string in iso format to it.
+
+12:23.220 --> 12:27.270
+And now we can edit if check and see if expiration date.
+
+12:27.270 --> 12:33.660
+So to date when a token becomes invalid if it's smaller or equal to a new date which is the current
+
+12:33.660 --> 12:39.570
+timestamp which means expiration date is in the past and if that's in the past then our token is invalid
+
+12:40.320 --> 12:45.300
+it's old invalid if we can't find a token or.
+
+12:45.360 --> 12:51.900
+Also if we can't find a user ready if any of the free conditions is true we have an invalid token or
+
+12:51.900 --> 12:54.550
+an invalid user I.D. or anything like that.
+
+12:54.570 --> 12:58.700
+So in that case I also want to return.
+
+12:59.340 --> 13:05.640
+And of course navigate away to the off screen if we make it past does a check.
+
+13:05.700 --> 13:10.110
+We do have a token we do have a user I.D. and the token is still valid.
+
+13:10.110 --> 13:17.720
+So if you make it here I will call props navigation navigate shop to go to the shop screen and all the
+
+13:17.720 --> 13:21.020
+important I need to log to user in and for Dad.
+
+13:21.030 --> 13:24.230
+We need a new action because I don't want to send a request.
+
+13:24.240 --> 13:29.900
+Now I just want to change some data and Redux so I'll add a new action creator here.
+
+13:31.550 --> 13:44.200
+Export const authenticate maybe which takes my user I.D. and my token and which then is used to change
+
+13:44.200 --> 13:45.250
+my data and redux.
+
+13:45.250 --> 13:54.390
+And for that I will now add a new action identifier authenticate with a string of authenticate here
+
+13:55.290 --> 14:02.190
+and use this here as a type authenticate attach my user I.D. which is my user I.D. here and my token
+
+14:02.190 --> 14:08.360
+which is token I get as the argument and now this authenticate action is what I wanted to stamp patch
+
+14:08.370 --> 14:09.600
+here on the startup screen.
+
+14:10.730 --> 14:15.950
+But before I do that by the way we can also go back to the action creator and at the end of sign up
+
+14:15.950 --> 14:22.520
+instead of dispatching my own custom sign up action here we can all dispatch authenticate and execute
+
+14:22.550 --> 14:23.390
+this year.
+
+14:23.510 --> 14:33.930
+This action creator and simply forward rest data dot local I.D. as a user I.D. and rest data.
+
+14:33.950 --> 14:40.040
+Dot I.D. token as a token and do the very same at the end of log in.
+
+14:40.040 --> 14:45.400
+So now I did indeed combine these two flows because and yet the same thing happens.
+
+14:45.560 --> 14:51.350
+So now in the reducer and you offered user of course instead of checking log in and sign up we can simply
+
+14:51.350 --> 14:57.780
+import authenticate and use this identifier here get rid of sign up and I'll just comment it out to
+
+14:57.800 --> 15:00.830
+still lived here for reference because the same thing happens.
+
+15:00.860 --> 15:05.980
+So now combining it makes sense because we all need it for this automatic log in.
+
+15:06.020 --> 15:11.090
+So here I then all dispatch it here for it a manual log in and the manual sign up.
+
+15:11.090 --> 15:17.150
+And of course now with that if you want to you can also get rid of log in and sign up here of these
+
+15:17.150 --> 15:20.200
+two identifiers because we don't use them anymore.
+
+15:20.390 --> 15:24.380
+But with that back to the start up screen here we can all have dispatched us.
+
+15:24.600 --> 15:34.480
+And for Dad you just need to import used dispatch from react redux and import the action actions so
+
+15:34.490 --> 15:41.650
+import everything as of actions maybe from the store folder from the actions folder and from the all
+
+15:41.650 --> 15:43.190
+file there.
+
+15:43.270 --> 15:49.590
+And then here at the beginning get access to the dispatch function by calling use dispatch.
+
+15:49.800 --> 15:55.230
+And with that away label here we can add dispatch as a dependency but this will never change.
+
+15:55.240 --> 16:01.330
+So the effect will never rerun and here after navigating to the shop I now all want to dispatch all
+
+16:01.450 --> 16:10.510
+actions authenticate and forward the extracted user I.D. So this field here and extract the token.
+
+16:10.510 --> 16:19.150
+So this field which I got from my async storage and that should now automatically log me in was a lot
+
+16:19.150 --> 16:24.310
+of work let's see where that works the reload does I end up here on the log in screen because right
+
+16:24.340 --> 16:27.010
+now I have no valid tokens stored in async storage.
+
+16:27.880 --> 16:37.510
+So now if a try logging in here I am forewarned if I now reload I again end up here.
+
+16:37.510 --> 16:43.560
+And that's great because now it is means that this seems to work and that token is stored.
+
+16:43.730 --> 16:48.230
+Now of course it would be nice if we could also log out though because right now there's no way of doing
+
+16:48.230 --> 16:49.070
+that.

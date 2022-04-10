@@ -1,0 +1,604 @@
+1
+00:00:01,914 --> 00:00:03,124
+So for our demo,
+
+2
+00:00:03,124 --> 00:00:06,703
+we'll be gaining some hands-on experience with TDD and creating some mocks,
+
+3
+00:00:06,703 --> 00:00:10,048
+and we'll be doing this by walking through adding in a
+
+4
+00:00:10,048 --> 00:00:12,173
+new feature to our room service.
+
+5
+00:00:12,173 --> 00:00:15,638
+First, let's take a quick tour of the room service.
+
+6
+00:00:15,638 --> 00:00:19,603
+Room service is a pretty standard Spring Boot microservice.
+
+7
+00:00:19,603 --> 00:00:22,593
+Under the mono package we have the Room class,
+
+8
+00:00:22,593 --> 00:00:26,277
+which has some basic attributes describing a hotel room,
+
+9
+00:00:26,277 --> 00:00:31,179
+and we have annotated the class and attributes with JPA
+
+10
+00:00:31,179 --> 00:00:34,809
+annotations to handle communication with the database.
+
+11
+00:00:34,809 --> 00:00:36,511
+Over in the repo package,
+
+12
+00:00:36,511 --> 00:00:39,613
+we are utilizing the fantastic Spring data library for
+
+13
+00:00:39,613 --> 00:00:42,131
+handling a lot of our database work.
+
+14
+00:00:42,131 --> 00:00:46,055
+Simply by extending this Spring Data CrudRepository interface,
+
+15
+00:00:46,055 --> 00:00:49,105
+we will have a repo that performs all the standard create,
+
+16
+00:00:49,105 --> 00:00:50,748
+update, read, and delete functionality.
+
+17
+00:00:50,748 --> 00:00:55,481
+If you are using JPA and Spring in a project you are currently working on,
+
+18
+00:00:55,481 --> 00:00:57,118
+but aren't using Spring data yet,
+
+19
+00:00:57,118 --> 00:01:00,703
+I would definitely recommend checking it out as it will save you a significant
+
+20
+00:01:00,703 --> 00:01:03,510
+amount of work when it comes to interacting with databases.
+
+21
+00:01:03,510 --> 00:01:08,023
+Within the repo, I added the findByRoomNumber method signature.
+
+22
+00:01:08,023 --> 00:01:12,153
+Spring Data will by convention at startup build out a method that
+
+23
+00:01:12,153 --> 00:01:15,468
+implements the code necessary to look up a room by the roomNumber
+
+24
+00:01:15,468 --> 00:01:18,800
+field from the rooms table in the database.
+
+25
+00:01:18,800 --> 00:01:19,753
+Pretty sweet, huh?
+
+26
+00:01:19,753 --> 00:01:21,976
+We will be calling this method later.
+
+27
+00:01:21,976 --> 00:01:23,826
+Moving on, we have our controller.
+
+28
+00:01:23,826 --> 00:01:26,956
+Right now it's a pretty standard CRUD RESTful API.
+
+29
+00:01:26,956 --> 00:01:33,817
+Next, under the exception package, I have a couple of custom exception classes,
+
+30
+00:01:33,817 --> 00:01:36,840
+RoomServiceException and RoomServiceClient exception.
+
+31
+00:01:36,840 --> 00:01:40,881
+Both of these are unchecked, or runtime, exceptions.
+
+32
+00:01:40,881 --> 00:01:43,411
+I've been recently looking at using exceptions a bit more
+
+33
+00:01:43,411 --> 00:01:45,073
+to handle system behavior and logic.
+
+34
+00:01:45,073 --> 00:01:49,047
+I know there's a lot of debate and controversy around this practice; however,
+
+35
+00:01:49,047 --> 00:01:53,007
+I feel that this can help keep interfaces cleaner between layers.
+
+36
+00:01:53,007 --> 00:01:57,425
+It can also help reduce the amount of logic within classes.
+
+37
+00:01:57,425 --> 00:01:57,837
+Anyways,
+
+38
+00:01:57,837 --> 00:02:01,831
+these exception classes are for internal server errors
+
+39
+00:02:01,831 --> 00:02:04,764
+and invalid client inputs respectively.
+
+40
+00:02:04,764 --> 00:02:06,762
+Finally, we come to our service class.
+
+41
+00:02:06,762 --> 00:02:08,900
+Currently, the service class isn't doing much,
+
+42
+00:02:08,900 --> 00:02:11,557
+just simply passing through the CRUD actions from
+
+43
+00:02:11,557 --> 00:02:13,727
+the controller to the RoomRepo.
+
+44
+00:02:13,727 --> 00:02:18,163
+For the booking and customer services we'll be building later in this course,
+
+45
+00:02:18,163 --> 00:02:21,147
+they will follow a very similar pattern to this RoomService.
+
+46
+00:02:21,147 --> 00:02:26,310
+So when we work in the services later, they should feel very familiar.
+
+47
+00:02:26,310 --> 00:02:29,681
+Now we have just got a ticket request to add some new
+
+48
+00:02:29,681 --> 00:02:31,199
+functionality to our room microservice.
+
+49
+00:02:31,199 --> 00:02:36,921
+The request is to add the ability to look up a room by a room number.
+
+50
+00:02:36,921 --> 00:02:41,144
+Additional requirements are return an error message for invalid room number
+
+51
+00:02:41,144 --> 00:02:45,693
+format and return an error message if no room is found.
+
+52
+00:02:45,693 --> 00:02:50,060
+Alright, let's start implementing this feature using TDD.
+
+53
+00:02:50,060 --> 00:02:52,193
+Step one is to create a test.
+
+54
+00:02:52,193 --> 00:02:55,445
+A shortcut I have learned for creating test classes is
+
+55
+00:02:55,445 --> 00:02:59,179
+to go to the class you want to test, right-click,
+
+56
+00:02:59,179 --> 00:03:02,768
+and click Copy Qualified name.
+
+57
+00:03:02,768 --> 00:03:06,923
+Then under the src/test/java folder, right-click,
+
+58
+00:03:06,923 --> 00:03:14,113
+select New and Class, and paste the contents into the class Name field.
+
+59
+00:03:14,113 --> 00:03:17,715
+This updates the package name as well,
+
+60
+00:03:17,715 --> 00:03:20,630
+placing the class in the same package under the test
+
+61
+00:03:20,630 --> 00:03:24,135
+directory as it is in the actual application.
+
+62
+00:03:24,135 --> 00:03:28,871
+Finally, we'll just prefix a class Name with Test.
+
+63
+00:03:28,871 --> 00:03:31,579
+Alright, so we have our test class.
+
+64
+00:03:31,579 --> 00:03:33,513
+Let's create a test case.
+
+65
+00:03:33,513 --> 00:03:37,194
+Our first test case will be a happy path test.
+
+66
+00:03:37,194 --> 00:03:42,344
+We'll give the test case the name of lookupExistingRoom.
+
+67
+00:03:42,344 --> 00:03:45,451
+We will bring in our RoomService.
+
+68
+00:03:45,451 --> 00:03:50,158
+So RoomServiceImpl requires a repository to be passed in.
+
+69
+00:03:50,158 --> 00:03:53,319
+For this we'll create a stub.
+
+70
+00:03:53,319 --> 00:03:55,077
+And to make the process of creating stubs,
+
+71
+00:03:55,077 --> 00:04:01,157
+and any type of test double easier, we will use the Mockito library.
+
+72
+00:04:01,157 --> 00:04:04,550
+We will make a static import of org.
+
+73
+00:04:04,550 --> 00:04:04,974
+mockito.
+
+74
+00:04:04,974 --> 00:04:05,398
+Mockito,
+
+75
+00:04:05,398 --> 00:04:10,021
+and then call the mock static method and pass in the
+
+76
+00:04:10,021 --> 00:04:12,949
+class or dependency we want to mock.
+
+77
+00:04:12,949 --> 00:04:14,463
+In this case, RoomRepo.
+
+78
+00:04:14,463 --> 00:04:14,842
+class.
+
+79
+00:04:14,842 --> 00:04:21,728
+We will then set up the behavior of the stub by calling the when method,
+
+80
+00:04:21,728 --> 00:04:24,910
+and stipulate whenever the findByRoomNumber method
+
+81
+00:04:24,910 --> 00:04:31,046
+is called with any string value, then we will return an empty room object.
+
+82
+00:04:31,046 --> 00:04:37,120
+We will then pass the mocked-out RoomRepo into our RoomServiceImpl class.
+
+83
+00:04:37,120 --> 00:04:43,178
+We will now write out a call to findByRoomNumber.
+
+84
+00:04:43,178 --> 00:04:45,747
+We will then have Eclipse automatically generate this
+
+85
+00:04:45,747 --> 00:04:48,795
+method signature in RoomService interface.
+
+86
+00:04:48,795 --> 00:04:54,409
+RoomServiceImpl is now showing a compile error.
+
+87
+00:04:54,409 --> 00:04:55,832
+If we go into that class,
+
+88
+00:04:55,832 --> 00:05:00,319
+we can have Eclipse automatically generate a method stub of findByRoomNumber.
+
+89
+00:05:00,319 --> 00:05:03,383
+Back in our test class,
+
+90
+00:05:03,383 --> 00:05:07,899
+we will add the assertion that the room variable should not be null.
+
+91
+00:05:07,899 --> 00:05:12,348
+Now when we run the test, it will return failed, or red.
+
+92
+00:05:12,348 --> 00:05:14,847
+So we have our failing test.
+
+93
+00:05:14,847 --> 00:05:18,180
+Let's implement the code to get it passing.
+
+94
+00:05:18,180 --> 00:05:23,168
+Back in RoomServiceImpl, the change we need to make is pretty easy,
+
+95
+00:05:23,168 --> 00:05:27,073
+simply calling the repo method, findByRoomNumber,
+
+96
+00:05:27,073 --> 00:05:29,676
+and returning its results.
+
+97
+00:05:29,676 --> 00:05:33,884
+And running that test again, it passes, or shows green.
+
+98
+00:05:33,884 --> 00:05:37,433
+So we did our first little bit of TDD; however,
+
+99
+00:05:37,433 --> 00:05:40,555
+there are a few other requirements in the request.
+
+100
+00:05:40,555 --> 00:05:45,042
+So let's continue the TDD cycle of writing a failing test,
+
+101
+00:05:45,042 --> 00:05:48,297
+implementing the code to support the test,
+
+102
+00:05:48,297 --> 00:05:50,622
+getting the test to pass.
+
+103
+00:05:50,622 --> 00:05:55,110
+Back in the Test class, I've written out the next test case.
+
+104
+00:05:55,110 --> 00:05:57,690
+This test is going to be checking for an exception to be thrown
+
+105
+00:05:57,690 --> 00:06:00,455
+when no room matches the room number passed in,
+
+106
+00:06:00,455 --> 00:06:05,886
+and making sure the exception is returning a properly worded message.
+
+107
+00:06:05,886 --> 00:06:10,459
+If we go and run this test, we will see it fails.
+
+108
+00:06:10,459 --> 00:06:11,376
+In the RoomServiceImpl,
+
+109
+00:06:11,376 --> 00:06:16,052
+we are going to update the code to check to see if room is null.
+
+110
+00:06:16,052 --> 00:06:17,347
+If room is null,
+
+111
+00:06:17,347 --> 00:06:21,060
+we will throw an exception with an error message saying
+
+112
+00:06:21,060 --> 00:06:23,714
+that room number cannot be found.
+
+113
+00:06:23,714 --> 00:06:25,828
+Let's give the test a run.
+
+114
+00:06:25,828 --> 00:06:26,885
+And it fails.
+
+115
+00:06:26,885 --> 00:06:29,940
+Looks like the message is not quite right.
+
+116
+00:06:29,940 --> 00:06:32,526
+Let's update it and run again.
+
+117
+00:06:32,526 --> 00:06:33,922
+Another failure.
+
+118
+00:06:33,922 --> 00:06:38,108
+The message still isn't quite right.
+
+119
+00:06:38,108 --> 00:06:41,288
+Easy change, and this time the test passes.
+
+120
+00:06:41,288 --> 00:06:42,374
+Back in the Test class,
+
+121
+00:06:42,374 --> 00:06:46,284
+I added a new test case to check for when a non-numeric room is
+
+122
+00:06:46,284 --> 00:06:49,325
+being passed into the findByRoomNumber method.
+
+123
+00:06:49,325 --> 00:06:51,600
+And of course, this test fails.
+
+124
+00:06:51,600 --> 00:06:54,217
+In findByRoomNumber in the RoomServiceImpl class,
+
+125
+00:06:54,217 --> 00:07:00,001
+we will add a check using the Apache StringUtils library to
+
+126
+00:07:00,001 --> 00:07:03,688
+make sure the argument passed in is numeric.
+
+127
+00:07:03,688 --> 00:07:04,591
+If it isn't,
+
+128
+00:07:04,591 --> 00:07:07,602
+we will throw an exception with a message saying that
+
+129
+00:07:07,602 --> 00:07:09,770
+roomNumber isn't in a valid format.
+
+130
+00:07:09,770 --> 00:07:15,479
+After a couple of runs of the test case and a few code changes,
+
+131
+00:07:15,479 --> 00:07:17,750
+we have a passing test.
+
+132
+00:07:17,750 --> 00:07:19,362
+Finally in a Test class,
+
+133
+00:07:19,362 --> 00:07:23,069
+I added yet another test case testing for when a null
+
+134
+00:07:23,069 --> 00:07:25,702
+value is passed and defined by roomNumber.
+
+135
+00:07:25,702 --> 00:07:27,974
+A quick run shows this test also fails.
+
+136
+00:07:27,974 --> 00:07:30,937
+So more updates need to be added to findByRoomNumber.
+
+137
+00:07:30,937 --> 00:07:36,049
+I will again make use of the StringUtils library and have it
+
+138
+00:07:36,049 --> 00:07:39,560
+check if the argument is null or empty.
+
+139
+00:07:39,560 --> 00:07:40,620
+First test fails.
+
+140
+00:07:40,620 --> 00:07:45,565
+Looks like I forgot to add a not in front of the isNullOrEmpty method.
+
+141
+00:07:45,565 --> 00:07:50,382
+Running the test again returns green, so we are good.
+
+142
+00:07:50,382 --> 00:07:50,587
+Finally,
+
+143
+00:07:50,587 --> 00:07:52,430
+let's make sure we didn't introduce any breaks into
+
+144
+00:07:52,430 --> 00:07:54,826
+our code as we made changes to it.
+
+145
+00:07:54,826 --> 00:07:58,135
+Great, all the tests return green, so we are good.
+
+146
+00:07:58,135 --> 00:08:00,885
+There are most test cases we could probably add,
+
+147
+00:08:00,885 --> 00:08:03,270
+such as checking for a negative room number.
+
+148
+00:08:03,270 --> 00:08:07,968
+So this would give a pretty good idea of how the TDD process works.
+
+149
+00:08:07,968 --> 00:08:11,426
+If we wanted to refactor the findByRoomNumber method,
+
+150
+00:08:11,426 --> 00:08:14,660
+we could do so with much more confidence knowing these
+
+151
+00:08:14,660 --> 00:08:21,000
+unit tests are here to verify the changes being made do not break existing functionality.
+

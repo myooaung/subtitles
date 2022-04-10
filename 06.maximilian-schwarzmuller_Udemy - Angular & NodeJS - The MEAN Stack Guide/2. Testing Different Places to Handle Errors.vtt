@@ -1,0 +1,382 @@
+WEBVTT
+
+00:02.260 --> 00:06.650
+Back in our app, let's start with logging in and signing up. There,
+
+00:06.670 --> 00:14.020
+things can go wrong because we can simply enter invalid email password combinations and we want to handle
+
+00:14.020 --> 00:14.490
+this.
+
+00:14.500 --> 00:18.350
+Now we're of course showing this validation errors to the user already
+
+00:18.460 --> 00:24.700
+but if we are trying to create a user with an e-mail address that's already taken, well then we just get
+
+00:24.700 --> 00:27.440
+that error on the right and our app is broken
+
+00:27.670 --> 00:29.870
+and this is not really what I want to do,
+
+00:29.950 --> 00:31.900
+I don't want to break my app,
+
+00:31.900 --> 00:36.740
+we should be able to recover from that and give the user another try.
+
+00:36.960 --> 00:45.340
+So to add such error handling, the first simple thing to do is add a handler in your observable which
+
+00:45.340 --> 00:48.370
+is responsible for sending the erroneous request.
+
+00:48.600 --> 00:56.260
+So for signing up for example in the auth service, here in the createUser method, we are subscribing and
+
+00:56.290 --> 00:57.910
+we're handling the response here,
+
+00:58.000 --> 01:00.390
+we're not handling the error though.
+
+01:00.550 --> 01:04.420
+We can do so by adding a second argument to the subscribe method,
+
+01:04.630 --> 01:07.140
+that will be the error handler.
+
+01:07.360 --> 01:11.670
+Well there we can simply get that error object which we're receiving
+
+01:11.680 --> 01:15.480
+and for example, let's log this to the console.
+
+01:15.530 --> 01:21.580
+Now if we save that and we go back to the application, let's try this again. If I enter something invalid here,
+
+01:22.000 --> 01:23.740
+we still are loading infinitely
+
+01:23.860 --> 01:29.770
+but now we're not seeing that big error message. Well we still got that small one which makes sense
+
+01:29.770 --> 01:31.780
+because there is an error after all
+
+01:31.780 --> 01:33.740
+and the browser does report this
+
+01:34.030 --> 01:39.000
+but the fact that we're seeing this here, if we wouldn't log it here, we wouldn't even see that,
+
+01:39.010 --> 01:41.340
+so it's less of a big red block
+
+01:41.560 --> 01:48.070
+but the main issue we of course still have is that our loader doesn't stop for example. Now for signing
+
+01:48.070 --> 01:49.100
+up and logging in,
+
+01:49.240 --> 01:55.400
+that simply is happening because if we have a look at our sign-up component and it's the same for signing
+
+01:55.410 --> 01:59.750
+in, reset is loading to true right before we send the request
+
+01:59.890 --> 02:02.540
+but we're not expecting this request to fail.
+
+02:02.890 --> 02:09.840
+Now the simple solution here is to simply return our request observable here,
+
+02:09.880 --> 02:17.620
+so this HTTP post and to not subscribe here in this component, we don't need the result here anyways but
+
+02:17.640 --> 02:24.210
+subscribe in the sign-up component. There when we call create user,
+
+02:24.210 --> 02:29.940
+we're now getting back the observable and we can now enter or add that subscribe method here.
+
+02:30.270 --> 02:33.370
+Don't do anything, so pass null for the first argument,
+
+02:33.390 --> 02:39.300
+don't pass a method here because we're not caring about it anyways but pass a method here and we
+
+02:39.300 --> 02:42.630
+get the error there and we could do anything with it
+
+02:42.720 --> 02:48.900
+but for now, let's simply set this isLoading to false here, to remove that spinner again. With that in
+
+02:48.900 --> 02:55.880
+place, now if we enter that password which is already taken, that e-mail which is already taken,
+
+02:56.040 --> 02:58.240
+well now we're getting another try
+
+02:58.230 --> 03:03.620
+and now if we do enter something valid here, it fails,
+
+03:03.630 --> 03:04.160
+right.
+
+03:04.350 --> 03:08.220
+So something still broke about this application due to that error.
+
+03:08.220 --> 03:10.870
+Now the problem here is actually not that
+
+03:10.890 --> 03:14.370
+it would not send that request, it did,
+
+03:14.370 --> 03:16.840
+the problem is that it doesn't redirect us.
+
+03:16.980 --> 03:23.880
+If we have a look at the auth service, for create user it can't redirect us because we've never added this
+
+03:23.880 --> 03:24.940
+logic here
+
+03:25.260 --> 03:30.720
+and now that we removed the subscribe method from that service and put it into the component, we would
+
+03:30.720 --> 03:33.730
+have to do that redirection here in the sign-up component.
+
+03:33.990 --> 03:38.200
+So error handling is kind of working but not ideally,
+
+03:38.250 --> 03:42.190
+instead I want to remove that subscribe call here from the component again,
+
+03:42.210 --> 03:47.520
+it was nice seeing it but I don't want to do it here and put it back into the auth service. So I won't
+
+03:47.520 --> 03:49.020
+return that observable,
+
+03:49.080 --> 03:52.200
+instead I will subscribe here and for the
+
+03:52.290 --> 04:01.230
+success case where we created a user, I will indeed use this router and navigate and for the error case,
+
+04:01.470 --> 04:05.960
+I'll have to come up with something different when it comes to disabling that spinner
+
+04:06.120 --> 04:09.720
+and we would have needed to do that anyways because in the login component,
+
+04:09.780 --> 04:13.300
+well we had no chance of doing that because there in the auth service,
+
+04:13.350 --> 04:18.180
+we've got a bunch of logic in the subscribe call or in that first callback and therefore, it was never
+
+04:18.180 --> 04:20.650
+an option to put that into the component,
+
+04:20.670 --> 04:22.720
+so let's see what else we can do.
+
+04:22.740 --> 04:29.040
+So we want to disable that loader in the sign-up and login component without subscribing in these components
+
+04:29.160 --> 04:35.660
+because we need to subscribe in our auth service due to various things we need to do there.
+
+04:35.940 --> 04:38.900
+Well there's more than one way of working around this.
+
+04:38.910 --> 04:45.990
+For one, we could subscribe in the components and utilize an operator in the auth service, the tab operator
+
+04:46.140 --> 04:50.450
+which simply allows us to execute some actions before the observable is done.
+
+04:50.520 --> 04:56.250
+Now this would be perfectly fine and would be something we could do here but we can also use a different
+
+04:56.250 --> 04:57.270
+approach,
+
+04:57.270 --> 05:00.320
+we can of course use the subject we already have here,
+
+05:00.390 --> 05:06.540
+the AuthStatusListener. We're not using it in a sign-up and login component yet because thus far, we
+
+05:06.540 --> 05:09.560
+weren't interested in whether the user is authenticated or not.
+
+05:09.750 --> 05:11.550
+Well we can get interested,
+
+05:11.580 --> 05:18.990
+so in the sign-up component, I can implement onInit, this interface which we have to import from 
+
+05:19.110 --> 05:23.440
+@angular/core and therefore I'm required to add @ngOnInit
+
+05:23.670 --> 05:29.060
+and now I can use the auth service, get my AuthStatusListener and subscribe to it.
+
+05:29.070 --> 05:35.340
+Now you learn that we have manage the subscription, so let's store it in the authStatus sub-property
+
+05:35.430 --> 05:40.420
+which is of type subscription which we actually have to import from rxjs,
+
+05:40.470 --> 05:47.870
+so make sure to add this import. And with that added, we have to add the onDestroy interface here and
+
+05:47.870 --> 05:57.550
+also import that from @angular/core to then implement ngOnDestroy at the bottom and there, using
+
+05:57.580 --> 06:02.720
+our authStatus subscription to unsubscribe.
+
+06:02.770 --> 06:06.840
+Now that of course means I need to set up a subscription first and I'm doing it here,
+
+06:06.880 --> 06:08.190
+I just need to store it,
+
+06:08.260 --> 06:11.570
+so this authStatus, whoops, authStatus.
+
+06:11.620 --> 06:16.270
+sub hold the subscription returned by this subscribed call.
+
+06:16.550 --> 06:18.180
+Now in that subscribe call,
+
+06:18.250 --> 06:26.240
+I will get my authStatus which is a boolean and I can take that authStatus to control my loader. If that
+
+06:26.380 --> 06:27.930
+switches to false,
+
+06:28.090 --> 06:38.500
+I want to set this isLoading to false. Now in my auth service, in create user when I'm navigating away,
+
+06:38.680 --> 06:43.660
+I don't care about that spinner anyway because we're going away from the component and we're therefore
+
+06:43.660 --> 06:45.090
+destructuring it
+
+06:45.430 --> 06:52.390
+but if we fail, then I actually want to emit an event and inform the entire app that we're not authenticated.
+
+06:52.780 --> 06:57.440
+Most parts of the app don't really care about this and won't update their templates
+
+06:57.580 --> 07:01.920
+but our spinner will actually go away due to our subscription.
+
+07:02.230 --> 07:08.020
+So I will add my error handler as the second argument in the subscribe method now and then use my
+
+07:08.080 --> 07:12.670
+AuthStatusListener to push that false value to the entire app.
+
+07:12.730 --> 07:18.820
+And now if we save that and we go back and we try to sign-up for a given email address again,
+
+07:18.880 --> 07:20.410
+now you see it fails
+
+07:20.410 --> 07:28.110
+and if I now take another one which wasn't taken, then I do sign-up there
+
+07:29.740 --> 07:38.020
+and we can check the network tab and see that indeed, we did create a new user successfully but somehow
+
+07:38.050 --> 07:40.030
+we're not getting redirected
+
+07:40.120 --> 07:44.130
+but this will simply happening due to a compilation error on my side.
+
+07:44.230 --> 07:50.230
+Now that I restarted this, if I try this again and I sign-up with credentials which are taken, I fail
+
+07:50.650 --> 07:56.450
+but if I then use credentials which are not taken, so an e-mail address which is not taken, I successfully
+
+07:56.470 --> 08:02.260
+sign-up and that of course means we can use that same flow in the login component,
+
+08:02.350 --> 08:08.550
+so let me copy ngOnInit and the constructor from the sign-up component, put it into the login component,
+
+08:08.590 --> 08:15.670
+well we already got the constructor there but let's still override it then. Let's implement onInit
+
+08:15.670 --> 08:25.120
+and onDestroy here too. Make sure to import both from @angular/core and then from the sign-up component,
+
+08:25.280 --> 08:34.970
+I'll take my authStatus subscription and add this field here at the beginning. Subscription is something
+
+08:34.970 --> 08:38.010
+we need to import from rxjs,
+
+08:38.030 --> 08:42.740
+so copy that import too and add it in your login component
+
+08:43.040 --> 08:45.650
+and last but not least, we also need to unsubscribe, 
+
+08:45.800 --> 08:48.400
+so let's take ngOnDestroy,
+
+08:48.620 --> 08:54.890
+go to the login component and also add this to clear our subscription and now we get the same setting
+
+08:54.890 --> 08:55.590
+here too.
+
+08:55.670 --> 09:00.890
+Now if we fail to login, we should actually remove that spinner.
+
+09:00.920 --> 09:08.000
+So if we go to login and let's say we enter an invalid password, then I'm not authorized and yes, we
+
+09:08.000 --> 09:13.220
+should of course go to the auth service to login and handle the error case here in the subscription
+
+09:13.240 --> 09:18.350
+too because we are of course setting up the subscription to the response there.
+
+09:18.350 --> 09:21.160
+So let's add the second argument which is that error
+
+09:21.170 --> 09:27.400
+we're getting and there, we're using the AuthStatusListener and we'll emit false as a value.
+
+09:27.650 --> 09:34.310
+And now we get everything in place we need to go back, enter invalid credentials and remove that spinner
+
+09:34.460 --> 09:36.100
+and get a second try
+
+09:36.320 --> 09:39.550
+and if we then enter the right credentials, here we are.
+
+09:39.770 --> 09:41.730
+So now we get this in place,
+
+09:41.870 --> 09:45.830
+it would still be nice to see some kind of error message, I guess.
+
+09:45.830 --> 09:47.480
+So let's work on this next.

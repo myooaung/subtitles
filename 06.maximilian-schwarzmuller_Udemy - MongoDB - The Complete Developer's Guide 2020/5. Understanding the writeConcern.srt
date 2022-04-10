@@ -1,0 +1,323 @@
+1
+00:00:02,120 --> 00:00:05,300
+We learned about ordered and unordered inserts,
+
+2
+00:00:05,330 --> 00:00:12,920
+now there is a second option we can specify on insertOone and insertMany and that is the write concern
+
+3
+00:00:13,070 --> 00:00:13,810
+option,
+
+4
+00:00:13,820 --> 00:00:17,150
+now let me explain what the write concern is all about.
+
+5
+00:00:17,150 --> 00:00:20,990
+We have a client and we have our mongodb server, the client would be the shell
+
+6
+00:00:21,050 --> 00:00:25,820
+or your application using a mongodb driver, the mongodb server is what you start
+
+7
+00:00:25,850 --> 00:00:28,320
+with the mongod executable.
+
+8
+00:00:28,670 --> 00:00:34,370
+Now let's say you want to insert one document in there and it would also be true for insert many and
+
+9
+00:00:34,370 --> 00:00:35,360
+for update and so on,
+
+10
+00:00:35,360 --> 00:00:39,950
+so for all the write operations because it's the write concern option we're talking about.
+
+11
+00:00:40,190 --> 00:00:45,530
+So we're trying to insert one document, now as you learned in the first module of this course, on the mongodb
+
+12
+00:00:45,530 --> 00:00:48,470
+server, we have a so-called storage engine,
+
+13
+00:00:48,470 --> 00:00:53,420
+this is the engine being responsible for really writing our data onto the disk 
+
+14
+00:00:53,600 --> 00:00:56,720
+and also for managing it in memory.
+
+15
+00:00:56,720 --> 00:01:03,260
+So your write might first end up in memory here and there, it manages the data which it needs to
+
+16
+00:01:03,260 --> 00:01:07,920
+access with high frequency because that is faster than working with the disk.
+
+17
+00:01:08,030 --> 00:01:11,830
+Of course your write is also scheduled to then end up on the disk,
+
+18
+00:01:11,900 --> 00:01:12,800
+that is not the thing,
+
+19
+00:01:12,800 --> 00:01:16,940
+so it will also eventually store your data on the disk.
+
+20
+00:01:17,000 --> 00:01:23,030
+Now you can configure a so-called write concern on all the write operations like insert one with an
+
+21
+00:01:23,030 --> 00:01:30,230
+additional argument, the write concern argument which is in turn a document where you can set settings
+
+22
+00:01:30,230 --> 00:01:30,910
+like that,
+
+23
+00:01:30,920 --> 00:01:32,340
+now what does this mean?
+
+24
+00:01:32,730 --> 00:01:34,400
+The w simply means
+
+25
+00:01:34,400 --> 00:01:34,890
+write
+
+26
+00:01:34,910 --> 00:01:43,070
+and the number here indicates to how many instances, in case you're using multiple instances on one server,
+
+27
+00:01:43,160 --> 00:01:45,740
+that is also something we'll cover towards the end of the course so
+
+28
+00:01:45,800 --> 00:01:47,240
+let's ignore it for now,
+
+29
+00:01:47,240 --> 00:01:54,350
+so on how many instances you want this write to be acknowledged. With W1 which is the default, you're
+
+30
+00:01:54,370 --> 00:01:58,730
+basically saying hey my mongodb server should have accepted that write,
+
+31
+00:01:58,760 --> 00:02:05,170
+so the storage engine is aware of it and will eventually write it to the disk. The J stands for the
+
+32
+00:02:05,180 --> 00:02:06,680
+journal,
+
+33
+00:02:06,680 --> 00:02:12,850
+the journal is an additional file which the storage engine manages which is like a To-Do file.
+
+34
+00:02:13,040 --> 00:02:20,500
+The journal can be kept to then for example save operations that the storage engine needs to-do that have
+
+35
+00:02:20,540 --> 00:02:22,200
+not been completed yet,
+
+36
+00:02:22,230 --> 00:02:29,510
+like the write. Now it is aware of the write and that it needs to store that data on disk just by the write
+
+37
+00:02:29,540 --> 00:02:32,240
+being acknowledged and being there in memory,
+
+38
+00:02:32,240 --> 00:02:34,530
+it doesn't need to keep a journal for that.
+
+39
+00:02:34,640 --> 00:02:41,540
+The idea of that journal file which is a real file on the disk is just that it is aware of this
+
+40
+00:02:41,630 --> 00:02:48,320
+and if the server should go down for some reason or anything else happens, that file is still there
+
+41
+00:02:48,410 --> 00:02:54,380
+and if you restart the server or if it recovers basically, it can look into that file and see what it
+
+42
+00:02:54,380 --> 00:02:55,260
+needs to-do
+
+43
+00:02:55,460 --> 00:03:00,440
+and that is of course a nice back up because the memory might have been wiped by then.
+
+44
+00:03:00,440 --> 00:03:06,140
+So your write could be lost if it's not written to the journal, if it hasn't been written to the real
+
+45
+00:03:06,230 --> 00:03:12,120
+data files yet, that is the idea of the journal, it's like a back up to-do list.
+
+46
+00:03:12,140 --> 00:03:16,820
+Now the question is why do we write it in the journal and not directly into the database files? Because
+
+47
+00:03:16,820 --> 00:03:20,440
+writing into the database files simply is more performance heavy,
+
+48
+00:03:20,480 --> 00:03:26,300
+the journal is like a single line which describes the write operation, writing into the database files
+
+49
+00:03:26,300 --> 00:03:31,270
+is of course a more complex task because there you need to find the right position to insert it,
+
+50
+00:03:31,400 --> 00:03:34,310
+if you have indexes, something we'll cover later in this course,
+
+51
+00:03:34,310 --> 00:03:35,880
+you also need to update these,
+
+52
+00:03:35,990 --> 00:03:39,840
+so it simply takes longer, adding a to-do in a journal is faster.
+
+53
+00:03:39,980 --> 00:03:43,280
+Still that also takes longer than not using the journal
+
+54
+00:03:43,430 --> 00:03:46,940
+and the default is that the journal is not getting used with j undefined
+
+55
+00:03:47,120 --> 00:03:52,000
+and that does simply mean that the storage engine will eventually handle this write
+
+56
+00:03:52,010 --> 00:03:56,870
+and also write it to the journal but you don't have that information yet, you don't know if it has
+
+57
+00:03:56,870 --> 00:04:01,400
+been stored in the journal yet, if the write succeeded yet, if the write has been done on the disk, you don't
+
+58
+00:04:01,400 --> 00:04:02,690
+know any of that,
+
+59
+00:04:02,720 --> 00:04:05,110
+you just know that the server is aware of your write.
+
+60
+00:04:05,120 --> 00:04:10,280
+So if the server should go down in that exact moment, it might indeed not have done the write because
+
+61
+00:04:10,280 --> 00:04:15,320
+it hasn't been added to the journal yet, it hasn't been saved to the database files yet.
+
+62
+00:04:15,320 --> 00:04:21,860
+Now you can set a different option and set J to true, what you're now saying is hey please only report
+
+63
+00:04:21,930 --> 00:04:28,090
+a success for this write to me after it has been both acknowledged and been saved to the journal,
+
+64
+00:04:28,190 --> 00:04:34,190
+so now I have a greater security that this will happen and succeed even if the server should face issues
+
+65
+00:04:34,190 --> 00:04:35,810
+right now.
+
+66
+00:04:35,810 --> 00:04:37,120
+Now there also is a third option
+
+67
+00:04:37,130 --> 00:04:41,160
+not directly related to the journal but it's a W timeout option,
+
+68
+00:04:41,210 --> 00:04:48,440
+now this simply means which timeframe do you give your server to report a success for this write before
+
+69
+00:04:48,440 --> 00:04:49,420
+you cancel it.
+
+70
+00:04:49,430 --> 00:04:55,330
+So if you have some issues with the network connection or anything like that, you might simply timeout
+
+71
+00:04:55,330 --> 00:05:01,060
+here, obviously setting this too low might timeout even though it would have perfectly succeeded
+
+72
+00:05:01,110 --> 00:05:07,260
+normally and therefore you should know what you do when you set this timeout value because if you
+
+73
+00:05:07,260 --> 00:05:09,860
+set it to a very low number, you might fail a lot
+
+74
+00:05:09,870 --> 00:05:13,750
+even though there is no actual problem, just some small latency.
+
+75
+00:05:14,160 --> 00:05:20,310
+So this is the write concern and how you can control this, obviously enabling the journal confirmation
+
+76
+00:05:20,400 --> 00:05:26,070
+means that your writes will take longer because you don't just tell the server about them but you also need
+
+77
+00:05:26,070 --> 00:05:29,820
+to wait for the server to store that write operation in the journal
+
+78
+00:05:29,820 --> 00:05:33,950
+but you get higher security that the write also succeeded.
+
+79
+00:05:33,990 --> 00:05:38,280
+Again this is a decision you have to make depending on your application needs,
+
+80
+00:05:38,370 --> 00:05:39,340
+what you need.
+
+81
+00:05:39,450 --> 00:05:41,610
+Now let's see this in practice in the next lecture.

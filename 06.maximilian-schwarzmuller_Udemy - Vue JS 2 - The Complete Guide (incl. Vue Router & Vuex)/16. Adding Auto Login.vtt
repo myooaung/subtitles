@@ -1,0 +1,373 @@
+WEBVTT
+
+00:03.050 --> 00:05.690
+In the last lecture we added auto-logout,
+
+00:05.690 --> 00:15.200
+now I want to make sure that if I do login here and then I reload the page, I still am logged in because
+
+00:15.200 --> 00:18.480
+the token here, it still would be valid.
+
+00:18.680 --> 00:24.620
+Now to do this, I first of all need to store the token somewhere else than in the vuex store because
+
+00:24.620 --> 00:31.490
+the vuex store of course is javascript and therefore is lost just as all the other data in javascript files
+
+00:31.520 --> 00:33.380
+is on page reloads.
+
+00:33.380 --> 00:35.290
+We can use a browser API,
+
+00:35.480 --> 00:40.820
+we can use local storage, local storage can be accessed from within the browser,
+
+00:40.820 --> 00:47.590
+it's not a vue feature which allows us to store key value pairs in a persistent browser storage.
+
+00:47.780 --> 00:58.580
+So on local storage, I can call set item and I can give it any key I want like token and there, I can
+
+00:58.580 --> 01:02.700
+now store res data ID token.
+
+01:02.870 --> 01:07.090
+The same could be done for the user id, more relevant
+
+01:07.120 --> 01:10.880
+than the ID however is the time when this token expires.
+
+01:11.090 --> 01:21.020
+Of course the not so optimal solution is to set item expires in and store res data expires in, now why
+
+01:21.020 --> 01:22.640
+is this not so optimal?
+
+01:23.060 --> 01:30.600
+Well because here, this of course is a value in seconds, 3000 seconds for example,
+
+01:30.800 --> 01:34.610
+well that's also going to be 3000 seconds whenever we retrieve it,
+
+01:34.880 --> 01:40.670
+so we should store the date when the token becomes invalid, not the amount of seconds.
+
+01:41.030 --> 01:47.350
+So let's calculate this date, for this I'll add a new constant in my sign up action here, I'll name it now
+
+01:47.620 --> 01:52.580
+and I can use new date without arguments in the constructor to get the current date.
+
+01:52.580 --> 02:01.940
+Now I'll create a second constant, expiration date and that is now plus res data expiresIn,
+
+02:01.950 --> 02:09.890
+however dates are measured in milliseconds, so on the now date, I can call get time, this method, a built
+
+02:09.920 --> 02:13.850
+in javascript method to convert this into milliseconds,
+
+02:14.030 --> 02:19.600
+so from the starting point of time basically to today in milliseconds.
+
+02:20.090 --> 02:26.790
+And I also need to convert this in milliseconds which I can do by multiplying it with 1000.
+
+02:26.800 --> 02:30.270
+Now I got one big number here, in milliseconds,
+
+02:30.430 --> 02:36.970
+I need to convert this back into a date which I do with new date and if I do pass an argument to it,
+
+02:37.210 --> 02:43.710
+in this case this big millisecond number, this gets converted to a date based on that argument.
+
+02:43.720 --> 02:51.000
+So now I can store the expiration date here in the local storage and I can copy all the logic here
+
+02:51.540 --> 02:54.690
+and execute the same code in login,
+
+02:54.720 --> 02:58.340
+so there where I also dispatch auth user and so on,
+
+02:58.500 --> 03:03.660
+I can also store my token here. Now with that, let me save all of that and
+
+03:03.660 --> 03:05.320
+let's see if it works.
+
+03:05.460 --> 03:07.470
+I will login here
+
+03:08.200 --> 03:15.550
+and then we can access application under the chrome developer tools and there we get this local storage
+
+03:15.730 --> 03:16.470
+item,
+
+03:16.780 --> 03:24.130
+if we expand this, we should see our URL, the local URL, if we click on this, we see the items we got
+
+03:24.190 --> 03:26.660
+in the local storage.
+
+03:26.800 --> 03:32.270
+You may ignore the log level which is coming from our development set up but the token is interesting,
+
+03:32.290 --> 03:34.900
+this is our ID token and expiresIn
+
+03:34.900 --> 03:36.050
+is interesting,
+
+03:36.130 --> 03:41.730
+let's see if this is correct, yeah if I check my watch, this is the correct expiration date,
+
+03:41.800 --> 03:43.550
+it's one hour from now.
+
+03:43.960 --> 03:49.180
+So with that, we're storing this data in local storage, a huge first step,
+
+03:49.180 --> 03:56.260
+now of course we also need to extract it at some point of time to automatically log the user in.
+
+03:56.260 --> 04:01.960
+Now this point of time probably is at application start up,
+
+04:02.160 --> 04:07.960
+so maybe in the app.vue file, our route component, here
+
+04:08.160 --> 04:15.690
+we could add a created method using this created lifecycle hook to automatically check if the user is
+
+04:15.690 --> 04:16.640
+logged in
+
+04:16.680 --> 04:23.440
+when this app starts. For this I'll add a new action in my store and I'll name it
+
+04:23.450 --> 04:29.890
+or maybe place it below the normal login, I'll name it tryAutoLogin,
+
+04:29.970 --> 04:32.880
+you can of course choose any name you want.
+
+04:32.880 --> 04:35.250
+Now in tryAutoLogin,
+
+04:35.460 --> 04:37.500
+I want to guess what?
+
+04:37.500 --> 04:45.830
+See if I have a valid token in local storage, so first of all I'll extract the token, I'll get the token from
+
+04:45.830 --> 04:47.130
+local storage
+
+04:47.270 --> 04:52.520
+via the get item method, there I will retrieve the token.
+
+04:52.620 --> 04:59.870
+Now if we have no token here, so if token is null or false, I will just return,
+
+04:59.870 --> 05:04.220
+there is no value in continuing because we get no token, we can't login,
+
+05:04.310 --> 05:07.280
+no matter if the token would have been valid or not, 
+
+05:07.280 --> 05:15.590
+that's the first check. The second check now is to see if we got a token, if it's still valid,
+
+05:15.830 --> 05:19.850
+so now I get the expiration date,
+
+05:19.850 --> 05:28.930
+I do this by accessing local storage, get item and then access expiresIn, well
+
+05:28.940 --> 05:35.480
+I should also rename this to expiration date in both sign in and sign up,
+
+05:35.510 --> 05:36.620
+makes more sense.
+
+05:36.620 --> 05:43.240
+So expiration date is the key name, I should know also extract this here and get my expiration date here
+
+05:43.280 --> 05:47.990
+stored in this constant and now I need to check if that's still valid.
+
+05:47.990 --> 05:57.320
+So I'll again get now with new date and I will actually now check if that is greater than my expiration date,
+
+05:57.440 --> 06:08.370
+I can check if now is smaller or equal which then essentially also means it's not valid anymore because
+
+06:08.370 --> 06:10.930
+in one additional millisecond, it would be invalid.
+
+06:11.100 --> 06:19.540
+So if it's smaller or equal than expiration date then we know it's an invalid token, it expired,
+
+06:19.770 --> 06:25.120
+so then I will also return. If we make it through that check
+
+06:25.120 --> 06:32.060
+however, we know that we do have a valid token because the expiration date is in the future,
+
+06:33.060 --> 06:38.490
+excuse me therefore here we should check if now is great or greater or equal of course, so greater
+
+06:38.490 --> 06:44.520
+or equal means now is in the, now is after the expiration date so it's invalid, if the expiration date
+
+06:44.520 --> 06:45.730
+is in the future though,
+
+06:45.750 --> 06:50.770
+so if the expiration date is greater than now, then we know we have a valid token,
+
+06:50.880 --> 06:54.290
+so then I want to login. For that,
+
+06:54.300 --> 07:03.290
+I will simply commit, I want to commit my auth user mutation and that requires user data which contains the
+
+07:03.360 --> 07:04.810
+user ID too,
+
+07:04.860 --> 07:12.480
+so we'll also need to store that in local storage, so I'll quickly do that in the sign up method, I'll also store
+
+07:12.720 --> 07:18.120
+user ID in local storage by extracting local ID from the response data
+
+07:18.570 --> 07:25.530
+and I will do the same in login, also store the user ID here. With that, I need to extract the user
+
+07:25.530 --> 07:37.520
+id in my tryAutoLogin action, user ID is extracted from local storage with get item user ID and then
+
+07:37.910 --> 07:45.260
+I can commit this mutation from up here, auth user where I pass the token and the user ID.
+
+07:45.440 --> 07:52.490
+So there, I will commit auth user and pass on a javascript object which should have a token because
+
+07:52.490 --> 07:55.290
+I retrieve a token here and the user ID,
+
+07:55.640 --> 08:01.290
+so it should have a token which is equal to my token constant here
+
+08:02.060 --> 08:07.710
+and which should have this user ID field which is equal to my user ID constant here,
+
+08:08.000 --> 08:11.260
+so now we have some auto login functionality.
+
+08:11.300 --> 08:12.930
+Let's see if that works,
+
+08:13.040 --> 08:16.780
+we actually do have a valid token stored
+
+08:17.000 --> 08:19.300
+but I will for now clear the storage here in
+
+08:19.340 --> 08:22.800
+the developer tools to get rid of it, so that it's empty to
+
+08:22.820 --> 08:26.900
+try this from scratch because we didn't store the user ID earlier.
+
+08:26.900 --> 08:28.400
+So now let me login,
+
+08:28.640 --> 08:29.830
+we got the data
+
+08:30.080 --> 08:32.540
+and now let me reload the page.
+
+08:32.540 --> 08:40.060
+Obviously, we're not logged in because we got our tryAutoLogin action but we're never executing it,
+
+08:40.370 --> 08:44.560
+so let's now go to the app.vue file in created which we already prepared
+
+08:44.840 --> 08:51.840
+and there I want to execute this store dispatch and dispatch this new tryAutoLogin action.
+
+08:52.010 --> 08:56.610
+With that, we got valid data here stored in our local host,
+
+08:56.780 --> 09:02.620
+so let me simply reload this page and you see we got the logout and dashboard button,
+
+09:02.660 --> 09:05.120
+so we got valid data,
+
+09:05.120 --> 09:08.590
+we got our successful auto login. Now
+
+09:08.630 --> 09:15.530
+one problem we'll have though is if we logout, we don't clear our local storage,
+
+09:15.530 --> 09:20.560
+so that's the last thing I want to do here. In store.js, in the logout action,
+
+09:20.600 --> 09:28.100
+I also want to reach out to local storage and now we can call remove item for all these items or clear
+
+09:28.190 --> 09:30.380
+if we want to clear the entire storage,
+
+09:30.380 --> 09:32.130
+now this would be OK here but
+
+09:32.390 --> 09:37.320
+let's assume we have different items stored in storage and we don't want to get rid of all of them.
+
+09:37.550 --> 09:47.900
+So I will call remove item and get rid of the expiration date as well as get rid of the token and
+
+09:47.960 --> 09:55.230
+the user id, so all the fields we store here, let's get rid of all of them, let's make sure expiration date
+
+09:55.230 --> 09:56.940
+is spelled correctly.
+
+09:56.940 --> 10:03.630
+Now if we go back to the application, if I click logout, you see the local storage is cleared here on the
+
+10:03.630 --> 10:04.470
+right.
+
+10:04.860 --> 10:08.070
+And with that, we got a working auto login functionality and
+
+10:08.080 --> 10:14.180
+now if I reload, we're also not logged in because we got no valid login data, if I login here however and then
+
+10:14.200 --> 10:15.750
+reload, we got data,
+
+10:15.750 --> 10:17.330
+it works, if I logout,
+
+10:17.460 --> 10:18.570
+it's gone.
+
+10:18.570 --> 10:22.820
+And the same works for signing up too, there
+
+10:22.830 --> 10:29.040
+if I do sign up, we also store the data here which I'll also persists across refreshes.
+
+10:29.340 --> 10:34.470
+So that is auto logout and auto login here implemented.

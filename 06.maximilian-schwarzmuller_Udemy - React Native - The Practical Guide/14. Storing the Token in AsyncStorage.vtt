@@ -1,0 +1,259 @@
+WEBVTT
+
+00:02.310 --> 00:05.140
+So this whole token thing is working thus far
+
+00:05.370 --> 00:10.040
+but as I mentioned at the ending of the last lecture, we'll have some issues.
+
+00:10.200 --> 00:14.220
+If the user closes the app and relaunches it, he needs to sign in again,
+
+00:14.250 --> 00:15.970
+not the best user experience
+
+00:15.990 --> 00:20.720
+if theoretically we might still have a valid token and that's the next thing,
+
+00:20.790 --> 00:27.660
+how long is such a token valid? If we sign in and we inspect this object we get back where we got the
+
+00:27.660 --> 00:28.450
+token,
+
+00:28.660 --> 00:30.910
+there's more info than just the token,
+
+00:30.930 --> 00:33.310
+there also is this expiresIn field
+
+00:33.540 --> 00:39.710
+and as the name suggests, this indicates when this token will expire and that's in seconds,
+
+00:39.750 --> 00:45.490
+so it will expire after one hour and that's a default value by firebase, you can't change this,
+
+00:45.510 --> 00:47.810
+so after one hour it will expire.
+
+00:48.030 --> 00:54.330
+Now we could either automatically log the user out after one hour but it would be even better to constantly
+
+00:54.330 --> 00:55.600
+renew the token.
+
+00:55.710 --> 01:00.680
+Now that's one thing I'll come back to but first of all, it will be even more useful if we could store
+
+01:00.710 --> 01:07.860
+the token somewhere where we can get it even if the app was closed because our whole redux store will
+
+01:07.860 --> 01:09.060
+be empty by then,
+
+01:09.180 --> 01:15.630
+so if our app restarts because we closed it or it was automatically closed, we need to be able to again
+
+01:15.630 --> 01:17.770
+check if we are authenticated,
+
+01:17.820 --> 01:19.860
+these are all things I want to do now.
+
+01:20.160 --> 01:26.630
+So first of all let's store the token somewhere else or additionally to redux and to redux store, let's
+
+01:26.670 --> 01:28.140
+store it somewhere else.
+
+01:28.260 --> 01:34.420
+Right now in our auth set token action, this is only caught by the reducer and that's it,
+
+01:34.590 --> 01:38.300
+we set the token in our redux store.
+
+01:38.310 --> 01:44.370
+Now remember that async store I talked about? That's now becoming important. If you visit the
+
+01:44.370 --> 01:50.220
+react native docs and there under API at the bottom, you search for async storage,
+
+01:50.340 --> 01:51.940
+you get this documentation here.
+
+01:52.020 --> 01:59.460
+The async storage is a helper which allows you to store key value pairs and it will automatically pick the
+
+01:59.460 --> 02:02.310
+right storage depending on which system it's running on,
+
+02:02.310 --> 02:08.190
+for example on Android it might pick SQLite and here you can find information on the API and how
+
+02:08.190 --> 02:13.620
+to use it with set and get item and it's called async storage because all of that returns a promise,
+
+02:13.620 --> 02:15.580
+it doesn't happen instantly,
+
+02:15.600 --> 02:17.730
+it happens asynchronously.
+
+02:17.790 --> 02:23.940
+So this is what we will use and this is where I also want to store the token besides setting it in
+
+02:23.940 --> 02:26.220
+my redux store.
+
+02:27.320 --> 02:35.700
+So I'll add a new constant, a new function here in my auth action creator file and I'll name it auth store token,
+
+02:35.750 --> 02:37.930
+now there I also get the token
+
+02:38.150 --> 02:44.270
+but unlike in auth set token, I won't store it in the redux store here but I want to store it in the
+
+02:44.270 --> 02:45.820
+async storage.
+
+02:45.830 --> 02:54.200
+So first of all I'll dispatch something so I return this function style here and by the end, I will also dispatch
+
+02:54.380 --> 03:00.330
+auth set token and pass the token onto that because I still want to store it in redux
+
+03:00.710 --> 03:05.120
+but I will also store it in async storage here.
+
+03:05.180 --> 03:05.580
+Now for that,
+
+03:05.750 --> 03:07.900
+I'll add an import at the very top, 
+
+03:08.930 --> 03:17.820
+I'll import async storage from react native, this API,
+
+03:18.500 --> 03:28.010
+now at the bottom here I now want to store it here, so I will reach out to async storage and there call
+
+03:28.070 --> 03:36.020
+set item and now give this any unique identifier you want, I'll name it ap for awesome places
+
+03:37.750 --> 03:43.270
+auth token and this is any string you want, just a clear identifier.
+
+03:43.720 --> 03:47.490
+And then the second argument, auth set item is the value you want to store,
+
+03:47.560 --> 03:54.730
+now here I want to store the token, as I said this is a promise so you can add a
+
+03:54.730 --> 03:55.770
+then call,
+
+03:55.810 --> 03:58.320
+you could also dispatch this action once this is done
+
+03:58.360 --> 04:00.180
+but I want to do this immediately.
+
+04:00.610 --> 04:08.170
+So all I need to do now is I will use auth store token instead of auth set token here in the successful
+
+04:08.260 --> 04:14.140
+we have a token case, now I'll also store it in async storage.
+
+04:14.140 --> 04:17.640
+Now the question is how do we get it out of there
+
+04:17.770 --> 04:20.300
+and how do we best use it? Now
+
+04:20.320 --> 04:28.030
+no matter which usage that is, it probably belongs into auth get token, there we get the token from our redux
+
+04:28.030 --> 04:32.760
+store but it would also be interesting to look into the async storage
+
+04:32.770 --> 04:34.630
+if we get no token.
+
+04:34.690 --> 04:41.590
+So here instead of directly rejecting, we maybe want to do that instead, instead of instantly resolving
+
+04:41.590 --> 04:48.190
+the token, we could have a look at async storage and see if we got a token there. For that I'll access async
+
+04:48.190 --> 04:56.290
+storage here too, get item and here get item needs the key we set up before,
+
+04:56.320 --> 05:03.340
+so this key we defined here which is the key to our token and then this also gives us a promise.
+
+05:03.490 --> 05:09.910
+So of course what I can do is now here we can add another catch block to catch any errors,
+
+05:10.000 --> 05:19.450
+then I can still reject and we can add a then block in here where we do have the token from storage and in
+
+05:19.450 --> 05:28.880
+this case, we could dispatch set token, auth set token so not store token to not store it again, just set
+
+05:28.880 --> 05:37.130
+token to set it in redux too, so there we set the token from storage and we thereafter can also resolve this
+
+05:37.130 --> 05:39.020
+token from storage.
+
+05:39.020 --> 05:46.660
+So this is now how we can get our token from the storage in case it somehow is missing in redux.
+
+05:46.830 --> 05:47.900
+Now I can prove this to you,
+
+05:47.900 --> 05:55.410
+let's save this and let's reload our application, login and now clearly we have a token here, we can
+
+05:55.410 --> 06:04.040
+find the places and we can visit a place, now we can go back in time here though. Now I'm back to UI
+
+06:04.040 --> 06:07.260
+stop loading because the other parts are grayed out,
+
+06:07.460 --> 06:14.650
+that means if I inspect my current state, we get no token. If I now
+
+06:14.650 --> 06:16.470
+delete this,
+
+06:16.700 --> 06:21.260
+it still worked without an error and I can prove this by reloading again,
+
+06:21.290 --> 06:24.070
+you will see the place still is gone.
+
+06:26.970 --> 06:33.300
+It worked without an error but not because the token was in the redux store but because we used this fall
+
+06:33.300 --> 06:34.520
+back here,
+
+06:34.830 --> 06:42.510
+so this is how we can indeed use async storage, to have it as a fallback but it can be more useful than
+
+06:42.510 --> 06:50.160
+that because the main reason why we want to use it is to persist the token after app relaunches, so
+
+06:50.160 --> 06:52.430
+after the user did this, relaunch
+
+06:52.440 --> 06:59.430
+the app. Then I want to check if we do have a token in storage here on the sign up screen to automatically
+
+06:59.430 --> 07:00.880
+log the user in,
+
+07:01.020 --> 07:02.640
+let's do this in the next lecture.

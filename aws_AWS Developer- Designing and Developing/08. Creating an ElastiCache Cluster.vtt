@@ -1,0 +1,345 @@
+WEBVTT
+1
+00:00:00.840 --> 00:00:04.210
+ElastiCache provides managed caching services that are
+
+2
+00:00:04.210 --> 00:00:07.340
+particularly used by web applications.
+
+3
+00:00:07.340 --> 00:00:09.680
+There are two open source cache engines,
+
+4
+00:00:09.680 --> 00:00:14.870
+Redis and Memcached that can be used with ElastiCache, but over time it seems
+
+5
+00:00:14.870 --> 00:00:18.840
+that Redis has come out as the clearly better solution here.
+
+6
+00:00:18.840 --> 00:00:23.320
+We're going to use the ElastiCache to create a Redis cache cluster and then use
+
+7
+00:00:23.320 --> 00:00:28.420
+it to cache our user sessions ensuring our application can scale to a lot of
+
+8
+00:00:28.420 --> 00:00:34.100
+users without impacting application performance. In the scripts/module_05
+
+9
+00:00:34.100 --> 00:00:39.040
+folder, opened the create‑redis‑cluster.js file.
+
+10
+00:00:39.040 --> 00:00:44.740
+Let's get started here by replacing your AWS region first on Line 5.
+
+11
+00:00:44.740 --> 00:00:49.440
+Next, we need to create our ElastiCache object to run operations on it.
+
+12
+00:00:49.440 --> 00:00:53.520
+Since ElastiCache is pretty long, create a new const here called
+
+13
+00:00:53.520 --> 00:01:00.070
+ec, assign to it a new AWS.ElastiCache constructor call. The code
+
+14
+00:01:00.070 --> 00:01:02.360
+on Line 9 is where the action happens.
+
+15
+00:01:02.360 --> 00:01:05.200
+We first create a new security group for our Redis
+
+16
+00:01:05.200 --> 00:01:08.780
+cluster that opens up port 6379.
+
+17
+00:01:08.780 --> 00:01:11.240
+Then we create the Redis cluster with that security
+
+18
+00:01:11.240 --> 00:01:13.740
+group ID and then we're done.
+
+19
+00:01:13.740 --> 00:01:17.470
+So let's implement the createRedisCluster function on Line 13.
+
+20
+00:01:17.470 --> 00:01:20.290
+We'll start with our params const object.
+
+21
+00:01:20.290 --> 00:01:23.280
+The first property is CacheClusterId,
+
+22
+00:01:23.280 --> 00:01:27.040
+which is basically the unique identifier for the cluster.
+
+23
+00:01:27.040 --> 00:01:30.670
+We'll use the cluster name argument as the value here. For
+
+24
+00:01:30.670 --> 00:01:33.450
+the next property, add CacheNodeType.
+
+25
+00:01:33.450 --> 00:01:36.640
+This is like the EC2 instance type.
+
+26
+00:01:36.640 --> 00:01:39.790
+We'll use the smallest available for our purposes.
+
+27
+00:01:39.790 --> 00:01:44.080
+Add the string cache.t2.micro.
+
+28
+00:01:44.080 --> 00:01:49.040
+Next, add the property engine and the value redis.
+
+29
+00:01:49.040 --> 00:01:53.140
+This just tells ElastiCache what type of cache we want to create.
+
+30
+00:01:53.140 --> 00:01:55.660
+The next property is NumCacheNodes,
+
+31
+00:01:55.660 --> 00:02:00.050
+which says how many nodes or instances you want to give the cluster.
+
+32
+00:02:00.050 --> 00:02:05.040
+For Redis, the value must be 1, so enter that here.
+
+33
+00:02:05.040 --> 00:02:05.480
+Next,
+
+34
+00:02:05.480 --> 00:02:09.070
+add the property SecurityGroupIds and set an array with
+
+35
+00:02:09.070 --> 00:02:13.140
+one property called sgId as the value.
+
+36
+00:02:13.140 --> 00:02:16.020
+Now we can create our cache inside the promise.
+
+37
+00:02:16.020 --> 00:02:21.650
+Call ec.createCacheCluster passing in params as the first argument and a
+
+38
+00:02:21.650 --> 00:02:26.240
+function argument with err and data arguments as the second.
+
+39
+00:02:26.240 --> 00:02:30.710
+If there is an err object, then call reject with the err argument, otherwise,
+
+40
+00:02:30.710 --> 00:02:33.380
+call resolve with the data argument.
+
+41
+00:02:33.380 --> 00:02:37.950
+Now we finish the script so we can run it by switching to your command line
+
+42
+00:02:37.950 --> 00:02:43.440
+and running the command node create‑redis‑cluster.js.
+
+43
+00:02:43.440 --> 00:02:44.540
+Once it's complete,
+
+44
+00:02:44.540 --> 00:02:49.440
+your Redis cluster will be booting up. To use the Redis cluster in our code,
+
+45
+00:02:49.440 --> 00:02:54.790
+we only need to make a minor change. In index.js at the root of the project,
+
+46
+00:02:54.790 --> 00:02:58.790
+there are a couple of sections that we need to uncomment. This section
+
+47
+00:02:58.790 --> 00:03:03.900
+at the top inside of options is the first, so uncomment that. This
+
+48
+00:03:03.900 --> 00:03:07.970
+will configure our happy server to use a Redis plugin and make a
+
+49
+00:03:07.970 --> 00:03:10.740
+connection to it to use as a cache.
+
+50
+00:03:10.740 --> 00:03:14.510
+Then scroll down to where we define this cache const and
+
+51
+00:03:14.510 --> 00:03:17.640
+uncomment the line with the property cache.
+
+52
+00:03:17.640 --> 00:03:22.140
+This sets the Redis cache as the default cache to use for user sessions.
+
+53
+00:03:22.140 --> 00:03:24.010
+Back in the top section of code,
+
+54
+00:03:24.010 --> 00:03:28.640
+we need to add the host of the Redis cache cluster we just created.
+
+55
+00:03:28.640 --> 00:03:32.540
+The cache creation can take a while so I'm skipping the video in
+
+56
+00:03:32.540 --> 00:03:37.500
+time here to when the cache is available. Open your AWS console
+
+57
+00:03:37.500 --> 00:03:40.540
+and go to the ElastiCache dashboard.
+
+58
+00:03:40.540 --> 00:03:44.240
+Click on the Redis menu on the left‑hand side menu,
+
+59
+00:03:44.240 --> 00:03:47.885
+then expand the cluster we created, and copy the primary
+
+60
+00:03:47.885 --> 00:03:51.540
+endpoint field without the port at the end.
+
+61
+00:03:51.540 --> 00:03:56.210
+Back in your code editor, paste the value on Line 16.
+
+62
+00:03:56.210 --> 00:04:01.340
+Now save that file, and we've got our application already to use.
+
+63
+00:04:01.340 --> 00:04:03.900
+It would be really great to be able to try this out locally,
+
+64
+00:04:03.900 --> 00:04:08.180
+but unfortunately we can't easily access a Redis cluster
+
+65
+00:04:08.180 --> 00:04:12.740
+running in ElastiCache outside of the VPC in AWS.
+
+66
+00:04:12.740 --> 00:04:14.800
+We could configure a NAT to access it,
+
+67
+00:04:14.800 --> 00:04:17.940
+but that's a little overkill for this course.
+
+68
+00:04:17.940 --> 00:04:23.240
+Instead, we're going to update the code in AWS and see it work remotely.
+
+69
+00:04:23.240 --> 00:04:26.410
+I've created a deploy script that will push your code out
+
+70
+00:04:26.410 --> 00:04:28.460
+to your instance and get it running.
+
+71
+00:04:28.460 --> 00:04:31.220
+All you need to do is provide an IP.
+
+72
+00:04:31.220 --> 00:04:36.640
+So let's go to the EC2 dashboard and the Auto Scaling Group's screen.
+
+73
+00:04:36.640 --> 00:04:40.840
+Select our auto scaling group and then the Instances tab.
+
+74
+00:04:40.840 --> 00:04:42.520
+You should see just one instance,
+
+75
+00:04:42.520 --> 00:04:47.550
+so select it. Now grab the public IP, and we're going to
+
+76
+00:04:47.550 --> 00:04:49.500
+be using this in our command line.
+
+77
+00:04:49.500 --> 00:04:56.050
+So switch over to the command line and then run the command npm run
+
+78
+00:04:56.050 --> 00:05:02.340
+deploy ‑‑ and then a space and then paste the IP address.
+
+79
+00:05:02.340 --> 00:05:05.640
+If you follow the video exactly to this point,
+
+80
+00:05:05.640 --> 00:05:09.940
+you should be able to run this command and not have any problems.
+
+81
+00:05:09.940 --> 00:05:13.360
+If you made any modifications outside of what I was instructing,
+
+82
+00:05:13.360 --> 00:05:17.370
+you may need to update some of the values in the deploy.js file at
+
+83
+00:05:17.370 --> 00:05:21.530
+the root of the project. On running this command, it will zip up all
+
+84
+00:05:21.530 --> 00:05:24.350
+your code, upload it to the instance,
+
+85
+00:05:24.350 --> 00:05:29.280
+then extract the zip file, install dependencies, and restart the
+
+86
+00:05:29.280 --> 00:05:38.000
+application. In the next clip, we're going to look at limits you may run into when working with any of these persistent services.
+

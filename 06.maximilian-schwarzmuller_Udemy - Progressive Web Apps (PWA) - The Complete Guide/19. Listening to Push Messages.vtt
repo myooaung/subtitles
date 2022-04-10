@@ -1,0 +1,316 @@
+WEBVTT
+
+00:02.130 --> 00:07.920
+So in the last lectures, we added the functionality to send push messages and it seems to work but we
+
+00:07.920 --> 00:10.910
+can't tell for sure because we're not listening to it.
+
+00:11.220 --> 00:12.560
+So in our service worker file,
+
+00:12.600 --> 00:14.020
+let's start listening to it
+
+00:14.160 --> 00:20.680
+and why in the service worker? Well for the same reason I mentioned earlier in this module. The service
+
+00:20.680 --> 00:24.840
+worker is always running in the background, at least on some devices
+
+00:25.160 --> 00:30.550
+and we want to react to push messages when we don't have a web page open.
+
+00:30.740 --> 00:35.690
+So the service worker is the place where we want to listen to push messages and it's therefore the
+
+00:35.690 --> 00:38.380
+only place where we can listen to them.
+
+00:38.420 --> 00:46.430
+So at the bottom of this file maybe here, I'll add a new event listener with self add event listener
+
+00:46.760 --> 00:50.330
+and I will listen to a push event.
+
+00:50.330 --> 00:55.430
+Now here I will execute this function whenever it occurs and this will occur whenever we get an incoming
+
+00:55.550 --> 00:56.860
+push message.
+
+00:56.870 --> 00:59.340
+When do we get an incoming push message?
+
+00:59.540 --> 01:06.170
+Well if this service worker on this browser on this device has a subscription to which this push message
+
+01:06.260 --> 01:11.000
+was sent, each subscription is stored on the server and has its own endpoint
+
+01:11.330 --> 01:18.200
+and therefore if we send a push message from the server to that subscription, this service worker who created
+
+01:18.200 --> 01:20.060
+that subscription will receive it,
+
+01:20.120 --> 01:24.410
+that's the reason why if you unregister a service worker, you won't get it
+
+01:24.410 --> 01:30.380
+and the old subscription is worthless because your eventually newly created service worker will generate
+
+01:30.470 --> 01:32.310
+different subscriptions.
+
+01:32.330 --> 01:37.180
+Therefore since we generated a subscription with this service worker, this should work.
+
+01:37.610 --> 01:40.880
+So we have our push event listener and now first of all,
+
+01:40.910 --> 01:48.580
+I will log push notification received, to immediately see if this works or not and I can output the event
+
+01:48.630 --> 01:53.840
+here too. As a next step, I want to retrieve any data we send with that push notification.
+
+01:53.840 --> 02:00.680
+If we inspect the push notification code on index.js, this is the payload we send with the push notification,
+
+02:00.950 --> 02:04.670
+this stringified Javascript object with title and content
+
+02:04.670 --> 02:10.640
+and of course you can set up whichever properties you want here. I want to retrieve that and I can simply
+
+02:10.730 --> 02:15.470
+retrieve this in the service worker, though the first thing I have to do is I have to check if our
+
+02:15.470 --> 02:17.540
+event data object exists,
+
+02:17.540 --> 02:22.600
+so if we do have some data attached to that event. If we do, we know we can extract it,
+
+02:22.910 --> 02:30.380
+so I will set up a variable data and I'll set it to a dummy object first which I'll use as a fallback
+
+02:30.380 --> 02:34.010
+in case I don't get new data by the push notification.
+
+02:34.010 --> 02:40.730
+There I'll set a title of new and I deliberately don't use the same values as on the server so that we
+
+02:40.730 --> 02:47.090
+can clearly tell if we're getting this dummy object or our real server data and I'll set a content of
+
+02:47.420 --> 02:49.400
+something new happened.
+
+02:49.580 --> 02:54.740
+Now in reality, you want to use something here which you could validly use as a fallback to show at least
+
+02:54.740 --> 02:57.280
+some meaningful message.
+
+02:57.320 --> 03:02.980
+Now here in the event data, I'll now extract the data in case we got it and then reassign it to this
+
+03:02.990 --> 03:09.260
+variable and I do this by calling JSON parse because we get a string and we want to convert it into a
+
+03:09.260 --> 03:14.330
+Javascript object again, on event data, though this alone won't work,
+
+03:14.510 --> 03:21.200
+we need to call the text helper method which would just retrieve the text, so the string from the data
+
+03:21.270 --> 03:24.410
+and since we passed JSON which is a string in the end,
+
+03:24.410 --> 03:30.340
+this works and then we parse it to store a real Javascript object inside data.
+
+03:30.800 --> 03:35.210
+Now we can use that data and we can use it to show a new notification,
+
+03:35.210 --> 03:38.430
+we can do that from inside the service worker too.
+
+03:38.510 --> 03:44.060
+Previously we did it from our normal Javascript code, though by reaching out to the service worker, by
+
+03:44.060 --> 03:48.570
+getting access to it here, now we can do it straight from inside.
+
+03:48.590 --> 03:51.830
+So first of all, I'll set up some options for the notification
+
+03:52.160 --> 03:58.950
+and here you can use the same options you used before, image and so on. I'll set the body first and I'll refer
+
+03:58.980 --> 04:01.220
+to data content.
+
+04:01.490 --> 04:08.540
+Now content is correct here because keep in mind here, we got content here sent back from the server
+
+04:08.720 --> 04:12.650
+as well as title. So I can access on the retrieve data,
+
+04:13.040 --> 04:17.940
+I also want to display an icon and here I'll again hardcode my own icon, images
+
+04:17.980 --> 04:19.460
+icons, app icon
+
+04:19.490 --> 04:29.670
+96x96.png and the cool thing is of course you could theoretically also send a URL
+
+04:29.670 --> 04:36.240
+as part of your payload. Now the payload is limited to 4kb, at least at the point of time I'm recording
+
+04:36.240 --> 04:36.930
+this,
+
+04:36.930 --> 04:41.810
+so you can't send an image with it but a link to image is OK,
+
+04:41.970 --> 04:46.310
+just don't send whole essays but always keep in mind a push notification
+
+04:46.320 --> 04:52.980
+most of the time should fit in a normal notification anyways. So just the title, a short content and a
+
+04:52.980 --> 04:56.950
+link to an image probably is all you need most of the time.
+
+04:57.060 --> 04:59.300
+So here I'm only setting title and content though,
+
+04:59.340 --> 05:07.920
+that's why I hardcode an image in here, my default app icon, I'll also set a batch to that same icon to get my
+
+05:07.920 --> 05:13.110
+own batch in the toolbar and that's it for now.
+
+05:13.110 --> 05:15.660
+Now to display this, I have to call event,
+
+05:15.690 --> 05:21.690
+wait until to make sure the service worker waits for me to really show this notification and then I
+
+05:21.690 --> 05:23.900
+get access to the service worker,
+
+05:24.090 --> 05:28.740
+however the active service worker itself can't show the notification,
+
+05:28.740 --> 05:32.390
+it's there to listen to events it's running in the background.
+
+05:32.400 --> 05:38.010
+That's why we have to get access to the registration of the service worker, that is the part running in the
+
+05:38.010 --> 05:38.490
+browser
+
+05:38.490 --> 05:39.260
+so to say,
+
+05:39.390 --> 05:43.120
+so it's the part which connects the service worker to the browser.
+
+05:43.200 --> 05:49.290
+Now on our registration, we can call show notification just as before.
+
+05:49.290 --> 05:53.910
+I then want to output the title which I can retrieve from my data of course, since we sent this from
+
+05:53.910 --> 05:56.790
+the back-end too and pass my options
+
+05:57.280 --> 06:01.900
+and with this set up, we should now see, without a semicolon,
+
+06:01.950 --> 06:06.040
+we should now see a real message coming in
+
+06:06.060 --> 06:12.300
+whenever I create a new post and for that let's head back and since we updated the service worker, we
+
+06:12.300 --> 06:14.070
+have to update it here too.
+
+06:14.070 --> 06:15.930
+Now for the same reason as mentioned before,
+
+06:15.930 --> 06:17.760
+don't clear your site data,
+
+06:17.760 --> 06:22.060
+you would unregister the service worker and hence render your subscription useless.
+
+06:22.260 --> 06:28.350
+Simply update it old school by refreshing the page to install the new service worker and then to activate
+
+06:28.350 --> 06:28.620
+it,
+
+06:28.650 --> 06:31.100
+close your page and open a new tab
+
+06:31.380 --> 06:35.840
+and now you've got the updated service worker registered without replacing it,
+
+06:35.940 --> 06:43.410
+so without rendering the old subscriptions useless. Now let's simply create a new post and hope that we
+
+06:43.410 --> 06:46.860
+get a notification due to our post message.
+
+06:46.860 --> 06:49.740
+So do we get a notification
+
+06:49.770 --> 06:51.100
+is the question here,
+
+06:51.270 --> 06:52.220
+maybe even without a typo
+
+06:52.240 --> 06:56.690
+and this is from Munich.
+
+06:56.960 --> 06:59.610
+So let's click post and let's see if something happens.
+
+07:00.080 --> 07:07.530
+I do get a notification here and as you can see, new post, a new post added clearly indicates that this
+
+07:07.530 --> 07:11.870
+is coming from the server because our fallback would be just new and something new happened,
+
+07:11.910 --> 07:13.860
+so a different text.
+
+07:13.860 --> 07:15.180
+So this is working fine,
+
+07:15.180 --> 07:18.220
+we're now receiving this push notification from the server,
+
+07:18.480 --> 07:20.870
+let's now also see it on a real device
+
+07:20.910 --> 07:25.770
+and since I will then create a new subscription there obviously because new browser on different
+
+07:25.770 --> 07:31.920
+device, different service worker, you will see that if I create a post on any of the two devices, I will get
+
+07:31.920 --> 07:33.640
+push messages on both.
+
+07:33.840 --> 07:37.170
+Let's see this in action in the next lecture.

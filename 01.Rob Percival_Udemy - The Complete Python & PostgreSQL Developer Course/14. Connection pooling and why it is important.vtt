@@ -1,0 +1,840 @@
+WEBVTT
+1
+
+00:00:00.150  -->  00:00:05.220
+Find Welcome Back in this video we're looking at connection pools and how we can create a connection
+
+2
+
+00:00:05.220  -->  00:00:07.150
+pool.
+
+3
+
+00:00:07.680  -->  00:00:11.220
+First of all why do we want to create a connection pool.
+
+4
+
+00:00:11.220  -->  00:00:14.080
+I know you don't know what a connection pool is or maybe you don't.
+
+5
+
+00:00:14.370  -->  00:00:21.090
+But what is the reason behind creating a connection pool and that is going to help you understand why
+
+6
+
+00:00:21.090  -->  00:00:24.020
+a connection pool is important.
+
+7
+
+00:00:25.320  -->  00:00:32.670
+In my User class here we have two methods saved to database and the load from the to base.
+
+8
+
+00:00:32.700  -->  00:00:41.340
+Now when we run the C to database method that runs the connect method and if we go to the connect method
+
+9
+
+00:00:41.850  -->  00:00:49.920
+that returns a psychobilly to dot connect and what that does is it creates a connection to the database
+
+10
+
+00:00:49.920  -->  00:00:49.960
+.
+
+11
+
+00:00:49.980  -->  00:00:53.290
+It opens up a connection to the database.
+
+12
+
+00:00:53.370  -->  00:01:00.120
+Not only that but when we get to the end of the with clause as I've said before it commits the connection
+
+13
+
+00:01:00.930  -->  00:01:03.180
+and closes the connection.
+
+14
+
+00:01:03.210  -->  00:01:04.470
+What does that mean.
+
+15
+
+00:01:04.470  -->  00:01:10.980
+When we then load from the database or indeed if we create another user and save it when we run either
+
+16
+
+00:01:10.980  -->  00:01:16.410
+of these methods again that runs the connect method again which then creates another connection to the
+
+17
+
+00:01:16.410  -->  00:01:22.350
+data base and then at the end of the method apologies it gets to the end then it commits that connection
+
+18
+
+00:01:22.380  -->  00:01:24.100
+and it closes the connection.
+
+19
+
+00:01:24.750  -->  00:01:30.140
+And if our app was running for a while that would happen over and over again you can assume.
+
+20
+
+00:01:30.140  -->  00:01:37.380
+So you would be constantly creating and destroying these connections now destroying the connections
+
+21
+
+00:01:37.380  -->  00:01:38.220
+is not the problem.
+
+22
+
+00:01:38.220  -->  00:01:45.200
+You can guess it's creating them creating connections is not free in terms of performance.
+
+23
+
+00:01:45.510  -->  00:01:53.890
+It's actually the slowest part of interacting with a database by a wide margin.
+
+24
+
+00:01:53.940  -->  00:01:57.360
+Naturally if you perform a really large query that's going to take a long time.
+
+25
+
+00:01:57.570  -->  00:02:04.050
+But in terms of connecting reading cursors interacting inserting things like that the connect takes
+
+26
+
+00:02:04.050  -->  00:02:07.030
+a much longer time than the other things.
+
+27
+
+00:02:07.440  -->  00:02:08.740
+So what do we do.
+
+28
+
+00:02:09.210  -->  00:02:16.830
+Well instead of creating the connection when we need it we create a bunch of connections and then we
+
+29
+
+00:02:16.830  -->  00:02:17.740
+just reuse them.
+
+30
+
+00:02:17.790  -->  00:02:21.940
+We never close them although we do commit them.
+
+31
+
+00:02:21.960  -->  00:02:27.660
+If you never close the connections you can just keep reusing them creating more cursors which is free
+
+32
+
+00:02:28.020  -->  00:02:33.230
+or nearly free but you'll never have to close the connection.
+
+33
+
+00:02:33.300  -->  00:02:36.520
+So what does that mean for the code that we've written.
+
+34
+
+00:02:36.990  -->  00:02:39.530
+Well it means that we cannot do this.
+
+35
+
+00:02:39.630  -->  00:02:45.810
+We can't do with the new connection as connection because that closes that connection and we don't want
+
+36
+
+00:02:45.810  -->  00:02:52.290
+that we don't want to close the connection where we want to do is have a group of connections that we
+
+37
+
+00:02:52.290  -->  00:02:59.340
+can reuse and that is commonly known as a collection pool.
+
+38
+
+00:02:59.340  -->  00:03:03.110
+It's imagine a swimming pool that has a bunch of water particles.
+
+39
+
+00:03:03.120  -->  00:03:06.330
+This is the same but instead of water it has connections.
+
+40
+
+00:03:06.330  -->  00:03:11.430
+So what we're going to do is we're going to create a connection pool that is going to contain between
+
+41
+
+00:03:11.430  -->  00:03:17.070
+one and Penn connections and then when we need a connection we're just going to get one from the pool
+
+42
+
+00:03:17.070  -->  00:03:17.660
+.
+
+43
+
+00:03:18.210  -->  00:03:22.620
+If there are none available then we are going to create a new one.
+
+44
+
+00:03:22.620  -->  00:03:27.690
+But if there are some available in the pool then we're going to get one from there.
+
+45
+
+00:03:28.650  -->  00:03:34.170
+OK let's let's do that first and then we'll continue because I can see I'm boring you guys.
+
+46
+
+00:03:34.410  -->  00:03:40.170
+So the first thing is to create a connection pool variable and again it doesn't have to be called Connection
+
+47
+
+00:03:40.170  -->  00:03:40.610
+Pool.
+
+48
+
+00:03:40.620  -->  00:03:42.760
+It can be called whatever you want.
+
+49
+
+00:03:43.230  -->  00:03:51.100
+And this is going to be equal to pool not simple connection pool.
+
+50
+
+00:03:51.810  -->  00:03:54.370
+Naturally we don't know what pool is.
+
+51
+
+00:03:54.390  -->  00:03:58.270
+So we have to import from psychobilly to import pool.
+
+52
+
+00:03:58.500  -->  00:04:01.100
+Fortunately that's a thing that exists.
+
+53
+
+00:04:01.770  -->  00:04:04.500
+And then we have to give it three things.
+
+54
+
+00:04:04.830  -->  00:04:10.950
+Well a bunch of things really we have to give it a parameter called mean corn that keeps disappearing
+
+55
+
+00:04:10.950  -->  00:04:11.310
+.
+
+56
+
+00:04:11.360  -->  00:04:18.480
+A parliament called Max can mean corn is how many connections should be created.
+
+57
+
+00:04:18.480  -->  00:04:21.040
+As soon as this variable is created.
+
+58
+
+00:04:21.450  -->  00:04:28.470
+So if we say five as soon as we run this connection pool line as which we run this line of code that's
+
+59
+
+00:04:28.470  -->  00:04:29.750
+going to create 5 connections.
+
+60
+
+00:04:29.760  -->  00:04:34.660
+As you can imagine that's going to take a while meaning a couple of milliseconds.
+
+61
+
+00:04:35.220  -->  00:04:41.350
+The next parameter is the maximum number of connections that this pool can handle.
+
+62
+
+00:04:41.400  -->  00:04:44.070
+You may put 100 here for example.
+
+63
+
+00:04:44.070  -->  00:04:45.320
+I'm going to put 10.
+
+64
+
+00:04:45.420  -->  00:04:51.960
+This number will depend on how many simultaneous connections to a database your program needs.
+
+65
+
+00:04:51.960  -->  00:04:56.960
+So if if your program uses a lot of traffic to and from the database you may need a large number them
+
+66
+
+00:04:57.010  -->  00:04:58.130
+.
+
+67
+
+00:04:58.980  -->  00:04:59.500
+OK.
+
+68
+
+00:04:59.700  -->  00:05:06.840
+And I'm going to decrease the 5 to 1 because that just kind of makes sense for this app after that.
+
+69
+
+00:05:06.840  -->  00:05:10.560
+Naturally we still need to tell it where it is connecting to.
+
+70
+
+00:05:10.800  -->  00:05:16.860
+So now we need the parameters that we need it there that database the user name the password it him
+
+71
+
+00:05:16.890  -->  00:05:17.490
+.
+
+72
+
+00:05:17.700  -->  00:05:22.990
+So I'm just going to copy them from my second monitor so I don't bore you guys.
+
+73
+
+00:05:23.550  -->  00:05:24.920
+And there we go.
+
+74
+
+00:05:28.650  -->  00:05:36.570
+This is our simple connection pool that has between 1 and 10 available connections at any one time.
+
+75
+
+00:05:36.610  -->  00:05:43.000
+If you go over 10 we're going to look at what happens and it connects to these things.
+
+76
+
+00:05:43.770  -->  00:05:48.410
+Now let's go back to our user and now there's the disconnect method doesn't exist.
+
+77
+
+00:05:48.420  -->  00:05:51.550
+So instead we're going to import connection pool.
+
+78
+
+00:05:52.300  -->  00:06:01.530
+And now instead of doing with CONNECT ask connection what we have to do is with CONNECT sort with connection
+
+79
+
+00:06:02.320  -->  00:06:08.230
+pool don't get Khan as connection.
+
+80
+
+00:06:08.740  -->  00:06:15.300
+And here we have a connection pool don't get on connection.
+
+81
+
+00:06:16.240  -->  00:06:18.060
+So really not much has changed.
+
+82
+
+00:06:18.120  -->  00:06:24.490
+All that's changed now is that instead of creating a new connection here we're just requesting one from
+
+83
+
+00:06:24.490  -->  00:06:26.130
+the pool.
+
+84
+
+00:06:26.190  -->  00:06:33.690
+It's still going to happen that if there isn't one available meaning if for example we had zero then
+
+85
+
+00:06:34.770  -->  00:06:38.870
+if it isn't no connections available then it's going to create one.
+
+86
+
+00:06:39.630  -->  00:06:41.740
+And so on.
+
+87
+
+00:06:42.750  -->  00:06:43.270
+OK.
+
+88
+
+00:06:43.530  -->  00:06:51.650
+So what does this get Conon method and how was the connection pool run out of connections.
+
+89
+
+00:06:52.330  -->  00:06:59.620
+OK the first thing to see is whether this works like so like it is now.
+
+90
+
+00:06:59.800  -->  00:07:04.670
+So I'm going to go and change this thing here.
+
+91
+
+00:07:04.690  -->  00:07:11.170
+I'm going to run it run my app and then I'm going to go to PC admen 3 and I'm going to run those and
+
+92
+
+00:07:11.160  -->  00:07:12.620
+we can see that and it's that.
+
+93
+
+00:07:12.730  -->  00:07:16.620
+So she is called Rowlf But you know that's fine.
+
+94
+
+00:07:16.650  -->  00:07:18.570
+So this is working.
+
+95
+
+00:07:19.410  -->  00:07:26.440
+We are able to insert data retrieving a connection from the connection pool using this connection pool
+
+96
+
+00:07:26.520  -->  00:07:31.300
+Dockett con method as opposed to creating it.
+
+97
+
+00:07:31.320  -->  00:07:34.310
+So that works.
+
+98
+
+00:07:34.530  -->  00:07:41.880
+Now I'm going to do something slightly different which is I'm going to create a user save it to the
+
+99
+
+00:07:41.880  -->  00:07:44.480
+database and then I'm going to retrieve it.
+
+100
+
+00:07:44.640  -->  00:07:50.480
+So user from D-B equals user.
+
+101
+
+00:07:52.870  -->  00:07:53.190
+So
+
+102
+
+00:07:56.040  -->  00:08:03.290
+likesome So as you know this is just creating a variable called user from D.B and it's equal to use
+
+103
+
+00:08:03.280  -->  00:08:05.210
+and or load from D-B by email.
+
+104
+
+00:08:05.380  -->  00:08:08.300
+And that's the email of the first user that we inserted.
+
+105
+
+00:08:08.400  -->  00:08:13.930
+And then we're printing it out let's press play again and see if that works.
+
+106
+
+00:08:14.070  -->  00:08:21.360
+We got printed out once again PGE admin 3 now should show and Smith is that twice which is correct.
+
+107
+
+00:08:21.390  -->  00:08:25.020
+She sort of called her off and we retrieved the user.
+
+108
+
+00:08:25.060  -->  00:08:27.840
+Fantastic.
+
+109
+
+00:08:27.850  -->  00:08:30.810
+Now here is the interesting thing.
+
+110
+
+00:08:30.810  -->  00:08:35.640
+What happens if I change this to one.
+
+111
+
+00:08:36.180  -->  00:08:41.680
+It has a minimum number of connections of one the maximum number of connections of one.
+
+112
+
+00:08:42.270  -->  00:08:46.200
+So it has one connection.
+
+113
+
+00:08:46.200  -->  00:08:51.060
+We are first saving the user that we created in the database.
+
+114
+
+00:08:51.070  -->  00:08:57.310
+So let's go into that method in here saving even that it is getting a connection from the pool then
+
+115
+
+00:08:57.310  -->  00:09:00.540
+it's opening a cursor and it's inserting that into the database.
+
+116
+
+00:09:00.540  -->  00:09:04.780
+And then presumably that's closing the cursor.
+
+117
+
+00:09:04.770  -->  00:09:11.280
+And since it got the connection from the pool presumably is going to put it back right.
+
+118
+
+00:09:12.750  -->  00:09:13.080
+OK.
+
+119
+
+00:09:13.140  -->  00:09:17.010
+And then the load from the database by e-mail then it does essentially the same thing.
+
+120
+
+00:09:17.110  -->  00:09:22.380
+It gets a connection from the pool then it gets a cursor and then executes that and then it closes the
+
+121
+
+00:09:22.380  -->  00:09:22.880
+cursor.
+
+122
+
+00:09:22.890  -->  00:09:28.880
+And then again presumably it is returning the collection the connection to the pool.
+
+123
+
+00:09:29.040  -->  00:09:30.540
+That's what a with statement does right.
+
+124
+
+00:09:30.540  -->  00:09:36.220
+Something like that as well we looked at kind of more or less we can close the connection before so
+
+125
+
+00:09:36.220  -->  00:09:39.110
+surely now it's going to put it back.
+
+126
+
+00:09:39.380  -->  00:09:40.860
+And when I pressed play.
+
+127
+
+00:09:41.950  -->  00:09:47.940
+And unfortunately for us that is not what happens.
+
+128
+
+00:09:47.940  -->  00:09:53.900
+We get a connection pool exhausted pool area connection pool exhausted.
+
+129
+
+00:09:54.730  -->  00:09:59.890
+So why what is this doing.
+
+130
+
+00:10:01.060  -->  00:10:12.490
+And that is something special going on with this with statement and this with statement has to be programmed
+
+131
+
+00:10:12.490  -->  00:10:20.880
+specifically to work which means if it's not been programmed specifically this with statement.
+
+132
+
+00:10:20.880  -->  00:10:26.950
+All it does is is connection equal connection pooled or gedcom.
+
+133
+
+00:10:27.580  -->  00:10:30.210
+And this should not be invented in that case.
+
+134
+
+00:10:30.790  -->  00:10:34.960
+And this is the same thing.
+
+135
+
+00:10:38.130  -->  00:10:46.140
+So now you see why the connection pool is getting exhausted nobody program specifically for the connection
+
+136
+
+00:10:46.140  -->  00:10:52.590
+pool that we should be able to use the with statement and because it wasn't programmed specifically
+
+137
+
+00:10:53.160  -->  00:11:00.320
+using the with statement just renders it into this we get a connection and put it in that connection
+
+138
+
+00:11:00.330  -->  00:11:04.130
+variable but we never return it.
+
+139
+
+00:11:04.140  -->  00:11:10.950
+The lesson to learn from this is if you don't know what the with statement does with your specific thing
+
+140
+
+00:11:10.950  -->  00:11:14.180
+that you're using it with that gets a bit dangerous.
+
+141
+
+00:11:14.940  -->  00:11:20.320
+So here we are getting a connection in the safe to the beat when we run safe to D-B we get a connection
+
+142
+
+00:11:20.880  -->  00:11:23.860
+and that is the only connection that this pool has.
+
+143
+
+00:11:24.120  -->  00:11:25.840
+And we never put it back.
+
+144
+
+00:11:25.840  -->  00:11:33.720
+So then when we run low from D-B we try to get a connection but there is none so we can't do it.
+
+145
+
+00:11:33.730  -->  00:11:43.740
+So what to do at the end of the with statement do connection pool don't put Khan connection and we'll
+
+146
+
+00:11:43.750  -->  00:11:47.850
+do that at the end of both of these things.
+
+147
+
+00:11:49.300  -->  00:11:54.770
+Naturally we can't do it at the end of this one because we are returning things.
+
+148
+
+00:11:55.090  -->  00:11:56.460
+That's a bit of a problem minute.
+
+149
+
+00:11:56.830  -->  00:12:04.060
+OK let's just remove it from there and we can now run the thing and it will work because we are saving
+
+150
+
+00:12:04.060  -->  00:12:06.960
+the database we are going through this thing.
+
+151
+
+00:12:07.090  -->  00:12:13.330
+And then at the end we're putting the connection back and then in the this one we're using up another
+
+152
+
+00:12:13.330  -->  00:12:16.910
+connection and we're not putting it back.
+
+153
+
+00:12:17.760  -->  00:12:25.030
+But that's fine because at the end of our program if we then try to do something else like my user dot
+
+154
+
+00:12:25.050  -->  00:12:28.240
+see if the DBI again believe me it won't work.
+
+155
+
+00:12:28.240  -->  00:12:33.720
+Tells you Connection pull exhausted again because we ran out this method didn't put the connection back
+
+156
+
+00:12:33.750  -->  00:12:34.300
+.
+
+157
+
+00:12:34.840  -->  00:12:42.850
+So the lesson to take from this is we need to be able to use with in order to make sure that the connection
+
+158
+
+00:12:42.850  -->  00:12:44.280
+gets put back.
+
+159
+
+00:12:44.590  -->  00:12:50.100
+And this is a fantastic bit of Python that we're going to be looking at in the next few videos on teaching
+
+160
+
+00:12:50.110  -->  00:12:55.290
+you how to use the with statement it's really useful and really quite quite beautiful the way that Python
+
+161
+
+00:12:55.300  -->  00:12:57.580
+allows you to do this sort of stuff.
+
+162
+
+00:12:57.580  -->  00:13:02.140
+So over the next few videos we're going to be expanding our python knowledge and allowing us to do just
+
+163
+
+00:13:02.130  -->  00:13:03.620
+that.
+
+164
+
+00:13:03.630  -->  00:13:04.830
+So that was it for this video.
+
+165
+
+00:13:04.840  -->  00:13:09.750
+We've learned that connections are not free and we should use a connection pool.
+
+166
+
+00:13:10.020  -->  00:13:15.100
+And we've learned that connection pools require you to put the connection back or else they run out
+
+167
+
+00:13:15.100  -->  00:13:16.320
+of connections.
+
+168
+
+00:13:16.870  -->  00:13:21.140
+So in the next few videos let's look at that and I see you there.

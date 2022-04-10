@@ -1,0 +1,232 @@
+1
+00:00:00,880 --> 00:00:04,310
+The next coming lectures will all be about Volumes.
+
+2
+00:00:04,430 --> 00:00:10,860
+I will show you how to run apps with state stateful apps.
+
+3
+00:00:11,060 --> 00:00:17,750
+And one of the demos is also going to show you how to run WordPress to get over the database because those are statefull application. 
+
+4
+00:00:17,750 --> 00:00:26,150
+Volumes in Kubernetes allow you to store data outside the container.
+
+5
+00:00:26,150 --> 00:00:27,220
+When the container stops
+
+6
+00:00:27,280 --> 00:00:30,340
+all data on the container itself is lost.
+
+7
+00:00:30,340 --> 00:00:36,760
+That's why up until now I've been using most of the time stateless applications: apps don't keep a local state,
+
+8
+00:00:36,760 --> 00:00:42,460
+but can store their state in external service in a external  service.
+
+9
+00:00:42,460 --> 00:00:49,910
+With external service, I mean like, a database, a caching server, like mysql, object storage like S3 can be useful for that, and FS Azure can be useful for that.
+
+10
+00:00:49,910 --> 00:00:57,020
+You can only use those external services even without using volumes, 
+
+11
+00:00:57,030 --> 00:01:01,800
+because S3 we could code that in your app a database, you could run as a service.
+
+12
+00:01:01,860 --> 00:01:08,080
+Now I'm going to show you a way to run those services inside your Kubernetes cluster and then we can use volumes for that
+and then we can run stateful applications.
+
+13
+00:01:08,140 --> 00:01:14,020
+Persistent volumes Kubernetes allow you to attach a volume to a container that will exist even when the container stops.
+
+14
+00:01:20,680 --> 00:01:21,850
+So, the container stops, the pod stops,
+
+15
+00:01:21,850 --> 00:01:28,490
+but your volume can be reattached to a new container and you can keep the state of your application.
+
+16
+00:01:28,580 --> 00:01:35,590
+It can keep files that are necessary for your application to run. Volumes can be attached using different volume plugins.
+
+17
+00:01:36,700 --> 00:01:39,910
+Here you have an overview of different plugins. 
+
+18
+00:01:39,910 --> 00:01:47,670
+On the left, we have our node with a couple of pods on and the containers in the pods can now be used to attach them to.
+
+19
+00:01:47,710 --> 00:01:55,550
+Let's say for instance, "Pod 1" has a local volume attached to it, so that that data can be saved on "Node 1"
+
+20
+00:01:55,700 --> 00:01:59,680
+and it can be attached to another pod on the same node.
+
+21
+00:02:00,200 --> 00:02:04,790
+The more interesting ones are the ones that don't exist on the node itself.
+
+22
+00:02:04,880 --> 00:02:10,920
+Like if you're running on an AWS for instance, you can use EBS storage. 
+
+23
+00:02:11,010 --> 00:02:16,720
+You can attach this EBS to any node in the same EBS if the availability is on. 
+
+24
+00:02:17,010 --> 00:02:22,620
+Your node could completely die, you can spin up an on a node, or you can reuse another node, 
+
+25
+00:02:22,680 --> 00:02:24,640
+reattach an EBS following to that, your pod can still be working.
+
+26
+00:02:24,670 --> 00:02:30,580
+That's a big advantage of using these Volume plugins that have storage outside your Kubernetes cluster.
+
+27
+00:02:30,630 --> 00:02:35,070
+If you're running on Google Cloud, you can use Google disk, if you're running a Microsoft cloud,
+
+28
+00:02:35,070 --> 00:02:41,680
+you can use Azure disk, and then there are some other network storage providers that you can use,
+
+29
+00:02:41,910 --> 00:02:46,070
+that you might even implement yourself like and FS or Ceph.
+
+30
+00:02:46,210 --> 00:02:52,540
+Those are a little bit more complicated because you might have to set up a Ceph cluster or NFS cluster,
+
+31
+00:02:52,540 --> 00:02:58,660
+before you can then use those Volume plugins.
+
+32
+00:02:58,790 --> 00:03:05,660
+The one that I'm going to discuss is obviously the EBS volume plugin, because we can use it on our AWS cluster.
+
+33
+00:03:05,720 --> 00:03:14,250
+Using volumes, you could deploy applications with state on your cluster.
+
+34
+00:03:14,310 --> 00:03:21,260
+Those applications need to read and write to files on the local filesystem that needs to be persistent in time.
+
+35
+00:03:21,280 --> 00:03:27,850
+You could run mysql database using persistent volumes for instance. 
+
+36
+00:03:27,850 --> 00:03:29,400
+Although this might not be ready for production yet.
+
+37
+00:03:30,620 --> 00:03:37,430
+Volumes are new since June 2016 release in Kubernetes, so depending when you're going to take this course
+
+38
+00:03:37,520 --> 00:03:41,880
+you might still want to be very careful about this.
+
+39
+00:03:41,990 --> 00:03:44,230
+It will become stable at some point in time.
+
+40
+00:03:45,480 --> 00:03:48,250
+Let me show you an AWS EBS example.
+
+41
+00:03:48,480 --> 00:03:53,940
+If your node stops working the pod can be rescheduled on the node, or the volume can be attached to the new node.
+
+42
+00:03:56,220 --> 00:04:03,420
+So, here we have "Node 1" and "Node 2". "Node 2" doesn't have any pods, no one has myapp, and myapp is using EBS storage.
+
+43
+00:04:05,130 --> 00:04:08,480
+Let's say that "Node 1" completely disappears.
+
+44
+00:04:08,580 --> 00:04:12,740
+Then what's going to happen is myapp will be rescaled on "Node 2".
+
+45
+00:04:13,320 --> 00:04:20,790
+And then the container will link the EBS storage again so that myapp can access the data that was written
+
+46
+00:04:21,270 --> 00:04:26,650
+on that storage that is in this EBS storage, that is safe and out the cluster.
+
+47
+00:04:27,690 --> 00:04:34,200
+So, this works, but only when those nodes are in the same availabilities on.
+
+48
+00:04:34,240 --> 00:04:39,670
+So, let's have a look at the definitions that indeed used to create volumes. To use volumes you need to
+
+49
+00:04:39,670 --> 00:04:44,500
+create a volume first. In the next lecture and I'll show you how we can do this automatically,
+
+50
+00:04:44,680 --> 00:04:46,910
+but now we are going to do this manually.
+
+51
+00:04:47,200 --> 00:04:54,990
+So, here I am using the AWS tool to create a volume in "eu-west-1a", that is 10 gigabyte of size.
+
+52
+00:04:55,000 --> 00:05:03,360
+And also, specifying the "AvailabilityZone", "eu-east-1a". And you need to write down this volume ID,
+
+53
+00:05:03,360 --> 00:05:05,720
+because this is what we are going to need later on.
+
+54
+00:05:07,860 --> 00:05:11,910
+Next we need to create a pod or we can create a pod with a container.
+
+55
+00:05:11,910 --> 00:05:19,470
+These are the containers you always use, we can specify "volumeMount", the "mountPath" can be "myvolume", 
+
+56
+00:05:19,860 --> 00:05:27,750
+and the name is "myvolume". This name "myvolume" comes back under volumes, 
+
+57
+00:05:27,840 --> 00:05:32,790
+and then we go into the "awsElasticBlockStorage" and we going to specify the volume ID.
+
+58
+00:05:33,060 --> 00:05:35,780
+And that's what I'm going to show you in the next demo.

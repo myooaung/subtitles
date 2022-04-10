@@ -1,0 +1,364 @@
+1
+00:00:01,895 --> 00:00:05,982
+Often sites don't authenticate solely on a single piece of
+
+2
+00:00:05,982 --> 00:00:08,021
+evidence and require additional evidence,
+
+3
+00:00:08,021 --> 00:00:11,114
+like a security pin or security questions.
+
+4
+00:00:11,114 --> 00:00:14,956
+So let's mandate the user to also provide a security
+
+5
+00:00:14,956 --> 00:00:17,725
+pin in addition to the password.
+
+6
+00:00:17,725 --> 00:00:21,484
+Let's do a refresh from module 2 and go for the
+
+7
+00:00:21,484 --> 00:00:26,027
+components you would need to update, store the pin in a one-way hash,
+
+8
+00:00:26,027 --> 00:00:30,696
+like bcrypt, in an identity store during user registration,
+
+9
+00:00:30,696 --> 00:00:33,970
+modify the UserDetailsService to retrieve the pin,
+
+10
+00:00:33,970 --> 00:00:39,612
+and add it to the UserDetails object, retrieve the pin submitted by the user,
+
+11
+00:00:39,612 --> 00:00:44,931
+and add it to the authentication request and an AuthenticationProvider
+
+12
+00:00:44,931 --> 00:00:49,945
+that also considers the pin during authentication.
+
+13
+00:00:49,945 --> 00:00:52,241
+Let's implement these changes.
+
+14
+00:00:52,241 --> 00:00:55,643
+First, we add the security pin to the login page,
+
+15
+00:00:55,643 --> 00:00:59,218
+treating it just like a password.
+
+16
+00:00:59,218 --> 00:01:02,956
+The authentication filter creates an authentication request object
+
+17
+00:01:02,956 --> 00:01:07,014
+with the credentials submitted during login.
+
+18
+00:01:07,014 --> 00:01:08,411
+To also include the pin,
+
+19
+00:01:08,411 --> 00:01:14,120
+we can use the getDetails property on the Authentication object.
+
+20
+00:01:14,120 --> 00:01:17,981
+It returns a type Object where additional details
+
+21
+00:01:17,981 --> 00:01:21,245
+required for authentication can be placed.
+
+22
+00:01:21,245 --> 00:01:24,048
+For a web application, by default,
+
+23
+00:01:24,048 --> 00:01:29,168
+it is populated with an object of type WebAuthenticationDetails.
+
+24
+00:01:29,168 --> 00:01:31,786
+We can create our own implementation,
+
+25
+00:01:31,786 --> 00:01:34,343
+and the easiest way is to simply extend the
+
+26
+00:01:34,343 --> 00:01:38,839
+WebAuthenticationDetails class and include the security pin,
+
+27
+00:01:38,839 --> 00:01:43,179
+which we can retrieve from the HTTP request.
+
+28
+00:01:43,179 --> 00:01:47,032
+The WebAuthenticationDetails is built by a class
+
+29
+00:01:47,032 --> 00:01:50,424
+called WebAuthenticationDetailsSource.
+
+30
+00:01:50,424 --> 00:01:54,903
+So let's create a class that extends this and returns our new
+
+31
+00:01:54,903 --> 00:01:59,050
+additional AuthenticationDetails object.
+
+32
+00:01:59,050 --> 00:02:04,634
+Now in our Configuration class, we can set our new authenticationDetailsSource.
+
+33
+00:02:04,634 --> 00:02:05,197
+Hence,
+
+34
+00:02:05,197 --> 00:02:08,693
+now the AuthenticationProvider will be able to retrieve the
+
+35
+00:02:08,693 --> 00:02:13,179
+AdditionalAuthenticationDetails object using the getDetails method
+
+36
+00:02:13,179 --> 00:02:16,727
+and retrieve the pin the user submitted.
+
+37
+00:02:16,727 --> 00:02:20,956
+Let's add the pin to the registration page also and
+
+38
+00:02:20,956 --> 00:02:25,425
+the UserDto and UserEntity objects.
+
+39
+00:02:25,425 --> 00:02:27,431
+In the RegistrationController,
+
+40
+00:02:27,431 --> 00:02:30,869
+it is important we also encode the pin using bcrypt,
+
+41
+00:02:30,869 --> 00:02:33,064
+just like the password.
+
+42
+00:02:33,064 --> 00:02:33,447
+Okay,
+
+43
+00:02:33,447 --> 00:02:37,748
+let's now update the UserDetailsService to retrieve the pin
+
+44
+00:02:37,748 --> 00:02:40,794
+and add it to the UserDetails object.
+
+45
+00:02:40,794 --> 00:02:45,156
+Currently, we are using Spring's implementation of UserDetails.
+
+46
+00:02:45,156 --> 00:02:49,648
+Rather than create a completely new class that implements UserDetails,
+
+47
+00:02:49,648 --> 00:02:54,407
+simply extend the concrete user class, Spring's default implementation,
+
+48
+00:02:54,407 --> 00:02:56,935
+and include the securityPin.
+
+49
+00:02:56,935 --> 00:03:01,136
+We need a constructor to call the super class to populate the other
+
+50
+00:03:01,136 --> 00:03:05,824
+credentials and expose the pin with a getter and setter method.
+
+51
+00:03:05,824 --> 00:03:07,223
+In the UserDetailsService,
+
+52
+00:03:07,223 --> 00:03:11,979
+we can now create a new instance of multi-factor authentication
+
+53
+00:03:11,979 --> 00:03:17,934
+user class using the constructor to populate the credentials and
+
+54
+00:03:17,934 --> 00:03:24,866
+the setter to populate the pin, returning the new UserDetails implementation.
+
+55
+00:03:24,866 --> 00:03:30,027
+We now have the pin submitted by the user in the AuthenticationRequest object
+
+56
+00:03:30,027 --> 00:03:34,400
+and the pin from the identity store on the UserDetails object.
+
+57
+00:03:34,400 --> 00:03:38,038
+We now need an AuthenticationProvider that will
+
+58
+00:03:38,038 --> 00:03:41,100
+match them during authentication.
+
+59
+00:03:41,100 --> 00:03:46,516
+Now the default AuthenticationProvider is the DaoAuthenticationProvider.
+
+60
+00:03:46,516 --> 00:03:50,228
+It has a method, additionalAuthenticationChecks,
+
+61
+00:03:50,228 --> 00:03:54,842
+which is called after the username and password is authenticated.
+
+62
+00:03:54,842 --> 00:03:58,213
+Here we can add our logic to also match the pins.
+
+63
+00:03:58,213 --> 00:03:58,917
+To do this,
+
+64
+00:03:58,917 --> 00:04:04,124
+we can create a class that extends the DaoAuthenticationProvider and
+
+65
+00:04:04,124 --> 00:04:08,069
+override the additionalAuthenticationChecks method.
+
+66
+00:04:08,069 --> 00:04:11,230
+First, we call this super implementation of the method.
+
+67
+00:04:11,230 --> 00:04:11,683
+Next,
+
+68
+00:04:11,683 --> 00:04:15,826
+we retrieve the AdditionalAuthenticationDetails from the
+
+69
+00:04:15,826 --> 00:04:19,156
+authentication object's getDetails method,
+
+70
+00:04:19,156 --> 00:04:22,024
+retrieve the pin, and match them.
+
+71
+00:04:22,024 --> 00:04:26,145
+If they don't match, we throw a BadCredentialsException.
+
+72
+00:04:26,145 --> 00:04:29,923
+Otherwise, we set the pin to null as we no longer need it,
+
+73
+00:04:29,923 --> 00:04:34,639
+reducing the chances of it being exposed in later processing.
+
+74
+00:04:34,639 --> 00:04:39,650
+Add the Component annotation to our new provider and autowire
+
+75
+00:04:39,650 --> 00:04:43,831
+the UserDetailsService and PasswordEncoder.
+
+76
+00:04:43,831 --> 00:04:49,041
+Now to add a new AuthenticationProvider to the AuthenticationManager,
+
+77
+00:04:49,041 --> 00:04:51,523
+in this SecurityConfiguration class,
+
+78
+00:04:51,523 --> 00:04:55,570
+we override the configure method that exposes the
+
+79
+00:04:55,570 --> 00:04:58,758
+AuthenticationManagerBuilder object and set the new
+
+80
+00:04:58,758 --> 00:05:03,994
+AuthenticationProvider that we wired into our Configuration class.
+
+81
+00:05:03,994 --> 00:05:05,092
+That's it.
+
+82
+00:05:05,092 --> 00:05:09,122
+When the AuthenticationManager is initialized by Spring Boot,
+
+83
+00:05:09,122 --> 00:05:13,480
+the builder will assign the new AuthenticationProvider to it.
+
+84
+00:05:13,480 --> 00:05:18,359
+So let's register a new user and give this a test.
+
+85
+00:05:18,359 --> 00:05:21,115
+Looks good.
+
+86
+00:05:21,115 --> 00:05:22,222
+One final note.
+
+87
+00:05:22,222 --> 00:05:25,814
+An additional pin or security questions does make it
+
+88
+00:05:25,814 --> 00:05:28,679
+more difficult for potential hackers.
+
+89
+00:05:28,679 --> 00:05:31,744
+It does, however, increase the complexity for some users,
+
+90
+00:05:31,744 --> 00:05:34,707
+and some users might also want additional security,
+
+91
+00:05:34,707 --> 00:05:42,000
+such as two- factor authentication. In the next section, you will learn how to set this up.
+

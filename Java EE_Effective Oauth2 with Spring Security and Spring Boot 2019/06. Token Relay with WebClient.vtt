@@ -1,0 +1,217 @@
+WEBVTT
+1
+00:00:02.171 --> 00:00:07.816
+Our React application will now connect to a single backend for frontend service,
+
+2
+00:00:07.816 --> 00:00:13.841
+which will interact with the portfolio and support services via REST.
+
+3
+00:00:13.841 --> 00:00:20.192
+Our MVC web application will also connect to the portfolio and support services.
+
+4
+00:00:20.192 --> 00:00:23.495
+Let's start with the React public clients.
+
+5
+00:00:23.495 --> 00:00:29.321
+Its backend for frontend service is a standard RESTful resource server.
+
+6
+00:00:29.321 --> 00:00:34.191
+The React application will send the access token to it,
+
+7
+00:00:34.191 --> 00:00:39.154
+the resource server will validate it using the keys from Keycloak,
+
+8
+00:00:39.154 --> 00:00:42.412
+and then use the same token to make the request to
+
+9
+00:00:42.412 --> 00:00:46.459
+the portfolio or support services.
+
+10
+00:00:46.459 --> 00:00:50.079
+Now to do that, the BFF service will use a WebClient,
+
+11
+00:00:50.079 --> 00:00:54.048
+and to set one up is simple.
+
+12
+00:00:54.048 --> 00:00:58.609
+In a demo BFF service, we created a WebClientConfiguration class,
+
+13
+00:00:58.609 --> 00:01:06.590
+which has a method annotated as a bean that returns an instance of a WebClient.
+
+14
+00:01:06.590 --> 00:01:13.525
+You can use the WebClient class builder to create an instance and return that.
+
+15
+00:01:13.525 --> 00:01:19.726
+Now you can autowire this WebClient instance to any of your classes.
+
+16
+00:01:19.726 --> 00:01:20.942
+In the portfolio controller,
+
+17
+00:01:20.942 --> 00:01:24.737
+we use the WebClient to make the request to the portfolio service.
+
+18
+00:01:24.737 --> 00:01:31.299
+Here we are using the block method because WebClient is asynchronous.
+
+19
+00:01:31.299 --> 00:01:34.308
+Block will force it to wait for the response.
+
+20
+00:01:34.308 --> 00:01:38.288
+So it behaves just like a RestTemplate call.
+
+21
+00:01:38.288 --> 00:01:41.367
+Now the portfolio service will require a valid token.
+
+22
+00:01:41.367 --> 00:01:46.714
+So to include the access token in the request to the portfolio service,
+
+23
+00:01:46.714 --> 00:01:50.771
+the WebClient has a convenient headers method,
+
+24
+00:01:50.771 --> 00:01:56.391
+which you can use to add the authorization token.
+
+25
+00:01:56.391 --> 00:01:59.572
+And it also has a convenient setBearerAuth method.
+
+26
+00:01:59.572 --> 00:02:03.666
+All you need to do is pass in the access token.
+
+27
+00:02:03.666 --> 00:02:06.144
+Now you can source the token from the authentication object,
+
+28
+00:02:06.144 --> 00:02:11.267
+which you can retrieve either from the SecurityContext,
+
+29
+00:02:11.267 --> 00:02:15.129
+which you can receive from the SecurityContextHolder.
+
+30
+00:02:15.129 --> 00:02:19.539
+Or a cleaner and simpler approach is to use the
+
+31
+00:02:19.539 --> 00:02:22.014
+AuthenticationPrincipal annotation.
+
+32
+00:02:22.014 --> 00:02:25.038
+Spring will source and cast it for you.
+
+33
+00:02:25.038 --> 00:02:30.040
+The JWT authentication object has an accessor to retrieve the token value,
+
+34
+00:02:30.040 --> 00:02:35.783
+which you can then use in your header via the WebClient's headers method.
+
+35
+00:02:35.783 --> 00:02:37.369
+Easy peasy, right?
+
+36
+00:02:37.369 --> 00:02:40.445
+Now in our Spring MVC implementation,
+
+37
+00:02:40.445 --> 00:02:45.388
+the only difference is the way we retrieve the access token as
+
+38
+00:02:45.388 --> 00:02:48.614
+the MVC client is not a resource server,
+
+39
+00:02:48.614 --> 00:02:49.830
+but a client.
+
+40
+00:02:49.830 --> 00:02:54.044
+So it already has the access token stored in its
+
+41
+00:02:54.044 --> 00:02:56.110
+authenticated client repository.
+
+42
+00:02:56.110 --> 00:02:56.322
+Hence,
+
+43
+00:02:56.322 --> 00:03:01.731
+we can use the RegisteredOAuth2AuthorizedClient annotation to
+
+44
+00:03:01.731 --> 00:03:05.639
+retrieve the OAuth2AuthorizedClient object from this repository
+
+45
+00:03:05.639 --> 00:03:09.000
+and then source the token from there.
+
+46
+00:03:09.000 --> 00:03:12.270
+Now there are a few issues with this approach.
+
+47
+00:03:12.270 --> 00:03:16.785
+Firstly, if the token expires before we make the request,
+
+48
+00:03:16.785 --> 00:03:20.060
+the portfolio service will simply reject it.
+
+49
+00:03:20.060 --> 00:03:23.215
+And because we're adding the token manually to the header,
+
+50
+00:03:23.215 --> 00:03:27.742
+we would need to check the expiry of the token ourselves and then take
+
+51
+00:03:27.742 --> 00:03:30.759
+the appropriate action before sending out the request.
+
+52
+00:03:30.759 --> 00:03:31.054
+Next,
+
+53
+00:03:31.054 --> 00:03:34.937
+we will look at an alternative way of including the token
+
+54
+00:03:34.937 --> 00:03:42.000
+for outbound requests using the ExchangeFilter function that can address this issue.
+

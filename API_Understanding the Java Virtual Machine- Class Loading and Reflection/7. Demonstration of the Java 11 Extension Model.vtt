@@ -1,0 +1,241 @@
+WEBVTT
+1
+00:00:01.440 --> 00:00:03.870
+So before we look at the delegation code,
+
+2
+00:00:03.870 --> 00:00:09.240
+let's look briefly at the string code that we saw for the Java 8 demonstration.
+
+3
+00:00:09.240 --> 00:00:14.040
+So here we have our Main.java class, and that's trying to use
+
+4
+00:00:14.040 --> 00:00:17.610
+message.getValue, and this would've compiled previously under
+
+5
+00:00:17.610 --> 00:00:20.940
+Java 8, and it's not compiling now.
+
+6
+00:00:20.940 --> 00:00:23.100
+If I look in the String.java class,
+
+7
+00:00:23.100 --> 00:00:26.640
+that code is still there, and getValue is still there.
+
+8
+00:00:26.640 --> 00:00:26.940
+However,
+
+9
+00:00:26.940 --> 00:00:33.020
+if I compile this code and look at the errors, the error we see
+
+10
+00:00:33.020 --> 00:00:35.850
+is that the package exists in another module,
+
+11
+00:00:35.850 --> 00:00:37.740
+java.base.
+
+12
+00:00:37.740 --> 00:00:41.470
+So because the java.lang package already exists in the module,
+
+13
+00:00:41.470 --> 00:00:45.240
+we can't compile it into our own module here.
+
+14
+00:00:45.240 --> 00:00:49.140
+So in this case, we can't even get as far as compiling this code.
+
+15
+00:00:49.140 --> 00:00:51.930
+So let me comment this out so my project compiles, and
+
+16
+00:00:51.930 --> 00:00:55.450
+then let's look at our delegation code.
+
+17
+00:00:55.450 --> 00:00:59.740
+So this code here is exactly the same as the code that we had for Java 8.
+
+18
+00:00:59.740 --> 00:01:02.340
+So actually what happens when we try and run this?
+
+19
+00:01:02.340 --> 00:01:05.830
+So now we get a ClassCastException, the
+
+20
+00:01:05.830 --> 00:01:10.040
+Delegation.java line 8, which is this line here.
+
+21
+00:01:10.040 --> 00:01:13.340
+So what's happening now is when I called getSystemClassLoader.
+
+22
+00:01:13.340 --> 00:01:17.340
+Previously that was of type URLClassLoader.
+
+23
+00:01:17.340 --> 00:01:20.620
+Now that was undocumented and wasn't really a supported
+
+24
+00:01:20.620 --> 00:01:22.830
+feature, but everybody made use of this as,
+
+25
+00:01:22.830 --> 00:01:23.970
+in fact, we did here.
+
+26
+00:01:23.970 --> 00:01:28.590
+But now getSystemClassLoader just loads up something of type
+
+27
+00:01:28.590 --> 00:01:31.940
+ClassLoader, and I don't need that cast.
+
+28
+00:01:31.940 --> 00:01:37.410
+And similarly on line 14, classLoader.getParent will again just load
+
+29
+00:01:37.410 --> 00:01:42.020
+classLoader. Because we don't have a URLClassLoader now, I can't print out
+
+30
+00:01:42.020 --> 00:01:45.440
+the URL. I can just print out the classloader.
+
+31
+00:01:45.440 --> 00:01:52.130
+So if I run this code again and take a look at the output, we now see we load
+
+32
+00:01:52.130 --> 00:01:56.530
+something of type AppClassLoader and then PlatformClassLoader and then
+
+33
+00:01:56.530 --> 00:02:00.240
+BootstrapClassLoader. So delegation is still in place, the class loaders have
+
+34
+00:02:00.240 --> 00:02:03.140
+different names, and they are different types.
+
+35
+00:02:03.140 --> 00:02:07.870
+These are now internal types, so we don't have access to these inside our code.
+
+36
+00:02:07.870 --> 00:02:14.810
+These class loaders also have a name. So if I printout classLoader.getName here
+
+37
+00:02:14.810 --> 00:02:19.500
+and run this again, we now see we have the app class loader,
+
+38
+00:02:19.500 --> 00:02:23.130
+the platform class loader, and our own Bootstrap class loader,
+
+39
+00:02:23.130 --> 00:02:24.940
+which is the same as before.
+
+40
+00:02:24.940 --> 00:02:28.940
+So I've said that on Java 11, there's no rt.jar.
+
+41
+00:02:28.940 --> 00:02:29.390
+Instead,
+
+42
+00:02:29.390 --> 00:02:34.060
+everything's loaded from modules. And if I look at my JDK 11
+
+43
+00:02:34.060 --> 00:02:37.320
+installation here on my Mac and look in the Home folder,
+
+44
+00:02:37.320 --> 00:02:41.740
+there's a jmods folder. And if I look in here,
+
+45
+00:02:41.740 --> 00:02:45.370
+here are all the Java modules. There's things like java.base,
+
+46
+00:02:45.370 --> 00:02:48.180
+java.sql, and so on and so forth.
+
+47
+00:02:48.180 --> 00:02:50.890
+If you want to list these modules rather than go and hunt for
+
+48
+00:02:50.890 --> 00:02:57.640
+them, if I change to a terminal window, I can run Java ‑‑list modules.
+
+49
+00:02:57.640 --> 00:02:59.290
+And there it lists the modules.
+
+50
+00:02:59.290 --> 00:03:00.840
+And if I scroll up here,
+
+51
+00:03:00.840 --> 00:03:03.570
+we'll see things like again java.base and java.sql.
+
+52
+00:03:03.570 --> 00:03:06.840
+And if I change into that directory,
+
+53
+00:03:06.840 --> 00:03:11.680
+so I'm in my Library/Java/JavaVirtualMachines/openjdk/Contents/Home/jmods
+
+54
+00:03:11.680 --> 00:03:15.390
+directory, I can list the content of one of those modules.
+
+55
+00:03:15.390 --> 00:03:21.250
+There's a tool called jmods, which on my machine is in Contents/Home/bin.
+
+56
+00:03:21.250 --> 00:03:26.200
+So if I go up one level and do bin/jmod and then called list,
+
+57
+00:03:26.200 --> 00:03:31.000
+I can list the contents of one of these modules, so here java.sql.jmods,
+
+58
+00:03:31.000 --> 00:03:33.340
+and it shows me the classes within the module.
+
+59
+00:03:33.340 --> 00:03:37.630
+So these classes are now within modules rather than in rt.jar,
+
+60
+00:03:37.630 --> 00:03:45.000
+and these classes are loaded either by the platform class loader or the bootstrap class loader.
+

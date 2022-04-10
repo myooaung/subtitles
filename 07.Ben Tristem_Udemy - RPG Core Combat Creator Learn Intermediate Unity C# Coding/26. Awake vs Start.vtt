@@ -1,0 +1,704 @@
+WEBVTT
+1
+00:00:04.260 --> 00:00:05.210
+Hello and welcome.
+
+2
+00:00:05.220 --> 00:00:11.220
+In this lecture we're gonna be going through lots of classes and evaluating them for their use of Awake
+
+3
+00:00:11.250 --> 00:00:14.610
+and Start based on our guidelines.
+
+4
+00:00:14.700 --> 00:00:17.220
+And we're going to fix them up and improve them.
+
+5
+00:00:17.250 --> 00:00:19.560
+So let's dive in and see how we're going to do it.
+
+6
+00:00:20.610 --> 00:00:25.830
+So one lecture ago I mentioned these guidelines and I said that we were going to evaluate our whole
+
+7
+00:00:25.830 --> 00:00:28.570
+code base on the basis of these guidelines.
+
+8
+00:00:28.710 --> 00:00:30.480
+So let's remind ourselves what they are again.
+
+9
+00:00:30.480 --> 00:00:33.140
+So it says don't call any methods in a wake.
+
+10
+00:00:33.150 --> 00:00:38.670
+And if they belong to a mono behavior or a scripts will object because these two types have their own
+
+11
+00:00:38.670 --> 00:00:40.760
+awakes that we could race with.
+
+12
+00:00:40.770 --> 00:00:47.580
+Then secondly in start we're saying at this point if there is any state it should be absolutely safe
+
+13
+00:00:47.580 --> 00:00:52.710
+to use so it should be safe at this point to call methods on other minor behaviors and other scripts
+
+14
+00:00:52.710 --> 00:00:55.200
+will objects because their state is set up.
+
+15
+00:00:55.200 --> 00:01:00.150
+That does mean that if there is something you need to set up in star you need to think about checks
+
+16
+00:01:00.210 --> 00:01:05.560
+for it as we did with the current level in base stats.
+
+17
+00:01:05.610 --> 00:01:11.860
+So we're going to go through and do a very systematic evaluation of our usage of Awake and Start.
+
+18
+00:01:12.270 --> 00:01:17.970
+And I'm also going to explain to you another set of callbacks that we can use as well.
+
+19
+00:01:18.060 --> 00:01:24.690
+So I'll show start off with an example and then I'm going to give it over to you folks to do even better
+
+20
+00:01:24.720 --> 00:01:26.610
+and go through the whole code base.
+
+21
+00:01:26.670 --> 00:01:30.060
+So the first example I'm going to give you is base stats.
+
+22
+00:01:30.060 --> 00:01:37.500
+So here in base stats it looks okay more or less but we do have something here that we're taking this
+
+23
+00:01:37.500 --> 00:01:39.420
+experience we use it again.
+
+24
+00:01:39.420 --> 00:01:46.650
+So maybe we decide hey let's take the experience out of here into an awake method to set it up and cache
+
+25
+00:01:46.650 --> 00:01:46.830
+it.
+
+26
+00:01:46.830 --> 00:01:52.680
+So I'm going to create a cache it's going to be what type experience.
+
+27
+00:01:52.860 --> 00:01:59.220
+So and we're just going to set it like this in a week.
+
+28
+00:01:59.230 --> 00:02:05.680
+Now why am I doing this in a week and not start because I want to be able to depend on that state being
+
+29
+00:02:05.680 --> 00:02:13.120
+set by the time other Start methods might be calling into this base that's going to take that out.
+
+30
+00:02:13.120 --> 00:02:17.850
+Next up we've got we're registering for this callback in starts now.
+
+31
+00:02:17.920 --> 00:02:19.360
+That's okay.
+
+32
+00:02:19.360 --> 00:02:26.110
+But actually the best practice for registering for callbacks is to do it in a message called on enable.
+
+33
+00:02:26.110 --> 00:02:32.080
+Now when does on enable get called it actually gets called at sometime around the same times that the
+
+34
+00:02:32.080 --> 00:02:37.170
+awakes are happening but always after it for the same method.
+
+35
+00:02:37.200 --> 00:02:43.860
+So we've not got an issue of racing because we aren't going to be using this we don't have any calls
+
+36
+00:02:43.860 --> 00:02:46.260
+coming in externally in on enable.
+
+37
+00:02:46.770 --> 00:02:50.390
+And we know that our own wake method has already happened.
+
+38
+00:02:50.400 --> 00:02:56.310
+But just be careful because it means that in on enable the same rules go as for awake you cannot use
+
+39
+00:02:56.400 --> 00:03:00.700
+any external functions because you don't know their state has been set up yet.
+
+40
+00:03:00.780 --> 00:03:05.960
+So we're going to do experience on experience gained and we're going to register for that now note.
+
+41
+00:03:06.030 --> 00:03:06.680
+You might think that.
+
+42
+00:03:06.690 --> 00:03:08.790
+Is that a external function.
+
+43
+00:03:08.790 --> 00:03:15.140
+It's not actually an external function you're not actually updating any state there you're just registering
+
+44
+00:03:15.140 --> 00:03:15.630
+a callback.
+
+45
+00:03:15.630 --> 00:03:22.290
+So this is safe to do on enable and similar to this which need to do an on disable as well as is just
+
+46
+00:03:22.290 --> 00:03:23.040
+good habit.
+
+47
+00:03:23.040 --> 00:03:24.620
+We don't really need it just yet.
+
+48
+00:03:25.560 --> 00:03:32.490
+But what could happen is if something disables base stats it could continue to get notifications from
+
+49
+00:03:32.490 --> 00:03:34.500
+experience when the experience is gained.
+
+50
+00:03:34.500 --> 00:03:40.530
+And just to prevent that from happening we're going to remove our subscription to this event by using
+
+51
+00:03:40.530 --> 00:03:43.470
+the minus equals operator on disabled.
+
+52
+00:03:43.470 --> 00:03:49.440
+So on enable we add our subscription again on disable we disable it so that we aren't getting callbacks
+
+53
+00:03:49.470 --> 00:03:52.530
+while we're disabled and when we get enabled again we register again.
+
+54
+00:03:52.530 --> 00:03:53.670
+So that's no problem.
+
+55
+00:03:53.820 --> 00:03:59.390
+Unlike awake on enable might get called multiple times on a single class.
+
+56
+00:03:59.520 --> 00:04:00.690
+So that's good.
+
+57
+00:04:00.690 --> 00:04:01.590
+We can remove that.
+
+58
+00:04:01.600 --> 00:04:06.030
+Now of starts and now star is just calculating this current level.
+
+59
+00:04:06.030 --> 00:04:15.150
+Now this is a kind of okay because current level is being set when it gets called as well in the getter
+
+60
+00:04:15.600 --> 00:04:21.360
+which means that we are doing some level of protection of this so that the current level could be accessed
+
+61
+00:04:21.390 --> 00:04:24.190
+in start and in fact it was getting access to in start.
+
+62
+00:04:24.310 --> 00:04:30.870
+However you will notice it's also being used in update level and although update level is only getting
+
+63
+00:04:30.870 --> 00:04:34.620
+called on this on experience gained and that's not currently being called in start.
+
+64
+00:04:34.710 --> 00:04:39.660
+Who knows at some point you might have experienced gain notifications coming through in start.
+
+65
+00:04:39.690 --> 00:04:42.140
+And that would not be a very good thing.
+
+66
+00:04:42.150 --> 00:04:46.950
+So ideally we would have some better protection mechanism but that's gonna be the subject of the next
+
+67
+00:04:46.950 --> 00:04:47.300
+lecture.
+
+68
+00:04:47.300 --> 00:04:51.450
+For now we're just going to leave some of the state being initialized in start.
+
+69
+00:04:51.450 --> 00:04:54.280
+That can't be moved to awake because we can't move it to wake.
+
+70
+00:04:54.280 --> 00:04:54.920
+Why.
+
+71
+00:04:54.940 --> 00:05:01.110
+Because calculate level it goes through and gets the experience component and actually gets experience
+
+72
+00:05:01.120 --> 00:05:08.310
+so in indirectly we would be accessing another class in awake if we tried to move this into a wake.
+
+73
+00:05:08.310 --> 00:05:10.770
+So that's why that is not possible.
+
+74
+00:05:10.880 --> 00:05:13.350
+Now let's have a look at another class.
+
+75
+00:05:13.350 --> 00:05:15.020
+We've got an A.I. controller here.
+
+76
+00:05:15.030 --> 00:05:18.130
+And you'll notice hey this state here the fighter.
+
+77
+00:05:18.150 --> 00:05:24.570
+What happens if another start method via a public method here on the A.I. controller was trying to access
+
+78
+00:05:24.660 --> 00:05:25.870
+our fighter.
+
+79
+00:05:25.890 --> 00:05:27.060
+Well that would be no good.
+
+80
+00:05:27.060 --> 00:05:33.660
+So what we want to do is move this into a wake so that this state here of these references is actually
+
+81
+00:05:33.720 --> 00:05:39.870
+all set up in time for any public methods that might get called from a start method elsewhere.
+
+82
+00:05:39.870 --> 00:05:45.720
+Now again we've got this state here this guard position which could at the moment is not being called
+
+83
+00:05:45.810 --> 00:05:49.480
+in a public method and it's definitely not being called in another start.
+
+84
+00:05:49.500 --> 00:05:56.310
+I have checked but who knows you know down the line you might forget about this and you might accidentally
+
+85
+00:05:56.400 --> 00:06:01.320
+expose the guard position for whatever reason that no piece of UI or something that you want to update
+
+86
+00:06:01.410 --> 00:06:04.950
+on start and then you will have yourself some problems.
+
+87
+00:06:04.950 --> 00:06:09.510
+So we are going to look as I said into a better way of doing this but for now just leave this kind of
+
+88
+00:06:09.510 --> 00:06:13.200
+state initialization that we can't do elsewhere in start again.
+
+89
+00:06:13.260 --> 00:06:17.730
+We can't do this in a wake because we are accessing the transform dot position.
+
+90
+00:06:17.730 --> 00:06:22.290
+Now why we're not using a jet component transform is a different mono behavior.
+
+91
+00:06:22.290 --> 00:06:25.110
+And we should not access it on awake.
+
+92
+00:06:25.200 --> 00:06:31.320
+So I'd like to challenge you to evaluate other classes in the same way as I've just been doing so search
+
+93
+00:06:31.320 --> 00:06:37.860
+for the start and awake uses that we've got up to this point and is in line with our guidelines from
+
+94
+00:06:37.860 --> 00:06:39.210
+the last slide.
+
+95
+00:06:39.210 --> 00:06:44.940
+Now what I mean by search you can use the search functionality for example in Visual Studio and I would
+
+96
+00:06:45.000 --> 00:06:50.250
+do something like a wake and then open brackets and that's going to give you the awake methods and you
+
+97
+00:06:50.250 --> 00:06:54.870
+can step through them one by one and just check that they conform with our guidelines you can do that
+
+98
+00:06:54.870 --> 00:06:56.400
+for both start and awake.
+
+99
+00:06:56.810 --> 00:06:57.360
+OK.
+
+100
+00:06:57.420 --> 00:07:02.820
+So I'm going to leave this guidelines on the screen for you to take a look at Paul's video and have
+
+101
+00:07:02.820 --> 00:07:05.040
+a go OK.
+
+102
+00:07:05.040 --> 00:07:05.490
+Welcome back.
+
+103
+00:07:05.490 --> 00:07:08.280
+Let's refer to these guidelines as we step through.
+
+104
+00:07:08.280 --> 00:07:11.550
+So first of all we have an enemy display.
+
+105
+00:07:11.550 --> 00:07:17.250
+It is not accessing other model behaviors as you can see here is just taking a reference to the fighter
+
+106
+00:07:17.320 --> 00:07:22.830
+or good there now awake in our control we've just done the persistent object spawner.
+
+107
+00:07:22.830 --> 00:07:23.930
+This is interesting.
+
+108
+00:07:23.970 --> 00:07:28.470
+So what's going on here we're spawning persistent objects which you can see is instantiating a game
+
+109
+00:07:28.500 --> 00:07:30.920
+object and setting it to don't destroy on load.
+
+110
+00:07:30.930 --> 00:07:36.040
+Now it's not actually doing anything with that game object until it has been instantiated in France
+
+111
+00:07:36.090 --> 00:07:38.850
+not doing anything with it even after it's been instantiated.
+
+112
+00:07:38.850 --> 00:07:43.550
+So we're safe that because it's not accessing a game object before awake.
+
+113
+00:07:43.710 --> 00:07:47.030
+Now the mover is just using awake to initialize components again.
+
+114
+00:07:47.040 --> 00:07:48.620
+That's perfectly fine.
+
+115
+00:07:48.770 --> 00:07:50.670
+And same with health display.
+
+116
+00:07:50.760 --> 00:07:53.460
+Now the fader yep just initializing components.
+
+117
+00:07:53.460 --> 00:07:54.840
+That's all good.
+
+118
+00:07:54.860 --> 00:07:55.910
+The saving wrapper.
+
+119
+00:07:55.930 --> 00:07:56.120
+OK.
+
+120
+00:07:56.130 --> 00:07:58.550
+This is an interesting one again it's starting a car routine.
+
+121
+00:07:58.560 --> 00:08:01.820
+So we have to ask ourselves what's going on in that car routine.
+
+122
+00:08:01.830 --> 00:08:02.210
+Whoops.
+
+123
+00:08:02.220 --> 00:08:07.190
+Looks like the first thing we're doing is we're finding an object and calling a method on it.
+
+124
+00:08:07.200 --> 00:08:11.380
+Now we know that we should not do until after awakes have taken place.
+
+125
+00:08:11.400 --> 00:08:17.490
+So what we're going to do there is we're going to cut this out and we are going to put it just after
+
+126
+00:08:17.660 --> 00:08:19.220
+we have loaded the scene.
+
+127
+00:08:19.230 --> 00:08:24.780
+Now this is okay because it still is going to be happening before the first frame and so before things
+
+128
+00:08:24.780 --> 00:08:32.370
+are rendering but it is actually safer because if you had just looked at the last thing was it the last
+
+129
+00:08:32.370 --> 00:08:34.740
+thing we were looking at was the object spawn.
+
+130
+00:08:34.740 --> 00:08:35.450
+Let's have a look.
+
+131
+00:08:35.460 --> 00:08:41.280
+Where was that persistent object spawner has an awake method and you can see that we're instantiating
+
+132
+00:08:41.310 --> 00:08:42.760
+objects in a wake.
+
+133
+00:08:42.810 --> 00:08:50.880
+So that is potentially a race condition here where we haven't yet spawned the fader and we could be
+
+134
+00:08:50.880 --> 00:08:52.170
+accessing it in a week.
+
+135
+00:08:52.470 --> 00:08:53.610
+So that's no good.
+
+136
+00:08:53.610 --> 00:08:55.620
+We can't access a fate that doesn't exist.
+
+137
+00:08:55.620 --> 00:09:03.060
+So that's why we have to find the object after the awakes have happened and obviously given it's a chance
+
+138
+00:09:03.120 --> 00:09:08.670
+to set up its state because if we had to look at the FAA has its own awake method that sets up its canvas
+
+139
+00:09:08.670 --> 00:09:09.150
+group.
+
+140
+00:09:09.270 --> 00:09:13.640
+So it wouldn't be able to access its canvas group if we called it too early either.
+
+141
+00:09:13.650 --> 00:09:15.060
+So that's all no good.
+
+142
+00:09:15.060 --> 00:09:22.460
+So that's so hopefully fixed up that race condition with The FADER in saving wrap are now up to base
+
+143
+00:09:22.460 --> 00:09:23.270
+Nance.
+
+144
+00:09:23.340 --> 00:09:24.570
+Yep that's all good.
+
+145
+00:09:24.570 --> 00:09:27.070
+We did that earlier experience display.
+
+146
+00:09:27.240 --> 00:09:30.780
+That's fine level display and then we're into stuff that's not on our own.
+
+147
+00:09:30.780 --> 00:09:34.240
+So then I just want to have a look at starts.
+
+148
+00:09:34.740 --> 00:09:42.560
+So our cinematic control remover cases is a good example to do on enables stuff again.
+
+149
+00:09:42.600 --> 00:09:48.740
+So just to recap we are adding the notifications on enable and removing them on disable that means you
+
+150
+00:09:48.750 --> 00:09:52.530
+don't need those in start anymore and start with taking this reference.
+
+151
+00:09:52.530 --> 00:09:58.230
+That's no good because that reference won't be safe to use in other start methods.
+
+152
+00:09:58.230 --> 00:09:58.870
+So.
+
+153
+00:09:58.950 --> 00:09:59.220
+OK.
+
+154
+00:09:59.250 --> 00:10:02.910
+We want to do this instead on a wake for best practices.
+
+155
+00:10:02.910 --> 00:10:06.690
+Again not necessarily everything that we're changing here is fixing a race condition but it's fixing
+
+156
+00:10:06.690 --> 00:10:08.390
+a potential future race condition.
+
+157
+00:10:08.970 --> 00:10:12.630
+So then we're going to go and have a look at fighter.
+
+158
+00:10:12.990 --> 00:10:14.250
+I don't like this very much.
+
+159
+00:10:14.250 --> 00:10:19.920
+We're trying to protect this current weapon that could be not initialized in start but we're going to
+
+160
+00:10:19.920 --> 00:10:22.070
+look at that in the next lecture.
+
+161
+00:10:22.470 --> 00:10:26.890
+Then we've got to transform that we're setting up in start here for the projectile.
+
+162
+00:10:26.910 --> 00:10:34.410
+This get aim location well that's calling methods on another component here so the capsule height.
+
+163
+00:10:34.470 --> 00:10:41.370
+So we can't move that to awake wake the A.I. controller again this guard position makes me a little
+
+164
+00:10:41.370 --> 00:10:44.790
+bit queasy but we'll figure that out later.
+
+165
+00:10:44.790 --> 00:10:46.610
+Got the player controller is getting the help.
+
+166
+00:10:46.620 --> 00:10:54.380
+This should be an awake method and we've been through the mover health.
+
+167
+00:10:54.410 --> 00:11:01.460
+Again we'll do an on enable and we're setting up these health points in this particular way which again
+
+168
+00:11:01.490 --> 00:11:07.130
+I'm going to fix in the next lecture and based that's as I said we're also going to be able to make
+
+169
+00:11:07.130 --> 00:11:09.480
+an even neater way of doing this in the next lecture.
+
+170
+00:11:09.500 --> 00:11:15.890
+So we've gone through and evaluated all our uses of awake and starts and made them conform to our guidelines
+
+171
+00:11:15.890 --> 00:11:18.020
+which should help us out in the future.
+
+172
+00:11:18.020 --> 00:11:22.520
+Now the final step of the puzzle is these things that we are having to initialize in start.
+
+173
+00:11:22.520 --> 00:11:28.010
+How can we make those safer so that we don't make race condition problems like our current level had
+
+174
+00:11:28.310 --> 00:11:33.350
+but we had to fix with our getter let's make sure that never happens again and I'll do that in the next
+
+175
+00:11:33.350 --> 00:11:33.890
+lecture.
+
+176
+00:11:33.890 --> 00:11:34.280
+See you then.

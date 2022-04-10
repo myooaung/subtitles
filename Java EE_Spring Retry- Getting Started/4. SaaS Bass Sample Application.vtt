@@ -1,0 +1,461 @@
+WEBVTT
+1
+00:00:00.846 --> 00:00:04.439
+Now that we have our SaaS Bass sample application set up and running,
+
+2
+00:00:04.439 --> 00:00:08.025
+let's dissect it to see how it's constructed.
+
+3
+00:00:08.025 --> 00:00:10.869
+First, a little background about SaaS Bass.
+
+4
+00:00:10.869 --> 00:00:13.399
+SaaS Bass has moved away from a monolithic application,
+
+5
+00:00:13.399 --> 00:00:19.209
+literally running on a single server, to a distributed microservice architecture.
+
+6
+00:00:19.209 --> 00:00:21.525
+This has enabled SaaS Bass to scale to handling
+
+7
+00:00:21.525 --> 00:00:24.873
+millions of transactions per second.
+
+8
+00:00:24.873 --> 00:00:27.527
+It's also allowed them to organize their application architecture in a
+
+9
+00:00:27.527 --> 00:00:31.379
+way that can be handed off to domain-specific teams,
+
+10
+00:00:31.379 --> 00:00:34.439
+which makes adding new features easier, faster,
+
+11
+00:00:34.439 --> 00:00:37.120
+more reliable, and scalable.
+
+12
+00:00:37.120 --> 00:00:39.763
+The SaaS Bass sample application represents a portion
+
+13
+00:00:39.763 --> 00:00:41.473
+of their microservice architecture,
+
+14
+00:00:41.473 --> 00:00:48.433
+focusing on two services named Bass Tracker Service and Lake Profile Service.
+
+15
+00:00:48.433 --> 00:00:49.546
+At a high level,
+
+16
+00:00:49.546 --> 00:00:54.146
+the Bass Tracker Service is able to create and request a lake profile.
+
+17
+00:00:54.146 --> 00:00:56.838
+It does this using Spring's RestTemplate,
+
+18
+00:00:56.838 --> 00:01:00.190
+which is an HTTP client implementation.
+
+19
+00:01:00.190 --> 00:01:03.986
+It then creates a lake profile using an Http POST call to the
+
+20
+00:01:03.986 --> 00:01:08.032
+lake profile endpoint and requests a lake profile using an
+
+21
+00:01:08.032 --> 00:01:10.680
+HTTP GET call to the same endpoint.
+
+22
+00:01:10.680 --> 00:01:13.960
+Let's open the Lake Profile Service and Bass Tracker
+
+23
+00:01:13.960 --> 00:01:18.098
+Service in IntelliJ and take a look.
+
+24
+00:01:18.098 --> 00:01:23.188
+The Lake Profile Service consists of a main application class,
+
+25
+00:01:23.188 --> 00:01:28.541
+an endpoint class, a LakeProfile model class,
+
+26
+00:01:28.541 --> 00:01:34.059
+a LakeProfileRepository class, and a properties file.
+
+27
+00:01:34.059 --> 00:01:36.925
+Let's look at each class in turn.
+
+28
+00:01:36.925 --> 00:01:40.208
+The LakeProfileServiceApplication class is the starting
+
+29
+00:01:40.208 --> 00:01:43.526
+point for a Spring Boot application, and as you can see,
+
+30
+00:01:43.526 --> 00:01:47.979
+it simply starts the Spring Boot application running.
+
+31
+00:01:47.979 --> 00:01:51.132
+The Endpoint class is where the getLakeProfile and
+
+32
+00:01:51.132 --> 00:01:53.212
+postLakeProfile endpoints live.
+
+33
+00:01:53.212 --> 00:01:55.937
+Looking at the GET endpoint,
+
+34
+00:01:55.937 --> 00:02:01.649
+we can see that it requires a profileId PathVariable.
+
+35
+00:02:01.649 --> 00:02:06.125
+It then queries the lakeProfileRepository for the requested
+
+36
+00:02:06.125 --> 00:02:11.722
+lakeProfile by its ID and returns a JSON representation of the
+
+37
+00:02:11.722 --> 00:02:17.552
+lakeProfile with an HTTP 200 return code.
+
+38
+00:02:17.552 --> 00:02:25.618
+The POST endpoint accepts a JSON representation of a new lakeProfile to create.
+
+39
+00:02:25.618 --> 00:02:29.475
+The lake-profile repository is an in-memory database for this demo,
+
+40
+00:02:29.475 --> 00:02:34.464
+so we add a 2 second sleep to simulate real-world database
+
+41
+00:02:34.464 --> 00:02:38.333
+latency before persisting the new lakeProfile.
+
+42
+00:02:38.333 --> 00:02:43.266
+Why we do this will become evident later in the demo.
+
+43
+00:02:43.266 --> 00:02:46.670
+LakeProfileRepository extends CrudRepository,
+
+44
+00:02:46.670 --> 00:02:50.807
+which is a basic datastore interface that provides us with
+
+45
+00:02:50.807 --> 00:02:56.180
+CRUD methods such as findById and Save.
+
+46
+00:02:56.180 --> 00:02:58.553
+There's some underlying magic that happens to provide
+
+47
+00:02:58.553 --> 00:03:00.628
+those CRUD methods that we can't see here,
+
+48
+00:03:00.628 --> 00:03:05.128
+but the important thing to note is that the repository entity is a
+
+49
+00:03:05.128 --> 00:03:11.988
+LakeProfile and the ID type used for LakeProfiles is type Long.
+
+50
+00:03:11.988 --> 00:03:13.744
+The other thing to note, as previously mentioned,
+
+51
+00:03:13.744 --> 00:03:20.459
+is that by default, LakeProfileRepository is persisting to an in-memory database,
+
+52
+00:03:20.459 --> 00:03:22.488
+meaning that if we terminate the application,
+
+53
+00:03:22.488 --> 00:03:28.466
+the lake profiles we created via the POST endpoint are gone.
+
+54
+00:03:28.466 --> 00:03:33.367
+The LakeProfile model class is annotated as a JPA entity,
+
+55
+00:03:33.367 --> 00:03:38.929
+meaning it can be persisted to our in-memory database.
+
+56
+00:03:38.929 --> 00:03:45.139
+We use a few other JPA annotations to indicate which field is the primary key,
+
+57
+00:03:45.139 --> 00:03:46.900
+autoincrement its value,
+
+58
+00:03:46.900 --> 00:03:53.682
+and to specify the column names we want to use on the database table.
+
+59
+00:03:53.682 --> 00:03:58.477
+We are also using the @JsonInclude annotation so that we can
+
+60
+00:03:58.477 --> 00:04:01.238
+serialize and deserialize this object from a JSON
+
+61
+00:04:01.238 --> 00:04:05.915
+representation on our POST and GET endpoints.
+
+62
+00:04:05.915 --> 00:04:08.166
+The last file is our properties file,
+
+63
+00:04:08.166 --> 00:04:11.029
+which has a single entry for the server port,
+
+64
+00:04:11.029 --> 00:04:14.830
+which as you can see is port 8080.
+
+65
+00:04:14.830 --> 00:04:19.314
+Now, let's switch over to the bass-tracker- service and look at the code for it.
+
+66
+00:04:19.314 --> 00:04:20.812
+Looking at the structure of the application,
+
+67
+00:04:20.812 --> 00:04:24.816
+we can see that we have a main application class,
+
+68
+00:04:24.816 --> 00:04:28.094
+a LakeProfileClient, a LakeProfile model class,
+
+69
+00:04:28.094 --> 00:04:29.789
+and a properties file.
+
+70
+00:04:29.789 --> 00:04:32.039
+Looking at the main application class,
+
+71
+00:04:32.039 --> 00:04:36.198
+we can see that it's more complex than the LakeProfile service.
+
+72
+00:04:36.198 --> 00:04:38.005
+Aside from starting the Spring Boot application,
+
+73
+00:04:38.005 --> 00:04:42.379
+we've added a Logger, as well as a LakeProfileClient bean,
+
+74
+00:04:42.379 --> 00:04:45.068
+and a CommandLineRunner bean.
+
+75
+00:04:45.068 --> 00:04:47.320
+Let's look at how LakeProfileClient is constructed first,
+
+76
+00:04:47.320 --> 00:04:49.804
+and then we'll come back to the CommandLineRunner bean,
+
+77
+00:04:49.804 --> 00:04:53.315
+as it's the main driver for our demo.
+
+78
+00:04:53.315 --> 00:04:58.059
+The LakeProfileClient bean accepts a URL for the LakeProfile service,
+
+79
+00:04:58.059 --> 00:05:01.198
+a connectionTimeout, and a readTimeout.
+
+80
+00:05:01.198 --> 00:05:03.616
+These parameters are specified in the properties file,
+
+81
+00:05:03.616 --> 00:05:05.918
+which we'll look at in a minute.
+
+82
+00:05:05.918 --> 00:05:11.971
+We then construct an HttpComponentsClientHttpRequestFactory and pass
+
+83
+00:05:11.971 --> 00:05:16.166
+that along with the URL to the LakeProfileClient's constructor and
+
+84
+00:05:16.166 --> 00:05:19.707
+return a constructed LakeProfileClient.
+
+85
+00:05:19.707 --> 00:05:23.698
+The LakeProfileClient is basically a wrapper around Spring's RestTemplate,
+
+86
+00:05:23.698 --> 00:05:27.700
+which is a RESTful HTTP client implementation.
+
+87
+00:05:27.700 --> 00:05:29.918
+LakeProfileClient has two methods,
+
+88
+00:05:29.918 --> 00:05:34.098
+one for getting a LakeProfile and another for creating a LakeProfile.
+
+89
+00:05:34.098 --> 00:05:38.027
+The LakeProfile class has the same fields as the
+
+90
+00:05:38.027 --> 00:05:41.531
+LakeProfile class we saw in LakeProfileService.
+
+91
+00:05:41.531 --> 00:05:44.275
+We've overridden the toString method so that we can
+
+92
+00:05:44.275 --> 00:05:45.786
+see the object when it's logged.
+
+93
+00:05:45.786 --> 00:05:48.504
+Our properties file has the Bass Tracker Service port,
+
+94
+00:05:48.504 --> 00:05:51.833
+the base URL of the Lake Profile Service,
+
+95
+00:05:51.833 --> 00:05:55.005
+a readTimeout, and a connectionTimeout.
+
+96
+00:05:55.005 --> 00:05:58.097
+The connectionTimeout and readTimeouts configure the
+
+97
+00:05:58.097 --> 00:06:02.109
+LakeProfileClient to wait for up to 1 second for a connection and up
+
+98
+00:06:02.109 --> 00:06:06.608
+to 3 seconds of inactivity between two data packets.
+
+99
+00:06:06.608 --> 00:06:09.400
+Going back to BassTrackerServiceApplication,
+
+100
+00:06:09.400 --> 00:06:12.188
+let's examine the CommandLineRunner bean.
+
+101
+00:06:12.188 --> 00:06:14.910
+We create a new thread in which to POST a new
+
+102
+00:06:14.910 --> 00:06:17.619
+LakeProfile to the LakeProfile endpoint.
+
+103
+00:06:17.619 --> 00:06:20.239
+We do this in its own thread to simulate a real-world
+
+104
+00:06:20.239 --> 00:06:22.722
+environment in which we could be making requests
+
+105
+00:06:22.722 --> 00:06:27.146
+simultaneously and need to account for that behavior.
+
+106
+00:06:27.146 --> 00:06:31.081
+We then sleep for 3 seconds before getting the LakeProfile we created,
+
+107
+00:06:31.081 --> 00:06:32.678
+and logging it.
+
+108
+00:06:32.678 --> 00:06:37.237
+We sleep for 3 seconds because that's 1 second more than the 2 second
+
+109
+00:06:37.237 --> 00:06:41.798
+simulated database latency we added to LakeProfileService.
+
+110
+00:06:41.798 --> 00:06:44.991
+This ensures that we won't have a resource race condition and
+
+111
+00:06:44.991 --> 00:06:49.332
+get a 404 error due to the LakeProfile not having had a chance
+
+112
+00:06:49.332 --> 00:06:52.680
+to be created before we get it.
+
+113
+00:06:52.680 --> 00:06:56.958
+That concludes the tour of our SaaS Bass sample application.
+
+114
+00:06:56.958 --> 00:06:57.345
+Next,
+
+115
+00:06:57.345 --> 00:07:04.000
+we'll tweak this sample application to simulate the pain points SaaS Bass is experiencing.
+

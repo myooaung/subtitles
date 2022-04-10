@@ -1,0 +1,240 @@
+1
+00:00:00,940 --> 00:00:03,390
+When AWS runs your lambda function,
+
+2
+00:00:03,390 --> 00:00:06,020
+it is running it on servers somewhere in its
+
+3
+00:00:06,020 --> 00:00:09,620
+infrastructure despite the serverless nomenclature.
+
+4
+00:00:09,620 --> 00:00:10,660
+And really,
+
+5
+00:00:10,660 --> 00:00:15,660
+these servers are actually EC2 instances, meaning they're running on a
+
+6
+00:00:15,660 --> 00:00:20,080
+virtual machine that matches one of the EC2 instance types.
+
+7
+00:00:20,080 --> 00:00:24,240
+If you want to run your lambda function on beefier hardware,
+
+8
+00:00:24,240 --> 00:00:29,640
+you have a single parameter you can use to make that change, memory.
+
+9
+00:00:29,640 --> 00:00:33,640
+Each lambda is configured with a certain memory allocation.
+
+10
+00:00:33,640 --> 00:00:38,540
+If you take a look at the general configuration for your lambda function,
+
+11
+00:00:38,540 --> 00:00:43,040
+there is an input box where you can enter the amount of memory you
+
+12
+00:00:43,040 --> 00:00:47,770
+want your function to have access to. This value not only affects
+
+13
+00:00:47,770 --> 00:00:49,990
+the memory available to your function,
+
+14
+00:00:49,990 --> 00:00:56,810
+but it also affects the CPU resources available to that function. As you
+
+15
+00:00:56,810 --> 00:01:01,640
+increase the memory, the CPU also increases proportionally.
+
+16
+00:01:01,640 --> 00:01:04,980
+The exact CPU being provisioned isn't published,
+
+17
+00:01:04,980 --> 00:01:09,610
+but just the equation of more memory equals more CPU
+
+18
+00:01:09,610 --> 00:01:11,800
+should be easy enough to remember.
+
+19
+00:01:11,800 --> 00:01:16,860
+So, if the execution time of your lambda is higher than you'd like, consider
+
+20
+00:01:16,860 --> 00:01:20,230
+raising the allocated memory to get some better hardware.
+
+21
+00:01:20,230 --> 00:01:24,720
+When AWS is running your lambda function and gets another invocation,
+
+22
+00:01:24,720 --> 00:01:27,590
+it runs both concurrently. Again,
+
+23
+00:01:27,590 --> 00:01:31,060
+Amazon is handling the infrastructure and configuration
+
+24
+00:01:31,060 --> 00:01:34,540
+for how all this works, so you don't need to worry about
+
+25
+00:01:34,540 --> 00:01:36,540
+how the concurrency happens.
+
+26
+00:01:36,540 --> 00:01:42,140
+You do, however, need to be aware of how many lambdas are running concurrently.
+
+27
+00:01:42,140 --> 00:01:46,160
+The reason for this is that AWS has limits on how many concurrent
+
+28
+00:01:46,160 --> 00:01:49,740
+lambdas can run at a time in a single account.
+
+29
+00:01:49,740 --> 00:01:54,440
+It's a soft limit, so it can be raised. But it's really there to help you from
+
+30
+00:01:54,440 --> 00:01:59,850
+unintentionally being driven to the poor house from lambda executions. Because
+
+31
+00:01:59,850 --> 00:02:04,280
+you're charged by the millisecond of lambda execution time, a limit on the
+
+32
+00:02:04,280 --> 00:02:10,080
+number of concurrent lambda invocations means there is a finite maximum cost
+
+33
+00:02:10,080 --> 00:02:14,230
+that you can be billed for. If, for some reason, you have a rogue lambda running
+
+34
+00:02:14,230 --> 00:02:19,810
+like crazy, these are guard rails to help you out. You have even more control
+
+35
+00:02:19,810 --> 00:02:21,210
+over concurrency.
+
+36
+00:02:21,210 --> 00:02:24,990
+In the Concurrency section of a function configuration,
+
+37
+00:02:24,990 --> 00:02:30,240
+you can see settings for reserving concurrent executions.
+
+38
+00:02:30,240 --> 00:02:32,910
+This is both reserving the concurrency,
+
+39
+00:02:32,910 --> 00:02:36,310
+ensuring its available to this lambda in the event that other
+
+40
+00:02:36,310 --> 00:02:40,830
+functions are also executing concurrently, and also setting a limit to
+
+41
+00:02:40,830 --> 00:02:45,560
+the maximum number of concurrent invocations for this lambda. In the
+
+42
+00:02:45,560 --> 00:02:49,560
+event that limit is reached, the lambda will retry the invocation for
+
+43
+00:02:49,560 --> 00:02:51,390
+a certain number of times.
+
+44
+00:02:51,390 --> 00:02:54,300
+If the invocation retry limit is reached,
+
+45
+00:02:54,300 --> 00:02:59,390
+the event will be sent to a dead‑letter queue. In a previous video, we saw the
+
+46
+00:02:59,390 --> 00:03:02,810
+throttle graph in the Monitoring section of your lambda.
+
+47
+00:03:02,810 --> 00:03:07,310
+If a lambda invocation is stopped because a concurrency limit was hit,
+
+48
+00:03:07,310 --> 00:03:09,740
+then that means that run was throttled.
+
+49
+00:03:09,740 --> 00:03:13,710
+This throttle metric is available through CloudWatch so you can set
+
+50
+00:03:13,710 --> 00:03:17,920
+an alarm to notify you if a lambda begins to get throttled a lot,
+
+51
+00:03:17,920 --> 00:03:22,820
+meaning it might be time to up your concurrency limit. In that same
+
+52
+00:03:22,820 --> 00:03:24,440
+concurrency configuration,
+
+53
+00:03:24,440 --> 00:03:28,900
+you can also add configuration for provisioned concurrency.
+
+54
+00:03:28,900 --> 00:03:32,770
+This is designed to reduce what we call the cold start latency,
+
+55
+00:03:32,770 --> 00:03:36,400
+which is when your lambda function is being invoked for the first time in a
+
+56
+00:03:36,400 --> 00:03:40,440
+while and the environment is booted up on an instance.
+
+57
+00:03:40,440 --> 00:03:42,540
+This doesn't usually take that long,
+
+58
+00:03:42,540 --> 00:03:45,960
+just a few seconds. But provisioned concurrency will ensure
+
+59
+00:03:45,960 --> 00:03:48,930
+that your lambda code is always ready to run.
+
+60
+00:03:48,930 --> 00:03:58,000
+There is an additional cost to this, as you can imagine. So, keep that in mind if you decide to configure it and enable it.
+

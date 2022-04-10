@@ -1,0 +1,225 @@
+WEBVTT
+1
+00:00:00.940 --> 00:00:04.790
+The saveAction lambda function which we connected to API Gateway
+
+2
+00:00:04.790 --> 00:00:08.980
+in a previous video sends actions to a Kinesis Stream that was
+
+3
+00:00:08.980 --> 00:00:11.010
+created by the Serverless Framework.
+
+4
+00:00:11.010 --> 00:00:14.140
+Once those action records get to the Kinesis Stream,
+
+5
+00:00:14.140 --> 00:00:16.840
+they don't have anything that will pick them up.
+
+6
+00:00:16.840 --> 00:00:21.070
+I've created a processAction lambda function that will process a
+
+7
+00:00:21.070 --> 00:00:23.650
+Kinesis record and write it to the database.
+
+8
+00:00:23.650 --> 00:00:28.630
+But it's not currently configured to pull events from any Kinesis Stream.
+
+9
+00:00:28.630 --> 00:00:31.790
+In this video, we're going to set that up.
+
+10
+00:00:31.790 --> 00:00:36.460
+We've already modified the processAction lambda's IAM role to give
+
+11
+00:00:36.460 --> 00:00:39.740
+access to pull records from the Kinesis Stream.
+
+12
+00:00:39.740 --> 00:00:42.830
+Go to the Lambda dashboard in the AWS console and
+
+13
+00:00:42.830 --> 00:00:45.840
+select the processAction function.
+
+14
+00:00:45.840 --> 00:00:49.950
+The designer section on top is where you'll add any new event sources.
+
+15
+00:00:49.950 --> 00:00:55.540
+Click the Add trigger button to add an event source that triggers this lambda.
+
+16
+00:00:55.540 --> 00:00:58.940
+Open the drop‑down and select Kinesis.
+
+17
+00:00:58.940 --> 00:01:04.140
+Now verify the trash‑panda‑buffet stream is selected in the Kinesis Stream
+
+18
+00:01:04.140 --> 00:01:08.140
+drop‑down box. If it's the only Kinesis Stream in your account,
+
+19
+00:01:08.140 --> 00:01:10.440
+it'll be auto selected.
+
+20
+00:01:10.440 --> 00:01:14.790
+Batch size is the maximum number of requests one lambda will consume.
+
+21
+00:01:14.790 --> 00:01:20.570
+A hundred seems kind of high, so let's change this to 10. Batch window
+
+22
+00:01:20.570 --> 00:01:25.060
+allows you to essentially debounce the triggering of your lambda by
+
+23
+00:01:25.060 --> 00:01:29.430
+giving the Kinesis Stream some time to collect more records before
+
+24
+00:01:29.430 --> 00:01:30.940
+invoking the function.
+
+25
+00:01:30.940 --> 00:01:34.550
+This can be useful if your function is being invoked for every
+
+26
+00:01:34.550 --> 00:01:38.750
+single Kinesis record, but you'd prefer that they be processed in
+
+27
+00:01:38.750 --> 00:01:43.930
+a batch manner instead, say every 10 Kinesis records. We can leave
+
+28
+00:01:43.930 --> 00:01:46.540
+this at 0 for our purpose.
+
+29
+00:01:46.540 --> 00:01:51.210
+Starting position defines how the lambda will consume events. Trim
+
+30
+00:01:51.210 --> 00:01:55.120
+horizon starts with the earliest record that was added to the stream,
+
+31
+00:01:55.120 --> 00:01:59.590
+sort of like starting at the beginning. At timestamp lets you define
+
+32
+00:01:59.590 --> 00:02:04.010
+a datetime to start processing from. These are all likely assuming
+
+33
+00:02:04.010 --> 00:02:07.640
+there's already some records in your Kinesis Stream. We shouldn't
+
+34
+00:02:07.640 --> 00:02:08.430
+have any yet,
+
+35
+00:02:08.430 --> 00:02:14.120
+so let's just leave it at Latest. Then click the Add button. Since our IAM
+
+36
+00:02:14.120 --> 00:02:18.450
+role has already given us permission to access the Kinesis Stream, after
+
+37
+00:02:18.450 --> 00:02:22.560
+configuring the pull and a minute or so to set it up, your lambda should
+
+38
+00:02:22.560 --> 00:02:25.240
+be ready to consume Kinesis events.
+
+39
+00:02:25.240 --> 00:02:28.640
+Now is the perfect time to give the game a try since we have all the
+
+40
+00:02:28.640 --> 00:02:32.730
+serverless components hooked together at this point. If you close the
+
+41
+00:02:32.730 --> 00:02:35.060
+tab with the trash‑panda‑buffet app in it,
+
+42
+00:02:35.060 --> 00:02:38.590
+you can either find it from the output the Serverless Framework
+
+43
+00:02:38.590 --> 00:02:42.930
+created when you deployed everything or in the Deployments page in
+
+44
+00:02:42.930 --> 00:02:46.740
+API Gateway. Open the app and give it a go.
+
+45
+00:02:46.740 --> 00:02:51.020
+I'm just going to click around on some random food items here. You may
+
+46
+00:02:51.020 --> 00:02:55.330
+notice that things are a little bit slow in the beginning. This is due to
+
+47
+00:02:55.330 --> 00:02:58.890
+the lambdas having to perform a cold start because they haven't been
+
+48
+00:02:58.890 --> 00:03:02.950
+invoked in a while. There are strategies you can follow to keep your
+
+49
+00:03:02.950 --> 00:03:07.570
+lambdas warm in the case of an app that you want to be fast, but isn't
+
+50
+00:03:07.570 --> 00:03:08.730
+actually use that often.
+
+51
+00:03:08.730 --> 00:03:11.740
+But we won't go into that in this course.
+
+52
+00:03:11.740 --> 00:03:12.180
+Now,
+
+53
+00:03:12.180 --> 00:03:15.510
+I can go into the monitoring for our process action and see
+
+54
+00:03:15.510 --> 00:03:19.160
+that it has been invoked a few times in response to Kinesis
+
+55
+00:03:19.160 --> 00:03:21.740
+records being available to process.
+
+56
+00:03:21.740 --> 00:03:29.000
+These actions will now have made their way into the RDS database since this lambda has inserted them there.
+

@@ -1,0 +1,305 @@
+WEBVTT
+1
+00:00:01.640 --> 00:00:04.540
+Being a public client means the code is,
+
+2
+00:00:04.540 --> 00:00:06.120
+well, public,
+
+3
+00:00:06.120 --> 00:00:10.790
+and hence there is no way to securely store the client ID and secret.
+
+4
+00:00:10.790 --> 00:00:13.330
+In the past, to get around this,
+
+5
+00:00:13.330 --> 00:00:17.670
+the implicit flow was created where rather than returning the
+
+6
+00:00:17.670 --> 00:00:20.640
+authorization code via the front channel,
+
+7
+00:00:20.640 --> 00:00:24.340
+the access token was instead returned to the client.
+
+8
+00:00:24.340 --> 00:00:28.950
+This is now deprecated and no longer recommended to be used by the OAuth 2
+
+9
+00:00:28.950 --> 00:00:34.330
+working group as now there is really no limitations or excuses as most
+
+10
+00:00:34.330 --> 00:00:38.270
+browsers now support cross‑origin requests so calling the authorization
+
+11
+00:00:38.270 --> 00:00:41.610
+server via back channel is possible.
+
+12
+00:00:41.610 --> 00:00:45.370
+Also, sending the access token via the front channel,
+
+13
+00:00:45.370 --> 00:00:48.700
+effectively, the user's browser's address bar,
+
+14
+00:00:48.700 --> 00:00:50.140
+is a bad idea.
+
+15
+00:00:50.140 --> 00:00:53.550
+Firstly, it is exposed to any malicious browser plug‑in extensions,
+
+16
+00:00:53.550 --> 00:00:56.670
+it can be logged while it's in transit to your
+
+17
+00:00:56.670 --> 00:00:59.320
+application at a gateway or a proxy somewhere,
+
+18
+00:00:59.320 --> 00:01:03.850
+if you're using Google Chrome, your browser history is synced with Google,
+
+19
+00:01:03.850 --> 00:01:07.390
+so that would include any access tokens sent in the URL,
+
+20
+00:01:07.390 --> 00:01:08.930
+and I could go on.
+
+21
+00:01:08.930 --> 00:01:12.140
+So yeah, just don't use this flow.
+
+22
+00:01:12.140 --> 00:01:14.970
+What you need to use is the Authorization Code Grant
+
+23
+00:01:14.970 --> 00:01:17.460
+flow with proof of key exchange.
+
+24
+00:01:17.460 --> 00:01:21.800
+The way this works is the client generates a random code
+
+25
+00:01:21.800 --> 00:01:25.340
+verifier and stores it in the client session.
+
+26
+00:01:25.340 --> 00:01:29.320
+It then hashes the verifier to create a code challenge.
+
+27
+00:01:29.320 --> 00:01:32.020
+The code challenge is then included along with the
+
+28
+00:01:32.020 --> 00:01:35.140
+method in the authorization request.
+
+29
+00:01:35.140 --> 00:01:39.470
+When a client receives the authorization code from the authorization server,
+
+30
+00:01:39.470 --> 00:01:43.680
+it includes the code verifier when making the POST back
+
+31
+00:01:43.680 --> 00:01:46.030
+channel request to the authorization server.
+
+32
+00:01:46.030 --> 00:01:50.870
+The authorization server will then verify that the code matches.
+
+33
+00:01:50.870 --> 00:01:54.530
+This way, if the authorization code is intercepted,
+
+34
+00:01:54.530 --> 00:01:57.440
+it is useless without the code verifier,
+
+35
+00:01:57.440 --> 00:02:00.800
+and the authorization code can only be exchanged once,
+
+36
+00:02:00.800 --> 00:02:04.380
+so it's less likely that an attacker would beat the client to it.
+
+37
+00:02:04.380 --> 00:02:05.330
+In fact,
+
+38
+00:02:05.330 --> 00:02:09.810
+unless you're using OpenID Connect with the nonce parameter and
+
+39
+00:02:09.810 --> 00:02:12.940
+your client is verifying that nonce parameter,
+
+40
+00:02:12.940 --> 00:02:16.240
+you should be using proof of key exchange for all flows
+
+41
+00:02:16.240 --> 00:02:19.720
+regardless if it's public or a confidential client.
+
+42
+00:02:19.720 --> 00:02:24.370
+This is to prevent an authorization code injection attack.
+
+43
+00:02:24.370 --> 00:02:26.210
+In our demo application,
+
+44
+00:02:26.210 --> 00:02:31.080
+because we are using OpenID Connect and Spring is including the nonce in
+
+45
+00:02:31.080 --> 00:02:36.020
+the authorization request and then also checking that it matches the nonce
+
+46
+00:02:36.020 --> 00:02:40.440
+returned in the ID token means our application is protected against the
+
+47
+00:02:40.440 --> 00:02:42.840
+authorization code injection attack.
+
+48
+00:02:42.840 --> 00:02:46.500
+The next issue you need to address is that the request to
+
+49
+00:02:46.500 --> 00:02:51.000
+exchange the authorization code for the access token to the
+
+50
+00:02:51.000 --> 00:02:53.870
+authorization server is cross‑origin,
+
+51
+00:02:53.870 --> 00:02:57.700
+hence you need to configure your authorization server to
+
+52
+00:02:57.700 --> 00:03:01.040
+include the CORS headers for your domain.
+
+53
+00:03:01.040 --> 00:03:06.140
+In Keycloak, on the client, this would be under Web Origins.
+
+54
+00:03:06.140 --> 00:03:09.050
+Once your public client gets the access token,
+
+55
+00:03:09.050 --> 00:03:14.540
+the next issue you're going to face is safely handling and storing it
+
+56
+00:03:14.540 --> 00:03:18.040
+and including it in all requests to the back end.
+
+57
+00:03:18.040 --> 00:03:22.030
+Unlike cookies, there is no real safe way of storing them.
+
+58
+00:03:22.030 --> 00:03:26.600
+Your options include via in the cookie where your back end
+
+59
+00:03:26.600 --> 00:03:30.200
+needs to run on the same domain and the token is at risk of
+
+60
+00:03:30.200 --> 00:03:32.640
+cross‑site request forgery,
+
+61
+00:03:32.640 --> 00:03:36.540
+local storage where the token will live forever unless the
+
+62
+00:03:36.540 --> 00:03:40.010
+user or application specifically remove it,
+
+63
+00:03:40.010 --> 00:03:44.850
+and session storage, which lives as long as your browser session,
+
+64
+00:03:44.850 --> 00:03:48.740
+basically, as long as the tab in your browser is open.
+
+65
+00:03:48.740 --> 00:03:52.370
+Additionally, it's not shareable between tabs,
+
+66
+00:03:52.370 --> 00:03:57.140
+so it's slightly more secure than local storage; however,
+
+67
+00:03:57.140 --> 00:04:03.170
+with both local and session, your token is at risk of cross‑site scripting.
+
+68
+00:04:03.170 --> 00:04:09.190
+Ideally, you would only expose your public client to an opaque token,
+
+69
+00:04:09.190 --> 00:04:13.040
+though sensitive data cannot be extracted from the token.
+
+70
+00:04:13.040 --> 00:04:17.310
+Again, in the end, it's still really depends on your requirements,
+
+71
+00:04:17.310 --> 00:04:20.110
+and the front‑end framework you're using,
+
+72
+00:04:20.110 --> 00:04:23.530
+and the level of security you require; however,
+
+73
+00:04:23.530 --> 00:04:27.380
+if you do things correctly with robust content policies,
+
+74
+00:04:27.380 --> 00:04:31.420
+then Authorization Code Grant flow with proof of key
+
+75
+00:04:31.420 --> 00:04:32.860
+exchange is still a viable option,
+
+76
+00:04:32.860 --> 00:04:41.000
+and many organizations are securely handling OAuth 2 in browsers this way. Next, let's wrap up.
+

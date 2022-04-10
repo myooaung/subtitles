@@ -1,0 +1,1097 @@
+1
+1
+
+00:00:00,610  -->  00:00:02,900
+<v ->In this demo, I'll show you how the</v>
+2
+
+2
+
+00:00:02,900  -->  00:00:07,900
+Raft Consensus Algorithm works that the ETCD is using
+3
+
+3
+
+00:00:08,000  -->  00:00:11,840
+to make sure the data is stored in a reliable way
+4
+
+4
+
+00:00:11,840  -->  00:00:14,830
+while still having a multiple node systems
+5
+
+5
+
+00:00:14,830  -->  00:00:16,313
+or a distributed system.
+6
+
+6
+
+00:00:18,370  -->  00:00:21,563
+This is the Raft Consensus Algorithm.
+7
+
+7
+
+00:00:22,650  -->  00:00:27,130
+And this URL is raft.github.com,
+8
+
+8
+
+00:00:27,130  -->  00:00:29,400
+so it's provided by Raft itself.
+9
+
+9
+
+00:00:29,400  -->  00:00:32,560
+And Raft is a consensus algorithm that is designed
+10
+
+10
+
+00:00:32,560  -->  00:00:34,480
+to be easy to understand.
+11
+
+11
+
+00:00:34,480  -->  00:00:37,900
+So I will explain you in this lecture
+12
+
+12
+
+00:00:37,900  -->  00:00:39,890
+a little bit more about how the
+13
+
+13
+
+00:00:39,890  -->  00:00:42,200
+Raft Consensus Algorithm works.
+14
+
+14
+
+00:00:42,200  -->  00:00:43,730
+It is equivalent to Paxos.
+15
+
+15
+
+00:00:43,730  -->  00:00:46,820
+If you're familiar with Paxos then Raft also
+16
+
+16
+
+00:00:46,820  -->  00:00:49,320
+provides the same fault-tolerance and performance.
+17
+
+17
+
+00:00:50,440  -->  00:00:52,300
+So what is consensus?
+18
+
+18
+
+00:00:52,300  -->  00:00:54,510
+Consensus is a fundamental problem in
+19
+
+19
+
+00:00:54,510  -->  00:00:56,260
+fault-tolerant distributed systems.
+20
+
+20
+
+00:00:57,240  -->  00:01:00,070
+Consensus involves multiple servers,
+21
+
+21
+
+00:01:00,070  -->  00:01:04,340
+so they're multiple EDC servers, agreeing on values.
+22
+
+22
+
+00:01:04,340  -->  00:01:07,683
+So let's say you have a three node system ETCD.
+23
+
+23
+
+00:01:08,560  -->  00:01:11,230
+You set a new kerbenetes object,
+24
+
+24
+
+00:01:11,230  -->  00:01:15,400
+how can it agree that this is the object that we do save?
+25
+
+25
+
+00:01:15,400  -->  00:01:17,250
+What if there is a node failure?
+26
+
+26
+
+00:01:17,250  -->  00:01:21,900
+How are the nodes going to agree on this specific value
+27
+
+27
+
+00:01:21,900  -->  00:01:25,793
+and not on an older value or maybe even a newer value?
+28
+
+28
+
+00:01:27,550  -->  00:01:29,510
+Once they reach a decision on a value,
+29
+
+29
+
+00:01:29,510  -->  00:01:30,950
+then that decision is final and
+30
+
+30
+
+00:01:30,950  -->  00:01:34,290
+is persisted to ETCD basically.
+31
+
+31
+
+00:01:34,290  -->  00:01:36,880
+Typically consensus algorithms make progress when
+32
+
+32
+
+00:01:36,880  -->  00:01:39,870
+any majority of their servers are available.
+33
+
+33
+
+00:01:39,870  -->  00:01:42,250
+This is the quorom I was talking about, for example,
+34
+
+34
+
+00:01:42,250  -->  00:01:44,310
+a cluster of 5 can continue to operate
+35
+
+35
+
+00:01:44,310  -->  00:01:47,060
+with 2 servers it fail.
+36
+
+36
+
+00:01:47,060  -->  00:01:50,030
+So she can still reach a quorom
+37
+
+37
+
+00:01:50,030  -->  00:01:52,510
+so they'll then be able to still reach consensus
+38
+
+38
+
+00:01:52,510  -->  00:01:54,010
+and still be able to function.
+39
+
+39
+
+00:01:55,060  -->  00:01:58,270
+You have Raft visualization right here and
+40
+
+40
+
+00:01:58,270  -->  00:02:00,100
+this is how I am then going to
+41
+
+41
+
+00:02:00,100  -->  00:02:03,433
+explain the basic of this algorithm.
+42
+
+42
+
+00:02:04,280  -->  00:02:07,190
+So this can be done in your ETCD cluster and
+43
+
+43
+
+00:02:07,190  -->  00:02:10,080
+in your ETCD cluster you can have some values
+44
+
+44
+
+00:02:10,080  -->  00:02:12,443
+in kubernetes node components objects.
+45
+
+45
+
+00:02:13,450  -->  00:02:15,750
+And the first thing that will happen when you start
+46
+
+46
+
+00:02:15,750  -->  00:02:19,180
+your ETCD cluster, here we have five nodes, is that
+47
+
+47
+
+00:02:19,180  -->  00:02:20,740
+they need to pick a leader.
+48
+
+48
+
+00:02:20,740  -->  00:02:22,130
+So first thing that's going to happen is
+49
+
+49
+
+00:02:22,130  -->  00:02:24,100
+they're going to pick a leader
+50
+
+50
+
+00:02:24,100  -->  00:02:26,873
+and then the leader is going to make rites.
+51
+
+51
+
+00:02:28,040  -->  00:02:30,790
+And you'll connect an object for example,
+52
+
+52
+
+00:02:30,790  -->  00:02:34,080
+and then they need to agree in a quorom,
+53
+
+53
+
+00:02:34,080  -->  00:02:36,080
+at least three of those five nodes need to agree
+54
+
+54
+
+00:02:36,080  -->  00:02:39,160
+that this is the rite they're going to persist.
+55
+
+55
+
+00:02:39,160  -->  00:02:42,770
+So let's press this start button, these are the seconds
+56
+
+56
+
+00:02:42,770  -->  00:02:43,770
+and this the speed.
+57
+
+57
+
+00:02:43,770  -->  00:02:46,020
+So I'm just going to start it and then we'll see
+58
+
+58
+
+00:02:46,020  -->  00:02:48,910
+that the leader is going to be like that.
+59
+
+59
+
+00:02:48,910  -->  00:02:51,260
+So I'll start up, they would all have some kind of
+60
+
+60
+
+00:02:51,260  -->  00:02:54,880
+timer, we'll wait between a certain amount of
+61
+
+61
+
+00:02:54,880  -->  00:02:58,170
+milliseconds but that time of wait is randomized,
+62
+
+62
+
+00:02:58,170  -->  00:03:00,560
+so one of them will be first.
+63
+
+63
+
+00:03:00,560  -->  00:03:03,000
+We should already be able to see it right here,
+64
+
+64
+
+00:03:03,000  -->  00:03:04,810
+it's probably going to be S2.
+65
+
+65
+
+00:03:04,810  -->  00:03:08,080
+That is going to be the first one sending out
+66
+
+66
+
+00:03:08,080  -->  00:03:12,220
+messages, it wants to be elected as a leader and then
+67
+
+67
+
+00:03:12,220  -->  00:03:14,560
+the other ones can vote.
+68
+
+68
+
+00:03:14,560  -->  00:03:17,900
+So then it might get all the votes because
+69
+
+69
+
+00:03:17,900  -->  00:03:20,720
+none of the other ones are going to reach zero
+70
+
+70
+
+00:03:20,720  -->  00:03:24,990
+when this S2 node is going to be sending out its messages.
+71
+
+71
+
+00:03:24,990  -->  00:03:26,650
+So then, everyone's going to vote
+72
+
+72
+
+00:03:26,650  -->  00:03:28,080
+and then S2 should be leader.
+73
+
+73
+
+00:03:28,080  -->  00:03:30,943
+So let's see that what I'm saying is correct.
+74
+
+74
+
+00:03:31,930  -->  00:03:33,093
+I'm going to start now.
+75
+
+75
+
+00:03:35,280  -->  00:03:38,230
+So S2 is going to go to zero first, have a look at that S2.
+76
+
+76
+
+00:03:43,050  -->  00:03:46,067
+And S2 is going to send out messages:
+77
+
+77
+
+00:03:46,067  -->  00:03:49,447
+"Please elect me as a leader of your cluster."
+78
+
+78
+
+00:03:50,950  -->  00:03:53,720
+See those messages arrived and then those other nodes
+79
+
+79
+
+00:03:53,720  -->  00:03:57,730
+are then electing S2 as a leader,
+80
+
+80
+
+00:03:57,730  -->  00:04:00,203
+because S2 was just the first one.
+81
+
+81
+
+00:04:02,410  -->  00:04:04,950
+And S2 is now a leader.
+82
+
+82
+
+00:04:04,950  -->  00:04:06,400
+So if you click on S2...
+83
+
+83
+
+00:04:07,870  -->  00:04:09,980
+State: leader.
+84
+
+84
+
+00:04:09,980  -->  00:04:12,500
+If you click on S1, state: follower.
+85
+
+85
+
+00:04:12,500  -->  00:04:15,360
+So we all have followers now and S2 is the leader,
+86
+
+86
+
+00:04:15,360  -->  00:04:17,060
+that's where the rites will go to.
+87
+
+87
+
+00:04:18,120  -->  00:04:20,023
+S2 will always send out heartbeats to the other nodes
+88
+
+88
+
+00:04:20,023  -->  00:04:23,680
+and the other nodes will always then respond to that.
+89
+
+89
+
+00:04:23,680  -->  00:04:26,410
+That way they know that the leader is still active,
+90
+
+90
+
+00:04:26,410  -->  00:04:27,363
+is still working.
+91
+
+91
+
+00:04:29,200  -->  00:04:32,790
+So here are the replies and then it'll wait a little bit
+92
+
+92
+
+00:04:32,790  -->  00:04:35,783
+and then it will send out heartbeats and then
+93
+
+93
+
+00:04:35,783  -->  00:04:37,453
+it will always get a response.
+94
+
+94
+
+00:04:38,560  -->  00:04:42,030
+You can also see that there is a timer on still
+95
+
+95
+
+00:04:42,030  -->  00:04:45,710
+because if the leader doesn't send these heartbeats
+96
+
+96
+
+00:04:45,710  -->  00:04:48,560
+then they will consider that this leader node is gone,
+97
+
+97
+
+00:04:48,560  -->  00:04:50,750
+and then they will start a re-election process.
+98
+
+98
+
+00:04:50,750  -->  00:04:52,550
+So let's try that now.
+99
+
+99
+
+00:04:52,550  -->  00:04:55,043
+Let's say, that we stop this node.
+100
+
+100
+
+00:04:56,790  -->  00:04:58,220
+And let's start again.
+101
+
+101
+
+00:04:58,220  -->  00:05:00,573
+So then they're going to run out-
+102
+
+102
+
+00:05:01,550  -->  00:05:03,050
+the timer is going to run out.
+103
+
+103
+
+00:05:04,560  -->  00:05:08,590
+S3 then sends out...
+104
+
+104
+
+00:05:09,550  -->  00:05:12,223
+because there was a time out.
+105
+
+105
+
+00:05:13,143  -->  00:05:16,010
+S2 didn't send heartbeats so S3 is now going to
+106
+
+106
+
+00:05:16,010  -->  00:05:19,610
+send to all of them nodes that it wants to be elected,
+107
+
+107
+
+00:05:19,610  -->  00:05:23,230
+and "please like me," and then the other nodes send a reply.
+108
+
+108
+
+00:05:23,230  -->  00:05:26,310
+So now, S3 is the leader.
+109
+
+109
+
+00:05:26,310  -->  00:05:27,157
+And now it will be S3
+110
+
+110
+
+00:05:27,157  -->  00:05:29,440
+that send out heartbeats.
+111
+
+111
+
+00:05:29,440  -->  00:05:32,870
+And you see it also sends heartbeats to S2,
+112
+
+112
+
+00:05:32,870  -->  00:05:34,513
+but S2 is not responding.
+113
+
+113
+
+00:05:35,500  -->  00:05:37,293
+Only when we resume S2.
+114
+
+114
+
+00:05:38,980  -->  00:05:39,813
+Then...
+115
+
+115
+
+00:05:40,990  -->  00:05:42,790
+it will start sending replies again.
+116
+
+116
+
+00:05:44,920  -->  00:05:46,543
+So let's say we didn't do it right
+117
+
+117
+
+00:05:46,543  -->  00:05:48,540
+then they will have to reach a consensus.
+118
+
+118
+
+00:05:48,540  -->  00:05:50,580
+So we're going to do a request.
+119
+
+119
+
+00:05:50,580  -->  00:05:52,080
+Request comes from the leader.
+120
+
+120
+
+00:05:53,230  -->  00:05:54,690
+Gonna start again.
+121
+
+121
+
+00:05:54,690  -->  00:05:57,790
+And then what's going to happen is...
+122
+
+122
+
+00:06:00,680  -->  00:06:03,260
+S3 sent out...
+123
+
+123
+
+00:06:03,260  -->  00:06:04,430
+the heartbeat also with
+124
+
+124
+
+00:06:04,430  -->  00:06:07,140
+this update of information, three.
+125
+
+125
+
+00:06:07,140  -->  00:06:09,450
+And all the other nodes will also update.
+126
+
+126
+
+00:06:09,450  -->  00:06:11,860
+But the rite will only be persisted
+127
+
+127
+
+00:06:11,860  -->  00:06:13,780
+when there's a quorom reached.
+128
+
+128
+
+00:06:13,780  -->  00:06:16,467
+So only when two other nodes are going to say,
+129
+
+129
+
+00:06:16,467  -->  00:06:19,217
+"I agree on the rite," then the rite will be persisted.
+130
+
+130
+
+00:06:22,420  -->  00:06:24,900
+Because we have enough replies from each quorom
+131
+
+131
+
+00:06:24,900  -->  00:06:29,320
+so three is now written to the log.
+132
+
+132
+
+00:06:29,320  -->  00:06:31,450
+In kerbenetes this three will then be an object
+133
+
+133
+
+00:06:31,450  -->  00:06:33,563
+because an object comes in, then the object
+134
+
+134
+
+00:06:33,563  -->  00:06:36,470
+is sent to all the nodes, so then it replies back.
+135
+
+135
+
+00:06:36,470  -->  00:06:38,980
+And then when we have reached a quorom
+136
+
+136
+
+00:06:38,980  -->  00:06:40,753
+then the rite is persisted.
+137
+
+137
+
+00:06:44,660  -->  00:06:48,063
+So now the rite is persisted then we can have new object.
+138
+
+138
+
+00:06:51,270  -->  00:06:53,930
+There are some details that I didn't mention.
+139
+
+139
+
+00:06:53,930  -->  00:06:57,040
+There is a paper that you can read about this
+140
+
+140
+
+00:06:57,040  -->  00:07:00,170
+Raft algorithm if you want to know all details.
+141
+
+141
+
+00:07:00,170  -->  00:07:02,660
+So let's now see what happens if you do a rite
+142
+
+142
+
+00:07:02,660  -->  00:07:04,313
+if three nodes fail.
+143
+
+143
+
+00:07:05,430  -->  00:07:07,140
+So...
+144
+
+144
+
+00:07:07,140  -->  00:07:08,393
+Let's stop this one,
+145
+
+145
+
+00:07:09,740  -->  00:07:11,500
+and this one,
+146
+
+146
+
+00:07:11,500  -->  00:07:12,403
+and this one.
+147
+
+147
+
+00:07:13,260  -->  00:07:15,880
+So now we only have two nodes...
+148
+
+148
+
+00:07:16,860  -->  00:07:18,410
+in our cluster.
+149
+
+149
+
+00:07:18,410  -->  00:07:21,150
+As I try to do a rite...
+150
+
+150
+
+00:07:23,790  -->  00:07:26,460
+We're trying to rite number three...
+151
+
+151
+
+00:07:28,820  -->  00:07:33,120
+But there's no quorom, the other nodes are not responding.
+152
+
+152
+
+00:07:33,120  -->  00:07:38,023
+So we can see S4 wants to rite number three in second slot.
+153
+
+153
+
+00:07:39,420  -->  00:07:43,140
+But it cannot acknowledge that number three
+154
+
+154
+
+00:07:43,140  -->  00:07:45,603
+needs to be written because we don't have quorom.
+155
+
+155
+
+00:07:49,440  -->  00:07:50,673
+Let's resume this one.
+156
+
+156
+
+00:07:54,960  -->  00:07:56,810
+Okay, this one also has number three.
+157
+
+157
+
+00:07:59,910  -->  00:08:03,500
+Quorom has reached and now three has been written.
+158
+
+158
+
+00:08:03,500  -->  00:08:06,380
+So if we now resume...
+159
+
+159
+
+00:08:06,380  -->  00:08:07,433
+two and five,
+160
+
+160
+
+00:08:08,500  -->  00:08:10,693
+then they will also get this information.
+161
+
+161
+
+00:08:13,720  -->  00:08:14,553
+There you go.
+162
+
+162
+
+00:08:14,553  -->  00:08:15,386
+And now...
+163
+
+163
+
+00:08:17,050  -->  00:08:18,340
+all the
+164
+
+164
+
+00:08:18,340  -->  00:08:19,290
+nodes...
+165
+
+165
+
+00:08:19,290  -->  00:08:20,940
+have the same information
+166
+
+166
+
+00:08:20,940  -->  00:08:22,703
+because we have reached a quorom.
+167
+
+167
+
+00:08:24,520  -->  00:08:27,910
+So if there's a majority of the nodes not working,
+168
+
+168
+
+00:08:27,910  -->  00:08:31,430
+we won't be able to rite to our ETCD cluster.
+169
+
+169
+
+00:08:31,430  -->  00:08:33,530
+Only when they are enough nodes we can form a quorom,
+170
+
+170
+
+00:08:33,530  -->  00:08:35,588
+we can rite to our cluster.
+171
+
+171
+
+00:08:35,588  -->  00:08:36,421
+(stutters)
+172
+
+172
+
+00:08:36,421  -->  00:08:40,560
+That make sure that we have always the correct information
+173
+
+173
+
+00:08:40,560  -->  00:08:43,620
+in our cluster cause otherwise one part of the cluster
+174
+
+174
+
+00:08:43,620  -->  00:08:45,600
+could have one part of the information and the other part
+175
+
+175
+
+00:08:45,600  -->  00:08:48,710
+could have another- could have other information.
+176
+
+176
+
+00:08:48,710  -->  00:08:50,200
+That's what you want to avoid.
+177
+
+177
+
+00:08:50,200  -->  00:08:53,120
+You want to avoid that we have a brain split and
+178
+
+178
+
+00:08:53,120  -->  00:08:56,210
+two parts of our nodes with different information.
+179
+
+179
+
+00:08:56,210  -->  00:08:58,577
+So that's why we have this quorom.
+180
+
+180
+
+00:09:00,415  -->  00:09:02,500
+So that's it for the rest of visualization.
+181
+
+181
+
+00:09:02,500  -->  00:09:06,440
+I hope this made you understand ETCD a little bit better,
+182
+
+182
+
+00:09:06,440  -->  00:09:09,240
+and how it actually rites...
+183
+
+183
+
+00:09:09,240  -->  00:09:12,323
+the kerbenetes object to its cluster.

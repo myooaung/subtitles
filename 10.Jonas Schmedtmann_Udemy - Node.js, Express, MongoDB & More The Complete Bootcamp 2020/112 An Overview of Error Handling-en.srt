@@ -1,0 +1,312 @@
+1
+00:00:01,320 --> 00:00:03,670
+<v Instructor>So, up until this point in the course</v>
+
+2
+00:00:03,670 --> 00:00:05,430
+we haven't really handled errors
+
+3
+00:00:05,430 --> 00:00:09,420
+in a good way or in a central place in our application.
+
+4
+00:00:09,420 --> 00:00:11,690
+What we did was to simply send back
+
+5
+00:00:11,690 --> 00:00:15,180
+an error message as JSON in each route handler
+
+6
+00:00:15,180 --> 00:00:16,750
+in case something went wrong.
+
+7
+00:00:16,750 --> 00:00:17,760
+Right?
+
+8
+00:00:17,760 --> 00:00:21,250
+So that's basically what we're gonna fix in this section.
+
+9
+00:00:21,250 --> 00:00:22,860
+But for now, let's take a minute
+
+10
+00:00:22,860 --> 00:00:26,653
+to just get a brief overview of error handling in Express.
+
+11
+00:00:27,490 --> 00:00:29,700
+And we start by actually distinguishing
+
+12
+00:00:29,700 --> 00:00:32,550
+between two types of errors that can occur.
+
+13
+00:00:32,550 --> 00:00:35,660
+Operational errors and programming errors.
+
+14
+00:00:35,660 --> 00:00:38,060
+So, operational errors are problems
+
+15
+00:00:38,060 --> 00:00:40,760
+that we can predict will inevitably happen
+
+16
+00:00:40,760 --> 00:00:42,480
+at some point in the future.
+
+17
+00:00:42,480 --> 00:00:45,500
+And so we just need to handle them in advance.
+
+18
+00:00:45,500 --> 00:00:48,430
+They have nothing to do with bugs in our code.
+
+19
+00:00:48,430 --> 00:00:51,760
+Instead, they depend on the user, or the system,
+
+20
+00:00:51,760 --> 00:00:53,050
+or the network.
+
+21
+00:00:53,050 --> 00:00:57,320
+So, things like a user accessing an invalid route,
+
+22
+00:00:57,320 --> 00:01:01,430
+inputting invalid data, or an application failing to connect
+
+23
+00:01:01,430 --> 00:01:02,870
+to the database.
+
+24
+00:01:02,870 --> 00:01:05,290
+All these are operational errors
+
+25
+00:01:05,290 --> 00:01:06,920
+that we will need to handle in order
+
+26
+00:01:06,920 --> 00:01:10,440
+to prepare our application for these cases.
+
+27
+00:01:10,440 --> 00:01:12,590
+You will also see the term, "exception"
+
+28
+00:01:12,590 --> 00:01:14,680
+being used instead of error
+
+29
+00:01:14,680 --> 00:01:17,200
+and while they are conceptually different,
+
+30
+00:01:17,200 --> 00:01:19,290
+many people use the terms error
+
+31
+00:01:19,290 --> 00:01:21,670
+and exception interchangeably.
+
+32
+00:01:21,670 --> 00:01:23,370
+And I'm just gonna call them, "errors,"
+
+33
+00:01:23,370 --> 00:01:26,860
+in this course as well in order to avoid confusion.
+
+34
+00:01:26,860 --> 00:01:30,460
+Anyway, on the other hand, we have programming errors.
+
+35
+00:01:30,460 --> 00:01:32,800
+Which are simply bugs that we developers
+
+36
+00:01:32,800 --> 00:01:34,810
+introduce into our code.
+
+37
+00:01:34,810 --> 00:01:37,010
+Like, for example, trying to read properties
+
+38
+00:01:37,010 --> 00:01:41,220
+from an undefined variable, using await without async,
+
+39
+00:01:41,220 --> 00:01:46,070
+accidentally using request.query instead of request.body,
+
+40
+00:01:46,070 --> 00:01:49,020
+or many other errors, really, that we might make.
+
+41
+00:01:49,020 --> 00:01:51,530
+So, you know how it works, right?
+
+42
+00:01:51,530 --> 00:01:53,540
+And they are really inevitable
+
+43
+00:01:53,540 --> 00:01:56,810
+but also more difficult to find and to handle.
+
+44
+00:01:56,810 --> 00:01:59,720
+Okay, so, it's important that you understand
+
+45
+00:01:59,720 --> 00:02:02,480
+this crucial difference between operational errors
+
+46
+00:02:02,480 --> 00:02:04,230
+and programming errors.
+
+47
+00:02:04,230 --> 00:02:07,330
+So, when we're talking about error handling with Express,
+
+48
+00:02:07,330 --> 00:02:09,930
+we mainly just mean operational errors.
+
+49
+00:02:09,930 --> 00:02:11,890
+Because these are the ones that are easy
+
+50
+00:02:11,890 --> 00:02:15,650
+to catch and to handle with our Express application.
+
+51
+00:02:15,650 --> 00:02:18,070
+And Express actually comes with error handling
+
+52
+00:02:18,070 --> 00:02:19,390
+out of the box.
+
+53
+00:02:19,390 --> 00:02:21,160
+So, all we have to do is to write
+
+54
+00:02:21,160 --> 00:02:24,010
+a global express error handling middleware
+
+55
+00:02:24,010 --> 00:02:26,090
+which will then catch errors coming
+
+56
+00:02:26,090 --> 00:02:28,050
+from all over the application.
+
+57
+00:02:28,050 --> 00:02:31,260
+So, no matter if it's an error coming from a route handler,
+
+58
+00:02:31,260 --> 00:02:34,950
+or a model validator or really, someplace else,
+
+59
+00:02:34,950 --> 00:02:37,240
+the goal is that all these errors end up
+
+60
+00:02:37,240 --> 00:02:39,920
+in one central error handling middleware.
+
+61
+00:02:39,920 --> 00:02:43,610
+So that we can send a nice response back to the client
+
+62
+00:02:43,610 --> 00:02:45,510
+letting them know what happened.
+
+63
+00:02:45,510 --> 00:02:48,340
+And so, really, handling in this case just means
+
+64
+00:02:48,340 --> 00:02:52,040
+sending a response letting the user know what happened.
+
+65
+00:02:52,040 --> 00:02:55,050
+But handling can also mean, in other cases,
+
+66
+00:02:55,050 --> 00:02:58,220
+retrying the operation or crashing the server,
+
+67
+00:02:58,220 --> 00:03:00,960
+or just ignoring the error altogether.
+
+68
+00:03:00,960 --> 00:03:03,980
+Sometimes, that's just the best option.
+
+69
+00:03:03,980 --> 00:03:07,470
+Now the beauty of having a global error handling middleware
+
+70
+00:03:07,470 --> 00:03:10,830
+is that it allows for a nice separation of concerns.
+
+71
+00:03:10,830 --> 00:03:13,170
+So, we don't have to worry about error handling
+
+72
+00:03:13,170 --> 00:03:16,220
+right in our business logic or our controllers,
+
+73
+00:03:16,220 --> 00:03:18,750
+or really anywhere in our application.
+
+74
+00:03:18,750 --> 00:03:22,090
+We can simply send the errors down to the error handler
+
+75
+00:03:22,090 --> 00:03:25,090
+which will then decide what to do with them next.
+
+76
+00:03:25,090 --> 00:03:26,340
+All right?
+
+77
+00:03:26,340 --> 00:03:28,170
+So, with all that being said,
+
+78
+00:03:28,170 --> 00:03:30,463
+let's now actually start implementing this.
+

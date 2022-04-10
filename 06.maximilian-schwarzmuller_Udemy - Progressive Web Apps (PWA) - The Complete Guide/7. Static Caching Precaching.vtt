@@ -1,0 +1,436 @@
+WEBVTT
+
+00:02.240 --> 00:06.620
+So let's start with static caching during installation of the service worker.
+
+00:06.620 --> 00:10.600
+Now keep in mind, the service worker is only installed if it changed,
+
+00:10.760 --> 00:16.370
+so only if you release a new version of the service worker, otherwise it will not get replaced.
+
+00:16.370 --> 00:22.520
+Now for that reason, the installation phase of a service worker is a great place to cache some assets which
+
+00:22.520 --> 00:23.950
+don't change that often
+
+00:23.990 --> 00:30.970
+like your app shell, the toolbar, your basic styling that might not change every second. Now
+
+00:31.070 --> 00:37.190
+also your main scripts, these might change frequently but we would deploy a new version of your application
+
+00:37.230 --> 00:40.680
+anyways then, so you can update your cache in this case too
+
+00:41.000 --> 00:47.410
+but it doesn't change every second or it's not user created dynamic content or anything like that.
+
+00:47.420 --> 00:53.630
+So for that, we'll use the cache API and we have our index.html page let's say, for a given route, for
+
+00:53.630 --> 01:00.860
+our main route maybe. We load a couple of assets there like our main script, our main styling and an image and we
+
+01:00.860 --> 01:02.540
+want to cache these files.
+
+01:02.540 --> 01:08.000
+Now we do that here during service worker installation where we get access to the cache API and can then
+
+01:08.000 --> 01:10.720
+store these files in the cache,
+
+01:10.760 --> 01:16.300
+this is what we'll do now. These files can then later be fetched even if we have no Internet
+
+01:16.400 --> 01:19.260
+and since we put them on the cache
+
+01:19.400 --> 01:19.850
+right
+
+01:19.850 --> 01:21.970
+here in the installation of the service worker,
+
+01:22.070 --> 01:26.590
+they will be available from there already on the next page visit of the user,
+
+01:26.600 --> 01:32.780
+so this is the earliest possible point of time we can use to store our files in the cache. Back in the
+
+01:32.780 --> 01:33.380
+project,
+
+01:33.380 --> 01:36.710
+let's implement this static caching of our app shell.
+
+01:36.710 --> 01:42.350
+Now as we identified, the app shell is basically our index.html file in the root folder,
+
+01:42.350 --> 01:44.770
+this is the starting page we're probably landing on
+
+01:44.810 --> 01:51.950
+if we just visit our main page, it there is also all these scripts we're using here because these scripts
+
+01:51.950 --> 01:55.420
+are required for this page to work correctly  
+
+01:55.820 --> 02:02.960
+and of course, these styles we're importing. This is our stylesheets but also that style we're importing
+
+02:02.960 --> 02:09.450
+from this CDN here, that's from the material design lite package, this theme we're using. The same is
+
+02:09.450 --> 02:13.430
+true for the icon set here and these fonts,
+
+02:13.430 --> 02:19.910
+these are all in the end things we want to cache right at the start of our application because they
+
+02:19.910 --> 02:24.950
+define how our main page looks like, our apps shell looks like.
+
+02:24.950 --> 02:30.740
+Now in a single page application, this is even more important because in our app here, we actually have different
+
+02:30.740 --> 02:33.410
+pages though they use a lot of shared assets,
+
+02:33.410 --> 02:38.060
+so the other page also uses the app.js file and so on and uses the same styling,
+
+02:38.180 --> 02:43.640
+so what we cache on our main page is also available there of course. On single page applications, you
+
+02:43.640 --> 02:49.490
+don't even have multiple pages though, so there especially what you cache on your main page is available
+
+02:49.490 --> 02:52.730
+throughout your entire application no matter which URL
+
+02:52.730 --> 02:54.260
+the user visits.
+
+02:54.380 --> 03:01.250
+So therefore, we should cache as much as needed but not everything because you don't want to overpopulate
+
+03:01.250 --> 03:07.550
+your cache. For one, the browser might clean it up if it runs out of space, if it gets too occupied
+
+03:08.000 --> 03:13.880
+and therefore you want to be conservative about what you put into the cache and on the other hand, if you cache too
+
+03:13.880 --> 03:18.590
+much, there is the danger of loading content from the cache
+
+03:18.590 --> 03:24.430
+even though for the given resource, an up-to-date version from the network might be more appropriate
+
+03:24.530 --> 03:28.040
+but we'll talk about different caching strategies later.
+
+03:28.040 --> 03:33.310
+For now, let's store these files in our core or in our cache
+
+03:33.440 --> 03:35.590
+during the installation event.
+
+03:35.600 --> 03:46.190
+So for that, in the install event listener, we want to access this cache API and we do this by accessing caches,
+
+03:46.210 --> 03:55.000
+this simply refers to the cache API, caches and then open. With that, we can open a new cache in there.
+
+03:55.010 --> 04:01.670
+Now when I talk about the cache API and a cache in that cache, you can simply have a look at it on the
+
+04:01.670 --> 04:04.140
+application tab in your developer tools.
+
+04:04.250 --> 04:09.860
+You have your cache storage down there and in that cache storage where you have only one per given
+
+04:09.860 --> 04:11.380
+page, per given domain
+
+04:11.390 --> 04:15.080
+even, there you can open multiple sub-caches
+
+04:15.110 --> 04:18.540
+so to say and this is what we can do with the open method.
+
+04:18.740 --> 04:20.780
+If it already exists, it will open it,
+
+04:20.780 --> 04:25.110
+if they tried to open a cache which does not exist yet, it will create it.
+
+04:25.520 --> 04:32.360
+However, keep in mind that I told you that in a service worker, we work with asynchronous code because
+
+04:32.360 --> 04:35.330
+it's running in the background and it's event driven,
+
+04:35.450 --> 04:40.080
+therefore the install event doesn't wait for this to finish by default,
+
+04:40.190 --> 04:46.250
+it would just see install event, log this, trigger this operation and continue
+
+04:46.250 --> 04:50.580
+and this can lead to huge problems because the service worker installation finishes.
+
+04:50.750 --> 04:52.700
+You might have a fetch listener,
+
+04:52.760 --> 04:59.720
+you do fetch a resource and you try to get it from the cache even though your caching operation
+
+04:59.720 --> 05:01.410
+here hasn't finished yet.
+
+05:01.970 --> 05:04.290
+Therefore, we can use event,
+
+05:04.340 --> 05:08.680
+so this event object we receive in this function here and there,
+
+05:08.690 --> 05:13.220
+the wait until method which means what it sounds like.
+
+05:13.310 --> 05:19.440
+It simply waits until a given operation which has to return a promise and caches open returns a promise,
+
+05:19.880 --> 05:21.240
+until that is finished
+
+05:21.620 --> 05:25.890
+and it won't finish the installation event before that is done,
+
+05:25.970 --> 05:34.370
+so this is what we have to do here to ensure that we're done with our cache preparation before this continues.
+
+05:34.370 --> 05:39.650
+So again, I pass caches open here and I just structure it over multiple lines to make it easier to
+
+05:39.650 --> 05:42.450
+read and this in the end returns a promise.
+
+05:42.620 --> 05:47.150
+We can listen to the promise result with then but wait until thankfully
+
+05:47.180 --> 05:50.840
+will wait until we're done in the then block as well.
+
+05:50.840 --> 05:55.020
+Now before we do something in the then block, we have to decide which cache to open
+
+05:55.190 --> 05:58.410
+and you can give your cache any name you like, here
+
+05:58.430 --> 06:04.520
+I'll name it static because it's our steady cache, our static assets which don't change that often
+
+06:05.090 --> 06:07.800
+and which we pre-cache right at the start,
+
+06:07.850 --> 06:11.100
+you could also name it pre-cache, whatever you like.
+
+06:11.240 --> 06:17.660
+Then inside the then block, we execute a function like in all then blocks and we get an argument passed
+
+06:17.720 --> 06:19.520
+into it by that open method
+
+06:19.520 --> 06:20.280
+so to say.
+
+06:20.450 --> 06:26.270
+So once it's done opening the static cache or creating it in case it didn't exist yet, it will pass a
+
+06:26.270 --> 06:30.630
+reference to that cache, to that function we execute here.
+
+06:30.670 --> 06:32.490
+Now in that function here,
+
+06:32.870 --> 06:37.430
+we now can add content to the cache, so add files to the cache.
+
+06:37.880 --> 06:44.600
+So here first of all, I want a console log something, I'll add my service worker prefix again to make clear
+
+06:44.600 --> 06:50.210
+that we're inside a service worker and I'll say pre-caching app shell because this is what I want to do
+
+06:50.210 --> 06:55.590
+here and now we do the actual pre-caching. For that, we can access the cache
+
+06:55.790 --> 07:01.900
+and there we get a couple of methods we can access. The methods you can access can be found on this
+
+07:01.900 --> 07:09.060
+MDN documentation page we showed earlier, we have match, match all, add all, add, put, delete and keys.
+
+07:09.110 --> 07:12.220
+Now I'll walk you through these throughout the course.
+
+07:12.350 --> 07:18.080
+Basically what we can do is, match allows us to see if our cache contains a certain key,
+
+07:18.080 --> 07:19.650
+that's why we pass a request here,
+
+07:19.670 --> 07:26.350
+remember requests are the keys in our cache. So we can see if a certain resource is stored and match all
+
+07:26.360 --> 07:33.080
+simply does the same for an array of matching requests. Add allows us to add an item to cache and
+
+07:33.080 --> 07:35.740
+add all allows us to add an array of items,
+
+07:35.780 --> 07:39.830
+so basically spares us to have multiple add calls.
+
+07:39.830 --> 07:46.140
+Now put is a little bit like add but add does something else, add will execute the request first,
+
+07:46.160 --> 07:50.810
+so it will send the request to the server to get the response and store the response which you need to
+
+07:50.810 --> 07:52.910
+do. Put is appropriate
+
+07:52.940 --> 07:58.790
+if you send the request in the service worker manually, we'll see both in this course. Add and add all
+
+07:58.790 --> 08:03.230
+are typically the things you want to use for pre-caching because we don't want to send the request
+
+08:03.230 --> 08:03.700
+manually
+
+08:03.710 --> 08:06.050
+there, put will become more important later.
+
+08:06.260 --> 08:12.080
+Delete allows you to remove an item from the cache of course and keys allows you to see which keys
+
+08:12.140 --> 08:13.570
+you have in that cache,
+
+08:13.880 --> 08:18.820
+so basically which requests you have in there stored as keys.
+
+08:18.860 --> 08:25.520
+So this is the API and again you will see that throughout the course. Here, add allows us to add a new
+
+08:25.520 --> 08:26.360
+resource
+
+08:26.360 --> 08:33.020
+and as I said with add, the service worker will go ahead, send the request to the server, get that asset
+
+08:33.110 --> 08:38.470
+which it of course needs to be able to store it and stores it, all in one step
+
+08:38.470 --> 08:43.470
+and what we pass here simply is the URL we want to send a request to.
+
+08:43.810 --> 08:44.170
+Now
+
+08:44.180 --> 08:47.840
+for example, if we want to store the app.js
+
+08:47.880 --> 08:56.420
+file, we pass the path to that file, seen relative from our web root on because we're on our local
+
+08:56.420 --> 08:57.570
+file system here.
+
+08:57.920 --> 09:04.500
+So we can say /src/js and in there, then the app.js
+
+09:04.580 --> 09:06.610
+file, this file, app.js.
+
+09:06.810 --> 09:13.110
+So this will make a request to that file, download it and store it in the cache.
+
+09:13.460 --> 09:23.470
+Well let's actually see if that works, for that, I'll save this and I'll go back to our application. Now
+
+09:23.820 --> 09:30.990
+keep in mind that the browser will update the service worker when ever it changed by only one byte or
+
+09:30.990 --> 09:32.250
+more of course.
+
+09:32.250 --> 09:33.880
+So we change the service worker,
+
+09:33.930 --> 09:39.450
+so it will try to install the new one and we saw that before. If we just refresh the page,
+
+09:39.560 --> 09:42.360
+the new service worker enters waiting state.
+
+09:42.360 --> 09:47.340
+Now we could click skip activating or of course the way which always works, the cleanest way is
+
+09:47.340 --> 09:49.880
+to simply close the tab and open a new one.
+
+09:49.890 --> 09:52.110
+Now the new service worker is installed
+
+09:52.560 --> 09:56.970
+and during that installation, we can see it pre-cached our app shell,
+
+09:57.150 --> 09:59.110
+it's printing that log.
+
+09:59.160 --> 10:03.230
+We can now have a look at it on the application tab, here
+
+10:03.270 --> 10:06.660
+cache storage, you should know have an error to expand it,
+
+10:06.750 --> 10:09.320
+otherwise click refresh caches.
+
+10:09.350 --> 10:14.520
+There, you see this new cache named static, that's the name we set up here
+
+10:15.600 --> 10:20.250
+and inside that cache, you'll see one key value pair pointing to the app.js
+
+10:20.270 --> 10:22.680
+file on our domain
+
+10:22.950 --> 10:27.950
+and the response is OK but it actually is the complete response including the asset itself.
+
+10:28.730 --> 10:36.890
+Now if we go to network and tick offline, let's reload the app. You see, it still fails because we're
+
+10:36.890 --> 10:45.610
+not fetching this file we cached, still we would be able to do so and we will do so in a second,
+
+10:45.800 --> 10:49.400
+so let's fetch our cached asset in the next lecture.
+
+10:49.520 --> 10:56.270
+Oh and by the way, if you're wondering why we just stored one file and not all the files I mentioned
+
+10:56.440 --> 10:58.320
+that would belong to our app shell,
+
+10:58.520 --> 11:03.100
+just because I want to get there step-by-step. We are not done with pre-caching yet.

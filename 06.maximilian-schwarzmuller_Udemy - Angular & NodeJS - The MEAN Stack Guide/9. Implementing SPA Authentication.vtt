@@ -1,0 +1,361 @@
+WEBVTT
+
+00:02.180 --> 00:09.080
+So the goal is to create such a token and return that to the user upon successful login.
+
+00:09.080 --> 00:14.270
+Now first of all in our back-end, we need to create a fitting route.
+
+00:14.480 --> 00:20.790
+Thus far, we only got a route which allows us to create a new user. Now in the user.js file in the routes
+
+00:20.810 --> 00:21.620
+folder,
+
+00:21.620 --> 00:24.890
+I will create another route with the router here,
+
+00:24.920 --> 00:31.790
+it's also a post route but I will listen to /login or actually /api/user/login
+
+00:31.790 --> 00:32.910
+as you know.
+
+00:33.260 --> 00:39.440
+There we have the method we already know with request, response and next and we will do something when
+
+00:39.440 --> 00:41.450
+a request reaches that route
+
+00:41.450 --> 00:45.100
+and that something I want to do as I want to create such a token.
+
+00:45.170 --> 00:48.480
+Well first I want to validate whether the credentials are valid
+
+00:48.620 --> 00:53.600
+but if that's the case, then I want to validate the user.
+
+00:53.600 --> 00:56.590
+Now this will actually be a multi-step process.
+
+00:56.600 --> 01:03.560
+First of all, we need to find out whether the e-mail address exists. Now for that, we can use our user
+
+01:03.560 --> 01:05.720
+model which we're already importing
+
+01:05.960 --> 01:09.850
+and I can find an instance of that model in the database.
+
+01:10.520 --> 01:17.150
+For that, I will pass an object to basically narrow down which results I want to find and look for a
+
+01:17.150 --> 01:24.730
+user where the e-mail address in that database matches the e-mail address which is attached to our request.
+
+01:24.760 --> 01:31.210
+I can then chain then here to handle the case that we got a response which would be the user
+
+01:31.210 --> 01:33.060
+and actually if we have a user,
+
+01:33.430 --> 01:40.060
+well then I know that we have that email address. On the other hand, if we don't find a user here, then
+
+01:40.060 --> 01:44.280
+we get no user and I can also use find one here
+
+01:44.320 --> 01:48.110
+by the way. So this will find exactly one user
+
+01:48.300 --> 01:52.550
+and now I can check whether user exists and if it does not exist,
+
+01:52.560 --> 02:01.170
+so if user is undefined here, well then I can actually return a response where I set the status code
+
+02:01.560 --> 02:02.230
+to
+
+02:02.280 --> 02:05.980
+you could say 404 because you didn't find the user or 
+
+02:05.980 --> 02:12.030
+401 because authentication is denied and send back some Json data if you want,
+
+02:12.240 --> 02:17.270
+for example an object where you have a message where you say auth failed,
+
+02:17.270 --> 02:19.810
+that is up to you what you send back.
+
+02:19.870 --> 02:22.990
+Now important, I do return my response here,
+
+02:23.190 --> 02:27.690
+I didn't do that earlier because I will now add code after that if statement.
+
+02:27.870 --> 02:32.790
+I could wrap it into an else statement but that would mean one extra layer of nesting here
+
+02:32.790 --> 02:37.990
+and I just want to check whether we don't have a user, return a response and otherwise proceed.
+
+02:38.310 --> 02:45.270
+So here we know we did find a user with that e-mail address, that allows me to then compare the password
+
+02:45.390 --> 02:50.580
+the user entered into the login form with the password stored in the database.
+
+02:50.580 --> 02:56.480
+The problem with the password stored in the database of course is that we hashed it, remember with bcrypt,
+
+02:56.670 --> 02:58.900
+we hashed the password.
+
+02:58.980 --> 03:05.940
+Now I said that we can't unhash the password, so how can we then find out whether the password in the
+
+03:05.940 --> 03:10.130
+database is the same password as entered by the user?
+
+03:10.560 --> 03:16.830
+Well it's a bit like the thing I explain with the token, bcrypt was the package which created the hash
+
+03:17.460 --> 03:20.850
+and such a hash can be dehashed
+
+03:20.970 --> 03:24.970
+but if you have the same input, you will always get the same hash.
+
+03:25.320 --> 03:32.430
+So we can use a useful function bcrypt offers, the compare function to compare an input to an encrypted
+
+03:32.440 --> 03:39.000
+value and bcrypt will tell us if that input would yield the same value without needing
+
+03:39.000 --> 03:42.480
+to decrypt the encrypted value which would not be possible.
+
+03:42.870 --> 03:50.140
+So here we pass request body password, data we get from the input form and then we have a user.
+
+03:50.160 --> 03:52.380
+Remember this yields a user here,
+
+03:52.620 --> 03:57.440
+so there we can access user password, the password stored in the database.
+
+03:58.920 --> 04:01.800
+Now this will actually return a new promise,
+
+04:01.800 --> 04:08.370
+so I can just return the result of that compare operation and then chain another then
+
+04:08.370 --> 04:14.910
+call here. There I will get back the result of that compare operation.
+
+04:15.160 --> 04:20.920
+Now that result will be true if we did successfully compare or false if we failed.
+
+04:20.920 --> 04:23.240
+Additionally we could run into other errors,
+
+04:23.290 --> 04:32.950
+so we'll also add a catch block here and there also return my not successful message and here in the
+
+04:32.950 --> 04:35.390
+then block, I will check whether result is true
+
+04:35.410 --> 04:37.100
+because this will be a boolean,
+
+04:37.240 --> 04:44.470
+if it is true, then I know hey we do have a successful match, if it is false though, so this is what I
+
+04:44.470 --> 04:45.930
+will actually check for,
+
+04:45.940 --> 04:50.110
+I also want to return my response where I deny authentication.
+
+04:50.350 --> 04:56.310
+If we make it past that if block, I know that we do have a valid password though,
+
+04:56.350 --> 05:01.720
+so this is where I want to continue and create this Json Web Token I was talking about.
+
+05:01.840 --> 05:06.920
+Now if you want to learn more about Json Web Tokens, you can visit jwt.io,
+
+05:07.030 --> 05:08.850
+there you can read more about it
+
+05:09.070 --> 05:13.450
+and there you can also see how such a token will look like, it's really just some text.
+
+05:13.510 --> 05:16.270
+However I said this one can be decoded
+
+05:16.460 --> 05:22.390
+and here on the right is how such or which data such a token typically holds. Information about the hashing
+
+05:22.420 --> 05:29.130
+algorithm used, some additional payload which you can actually change, you can add your own payload like
+
+05:29.140 --> 05:35.410
+the email address for example and then some verification signature which is required by the server to
+
+05:35.410 --> 05:37.560
+verify that this is a valid token.
+
+05:37.780 --> 05:38.790
+And that is what I meant,
+
+05:38.830 --> 05:44.620
+if you mess with this in your client side code which you could theoretically, then the entire token
+
+05:44.860 --> 05:50.830
+will not be verifiable on the back-end anymore because if you change one character, the server will not
+
+05:50.830 --> 05:53.190
+be able to validate it again.
+
+05:53.200 --> 05:58.720
+So this is what goes into a token and thankfully, you don't need to construct this from scratch,
+
+05:58.720 --> 06:01.240
+there is a package which helps you with that.
+
+06:01.240 --> 06:07.720
+So back in our project, let me quit one process, we can install that with npm install --save
+
+06:08.110 --> 06:15.220
+jsonwebtoken, one word. That is a third party package that helps you with the creation and validation
+
+06:15.220 --> 06:16.930
+of such tokens.
+
+06:16.930 --> 06:18.510
+Let me restart ngServe
+
+06:18.760 --> 06:26.740
+and now here, I will import this below bcrypt maybe, store it in a constant named JWT and import it by
+
+06:26.740 --> 06:34.520
+running require Json Web Token, like this. Now with that import added, we can use it in the login route
+
+06:34.550 --> 06:37.470
+to create a new web token.
+
+06:37.520 --> 06:43.820
+So here in the then block where we know we have a valid password sent by the user, there I will create
+
+06:43.820 --> 06:53.970
+a new token by running jwt.sign, this method creates a new token based on some input data of your choice.
+
+06:53.990 --> 06:59.930
+Now the input data of my choice will be a javascript object where I store the email of the user with user
+
+06:59.950 --> 07:05.930
+email, not the password because I don't want to send data back to the user even if it is encrypted
+
+07:06.380 --> 07:11.930
+and I also want to send back the user ID though because that will later be useful on the front-end and
+
+07:11.930 --> 07:18.020
+I could access this by using _id or accessing _id on the user object I got from
+
+07:18.020 --> 07:18.960
+the database.
+
+07:20.620 --> 07:26.440
+So this is now my JWT element or my Json Web Token,
+
+07:26.530 --> 07:31.250
+now we can also pass a second argument or we have to pass a second argument actually.
+
+07:31.450 --> 07:38.950
+Besides the payload, we need to enter our own secret, like a password we use for creating these hashes.
+
+07:38.950 --> 07:43.370
+This will only be stored on the server and it will be used to validate these hashes,
+
+07:43.390 --> 07:46.030
+this is what makes them uncrackable.
+
+07:46.060 --> 07:52.990
+Now typically, this should be a very long word or a very long string combination, here
+
+07:53.080 --> 07:55.530
+I will name this secret,
+
+07:55.750 --> 08:00.690
+this should be longer and that really is the case.
+
+08:00.690 --> 08:02.230
+This is just for development,
+
+08:02.230 --> 08:05.400
+typically you have a longer string here.
+
+08:05.460 --> 08:10.010
+So now we got our secret set up there,
+
+08:10.130 --> 08:13.720
+now we'll pass one more argument,
+
+08:14.080 --> 08:15.410
+that's an optional one
+
+08:15.610 --> 08:17.970
+and that allows me to configure that token,
+
+08:18.070 --> 08:20.050
+so the javascript object and
+
+08:20.060 --> 08:27.730
+there you can set a couple of values, one of them being the expiresIn property,
+
+08:27.910 --> 08:29.510
+whoops. ExpiresIn
+
+08:29.590 --> 08:32.270
+allows you to define how long this should last
+
+08:32.350 --> 08:38.220
+and if you want to see all options available, you can use Intellisense here in most IDEs.
+
+08:38.410 --> 08:42.760
+There you see which values you can get set and you can of course dive into the official docs of that
+
+08:42.760 --> 08:48.430
+package, to which you find a link in the last lecture of this module to learn more about that.
+
+08:48.550 --> 08:55.000
+Now expiresIn actually takes a string to describe the duration and you enter something like 1h for
+
+08:55.000 --> 09:01.650
+one hour and actually one hour is a pretty good value. That token shouldn't last too long because
+
+09:01.710 --> 09:05.470
+whilst you can't fake it, it's of course stored on the front-end.
+
+09:05.470 --> 09:11.230
+Now if your app is not vulnerable to cross-site scripting attacks, it should be secure there,
+
+09:11.320 --> 09:17.230
+still it's an additional security mechanism to ensure that it doesn't last forever.
+
+09:17.380 --> 09:20.670
+And with that, we get a token that will expire after one hour
+
+09:20.860 --> 09:23.890
+and now, we're creating that token.
+
+09:23.950 --> 09:26.900
+Now let's send it back to the front-end and connect the front-end
+
+09:26.920 --> 09:30.310
+to this back-end here, to this new route in the next lecture.

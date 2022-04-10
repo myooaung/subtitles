@@ -1,0 +1,229 @@
+WEBVTT
+
+00:02.200 --> 00:08.040
+In our application we got pretty far, this whole authentication flow is working but there's one issue that's
+
+00:08.080 --> 00:09.460
+super hard to spot,
+
+00:09.460 --> 00:15.570
+you can only spot it if you really let your token expire and don't reload
+
+00:15.650 --> 00:22.480
+the app. And you say you sit there, your app is somehow open or in the background so it wasn't killed and then
+
+00:22.480 --> 00:27.010
+you try to share a place and the token is expired,
+
+00:28.260 --> 00:35.340
+all of a sudden you will get an error because you never tried to get the token from async storage because
+
+00:35.340 --> 00:39.510
+we have to think about one thing that happens in auth get token,
+
+00:39.510 --> 00:47.260
+first of all we try to get the token from our state and only if that is null only then we enter this
+
+00:47.260 --> 00:48.050
+whole
+
+00:48.150 --> 00:53.690
+I want to fetch something from storage store here.
+
+00:53.870 --> 00:57.130
+Before that, this never happens,
+
+00:58.070 --> 01:06.510
+so before this event, we never tried to get the token and we never therefore check the expiration date,
+
+01:06.560 --> 01:10.640
+we never therefore try to use the refresh token,
+
+01:10.640 --> 01:16.130
+instead what happens is we end up here and we just resolve the token we got from the state, from the redux
+
+01:16.130 --> 01:17.120
+store.
+
+01:17.120 --> 01:23.030
+Now the problem with that is if we get the token from the redux store, that token is our normal token that
+
+01:23.060 --> 01:26.350
+also might have expired after one hour,
+
+01:26.870 --> 01:29.720
+so therefore we get this, we don't see that it is invalid,
+
+01:29.720 --> 01:33.300
+we use it and we get an error. To fix this,
+
+01:33.350 --> 01:37.680
+the simplest way is to simply store the expiration date in redux too,
+
+01:37.970 --> 01:44.310
+so whenever we try authenticating and in the end, we then store our data in redux,
+
+01:44.570 --> 01:52.690
+so whenever we call auth set token, we not only want to pass the token but also the expiration date,
+
+01:52.850 --> 01:54.840
+then we can store that in redux
+
+01:54.980 --> 02:00.740
+and here where we checked if we don't have a token, we should then not only check if we don't have
+
+02:00.740 --> 02:09.260
+a token but also if we might have a token but it is expired. So to do that, what I'll first of all do is when
+
+02:09.260 --> 02:17.780
+we get the token, here auth store token, we pass the expiration time already or the time until it expires.
+
+02:17.780 --> 02:25.450
+Now there we call auth set token and I actually want to pass the date when it expires to that function,
+
+02:25.450 --> 02:26.930
+to this action,
+
+02:27.070 --> 02:32.300
+therefore I'll quickly calculate it and we already have code to calculate our expiration date
+
+02:32.300 --> 02:32.770
+right,
+
+02:32.990 --> 02:34.650
+we got it here.
+
+02:34.850 --> 02:44.020
+So I can simply use that by getting my dispatch action here after that, so after I calculated the expiration
+
+02:44.020 --> 02:53.480
+date and then I also pass the expiry date to my auth set token action creator, there
+
+02:53.500 --> 02:59.020
+I then not only expect the token but also the expiry date of course because we just added it,
+
+02:59.020 --> 03:05.860
+we just made sure that we receive it and therefore we forward this, so expiry date is now also part of the
+
+03:05.950 --> 03:07.730
+payload.
+
+03:08.030 --> 03:16.460
+Then we can go to our auth reducer and there, in set token, I will set another part of that state which
+
+03:16.460 --> 03:27.270
+I add in the initial state too, the expiry date which I set to null, here I will set it to action expiry
+
+03:27.270 --> 03:33.620
+date and in auth remove token, I'll set it to null again,
+
+03:33.630 --> 03:39.100 
+so now we manage that in our redux store too. Back in the auth action creator,
+
+03:39.150 --> 03:43.030
+we can now take advantage of that in auth get token, here
+
+03:43.080 --> 03:53.920
+we can also get the expiry date, we get this from get state auth expiry date and that is either null or a
+
+03:53.920 --> 04:00.100
+date. Now here where we check if we don't have a token, well I also want to enter this part if we don't
+
+04:00.100 --> 04:09.710
+have a token or if expiry date is smaller or equal to new date which is the current date,
+
+04:09.720 --> 04:16.110
+however keep in mind expiry date as we calculate it is not a date time object,
+
+04:16.110 --> 04:22.820
+so we actually need to wrap it, just as we do this in other places too here where we have new date. Now
+
+04:22.860 --> 04:27.780
+we don't need to parse it in our case now because we're not extracting it from some string storage like
+
+04:27.780 --> 04:34.560
+the async storage but I still will need to wrap it with new date to turn it into a date object
+
+04:34.710 --> 04:41.500
+and with that I'm comparing if the expiry date is smaller than our current date which essentially means
+
+04:41.700 --> 04:45.930
+ok the token did expire because the expiration date is in the past.
+
+04:46.080 --> 04:54.160
+And then of course I want to access this part where I try to get the token from my storage and there
+
+04:54.160 --> 04:55.040
+I might find it
+
+04:55.050 --> 05:01.470
+but there we then also have the check for the expiration date where it should also fail and where we then
+
+05:01.620 --> 05:04.380
+would also try to get a refresh token.
+
+05:07.670 --> 05:13.720
+Now to try this out, I'll temporarily switch expiry date back to 20 seconds here
+
+05:15.360 --> 05:18.870
+and I want to uninstall the Android app for now
+
+05:19.820 --> 05:26.060
+and then simply rerun npm run android to rebuild it to really start with a fresh app where nothing is
+
+05:26.060 --> 05:29.730
+in storage.
+
+05:29.850 --> 05:36.210
+Now I first of all again want to connect this to my debugger because I reinstalled it, I have to re-trigger
+
+05:36.210 --> 05:44.060
+this and then I will login here and now I just want to wait, to wait until the token probably expired,
+
+05:44.070 --> 05:45.820
+so wait 20 seconds
+
+05:46.700 --> 05:50.290
+and thereafter I want to try something where I need the token.
+
+05:50.300 --> 05:53.010
+Maybe find places, visit a place
+
+05:53.030 --> 05:54.850
+and now let's try to delete it
+
+05:56.030 --> 05:59.620
+and there we now see a refresh token work then we're done.
+
+05:59.630 --> 06:05.040
+So it worked but obviously it worked with the help of the refresh token,
+
+06:05.090 --> 06:11.810
+so if I reload twice and I find places here, I don't find places because I delete it all
+
+06:11.840 --> 06:16.760
+but what you also see here is nowhere in the log do you see something about the refresh token
+
+06:16.760 --> 06:24.470
+because I reloaded within the 22nd period, we had an updated token in the store therefore and hence no
+
+06:24.470 --> 06:26.710
+need to refresh again.
+
+06:28.400 --> 06:30.890
+And with that, we fixed this error,
+
+06:30.910 --> 06:36.270
+now I'll turn this back to expiresIn and not the hardcoded 20 seconds,
+
+06:36.380 --> 06:39.770
+it shows us now that even if we never reloaded
+
+06:39.800 --> 06:40.700
+the app,
+
+06:40.970 --> 06:44.330
+if the token expires in the background, we can recover from that
+
+06:44.330 --> 06:49.070
+and that was one important addition to make sure the app really works the way it should work.

@@ -1,0 +1,332 @@
+1
+00:00:02,182 --> 00:00:08,502
+Both in Java and in XML Schema there's the concept of inheritance.
+
+2
+00:00:08,502 --> 00:00:14,390
+In Java, you do this by creating a subclass that extends the superclass.
+
+3
+00:00:14,390 --> 00:00:15,715
+In XML Schema,
+
+4
+00:00:15,715 --> 00:00:22,895
+you can derive types from other types either by extension or by restriction.
+
+5
+00:00:22,895 --> 00:00:27,296
+We've already seen derived types by restriction in XML Schema
+
+6
+00:00:27,296 --> 00:00:30,618
+in many of the examples of this course.
+
+7
+00:00:30,618 --> 00:00:31,433
+For example,
+
+8
+00:00:31,433 --> 00:00:36,687
+the type of the loyalty element is a simpleType that is
+
+9
+00:00:36,687 --> 00:00:40,443
+derived by restriction from the type xs:string.
+
+10
+00:00:40,443 --> 00:00:44,843
+You can also derive types by extension in XML Schema,
+
+11
+00:00:44,843 --> 00:00:49,272
+which corresponds naturally to subclassing in Java.
+
+12
+00:00:49,272 --> 00:00:54,456
+When you generate Java classes from an XML Schema with such types,
+
+13
+00:00:54,456 --> 00:01:00,314
+xjc will indeed generate a superclass with subclasses in Java.
+
+14
+00:01:00,314 --> 00:01:07,784
+The next example, ps-jaxb-25-inheritance, shows how this works.
+
+15
+00:01:07,784 --> 00:01:13,068
+Let's once again switch to the IDE to work with the example.
+
+16
+00:01:13,068 --> 00:01:19,566
+In this example, I've modified the XSD and added two new complexTypes,
+
+17
+00:01:19,566 --> 00:01:21,264
+shippingAddress and billingAddress.
+
+18
+00:01:21,264 --> 00:01:27,142
+Both of these types derive from the type address by extension.
+
+19
+00:01:27,142 --> 00:01:29,127
+In the type customer,
+
+20
+00:01:29,127 --> 00:01:33,719
+I've removed the shippingAddress and billingAddress elements and replaced them
+
+21
+00:01:33,719 --> 00:01:40,801
+with an address element of the base type address and set maxOccurs to 2 so there
+
+22
+00:01:40,801 --> 00:01:44,827
+can be at most 2 addresses in a customer element.
+
+23
+00:01:44,827 --> 00:01:45,141
+First,
+
+24
+00:01:45,141 --> 00:01:48,915
+we are going to have a look at what Java classes xjc
+
+25
+00:01:48,915 --> 00:01:50,647
+will generate for this schema,
+
+26
+00:01:50,647 --> 00:01:56,557
+then we'll see what the XML looks like when we marshal a purchase order,
+
+27
+00:01:56,557 --> 00:01:59,277
+and finally, we'll discuss unmarshalling.
+
+28
+00:01:59,277 --> 00:02:04,615
+Let's start with running xjc to generate the Java classes.
+
+29
+00:02:04,615 --> 00:02:08,204
+I'll open a terminal and run xjc.
+
+30
+00:02:08,204 --> 00:02:13,688
+Besides class address, we now also get two subclasses,
+
+31
+00:02:13,688 --> 00:02:16,094
+ShippingAddress and BillingAddress.
+
+32
+00:02:16,094 --> 00:02:18,748
+There's not a lot to see that's interesting in the
+
+33
+00:02:18,748 --> 00:02:21,618
+source code of these two classes.
+
+34
+00:02:21,618 --> 00:02:25,767
+They both obviously extend class address.
+
+35
+00:02:25,767 --> 00:02:29,447
+There's one thing to note about class address.
+
+36
+00:02:29,447 --> 00:02:33,524
+As you see, it has a new annotation,
+
+37
+00:02:33,524 --> 00:02:38,667
+the XmlSeeAlso annotation that refers to the two subclasses.
+
+38
+00:02:38,667 --> 00:02:41,771
+I'll explain what this means.
+
+39
+00:02:41,771 --> 00:02:44,176
+When you create the JAXBContext,
+
+40
+00:02:44,176 --> 00:02:48,505
+JAXB is going to analyze the domain model classes.
+
+41
+00:02:48,505 --> 00:02:52,156
+It does this by starting from the class that you passed it a new
+
+42
+00:02:52,156 --> 00:02:56,874
+instance method of class JAXBContext or from the objectFactory class
+
+43
+00:02:56,874 --> 00:03:01,173
+in the package if you pass it a package name.
+
+44
+00:03:01,173 --> 00:03:04,666
+It will find all the other domain classes by looking at the
+
+45
+00:03:04,666 --> 00:03:07,592
+fields of the classes that it has found.
+
+46
+00:03:07,592 --> 00:03:13,421
+However, in case a class has subclasses that are also part of the domain model,
+
+47
+00:03:13,421 --> 00:03:15,744
+this is a bit more difficult.
+
+48
+00:03:15,744 --> 00:03:21,197
+There's no easy way in Java to find all the subclasses of a particular class,
+
+49
+00:03:21,197 --> 00:03:23,878
+so when JAXB finds class address,
+
+50
+00:03:23,878 --> 00:03:27,864
+it doesn't know that there are two subclasses that
+
+51
+00:03:27,864 --> 00:03:30,930
+are also part of the domain model.
+
+52
+00:03:30,930 --> 00:03:37,159
+The XmlSeeAlso annotation tells JAXB explicitly to also include the
+
+53
+00:03:37,159 --> 00:03:40,067
+classes that are mentioned by the annotation,
+
+54
+00:03:40,067 --> 00:03:44,512
+in this case, the classes ShippingAddress and BillingAddress.
+
+55
+00:03:44,512 --> 00:03:49,122
+In this example, we're working with the schema-first approach.
+
+56
+00:03:49,122 --> 00:03:54,386
+Of course, you can also use inheritance when you use the code-first approach.
+
+57
+00:03:54,386 --> 00:03:55,490
+In that case,
+
+58
+00:03:55,490 --> 00:03:59,172
+you would have to put the XmlSeeAlso annotation on the
+
+59
+00:03:59,172 --> 00:04:02,356
+superclass yourself to include the subclasses,
+
+60
+00:04:02,356 --> 00:04:07,834
+just like xjc has done it for us in this example.
+
+61
+00:04:07,834 --> 00:04:11,920
+In class customer, the two fields, ShippingAddress and BillingAddress,
+
+62
+00:04:11,920 --> 00:04:18,971
+have now been replaced by a field Address which is a list of address objects.
+
+63
+00:04:18,971 --> 00:04:22,263
+Let's now look at the marshalling example.
+
+64
+00:04:22,263 --> 00:04:24,015
+In the createPurchaseOrder method,
+
+65
+00:04:24,015 --> 00:04:27,725
+I now create a ShippingAddress and a BillingAddress object,
+
+66
+00:04:27,725 --> 00:04:32,619
+which I both add to the list of addresses in the customer object.
+
+67
+00:04:32,619 --> 00:04:38,093
+Let's run the marshalling example and see what the XML looks like.
+
+68
+00:04:38,093 --> 00:04:43,733
+When you look at the output XML, you'll see something interesting.
+
+69
+00:04:43,733 --> 00:04:47,165
+The customer element now contains two address elements,
+
+70
+00:04:47,165 --> 00:04:53,521
+and both of these elements have an xsi:type annotation
+
+71
+00:04:53,521 --> 00:04:56,900
+from the XMLSchema-instance namespace.
+
+72
+00:04:56,900 --> 00:05:00,331
+Remember that we saw the XMLSchema-instance namespace
+
+73
+00:05:00,331 --> 00:05:04,648
+before when we looked at nillable elements.
+
+74
+00:05:04,648 --> 00:05:09,883
+The xsi:type annotation specifies which subtype of the
+
+75
+00:05:09,883 --> 00:05:13,236
+type address each address actually has.
+
+76
+00:05:13,236 --> 00:05:17,150
+That way, we know that the first address is the shipping address,
+
+77
+00:05:17,150 --> 00:05:20,652
+and the second address is the billing address.
+
+78
+00:05:20,652 --> 00:05:23,660
+Finally, let's look at unmarshalling.
+
+79
+00:05:23,660 --> 00:05:26,668
+When you unmarshal this XML,
+
+80
+00:05:26,668 --> 00:05:30,928
+then by inspecting the xsi:type annotation on the elements,
+
+81
+00:05:30,928 --> 00:05:35,865
+the unmarshaller knows what the XML Schema type of the address element is,
+
+82
+00:05:35,865 --> 00:05:40,189
+and it can find the Java class that is bound to that type.
+
+83
+00:05:40,189 --> 00:05:49,000
+This way, the unmarshaller knows which subclass it should instantiate, ShippingAddress or BillingAddress.
+

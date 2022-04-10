@@ -1,0 +1,524 @@
+1
+00:00:01,040 --> 00:00:06,740
+We're going to talk about virtual machines or EC2 a lot during this course.
+
+2
+00:00:06,740 --> 00:00:10,190
+So we will need to take a look at how to onboard EC2
+
+3
+00:00:10,190 --> 00:00:12,910
+virtual machines through Systems Manager.
+
+4
+00:00:12,910 --> 00:00:18,140
+And for that, we need to talk about the SSM Agent.
+
+5
+00:00:18,140 --> 00:00:24,940
+It's preinstalled pretty much on most Windows and Linux Amazon machine images,
+
+6
+00:00:24,940 --> 00:00:28,540
+which are also referred to as AMIs.
+
+7
+00:00:28,540 --> 00:00:35,210
+But make sure that whatever AMI you're using does have this SSM Agent installed.
+
+8
+00:00:35,210 --> 00:00:38,050
+If not, don't worry.
+
+9
+00:00:38,050 --> 00:00:42,040
+It is available as a standalone installer as well.
+
+10
+00:00:42,040 --> 00:00:43,730
+The important thing, however,
+
+11
+00:00:43,730 --> 00:00:50,240
+is for it to be able to communicate with the Systems Manager APIs.
+
+12
+00:00:50,240 --> 00:00:55,990
+This IAM policy here needs to be attached as a bare minimum.
+
+13
+00:00:55,990 --> 00:00:57,740
+You might be wondering, by the way,
+
+14
+00:00:57,740 --> 00:01:01,270
+why I called the agent and the policy as the same.
+
+15
+00:01:01,270 --> 00:01:03,660
+Well that's because back in the day,
+
+16
+00:01:03,660 --> 00:01:11,240
+the service was called as the same service, standing for simply Systems Manager.
+
+17
+00:01:11,240 --> 00:01:16,990
+But AWS chose to rename it to just Systems Manager.
+
+18
+00:01:16,990 --> 00:01:19,940
+It's now just a relic of the past really.
+
+19
+00:01:19,940 --> 00:01:26,660
+So once the SSM Agent is installed and the policy applied to the EC2 instance,
+
+20
+00:01:26,660 --> 00:01:28,750
+that's it, we're done.
+
+21
+00:01:28,750 --> 00:01:35,240
+That's all we need to do to onboard an EC2 to Systems Manager in theory.
+
+22
+00:01:35,240 --> 00:01:40,030
+So why don't we take a look at actually doing this in practice now
+
+23
+00:01:40,030 --> 00:01:44,520
+in this demo here and look at deploying an EC2 virtual machine and
+
+24
+00:01:44,520 --> 00:01:48,440
+registering it to Systems Manager.
+
+25
+00:01:48,440 --> 00:01:52,140
+Here we are now in the AWS Management Console.
+
+26
+00:01:52,140 --> 00:01:53,470
+Before we do anything else,
+
+27
+00:01:53,470 --> 00:01:56,960
+we want to make sure that we are in the correct region,
+
+28
+00:01:56,960 --> 00:01:59,370
+whatever region we want to be in.
+
+29
+00:01:59,370 --> 00:02:03,110
+We can do this up here in the upper‑right corner.
+
+30
+00:02:03,110 --> 00:02:09,840
+And in Globomantics's case, the region will be Sydney.
+
+31
+00:02:09,840 --> 00:02:10,940
+First,
+
+32
+00:02:10,940 --> 00:02:16,520
+we want to deploy a virtual machine. And as they are part of the EC2 service,
+
+33
+00:02:16,520 --> 00:02:21,140
+we need to browse to that one first.
+
+34
+00:02:21,140 --> 00:02:24,630
+We're going to type ec2 in here into the search box and
+
+35
+00:02:24,630 --> 00:02:28,540
+hit Enter to get to the EC2 dashboard.
+
+36
+00:02:28,540 --> 00:02:31,070
+As this is a brand new account to us,
+
+37
+00:02:31,070 --> 00:02:34,220
+we're not going to see any instances here yet.
+
+38
+00:02:34,220 --> 00:02:37,240
+So you probably don't have any either.
+
+39
+00:02:37,240 --> 00:02:43,380
+But if you do expect some to see here, they should show up.
+
+40
+00:02:43,380 --> 00:02:48,320
+If you expected to see some here, but can't see any,
+
+41
+00:02:48,320 --> 00:02:48,960
+again,
+
+42
+00:02:48,960 --> 00:02:54,380
+make sure you're in the correct region or you have the correct permissions.
+
+43
+00:02:54,380 --> 00:02:57,740
+First, we want to launch a new instance now.
+
+44
+00:02:57,740 --> 00:03:02,610
+So the next thing we have to do is after clicking this button
+
+45
+00:03:02,610 --> 00:03:08,740
+here to search for an AMI to deploy from.
+
+46
+00:03:08,740 --> 00:03:11,040
+We want to deploy a Windows Server 2019,
+
+47
+00:03:11,040 --> 00:03:15,140
+so that's what I'm going to search for here.
+
+48
+00:03:15,140 --> 00:03:17,640
+I'm going to pick the first image,
+
+49
+00:03:17,640 --> 00:03:24,140
+which is the default Windows Server 2019 AMI and click Next.
+
+50
+00:03:24,140 --> 00:03:25,080
+Next thing,
+
+51
+00:03:25,080 --> 00:03:31,190
+make sure you select an instance type that's applicable to your situation.
+
+52
+00:03:31,190 --> 00:03:37,440
+I'm going to pick the free one here as that's sufficient for our use case.
+
+53
+00:03:37,440 --> 00:03:42,890
+Click Next and configure more instance details.
+
+54
+00:03:42,890 --> 00:03:47,640
+In this demo, I'm going to go with the default values for almost everything,
+
+55
+00:03:47,640 --> 00:03:50,810
+especially network‑related choices.
+
+56
+00:03:50,810 --> 00:03:54,620
+Make sure that that works in your environment though.
+
+57
+00:03:54,620 --> 00:04:01,490
+I'm going to pick the default VPC and a random subnet in that default VPC. And
+
+58
+00:04:01,490 --> 00:04:06,740
+I'm going to assign a public IP to this virtual machine.
+
+59
+00:04:06,740 --> 00:04:11,530
+The public IP is not actually being used by us to access the virtual machine,
+
+60
+00:04:11,530 --> 00:04:17,040
+but more for the virtual machine to be able to communicate to the internet.
+
+61
+00:04:17,040 --> 00:04:21,740
+The next step is where we need to select an IAM role.
+
+62
+00:04:21,740 --> 00:04:22,370
+Remember,
+
+63
+00:04:22,370 --> 00:04:27,380
+I mentioned a specific IAM policy and role needs to be attached to
+
+64
+00:04:27,380 --> 00:04:33,370
+the EC2 instance. This role will allow the EC2 to communicate with
+
+65
+00:04:33,370 --> 00:04:38,780
+the Systems Manager APIs. Looking at the dropdown list here though,
+
+66
+00:04:38,780 --> 00:04:41,940
+we don't have an IAM role yet.
+
+67
+00:04:41,940 --> 00:04:50,640
+So we click on Create new IAM role here, and a new tab opens up in our browser.
+
+68
+00:04:50,640 --> 00:04:53,840
+We can create the new role straight from here.
+
+69
+00:04:53,840 --> 00:04:58,640
+So just click on the Create role button.
+
+70
+00:04:58,640 --> 00:05:01,810
+We need to select the EC2 servers because we want to
+
+71
+00:05:01,810 --> 00:05:05,940
+attach this IAM role to an EC2.
+
+72
+00:05:05,940 --> 00:05:09,240
+Next, we need to add the permissions.
+
+73
+00:05:09,240 --> 00:05:13,840
+Remember, the policy was called something with SSM.
+
+74
+00:05:13,840 --> 00:05:16,240
+So let's type that in here,
+
+75
+00:05:16,240 --> 00:05:24,570
+and yep, there we go, that's the AmazonSSMManagedInstanceCore policy. We
+
+76
+00:05:24,570 --> 00:05:30,490
+select this and click Next. In a production environment, I recommend you add
+
+77
+00:05:30,490 --> 00:05:35,470
+tags to your resources obviously. But in here, we're just going to skip that
+
+78
+00:05:35,470 --> 00:05:38,420
+for now and move on to the next page.
+
+79
+00:05:38,420 --> 00:05:43,660
+Give the role a name, any name really that's easy to identify.
+
+80
+00:05:43,660 --> 00:05:46,100
+But if you have naming conventions,
+
+81
+00:05:46,100 --> 00:05:51,040
+please follow them obviously. We'll change the description just to make it
+
+82
+00:05:51,040 --> 00:05:56,310
+a bit clearer that it allows EC2 instances to access AWS Systems Manager
+
+83
+00:05:56,310 --> 00:06:01,640
+on our behalf, and we click on Create role.
+
+84
+00:06:01,640 --> 00:06:05,960
+A new role has been created now, and we can now go back to the previous
+
+85
+00:06:05,960 --> 00:06:13,440
+tab. Hit the Refresh button here, and we can now select our new role. We'll
+
+86
+00:06:13,440 --> 00:06:19,560
+leave the rest as it is and move on to the storage page and also leave this
+
+87
+00:06:19,560 --> 00:06:26,790
+on default. Again, as before, I recommend adding tags. And as always,
+
+88
+00:06:26,790 --> 00:06:29,640
+depending on your situation,
+
+89
+00:06:29,640 --> 00:06:32,650
+the tags might be different. But for now we skip this and
+
+90
+00:06:32,650 --> 00:06:37,040
+move on to the security group page.
+
+91
+00:06:37,040 --> 00:06:40,210
+We're going to select an existing security group instead of
+
+92
+00:06:40,210 --> 00:06:44,460
+creating a new one, and we're going to select the existing
+
+93
+00:06:44,460 --> 00:06:48,100
+default security group here.
+
+94
+00:06:48,100 --> 00:06:51,430
+The important thing about this existing default security group
+
+95
+00:06:51,430 --> 00:06:56,860
+is that it accepts all traffic on all ports and protocols that
+
+96
+00:06:56,860 --> 00:07:00,390
+originate from within itself.
+
+97
+00:07:00,390 --> 00:07:04,960
+So even though the virtual machine has a public IP attached, we can't
+
+98
+00:07:04,960 --> 00:07:09,510
+actually talk to that VM via its public IP and connect to,
+
+99
+00:07:09,510 --> 00:07:09,910
+let's say,
+
+100
+00:07:09,910 --> 00:07:14,590
+an RDP port on that virtual machine unless the origin has
+
+101
+00:07:14,590 --> 00:07:18,740
+the same security group attached to it.
+
+102
+00:07:18,740 --> 00:07:22,980
+So let's go to view this and launch, and this will give
+
+103
+00:07:22,980 --> 00:07:26,840
+us an overview of what we have done.
+
+104
+00:07:26,840 --> 00:07:31,280
+Clicking Launch will pop up this dialog here.
+
+105
+00:07:31,280 --> 00:07:37,040
+Normally, this is where we create or select an EC2 key pair.
+
+106
+00:07:37,040 --> 00:07:44,440
+This key pair is used to later on connect to the EC2 via SSH or RDP.
+
+107
+00:07:44,440 --> 00:07:48,250
+Because we don't actually have to connect to this virtual machine with a
+
+108
+00:07:48,250 --> 00:07:51,850
+username and password in these traditional ways,
+
+109
+00:07:51,850 --> 00:07:55,640
+we would proceed without a key pair.
+
+110
+00:07:55,640 --> 00:07:59,180
+We need to acknowledge that we understand that we won't be able to
+
+111
+00:07:59,180 --> 00:08:03,330
+connect to the switch machine via RDP if we don't already know the
+
+112
+00:08:03,330 --> 00:08:07,740
+password for that machine baked into the AMI.
+
+113
+00:08:07,740 --> 00:08:10,000
+However, later on in the course,
+
+114
+00:08:10,000 --> 00:08:12,910
+we will see that we don't actually need to know the
+
+115
+00:08:12,910 --> 00:08:15,840
+password to connect to that VM.
+
+116
+00:08:15,840 --> 00:08:16,490
+But for now,
+
+117
+00:08:16,490 --> 00:08:20,640
+we'll just accept this warning, click Launch, and view the
+
+118
+00:08:20,640 --> 00:08:25,480
+instances and wait for a few minutes.
+
+119
+00:08:25,480 --> 00:08:30,310
+Let's jump ahead, and we can see our new instance has begun to being spun up.
+
+120
+00:08:30,310 --> 00:08:33,710
+The instance state shows pending, and the status
+
+121
+00:08:33,710 --> 00:08:37,970
+checks are currently initializing.
+
+122
+00:08:37,970 --> 00:08:42,060
+Let's jump ahead again, and the instance state just turned to
+
+123
+00:08:42,060 --> 00:08:45,730
+running. We just have to wait into the status checks are also
+
+124
+00:08:45,730 --> 00:08:50,340
+showing the two positive checks.
+
+125
+00:08:50,340 --> 00:08:57,090
+One more jump, and we can now see that it's done and changed over to these
+
+126
+00:08:57,090 --> 00:09:04,730
+Systems Manager service. Pull this list down here and start typing until we
+
+127
+00:09:04,730 --> 00:09:12,350
+see Systems Manager. In the Systems Manager console, we're now going to
+
+128
+00:09:12,350 --> 00:09:16,440
+scroll down all the way to Managed Instances.
+
+129
+00:09:16,440 --> 00:09:20,670
+Let me just clean this frame up here. And here, as expected,
+
+130
+00:09:20,670 --> 00:09:24,390
+we can see our instance with the instance ID.
+
+131
+00:09:24,390 --> 00:09:32,000
+It says it's online and shows us all the other information that we would expect to see from a managed virtual machine.
+

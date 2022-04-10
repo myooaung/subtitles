@@ -1,0 +1,496 @@
+1
+00:00:00,740 --> 00:00:04,970
+Now, let's switch gears and change our focus to the second part of our solution,
+
+2
+00:00:04,970 --> 00:00:08,670
+the SQL Server and availability groups part.
+
+3
+00:00:08,670 --> 00:00:11,770
+So what are some of the most common things that can go wrong
+
+4
+00:00:11,770 --> 00:00:14,170
+with SQL Server running on Kubernetes?
+
+5
+00:00:14,170 --> 00:00:16,040
+Well, I guess surprisingly,
+
+6
+00:00:16,040 --> 00:00:18,780
+most of these are the same issues you need to worry about when
+
+7
+00:00:18,780 --> 00:00:22,140
+you're working with any network SQL Server instance.
+
+8
+00:00:22,140 --> 00:00:26,770
+First, connectivity to your SQL Server instance is your number‑one priority.
+
+9
+00:00:26,770 --> 00:00:30,760
+You need to make sure you can connect to your SQL Server instance using one
+
+10
+00:00:30,760 --> 00:00:33,920
+of the management tools like SQL Server Management Studio,
+
+11
+00:00:33,920 --> 00:00:36,840
+Azure Data Studio, or SQL Command.
+
+12
+00:00:36,840 --> 00:00:38,550
+And while you can change it,
+
+13
+00:00:38,550 --> 00:00:43,170
+the default port that you use to connect to SQL Server is 1433.
+
+14
+00:00:43,170 --> 00:00:47,320
+Likewise, the default port for availability groups is 5022.
+
+15
+00:00:47,320 --> 00:00:49,240
+In a Kubernetes deployment,
+
+16
+00:00:49,240 --> 00:00:53,820
+that means you need to have a service like a load‑balancing service or
+
+17
+00:00:53,820 --> 00:00:57,980
+a node port opened up for those SQL Server ports.
+
+18
+00:00:57,980 --> 00:00:59,790
+Without adding the correct ports,
+
+19
+00:00:59,790 --> 00:01:02,910
+you won't be able to connect to your SQL Server instances.
+
+20
+00:01:02,910 --> 00:01:07,170
+Next, the SQL Server service itself needs to be started.
+
+21
+00:01:07,170 --> 00:01:09,500
+This service is named mssql‑server,
+
+22
+00:01:09,500 --> 00:01:14,340
+and you can check it using the systemctl status command.
+
+23
+00:01:14,340 --> 00:01:19,820
+Another common connectivity issue is using the correct user ID and password.
+
+24
+00:01:19,820 --> 00:01:23,070
+For simplicity, all the examples here used SA,
+
+25
+00:01:23,070 --> 00:01:26,610
+but in a production environment, you wouldn't want to use that.
+
+26
+00:01:26,610 --> 00:01:27,550
+Instead,
+
+27
+00:01:27,550 --> 00:01:30,030
+you'd need to add your own logins and grant the
+
+28
+00:01:30,030 --> 00:01:32,650
+appropriate permissions to those logins.
+
+29
+00:01:32,650 --> 00:01:36,400
+If you have trouble connecting with these examples that you've seen here,
+
+30
+00:01:36,400 --> 00:01:39,640
+you might want to make sure that you're using the correct password,
+
+31
+00:01:39,640 --> 00:01:44,140
+and you can use the kubectl get secrets code that we covered earlier,
+
+32
+00:01:44,140 --> 00:01:47,980
+to double‑check that you're using the correct values for your passwords.
+
+33
+00:01:47,980 --> 00:01:49,140
+In addition,
+
+34
+00:01:49,140 --> 00:01:53,810
+you typically want to change the SA password after your initial deployment.
+
+35
+00:01:53,810 --> 00:01:58,130
+You could do that using T‑SQL or SQL Server Management Studio.
+
+36
+00:01:58,130 --> 00:02:02,190
+The SQL Server on Linux implementation that we're using here also
+
+37
+00:02:02,190 --> 00:02:06,060
+provides a command line tool called the mssql config,
+
+38
+00:02:06,060 --> 00:02:07,920
+or mssql‑conf,
+
+39
+00:02:07,920 --> 00:02:14,380
+that you can use with the set‑sa‑password argument to update the SA password.
+
+40
+00:02:14,380 --> 00:02:18,340
+The mssql config tool can also change the default port,
+
+41
+00:02:18,340 --> 00:02:21,640
+and enable availability groups as well.
+
+42
+00:02:21,640 --> 00:02:25,970
+Next, there are also several issues that can impact availability groups.
+
+43
+00:02:25,970 --> 00:02:29,590
+First, availability group support needs to be enabled.
+
+44
+00:02:29,590 --> 00:02:32,390
+When you're using the Microsoft Linux images,
+
+45
+00:02:32,390 --> 00:02:37,950
+the easiest way to make sure that this is enabled is simply by using the MSSQL
+
+46
+00:02:37,950 --> 00:02:42,010
+ENABLE HADR environment variable, and giving it a value of 1,
+
+47
+00:02:42,010 --> 00:02:44,730
+and you can do this when you start your container.
+
+48
+00:02:44,730 --> 00:02:47,610
+If you're using a custom image of SQL Server,
+
+49
+00:02:47,610 --> 00:02:53,810
+you can use that mssql config tool to enable the availability groups.
+
+50
+00:02:53,810 --> 00:02:57,710
+Next, you need to make sure the replicas can communicate with each other.
+
+51
+00:02:57,710 --> 00:03:01,640
+Availability group replicas communicate by using endpoints,
+
+52
+00:03:01,640 --> 00:03:05,740
+and the default port for the endpoints is 5022.
+
+53
+00:03:05,740 --> 00:03:10,080
+This value can be changed during the availability group configuration.
+
+54
+00:03:10,080 --> 00:03:12,950
+However, the Kubernetes load‑balancing service,
+
+55
+00:03:12,950 --> 00:03:14,560
+or node port service,
+
+56
+00:03:14,560 --> 00:03:18,090
+needs to make sure that whatever endpoint port you're using,
+
+57
+00:03:18,090 --> 00:03:20,840
+it's opened up on all the replicas.
+
+58
+00:03:20,840 --> 00:03:22,470
+Next, if things aren't working right,
+
+59
+00:03:22,470 --> 00:03:25,090
+the SQL Server error log can provide some really
+
+60
+00:03:25,090 --> 00:03:27,120
+useful troubleshooting information.
+
+61
+00:03:27,120 --> 00:03:31,090
+You can view the error log using SQL Server Management Studio,
+
+62
+00:03:31,090 --> 00:03:37,260
+or by going to the /var/opt/mssql/log directory that contains the error log,
+
+63
+00:03:37,260 --> 00:03:40,740
+and then running the cat errorlog command that you can see here,
+
+64
+00:03:40,740 --> 00:03:42,940
+and that will display the error log.
+
+65
+00:03:42,940 --> 00:03:43,400
+You know,
+
+66
+00:03:43,400 --> 00:03:48,000
+another common problem that you can run into with availability groups is that
+
+67
+00:03:48,000 --> 00:03:51,760
+replication can stop when the transaction log fills up,
+
+68
+00:03:51,760 --> 00:03:55,020
+and your servers will no longer be able to perform updates.
+
+69
+00:03:55,020 --> 00:03:58,490
+One of the most common causes for this is if the link
+
+70
+00:03:58,490 --> 00:04:00,740
+between replicas is interrupted,
+
+71
+00:04:00,740 --> 00:04:03,980
+and those transaction logs can't be forwarded from the
+
+72
+00:04:03,980 --> 00:04:06,340
+primary to the secondary replicas.
+
+73
+00:04:06,340 --> 00:04:09,590
+If this happens, the transaction log will eventually fill up,
+
+74
+00:04:09,590 --> 00:04:13,060
+and the database will no longer be able to perform updates.
+
+75
+00:04:13,060 --> 00:04:17,330
+You can check the health of your availability groups using SQL Server
+
+76
+00:04:17,330 --> 00:04:22,230
+Management Studio or by using a set of dynamic management views that
+
+77
+00:04:22,230 --> 00:04:24,340
+I'll show you in the next couple slides.
+
+78
+00:04:24,340 --> 00:04:28,340
+These can help you determine if your availability group connections are healthy,
+
+79
+00:04:28,340 --> 00:04:31,960
+or if you need to perform some sort of additional type
+
+80
+00:04:31,960 --> 00:04:34,540
+of network or system troubleshooting.
+
+81
+00:04:34,540 --> 00:04:37,840
+SQL Server provides a number of dynamic management views,
+
+82
+00:04:37,840 --> 00:04:38,850
+or DMVs,
+
+83
+00:04:38,850 --> 00:04:42,620
+that return all sorts of server state information that can be
+
+84
+00:04:42,620 --> 00:04:45,380
+used to monitor the health of a server instance,
+
+85
+00:04:45,380 --> 00:04:48,400
+diagnose problems, and tune performance.
+
+86
+00:04:48,400 --> 00:04:49,960
+Like you would expect,
+
+87
+00:04:49,960 --> 00:04:53,210
+SQL Server provides a number of DMVs that can be used to
+
+88
+00:04:53,210 --> 00:04:56,700
+troubleshoot and get information about availability groups.
+
+89
+00:04:56,700 --> 00:05:00,360
+To access these DMVs, you need to query them.
+
+90
+00:05:00,360 --> 00:05:03,640
+You can see how to use two of them in this slide.
+
+91
+00:05:03,640 --> 00:05:06,160
+The first one, the sys.availability_groups,
+
+92
+00:05:06,160 --> 00:05:09,930
+can be used to list the different availability groups that are on a system.
+
+93
+00:05:09,930 --> 00:05:10,710
+Remember,
+
+94
+00:05:10,710 --> 00:05:15,510
+SQL Server supports multiple availability groups on a system at the same time.
+
+95
+00:05:15,510 --> 00:05:18,410
+The second query here shows how we can use the
+
+96
+00:05:18,410 --> 00:05:23,540
+sys.dm_hadr_availability_group_states DMV to get
+
+97
+00:05:23,540 --> 00:05:26,540
+information about the health of a primary replica.
+
+98
+00:05:26,540 --> 00:05:27,290
+Next,
+
+99
+00:05:27,290 --> 00:05:30,300
+there are also DMVs that you can use to get information
+
+100
+00:05:30,300 --> 00:05:35,380
+about the availability group replicas, the primary and the secondaries.
+
+101
+00:05:35,380 --> 00:05:36,030
+Here,
+
+102
+00:05:36,030 --> 00:05:41,790
+the sys.dm_hadr_availability_replica_states DMV shows how you can
+
+103
+00:05:41,790 --> 00:05:44,140
+get information about the connection status,
+
+104
+00:05:44,140 --> 00:05:48,240
+and the health of all the different replicas in an availability group.
+
+105
+00:05:48,240 --> 00:05:49,080
+Then,
+
+106
+00:05:49,080 --> 00:05:51,420
+the next query shows how you can use the
+
+107
+00:05:51,420 --> 00:05:55,750
+sys.availability_replicas DMV to get the configuration
+
+108
+00:05:55,750 --> 00:05:59,740
+information for the different replicas in an availability group.
+
+109
+00:05:59,740 --> 00:06:00,790
+Finally,
+
+110
+00:06:00,790 --> 00:06:04,400
+there is also a DMV that can give you information about the status of the
+
+111
+00:06:04,400 --> 00:06:07,730
+databases that are included in that availability group.
+
+112
+00:06:07,730 --> 00:06:14,400
+The sys.dm_hadr_database_replica_states DMV provides information about
+
+113
+00:06:14,400 --> 00:06:17,450
+the databases that are part of an availability group.
+
+114
+00:06:17,450 --> 00:06:18,340
+Here,
+
+115
+00:06:18,340 --> 00:06:22,580
+you can see a query that retrieves the availability groups status information.
+
+116
+00:06:22,580 --> 00:06:27,900
+It joins to the sys.databases and the sys.availability_replicas tables to get
+
+117
+00:06:27,900 --> 00:06:31,840
+human‑readable information for the database and replica names.
+
+118
+00:06:31,840 --> 00:06:34,770
+The rest of the query returns information about the
+
+119
+00:06:34,770 --> 00:06:39,080
+database in the availability group, including the synchronization_state,
+
+120
+00:06:39,080 --> 00:06:44,140
+the synchronization_health, as well as the last hardened log sequence number.
+
+121
+00:06:44,140 --> 00:06:48,600
+Essentially, that's basically the last transaction log that was written to disk.
+
+122
+00:06:48,600 --> 00:06:53,020
+It also shows you the redo log size, and log send size.
+
+123
+00:06:53,020 --> 00:06:54,600
+If those values are high,
+
+124
+00:06:54,600 --> 00:07:01,000
+it could definitely indicate a connection problem between your replicas. Okay, let's see these in action.
+

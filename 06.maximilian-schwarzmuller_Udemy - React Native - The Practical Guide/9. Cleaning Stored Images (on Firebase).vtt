@@ -1,0 +1,337 @@
+WEBVTT
+
+00:02.370 --> 00:07.740
+Almost done with this module. Now I want to show you one thing you can improve which is not directly
+
+00:07.740 --> 00:12.120
+related to react native but something I want to draw your attention to.
+
+00:12.120 --> 00:15.590
+If we remove all these places we got here,
+
+00:15.600 --> 00:19.540
+so I go through the list and I simply get rid of all of them,
+
+00:19.770 --> 00:22.400
+then this does of course work just fine,
+
+00:22.410 --> 00:22.680
+right
+
+00:22.680 --> 00:24.300
+we can easily do this,
+
+00:24.300 --> 00:26.320
+we get no problem with that,
+
+00:26.340 --> 00:32.120
+all these places can be removed without any issues, that's fine
+
+00:32.210 --> 00:42.750
+and no we got no more places. But if we now visit firebase and we reload this storage page and we go into
+
+00:42.750 --> 00:47.940
+the places folder which is where we store everything, we see we got all these files still because we
+
+00:47.940 --> 00:57.350
+have no code to delete files. In our places action creator where we remove places, we just sent a delete
+
+00:57.360 --> 01:03.680
+request to our firebase database, which is why the database of course is clean,
+
+01:03.810 --> 01:10.220
+there we actually have no content in it but the storage as I just showed you isn't.
+
+01:10.230 --> 01:15.840
+Now obviously we can manually now select all images and delete them but that's not a solution for a real
+
+01:15.840 --> 01:16.160
+app,
+
+01:16.170 --> 01:18.760
+you don't know which files you can delete,
+
+01:18.810 --> 01:26.340
+so the idea would be to instead add the path to the file, to the data you store in your database, so that
+
+01:26.340 --> 01:33.930
+you can use that information when everything is deleted to also delete that file.
+
+01:33.930 --> 01:40.190
+Now one thing that will help you with that are firebase real time database triggers.
+
+01:40.200 --> 01:46.020
+Now this is simply something using firebase cloud functions which we already did to create our own API
+
+01:46.020 --> 01:47.150
+endpoint,
+
+01:47.220 --> 01:52.580
+we use the http trigger for that, you can also find more documentation on that here, I'm in the firebase
+
+01:52.630 --> 01:57.840
+docs but real time triggers are triggered whenever something changes in the database.
+
+01:57.890 --> 02:05.540
+There you can essentially just set up a function with the database as a trigger, specify to which parts
+
+02:05.540 --> 02:07.400
+in database you want to listen,
+
+02:07.510 --> 02:09.820
+you see you can have dynamic variables in there too
+
+02:09.990 --> 02:15.890
+and then you got a couple of hooks, to be precise you got on write, create, update and delete, delete
+
+02:16.020 --> 02:17.560
+would be interesting for us,
+
+02:17.580 --> 02:23.600
+you could fire a function whenever something is deleted, get access to the data which was deleted,
+
+02:23.700 --> 02:31.200
+get that image path you stored and then use that information to actually delete everything or delete
+
+02:31.200 --> 02:32.840
+the file in your bucket,
+
+02:32.910 --> 02:35.050
+so let's do that now.
+
+02:35.160 --> 02:42.330
+Now to get there, you need to have a connection between the uploaded file and the database entry,
+
+02:42.360 --> 02:48.960
+we do have this connection, it's that download url which we already get back from our cloud function
+
+02:48.960 --> 02:49.640
+here,
+
+02:49.840 --> 02:51.120
+there we get back
+
+02:51.140 --> 02:56.280
+this image url which we then store in the database.
+
+02:56.310 --> 03:05.220
+Now we would need something like an image ID or an image name to really have the full name of the image
+
+03:05.280 --> 03:10.630
+so that we can later use that name to delete it when we delete this place.
+
+03:12.330 --> 03:20.910
+For that, we could go to our firebase function here and we return this image url here,
+
+03:21.040 --> 03:25.800
+now of course we could return the image name here too
+
+03:26.080 --> 03:31.060
+and for that, we just need to get the name but the name just is uuid
+
+03:31.270 --> 03:33.320
+and then the extension is jpg,
+
+03:33.640 --> 03:40.630
+you could even get the full path, so we could just copy that and return an image path property here,
+
+03:40.660 --> 03:41.400
+like this,
+
+03:41.410 --> 03:43.190
+it's a string,
+
+03:43.220 --> 03:47.330
+now we can run firebase deploy to ship this new version.
+
+03:47.330 --> 03:52.860
+And now we get back the path of the image, we can now of course also store that path,
+
+03:52.910 --> 04:00.540
+so in the places file here where we have the image url and that is the url to view it
+
+04:00.630 --> 04:03.240
+not the url in our bucket,
+
+04:03.240 --> 04:08.780
+we could also store the image path here and get it from the parsed response
+
+04:08.790 --> 04:10.100
+image path,
+
+04:10.350 --> 04:15.090
+so this property we just added to our return value here.
+
+04:15.330 --> 04:18.880
+Now we would also store that path in the database
+
+04:18.930 --> 04:25.290
+and this of course allows us to make sure that when we delete it, that we also try to delete it on our
+
+04:25.290 --> 04:27.050
+storage.
+
+04:27.060 --> 04:34.680
+Now to achieve this, the best way when using firebase and that is very specific of course would be to
+
+04:34.680 --> 04:40.220
+create another cloud function which uses a real time database trigger,
+
+04:40.320 --> 04:42.390
+so let's write this function now.
+
+04:42.390 --> 04:47.370
+I'll add it in the index.js file, you could put it in a separate file which you then need to import here
+
+04:47.430 --> 04:52.470
+and in the end hook up with this export something syntax in the index.js file because that's the
+
+04:52.470 --> 04:54.220
+only file firebase will look at
+
+04:54.300 --> 04:56.060
+but I'll add it in this same file.
+
+04:56.250 --> 05:02.730
+So here I'll export my other file which I'll name delete image, my other function I mean, use the functions
+
+05:02.730 --> 05:08.610
+keyword and then not https but database to tell firebase that I want to use a database related
+
+05:08.640 --> 05:15.780
+hook or event. Then we need to use ref to specify the path of the function we want to listen for events
+
+05:16.170 --> 05:23.130
+and I want to listen for events in places and there I'll add a variable, a dynamic segment with curly
+
+05:23.130 --> 05:30.510
+braces where I get the place ID then because remember our places data has all these cryptic automatically
+
+05:30.510 --> 05:32.580
+generated IDs.
+
+05:32.580 --> 05:39.150
+Now whenever something is deleted in that path I want to get notified, so I'll execute on delete here
+
+05:39.450 --> 05:45.090
+and on delete takes a function which receives the event as an argument and then allows us to do something
+
+05:45.150 --> 05:46.130
+on that event.
+
+05:47.120 --> 05:54.650
+Here first of all, I want to get my place data, I can get that from the event object, there
+
+05:54.650 --> 06:00.390
+there is a data property, that would refer to the data after the event occurred though.
+
+06:00.500 --> 06:01.880
+Now after the delete event,
+
+06:01.880 --> 06:03.520
+nothing will be left.
+
+06:03.650 --> 06:10.460
+Thankfully there also is a previous property on the data object which gives us access to the previous
+
+06:10.520 --> 06:17.690
+data snapshot and we can use that snapshot with the val method to get that data, that simply required,
+
+06:17.810 --> 06:24.530
+the val method is simply required to get the javascript object underlying this data.
+
+06:24.530 --> 06:30.550
+Then we can get the image path by accessing place data image path
+
+06:30.830 --> 06:33.480
+and then we can again use the cloud storage,
+
+06:33.530 --> 06:37.920
+we're setting up cloud storage outside of the function so I can use it here too.
+
+06:38.150 --> 06:45.180
+I can create a new bucket here and basically use the same code I used in the other cloud function,
+
+06:45.230 --> 06:51.110
+this line here where I create a bucket with my bucket url, I'm going to copy that and then close
+
+06:51.110 --> 06:52.960
+this function again to have more room,
+
+06:53.150 --> 06:59.590
+so I'm initializing a bucket here and now I want to use that bucket to delete a file. For that I can
+
+06:59.590 --> 07:04.370
+call bucket, then file and I pass the path to the file,
+
+07:04.370 --> 07:06.520
+so image path in this case
+
+07:06.680 --> 07:14.030
+and then simply delete and this returns a promise. We can of course chain then and catch to react
+
+07:14.060 --> 07:15.230
+to errors,
+
+07:15.230 --> 07:16.670
+I'll keep it simple here,
+
+07:16.670 --> 07:22.360
+one thing you need to do though is you need to return that bucket here or this promise to be precise
+
+07:22.820 --> 07:30.170
+because cloud functions that do something asynchronous need to return a promise so that the function
+
+07:30.170 --> 07:31.700
+knows when it's done
+
+07:31.700 --> 07:35.650
+otherwise it might shut down too early and cancel your operation.
+
+07:36.080 --> 07:43.690
+Thereafter you can rerun firebase deploy to deploy the updated version or deploy this new function essentially
+
+07:43.690 --> 07:49.760
+and once this is done, we can try it out and we can try creating a new place here and hopefully then
+
+07:49.760 --> 07:52.990
+deleting the image if we delete the place.
+
+07:53.220 --> 07:57.260
+Deployment finished so now I can pick an image,
+
+07:57.260 --> 08:02.140
+maybe these plants, locate myself and test this and share the place
+
+08:02.270 --> 08:08.860
+and now it's getting interesting once this was done so once this was uploaded and we can go to find place
+
+08:08.870 --> 08:10.950
+or we're going there automatically.
+
+08:10.970 --> 08:20.020
+Now if I delete this, the hope is that when I go to storage again, that this image also is deleted and
+
+08:20.020 --> 08:20.900
+that looks good,
+
+08:20.950 --> 08:23.650
+I got no files here in storage, no folder,
+
+08:23.680 --> 08:25.560
+all the files were deleted.
+
+08:25.930 --> 08:33.390
+So this now ensures that we indeed do delete a file whenever we delete the data belonging to it.
+
+08:33.490 --> 08:34.840
+So a tiny addition,
+
+08:34.840 --> 08:40.690
+of course if you're not using firebase, you will probably have your own API endpoint where you send the
+
+08:40.690 --> 08:42.810
+please delete my data request
+
+08:42.810 --> 08:47.580
+anyways and that would then be the place where you want to trigger a job to delete the file.

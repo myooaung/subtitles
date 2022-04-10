@@ -1,0 +1,289 @@
+WEBVTT
+1
+00:00:02.617 --> 00:00:04.716
+The single responsibility principle states there should be
+
+2
+00:00:04.716 --> 00:00:07.116
+only one reason for a class to change.
+
+3
+00:00:07.116 --> 00:00:08.991
+To make sense of this definition,
+
+4
+00:00:08.991 --> 00:00:13.213
+let's look at when the single responsibility is not followed.
+
+5
+00:00:13.213 --> 00:00:16.410
+Here we have the broadly named MainService class.
+
+6
+00:00:16.410 --> 00:00:18.616
+One service to rule them all.
+
+7
+00:00:18.616 --> 00:00:22.465
+The methods within MainService fittingly cover many different domains,
+
+8
+00:00:22.465 --> 00:00:25.319
+from Order, to Customer, to Account.
+
+9
+00:00:25.319 --> 00:00:25.980
+Looking at MainService,
+
+10
+00:00:25.980 --> 00:00:29.092
+it's easy to see how it would have many reasons to change,
+
+11
+00:00:29.092 --> 00:00:32.101
+as whenever changes are requested to either Order,
+
+12
+00:00:32.101 --> 00:00:36.499
+Customer, or Account, MainService will likely be impacted in some way.
+
+13
+00:00:36.499 --> 00:00:38.520
+The large surface area of this class will make it time
+
+14
+00:00:38.520 --> 00:00:39.947
+consuming to fully cover in tests,
+
+15
+00:00:39.947 --> 00:00:42.899
+and its vulnerability to change would mean the tests on this
+
+16
+00:00:42.899 --> 00:00:45.116
+class would likely have a high maintenance cost.
+
+17
+00:00:45.116 --> 00:00:48.057
+While this alone is a significant impediment to writing tests,
+
+18
+00:00:48.057 --> 00:00:49.607
+the single responsibility principle has
+
+19
+00:00:49.607 --> 00:00:51.955
+implications at the method level as well.
+
+20
+00:00:51.955 --> 00:00:56.387
+Let's explore this by taking a closer look at the createOrder method.
+
+21
+00:00:56.387 --> 00:00:58.596
+By line count, this method doesn't seem so bad,
+
+22
+00:00:58.596 --> 00:01:00.222
+but with even some cursory analysis,
+
+23
+00:01:00.222 --> 00:01:03.763
+we see this method is taking on quite a few responsibilities.
+
+24
+00:01:03.763 --> 00:01:06.554
+First we have the call to validateItems.
+
+25
+00:01:06.554 --> 00:01:08.815
+Several checks are probably happening here to ensure that
+
+26
+00:01:08.815 --> 00:01:11.925
+items being added to the order are valid.
+
+27
+00:01:11.925 --> 00:01:16.558
+Checks, such as null, empty list, or are the items in stock,
+
+28
+00:01:16.558 --> 00:01:18.583
+and possibly other checks as well.
+
+29
+00:01:18.583 --> 00:01:20.856
+If we wanted to test a customer lookup in createOrder,
+
+30
+00:01:20.856 --> 00:01:25.164
+we must first satisfy all the requirements of validateItems.
+
+31
+00:01:25.164 --> 00:01:26.887
+The customer lookup is problematic as well,
+
+32
+00:01:26.887 --> 00:01:29.595
+as we are directly creating a new instance of RestTemplate.
+
+33
+00:01:29.595 --> 00:01:33.165
+This in effect means a test now depends upon an external service.
+
+34
+00:01:33.165 --> 00:01:34.702
+So to test this code,
+
+35
+00:01:34.702 --> 00:01:39.576
+we must find a valid customer example for each test case we would want to write.
+
+36
+00:01:39.576 --> 00:01:43.435
+Additionally, failure test cases, such as what if the service is not available,
+
+37
+00:01:43.435 --> 00:01:48.241
+or returns an error or difficult or impossible to reliably reproduce.
+
+38
+00:01:48.241 --> 00:01:50.968
+This same problem is replicated with the payment call and with the
+
+39
+00:01:50.968 --> 00:01:52.918
+added burden that to test this part of createOrder,
+
+40
+00:01:52.918 --> 00:01:56.413
+we must have a valid item list and a valid customer.
+
+41
+00:01:56.413 --> 00:01:59.741
+Finally, we are directly making an insert into the database.
+
+42
+00:01:59.741 --> 00:02:03.401
+Now testing createOrder will have at least three external dependencies,
+
+43
+00:02:03.401 --> 00:02:08.600
+and possibly more as validateItems is likely making an external call as well.
+
+44
+00:02:08.600 --> 00:02:11.338
+The net effect of this is testing createOrder will be difficult.
+
+45
+00:02:11.338 --> 00:02:12.806
+As you need to find test data,
+
+46
+00:02:12.806 --> 00:02:16.152
+the test will be prone to breaking as test data becomes stale
+
+47
+00:02:16.152 --> 00:02:18.869
+or external sources become unavailable, and finally,
+
+48
+00:02:18.869 --> 00:02:22.658
+tests will be quite slow from having to make numerous external calls.
+
+49
+00:02:22.658 --> 00:02:25.039
+Let's look at one possible solution.
+
+50
+00:02:25.039 --> 00:02:26.626
+As can been seen,
+
+51
+00:02:26.626 --> 00:02:29.714
+createOrder is doing a lot less now and relying upon
+
+52
+00:02:29.714 --> 00:02:31.574
+external classes to do much of the work.
+
+53
+00:02:31.574 --> 00:02:32.817
+With how the code is structured,
+
+54
+00:02:32.817 --> 00:02:35.072
+it would be a simple task to mock out these calls.
+
+55
+00:02:35.072 --> 00:02:37.450
+So there would be no need to find valid test data,
+
+56
+00:02:37.450 --> 00:02:41.410
+and we have full control over how those calls to services and DAOs behave.
+
+57
+00:02:41.410 --> 00:02:46.399
+Also, tests are running lighting fast, as no network calls are being made.
+
+58
+00:02:46.399 --> 00:02:49.740
+The interface segregation principle is fairly similar to
+
+59
+00:02:49.740 --> 00:02:51.410
+the single responsibility principle.
+
+60
+00:02:51.410 --> 00:02:51.976
+It states,
+
+61
+00:02:51.976 --> 00:02:55.241
+better to have many client-specific interfaces than a general purpose interface.
+
+62
+00:02:55.241 --> 00:02:59.147
+While the scope of this principle is more broad than to the
+
+63
+00:02:59.147 --> 00:03:00.697
+specific interface construct in Java,
+
+64
+00:03:00.697 --> 00:03:04.595
+we will just look at its implication at this level as
+
+65
+00:03:04.595 --> 00:03:06.821
+it's most relevant to this course.
+
+66
+00:03:06.821 --> 00:03:08.294
+Here we have our MainDao interface,
+
+67
+00:03:08.294 --> 00:03:11.787
+and we see it's providing methods to handle all of our database I/O needs.
+
+68
+00:03:11.787 --> 00:03:14.680
+The problem is, if we want to mock out this class,
+
+69
+00:03:14.680 --> 00:03:16.648
+we need to implement all these methods,
+
+70
+00:03:16.648 --> 00:03:19.123
+which can be time consuming and discourages creating
+
+71
+00:03:19.123 --> 00:03:21.034
+multiple mocks to handle different scenarios.
+
+72
+00:03:21.034 --> 00:03:29.000
+By splitting up this interface into many different interfaces, mocking out each interface is easier, as there are fewer methods to implement.
+

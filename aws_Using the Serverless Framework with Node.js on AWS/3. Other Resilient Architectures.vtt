@@ -1,0 +1,537 @@
+WEBVTT
+1
+00:00:03.026 --> 00:00:06.958
+Now let's take a look at specific examples of
+
+2
+00:00:06.958 --> 00:00:08.269
+resilient multi-platform architectures.
+
+3
+00:00:08.269 --> 00:00:10.511
+We'll start by looking at an example from Auth0,
+
+4
+00:00:10.511 --> 00:00:14.206
+in which they use multiple infrastructure providers to maintain
+
+5
+00:00:14.206 --> 00:00:16.418
+high availability services for their products.
+
+6
+00:00:16.418 --> 00:00:20.343
+Then we'll look at how we can use AWS availability zones and
+
+7
+00:00:20.343 --> 00:00:24.010
+regions to gain some redundancy just within AWS.
+
+8
+00:00:24.010 --> 00:00:24.518
+And finally,
+
+9
+00:00:24.518 --> 00:00:28.201
+we'll look more in depth about how you can use DNS failover to
+
+10
+00:00:28.201 --> 00:00:30.878
+instrument resilient and fault tolerant services.
+
+11
+00:00:30.878 --> 00:00:32.298
+In a talk at ScaleConf,
+
+12
+00:00:32.298 --> 00:00:34.793
+the Auth0 Director of Engineering said that to
+
+13
+00:00:34.793 --> 00:00:38.781
+improve redundancy and availability, we run Amazon on the West coast,
+
+14
+00:00:38.781 --> 00:00:41.155
+we run Azure on the East coast, and if one fails,
+
+15
+00:00:41.155 --> 00:00:42.992
+we just move over to the other one.
+
+16
+00:00:42.992 --> 00:00:44.369
+We have Amazon as our primary.
+
+17
+00:00:44.369 --> 00:00:45.081
+In practice,
+
+18
+00:00:45.081 --> 00:00:47.928
+this means that Auth0 creates a fully redundant
+
+19
+00:00:47.928 --> 00:00:49.998
+application in both AWS and Azure.
+
+20
+00:00:49.998 --> 00:00:52.843
+They also mentioned that they keep a redundant data
+
+21
+00:00:52.843 --> 00:00:54.523
+store within the Google Cloud Platform.
+
+22
+00:00:54.523 --> 00:00:57.977
+They also keep DNS setup that points to the primary in most times,
+
+23
+00:00:57.977 --> 00:01:01.938
+but in the cases of failures, they keep a very low time to live on this DNS,
+
+24
+00:01:01.938 --> 00:01:05.234
+so that services don't continue to reference a failed service,
+
+25
+00:01:05.234 --> 00:01:08.152
+and it fails over to the other provider in case of issues.
+
+26
+00:01:08.152 --> 00:01:11.931
+This allows them to consistently deliver their services across the globe,
+
+27
+00:01:11.931 --> 00:01:14.739
+even in the face of issues with infrastructure providers.
+
+28
+00:01:14.739 --> 00:01:18.942
+But what if our organization is glued to AWS and doesn't want to move at all?
+
+29
+00:01:18.942 --> 00:01:21.524
+Well, there are still some things we can do to prepare for the worst.
+
+30
+00:01:21.524 --> 00:01:23.739
+AWS has the concept of regions.
+
+31
+00:01:23.739 --> 00:01:27.061
+In each of these regions are several availability zones.
+
+32
+00:01:27.061 --> 00:01:31.189
+An example region is us-east-1, which contains several availability zones,
+
+33
+00:01:31.189 --> 00:01:33.517
+including us-east-1a, b, and c.
+
+34
+00:01:33.517 --> 00:01:37.705
+Regions are geographically separated areas that are usually chosen by
+
+35
+00:01:37.705 --> 00:01:40.644
+developers for proximity to clients that you're serving.
+
+36
+00:01:40.644 --> 00:01:44.125
+A us-east-1 region would be faster for users in Philadelphia,
+
+37
+00:01:44.125 --> 00:01:46.210
+than, say, folks in central Europe.
+
+38
+00:01:46.210 --> 00:01:49.904
+These regions span the globe, and can be found in places like the United States,
+
+39
+00:01:49.904 --> 00:01:50.913
+Ireland, and Tokyo.
+
+40
+00:01:50.913 --> 00:01:55.665
+Within each of these regions, you'll also find availability zones, or AZs.
+
+41
+00:01:55.665 --> 00:01:59.092
+These AZs are geographically separated within a region in
+
+42
+00:01:59.092 --> 00:02:01.796
+order to attempt to avoid issues like floods,
+
+43
+00:02:01.796 --> 00:02:03.416
+fires, or other natural disasters.
+
+44
+00:02:03.416 --> 00:02:06.827
+There's a few key ways we can take advantage of this in our applications.
+
+45
+00:02:06.827 --> 00:02:09.633
+The first is multi availability zone redundancy.
+
+46
+00:02:09.633 --> 00:02:13.432
+An example of this would be if we were using AWS Elastic Compute Cloud,
+
+47
+00:02:13.432 --> 00:02:17.803
+and spun up one EC2 instance explicitly within availability zone A
+
+48
+00:02:17.803 --> 00:02:20.451
+and another instance in availability zone B.
+
+49
+00:02:20.451 --> 00:02:24.337
+Fortunately for us, there are also some services like AWS S3,
+
+50
+00:02:24.337 --> 00:02:27.606
+which are automatically redundant in these availability zones by default.
+
+51
+00:02:27.606 --> 00:02:30.055
+There's also the option to replicate our
+
+52
+00:02:30.055 --> 00:02:31.805
+applications or across regions entirely.
+
+53
+00:02:31.805 --> 00:02:33.740
+Now this is not done automatically by AWS,
+
+54
+00:02:33.740 --> 00:02:37.098
+and we would need to explicitly replicate all our data,
+
+55
+00:02:37.098 --> 00:02:39.676
+files, and services between these regions.
+
+56
+00:02:39.676 --> 00:02:42.868
+Having this sort of redundancy would actually have made an application
+
+57
+00:02:42.868 --> 00:02:45.831
+withstand the earlier mentioned issue on AWS S3,
+
+58
+00:02:45.831 --> 00:02:48.626
+as that was specific to the us-east-1 region.
+
+59
+00:02:48.626 --> 00:02:49.282
+And finally,
+
+60
+00:02:49.282 --> 00:02:52.702
+you could take both of these approaches and be redundant
+
+61
+00:02:52.702 --> 00:02:54.878
+both within availability zones and regions.
+
+62
+00:02:54.878 --> 00:02:58.134
+So now let's change gears here and see how we can use DNS
+
+63
+00:02:58.134 --> 00:02:59.483
+failovers to improve our applications.
+
+64
+00:02:59.483 --> 00:03:03.429
+Let's imagine we have a user making a connection into an application.
+
+65
+00:03:03.429 --> 00:03:05.764
+That connection uses domain name servers,
+
+66
+00:03:05.764 --> 00:03:08.310
+or DNS, to send the traffic where it needs to go.
+
+67
+00:03:08.310 --> 00:03:12.129
+Let's imagine that in the first case the traffic is reviewed and routed
+
+68
+00:03:12.129 --> 00:03:14.339
+and eventually sent over to a service running on Azure.
+
+69
+00:03:14.339 --> 00:03:16.615
+Let's also pretend that there's a service configuration
+
+70
+00:03:16.615 --> 00:03:18.629
+error on the application deployed to Azure,
+
+71
+00:03:18.629 --> 00:03:21.989
+and it starts sending back server errors or isn't even connecting at all.
+
+72
+00:03:21.989 --> 00:03:24.396
+Now every time we make a request of the service,
+
+73
+00:03:24.396 --> 00:03:27.641
+our HTTP client will look to see if the time to live
+
+74
+00:03:27.641 --> 00:03:30.075
+value DNS has been given has expired.
+
+75
+00:03:30.075 --> 00:03:31.735
+This TTL, or time to live,
+
+76
+00:03:31.735 --> 00:03:35.299
+is the amount of time which we wait before asking DNS again to
+
+77
+00:03:35.299 --> 00:03:37.983
+show us where to go in case it has changed.
+
+78
+00:03:37.983 --> 00:03:38.807
+In these cases,
+
+79
+00:03:38.807 --> 00:03:42.539
+the TTL must be very low to make sure that users don't keep getting
+
+80
+00:03:42.539 --> 00:03:44.497
+the same address for a service that isn't working.
+
+81
+00:03:44.497 --> 00:03:46.353
+In the case where the service is failing,
+
+82
+00:03:46.353 --> 00:03:49.465
+we can monitor the health metrics like 500 errors and automatically
+
+83
+00:03:49.465 --> 00:03:52.775
+change the DNS setting to start sending traffic a different direction
+
+84
+00:03:52.775 --> 00:03:55.266
+if we see too many errors on the provider.
+
+85
+00:03:55.266 --> 00:03:58.497
+After these changes are made, we might have a second connection attempt,
+
+86
+00:03:58.497 --> 00:04:02.209
+which again goes to DNS, and then reviews the new settings for routing,
+
+87
+00:04:02.209 --> 00:04:06.078
+and is directed to a duplicate of the initial service on AWS.
+
+88
+00:04:06.078 --> 00:04:06.904
+In this way,
+
+89
+00:04:06.904 --> 00:04:10.226
+we're keeping a redundant service around for emergencies that can be
+
+90
+00:04:10.226 --> 00:04:12.900
+swapped to automatically in the case of failures.
+
+91
+00:04:12.900 --> 00:04:16.801
+Now it's impossible to reliably give you all the specific best practices for
+
+92
+00:04:16.801 --> 00:04:19.052
+your current organization and infrastructure provider,
+
+93
+00:04:19.052 --> 00:04:21.767
+so I'll leave you with a few practices to keep in mind
+
+94
+00:04:21.767 --> 00:04:23.594
+when making decisions going forward.
+
+95
+00:04:23.594 --> 00:04:25.427
+First, assess your risks.
+
+96
+00:04:25.427 --> 00:04:27.294
+Determine what needs your organization has.
+
+97
+00:04:27.294 --> 00:04:30.178
+Maybe you don't actually need to plan for the edge
+
+98
+00:04:30.178 --> 00:04:31.544
+cases for when providers fail.
+
+99
+00:04:31.544 --> 00:04:31.815
+Alternatively,
+
+100
+00:04:31.815 --> 00:04:34.596
+maybe you work in an incredibly sensitive industry or organization,
+
+101
+00:04:34.596 --> 00:04:38.057
+and you need to be aware of everything and take
+
+102
+00:04:38.057 --> 00:04:40.850
+precautions for cases exactly like this.
+
+103
+00:04:40.850 --> 00:04:42.712
+Next, make some backups.
+
+104
+00:04:42.712 --> 00:04:44.341
+While it's fair to say assess your risks and only
+
+105
+00:04:44.341 --> 00:04:48.317
+focus on the things that matter, modern cloud storage is incredibly cheap,
+
+106
+00:04:48.317 --> 00:04:50.954
+and it's likely that there's something you should
+
+107
+00:04:50.954 --> 00:04:52.345
+really be backing up somewhere.
+
+108
+00:04:52.345 --> 00:04:55.565
+Importantly, you want to make and test your backups to make sure they work.
+
+109
+00:04:55.565 --> 00:04:56.126
+And finally,
+
+110
+00:04:56.126 --> 00:04:58.369
+after doing a review and determining what reasonable
+
+111
+00:04:58.369 --> 00:05:01.039
+risks you can take given the situation,
+
+112
+00:05:01.039 --> 00:05:03.553
+make sure to put in appropriate failsafes.
+
+113
+00:05:03.553 --> 00:05:06.814
+Plan some time with your organization to make and test those changes
+
+114
+00:05:06.814 --> 00:05:09.334
+and be sure that they address what you want them to,
+
+115
+00:05:09.334 --> 00:05:12.510
+or else they're not worth putting in place at all.
+
+116
+00:05:12.510 --> 00:05:12.874
+Congratulations!
+
+117
+00:05:12.874 --> 00:05:15.420
+You've done so much in this course.
+
+118
+00:05:15.420 --> 00:05:18.704
+In this module alone you've learned new serverless concepts
+
+119
+00:05:18.704 --> 00:05:20.030
+related to multi-platform architectures.
+
+120
+00:05:20.030 --> 00:05:23.757
+You've also reviewed some of the examples of other resilient architectures,
+
+121
+00:05:23.757 --> 00:05:25.528
+and learned some best practices,
+
+122
+00:05:25.528 --> 00:05:28.469
+so that you can implement within your future applications.
+
+123
+00:05:28.469 --> 00:05:29.339
+So what next?
+
+124
+00:05:29.339 --> 00:05:32.932
+Well, you're ready to make your own applications with the serverless framework.
+
+125
+00:05:32.932 --> 00:05:36.478
+You'd also start to experiment with the other ways of
+
+126
+00:05:36.478 --> 00:05:37.730
+building serverless applications.
+
+127
+00:05:37.730 --> 00:05:38.636
+To learn more about lambda,
+
+128
+00:05:38.636 --> 00:05:41.848
+you could check out my Introduction to AWS Lambda course here on Pluralsight,
+
+129
+00:05:41.848 --> 00:05:46.088
+or you could start playing around with the serverless framework in other
+
+130
+00:05:46.088 --> 00:05:48.213
+programming languages or with different providers.
+
+131
+00:05:48.213 --> 00:05:51.188
+There's a lot of possibilities here, and I hope you're excited for them.
+
+132
+00:05:51.188 --> 00:05:53.504
+I hope you enjoyed this course on the serverless framework.
+
+133
+00:05:53.504 --> 00:05:54.920
+Please feel free to reach out to me on Twitter,
+
+134
+00:05:54.920 --> 00:06:04.000
+or to ask any questions you might have about the course. Thanks again for watching, and I hope to see you in another course soon.
+

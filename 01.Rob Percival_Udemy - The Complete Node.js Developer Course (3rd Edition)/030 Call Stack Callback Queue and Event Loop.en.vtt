@@ -1,0 +1,1024 @@
+WEBVTT
+1
+00:00:00.420 --> 00:00:06.390
+In the last video you got started with a synchronous no to j s development and even with a simple script
+
+2
+00:00:06.420 --> 00:00:12.000
+like this one we ended up asking a lot of questions and not getting a lot of answers.
+
+3
+00:00:12.000 --> 00:00:18.180
+The goal of this video is to explore the internals of node and V eight to see how asynchronous scripts
+
+4
+00:00:18.240 --> 00:00:24.640
+actually execute that's going to give us answers to questions like why does this two second set time
+
+5
+00:00:24.640 --> 00:00:31.710
+out delay not prevent the rest of the program from running and why does a zero second delay caused this
+
+6
+00:00:31.710 --> 00:00:37.110
+function to run and print zero second timer after stopping prints.
+
+7
+00:00:37.140 --> 00:00:39.780
+Which is exactly what we're seeing down below.
+
+8
+00:00:39.780 --> 00:00:45.430
+So the goal is to explore the internals to get a better understanding of what exactly is happening.
+
+9
+00:00:45.450 --> 00:00:48.230
+I actually recommend watching this video twice.
+
+10
+00:00:48.240 --> 00:00:53.940
+Watch it once right now then watch it once we're done building the weather application and you have
+
+11
+00:00:53.940 --> 00:01:00.120
+a lot more exposure to various forms of asynchronous programming that's going to really reinforce and
+
+12
+00:01:00.130 --> 00:01:04.040
+reinstall exactly what's happening behind the scenes.
+
+13
+00:01:04.050 --> 00:01:09.810
+Now we're gonna start off with a little visualization working through how node would execute a synchronous
+
+14
+00:01:09.810 --> 00:01:10.740
+example.
+
+15
+00:01:10.740 --> 00:01:16.440
+Then we'll explore exactly how node would execute this script line by line.
+
+16
+00:01:16.440 --> 00:01:22.280
+I'm excited to get to that and so let's jump right in right here we have our first of three examples.
+
+17
+00:01:22.290 --> 00:01:27.700
+Now even very simple synchronous example like this one there is still quite a bit going on.
+
+18
+00:01:27.840 --> 00:01:32.070
+So let's take a quick moment to break down what we're seeing here at the top left.
+
+19
+00:01:32.100 --> 00:01:34.650
+We have the node file that's executing.
+
+20
+00:01:34.650 --> 00:01:36.930
+So this is our very simple script.
+
+21
+00:01:36.990 --> 00:01:41.540
+We create a couple of variables and we print a message to the screen down below.
+
+22
+00:01:41.550 --> 00:01:44.220
+We have the terminal output for that script.
+
+23
+00:01:44.250 --> 00:01:49.310
+So as these script prints something that'll show up down here on the right hand side.
+
+24
+00:01:49.320 --> 00:01:54.150
+We have all of the internals that are running behind the scenes in both node and v 8.
+
+25
+00:01:54.180 --> 00:01:55.540
+We have our call stack.
+
+26
+00:01:55.650 --> 00:02:01.590
+We have the node API is our callback queue and our event loop all of which work in tandem to get our
+
+27
+00:02:01.620 --> 00:02:03.780
+asynchronous programs running.
+
+28
+00:02:03.900 --> 00:02:10.020
+Now for a simple synchronous examples like this one the only of these four we need to worry about is
+
+29
+00:02:10.020 --> 00:02:10.990
+the call stack.
+
+30
+00:02:11.010 --> 00:02:13.040
+So let's take a moment to start there.
+
+31
+00:02:13.110 --> 00:02:18.260
+The Call Stack is a simple data structure provided by the V8 JavaScript engine.
+
+32
+00:02:18.300 --> 00:02:24.390
+The job of the call stack is to track the execution of our program and it does that by keeping track
+
+33
+00:02:24.390 --> 00:02:27.510
+of all of the functions that are currently running.
+
+34
+00:02:27.510 --> 00:02:30.580
+Now you've actually seen a call stack before.
+
+35
+00:02:30.630 --> 00:02:36.150
+If you remember in the last section we did bugged an error message that we intentionally created in
+
+36
+00:02:36.150 --> 00:02:38.580
+our program and we saw two things.
+
+37
+00:02:38.610 --> 00:02:44.580
+We saw the actual error message and below that we saw a long list of all of the functions that were
+
+38
+00:02:44.580 --> 00:02:47.340
+running to get to that point in the program.
+
+39
+00:02:47.340 --> 00:02:49.250
+That is a call stack.
+
+40
+00:02:49.680 --> 00:02:53.860
+Now the data structure for the call stack could not be simpler.
+
+41
+00:02:53.880 --> 00:02:58.550
+You can add something onto the top of the list and you can remove the top item.
+
+42
+00:02:58.590 --> 00:02:59.820
+That is it.
+
+43
+00:02:59.820 --> 00:03:01.940
+So think of it like a can of tennis balls.
+
+44
+00:03:01.950 --> 00:03:04.120
+Not that I've ever played tennis.
+
+45
+00:03:04.170 --> 00:03:09.480
+You can add a tennis ball onto the top by dropping it into the can and if you want to remove one you
+
+46
+00:03:09.480 --> 00:03:11.280
+have to remove the top one.
+
+47
+00:03:11.310 --> 00:03:16.950
+I couldn't remove one in the middle without first removing the ones above it and I couldn't add something
+
+48
+00:03:16.950 --> 00:03:20.920
+to the bottom of the list if there were already things inside.
+
+49
+00:03:20.940 --> 00:03:27.120
+So let's go ahead and see how the call stack is going to help us execute our simple program on the left
+
+50
+00:03:27.120 --> 00:03:28.090
+hand side.
+
+51
+00:03:28.110 --> 00:03:31.010
+The first thing that's going to happen is that our script.
+
+52
+00:03:31.080 --> 00:03:37.410
+It's gonna get wrapped in that main function that no J.S. provides in the last section when you debug
+
+53
+00:03:37.410 --> 00:03:40.800
+do your know J.S. applications using Chrome.
+
+54
+00:03:40.800 --> 00:03:47.730
+You saw that you had your application code showing up in the Chrome browser but we also saw that our
+
+55
+00:03:47.730 --> 00:03:52.110
+code was wrapped inside of a function that we did not create.
+
+56
+00:03:52.260 --> 00:03:54.570
+That function was defined by node.
+
+57
+00:03:54.720 --> 00:04:00.420
+And while it's an anonymous function it's often referred to as the main function for the program.
+
+58
+00:04:00.420 --> 00:04:02.490
+So what's the first thing that happens.
+
+59
+00:04:02.520 --> 00:04:08.340
+The main function gets pushed onto the call stack dropping all the way to the bottom since there's nothing
+
+60
+00:04:08.460 --> 00:04:10.020
+else inside.
+
+61
+00:04:10.020 --> 00:04:14.610
+Now when something is added onto the call stack that means it's going to get executed.
+
+62
+00:04:14.640 --> 00:04:17.890
+So we're gonna kick things off up here with line 1.
+
+63
+00:04:18.000 --> 00:04:19.540
+We create a constant.
+
+64
+00:04:19.650 --> 00:04:22.650
+We create a constant X with the value of one.
+
+65
+00:04:22.740 --> 00:04:29.700
+Then we go ahead and create the constant y the value X plus two which would be one plus two which is
+
+66
+00:04:29.700 --> 00:04:37.230
+three and then we move on to log the sum is followed by the sum which in this case would be some is
+
+67
+00:04:37.320 --> 00:04:38.220
+three.
+
+68
+00:04:38.250 --> 00:04:45.030
+Now log is indeed a function and remember whenever we call a function the function gets added onto the
+
+69
+00:04:45.030 --> 00:04:45.900
+call stack.
+
+70
+00:04:45.900 --> 00:04:50.690
+So right here we're going to drop a call to log onto the call stack.
+
+71
+00:04:50.700 --> 00:04:53.560
+So we have main and we have log.
+
+72
+00:04:53.670 --> 00:04:59.370
+Now once log is dropped on that's actually going to run and we are going to see our log show up.
+
+73
+00:04:59.370 --> 00:05:05.180
+So in the so we would get some is three printing and that's exactly what we would see if we ran the
+
+74
+00:05:05.180 --> 00:05:06.210
+program.
+
+75
+00:05:06.230 --> 00:05:13.010
+Now when a function finishes by either running to the end or returning a value it gets removed from
+
+76
+00:05:13.010 --> 00:05:13.840
+the call stack.
+
+77
+00:05:13.850 --> 00:05:16.070
+Since it's no longer executing.
+
+78
+00:05:16.070 --> 00:05:20.110
+So at this point the has done its job it printed something to the console.
+
+79
+00:05:20.210 --> 00:05:24.320
+It's now going to finish by getting removed from the call stack.
+
+80
+00:05:24.320 --> 00:05:29.430
+Here our little blue era would go on to the next line of the program which is actually the end of the
+
+81
+00:05:29.430 --> 00:05:35.930
+script which means our main function is going to finish as well that's going to get popped off the call
+
+82
+00:05:35.930 --> 00:05:39.960
+stack and we are left with an empty call stack at this point.
+
+83
+00:05:39.980 --> 00:05:42.030
+The program is done now.
+
+84
+00:05:42.080 --> 00:05:47.650
+This is just the first basic example to get comfortable with how the call stack is going to work.
+
+85
+00:05:47.660 --> 00:05:54.410
+The next example is still a synchronous example but there's a bit more complexity with multiple function
+
+86
+00:05:54.410 --> 00:05:55.580
+calls.
+
+87
+00:05:55.580 --> 00:06:01.630
+If we take a brief look at the script I can see I define a list locations function it takes in an array.
+
+88
+00:06:01.940 --> 00:06:07.220
+And for each location it loops through it printing it to the console down below I define the locations
+
+89
+00:06:07.220 --> 00:06:13.010
+and I pass them into the function let's see exactly how things would run should we run this script.
+
+90
+00:06:13.010 --> 00:06:19.580
+So once again the first thing that happens is the main function gets pushed on to the call stack that
+
+91
+00:06:19.580 --> 00:06:23.580
+allows the script to start executing right here on line 1.
+
+92
+00:06:23.600 --> 00:06:30.020
+We define it the list locations variable creating the function which is the variables value.
+
+93
+00:06:30.080 --> 00:06:32.780
+Now at this point we are not calling the function.
+
+94
+00:06:32.840 --> 00:06:36.020
+So it's not going to appear on the call stack.
+
+95
+00:06:36.170 --> 00:06:42.020
+The next thing that happens is we move on to line 7 and this is where we define our my locations array
+
+96
+00:06:42.290 --> 00:06:50.030
+adding a couple of locations in from there we move on to line nine and that's where we call list locations
+
+97
+00:06:50.090 --> 00:06:52.550
+with the array of locations.
+
+98
+00:06:52.550 --> 00:06:55.070
+Now this is indeed a function call.
+
+99
+00:06:55.070 --> 00:06:58.930
+So we're going to see list locations added on to the call stack.
+
+100
+00:06:59.000 --> 00:07:00.920
+It's gonna get pushed onto the stack.
+
+101
+00:07:00.920 --> 00:07:07.370
+Now it's the top item and I've just summarized the argument value so it all fits in this nice purple
+
+102
+00:07:07.370 --> 00:07:08.290
+block.
+
+103
+00:07:08.330 --> 00:07:12.410
+So from their list locations is actually going to start running.
+
+104
+00:07:12.410 --> 00:07:16.490
+That's the function that's defined here and ends down below.
+
+105
+00:07:16.490 --> 00:07:23.000
+Now the only thing inside of this function is a call to the for each method where looping over each
+
+106
+00:07:23.060 --> 00:07:24.520
+location provide it.
+
+107
+00:07:24.530 --> 00:07:30.300
+So for each that is indeed a function call it's also going to get added onto the call stack.
+
+108
+00:07:30.350 --> 00:07:36.110
+And I have dot dot dot in place of its true argument which is the function to run this function is going
+
+109
+00:07:36.110 --> 00:07:43.250
+to run one time for each location it gets access to the individual location and it prints it.
+
+110
+00:07:43.280 --> 00:07:48.110
+So that's the next thing that's going to happen in the program for each is going to be responsible for
+
+111
+00:07:48.110 --> 00:07:51.150
+calling this function multiple times.
+
+112
+00:07:51.230 --> 00:07:55.820
+And the first time it gets called it does indeed get added onto the stack.
+
+113
+00:07:55.820 --> 00:07:57.740
+So right here what happens.
+
+114
+00:07:57.740 --> 00:08:04.310
+We see that the anonymous function is called with the argument Philly and then from there we actually
+
+115
+00:08:04.310 --> 00:08:07.470
+call console dialog a another function.
+
+116
+00:08:07.580 --> 00:08:10.550
+So that gets added onto the stack as well.
+
+117
+00:08:10.550 --> 00:08:14.120
+Now console dot log once again is indeed going to print something.
+
+118
+00:08:14.120 --> 00:08:16.360
+So we'll see that appear down below.
+
+119
+00:08:16.370 --> 00:08:19.040
+Now console dot log is going to finish.
+
+120
+00:08:19.040 --> 00:08:24.350
+So that's going to get popped off these stack and once console dialogue is finished our little anonymous
+
+121
+00:08:24.350 --> 00:08:31.040
+function which starts here and ends here that's also going to finish since console dot log was the only
+
+122
+00:08:31.100 --> 00:08:32.930
+statement inside of there.
+
+123
+00:08:32.930 --> 00:08:36.380
+So that goes ahead and gets popped off the stack as well.
+
+124
+00:08:36.380 --> 00:08:40.540
+Now for each doesn't get popped off the stack because it's not quite done yet.
+
+125
+00:08:40.670 --> 00:08:45.630
+It still has to call the anonymous function again to make sure that New York City prints.
+
+126
+00:08:45.710 --> 00:08:51.140
+So we are going to see a new anonymous function added on to the call stack and then from there we're
+
+127
+00:08:51.140 --> 00:08:58.030
+going to see another console dot log call this time printing NYSE that's going to show up down below.
+
+128
+00:08:58.310 --> 00:09:04.910
+And then from there we will indeed pop off the console log call and the anonymous function call.
+
+129
+00:09:05.090 --> 00:09:11.330
+Now at this point for each has gone through that process two times there are only two items in the array.
+
+130
+00:09:11.330 --> 00:09:13.000
+So for each is done.
+
+131
+00:09:13.100 --> 00:09:16.230
+And that's going to get popped off the call stack as well.
+
+132
+00:09:16.370 --> 00:09:22.520
+Now that for each has done list of locations is also done as that's the only thing that list locations
+
+133
+00:09:22.520 --> 00:09:22.910
+does.
+
+134
+00:09:22.910 --> 00:09:27.250
+It just calls for each win for each has done the functions over.
+
+135
+00:09:27.260 --> 00:09:30.230
+So right here that gets popped off the stack.
+
+136
+00:09:30.230 --> 00:09:36.920
+Now that brings us back to where we were before online nine of the main function that is the last line
+
+137
+00:09:36.950 --> 00:09:39.670
+in the program which means that we are all done.
+
+138
+00:09:39.680 --> 00:09:45.020
+The final result we have Philly printing and then below we have NYC printing.
+
+139
+00:09:45.020 --> 00:09:50.600
+So here we were able to get an idea for how the call stack is going to allow us to work through our
+
+140
+00:09:50.600 --> 00:09:55.630
+program keeping track of the individual functions that are actually executing.
+
+141
+00:09:55.700 --> 00:09:59.140
+Now let's go ahead and move on to the third and final example.
+
+142
+00:09:59.150 --> 00:10:05.170
+This is our asynchronous example that we actually wrote out and ran in the last video and we're going
+
+143
+00:10:05.170 --> 00:10:10.830
+to explore how it ran behind the scenes so we can figure out why we were seeing things in the order
+
+144
+00:10:10.840 --> 00:10:11.930
+we were seeing.
+
+145
+00:10:12.490 --> 00:10:18.370
+Now for this one since it is a synchronous we will be using the call stack along with node API is the
+
+146
+00:10:18.370 --> 00:10:23.420
+callback queue and the event loop all working together to get our application running.
+
+147
+00:10:23.530 --> 00:10:29.300
+Now like with our other synchronous examples the first thing that happens is that main gets added onto
+
+148
+00:10:29.320 --> 00:10:33.620
+the V8 call stack that starts the execution of our program.
+
+149
+00:10:33.670 --> 00:10:36.880
+We start on line one with a call to log.
+
+150
+00:10:36.910 --> 00:10:42.010
+We've already seen what happens when we do that log it gets added onto the call stack.
+
+151
+00:10:42.010 --> 00:10:48.210
+Our message shows up over here and then log gets removed as the function completes.
+
+152
+00:10:48.280 --> 00:10:51.790
+Next up as you might have expected we move on to line 3.
+
+153
+00:10:51.790 --> 00:10:55.870
+That is a call to set time out set time out is clearly a function.
+
+154
+00:10:55.870 --> 00:10:59.020
+So something new gets pushed onto the call stack.
+
+155
+00:10:59.020 --> 00:11:03.520
+Now set time out is not a part of the javascript programming language.
+
+156
+00:11:03.580 --> 00:11:09.190
+You're not going to find its definition anywhere in the javascript spec and V8 has no implementation
+
+157
+00:11:09.220 --> 00:11:09.990
+for it.
+
+158
+00:11:10.000 --> 00:11:17.860
+Instead it is node j s which creates an implementation of set time out using C++ and provides it to
+
+159
+00:11:17.860 --> 00:11:24.610
+your know J.S. scripts to use as we saw it is an asynchronous way to weight a specific amount of time
+
+160
+00:11:24.850 --> 00:11:27.110
+and then have a function run.
+
+161
+00:11:27.130 --> 00:11:32.730
+So when we call set time out it's really registering an event with no J.S. API.
+
+162
+00:11:32.950 --> 00:11:39.010
+And that is an event callback pair where the event in this case is simply to wait two seconds and the
+
+163
+00:11:39.010 --> 00:11:44.920
+callback is the function to run another event callback pair might be to wait for a database request
+
+164
+00:11:44.920 --> 00:11:49.290
+to complete then run the callback that does something with the data.
+
+165
+00:11:49.360 --> 00:11:55.870
+So right here when we call set time out a new event gets registered in node API is here we have our
+
+166
+00:11:55.870 --> 00:11:59.080
+set time out callback and we're waiting for two seconds.
+
+167
+00:11:59.080 --> 00:12:04.300
+Now at this point in the process that 2 second clock starts ticking down.
+
+168
+00:12:04.390 --> 00:12:07.590
+Well we're waiting for those two seconds to happen.
+
+169
+00:12:07.630 --> 00:12:15.370
+We can actually do other stuff inside of the call stack so JavaScript itself is a single threaded programming
+
+170
+00:12:15.430 --> 00:12:16.300
+language.
+
+171
+00:12:16.300 --> 00:12:21.760
+You can do one thing at a time and the call stack enforces that we can only have one function on the
+
+172
+00:12:21.760 --> 00:12:25.000
+top of the call stack that is the thing we're doing.
+
+173
+00:12:25.030 --> 00:12:28.970
+There's no way to execute two things at the same time.
+
+174
+00:12:28.990 --> 00:12:35.800
+Now that doesn't mean no JSA is completely single threaded the code you run is indeed still single threaded
+
+175
+00:12:36.040 --> 00:12:41.470
+but node uses other threads in C++ behind the scenes to manage your events.
+
+176
+00:12:41.470 --> 00:12:46.690
+That's what allows us to continue running our application while we're waiting those two seconds.
+
+177
+00:12:46.690 --> 00:12:54.070
+We don't have to completely wait and this is the non blocking nature of note this is not blocking the
+
+178
+00:12:54.070 --> 00:12:55.870
+rest of the app from running.
+
+179
+00:12:56.410 --> 00:13:01.210
+So from here what do we do we move on to a another set time out call.
+
+180
+00:13:01.210 --> 00:13:04.560
+We go on to line 7 we call a set time out again.
+
+181
+00:13:04.630 --> 00:13:11.920
+This is going to register yet another event in the node API EIS area a callback where the event is 0
+
+182
+00:13:11.950 --> 00:13:12.800
+seconds.
+
+183
+00:13:12.940 --> 00:13:19.510
+And at that point we now have to node API is waiting in the background so we can still continue to do
+
+184
+00:13:19.540 --> 00:13:25.330
+other things while both of those are waiting for the event to complete in the first case two seconds
+
+185
+00:13:25.360 --> 00:13:27.550
+in the second case zero.
+
+186
+00:13:27.550 --> 00:13:30.890
+Now where do we go from here while these zero seconds are up.
+
+187
+00:13:30.910 --> 00:13:33.580
+So this callback needs to get executed.
+
+188
+00:13:33.580 --> 00:13:35.740
+Now how exactly does that happen.
+
+189
+00:13:35.740 --> 00:13:40.750
+Well this is where the callback queue and the event loop down below come into play.
+
+190
+00:13:40.780 --> 00:13:43.240
+The job of the callback queue is simple.
+
+191
+00:13:43.240 --> 00:13:48.780
+Its job is to maintain a list of all of the callback functions that are ready to get executed.
+
+192
+00:13:48.790 --> 00:13:55.570
+So when a given event is done in this case when the zero second timer is complete that callback function
+
+193
+00:13:55.660 --> 00:14:01.450
+the function we defined right here that's gonna get added on to the callback Q which is just a standard
+
+194
+00:14:01.450 --> 00:14:06.880
+line you get in at the end of the line and you work your way towards the front the front item is the
+
+195
+00:14:06.880 --> 00:14:09.010
+one that will get executed first.
+
+196
+00:14:09.010 --> 00:14:14.650
+So right here since there are no items in the list the callback gets added right up front.
+
+197
+00:14:14.770 --> 00:14:20.440
+So we have this callback and it's ready to get executed but before it can be executed it needs to be
+
+198
+00:14:20.440 --> 00:14:22.140
+added onto the call stack.
+
+199
+00:14:22.150 --> 00:14:24.820
+That's where functions go to run.
+
+200
+00:14:24.820 --> 00:14:30.160
+Now this is where the event loop comes into play the event loop looks at two things it looks at the
+
+201
+00:14:30.160 --> 00:14:36.160
+call stack and it looks at the callback Q If the call stack is empty it's going to run items from the
+
+202
+00:14:36.190 --> 00:14:36.730
+callback.
+
+203
+00:14:36.730 --> 00:14:42.700
+Q So at this point the event loop says I know you got added to the callback queue but the call stack
+
+204
+00:14:42.760 --> 00:14:45.750
+is not empty so I can't execute you.
+
+205
+00:14:45.850 --> 00:14:48.590
+And this is why our function doesn't run right away.
+
+206
+00:14:48.670 --> 00:14:52.370
+The event loop needs to wait for the call stack to be empty.
+
+207
+00:14:52.390 --> 00:14:59.290
+So at this point Maine actually continues to run the next thing we see is that line eleven of our program
+
+208
+00:14:59.370 --> 00:15:00.530
+is going to run.
+
+209
+00:15:00.630 --> 00:15:02.230
+That is a call to log.
+
+210
+00:15:02.280 --> 00:15:06.170
+So the function gets added onto the call stack our message prints.
+
+211
+00:15:06.210 --> 00:15:07.150
+Down below.
+
+212
+00:15:07.290 --> 00:15:12.650
+The function gets popped off the call stack and at this point the main function is done.
+
+213
+00:15:12.720 --> 00:15:15.450
+So from here main gets removed.
+
+214
+00:15:15.450 --> 00:15:21.780
+Now with our regular synchronous scripts this is when the program actually finished the end of Main
+
+215
+00:15:21.810 --> 00:15:24.520
+signified the end of the application.
+
+216
+00:15:24.630 --> 00:15:31.350
+That is not the case with our asynchronous programs right now the event loop can start to do its job.
+
+217
+00:15:31.410 --> 00:15:35.300
+It can see that the call stack is empty and it can say OK.
+
+218
+00:15:35.310 --> 00:15:37.460
+Do I have anything in the callback q.
+
+219
+00:15:37.680 --> 00:15:43.530
+I do so it takes that item and it moves it up to the call stack so the callback can run.
+
+220
+00:15:44.100 --> 00:15:46.700
+So at this point our callback function is running.
+
+221
+00:15:46.800 --> 00:15:48.640
+That is going to execute the function.
+
+222
+00:15:48.660 --> 00:15:51.600
+Right here there is a single line inside of there.
+
+223
+00:15:51.600 --> 00:15:55.260
+It is a call to luck that gets added onto the call stack.
+
+224
+00:15:55.260 --> 00:16:01.710
+Our message prints printing 0 seconds it gets removed and then the callback function is done.
+
+225
+00:16:01.710 --> 00:16:08.610
+So this is why we were seeing zero seconds after finishing up none of our asynchronous callbacks are
+
+226
+00:16:08.850 --> 00:16:14.010
+ever going to run before the main function is done.
+
+227
+00:16:14.040 --> 00:16:16.740
+So at this point in the program still isn't done.
+
+228
+00:16:16.740 --> 00:16:18.220
+The call stack is empty.
+
+229
+00:16:18.270 --> 00:16:22.230
+The callback Q is empty which means the event loop can't do anything.
+
+230
+00:16:22.230 --> 00:16:25.230
+The program just sits there for two seconds.
+
+231
+00:16:25.230 --> 00:16:28.020
+At that point our other event is done.
+
+232
+00:16:28.140 --> 00:16:34.440
+It's callback gets pushed onto the callback queue the event loop detects that it notices the call stack
+
+233
+00:16:34.470 --> 00:16:36.820
+is empty which means it's ready to run.
+
+234
+00:16:36.930 --> 00:16:41.640
+It takes that callback bringing it up to the call stack and it executes it.
+
+235
+00:16:41.730 --> 00:16:44.010
+So that is defined on line 4.
+
+236
+00:16:44.010 --> 00:16:45.690
+We have our call to log.
+
+237
+00:16:45.780 --> 00:16:47.310
+We get our message to print.
+
+238
+00:16:47.310 --> 00:16:54.570
+Printing 2 seconds that gets removed the callback gets removed and at this point the program is complete
+
+239
+00:16:54.930 --> 00:16:56.250
+the call stack is empty.
+
+240
+00:16:56.250 --> 00:17:01.920
+The callback Q is empty and there are no other events registered with nodes API IDs.
+
+241
+00:17:01.980 --> 00:17:07.080
+This means the process would be complete and over here we have the exact same output we got when we
+
+242
+00:17:07.080 --> 00:17:09.390
+actually ran the application.
+
+243
+00:17:09.390 --> 00:17:16.080
+The only difference is that we now know why we got the messages printing in the order we saw them because
+
+244
+00:17:16.080 --> 00:17:23.130
+node uses other threads behind the scenes for those node API as we could see why node is Nana blocking
+
+245
+00:17:23.340 --> 00:17:25.170
+allowing finishing up to print.
+
+246
+00:17:25.260 --> 00:17:31.110
+Even though we're waiting 2 seconds for our other message to print we also learned why we were seeing
+
+247
+00:17:31.140 --> 00:17:34.370
+finishing up print before 0 seconds.
+
+248
+00:17:34.380 --> 00:17:40.830
+That's because the event loop can't run any of our asynchronous callbacks until the call stack is empty
+
+249
+00:17:41.040 --> 00:17:44.840
+which means that main needs to finish first.
+
+250
+00:17:44.910 --> 00:17:49.850
+If you have any questions about what was covered here just crack open a question in the Q and A.
+
+251
+00:17:49.890 --> 00:17:54.270
+And remember this is not the end of our discussion on asynchronous programming.
+
+252
+00:17:54.270 --> 00:17:55.850
+This is just the beginning.
+
+253
+00:17:55.860 --> 00:17:59.600
+The goal here was to give us a mental model of what's happening now.
+
+254
+00:17:59.730 --> 00:18:05.620
+We're gonna dive into the rest of the section and actually explore how we can get real data from each
+
+255
+00:18:05.620 --> 00:18:09.050
+TTP API as into our application.
+
+256
+00:18:09.060 --> 00:18:13.720
+I'm excited to get to that and so let's go ahead and jump right in to the next video.

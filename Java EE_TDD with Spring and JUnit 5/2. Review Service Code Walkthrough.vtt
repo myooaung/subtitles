@@ -1,0 +1,445 @@
+WEBVTT
+1
+00:00:00.607 --> 00:00:04.724
+Let's take a look at the source code for the review controller.
+
+2
+00:00:04.724 --> 00:00:07.214
+Let's begin our code review by looking at our domain model,
+
+3
+00:00:07.214 --> 00:00:10.637
+namely the Review and ReviewEntry classes.
+
+4
+00:00:10.637 --> 00:00:15.000
+The Review class is a plain old Java object that manages four properties,
+
+5
+00:00:15.000 --> 00:00:17.721
+id is the primary key of the review,
+
+6
+00:00:17.721 --> 00:00:21.528
+productId contains the ID of the product for this review,
+
+7
+00:00:21.528 --> 00:00:25.785
+version is an increasing integer that identifies the version of the review,
+
+8
+00:00:25.785 --> 00:00:28.505
+and entries contains a list of review entries,
+
+9
+00:00:28.505 --> 00:00:32.915
+which are the actual reviews posted by users about this product.
+
+10
+00:00:32.915 --> 00:00:35.443
+The Review class is annotated with the Document annotation,
+
+11
+00:00:35.443 --> 00:00:39.049
+which identifies it as a MongoDB document.
+
+12
+00:00:39.049 --> 00:00:42.500
+This annotation specifies that reviews should be stored in
+
+13
+00:00:42.500 --> 00:00:45.002
+Mongo and in the Reviews collection.
+
+14
+00:00:45.002 --> 00:00:49.204
+The ReviewEntry class stores individual user reviews.
+
+15
+00:00:49.204 --> 00:00:52.403
+It contains the username of the user that posted the review,
+
+16
+00:00:52.403 --> 00:00:57.153
+the date that the review was written, and the textual content of the review.
+
+17
+00:00:57.153 --> 00:01:00.271
+Because review entries are contained by reviews and do not
+
+18
+00:01:00.271 --> 00:01:02.111
+live in their own collection in Mongo,
+
+19
+00:01:02.111 --> 00:01:05.653
+we don't need any other special annotations on this class.
+
+20
+00:01:05.653 --> 00:01:07.769
+Next, let's review the ReviewController.
+
+21
+00:01:07.769 --> 00:01:10.345
+This class is annotated Spring's RestController annotation,
+
+22
+00:01:10.345 --> 00:01:13.551
+so Spring will find it and register it with its
+
+23
+00:01:13.551 --> 00:01:16.232
+application context as a controller.
+
+24
+00:01:16.232 --> 00:01:19.313
+RestController responses will be returned as response
+
+25
+00:01:19.313 --> 00:01:22.677
+entities and automatically serialized into JSON.
+
+26
+00:01:22.677 --> 00:01:24.695
+The constructor accepts a ReviewService,
+
+27
+00:01:24.695 --> 00:01:28.616
+which implements our business logic and saves it to a member variable.
+
+28
+00:01:28.616 --> 00:01:31.645
+The getReview method is annotated with the GetMapping annotation
+
+29
+00:01:31.645 --> 00:01:34.620
+and handles the GET request for /review/id,
+
+30
+00:01:34.620 --> 00:01:38.897
+where the ID is the primary key of a review.
+
+31
+00:01:38.897 --> 00:01:42.794
+It executes the review service's findById method to find the review,
+
+32
+00:01:42.794 --> 00:01:45.485
+and then it builds a ResponseEntity for it,
+
+33
+00:01:45.485 --> 00:01:48.186
+including setting the eTag and location header.
+
+34
+00:01:48.186 --> 00:01:49.955
+If it finds the requested review,
+
+35
+00:01:49.955 --> 00:01:54.085
+it returns the review with an HTTP 200 OK response code; otherwise,
+
+36
+00:01:54.085 --> 00:01:56.668
+it returns a 404 NotFound response.
+
+37
+00:01:56.668 --> 00:02:01.226
+The getReviews method is used for two purposes: If a product ID is
+
+38
+00:02:01.226 --> 00:02:04.181
+specified as a request parameter or query parameter,
+
+39
+00:02:04.181 --> 00:02:06.228
+then it returns the review for that product ID,
+
+40
+00:02:06.228 --> 00:02:08.401
+wrapped in an array list.
+
+41
+00:02:08.401 --> 00:02:12.243
+If a product ID is not specified, then it returns all reviews.
+
+42
+00:02:12.243 --> 00:02:13.619
+This method is our search method,
+
+43
+00:02:13.619 --> 00:02:15.682
+so if you find other attributes you want to search on,
+
+44
+00:02:15.682 --> 00:02:17.361
+this is the place to do it.
+
+45
+00:02:17.361 --> 00:02:20.282
+The createReview method is used to post a new review.
+
+46
+00:02:20.282 --> 00:02:24.543
+It's annotated with the PostMapping annotation for the
+
+47
+00:02:24.543 --> 00:02:27.728
+URI/review and accepts a review as its request body.
+
+48
+00:02:27.728 --> 00:02:32.022
+It saves the review to MongoDB by executing the review service's save method,
+
+49
+00:02:32.022 --> 00:02:34.747
+and then packages up the saved response into a response
+
+50
+00:02:34.747 --> 00:02:37.547
+entity and returns it back to the caller.
+
+51
+00:02:37.547 --> 00:02:40.340
+The addEntryToReview method is a little more interesting.
+
+52
+00:02:40.340 --> 00:02:42.982
+It's used to add a new review entry to a review,
+
+53
+00:02:42.982 --> 00:02:45.381
+which may or may not already exist.
+
+54
+00:02:45.381 --> 00:02:47.694
+It's annotated with a PostMapping annotation and
+
+55
+00:02:47.694 --> 00:02:52.425
+handles the /review/productId/entry URI.
+
+56
+00:02:52.425 --> 00:02:55.137
+Proper REST design would dictate that we should use the
+
+57
+00:02:55.137 --> 00:02:56.665
+review's ID instead of the product's ID,
+
+58
+00:02:56.665 --> 00:03:00.317
+but this format feels a little more natural to our ultimate consumer,
+
+59
+00:03:00.317 --> 00:03:03.402
+which is either a web client or a mobile client.
+
+60
+00:03:03.402 --> 00:03:07.053
+So the method begins by retrieving the review for the specified product ID
+
+61
+00:03:07.053 --> 00:03:10.668
+by calling the review service's findByProductId method.
+
+62
+00:03:10.668 --> 00:03:14.665
+If a review exists then we us it; otherwise, we create a new review object.
+
+63
+00:03:14.665 --> 00:03:15.670
+Once we have a valid review,
+
+64
+00:03:15.670 --> 00:03:19.167
+then we add the new review entry to its list of entries,
+
+65
+00:03:19.167 --> 00:03:21.088
+save the review in the database,
+
+66
+00:03:21.088 --> 00:03:24.833
+and package it up into a response entity to return to the caller.
+
+67
+00:03:24.833 --> 00:03:28.590
+Finally, the deleteReview method deletes a review by its native ID.
+
+68
+00:03:28.590 --> 00:03:34.369
+It's annotated with the DeleteMapping annotation and handles the /review/id URI.
+
+69
+00:03:34.369 --> 00:03:36.730
+It first checks to see if the review exists in the database,
+
+70
+00:03:36.730 --> 00:03:38.548
+and if it does, it deletes it.
+
+71
+00:03:38.548 --> 00:03:43.164
+If it does not exist, then it returns a 404 notFound HTTP response code.
+
+72
+00:03:43.164 --> 00:03:45.474
+The ReviewService implements a host of pass-through methods
+
+73
+00:03:45.474 --> 00:03:48.604
+to the underlying repository without adding any additional
+
+74
+00:03:48.604 --> 00:03:50.419
+business logic this go around.
+
+75
+00:03:50.419 --> 00:03:54.616
+The ReviewRepository is probably our most interesting thing in this service.
+
+76
+00:03:54.616 --> 00:03:58.332
+It's an interface that extends the Mongo repository interface.
+
+77
+00:03:58.332 --> 00:04:00.517
+We specify two type parameters.
+
+78
+00:04:00.517 --> 00:04:04.841
+The first is the type of document that we're storing, namely, the Review class.
+
+79
+00:04:04.841 --> 00:04:08.136
+And the second is the type of the ID, or primary key for this document,
+
+80
+00:04:08.136 --> 00:04:09.924
+which in our case is a String.
+
+81
+00:04:09.924 --> 00:04:12.189
+The MongoRepository is a Spring Data interface,
+
+82
+00:04:12.189 --> 00:04:16.826
+and it's our gateway to all the magic the Spring Data provides.
+
+83
+00:04:16.826 --> 00:04:20.150
+The MongoRepository extends the paging and sorting repository interface,
+
+84
+00:04:20.150 --> 00:04:24.084
+which in turn extends the CRUD repository interface.
+
+85
+00:04:24.084 --> 00:04:25.135
+So in short,
+
+86
+00:04:25.135 --> 00:04:28.362
+extending the MongoRepository interface provides the
+
+87
+00:04:28.362 --> 00:04:31.101
+ReviewRepository all of the standard persistence methods
+
+88
+00:04:31.101 --> 00:04:34.702
+that we need including findById, findAll,
+
+89
+00:04:34.702 --> 00:04:37.031
+Save, delete, and deleteById,
+
+90
+00:04:37.031 --> 00:04:39.478
+and provides support for sorting the results and
+
+91
+00:04:39.478 --> 00:04:42.011
+loading documents one page at a time.
+
+92
+00:04:42.011 --> 00:04:43.538
+The important thing about this interface,
+
+93
+00:04:43.538 --> 00:04:45.814
+and the value that Spring Data provides,
+
+94
+00:04:45.814 --> 00:04:48.779
+is that we define the interface and Spring Data automatically
+
+95
+00:04:48.779 --> 00:04:52.207
+generates an implementation of the interface at runtime,
+
+96
+00:04:52.207 --> 00:04:54.608
+and all of the aforementioned methods.
+
+97
+00:04:54.608 --> 00:04:57.183
+There are ways to extend the repository functionality with
+
+98
+00:04:57.183 --> 00:05:00.630
+custom queries and custom query methods.
+
+99
+00:05:00.630 --> 00:05:02.819
+The ReviewRepository defines a method named findByProductId.
+
+100
+00:05:02.819 --> 00:05:07.598
+The naming and return value of this method is very specific.
+
+101
+00:05:07.598 --> 00:05:09.414
+When Spring Data sees the method,
+
+102
+00:05:09.414 --> 00:05:11.601
+it knows that it's a query because of the findBy prefix.
+
+103
+00:05:11.601 --> 00:05:16.228
+It knows that we want to search by the productId field in the document,
+
+104
+00:05:16.228 --> 00:05:16.678
+and finally,
+
+105
+00:05:16.678 --> 00:05:19.451
+it knows that we expect to return a single document
+
+106
+00:05:19.451 --> 00:05:21.646
+because of the optional review result.
+
+107
+00:05:21.646 --> 00:05:23.646
+Because we follow Spring Data's naming convention,
+
+108
+00:05:23.646 --> 00:05:26.678
+we don't need to write any implementation code.
+
+109
+00:05:26.678 --> 00:05:27.971
+Spring will do it for us.
+
+110
+00:05:27.971 --> 00:05:30.837
+So this is one of the many reasons why unit testing
+
+111
+00:05:30.837 --> 00:05:37.000
+our repository is so important. For example, if we misspelled productId, then the query wouldn't work.
+

@@ -1,0 +1,540 @@
+1
+00:00:01,699 --> 00:00:07,229
+To authorize requests to URLs, you use the authorizeRequest builder.
+
+2
+00:00:07,229 --> 00:00:09,218
+Let's go through the current setup.
+
+3
+00:00:09,218 --> 00:00:11,868
+You can use the antMatchers to define different
+
+4
+00:00:11,868 --> 00:00:15,495
+authorization strategies for your URLs.
+
+5
+00:00:15,495 --> 00:00:18,909
+You can define one or more URLs in an antMatcher.
+
+6
+00:00:18,909 --> 00:00:22,712
+Here we have the URLs we want to allow our users to
+
+7
+00:00:22,712 --> 00:00:26,982
+access without being authenticated, such as the login page,
+
+8
+00:00:26,982 --> 00:00:30,056
+by using the permitAll, which will just return true.
+
+9
+00:00:30,056 --> 00:00:34,526
+Next we match the two-factor authentication pages and use
+
+10
+00:00:34,526 --> 00:00:40,065
+the hasAuthority method to indicate only users with the TOTP
+
+11
+00:00:40,065 --> 00:00:42,965
+authority can access this page.
+
+12
+00:00:42,965 --> 00:00:46,229
+Finally, we say that for all other URLs,
+
+13
+00:00:46,229 --> 00:00:50,331
+we require an authenticated principal that has the role USER.
+
+14
+00:00:50,331 --> 00:00:55,165
+Now in Spring, roles and authorities differ in naming convention.
+
+15
+00:00:55,165 --> 00:01:01,499
+A role will have the ROLE_ prefix in front of it, and authorities do not.
+
+16
+00:01:01,499 --> 00:01:04,313
+Hence, when you use the hasRole USER method,
+
+17
+00:01:04,313 --> 00:01:07,947
+Spring will search for a value in the granted
+
+18
+00:01:07,947 --> 00:01:11,224
+authorities that has the role _USER.
+
+19
+00:01:11,224 --> 00:01:14,018
+However, when you use the hasAuthority,
+
+20
+00:01:14,018 --> 00:01:17,367
+Spring will look up the value that matches exactly.
+
+21
+00:01:17,367 --> 00:01:18,088
+Now conceptually,
+
+22
+00:01:18,088 --> 00:01:22,143
+the idea behind this is that roles are more course-grained
+
+23
+00:01:22,143 --> 00:01:25,253
+and essentially containers for authorities.
+
+24
+00:01:25,253 --> 00:01:31,909
+Example, both a user and admin might have authorities of paid services access,
+
+25
+00:01:31,909 --> 00:01:37,588
+but an admin will be the only one that has the admin area authority.
+
+26
+00:01:37,588 --> 00:01:42,364
+Again, nothing's stopping you from using just roles or just authorities.
+
+27
+00:01:42,364 --> 00:01:45,285
+In fact, in our two-factor authentication scenario,
+
+28
+00:01:45,285 --> 00:01:49,546
+after authenticating, the user is assigned an authority,
+
+29
+00:01:49,546 --> 00:01:54,310
+and only after providing their two-factor authentication code successfully,
+
+30
+00:01:54,310 --> 00:01:59,673
+they are assigned the ROLE_USER with full permission to the site.
+
+31
+00:01:59,673 --> 00:02:01,612
+In effect, they don't initially have a role,
+
+32
+00:02:01,612 --> 00:02:05,268
+but have the authority to access the TOTP login page,
+
+33
+00:02:05,268 --> 00:02:08,680
+hence not quite following the convention here,
+
+34
+00:02:08,680 --> 00:02:10,079
+but it works.
+
+35
+00:02:10,079 --> 00:02:14,726
+Finally, we have a catchall, which states that for any other requests,
+
+36
+00:02:14,726 --> 00:02:17,070
+the user must have the user role.
+
+37
+00:02:17,070 --> 00:02:19,371
+Now the catchall is very important.
+
+38
+00:02:19,371 --> 00:02:24,044
+It should be the final line and catch any requests that might slip through.
+
+39
+00:02:24,044 --> 00:02:27,814
+A good practice is to simply deny access completely.
+
+40
+00:02:27,814 --> 00:02:30,681
+Now as you can see, order is key here.
+
+41
+00:02:30,681 --> 00:02:33,547
+The matches are evaluated in order.
+
+42
+00:02:33,547 --> 00:02:35,687
+And now that we have the catchall denying everything,
+
+43
+00:02:35,687 --> 00:02:41,137
+it forces us to provide matches for all the URLs in our application.
+
+44
+00:02:41,137 --> 00:02:45,148
+Here we specify that for the portfolio and account URLs,
+
+45
+00:02:45,148 --> 00:02:47,640
+the role USER is required.
+
+46
+00:02:47,640 --> 00:02:52,416
+The \** means that it will match the entire directory tree,
+
+47
+00:02:52,416 --> 00:02:54,779
+basically everything after the portfolio.
+
+48
+00:02:54,779 --> 00:02:58,906
+Whereas if we just used /portfolio or portfolio/*,
+
+49
+00:02:58,906 --> 00:03:04,685
+it would not match other directories after the portfolio.
+
+50
+00:03:04,685 --> 00:03:06,616
+And order is key here.
+
+51
+00:03:06,616 --> 00:03:09,194
+If you were to switch the following around,
+
+52
+00:03:09,194 --> 00:03:12,490
+then a user would be able to access the admin pages as the
+
+53
+00:03:12,490 --> 00:03:14,788
+second matcher would not be reached.
+
+54
+00:03:14,788 --> 00:03:17,826
+So ensure your more precise rules go first.
+
+55
+00:03:17,826 --> 00:03:23,461
+This can be an issue with Spring Security as your config size grows.
+
+56
+00:03:23,461 --> 00:03:27,539
+So a good comprehensive test suite is advisable.
+
+57
+00:03:27,539 --> 00:03:30,457
+You can also provide multiple roles with the hasAnyRole,
+
+58
+00:03:30,457 --> 00:03:36,762
+which gives access if a user has either the role user or the role admin.
+
+59
+00:03:36,762 --> 00:03:39,932
+Now we probably want to give our admins access to the
+
+60
+00:03:39,932 --> 00:03:41,915
+portfolio for debugging purposes.
+
+61
+00:03:41,915 --> 00:03:44,252
+You can also define more finer-grained access
+
+62
+00:03:44,252 --> 00:03:48,835
+restrictions to a URL based on the HttpMethod.
+
+63
+00:03:48,835 --> 00:03:52,264
+Example, by adding the POST method to the matcher,
+
+64
+00:03:52,264 --> 00:03:56,342
+restricting users with the role admin to this URL
+
+65
+00:03:56,342 --> 00:03:59,112
+now only applies to POST requests.
+
+66
+00:03:59,112 --> 00:04:02,096
+There is, however, one issue with the AntMatchers.
+
+67
+00:04:02,096 --> 00:04:04,941
+Here we have added a RestController that returns
+
+68
+00:04:04,941 --> 00:04:07,724
+our list of users in the system.
+
+69
+00:04:07,724 --> 00:04:11,395
+We can configure it so that only admins can access it.
+
+70
+00:04:11,395 --> 00:04:22,180
+If we change the catchall to hasRole USER and try to access the URL,
+
+71
+00:04:22,180 --> 00:04:26,519
+as expected, nothing is returned as the user is not an admin.
+
+72
+00:04:26,519 --> 00:04:31,521
+However, if I add a /, the IDs are returned,
+
+73
+00:04:31,521 --> 00:04:34,383
+and file extensions can also get around this.
+
+74
+00:04:34,383 --> 00:04:38,720
+Now this is because Spring MVC sees both URLs as the same
+
+75
+00:04:38,720 --> 00:04:41,345
+and maps them to the same controller.
+
+76
+00:04:41,345 --> 00:04:44,483
+However, for the AntMatcher, they are two different URLs.
+
+77
+00:04:44,483 --> 00:04:47,444
+Hence, it defaults back to the catchall,
+
+78
+00:04:47,444 --> 00:04:51,231
+which allows access to users with the role USER,
+
+79
+00:04:51,231 --> 00:04:55,058
+again, why a catchall that denies all access is a good idea.
+
+80
+00:04:55,058 --> 00:04:59,006
+Now to fix this, you should use the mvcMatchers,
+
+81
+00:04:59,006 --> 00:05:02,865
+which use the Spring MVC API for matching,
+
+82
+00:05:02,865 --> 00:05:09,448
+meaning it matches the same way as the MVC controllers.
+
+83
+00:05:09,448 --> 00:05:13,887
+Here we have a URL that returns the portfolio of a user.
+
+84
+00:05:13,887 --> 00:05:19,265
+The username is a path variable so we surround it with the curly braces.
+
+85
+00:05:19,265 --> 00:05:22,477
+Let's configure it so the admin user can view any portfolios,
+
+86
+00:05:22,477 --> 00:05:25,448
+but users can only view their own.
+
+87
+00:05:25,448 --> 00:05:28,399
+To do this, we need an expression.
+
+88
+00:05:28,399 --> 00:05:33,589
+Hence, you can use the access method, which allows you to use expressions.
+
+89
+00:05:33,589 --> 00:05:36,790
+We can now select any of the expressions provided by Spring,
+
+90
+00:05:36,790 --> 00:05:41,378
+like hasRole to check if a user has the user or admin role.
+
+91
+00:05:41,378 --> 00:05:44,736
+Next, we can use the principal to get their username.
+
+92
+00:05:44,736 --> 00:05:50,413
+We can also use operations like and or or or equals.
+
+93
+00:05:50,413 --> 00:05:55,600
+Now if the user is an admin, they are now authorized to access the URL.
+
+94
+00:05:55,600 --> 00:06:00,681
+We can add the all, and if the principal has the role of user,
+
+95
+00:06:00,681 --> 00:06:05,376
+and the username matches the URL of the principal by
+
+96
+00:06:05,376 --> 00:06:09,030
+using the hash to reference the username,
+
+97
+00:06:09,030 --> 00:06:12,504
+then the user can also access the portfolio.
+
+98
+00:06:12,504 --> 00:06:14,696
+Now let's test this.
+
+99
+00:06:14,696 --> 00:06:17,458
+As expected, the logged-in user can view their portfolio,
+
+100
+00:06:17,458 --> 00:06:21,010
+but they cannot view other people's portfolios.
+
+101
+00:06:21,010 --> 00:06:23,988
+They would need the admin role for that.
+
+102
+00:06:23,988 --> 00:06:26,863
+As you can see, expressions are very powerful.
+
+103
+00:06:26,863 --> 00:06:31,594
+However, they could end up making your configuration look less readable.
+
+104
+00:06:31,594 --> 00:06:36,093
+Now SpEL allows you to reference beans using the ampersand.
+
+105
+00:06:36,093 --> 00:06:39,654
+Hence, if we create a class to handle the authorization logic,
+
+106
+00:06:39,654 --> 00:06:41,879
+let's call it IsPortfolioOwnerOrAdmin,
+
+107
+00:06:41,879 --> 00:06:47,246
+with a method that accepts the username as a string,
+
+108
+00:06:47,246 --> 00:06:51,351
+we can then get the Authentication object from the SecurityContext.
+
+109
+00:06:51,351 --> 00:06:55,086
+If the user has the admin role, we return true.
+
+110
+00:06:55,086 --> 00:07:00,244
+Of if they have the ROLE_USER and the username matches the authenticated user,
+
+111
+00:07:00,244 --> 00:07:01,489
+we also return true.
+
+112
+00:07:01,489 --> 00:07:03,839
+Otherwise, we return false.
+
+113
+00:07:03,839 --> 00:07:07,531
+We then annotate the class as a component or service to
+
+114
+00:07:07,531 --> 00:07:09,890
+add it to the application context.
+
+115
+00:07:09,890 --> 00:07:12,219
+Now back in our Configuration class,
+
+116
+00:07:12,219 --> 00:07:17,581
+we can change the expression to reference the bean using the ampersand,
+
+117
+00:07:17,581 --> 00:07:21,111
+starting with lowercase and call the check method,
+
+118
+00:07:21,111 --> 00:07:23,710
+passing in the username.
+
+119
+00:07:23,710 --> 00:07:24,548
+Much neater.
+
+120
+00:07:24,548 --> 00:07:29,713
+You can also restrict access based on how the principal was authenticated.
+
+121
+00:07:29,713 --> 00:07:32,230
+Perhaps you want certain sensitive parts of the application
+
+122
+00:07:32,230 --> 00:07:36,632
+not to be accessible if a user was authenticated by the
+
+123
+00:07:36,632 --> 00:07:39,405
+remember-me token in case it was stolen,
+
+124
+00:07:39,405 --> 00:07:43,909
+like for the admin sections of our application or the
+
+125
+00:07:43,909 --> 00:07:46,807
+Update Account Details sections.
+
+126
+00:07:46,807 --> 00:07:49,153
+For this, we can use the isFullyAuthenticated,
+
+127
+00:07:49,153 --> 00:07:54,409
+which would return false if the user was logged in
+
+128
+00:07:54,409 --> 00:07:56,291
+anonymously or via Remember me.
+
+129
+00:07:56,291 --> 00:07:56,660
+Hence,
+
+130
+00:07:56,660 --> 00:08:01,906
+the user would need to relog in with their credentials to access these sections.
+
+131
+00:08:01,906 --> 00:08:04,607
+Now to combine the role with this check,
+
+132
+00:08:04,607 --> 00:08:07,814
+we can use the access method and use the isFullyAuthenticated
+
+133
+00:08:07,814 --> 00:08:11,676
+expression and hasRole ADMIN expression.
+
+134
+00:08:11,676 --> 00:08:17,225
+Okay, now that covers the first layer of defense for authorization.
+
+135
+00:08:17,225 --> 00:08:24,000
+Next, we will take a look at the second layer, which is method-level authorization.
+

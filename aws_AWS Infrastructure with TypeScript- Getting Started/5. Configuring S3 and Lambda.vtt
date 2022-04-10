@@ -1,0 +1,537 @@
+WEBVTT
+1
+00:00:01.040 --> 00:00:03.650
+So now that we've shown that we can deploy a Lambda
+
+2
+00:00:03.650 --> 00:00:05.880
+function and execute it within AWS,
+
+3
+00:00:05.880 --> 00:00:08.210
+we're now going to go through the process of starting to
+
+4
+00:00:08.210 --> 00:00:10.940
+integrate it in for our proof of concept.
+
+5
+00:00:10.940 --> 00:00:12.130
+So here, within this demo,
+
+6
+00:00:12.130 --> 00:00:16.610
+we're first going to be passing environment variables into our Lambda function,
+
+7
+00:00:16.610 --> 00:00:21.170
+and we'll be deploying sample documents using S3 deployment within the CDK.
+
+8
+00:00:21.170 --> 00:00:23.640
+So let's dive in.
+
+9
+00:00:23.640 --> 00:00:28.340
+So I'm here within the API construct that we created within our project.
+
+10
+00:00:28.340 --> 00:00:30.850
+One of the things we're going to need to do is we're going to need to
+
+11
+00:00:30.850 --> 00:00:35.540
+pass a reference to our bucket into our construct.
+
+12
+00:00:35.540 --> 00:00:40.970
+So the first thing I'm going to do to make that work is I'm going to import S3.
+
+13
+00:00:40.970 --> 00:00:47.120
+Now I'm going to go into the DocumentManagementAPIProps interface,
+
+14
+00:00:47.120 --> 00:00:51.240
+and I'm going to specify that we're going to have a documentBucket,
+
+15
+00:00:51.240 --> 00:00:54.040
+and this is going to be of type s3.IBucket,
+
+16
+00:00:54.040 --> 00:00:58.340
+which, again, is just an interface that will work as a reference to a bucket.
+
+17
+00:00:58.340 --> 00:01:00.140
+Now the next thing we're going to need to do is we're
+
+18
+00:01:00.140 --> 00:01:02.060
+going to need to make this not optional,
+
+19
+00:01:02.060 --> 00:01:04.840
+because we're going to actually need this value.
+
+20
+00:01:04.840 --> 00:01:06.840
+Now if we go in and look at IBucket,
+
+21
+00:01:06.840 --> 00:01:09.520
+I'm going to actually hold down Cmd and hit IBucket,
+
+22
+00:01:09.520 --> 00:01:12.540
+we can see here that it's going to include values like
+
+23
+00:01:12.540 --> 00:01:14.350
+the bucketArn and the bucketName.
+
+24
+00:01:14.350 --> 00:01:17.920
+We'll be using both of those here within this module.
+
+25
+00:01:17.920 --> 00:01:18.450
+But for now,
+
+26
+00:01:18.450 --> 00:01:21.150
+we're going to be concerned with the bucketName because our
+
+27
+00:01:21.150 --> 00:01:24.340
+Lambda function needs to get a reference to that.
+
+28
+00:01:24.340 --> 00:01:27.060
+Now what we can do after externalModules,
+
+29
+00:01:27.060 --> 00:01:30.740
+we can actually go in and say environment,
+
+30
+00:01:30.740 --> 00:01:33.250
+and this is going to allow us to pass in an object
+
+31
+00:01:33.250 --> 00:01:34.610
+that's basically a string map.
+
+32
+00:01:34.610 --> 00:01:35.990
+So we're going to have a string key,
+
+33
+00:01:35.990 --> 00:01:40.040
+which we're going to call DOCUMENTS_BUCKET_NAME.
+
+34
+00:01:40.040 --> 00:01:41.900
+And then we're going to have the value,
+
+35
+00:01:41.900 --> 00:01:49.940
+which in this case is going to be props.documentsbucket.bucketname.
+
+36
+00:01:49.940 --> 00:01:55.040
+Now we can save this file, but we're going to need to navigate over to our stack.
+
+37
+00:01:55.040 --> 00:01:56.070
+So here within our stack,
+
+38
+00:01:56.070 --> 00:02:00.640
+we can see that there is an error because that props value is now required.
+
+39
+00:02:00.640 --> 00:02:02.660
+So I'm going to need to go in after the name,
+
+40
+00:02:02.660 --> 00:02:04.900
+and I'm going to need to add an object,
+
+41
+00:02:04.900 --> 00:02:08.050
+and we're going to need to specify the documentBucket,
+
+42
+00:02:08.050 --> 00:02:11.740
+which, in this case, we're going to tie to our bucket.
+
+43
+00:02:11.740 --> 00:02:13.160
+Now that we have this in place,
+
+44
+00:02:13.160 --> 00:02:15.990
+we now have a way to get a reference to that
+
+45
+00:02:15.990 --> 00:02:19.540
+documentBucket into our Lambda function.
+
+46
+00:02:19.540 --> 00:02:23.060
+So I'm going to go back over into our API construct.
+
+47
+00:02:23.060 --> 00:02:26.050
+I'm going to copy the name of this environment variable,
+
+48
+00:02:26.050 --> 00:02:29.550
+and I'm going to go over into our index.ts file and
+
+49
+00:02:29.550 --> 00:02:31.640
+into our getDocuments function.
+
+50
+00:02:31.640 --> 00:02:34.750
+Now what I'm going to do first outside of the function is I'm going to specify
+
+51
+00:02:34.750 --> 00:02:41.620
+that the bucketName is going to be equal to process.env.
+
+52
+00:02:41.620 --> 00:02:43.970
+This is how we get access on Lambda to our environment
+
+53
+00:02:43.970 --> 00:02:47.900
+variables and then the DOCUMENTS_BUCKET_NAME. So here we
+
+54
+00:02:47.900 --> 00:02:49.530
+actually have a reference to that.
+
+55
+00:02:49.530 --> 00:02:51.390
+And what we're going to do now is we're just going
+
+56
+00:02:51.390 --> 00:02:55.340
+to add in a logging statement.
+
+57
+00:02:55.340 --> 00:02:59.250
+So now that I have this in place, if I save this and we now go to deploy,
+
+58
+00:02:59.250 --> 00:03:02.830
+we should be able to see our Lambda function include this value.
+
+59
+00:03:02.830 --> 00:03:11.640
+So I'm going to go over to the terminal. And now I'm going to run cdk deploy.
+
+60
+00:03:11.640 --> 00:03:14.270
+And now we can see that the deployment has completed.
+
+61
+00:03:14.270 --> 00:03:16.940
+So now we'll navigate over to the browser.
+
+62
+00:03:16.940 --> 00:03:19.720
+So now I'm here within the AWS console, and I'm going
+
+63
+00:03:19.720 --> 00:03:22.040
+to click on our Lambda function.
+
+64
+00:03:22.040 --> 00:03:25.940
+So I should be able from here to go ahead and run test.
+
+65
+00:03:25.940 --> 00:03:29.380
+And when I do, I should see that this execution did succeed.
+
+66
+00:03:29.380 --> 00:03:32.870
+And here I can actually see with the log output that I get
+
+67
+00:03:32.870 --> 00:03:35.510
+Bucket Name, and I get the name of the bucket.
+
+68
+00:03:35.510 --> 00:03:37.210
+So this is all working properly.
+
+69
+00:03:37.210 --> 00:03:39.770
+Now there's another area we can look at this here as well.
+
+70
+00:03:39.770 --> 00:03:42.230
+If I actually scroll down here past the function code,
+
+71
+00:03:42.230 --> 00:03:45.920
+we can see that we have specified the environment variables and we can see the
+
+72
+00:03:45.920 --> 00:03:49.240
+DOCUMENTS_BUCKET_NAME and that value included here also.
+
+73
+00:03:49.240 --> 00:03:52.010
+So here we've done a great job of connecting in our S3
+
+74
+00:03:52.010 --> 00:03:53.580
+bucket with our Lambda function.
+
+75
+00:03:53.580 --> 00:03:57.140
+However, let's navigate now over to our S3 bucket.
+
+76
+00:03:57.140 --> 00:04:02.060
+So I'm going to go to S3, and I'm going to now go to our bucket.
+
+77
+00:04:02.060 --> 00:04:05.440
+And here you can see we don't have any documents that are included.
+
+78
+00:04:05.440 --> 00:04:08.050
+So we're going to use another feature of the CDK.
+
+79
+00:04:08.050 --> 00:04:10.710
+And that is a function that actually enables us to do S3
+
+80
+00:04:10.710 --> 00:04:14.990
+deployment as a part of deploying our CDK app.
+
+81
+00:04:14.990 --> 00:04:18.640
+So lets navigate over to the terminal.
+
+82
+00:04:18.640 --> 00:04:19.840
+So to make this work,
+
+83
+00:04:19.840 --> 00:04:23.760
+I'm going to need to install a package called aws‑s3‑deployment,
+
+84
+00:04:23.760 --> 00:04:29.240
+and we'll save this here within the root of our project.
+
+85
+00:04:29.240 --> 00:04:33.840
+Now that we have that in place, I'm going to navigate back over to VS Code.
+
+86
+00:04:33.840 --> 00:04:38.840
+So here, within VS Code, I'm going to navigate over to typescript‑cdk‑stack.
+
+87
+00:04:38.840 --> 00:04:40.420
+And here, right after my bucket,
+
+88
+00:04:40.420 --> 00:04:43.300
+I'm going to add in the code that we need to do the deployment.
+
+89
+00:04:43.300 --> 00:04:44.300
+But to make this work,
+
+90
+00:04:44.300 --> 00:04:49.440
+I'm first going to need to import the package that we just installed.
+
+91
+00:04:49.440 --> 00:04:52.770
+So here we've called this one s3Deploy. So we're going to
+
+92
+00:04:52.770 --> 00:04:57.140
+create a new s3Deploy.BucketDeployment,
+
+93
+00:04:57.140 --> 00:05:00.340
+and we're going to need to work with this like we would any other construct.
+
+94
+00:05:00.340 --> 00:05:02.350
+So I'm first going to need to pass in a reference here to this
+
+95
+00:05:02.350 --> 00:05:05.040
+stack. We're going to need to give it a name.
+
+96
+00:05:05.040 --> 00:05:07.340
+We're going to call this DocumentsDeployment,
+
+97
+00:05:07.340 --> 00:05:11.240
+and then we'll need to pass in the configuration object.
+
+98
+00:05:11.240 --> 00:05:14.140
+Now here we need to specify the sources.
+
+99
+00:05:14.140 --> 00:05:16.540
+So what I'm going to do is I'm going to create a documents
+
+100
+00:05:16.540 --> 00:05:19.070
+directory here within the root of the project.
+
+101
+00:05:19.070 --> 00:05:21.230
+So here we can pass in an array of sources.
+
+102
+00:05:21.230 --> 00:05:22.670
+We're just going to have one,
+
+103
+00:05:22.670 --> 00:05:28.440
+and I'm going to say s3Deploy.Source, and this is going to be an asset.
+
+104
+00:05:28.440 --> 00:05:30.250
+And just like when we worked with specifying the
+
+105
+00:05:30.250 --> 00:05:31.700
+entry point for our Lambda function,
+
+106
+00:05:31.700 --> 00:05:34.540
+we're going to use the path module from node.
+
+107
+00:05:34.540 --> 00:05:38.540
+So here I'm going to need to go in and actually import that.
+
+108
+00:05:38.540 --> 00:05:43.440
+And now we can use path.join_dirname,
+
+109
+00:05:43.440 --> 00:05:48.740
+and then we're going to have it go up a directory, and then documents.
+
+110
+00:05:48.740 --> 00:05:52.470
+Then we're going to need to specify the bucket that we want to deploy it too.
+
+111
+00:05:52.470 --> 00:05:56.440
+So we'll say destinationBucket, and we'll make this equal our bucket.
+
+112
+00:05:56.440 --> 00:05:58.300
+The last thing I'm going to specify here is I'm going to
+
+113
+00:05:58.300 --> 00:06:00.070
+specify the memory limit, and in this case,
+
+114
+00:06:00.070 --> 00:06:02.530
+we're just going to set this to be 512.
+
+115
+00:06:02.530 --> 00:06:04.110
+So now that I have this in place,
+
+116
+00:06:04.110 --> 00:06:08.540
+I'm now ready to get the documents and put them within our project.
+
+117
+00:06:08.540 --> 00:06:10.960
+So here, within VS Code, I'm going to navigate down.
+
+118
+00:06:10.960 --> 00:06:12.350
+I'm going to create a new folder,
+
+119
+00:06:12.350 --> 00:06:16.190
+and we're going to call this documents. Now within this folder,
+
+120
+00:06:16.190 --> 00:06:20.180
+I'm going to go to Reveal in Finder, and I have some files copied.
+
+121
+00:06:20.180 --> 00:06:21.780
+I'm just going to paste them in.
+
+122
+00:06:21.780 --> 00:06:24.120
+And these are all just sample PDF files.
+
+123
+00:06:24.120 --> 00:06:25.220
+So if we take a look at them,
+
+124
+00:06:25.220 --> 00:06:27.950
+they just have some basic Lorem Ipsum text that's included.
+
+125
+00:06:27.950 --> 00:06:30.960
+But once this is in place, I can go back into VS Code.
+
+126
+00:06:30.960 --> 00:06:33.330
+I can make sure that I've saved my stack, and now I can
+
+127
+00:06:33.330 --> 00:06:35.740
+navigate over to the terminal for deployment.
+
+128
+00:06:35.740 --> 00:06:39.340
+So now I can run cdk deploy.
+
+129
+00:06:39.340 --> 00:06:41.940
+We're going to see that there are some additional permissions that
+
+130
+00:06:41.940 --> 00:06:44.710
+need to be added for the S3 deployment process.
+
+131
+00:06:44.710 --> 00:06:49.720
+I'm going to say Yes. Now that our deployment has
+
+132
+00:06:49.720 --> 00:06:52.640
+completed, let's navigate over to the browser.
+
+133
+00:06:52.640 --> 00:06:55.840
+And so now if I go in and reload our documents bucket,
+
+134
+00:06:55.840 --> 00:07:02.000
+we can see that the documents that we had included have been deployed into this particular bucket.
+

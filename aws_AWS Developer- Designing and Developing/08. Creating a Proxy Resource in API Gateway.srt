@@ -1,0 +1,308 @@
+1
+00:00:01,805 --> 00:00:06,344
+A normal API Gateway integration to an HTTP endpoint strips away
+
+2
+00:00:06,344 --> 00:00:10,617
+all of the original request headers and only sends special ones
+
+3
+00:00:10,617 --> 00:00:13,010
+from the integration to your resource.
+
+4
+00:00:13,010 --> 00:00:15,848
+Sometimes this might be what you want,
+
+5
+00:00:15,848 --> 00:00:19,306
+but other times you want to preserve the initial request
+
+6
+00:00:19,306 --> 00:00:23,589
+to API Gateway and just pass it completely over to your
+
+7
+00:00:23,589 --> 00:00:25,983
+AWS resource on the other side.
+
+8
+00:00:25,983 --> 00:00:27,948
+This operation is called a proxy.
+
+9
+00:00:27,948 --> 00:00:28,930
+In our case,
+
+10
+00:00:28,930 --> 00:00:34,127
+we have several endpoints on our app that serve as API‑type endpoints,
+
+11
+00:00:34,127 --> 00:00:38,892
+like getting the leader boards or posting a change in user favorites.
+
+12
+00:00:38,892 --> 00:00:41,944
+We don't want to have to configure a new API Gateway
+
+13
+00:00:41,944 --> 00:00:43,985
+endpoint for every one of these,
+
+14
+00:00:43,985 --> 00:00:47,330
+so we'll create a catchall proxy resource with the
+
+15
+00:00:47,330 --> 00:00:49,332
+parent being the hbfl resource.
+
+16
+00:00:49,332 --> 00:00:56,905
+That way if we call hbfl/leaderboards, it will be handled by this proxy method.
+
+17
+00:00:56,905 --> 00:01:01,601
+If we look at our code in create‑api‑gateway.js on line 20,
+
+18
+00:01:01,601 --> 00:01:05,734
+we first create the proxy resource by using our createResource
+
+19
+00:01:05,734 --> 00:01:10,178
+function by passing in this very specific path part,
+
+20
+00:01:10,178 --> 00:01:12,406
+curly braces, proxy, then plus.
+
+21
+00:01:12,406 --> 00:01:16,540
+This tells API Gateway to capture all of the path,
+
+22
+00:01:16,540 --> 00:01:21,581
+no matter if it's nested or not, and execute this resource.
+
+23
+00:01:21,581 --> 00:01:24,332
+Then we use the same method and integration functions,
+
+24
+00:01:24,332 --> 00:01:28,809
+but add an additional proxy string as the last argument.
+
+25
+00:01:28,809 --> 00:01:32,841
+You'll also notice the HTTP method we're using is ANY,
+
+26
+00:01:32,841 --> 00:01:35,255
+which isn't actually an HTTP method,
+
+27
+00:01:35,255 --> 00:01:39,771
+but tells API Gateway to handle any possible HTTP method.
+
+28
+00:01:39,771 --> 00:01:44,274
+So because we're using existing functions that we've already implemented,
+
+29
+00:01:44,274 --> 00:01:46,297
+we don't need any new ones.
+
+30
+00:01:46,297 --> 00:01:47,670
+We do, however,
+
+31
+00:01:47,670 --> 00:01:51,544
+need to add some functionality to createResourceMethod and
+
+32
+00:01:51,544 --> 00:01:56,237
+createMethodIntegration to handle that additional function argument.
+
+33
+00:01:56,237 --> 00:01:58,187
+We'll start with createResourceMethod.
+
+34
+00:01:58,187 --> 00:02:01,015
+After the params const object declaration,
+
+35
+00:02:01,015 --> 00:02:05,675
+add an if and check for the existence of the path parameter,
+
+36
+00:02:05,675 --> 00:02:07,874
+and then create a code block.
+
+37
+00:02:07,874 --> 00:02:08,974
+If path exists,
+
+38
+00:02:08,974 --> 00:02:13,857
+we want to configure it as a request parameter on our params object,
+
+39
+00:02:13,857 --> 00:02:19,762
+so add params.requestParameters = and assign an object.
+
+40
+00:02:19,762 --> 00:02:22,545
+The object will have one property, but it will be dynamic.
+
+41
+00:02:22,545 --> 00:02:28,718
+So insert square brackets, then back ticks to create a string template.
+
+42
+00:02:28,718 --> 00:02:38,778
+Inside, enter method.request.path.$, open curly brace, path, close curly brace.
+
+43
+00:02:38,778 --> 00:02:41,431
+To the value of the property, add true.
+
+44
+00:02:41,431 --> 00:02:45,458
+Now what this is doing is telling our resource method that we're
+
+45
+00:02:45,458 --> 00:02:49,159
+going to have a parameter on the path of the URI,
+
+46
+00:02:49,159 --> 00:02:54,476
+the value of which is whatever is passed into the function in the path argument.
+
+47
+00:02:54,476 --> 00:02:57,667
+For instance, in our case it'll be proxy.
+
+48
+00:02:57,667 --> 00:03:02,834
+This is basically how you define parameters on your path for a resource method,
+
+49
+00:03:02,834 --> 00:03:06,986
+and this is similar to how you would add query parameters.
+
+50
+00:03:06,986 --> 00:03:10,966
+We also need to add some behavior to create method integration.
+
+51
+00:03:10,966 --> 00:03:13,857
+After the params const object declaration,
+
+52
+00:03:13,857 --> 00:03:17,897
+check if path is truthy, and then create a block.
+
+53
+00:03:17,897 --> 00:03:23,005
+The first thing we'll modify is adding the path parameter onto the URI,
+
+54
+00:03:23,005 --> 00:03:27,910
+so enter params.uri, then += to add to it,
+
+55
+00:03:27,910 --> 00:03:29,524
+then a string template.
+
+56
+00:03:29,524 --> 00:03:31,946
+This will be a weird one.
+
+57
+00:03:31,946 --> 00:03:39,392
+Enter /, open curly bracket, $, open curly bracket again,
+
+58
+00:03:39,392 --> 00:03:43,243
+path, close curly bracket, close curly bracket.
+
+59
+00:03:43,243 --> 00:03:46,610
+This will take our path function argument and add it, with the
+
+60
+00:03:46,610 --> 00:03:50,338
+curly brackets around it, to the end of our URI.
+
+61
+00:03:50,338 --> 00:03:56,711
+On the next line, enter params.requestParameters, assigning to it an object.
+
+62
+00:03:56,711 --> 00:03:59,376
+This is where we tie our integration request parameter,
+
+63
+00:03:59,376 --> 00:04:02,695
+which will be going to the load balancer endpoint
+
+64
+00:04:02,695 --> 00:04:04,721
+to the method request parameter.
+
+65
+00:04:04,721 --> 00:04:09,504
+Similar to the resource method change we made, we'll have a dynamic property.
+
+66
+00:04:09,504 --> 00:04:12,503
+Add square brackets and then a string template.
+
+67
+00:04:12,503 --> 00:04:20,576
+Enter integration.request.path.$, open curly bracket, path, close curly bracket.
+
+68
+00:04:20,576 --> 00:04:23,740
+Then give that property the value of a string template,
+
+69
+00:04:23,740 --> 00:04:29,015
+and inside it add method.request.path.$,
+
+70
+00:04:29,015 --> 00:04:32,549
+open curly bracket, path, close curly bracket.
+
+71
+00:04:32,549 --> 00:04:36,337
+And that will configure the path parameters for proxying.
+
+72
+00:04:36,337 --> 00:04:41,395
+Now we've got this entire file complete, and boy does it do a lot.
+
+73
+00:04:41,395 --> 00:04:45,532
+Go ahead and save it and switch over to your command line.
+
+74
+00:04:45,532 --> 00:04:49,525
+Run the command node create‑api‑gateway.js.
+
+75
+00:04:49,525 --> 00:04:52,868
+It won't take too long before it's complete and outputs a
+
+76
+00:04:52,868 --> 00:04:55,957
+single ID that is of no real significance.
+
+77
+00:04:55,957 --> 00:05:06,000
+Now once everything is created like this, we'll deploy this REST API in the next clip and then try it out.
+

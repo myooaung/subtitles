@@ -1,0 +1,200 @@
+1
+00:00:02,190 --> 00:00:05,710
+So imagine we have this application, a very simple application.
+
+2
+00:00:05,710 --> 00:00:09,870
+It has a Main method as the starting point for the application.
+
+3
+00:00:09,870 --> 00:00:14,440
+Inside here we create a FileWriter, and from here, we call writer.write.
+
+4
+00:00:14,440 --> 00:00:19,060
+So the code loads with Main, and then somewhere down here, we call writer.write.
+
+5
+00:00:19,060 --> 00:00:24,170
+Now it's at this point that the security check happens.
+
+6
+00:00:24,170 --> 00:00:26,180
+Remember back in the library,
+
+7
+00:00:26,180 --> 00:00:28,840
+we're using the security manager here to check that we
+
+8
+00:00:28,840 --> 00:00:32,270
+have permissions to write to this file.
+
+9
+00:00:32,270 --> 00:00:35,340
+And we've said that the security check depends on the
+
+10
+00:00:35,340 --> 00:00:37,540
+class and where the class was loaded from.
+
+11
+00:00:37,540 --> 00:00:39,440
+Now, think about this.
+
+12
+00:00:39,440 --> 00:00:44,780
+This class, our class, may not have permission to write to this file,
+
+13
+00:00:44,780 --> 00:00:46,630
+so the security check should fail.
+
+14
+00:00:46,630 --> 00:00:49,120
+However, we're using a FileWriter,
+
+15
+00:00:49,120 --> 00:00:53,730
+and that FileWriter almost certainly does have access to this file.
+
+16
+00:00:53,730 --> 00:00:56,430
+If theFileWriter failed the security check every time,
+
+17
+00:00:56,430 --> 00:01:00,240
+then we'd never be able to access any file in the system.
+
+18
+00:01:00,240 --> 00:01:03,260
+So what we need to happen is for the security check,
+
+19
+00:01:03,260 --> 00:01:09,140
+both the check this call on the stack frame and this call on the stack frame.
+
+20
+00:01:09,140 --> 00:01:12,560
+So the thing below us on the stack frame, the FileWriter, has access,
+
+21
+00:01:12,560 --> 00:01:17,600
+but the Main method doesn't. So whenever we make any security check,
+
+22
+00:01:17,600 --> 00:01:21,870
+we have to walk the entire stack frame and make sure everything in
+
+23
+00:01:21,870 --> 00:01:24,740
+the stack has access to what we're asking for.
+
+24
+00:01:24,740 --> 00:01:28,040
+Otherwise, there's just no point in making this check.
+
+25
+00:01:28,040 --> 00:01:32,090
+So whenever we do any security check, the security manager,
+
+26
+00:01:32,090 --> 00:01:32,450
+in fact,
+
+27
+00:01:32,450 --> 00:01:37,250
+the AccessController, walks the stack and checks that everything on that stack
+
+28
+00:01:37,250 --> 00:01:41,740
+has permission to do whatever we're currently trying to do.
+
+29
+00:01:41,740 --> 00:01:44,720
+So we've seen already, we have a policy file, that policy file grants
+
+30
+00:01:44,720 --> 00:01:49,050
+permissions, we have code sources loaded into the policy object,
+
+31
+00:01:49,050 --> 00:01:52,790
+and those code sources have permissions associated with them.
+
+32
+00:01:52,790 --> 00:01:57,690
+And we know we have a secure class loader that caches these code sources
+
+33
+00:01:57,690 --> 00:02:01,820
+and these permissions in this ProtectionDomain. So when a method call is
+
+34
+00:02:01,820 --> 00:02:06,190
+made and that method call ends up in a call to check permission, the
+
+35
+00:02:06,190 --> 00:02:11,280
+AccessController gets an array of classes on the stack with the security
+
+36
+00:02:11,280 --> 00:02:14,540
+manager's getClassContext method.
+
+37
+00:02:14,540 --> 00:02:18,500
+That's why in the previous demo we created our own security manager,
+
+38
+00:02:18,500 --> 00:02:20,160
+so we had access to this method.
+
+39
+00:02:20,160 --> 00:02:23,760
+We could call getClassContext. And if you remember,
+
+40
+00:02:23,760 --> 00:02:29,870
+getClassContext returns an array of class objects. From this array of class
+
+41
+00:02:29,870 --> 00:02:33,950
+objects, we can call getProtectionDomain and get all the protection domains,
+
+42
+00:02:33,950 --> 00:02:37,420
+and then from the protection domain we can get array of all the permissions.
+
+43
+00:02:37,420 --> 00:02:42,310
+And then we can ask each permission in turn, is what's being asked for here
+
+44
+00:02:42,310 --> 00:02:48,080
+allowed at this point in time? The stack walk is a key part of a permission
+
+45
+00:02:48,080 --> 00:02:49,170
+check in Java.
+
+46
+00:02:49,170 --> 00:02:52,870
+Notice that we only permit the call if the entire set of
+
+47
+00:02:52,870 --> 00:02:56,240
+permissions that we get here grant this permission.
+
+48
+00:02:56,240 --> 00:02:57,340
+So let's go and do this.
+
+49
+00:02:57,340 --> 00:03:00,020
+Let's go and look at setting permissions based on code
+
+50
+00:03:00,020 --> 00:03:07,000
+location with multiple things on the stack, some of which will be allowed the permission, some of which won't.
+

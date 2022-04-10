@@ -1,0 +1,253 @@
+WEBVTT
+1
+00:00:01.400 --> 00:00:05.360
+So we want to use jstat to monitor how the garbage
+
+2
+00:00:05.360 --> 00:00:07.640
+collector affects the application.
+
+3
+00:00:07.640 --> 00:00:11.270
+So I've changed our code ever so slightly here. I've changed it so we
+
+4
+00:00:11.270 --> 00:00:16.900
+print out a dot for every 1, 2, 3, 4, 5, 6, for every 2 million
+
+5
+00:00:16.900 --> 00:00:20.840
+allocations. And what we should see on this machine at this time when
+
+6
+00:00:20.840 --> 00:00:24.860
+I run this code is that we get about 2 million allocations a second.
+
+7
+00:00:24.860 --> 00:00:28.500
+So the dots print at about the same time that the cursor blinks, and
+
+8
+00:00:28.500 --> 00:00:31.580
+the cursor blinks, but once a second. It's only a rough estimate,
+
+9
+00:00:31.580 --> 00:00:35.870
+but about approximately 2 million allocations a second.
+
+10
+00:00:35.870 --> 00:00:40.260
+And remember, this is using the default GC. It's using the serial GC.
+
+11
+00:00:40.260 --> 00:00:42.220
+So we're using a bump‑the‑pointer allocation to allocate
+
+12
+00:00:42.220 --> 00:00:43.620
+memory, so memory allocation is very,
+
+13
+00:00:43.620 --> 00:00:47.580
+very quick, and the GC runs every so often and collects that memory.
+
+14
+00:00:47.580 --> 00:00:51.760
+If we go back to the other command prompt, and we've relaunched the
+
+15
+00:00:51.760 --> 00:00:57.660
+application so there's a different PID. So the ID this time is 3956. So if I
+
+16
+00:00:57.660 --> 00:01:04.650
+run jstat ‑gc against 3956, then we should see the count and information as
+
+17
+00:01:04.650 --> 00:01:07.050
+to what's happening here. And we notice here,
+
+18
+00:01:07.050 --> 00:01:10.300
+we're getting roughly the same number of young collects as we
+
+19
+00:01:10.300 --> 00:01:12.390
+are old collects, so 162 young collects,
+
+20
+00:01:12.390 --> 00:01:14.140
+150 old collects.
+
+21
+00:01:14.140 --> 00:01:16.170
+So the old collects and the young collects are happening about at the
+
+22
+00:01:16.170 --> 00:01:19.390
+same time. So I'm going to kill the application, and we'll now run
+
+23
+00:01:19.390 --> 00:01:22.330
+this with a different garbage collector.
+
+24
+00:01:22.330 --> 00:01:31.440
+And for this, let's just try the G1 garbage collector. So we do ‑XX +UsedG1GC
+
+25
+00:01:31.440 --> 00:01:35.190
+and then run the application again. So the first thing you should notice here is
+
+26
+00:01:35.190 --> 00:01:39.390
+that we are now allocating the objects much more slowly. So as previously, we
+
+27
+00:01:39.390 --> 00:01:41.910
+were allocating about 2 million a second.
+
+28
+00:01:41.910 --> 00:01:47.130
+This now looks like it's what 1, 2, 3, about a third
+
+29
+00:01:47.130 --> 00:01:50.090
+slower than it was previously.
+
+30
+00:01:50.090 --> 00:01:52.900
+And this is because the G1 garbage collector is no longer
+
+31
+00:01:52.900 --> 00:01:55.370
+using a simple bump‑the‑pointer algorithm.
+
+32
+00:01:55.370 --> 00:01:59.350
+So we'll notice that different garbage collectors are going to
+
+33
+00:01:59.350 --> 00:02:01.340
+affect our application in different ways.
+
+34
+00:02:01.340 --> 00:02:02.580
+So for our garbage collector,
+
+35
+00:02:02.580 --> 00:02:06.470
+as well as affecting how quickly memory is reclaimed,
+
+36
+00:02:06.470 --> 00:02:09.810
+we also affect how quickly memory is allocated, and that's
+
+37
+00:02:09.810 --> 00:02:12.310
+something that's really important to remember. Now here we
+
+38
+00:02:12.310 --> 00:02:14.010
+have a pathological application.
+
+39
+00:02:14.010 --> 00:02:17.270
+So this application's job is purely to allocate memory.
+
+40
+00:02:17.270 --> 00:02:21.250
+So we would expect to see this sort of slow down here. If we go back to our
+
+41
+00:02:21.250 --> 00:02:25.370
+Monitoring tab and find the ID of the application again,
+
+42
+00:02:25.370 --> 00:02:29.510
+it's now 2876. So I'm not going to clear the screen here.
+
+43
+00:02:29.510 --> 00:02:33.170
+We'll leave the old data on the screen and run jstat against the application now
+
+44
+00:02:33.170 --> 00:02:37.440
+running with the G1 garbage collector and see what happens.
+
+45
+00:02:37.440 --> 00:02:39.990
+So I guess there's a couple of things that will stand out here.
+
+46
+00:02:39.990 --> 00:02:45.180
+One is that we've allocated much more memory in the old generation. So we
+
+47
+00:02:45.180 --> 00:02:49.830
+have double the capacity for the old generation. And notice that the Eden and
+
+48
+00:02:49.830 --> 00:02:52.880
+survivor space generation figures tend to vary.
+
+49
+00:02:52.880 --> 00:02:55.510
+So the Eden capacity at one point for this garbage
+
+50
+00:02:55.510 --> 00:02:57.850
+collector is 0. By the time we get to the end,
+
+51
+00:02:57.850 --> 00:03:03.280
+this thing has gone up to 36864. But still not as much capacity as there was
+
+52
+00:03:03.280 --> 00:03:08.620
+for the original serial garbage collector. But the other key thing to note
+
+53
+00:03:08.620 --> 00:03:11.050
+here is how often these garbage collectors run.
+
+54
+00:03:11.050 --> 00:03:16.450
+So the young GC here, the first time we look at this, we have 490
+
+55
+00:03:16.450 --> 00:03:20.290
+garbage collects, but only 60 full garbage collects.
+
+56
+00:03:20.290 --> 00:03:25.850
+So the young GC is running at about 10 times the full GC; whereas,
+
+57
+00:03:25.850 --> 00:03:28.850
+for the serial collector, young GC and old GC,
+
+58
+00:03:28.850 --> 00:03:32.740
+were happening at about the same time here.
+
+59
+00:03:32.740 --> 00:03:35.430
+So in this scenario, we have much higher throughput of the garbage
+
+60
+00:03:35.430 --> 00:03:37.580
+collector. It's only doing young garbage collects.
+
+61
+00:03:37.580 --> 00:03:42.050
+But we have a much slower allocation of the objects because we're not
+
+62
+00:03:42.050 --> 00:03:46.840
+using a bump‑the‑pointer algorithm to allocate our space.
+
+63
+00:03:46.840 --> 00:03:56.000
+So we see there are many things that play into which garbage collector we should choose for our application.
+

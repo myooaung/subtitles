@@ -1,0 +1,368 @@
+1
+00:00:02,090 --> 00:00:04,990
+So prior to Java 2, there was no policy file.
+
+2
+00:00:04,990 --> 00:00:07,010
+As we said previously,
+
+3
+00:00:07,010 --> 00:00:09,860
+our application would run in a sandbox if we needed security.
+
+4
+00:00:09,860 --> 00:00:12,160
+We had to implement the security manager,
+
+5
+00:00:12,160 --> 00:00:15,270
+and that made life very difficult, and a few people did that.
+
+6
+00:00:15,270 --> 00:00:19,020
+Essentially, only the browser manufacturers, so they could run applets securely.
+
+7
+00:00:19,020 --> 00:00:25,350
+Java 2 added a concrete security implementation that delegates
+
+8
+00:00:25,350 --> 00:00:27,540
+to something called the access controller,
+
+9
+00:00:27,540 --> 00:00:31,780
+and the access controller reads policy.
+
+10
+00:00:31,780 --> 00:00:34,670
+The default policy implementation is a text file.
+
+11
+00:00:34,670 --> 00:00:38,600
+Now it's a fairly straightforward text syntax, as we'll see in a moment.
+
+12
+00:00:38,600 --> 00:00:44,230
+The policy contains permissions,
+
+13
+00:00:44,230 --> 00:00:47,740
+and these permissions are assigned by something called a code source.
+
+14
+00:00:47,740 --> 00:00:52,020
+So the code source identifies where a piece of code has been loaded from,
+
+15
+00:00:52,020 --> 00:00:53,530
+or who it's been signed by,
+
+16
+00:00:53,530 --> 00:00:58,370
+and the permissions associated with that signing or with that location.
+
+17
+00:00:58,370 --> 00:01:01,400
+Something fundamental about all of this is that the access
+
+18
+00:01:01,400 --> 00:01:04,000
+controller then walks the call stack.
+
+19
+00:01:04,000 --> 00:01:07,770
+So the check to see if this piece of code is allowed to perform this
+
+20
+00:01:07,770 --> 00:01:10,560
+action is done right at the bottom of the call stack,
+
+21
+00:01:10,560 --> 00:01:14,700
+and it's typically performed as we've seen by some code inside the JDK,
+
+22
+00:01:14,700 --> 00:01:17,190
+and the JDK has permission to do everything.
+
+23
+00:01:17,190 --> 00:01:18,970
+So if something else is calling the JDK,
+
+24
+00:01:18,970 --> 00:01:22,400
+it may not be allowed to perform this action.
+
+25
+00:01:22,400 --> 00:01:25,600
+That thing that's making the call is further up the call stack so we
+
+26
+00:01:25,600 --> 00:01:30,030
+have to walk the entire call stack to make sure that everything on the
+
+27
+00:01:30,030 --> 00:01:33,660
+call stack is allowed to do this access,
+
+28
+00:01:33,660 --> 00:01:37,930
+and everything on the call stack must have the appropriate permissions.
+
+29
+00:01:37,930 --> 00:01:41,550
+So before we take a look at how this call stack walking works,
+
+30
+00:01:41,550 --> 00:01:42,090
+first of all,
+
+31
+00:01:42,090 --> 00:01:45,540
+let's take a look at the default policy file and see what's in there.
+
+32
+00:01:45,540 --> 00:01:48,700
+So Java comes with a default policy file,
+
+33
+00:01:48,700 --> 00:01:52,910
+and this is a base set of permissions that all applications have.
+
+34
+00:01:52,910 --> 00:01:55,580
+This default policy file, as we see here,
+
+35
+00:01:55,580 --> 00:01:58,160
+lives in %JAVA_HOME%/jre/lib/security/java.policy,
+
+36
+00:01:58,160 --> 00:02:01,500
+and you can go and take a look at this file.
+
+37
+00:02:01,500 --> 00:02:03,010
+It's a simple text file.
+
+38
+00:02:03,010 --> 00:02:04,110
+So what does a policy look like?
+
+39
+00:02:04,110 --> 00:02:09,760
+In the policy file, we grant permissions based on up to three things.
+
+40
+00:02:09,760 --> 00:02:13,350
+We can grant a permission based on where code was loaded from,
+
+41
+00:02:13,350 --> 00:02:15,160
+and this is something called a code base.
+
+42
+00:02:15,160 --> 00:02:18,520
+We can grant permission based on who created this library.
+
+43
+00:02:18,520 --> 00:02:22,240
+So the library creator can sign the JAR file,
+
+44
+00:02:22,240 --> 00:02:25,180
+and we can grant the permission based on that signing.
+
+45
+00:02:25,180 --> 00:02:30,270
+We could also grant the permission based on who the authenticated user is,
+
+46
+00:02:30,270 --> 00:02:32,040
+something called the principle.
+
+47
+00:02:32,040 --> 00:02:35,330
+So the grant syntax is something like this.
+
+48
+00:02:35,330 --> 00:02:39,020
+We create what's called a grant block, and then here we can say,
+
+49
+00:02:39,020 --> 00:02:43,480
+I want this code to have these permissions based on this signer,
+
+50
+00:02:43,480 --> 00:02:46,640
+this code base, and these principles.
+
+51
+00:02:46,640 --> 00:02:49,960
+Now all of these things are optional apart from the grant block.
+
+52
+00:02:49,960 --> 00:02:52,260
+So if we leave out the signer and we leave out the code
+
+53
+00:02:52,260 --> 00:02:54,230
+base and we leave out the principles,
+
+54
+00:02:54,230 --> 00:02:58,540
+then we are granting these permissions to all code.
+
+55
+00:02:58,540 --> 00:03:01,730
+The principle is part of the Java authentication and
+
+56
+00:03:01,730 --> 00:03:05,950
+authorization service or JAAS, and we're not covering that in this class.
+
+57
+00:03:05,950 --> 00:03:11,540
+So in this class, we care about what the codebase is, and what signedBy is.
+
+58
+00:03:11,540 --> 00:03:14,340
+So this is the default policy file.
+
+59
+00:03:14,340 --> 00:03:19,740
+Now, I guess the first thing to notice is that policy files grant permissions.
+
+60
+00:03:19,740 --> 00:03:24,140
+And what this means is that by default, all permissions are disallowed.
+
+61
+00:03:24,140 --> 00:03:27,090
+So we have to explicitly say what is allowed.
+
+62
+00:03:27,090 --> 00:03:30,790
+We can't say certain things are allowed, certain things aren't allowed.
+
+63
+00:03:30,790 --> 00:03:36,580
+We have to allow everything that we need; otherwise, it's not allowed.
+
+64
+00:03:36,580 --> 00:03:40,640
+Notice that in here we have two, what are called grant blocks.
+
+65
+00:03:40,640 --> 00:03:44,140
+So it's inside the grant blocks that we associate permissions with,
+
+66
+00:03:44,140 --> 00:03:47,340
+in this case, a code location.
+
+67
+00:03:47,340 --> 00:03:51,550
+So the first grant block says that any code loaded from the Java
+
+68
+00:03:51,550 --> 00:03:55,240
+extension directories is given all permissions.
+
+69
+00:03:55,240 --> 00:03:58,460
+So if you want a library that is allowed to do anything,
+
+70
+00:03:58,460 --> 00:04:00,910
+you can place that library into the extension directory,
+
+71
+00:04:00,910 --> 00:04:05,290
+and by default, it gets all permissions.
+
+72
+00:04:05,290 --> 00:04:09,550
+The second grant block then applies to all code.
+
+73
+00:04:09,550 --> 00:04:13,480
+So this grant block does not have a code base associated with it.
+
+74
+00:04:13,480 --> 00:04:19,940
+So any other code picks up permissions from this grant block,
+
+75
+00:04:19,940 --> 00:04:23,040
+and this is sort of programmed into three areas.
+
+76
+00:04:23,040 --> 00:04:24,530
+There's a permission to say,
+
+77
+00:04:24,530 --> 00:04:27,490
+stop thread, and there's a comment on this, which says, you
+
+78
+00:04:27,490 --> 00:04:29,250
+really shouldn't allow this permission.
+
+79
+00:04:29,250 --> 00:04:31,350
+It's purely there for backwards compatibility,
+
+80
+00:04:31,350 --> 00:04:36,810
+and it's strongly recommended to remove this permission from the code.
+
+81
+00:04:36,810 --> 00:04:42,200
+There's also permission there that allows us to listen on a socket. So we can't
+
+82
+00:04:42,200 --> 00:04:45,810
+create ports here, but if I want to listen to an incoming connection, then we
+
+83
+00:04:45,810 --> 00:04:50,550
+can do that. So any application is allowed to listen on some dynamic port. And
+
+84
+00:04:50,550 --> 00:04:54,010
+then the final set of permissions that we are given by default are the
+
+85
+00:04:54,010 --> 00:04:58,040
+permissions to read Java properties.
+
+86
+00:04:58,040 --> 00:05:00,770
+So here we can read things like the Java version.
+
+87
+00:05:00,770 --> 00:05:03,500
+We can read things like the file separator,
+
+88
+00:05:03,500 --> 00:05:06,600
+the OS version, the virtual machine name,
+
+89
+00:05:06,600 --> 00:05:11,040
+so basic information about our runtime environment.
+
+90
+00:05:11,040 --> 00:05:13,160
+If we want any further permissions,
+
+91
+00:05:13,160 --> 00:05:16,310
+then we will have to add those ourselves into this file,
+
+92
+00:05:16,310 --> 00:05:22,000
+as we'll see in a moment, into a separate file that we can use to augment this file.
+

@@ -1,0 +1,421 @@
+WEBVTT
+1
+00:00:01.987 --> 00:00:06.541
+Let's talk through the authentication process in debug mode to better
+
+2
+00:00:06.541 --> 00:00:10.856
+understand Spring's OAuth server and OAuth2 support.
+
+3
+00:00:10.856 --> 00:00:15.885
+If we access the portfolio URL and hover over our new Login link,
+
+4
+00:00:15.885 --> 00:00:21.847
+you see it's for oauth2/authorization/crypto-portfolio.
+
+5
+00:00:21.847 --> 00:00:23.665
+If we click on it,
+
+6
+00:00:23.665 --> 00:00:29.246
+the OAuth2 authorization request redirect filter will intercept the request.
+
+7
+00:00:29.246 --> 00:00:32.467
+Retrieve all the client information we configured by
+
+8
+00:00:32.467 --> 00:00:37.405
+looking up the registration ID and the provider used by the
+
+9
+00:00:37.405 --> 00:00:40.539
+client with that registration ID.
+
+10
+00:00:40.539 --> 00:00:44.487
+It will then create a redirect URI and send a redirect
+
+11
+00:00:44.487 --> 00:00:46.755
+request to the client's browser.
+
+12
+00:00:46.755 --> 00:00:50.230
+If we inspect the network traffic in developer mode in our browser,
+
+13
+00:00:50.230 --> 00:00:52.395
+we can see the redirect request.
+
+14
+00:00:52.395 --> 00:00:57.476
+It's to the authorization endpoint on the authorization server,
+
+15
+00:00:57.476 --> 00:01:00.038
+auth/oauth, /authorize.
+
+16
+00:01:00.038 --> 00:01:02.902
+It's requesting the authorization code grants,
+
+17
+00:01:02.902 --> 00:01:05.219
+provides the client_id,
+
+18
+00:01:05.219 --> 00:01:10.211
+the request scope and state nonce to protect against cross-site request forgery,
+
+19
+00:01:10.211 --> 00:01:12.973
+and the redirect URI it wants the authorization
+
+20
+00:01:12.973 --> 00:01:16.427
+server to respond back with the code.
+
+21
+00:01:16.427 --> 00:01:22.340
+At the authorization server, let's put a breakpoint on the filter chain proxy.
+
+22
+00:01:22.340 --> 00:01:25.291
+You can see three filter chains are configured.
+
+23
+00:01:25.291 --> 00:01:28.095
+The first filter chain is intercepting requests to
+
+24
+00:01:28.095 --> 00:01:29.932
+the authorization server endpoints,
+
+25
+00:01:29.932 --> 00:01:35.107
+the token endpoint where the client can request the access token,
+
+26
+00:01:35.107 --> 00:01:38.234
+the token key endpoint that will return the public
+
+27
+00:01:38.234 --> 00:01:41.062
+keys used to sign the access token.
+
+28
+00:01:41.062 --> 00:01:43.546
+This is so the client can validate the tokens offline.
+
+29
+00:01:43.546 --> 00:01:47.420
+By default, it will be configured to deny all.
+
+30
+00:01:47.420 --> 00:01:50.893
+We would need to set up the keys and open it up in the
+
+31
+00:01:50.893 --> 00:01:53.714
+resource server config like we did for the other two
+
+32
+00:01:53.714 --> 00:01:56.147
+endpoints if we wanted to use that.
+
+33
+00:01:56.147 --> 00:01:56.965
+Then finally,
+
+34
+00:01:56.965 --> 00:02:00.394
+the check_token endpoint where the client can send an access token
+
+35
+00:02:00.394 --> 00:02:04.664
+and have it validated by the authorization server.
+
+36
+00:02:04.664 --> 00:02:07.529
+Now this filter chain also has a basic authentication
+
+37
+00:02:07.529 --> 00:02:10.447
+filter to authenticate the client.
+
+38
+00:02:10.447 --> 00:02:14.572
+If you recall, the client can send the client-id and secret.
+
+39
+00:02:14.572 --> 00:02:16.450
+Since this request is for the oauth/authorize,
+
+40
+00:02:16.450 --> 00:02:21.326
+it will be intercepted by the second filter chain.
+
+41
+00:02:21.326 --> 00:02:25.523
+If you recall, this is what we configured in the user config.
+
+42
+00:02:25.523 --> 00:02:28.156
+This chain authenticates the user, i.e.
+
+43
+00:02:28.156 --> 00:02:29.554
+the resource owner.
+
+44
+00:02:29.554 --> 00:02:30.665
+You can see it has a
+
+45
+00:02:30.665 --> 00:02:35.320
+UsernamePasswordAuthenticationFilter as we configured form
+
+46
+00:02:35.320 --> 00:02:36.006
+login.
+
+47
+00:02:36.006 --> 00:02:38.238
+The user will be prompted to log in.
+
+48
+00:02:38.238 --> 00:02:39.230
+Once they log in,
+
+49
+00:02:39.230 --> 00:02:43.762
+they will be prompted to consent the scopes requested by the client.
+
+50
+00:02:43.762 --> 00:02:48.529
+Only then will the request be allowed to proceed to the authorization endpoint,
+
+51
+00:02:48.529 --> 00:02:51.921
+which will validate the redirect URI against what we
+
+52
+00:02:51.921 --> 00:02:55.507
+configured and send the redirect request to the user's
+
+53
+00:02:55.507 --> 00:02:58.370
+browser with the code and state nonce.
+
+54
+00:02:58.370 --> 00:03:01.196
+You can see this redirect request here.
+
+55
+00:03:01.196 --> 00:03:03.876
+Our client path will intercept the request,
+
+56
+00:03:03.876 --> 00:03:08.396
+validate the state matches the one in the original sent to the auth server
+
+57
+00:03:08.396 --> 00:03:13.119
+to protect against cross-site request forgery and call the token endpoint
+
+58
+00:03:13.119 --> 00:03:15.742
+to exchange the code for the access token,
+
+59
+00:03:15.742 --> 00:03:19.921
+this time via our back channel directly to the authorization server
+
+60
+00:03:19.921 --> 00:03:23.591
+via a REST call and not via the user's browser.
+
+61
+00:03:23.591 --> 00:03:27.747
+The request will include the client-id, the client-secret,
+
+62
+00:03:27.747 --> 00:03:31.446
+and targeted at the oauth/token URI,
+
+63
+00:03:31.446 --> 00:03:34.655
+which will be intercepted this time by the first filter
+
+64
+00:03:34.655 --> 00:03:37.482
+chain on the authorization server.
+
+65
+00:03:37.482 --> 00:03:41.039
+Now you probably noticed the token endpoint is permitAll.
+
+66
+00:03:41.039 --> 00:03:45.953
+The actual authorization endpoint also authenticates the client-id and secret.
+
+67
+00:03:45.953 --> 00:03:51.062
+If everything checks out, it will return the access token to the client.
+
+68
+00:03:51.062 --> 00:03:53.906
+The client's user service will then use the access
+
+69
+00:03:53.906 --> 00:03:56.944
+token to call the userinfo endpoint.
+
+70
+00:03:56.944 --> 00:04:00.459
+This time the request will be intercepted by the third filter,
+
+71
+00:04:00.459 --> 00:04:03.516
+which is the resource server we configured.
+
+72
+00:04:03.516 --> 00:04:08.168
+It has an OAuth2AuthenticationProcessingFilter,
+
+73
+00:04:08.168 --> 00:04:10.614
+which will look out for the bearer token in the
+
+74
+00:04:10.614 --> 00:04:13.590
+header to authenticate the request.
+
+75
+00:04:13.590 --> 00:04:17.325
+Our web app will then use the attributes returned to
+
+76
+00:04:17.325 --> 00:04:20.221
+populate the authenticated principal.
+
+77
+00:04:20.221 --> 00:04:24.270
+We can now move all the authentication code out of the
+
+78
+00:04:24.270 --> 00:04:27.697
+client web app and into our auth server.
+
+79
+00:04:27.697 --> 00:04:30.125
+To the user, it will all look the same.
+
+80
+00:04:30.125 --> 00:04:33.666
+If we actually disable consent, they won't even notice.
+
+81
+00:04:33.666 --> 00:04:36.203
+But the client web app will no longer be handling passwords.
+
+82
+00:04:36.203 --> 00:04:40.570
+If we look at the current state, it's a lot better.
+
+83
+00:04:40.570 --> 00:04:45.082
+The authentication code is isolated from the application code.
+
+84
+00:04:45.082 --> 00:04:48.228
+This is ideal as security changes are performed less
+
+85
+00:04:48.228 --> 00:04:51.745
+frequently compared to application changes.
+
+86
+00:04:51.745 --> 00:04:56.716
+And that reduces the risk of user credentials and data being leaked.
+
+87
+00:04:56.716 --> 00:05:01.060
+Now further improvements that would need to be made is to move the Facebook
+
+88
+00:05:01.060 --> 00:05:05.729
+and Google authentication onto the authorization server.
+
+89
+00:05:05.729 --> 00:05:11.021
+That way our client app will only have to deal with one provider and reduces
+
+90
+00:05:11.021 --> 00:05:14.961
+the risk of the other provider's secrets being leaked.
+
+91
+00:05:14.961 --> 00:05:18.873
+It will also make adding additional providers transparent to our
+
+92
+00:05:18.873 --> 00:05:23.194
+internal applications and performed in one place.
+
+93
+00:05:23.194 --> 00:05:26.400
+You will also need to move user registration,
+
+94
+00:05:26.400 --> 00:05:29.966
+email verification, implement password policy rules,
+
+95
+00:05:29.966 --> 00:05:33.809
+security questions, two-factor authentication,
+
+96
+00:05:33.809 --> 00:05:36.190
+the management of your secrets like keys,
+
+97
+00:05:36.190 --> 00:05:40.604
+password hashing, to the authentication server.
+
+98
+00:05:40.604 --> 00:05:42.600
+Now we are going to leave it at that as building an
+
+99
+00:05:42.600 --> 00:05:45.506
+authorization server could be a course in itself.
+
+100
+00:05:45.506 --> 00:05:46.502
+If, however,
+
+101
+00:05:46.502 --> 00:05:50.340
+you're interested in adding these features to the authorization server,
+
+102
+00:05:50.340 --> 00:05:52.771
+my previous course covers a lot of this.
+
+103
+00:05:52.771 --> 00:05:57.892
+However, from my experience, it's simpler to just get an out-of-the-box solution.
+
+104
+00:05:57.892 --> 00:06:00.670
+There are many available, some even open source,
+
+105
+00:06:00.670 --> 00:06:08.000
+unless probably your organization already has one. We will look into one next.
+

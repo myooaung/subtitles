@@ -1,0 +1,789 @@
+WEBVTT
+1
+00:00:00.000 --> 00:00:01.869
+There's been some debate on unit testing repositories,
+
+2
+00:00:01.869 --> 00:00:05.247
+namely around the concept of a unit test.
+
+3
+00:00:05.247 --> 00:00:09.797
+Some advocate that you should test your repository with a mock data source.
+
+4
+00:00:09.797 --> 00:00:13.155
+The reason for this is that a true unit test should only exercise
+
+5
+00:00:13.155 --> 00:00:17.208
+the class that you're testing and introducing a database makes the
+
+6
+00:00:17.208 --> 00:00:19.155
+test more of an integration test.
+
+7
+00:00:19.155 --> 00:00:21.196
+While this line of reasoning is solid,
+
+8
+00:00:21.196 --> 00:00:23.799
+the usefulness of these tests is questionable.
+
+9
+00:00:23.799 --> 00:00:25.128
+With a mock data source,
+
+10
+00:00:25.128 --> 00:00:27.976
+you can determine if the repository is making the correct
+
+11
+00:00:27.976 --> 00:00:30.470
+calls with the correct SQL statements,
+
+12
+00:00:30.470 --> 00:00:34.101
+but you cannot tell if the database persistence is actually working.
+
+13
+00:00:34.101 --> 00:00:36.371
+The alternative approach is to test the repository
+
+14
+00:00:36.371 --> 00:00:38.972
+against the mock or test database.
+
+15
+00:00:38.972 --> 00:00:39.773
+In this approach,
+
+16
+00:00:39.773 --> 00:00:43.732
+we create a test configuration that creates our data source for us,
+
+17
+00:00:43.732 --> 00:00:47.423
+and then use that data source to test with our repository.
+
+18
+00:00:47.423 --> 00:00:50.182
+For this example, we're going to opt for the latter approach.
+
+19
+00:00:50.182 --> 00:00:52.878
+The reason for this is that we really want to test our
+
+20
+00:00:52.878 --> 00:00:54.639
+SQL code to ensure that it's correct,
+
+21
+00:00:54.639 --> 00:00:58.509
+and catch errors in the SQL if the code changes in the future.
+
+22
+00:00:58.509 --> 00:01:01.475
+For example, we may optimize the SQL in the future,
+
+23
+00:01:01.475 --> 00:01:06.049
+but we really want to make sure that it continues to return the correct results.
+
+24
+00:01:06.049 --> 00:01:08.875
+In order to test our application against a test database,
+
+25
+00:01:08.875 --> 00:01:11.060
+we need to create a new configuration class,
+
+26
+00:01:11.060 --> 00:01:15.557
+which will reside in our test code in src/test/java
+
+27
+00:01:15.557 --> 00:01:17.745
+that creates a new test dataSource.
+
+28
+00:01:17.745 --> 00:01:20.714
+This class looks very similar to other Spring configuration
+
+29
+00:01:20.714 --> 00:01:24.384
+classes in that it's annotated with the Configuration
+
+30
+00:01:24.384 --> 00:01:27.755
+annotation and defines methods that create resources that are
+
+31
+00:01:27.755 --> 00:01:29.464
+annotated with the Bean annotation.
+
+32
+00:01:29.464 --> 00:01:33.545
+The only two things that are different about this configuration are first,
+
+33
+00:01:33.545 --> 00:01:36.789
+the class is annotated with the Profile test annotation.
+
+34
+00:01:36.789 --> 00:01:41.936
+Spring allows us to define profiles to limit the scope of our configurations.
+
+35
+00:01:41.936 --> 00:01:46.331
+In our case, the test class will be annotated with test in its active profiles,
+
+36
+00:01:46.331 --> 00:01:49.736
+whereas our production repository will not; therefore,
+
+37
+00:01:49.736 --> 00:01:52.407
+our test class will use this test dataSource,
+
+38
+00:01:52.407 --> 00:01:55.153
+and when the application runs in production,
+
+39
+00:01:55.153 --> 00:01:56.021
+it won't.
+
+40
+00:01:56.021 --> 00:01:59.778
+The DataSource Bean that we're defining is annotated with Primary.
+
+41
+00:01:59.778 --> 00:02:03.299
+This annotation tells Spring that when this configuration is used,
+
+42
+00:02:03.299 --> 00:02:07.628
+that this bean should override any other beans of the same type,
+
+43
+00:02:07.628 --> 00:02:09.365
+and hence be the primary.
+
+44
+00:02:09.365 --> 00:02:11.785
+When running a production, we won't load this configuration,
+
+45
+00:02:11.785 --> 00:02:13.442
+but when running in test,
+
+46
+00:02:13.442 --> 00:02:17.368
+Spring will automatically create this DataSource for our test instance.
+
+47
+00:02:17.368 --> 00:02:20.920
+DbUnit provides database functionality for our unit tests.
+
+48
+00:02:20.920 --> 00:02:25.296
+First, it will set up our database using a YAML or other configuration file,
+
+49
+00:02:25.296 --> 00:02:28.781
+and then it will erase the database and refresh it from
+
+50
+00:02:28.781 --> 00:02:31.508
+the YAML file before running every test.
+
+51
+00:02:31.508 --> 00:02:35.701
+This enables us to work against a known set of data and to be sure that our
+
+52
+00:02:35.701 --> 00:02:39.008
+unit tests have a consistent set of data every time they run.
+
+53
+00:02:39.008 --> 00:02:43.629
+The products.yml file creates 2 products, Product 1 and Product 2.
+
+54
+00:02:43.629 --> 00:02:45.997
+Because this file is a YAML file,
+
+55
+00:02:45.997 --> 00:02:49.414
+the dashes and tabbing are required to match what you see on the screen.
+
+56
+00:02:49.414 --> 00:02:51.369
+Essentially, using this script,
+
+57
+00:02:51.369 --> 00:02:54.124
+you can define as many products as you would like with
+
+58
+00:02:54.124 --> 00:02:55.818
+whatever attributes you would like.
+
+59
+00:02:55.818 --> 00:02:57.905
+Furthermore, if we had more tables,
+
+60
+00:02:57.905 --> 00:03:00.762
+we could define their entries in the same YAML file.
+
+61
+00:03:00.762 --> 00:03:04.999
+The file itself is stored in src/test/resources/datasets,
+
+62
+00:03:04.999 --> 00:03:07.654
+where the DbUnit extension will find it.
+
+63
+00:03:07.654 --> 00:03:08.810
+When we build our test method,
+
+64
+00:03:08.810 --> 00:03:12.656
+we leverage the DataSet annotation and reference the YAML file.
+
+65
+00:03:12.656 --> 00:03:17.332
+DbUnit Extension will retrieve this file and use it to populate the database.
+
+66
+00:03:17.332 --> 00:03:18.835
+Let's dive into the code.
+
+67
+00:03:18.835 --> 00:03:21.290
+First, we're going to review the test setup requirements,
+
+68
+00:03:21.290 --> 00:03:24.968
+including the test configuration class and the product.yml file,
+
+69
+00:03:24.968 --> 00:03:27.520
+and then we're going to review the set of unit
+
+70
+00:03:27.520 --> 00:03:29.466
+tests and understand how they work.
+
+71
+00:03:29.466 --> 00:03:33.763
+Let's begin by looking at the ProductRepositoryTestConfiguration file.
+
+72
+00:03:33.763 --> 00:03:37.309
+This class is annotated with Spring's Configuration annotation,
+
+73
+00:03:37.309 --> 00:03:39.612
+which identifies this as a Spring configuration class,
+
+74
+00:03:39.612 --> 00:03:41.743
+and with the Profile test annotation,
+
+75
+00:03:41.743 --> 00:03:45.273
+which tells Spring to only use this configuration for classes
+
+76
+00:03:45.273 --> 00:03:48.054
+that have test in their active profiles.
+
+77
+00:03:48.054 --> 00:03:50.534
+This class contains a single method, DataSource,
+
+78
+00:03:50.534 --> 00:03:53.621
+which creates a new H2 dataSource instance.
+
+79
+00:03:53.621 --> 00:03:56.078
+It's annotated with the Bean annotation,
+
+80
+00:03:56.078 --> 00:03:59.059
+which means that Spring will use it to create a Spring-managed bean,
+
+81
+00:03:59.059 --> 00:04:00.654
+and the Primary annotation,
+
+82
+00:04:00.654 --> 00:04:03.985
+which means that it will override any other bean of this type,
+
+83
+00:04:03.985 --> 00:04:06.021
+but only for the test profile.
+
+84
+00:04:06.021 --> 00:04:08.138
+Now let's look at the product.yml file.
+
+85
+00:04:08.138 --> 00:04:10.527
+This file is located in the src/test/
+
+86
+00:04:10.527 --> 00:04:13.943
+resources/datasets folder and creates two products.
+
+87
+00:04:13.943 --> 00:04:15.785
+You're free to create more products,
+
+88
+00:04:15.785 --> 00:04:18.076
+or even create other database tables; furthermore,
+
+89
+00:04:18.076 --> 00:04:20.020
+if the tests are more comprehensive,
+
+90
+00:04:20.020 --> 00:04:24.015
+you're free to create multiple YAML files and import different
+
+91
+00:04:24.015 --> 00:04:26.598
+YAML files for different test scenarios.
+
+92
+00:04:26.598 --> 00:04:29.721
+Now let's look at the ProductRepositoryTest class.
+
+93
+00:04:29.721 --> 00:04:32.379
+This class is annotated with three annotations.
+
+94
+00:04:32.379 --> 00:04:35.583
+The ExtendWith annotation specifies two extensions,
+
+95
+00:04:35.583 --> 00:04:38.566
+Spring extension, and DBUnitExtension.
+
+96
+00:04:38.566 --> 00:04:41.057
+You're already familiar with the Spring extension.
+
+97
+00:04:41.057 --> 00:04:43.989
+It uses JUnit 5 lifecycle notifications to manage
+
+98
+00:04:43.989 --> 00:04:45.795
+the Spring application context.
+
+99
+00:04:45.795 --> 00:04:49.378
+The DBUnitExtension uses Spring 5 lifecycle notifications to
+
+100
+00:04:49.378 --> 00:04:51.747
+manage the database under test; specifically,
+
+101
+00:04:51.747 --> 00:04:56.856
+it will erase and rebuild a database between test method executions so that
+
+102
+00:04:56.856 --> 00:05:00.884
+we'll always have a known set of good data to test with.
+
+103
+00:05:00.884 --> 00:05:04.204
+The SpringBootTest annotation scans the class path and creates a
+
+104
+00:05:04.204 --> 00:05:06.809
+Spring application context for use in this test.
+
+105
+00:05:06.809 --> 00:05:10.117
+And the ActiveProfiles is used to tell Spring what
+
+106
+00:05:10.117 --> 00:05:12.513
+profiles are active for this test.
+
+107
+00:05:12.513 --> 00:05:16.149
+Specifying that we're using the test profile enables us to use the
+
+108
+00:05:16.149 --> 00:05:20.266
+ProductRepositoryTest configurations version of the H2 dataSource.
+
+109
+00:05:20.266 --> 00:05:24.848
+We have Autowired into the ProductRepositoryTest our DataSource bean,
+
+110
+00:05:24.848 --> 00:05:26.972
+as well as the ProductRepository that we're going to test.
+
+111
+00:05:26.972 --> 00:05:30.667
+In order for the DBUnitExtension to manage our DataSource,
+
+112
+00:05:30.667 --> 00:05:34.864
+we need to provide a method named getConnectionHolder that provides a
+
+113
+00:05:34.864 --> 00:05:37.645
+function that generates connections to our database.
+
+114
+00:05:37.645 --> 00:05:41.023
+We return a simple lambda expression that returns a
+
+115
+00:05:41.023 --> 00:05:42.496
+connection from our dataSource.
+
+116
+00:05:42.496 --> 00:05:45.317
+The first test we want to look at is testFindAll.
+
+117
+00:05:45.317 --> 00:05:48.320
+Like all tests, it's annotated with the JUnit 5 Test annotation,
+
+118
+00:05:48.320 --> 00:05:51.501
+but it also includes the DataSet annotation.
+
+119
+00:05:51.501 --> 00:05:54.777
+The DataSet annotation specifies a comma-separated list of
+
+120
+00:05:54.777 --> 00:05:57.854
+datasets to load before executing the test case.
+
+121
+00:05:57.854 --> 00:06:00.243
+In this example, we have a single dataset,
+
+122
+00:06:00.243 --> 00:06:03.499
+which is loaded from the products.yml file that we saw earlier.
+
+123
+00:06:03.499 --> 00:06:05.945
+Let's take a quick look at the DataSet annotation so that
+
+124
+00:06:05.945 --> 00:06:08.243
+you can see the options available to you.
+
+125
+00:06:08.243 --> 00:06:11.897
+Some of the interesting values include the value,
+
+126
+00:06:11.897 --> 00:06:13.839
+which contains the dataset to load or a
+
+127
+00:06:13.839 --> 00:06:16.551
+comma-separated list of datasets to load,
+
+128
+00:06:16.551 --> 00:06:20.175
+the strategy, which defines the SeedStrategy for the dataset.
+
+129
+00:06:20.175 --> 00:06:23.047
+We left this as its default value of CLEAN_INSERT,
+
+130
+00:06:23.047 --> 00:06:27.287
+which means that DbUnit will clean and then insert data from the
+
+131
+00:06:27.287 --> 00:06:30.295
+specified datasets into the database tables.
+
+132
+00:06:30.295 --> 00:06:33.147
+Other SeedStrategy values include INSERT,
+
+133
+00:06:33.147 --> 00:06:37.107
+which inserts the data from the dataset into the database tables.
+
+134
+00:06:37.107 --> 00:06:40.058
+In this case, existing rows are left unaffected.
+
+135
+00:06:40.058 --> 00:06:44.499
+REFRESH, which executes updates for matching rows in the dataset,
+
+136
+00:06:44.499 --> 00:06:47.855
+inserts missing rows, and leaves existing rows unaffected.
+
+137
+00:06:47.855 --> 00:06:51.376
+And UPDATE, which updates existing rows in the dataset,
+
+138
+00:06:51.376 --> 00:06:54.728
+but if the dataset contains new rows, then it throws an exception.
+
+139
+00:06:54.728 --> 00:06:58.178
+CLEAN_INSERT makes things cleaner for us because we can control every
+
+140
+00:06:58.178 --> 00:07:01.154
+row that is in the database when our tests run.
+
+141
+00:07:01.154 --> 00:07:04.384
+If we opted for an update or a refresh strategy and one of
+
+142
+00:07:04.384 --> 00:07:06.805
+our tests inserted a row into the database,
+
+143
+00:07:06.805 --> 00:07:11.140
+then the order in which test runs could affect the results; for example,
+
+144
+00:07:11.140 --> 00:07:15.692
+our testFindAll method tests the number of records returned by the repository.
+
+145
+00:07:15.692 --> 00:07:18.751
+If it's the first test to run, then it would find two rows,
+
+146
+00:07:18.751 --> 00:07:21.339
+but if any of the insert tests ran first,
+
+147
+00:07:21.339 --> 00:07:24.794
+then the number of returned rows would not be deterministic
+
+148
+00:07:24.794 --> 00:07:27.449
+and could inadvertently break our test case.
+
+149
+00:07:27.449 --> 00:07:29.397
+CLEAN_INSERT is the most expensive strategy,
+
+150
+00:07:29.397 --> 00:07:32.995
+but depending on your test case, it's also the safest.
+
+151
+00:07:32.995 --> 00:07:35.950
+Other interesting configuration options are,
+
+152
+00:07:35.950 --> 00:07:38.812
+executeStatementsBefore, executeStatementsAfter,
+
+153
+00:07:38.812 --> 00:07:42.407
+executeScriptsBefore, and executeScriptsAfter.
+
+154
+00:07:42.407 --> 00:07:42.939
+In short,
+
+155
+00:07:42.939 --> 00:07:46.193
+the dataset gives you complete control of how your database will
+
+156
+00:07:46.193 --> 00:07:49.233
+look both before and after a test case runs.
+
+157
+00:07:49.233 --> 00:07:51.619
+Getting back to our testFindAll test case,
+
+158
+00:07:51.619 --> 00:07:53.510
+we know that the database will have two products
+
+159
+00:07:53.510 --> 00:07:55.748
+defined in the products.yml file,
+
+160
+00:07:55.748 --> 00:07:58.992
+so we can execute a findAll on our repository and validate
+
+161
+00:07:58.992 --> 00:08:01.906
+that we do in fact get two products back.
+
+162
+00:08:01.906 --> 00:08:05.468
+The next test method is testFindByIdSuccess.
+
+163
+00:08:05.468 --> 00:08:09.203
+The database is initialized with the two products from the products.yml file,
+
+164
+00:08:09.203 --> 00:08:15.169
+1 with an ID of 1 and 1 with an ID 2, so we can query for the product with ID 2.
+
+165
+00:08:15.169 --> 00:08:18.640
+This test finds the product with ID 2, asserts that it's present,
+
+166
+00:08:18.640 --> 00:08:21.071
+and then validates all of the products fields.
+
+167
+00:08:21.071 --> 00:08:24.352
+The testFindByIdNotFound method performs the same steps,
+
+168
+00:08:24.352 --> 00:08:28.979
+but queries for the product with ID 3, which doesn't exist.
+
+169
+00:08:28.979 --> 00:08:31.341
+It then validates the product is not present.
+
+170
+00:08:31.341 --> 00:08:35.075
+The testSave method creates a new Product and saves it to the
+
+171
+00:08:35.075 --> 00:08:37.969
+database by executing the repository's save method.
+
+172
+00:08:37.969 --> 00:08:40.319
+It then validates that the returned product is correct,
+
+173
+00:08:40.319 --> 00:08:43.363
+and then it queries the database for the product with the
+
+174
+00:08:43.363 --> 00:08:46.316
+saved products ID and validates its fields.
+
+175
+00:08:46.316 --> 00:08:48.982
+The testUpdateSuccess method tests a successful update.
+
+176
+00:08:48.982 --> 00:08:53.472
+It creates a new product with ID 1, but with different values.
+
+177
+00:08:53.472 --> 00:08:56.058
+It executes the repository's update method,
+
+178
+00:08:56.058 --> 00:08:58.448
+asserts that the update returns true,
+
+179
+00:08:58.448 --> 00:09:01.053
+and then it retrieves the product from the database and validates
+
+180
+00:09:01.053 --> 00:09:03.514
+that the fields have been updated correctly.
+
+181
+00:09:03.514 --> 00:09:06.299
+The testUpdateFailure method attempts to update a
+
+182
+00:09:06.299 --> 00:09:07.956
+product that's not in the database.
+
+183
+00:09:07.956 --> 00:09:10.105
+It creates a new product with ID 3,
+
+184
+00:09:10.105 --> 00:09:13.208
+and then executes the repository's update method.
+
+185
+00:09:13.208 --> 00:09:16.293
+Because the database does not contain a product with ID 3,
+
+186
+00:09:16.293 --> 00:09:20.284
+the update will fail and and the update method will return false.
+
+187
+00:09:20.284 --> 00:09:23.673
+The testDeleteSuccess method deletes the product with ID 1,
+
+188
+00:09:23.673 --> 00:09:27.151
+validates that the delete method returns true,
+
+189
+00:09:27.151 --> 00:09:30.098
+and then queries for the product with ID 1 and validates that
+
+190
+00:09:30.098 --> 00:09:32.752
+it's no longer present in the database.
+
+191
+00:09:32.752 --> 00:09:33.235
+Finally,
+
+192
+00:09:33.235 --> 00:09:35.778
+the testDeleteFailure method attempts to delete a product
+
+193
+00:09:35.778 --> 00:09:37.736
+that does not exist in the database.
+
+194
+00:09:37.736 --> 00:09:41.414
+It executes the delete with ID 3, which doesn't exist,
+
+195
+00:09:41.414 --> 00:09:44.994
+and then validates that the delete method returns false.
+
+196
+00:09:44.994 --> 00:09:48.396
+Resetting the database to a known good state between test runs
+
+197
+00:09:48.396 --> 00:09:56.000
+helps us write unit tests because we can be confident that we will always receive the data that we expect.
+

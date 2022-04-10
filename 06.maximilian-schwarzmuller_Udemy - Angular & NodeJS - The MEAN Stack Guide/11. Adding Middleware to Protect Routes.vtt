@@ -1,0 +1,466 @@
+WEBVTT
+
+00:02.150 --> 00:07.710
+So we're now creating this Json Web Token and we're sending it back to our client,
+
+00:07.760 --> 00:10.160
+we can receive it in our Angular app
+
+00:10.160 --> 00:14.580
+now in the auth service as shown in the last lecture, here.
+
+00:14.600 --> 00:23.270
+Now of course we want to use that token to control access on the back-end and deny it for any requests
+
+00:23.330 --> 00:25.950
+that don't have a valid token
+
+00:25.970 --> 00:32.630
+and of course we then want to be able to still reach these requests by actually adding the token to
+
+00:32.720 --> 00:36.750
+requests sent by Angular to such protected endpoints.
+
+00:36.890 --> 00:39.600
+So that is what I want to start working on now
+
+00:39.890 --> 00:44.130
+and for that, let's actually start verifying the token on the server.
+
+00:44.180 --> 00:50.330
+So let's check whether a valid token is attached to an incoming request and let's do that for some of
+
+00:50.390 --> 00:51.780
+our routes,
+
+00:51.800 --> 00:55.330
+the question of course is which routes should be protected?
+
+00:55.520 --> 01:02.180
+Now on the back-end, the user related routes for logging in and for signing up of course should not be
+
+01:02.200 --> 01:08.660
+protected, any user of our web page should be able to reach these routes, any user should be able to send
+
+01:08.660 --> 01:15.560
+requests to these routes because the users interested in signing up and logging in of course are not authenticated,
+
+01:15.560 --> 01:18.090
+that's the idea behind these routes.
+
+01:18.280 --> 01:25.690
+Now for posts, that actually changes. There we actually have some routes that should be protected, like
+
+01:25.690 --> 01:32.660
+for example this post route for creating a new post or the put route for editing one. The get route,
+
+01:32.710 --> 01:39.610
+that should definitely be available and we could argue that both the route for getting all posts as well
+
+01:39.610 --> 01:45.610
+as a single post should be open to anyone because reading is something I want to allow to unauthenticated
+
+01:45.610 --> 01:49.890
+users too, deleting on the other hand again should not be allowed,
+
+01:49.960 --> 01:55.210
+this should again be disabled for users who are not authenticated.
+
+01:55.240 --> 02:01.690
+So we have to add something to these routes to check whether an incoming request has a valid token or
+
+02:01.690 --> 02:02.430
+not
+
+02:02.620 --> 02:07.590
+and for that, we can actually use an approach we used for the image upload already. There
+
+02:07.630 --> 02:11.340
+we added an extra middleware to our route setup.
+
+02:11.380 --> 02:17.170
+Remember the route is constructed to first have a look at the path and then here, we use the multer
+
+02:17.200 --> 02:23.830
+middleware to extract any files that are part of the incoming request before we then as a third argument
+
+02:23.860 --> 02:27.660
+to our route set up execute our own function.
+
+02:27.670 --> 02:30.770
+Now we can add as many middlewares as we want
+
+02:30.850 --> 02:38.180
+and the idea is to add yet another extra middleware here which simply checks whether we are authenticated
+
+02:38.350 --> 02:39.500
+or not
+
+02:39.850 --> 02:43.260
+and this will be a middleware we create on our own.
+
+02:43.540 --> 02:48.580
+So for that, let's create a new folder in the back-end folder and I'll name it middleware,
+
+02:48.580 --> 02:52.000
+the name is totally up to you but I will create a so-called middleware here,
+
+02:52.000 --> 02:58.810
+so a function which will essentially parse the request and then decide whether the request is allowed
+
+02:58.810 --> 03:01.550
+to continue or if it should be rejected
+
+03:01.660 --> 03:08.890
+if we want to send a response that you're not authorized in our case. So for that, I'll create a new
+
+03:09.040 --> 03:12.460
+file in that middleware folder and I will name it check-auth.js,
+
+03:12.490 --> 03:18.400
+the name is totally up to you but this describes what I plan on doing,
+
+03:18.400 --> 03:25.030
+I want to check whether we are authenticated or not and I will check this with the help of that token
+
+03:25.030 --> 03:28.820
+I was talking about, of that Json Web Token.
+
+03:29.140 --> 03:31.060
+Now how do we do that?
+
+03:31.060 --> 03:38.170
+Well we want to check if A, you do have a token attached to your request but that doesn't mean that the
+
+03:38.170 --> 03:39.290
+token is valid,
+
+03:39.430 --> 03:46.900
+so the second step is that we validate this token and since we use that Json Web Token package to
+
+03:46.900 --> 03:51.880
+create the token here with the sign method in the user route,
+
+03:51.880 --> 03:58.030
+we can also use it to verify an incoming token and we'll do this in check-auth.
+
+03:58.030 --> 04:05.410
+So here, I will import JWT by storing it in a constant and then importing it with the required keyword,
+
+04:05.590 --> 04:11.850
+Json Web Token is the package name and with it imported, I'll then export something in that file
+
+04:11.860 --> 04:16.720
+because I want to use that middleware in other files, in my route files to be precise,
+
+04:16.810 --> 04:18.100
+so I will use that NodeJS
+
+04:18.120 --> 04:25.780
+export syntax with module exports and set this equal to a function because a middleware is just
+
+04:25.780 --> 04:32.500
+a function which receives our three well-known arguments, the request, a response object which would allow
+
+04:32.500 --> 04:38.730
+us to create a response and next which we could call if the request should be allowed to continue.
+
+04:38.830 --> 04:43.060
+This is how that looks like, this is a typical middleware in Node/Express,
+
+04:43.060 --> 04:47.570
+it's just a function which gets executed on the incoming requests.
+
+04:47.620 --> 04:50.650
+That's also what multer is doing behind the scenes,
+
+04:50.650 --> 04:57.040
+it's exposing such a function and that's actually the function we define here as the last middleware too.
+
+04:57.280 --> 04:59.010
+That is just a middleware here,
+
+04:59.050 --> 05:01.790
+we're just taking the request and doing something with it
+
+05:02.050 --> 05:07.810
+and now we're creating an extra function which runs before our final function. Here
+
+05:08.050 --> 05:14.080
+I will try to get the token from the incoming request and store it in this constant.
+
+05:14.110 --> 05:18.190
+Now it's up to you where you want to get that token from,
+
+05:18.190 --> 05:22.270
+you could request or parse it from the URL,
+
+05:22.300 --> 05:24.190
+let's say as a query parameter,
+
+05:24.310 --> 05:31.780
+so you could say my token is stored in my query parameters and there, I have let's say an auth field. But
+
+05:31.840 --> 05:34.170
+I want to accept it as a header,
+
+05:34.270 --> 05:40.630
+so I will look into the headers of my incoming request, Express gives us the headers object for that
+
+05:40.960 --> 05:45.070
+and there I expect to have an authorization header.
+
+05:45.070 --> 05:50.860
+Now you can theoretically expect any header you want but authorization is a typically chosen name
+
+05:51.040 --> 05:55.910
+for attaching authorization information to a request.
+
+05:55.920 --> 06:02.980
+Now there, I expect to get my token and actually, the pattern you typically use is that you assign
+
+06:02.980 --> 06:07.480
+a value to that header which uses a word, bearer
+
+06:07.690 --> 06:14.710
+and then the token and that simply is a convention to indicate, well that you basically added such a
+
+06:14.710 --> 06:20.200
+token to your authorization because there are authentication alternatives where you don't use a token
+
+06:20.200 --> 06:23.590
+like this and the bearer keyword is totally up to you,
+
+06:23.590 --> 06:25.700
+it's optional but it's often chosen.
+
+06:25.720 --> 06:27.830
+You see that on other APIs too
+
+06:27.940 --> 06:34.510
+and therefore we will use it too. Since the token then is the second part of that string, I will split the
+
+06:34.670 --> 06:38.140
+authorization header on the whitespace it contains,
+
+06:38.140 --> 06:44.040
+so after this bearer word and I'm then interested in the second value we got out of there,
+
+06:44.050 --> 06:49.980
+so since we started index zero, the second element has the index one because that will be the part after
+
+06:49.990 --> 06:50.810
+the whitespace,
+
+06:50.950 --> 06:52.590
+so our token.
+
+06:52.780 --> 06:55.350
+Now that's just a convention which you can edit by the way.
+
+06:55.510 --> 07:00.880
+You of course don't have to expect this bearer word which then would mean you couldn't omit that split
+
+07:00.880 --> 07:01.630
+logic
+
+07:01.750 --> 07:06.400
+or as I mentioned earlier, maybe you want to get that token as a query parameter.
+
+07:06.460 --> 07:07.710
+That's totally up to you,
+
+07:07.720 --> 07:11.690
+I will use this approach since this is an approach you see in many APIs.
+
+07:12.040 --> 07:17.000
+Now this gives us the token, we could now check whether this is undefined or not
+
+07:17.080 --> 07:20.080
+because it should not be undefined if we have a token.
+
+07:20.080 --> 07:26.530
+Now in general this could also just fail, if we get no authorization header, calling split would simply
+
+07:26.530 --> 07:27.900
+throw an error.
+
+07:28.180 --> 07:32.010
+So I will actually wrap this into a try/catch block here,
+
+07:32.020 --> 07:38.410
+this means I try to do that split but it can fail and I will catch the error if it fails.
+
+07:38.440 --> 07:41.790
+Now if it fails, I of course also know that
+
+07:41.830 --> 07:43.130
+we don't have a token
+
+07:43.210 --> 07:45.090
+and that means we're not authenticated.
+
+07:45.220 --> 07:52.500
+So in this case, I will simply set a response with a status of 401 for not authenticated
+
+07:52.500 --> 07:53.250
+.
+
+07:53.740 --> 07:57.480
+and then you can send back some Json data if you want,
+
+07:57.580 --> 08:02.230
+for example a message of failed.
+
+08:02.310 --> 08:04.570
+So this is one basic set up
+
+08:04.590 --> 08:06.720
+but now we're just retrieving the token
+
+08:06.720 --> 08:10.220
+and if we got a token, we right now wouldn't do anything.
+
+08:10.350 --> 08:12.440
+So we have to write more code here
+
+08:12.450 --> 08:19.020
+in the success case that we at least were able to extract a token because the next step then is to
+
+08:19.020 --> 08:26.750
+verify that token and for that, we can use the JWT verify method and that verify method
+
+08:26.760 --> 08:31.320
+by the way will also throw an error if it fails to verify,
+
+08:31.410 --> 08:33.970
+so this should also go into the try/catch block.
+
+08:34.780 --> 08:42.530
+There we pass an argument and that argument is the token we parsed from the incoming request. Now for verify
+
+08:42.670 --> 08:48.850
+to work, we need to pass one other important piece of information, that secret string which we also used
+
+08:48.850 --> 08:50.420
+for creating the token,
+
+08:50.440 --> 08:57.690
+so this string we used for signing because this of course is taken into account by the signing algorithm
+
+08:58.000 --> 09:03.620
+and therefore, the package also needs to know this secret to verify that token,
+
+09:03.640 --> 09:11.280
+so to check whether it was created by this package on our server and if it is valid. And if this does
+
+09:11.280 --> 09:18.690
+not throw an error, then we know that we have a valid token, if it does throw an error, we go into the catch
+
+09:18.690 --> 09:21.940
+block and we send back an error response.
+
+09:22.050 --> 09:27.990
+If it does not fail, then I want to call next and let the execution continue,
+
+09:27.990 --> 09:32.290
+so now the request will be able to travel on.
+
+09:32.310 --> 09:38.400
+Now to use that middleware, we have to import it into our routes file in the posts route file because
+
+09:38.400 --> 09:41.640
+we don't plan on using that middleware in user.js file
+
+09:41.790 --> 09:45.220
+and there, I simply add a new import, checkAuth, 
+
+09:45.240 --> 09:47.640
+you can name this constant whatever you want
+
+09:47.640 --> 09:55.730
+and here, I will require and now point to that middleware folder and there, the check-auth file without
+
+09:55.730 --> 09:57.260
+the file extension.
+
+09:57.260 --> 10:03.140
+And now we add that middleware very easily by simply going to the routes we want to protect, like this
+
+10:03.140 --> 10:04.180
+post route
+
+10:04.400 --> 10:08.660
+and then by adding it as an extra argument after the path
+
+10:08.810 --> 10:11.980
+but before all the other logic we want to execute.
+
+10:12.200 --> 10:17.780
+So for creating the post for example, I don't even want to try to extract the uploaded image if we're
+
+10:17.780 --> 10:18.920
+not authenticated,
+
+10:19.010 --> 10:26.130
+so I will run this before we run the multer middleware. Now for putting, I have the same logic after
+
+10:26.130 --> 10:26.770
+the path
+
+10:26.820 --> 10:33.360
+before we try to get the image. By the way, please note, you don't execute this function, you just pass the
+
+10:33.360 --> 10:39.480
+reference to that function you created, to that middleware function and Express will execute it for you
+
+10:39.660 --> 10:41.970
+when a request reaches it.
+
+10:42.540 --> 10:43.800
+So now we added it here.
+
+10:43.830 --> 10:50.730
+Now I mentioned that I want to allow the fetching of all posts and of single posts, so we don't add the
+
+10:50.740 --> 10:53.040
+middleware here but for deleting,
+
+10:53.100 --> 11:00.400
+I will again add it and now all these routes should be protected and we can check this. If we save that
+
+11:00.570 --> 11:03.000
+and our server therefore restarts,
+
+11:03.180 --> 11:09.520
+if we now reload the Angular app, we should not be able to create a new post.
+
+11:09.550 --> 11:15.150
+So if I enter something here, choose an image and enter something here too,
+
+11:15.550 --> 11:17.320
+we get an error here on the right.
+
+11:17.320 --> 11:19.800
+We're not handling it correctly on the front-end yet,
+
+11:19.830 --> 11:24.430
+this is something we'll do soon but we're getting it here on the right,
+
+11:24.460 --> 11:27.070
+we get that unauthorized error
+
+11:27.340 --> 11:33.460
+and that of course is a great sign because that means our authentication check on the back-end is working.
+
+11:33.460 --> 11:35.890
+Now of course, that breaks our app for now,
+
+11:35.890 --> 11:41.960
+so in the next lecture, we will actually attach the token to requests sent from the front-end and see
+
+11:41.960 --> 11:43.410
+that we make it work again
+
+11:43.450 --> 11:45.700
+but then with authentication.

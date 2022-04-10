@@ -1,0 +1,169 @@
+WEBVTT
+1
+00:00:02.434 --> 00:00:06.896
+Generally I prefer to have a reusable Bean that I use for sending messages.
+
+2
+00:00:06.896 --> 00:00:09.323
+This takes care of most of the required boilerplate code,
+
+3
+00:00:09.323 --> 00:00:12.868
+leaving the bare requirements up to the calling client.
+
+4
+00:00:12.868 --> 00:00:15.526
+So here I've got a local Bean interface defined.
+
+5
+00:00:15.526 --> 00:00:20.356
+It currently has a single method called sendMessage, which takes two parameters.
+
+6
+00:00:20.356 --> 00:00:22.432
+The destination message is to be sent to,
+
+7
+00:00:22.432 --> 00:00:27.096
+and a Java 8 function that takes a session object as the input parameter,
+
+8
+00:00:27.096 --> 00:00:29.426
+and returns a JMS message object.
+
+9
+00:00:29.426 --> 00:00:31.176
+Now if you aren't yet using Java 8,
+
+10
+00:00:31.176 --> 00:00:34.310
+then you probably have to replace this with a custom callback
+
+11
+00:00:34.310 --> 00:00:37.226
+interface of some description that can be invoked.
+
+12
+00:00:37.226 --> 00:00:40.415
+So to the implementation of this interface,
+
+13
+00:00:40.415 --> 00:00:43.000
+I'm declaring a stateless session Bean,
+
+14
+00:00:43.000 --> 00:00:46.818
+in that I'm using the resource annotation to inject the
+
+15
+00:00:46.818 --> 00:00:49.514
+ConnectionFactory using its JNDI name.
+
+16
+00:00:49.514 --> 00:00:51.670
+In the SendMessage method,
+
+17
+00:00:51.670 --> 00:00:56.311
+I'm creating a new connection session and messageProducer objects.
+
+18
+00:00:56.311 --> 00:00:58.291
+Well hopefully this will have raised some alarm bells with you.
+
+19
+00:00:58.291 --> 00:01:00.497
+If you've watched the earlier modules in this course,
+
+20
+00:01:00.497 --> 00:01:03.660
+then you'll recall that I said it was good practice
+
+21
+00:01:03.660 --> 00:01:05.897
+to cache or pool the connections, sessions,
+
+22
+00:01:05.897 --> 00:01:06.869
+and message producers.
+
+23
+00:01:06.869 --> 00:01:09.438
+So why have I broken this rule?
+
+24
+00:01:09.438 --> 00:01:10.209
+Well I haven't really.
+
+25
+00:01:10.209 --> 00:01:12.660
+The difference is we are in a Java Enterprise Edition container,
+
+26
+00:01:12.660 --> 00:01:15.839
+and that container has taken on the responsibility of
+
+27
+00:01:15.839 --> 00:01:18.065
+doing that caching and pooling for you.
+
+28
+00:01:18.065 --> 00:01:21.430
+So you don't need to be worried about it.
+
+29
+00:01:21.430 --> 00:01:23.249
+When you close a connection, for example,
+
+30
+00:01:23.249 --> 00:01:24.548
+it's not really closing it,
+
+31
+00:01:24.548 --> 00:01:27.876
+it's simply putting the connection back into a pool of
+
+32
+00:01:27.876 --> 00:01:31.032
+available connections for reuse by other processes.
+
+33
+00:01:31.032 --> 00:01:32.350
+Once I've created all the objects I need,
+
+34
+00:01:32.350 --> 00:01:34.937
+then I invoke the messageCreator function passed in,
+
+35
+00:01:34.937 --> 00:01:38.792
+passing in a reference to the session object.
+
+36
+00:01:38.792 --> 00:01:40.788
+This function returns the JMS message object,
+
+37
+00:01:40.788 --> 00:01:43.294
+which we then send to the required destination.
+
+38
+00:01:43.294 --> 00:01:45.453
+If I scroll down a bit,
+
+39
+00:01:45.453 --> 00:01:49.551
+you will notice this massive final section of the tricatch block,
+
+40
+00:01:49.551 --> 00:01:52.201
+in which I'm closing all the available resources.
+
+41
+00:01:52.201 --> 00:01:56.055
+This is why I like to create this style of reusable session Bean.
+
+42
+00:01:56.055 --> 00:02:04.000
+I can take care of all this nonsense in one place, rather than littering my code base with tricatch blocks.
+

@@ -1,0 +1,265 @@
+WEBVTT
+
+00:02.250 --> 00:10.170
+Do you remember, the goal was to be able to also store my dynamically loaded content, especially the fonts
+
+00:10.200 --> 00:13.820
+and the CSS files we're pulling in from CDNs for now.
+
+00:14.100 --> 00:20.510
+Later of course we'll also implement all the other strategies we use in our own service worker file.
+
+00:20.850 --> 00:22.650
+So how do we do that?
+
+00:22.770 --> 00:25.120
+Let's go to our sw-base.js
+
+00:25.160 --> 00:25.900
+file
+
+00:26.160 --> 00:32.040
+and there let's enter some code after we initialize workbox, so that we can take advantage of it
+
+00:32.160 --> 00:33.950
+but before we precache.
+
+00:34.260 --> 00:43.460
+So here, I now want to set up my own routes for these dynamically loaded contents like fonts and so on.
+
+00:43.500 --> 00:48.210
+To do this, I'll create a new route with the workboxSW package
+
+00:48.210 --> 00:55.200
+we're setting up here and this not only has a precache method, it also has a router object,
+
+00:55.230 --> 01:01.960
+that's probably the most important object this exposes to you. Router provides a register route method
+
+01:02.310 --> 01:03.780
+and this is a very cool method.
+
+01:03.930 --> 01:13.270
+Here you can pass an Express style route, so something like https://something.com and then a
+
+01:13.270 --> 01:15.080
+slug or an ID,
+
+01:15.120 --> 01:22.500
+so as you are used to routing from Express to handle different incoming requests or you pass a regular
+
+01:22.500 --> 01:23.230
+expression,
+
+01:23.280 --> 01:24.650
+that's what I'm going to do here
+
+01:24.990 --> 01:33.120
+and I want to cache all requests going to googleapis or gstatic in the URL
+
+01:33.140 --> 01:40.290
+because these two URLs are basically the ones I'm using here to load my fonts. The
+
+01:40.290 --> 01:43.570
+regular expression can look like this.
+
+01:43.650 --> 01:49.260
+I want to find googleapis or gstatic
+
+01:49.380 --> 01:55.500
+in the URL we're sending the request to and they should then end with .com.
+
+01:55.500 --> 01:57.040
+This is my regular expression
+
+01:57.330 --> 02:04.410
+and as I just said, what this in the end will do is it will just parse any requests we make, it automatically
+
+02:04.410 --> 02:06.810
+registers a fetch listener, we don't have to do that
+
+02:06.870 --> 02:10.260
+but behind the scenes, it still has an event listener for fetch,
+
+02:10.260 --> 02:11.050
+no worries,
+
+02:11.280 --> 02:14.000
+it's no magic, it's just doing that behind the scenes.
+
+02:14.220 --> 02:20.910
+So it will listen to any incoming request with its fetch listener and then run the or test the incoming
+
+02:20.910 --> 02:26.490
+request against this regular expression which will return a hit if the URL we're sending a request to
+
+02:26.490 --> 02:30.130
+contains googleapis.com or gstatic.com
+
+02:30.480 --> 02:36.600
+and this makes sense because if you have a look at our application and open the network tab there, you
+
+02:36.600 --> 02:45.480
+will see that the requests we're sending for the fonts are going to googleapis.com here or gstatic
+
+02:45.480 --> 02:49.800
+if we want to get the actual icon set for the material icons.
+
+02:50.490 --> 02:58.230
+So with that, we tell workbox on which request to act. The next argument is what it should do
+
+02:58.380 --> 03:04.470
+and there we can also access the workboxSW object we initialized here at the top of this file basically
+
+03:05.220 --> 03:08.730
+and reach out to the strategies object,
+
+03:08.880 --> 03:14.620
+besides the router, another important object and let me put this a little more in the middle so it's
+
+03:14.630 --> 03:20.240
+easier to see. Now on the strategies object, we can use the staleWhileRevalidate
+
+03:20.240 --> 03:24.720
+strategy and execute it like a method.
+
+03:24.770 --> 03:26.070
+Now what does this do?
+
+03:26.090 --> 03:32.840
+staleWhileRevalidate will reach out to the cache to get that resource but also send a fetch request
+
+03:32.840 --> 03:37.220
+and if that fetch request then returns, it will cache the updated resource.
+
+03:37.220 --> 03:44.900
+So it's basically like our cache then network request with dynamic caching, staleWhileRevalidate is the
+
+03:44.900 --> 03:46.650
+name of this strategy here.
+
+03:46.970 --> 03:52.160
+So it's fetching all the assets dynamically, it stores them in the cache and then it tries to load them
+
+03:52.160 --> 03:55.730
+from there first, which makes sure that it also works offline.
+
+03:55.730 --> 04:00.070
+To this method here and keep in mind, you have to execute it,
+
+04:00.230 --> 04:03.020
+you can pass a Javascript object to configure it,
+
+04:03.050 --> 04:09.290
+I'll come back to the configuration options, for now I want to specify the cache name and you can set
+
+04:09.290 --> 04:10.480
+up any name you want to use,
+
+04:10.480 --> 04:15.700
+so here I'll store it in a Google fonts cache. Now that workbox is doing the heavy lifting for us,
+
+04:15.710 --> 04:23.480
+it's very easy to manage multiple caches for different assets, which is easier to analyze for us at least,
+
+04:23.750 --> 04:25.170
+easier to understand
+
+04:25.250 --> 04:28.340
+and we don't have to worry about the things happening there,
+
+04:28.340 --> 04:30.180
+everything is done automatically.
+
+04:30.530 --> 04:35.330
+And just to really emphasize this, this does a lot of things behind the scenes.
+
+04:35.330 --> 04:39.620
+It listens to fetch, it then sees if we can get this from the cache,
+
+04:39.620 --> 04:41.720
+if not it makes a HTTP request
+
+04:41.720 --> 04:47.290
+and if that returns, it stores the assets matching these requests in this cache,
+
+04:47.330 --> 04:49.620
+lot of work done behind the scenes here.
+
+04:50.090 --> 04:53.190
+So with that, we set up our own first route,
+
+04:53.420 --> 04:54.730
+let's see if it works.
+
+04:54.950 --> 05:03.690
+So first of all, let's rerun generate-sw to create this updated service worker. You'll see that in this
+
+05:03.690 --> 05:06.460
+updated service worker, you also have your code
+
+05:06.930 --> 05:11.570
+and then let's make sure with npm start running, that this works in our application.
+
+05:11.640 --> 05:18.330
+So there I'll clear the storage to get rid of all the old data and reload the page, reload again to have
+
+05:18.330 --> 05:20.230
+a chance for dynamic caching
+
+05:20.430 --> 05:25.410
+and let's now inspect application cache storage. Refresh it,
+
+05:25.410 --> 05:33.500
+you should see the Google font store and there, you actually see a lot of files including some pictures.
+
+05:33.850 --> 05:35.830
+So that definitely shouldn't go in there,
+
+05:35.880 --> 05:39.700
+it's because this also has Google APIs in the name, in the URL
+
+05:39.750 --> 05:40.740
+but we're going to fix this,
+
+05:40.740 --> 05:41.460
+no worries.
+
+05:41.610 --> 05:47.220
+We also see our fonts there though and that already means that if we go to the service worker and go
+
+05:47.220 --> 05:54.600
+offline, the styling is still missing but the font is indeed roboto here,
+
+05:54.600 --> 05:57.480
+so this is working here in this place.
+
+05:57.600 --> 06:00.870
+We also see that the icons are there, even though we can't do anything with it
+
+06:00.870 --> 06:01.050
+because
+
+06:01.050 --> 06:04.970
+the CSS style is still missing. So we already enhanced this,
+
+06:05.220 --> 06:10.300
+we're pulling in our fonts dynamically now through our custom route
+
+06:10.530 --> 06:16.670
+and again just because it's so important, this does a lot for us, as I see it already worked offline without
+
+06:16.750 --> 06:20.890
+us registering any fetch listener or anything like that.
+
+06:20.940 --> 06:27.950
+Now with that, we can add more routes to also make sure we store these image related to our posts correctly
+
+06:28.410 --> 06:34.850
+and still, again implement our own strategy where we used indexedDB for the dynamic content.
+
+06:34.860 --> 06:36.400
+This is also possible,
+
+06:36.420 --> 06:39.280
+we're doing all these things over the next lectures.

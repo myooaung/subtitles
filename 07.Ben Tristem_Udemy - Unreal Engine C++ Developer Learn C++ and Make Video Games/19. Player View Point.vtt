@@ -1,0 +1,676 @@
+WEBVTT
+1
+00:00:04.530 --> 00:00:05.800
+Hello and welcome in this lecture.
+
+2
+00:00:05.850 --> 00:00:08.820
+We are gonna be seeing things from the player's point of view.
+
+3
+00:00:08.850 --> 00:00:15.060
+We will be getting hold of the players viewport the location and rotation of the camera, essentially,
+
+4
+00:00:15.480 --> 00:00:21.030
+so that when we hit the trigger button, we can draw a debug camera.
+
+5
+00:00:21.040 --> 00:00:26.760
+These little red guys here, these little red boxy cameras that show us where that viewport is.
+
+6
+00:00:27.120 --> 00:00:28.080
+And we can confirm that.
+
+7
+00:00:28.080 --> 00:00:29.530
+We can then use that later on.
+
+8
+00:00:29.570 --> 00:00:34.800
+For ray tracing for the gun, let's dive in and see all of that in action.
+
+9
+00:00:36.330 --> 00:00:38.340
+Let me start this lecture with a question.
+
+10
+00:00:38.400 --> 00:00:45.840
+So if you are aiming through your viewport like this and you're trying to line up the center of your
+
+11
+00:00:45.840 --> 00:00:50.850
+screen with that D on D command center or zero command center, whatever that's meant to be.
+
+12
+00:00:51.480 --> 00:00:53.010
+And I aim.
+
+13
+00:00:53.460 --> 00:00:54.660
+What would I aim to?
+
+14
+00:00:55.080 --> 00:00:56.220
+What would I expect to hit.
+
+15
+00:00:56.700 --> 00:00:59.670
+You might say, well I'd expect it to hit that zero sum.
+
+16
+00:00:59.730 --> 00:01:01.050
+That seems like the obvious answer.
+
+17
+00:01:01.440 --> 00:01:03.900
+Well, that's not necessarily what you are going to hit.
+
+18
+00:01:03.930 --> 00:01:06.940
+Depending on how you do things, how you do your recasting.
+
+19
+00:01:07.020 --> 00:01:11.880
+So let's have a look at the strategies we have for recasting the most obvious, as you say.
+
+20
+00:01:11.880 --> 00:01:13.290
+Well, we're firing out the gun.
+
+21
+00:01:13.410 --> 00:01:15.930
+So we're going to recast down the barrel the gun.
+
+22
+00:01:15.950 --> 00:01:20.460
+Oh, by the way, this setup, which is very crude, is basically a third person set up.
+
+23
+00:01:20.460 --> 00:01:21.870
+We've got a camera back here.
+
+24
+00:01:21.870 --> 00:01:23.880
+We've got the character, we've got the gun.
+
+25
+00:01:23.880 --> 00:01:26.550
+And he's trying to shoot another Target character over here.
+
+26
+00:01:27.090 --> 00:01:27.720
+So.
+
+27
+00:01:27.780 --> 00:01:31.140
+Well, first of all, we recast out the gun like that Pule.
+
+28
+00:01:31.440 --> 00:01:37.100
+Maybe it misses because our camera is not pointing where the gun is pointing.
+
+29
+00:01:37.110 --> 00:01:38.010
+Not necessarily.
+
+30
+00:01:38.250 --> 00:01:41.490
+Even though they might be pointing in the same direction, they're slightly offset from each other.
+
+31
+00:01:41.820 --> 00:01:44.000
+So they won't necessarily hit the same things.
+
+32
+00:01:44.010 --> 00:01:48.240
+Instead, you might choose that you want to recast from the camera.
+
+33
+00:01:48.720 --> 00:01:53.250
+That means that whatever the camera is looking at is going to be the thing that is hit.
+
+34
+00:01:53.700 --> 00:01:57.270
+And that generally feels more natural in third person games.
+
+35
+00:01:57.870 --> 00:02:02.550
+When you're in first person games, things get a little bit closer because often you're very close to
+
+36
+00:02:02.550 --> 00:02:02.970
+the barrel.
+
+37
+00:02:03.000 --> 00:02:07.130
+But even in first person games, this rule tends to be the case.
+
+38
+00:02:07.140 --> 00:02:10.800
+You don't want to be moving around where the aiming point is on the screen.
+
+39
+00:02:11.130 --> 00:02:17.010
+You typically have a little piece of UI that overlays here in the middle of your screen, and that's
+
+40
+00:02:17.010 --> 00:02:18.660
+where you're going to aim down.
+
+41
+00:02:18.750 --> 00:02:24.780
+And so that's why we tend to do our casting with ray casted weapons down this viewport.
+
+42
+00:02:25.530 --> 00:02:32.370
+Now, Fortuny, there's a way for us to get this viewport and we actually do it from the controller.
+
+43
+00:02:32.400 --> 00:02:34.280
+We get the controllers viewport.
+
+44
+00:02:34.740 --> 00:02:41.700
+So that requires us to go to the character, find the character's controller and then find its viewport
+
+45
+00:02:41.760 --> 00:02:44.020
+location and rotation.
+
+46
+00:02:44.580 --> 00:02:50.600
+And what we're gonna do in this lecture is try and visualize and confirm that that viewport location
+
+47
+00:02:50.610 --> 00:02:52.860
+rotation is what we would expect.
+
+48
+00:02:53.460 --> 00:02:57.060
+We're going to do that by drawing some debug helpers.
+
+49
+00:02:57.690 --> 00:03:05.190
+Now, the debug helpers are in a header file and the header files name is debug.
+
+50
+00:03:06.420 --> 00:03:10.500
+Help us, funnily enough, I believe or draw, draw, dybbuk help.
+
+51
+00:03:10.620 --> 00:03:11.000
+That's one.
+
+52
+00:03:11.730 --> 00:03:16.500
+And if we're gonna have a look at this one after 12 to go navigate to a header file, if you've already
+
+53
+00:03:16.500 --> 00:03:22.110
+got it in your includes, we are going to look for a one called camera draw debug camera.
+
+54
+00:03:22.140 --> 00:03:26.670
+And this draws something that looks a little bit like my diagram here, a little bit of a triangle or
+
+55
+00:03:27.000 --> 00:03:29.250
+a foster home that we can use.
+
+56
+00:03:29.670 --> 00:03:31.290
+So what's it going to take in?
+
+57
+00:03:31.320 --> 00:03:32.790
+It's going to take in the world.
+
+58
+00:03:32.850 --> 00:03:34.770
+A location of that camera.
+
+59
+00:03:35.160 --> 00:03:37.650
+A rotation for said camera.
+
+60
+00:03:38.130 --> 00:03:44.450
+So location, rotation, field of view will make it will set that property to a default like 90 degrees.
+
+61
+00:03:44.480 --> 00:03:46.920
+There's a scale as a color default.
+
+62
+00:03:46.980 --> 00:03:48.140
+These are all defaulted.
+
+63
+00:03:48.150 --> 00:03:49.560
+So we can just use that defaults.
+
+64
+00:03:50.190 --> 00:03:56.310
+So let's try and draw a debug camera down here in my gun and we'll put it in the.
+
+65
+00:03:56.370 --> 00:03:59.250
+Pull the trigger method, because that's why we're doing our work.
+
+66
+00:03:59.640 --> 00:04:01.830
+It needs first of all, what was it?
+
+67
+00:04:01.920 --> 00:04:03.720
+It was a U world.
+
+68
+00:04:04.140 --> 00:04:06.240
+So we get our world.
+
+69
+00:04:07.480 --> 00:04:11.410
+We need to draw into the next thing would be a location.
+
+70
+00:04:11.440 --> 00:04:21.010
+Let's just get actor a location for the time being and do a get act rotation as well.
+
+71
+00:04:22.270 --> 00:04:25.660
+And then what was the final thing that we needed was a field of view.
+
+72
+00:04:25.690 --> 00:04:32.060
+Let's just go for a 90 degree field of view, which is just a random thing there.
+
+73
+00:04:32.350 --> 00:04:35.650
+And we can go ahead and compile and see whether this shows up.
+
+74
+00:04:36.490 --> 00:04:40.240
+And then let's hit play and hit the.
+
+75
+00:04:41.310 --> 00:04:42.080
+Trigger button.
+
+76
+00:04:42.120 --> 00:04:43.470
+I'm not seeing anything here.
+
+77
+00:04:43.500 --> 00:04:46.890
+Let's do an F eight and see if we can get closer.
+
+78
+00:04:48.540 --> 00:04:51.810
+Still not showing any kind of camera in here.
+
+79
+00:04:51.840 --> 00:04:53.520
+I'm wondering if it's really, really small.
+
+80
+00:04:54.660 --> 00:05:00.540
+So one of the other options here is that we might want to have persistent lines.
+
+81
+00:05:01.320 --> 00:05:07.650
+And so that means we need to specify everything up to it in C++ so we can set at scale to one.
+
+82
+00:05:07.650 --> 00:05:12.140
+We could even increase it maybe to a scale of two just in case it's the size.
+
+83
+00:05:12.150 --> 00:05:12.990
+That's a problem.
+
+84
+00:05:13.500 --> 00:05:16.900
+We can choose a color that's more visible, maybe red.
+
+85
+00:05:16.980 --> 00:05:18.810
+So F color, Kolon, Kolon, red.
+
+86
+00:05:19.650 --> 00:05:24.540
+And then we can try having persistent lines be true.
+
+87
+00:05:25.350 --> 00:05:27.570
+And try that one on for size.
+
+88
+00:05:28.540 --> 00:05:29.710
+So compiling again.
+
+89
+00:05:31.050 --> 00:05:35.760
+And jumping into play and there we go, we hit.
+
+90
+00:05:37.500 --> 00:05:44.460
+The trigger and you can see that it shows up a little camera box here where we hit Trigger and it's
+
+91
+00:05:44.460 --> 00:05:50.280
+rotation and location are set by the guns, location and rotation.
+
+92
+00:05:50.460 --> 00:05:53.010
+So now we want to try and get the viewport instead.
+
+93
+00:05:53.040 --> 00:05:57.030
+So, as I've already said, this is going to be on our controller.
+
+94
+00:05:57.480 --> 00:06:00.420
+So let's look at Controller Dot H.
+
+95
+00:06:00.990 --> 00:06:06.390
+Again, we want the one in the game framework and we're going to look for viewport in here.
+
+96
+00:06:06.840 --> 00:06:07.410
+Beg your pardon?
+
+97
+00:06:07.410 --> 00:06:09.870
+Actually, viewpoint is the word we're looking for.
+
+98
+00:06:10.350 --> 00:06:15.510
+And there's a few here get actor eyes, a viewpoint that would be looking through the actor's eyes.
+
+99
+00:06:15.810 --> 00:06:21.450
+But we actually want the get play a viewpoint which for an A.I. controller will use their eyes.
+
+100
+00:06:21.840 --> 00:06:24.480
+But for a player will use the player's camera.
+
+101
+00:06:24.510 --> 00:06:25.590
+So that's what we want.
+
+102
+00:06:25.590 --> 00:06:27.500
+We want to get play a viewpoint.
+
+103
+00:06:28.080 --> 00:06:31.920
+But first, what we have to get hold of that controller in the first place.
+
+104
+00:06:32.310 --> 00:06:36.300
+And the way to do that is, first of all, we need to get our owner.
+
+105
+00:06:36.420 --> 00:06:44.610
+Remember that when we had our shooter character, S.P. Open and we go down to or go up to our begin
+
+106
+00:06:44.640 --> 00:06:48.030
+play, you can see we're setting the guns owner to be the character.
+
+107
+00:06:48.600 --> 00:06:51.690
+That means that in the gun we can go the other way.
+
+108
+00:06:51.690 --> 00:06:56.700
+We can say get owner, and that's going to get us the shooter character.
+
+109
+00:06:57.120 --> 00:06:59.320
+Now, it's not going to know that it's a shoot cat.
+
+110
+00:06:59.370 --> 00:07:00.870
+All it knows is there is an actor.
+
+111
+00:07:00.900 --> 00:07:02.370
+So we're gonna have to do a cast here.
+
+112
+00:07:03.060 --> 00:07:07.590
+So we do a cast to the A shoot her character.
+
+113
+00:07:08.720 --> 00:07:12.750
+And in fact, we don't even need to know anything as much as the fact that it's a shooter character.
+
+114
+00:07:13.050 --> 00:07:18.840
+It's sufficient to know that it is a pawn and any pawn can then possess this gun, even if it's not
+
+115
+00:07:18.840 --> 00:07:19.680
+a shooter character.
+
+116
+00:07:19.950 --> 00:07:22.140
+So try and be as nonspecific as possible.
+
+117
+00:07:22.410 --> 00:07:24.170
+Why does it need to be a pawn, though?
+
+118
+00:07:24.190 --> 00:07:29.340
+It needs to be a pawn because we need to get a controller and only pawns can be possessed by controllers.
+
+119
+00:07:29.790 --> 00:07:30.360
+So let's put this in.
+
+120
+00:07:30.360 --> 00:07:39.000
+A variable is going to be a porn star and then owner porn is gonna be the name of the variable.
+
+121
+00:07:39.870 --> 00:07:41.820
+Then we need to check that this is not.
+
+122
+00:07:41.820 --> 00:07:42.180
+No.
+
+123
+00:07:48.880 --> 00:07:53.480
+And I'm just going to do this with a one liner that says if it is now, we return early from our pull
+
+124
+00:07:53.480 --> 00:07:59.120
+trigger so that we don't have any risk of trying to cool anything with a null pointer.
+
+125
+00:07:59.660 --> 00:08:09.860
+So then we can do a porn owner, get controller, and we want to save that in to the A controller star.
+
+126
+00:08:10.250 --> 00:08:12.760
+And this can be the owner controller.
+
+127
+00:08:14.310 --> 00:08:19.380
+Like so and again, we want to just check that this isn't null because we're going to be calling a method
+
+128
+00:08:19.440 --> 00:08:23.760
+on that and we can't call methods on null pointers.
+
+129
+00:08:24.060 --> 00:08:26.760
+It makes unreal, unhappy and crash.
+
+130
+00:08:27.120 --> 00:08:31.260
+So this is where we can now do our owner controller.
+
+131
+00:08:33.460 --> 00:08:37.090
+And we should be able to cool to that get play a viewpoint.
+
+132
+00:08:38.560 --> 00:08:43.330
+So here comes the challenge for you to set that location and rotation using that new function.
+
+133
+00:08:43.630 --> 00:08:45.800
+You can see the signature for it again.
+
+134
+00:08:45.900 --> 00:08:48.150
+We'll go to Controller Dot H.
+
+135
+00:08:48.260 --> 00:08:50.650
+And had a file and look at that.
+
+136
+00:08:50.740 --> 00:08:52.060
+Get player viewpoint.
+
+137
+00:08:52.060 --> 00:08:58.780
+Try and see if from this signature you can work out how to use it to get that location and rotation
+
+138
+00:08:58.780 --> 00:09:01.300
+that we want to pass into our draw debug helper.
+
+139
+00:09:01.930 --> 00:09:05.680
+And so you're going to remember that this is using out parameters.
+
+140
+00:09:05.680 --> 00:09:13.150
+So revising out parameters, draw the debug camera using that snippet that we've just written and test
+
+141
+00:09:13.150 --> 00:09:14.140
+it in the viewport.
+
+142
+00:09:14.470 --> 00:09:19.390
+Go and click the trigger button a few times in different locations and see where that camera ends up
+
+143
+00:09:19.420 --> 00:09:19.870
+showing.
+
+144
+00:09:20.230 --> 00:09:21.160
+Pause video and have a go.
+
+145
+00:09:22.510 --> 00:09:23.290
+Kay, welcome back.
+
+146
+00:09:23.620 --> 00:09:24.670
+So get PLI viewpoint.
+
+147
+00:09:24.700 --> 00:09:29.650
+I'm gonna copy the name of the method and bring it over here because it's an out parameter.
+
+148
+00:09:29.830 --> 00:09:34.090
+I will need to declare first the variables that I want those values to go into.
+
+149
+00:09:34.120 --> 00:09:36.160
+Gone f vector location.
+
+150
+00:09:36.880 --> 00:09:41.140
+We have got an F A rotator rotation.
+
+151
+00:09:42.430 --> 00:09:45.640
+And we want to pass those in as the arguments.
+
+152
+00:09:45.700 --> 00:09:51.670
+Let me just fix up my indentation there a little bit and we're going to pass in the location, the rotation.
+
+153
+00:09:52.390 --> 00:09:58.570
+And we know that because it's just been declared here when reading this, we can guess that these are
+
+154
+00:09:58.570 --> 00:10:03.940
+now our parameters, even though there isn't any syntax helpfulness from C++ on that regard.
+
+155
+00:10:04.690 --> 00:10:07.900
+And then we can pass this location instead of the act to location.
+
+156
+00:10:07.930 --> 00:10:13.650
+And we can pass this rotation instead of the active rotation into ad draw, debug camera.
+
+157
+00:10:14.350 --> 00:10:19.090
+And we can go ahead and build that, compile and try it out in the editor.
+
+158
+00:10:19.480 --> 00:10:21.340
+Well, it looks like the compile is complete.
+
+159
+00:10:21.370 --> 00:10:22.930
+Let's go and play.
+
+160
+00:10:23.710 --> 00:10:29.170
+And when I hit Trigger, you could see a camera appearing right over my viewpoint.
+
+161
+00:10:29.170 --> 00:10:29.950
+That's a good sign.
+
+162
+00:10:30.370 --> 00:10:31.390
+I step back a little bit.
+
+163
+00:10:31.420 --> 00:10:32.080
+You can see.
+
+164
+00:10:32.080 --> 00:10:32.510
+There you go.
+
+165
+00:10:32.530 --> 00:10:38.320
+We've got these cameras that are pointing in exactly the right direction from where I was just looking.
+
+166
+00:10:38.320 --> 00:10:43.720
+So you can just imagine how we're going to be able to shoot a ray out of that camera down the end of
+
+167
+00:10:43.720 --> 00:10:48.910
+the camera and try and hit something over there that I was looking at at the time.
+
+168
+00:10:49.240 --> 00:10:51.160
+And that's what we're going to be doing in the next lecture.
+
+169
+00:10:51.220 --> 00:10:51.700
+See you there.

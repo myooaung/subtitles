@@ -1,0 +1,204 @@
+1
+00:00:02,529 --> 00:00:05,450
+A common code _____ I have seen is code that does not
+
+2
+00:00:05,450 --> 00:00:06,667
+make proper use of abstractions.
+
+3
+00:00:06,667 --> 00:00:10,983
+Let's look at testing the findPerson method in the PersonService class.
+
+4
+00:00:10,983 --> 00:00:14,203
+In this example, the PersonService class directly references PersonDao,
+
+5
+00:00:14,203 --> 00:00:16,545
+which is a concrete implementation.
+
+6
+00:00:16,545 --> 00:00:18,107
+PersonDao depends upon a database.
+
+7
+00:00:18,107 --> 00:00:22,238
+This means that now our test cases not only depend upon PersonService,
+
+8
+00:00:22,238 --> 00:00:25,458
+but both PersonDao and, much worse, the database.
+
+9
+00:00:25,458 --> 00:00:28,786
+This poses several problems when writing a test.
+
+10
+00:00:28,786 --> 00:00:33,534
+It will take longer to write a test, as suitable examples need to be found.
+
+11
+00:00:33,534 --> 00:00:34,741
+The test complexity will increase,
+
+12
+00:00:34,741 --> 00:00:37,413
+as it must also account for any behavior in PersonDao.
+
+13
+00:00:37,413 --> 00:00:39,704
+The test will take longer to execute,
+
+14
+00:00:39,704 --> 00:00:43,409
+as now a network call must be made to the database.
+
+15
+00:00:43,409 --> 00:00:46,964
+For maintenance concerns, the record our test depends upon may become stale,
+
+16
+00:00:46,964 --> 00:00:51,424
+or the database our test depends upon could become unavailable.
+
+17
+00:00:51,424 --> 00:00:53,429
+We could also take this a little further.
+
+18
+00:00:53,429 --> 00:00:58,437
+Let's imagine we're testing the getPerson method in the PersonController class.
+
+19
+00:00:58,437 --> 00:01:00,728
+PersonController directly depends upon the concrete
+
+20
+00:01:00,728 --> 00:01:02,747
+implementation of PersonService, and PersonService,
+
+21
+00:01:02,747 --> 00:01:06,926
+of course, depends upon a concrete implementation of PersonDao.
+
+22
+00:01:06,926 --> 00:01:11,375
+And of course PersonDao depends upon a database.
+
+23
+00:01:11,375 --> 00:01:14,581
+Now our test getPerson not only depends upon PersonController,
+
+24
+00:01:14,581 --> 00:01:18,544
+the only code we really want to test, but PersonService,
+
+25
+00:01:18,544 --> 00:01:20,790
+PersonDao, and of course, the database.
+
+26
+00:01:20,790 --> 00:01:23,970
+This further increases test complexity from the previous example.
+
+27
+00:01:23,970 --> 00:01:26,384
+It also further increases test maintenance overhead,
+
+28
+00:01:26,384 --> 00:01:28,895
+as changes to either PersonService, PersonDao,
+
+29
+00:01:28,895 --> 00:01:34,097
+or most of all, the database, could cause our test to break,
+
+30
+00:01:34,097 --> 00:01:36,940
+even if PersonController hasn't changed at all.
+
+31
+00:01:36,940 --> 00:01:39,554
+So how do we solve this problem?
+
+32
+00:01:39,554 --> 00:01:42,168
+Well, luckily SOLID provides us some guidance.
+
+33
+00:01:42,168 --> 00:01:45,861
+The open for extension/closed for modification principle states,
+
+34
+00:01:45,861 --> 00:01:50,349
+the behavior of code can be extended, but extending it shouldn't modify the code.
+
+35
+00:01:50,349 --> 00:01:52,741
+The Liskov substitution principle states,
+
+36
+00:01:52,741 --> 00:01:57,301
+substituting a subtype should not change the behavior of client code.
+
+37
+00:01:57,301 --> 00:02:00,044
+Finally, the dependency inversion principle states,
+
+38
+00:02:00,044 --> 00:02:03,566
+high-level classes should not depend upon low-level classes.
+
+39
+00:02:03,566 --> 00:02:07,390
+Both should instead depend upon abstractions.
+
+40
+00:02:07,390 --> 00:02:12,281
+So again we have PersonService, but now it depends upon the interface PersonDao.
+
+41
+00:02:12,281 --> 00:02:16,863
+And the concrete class PersonDaoImpl also depends upon PersonDao.
+
+42
+00:02:16,863 --> 00:02:18,980
+This is how the code would work in prod; however,
+
+43
+00:02:18,980 --> 00:02:20,541
+if we were running a test,
+
+44
+00:02:20,541 --> 00:02:24,051
+we can substitute out PersonDaoImpl for MockPersonDao
+
+45
+00:02:24,051 --> 00:02:25,475
+without modifying PersonService.
+
+46
+00:02:25,475 --> 00:02:30,289
+We can tell MockPersonDao to behave exactly how we want for a test scenario,
+
+47
+00:02:30,289 --> 00:02:32,698
+and because we were following the Liskov substitution principle,
+
+48
+00:02:32,698 --> 00:02:36,708
+we can be confident that our tests more accurately reflect how
+
+49
+00:02:36,708 --> 00:02:39,521
+the PersonService class would behave in prod.
+
+50
+00:02:39,521 --> 00:02:41,322
+If we apply these same principles to PersonController,
+
+51
+00:02:41,322 --> 00:02:48,000
+we see we no longer have the issue of an ever-extending chain of dependencies as we test higher-level classes.
+

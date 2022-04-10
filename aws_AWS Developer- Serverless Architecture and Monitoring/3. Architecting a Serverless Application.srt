@@ -1,0 +1,252 @@
+1
+00:00:00,940 --> 00:00:03,620
+Just like you would with any application,
+
+2
+00:00:03,620 --> 00:00:06,270
+it's best to consider all parts of a serverless
+
+3
+00:00:06,270 --> 00:00:08,860
+application before you begin development.
+
+4
+00:00:08,860 --> 00:00:12,100
+I wanted to share the way that I approach most of my serverless
+
+5
+00:00:12,100 --> 00:00:15,830
+projects and hope that you may find it useful in your own.
+
+6
+00:00:15,830 --> 00:00:19,190
+I like to map out all the resources that my application would
+
+7
+00:00:19,190 --> 00:00:22,620
+likely need in a visual diagram before I code.
+
+8
+00:00:22,620 --> 00:00:26,800
+This helps me envision the lifecycle of my application and
+
+9
+00:00:26,800 --> 00:00:28,860
+consider how things work holistically.
+
+10
+00:00:28,860 --> 00:00:30,780
+To start the exercise,
+
+11
+00:00:30,780 --> 00:00:33,910
+I usually begin by making decisions in the four major
+
+12
+00:00:33,910 --> 00:00:37,040
+pillars found in most web applications.
+
+13
+00:00:37,040 --> 00:00:38,710
+The first pillar is computing.
+
+14
+00:00:38,710 --> 00:00:42,540
+Most of the time you'll need computing, but you may not.
+
+15
+00:00:42,540 --> 00:00:45,880
+If you have an application that is basically static
+
+16
+00:00:45,880 --> 00:00:51,170
+and just relies on flat files, you wouldn't really need a computing aspect.
+
+17
+00:00:51,170 --> 00:00:55,730
+If you do have computing, they'll be separated into separate functions.
+
+18
+00:00:55,730 --> 00:01:00,000
+So, you should identify them as such in your architecture diagram.
+
+19
+00:01:00,000 --> 00:01:03,370
+You may not have enough information at this early stage,
+
+20
+00:01:03,370 --> 00:01:07,740
+but I try to sketch out as much as I know at the time.
+
+21
+00:01:07,740 --> 00:01:09,280
+The next pillar is storage.
+
+22
+00:01:09,280 --> 00:01:13,620
+Here, I identify what S3 buckets, if any, I'll need.
+
+23
+00:01:13,620 --> 00:01:17,520
+I try to be liberal with how many buckets I have so I'm not
+
+24
+00:01:17,520 --> 00:01:21,310
+constraining my design or mixing up files unnecessarily.
+
+25
+00:01:21,310 --> 00:01:23,640
+The next pillar is persistence.
+
+26
+00:01:23,640 --> 00:01:27,440
+This could be either databases and/or caching.
+
+27
+00:01:27,440 --> 00:01:30,900
+Caching often comes later in the development lifecycle as
+
+28
+00:01:30,900 --> 00:01:33,510
+you identify hotspots in your application.
+
+29
+00:01:33,510 --> 00:01:37,910
+So, I wouldn't be too worried if you don't know where it would fit yet.
+
+30
+00:01:37,910 --> 00:01:42,550
+Many applications that have user interaction require at least a database.
+
+31
+00:01:42,550 --> 00:01:47,820
+So, here's a good place where you can decide whether to go with NoSQL or SQL.
+
+32
+00:01:47,820 --> 00:01:49,730
+One consideration here.
+
+33
+00:01:49,730 --> 00:01:53,480
+DynamoDB has an API for reading and writing records,
+
+34
+00:01:53,480 --> 00:01:56,140
+making it really simple to use with Lambda.
+
+35
+00:01:56,140 --> 00:02:00,330
+All of the database engines in RDS require a connection to be
+
+36
+00:02:00,330 --> 00:02:03,220
+made before any operations can be executed.
+
+37
+00:02:03,220 --> 00:02:03,660
+So,
+
+38
+00:02:03,660 --> 00:02:07,540
+you may want to keep that in mind as the additional overhead for creating
+
+39
+00:02:07,540 --> 00:02:11,740
+connections should be factored into your compute execution time.
+
+40
+00:02:11,740 --> 00:02:16,530
+AWS has recently released a new service called RDS Proxy,
+
+41
+00:02:16,530 --> 00:02:21,650
+which mitigates this new connection process by acting as a proxy and
+
+42
+00:02:21,650 --> 00:02:24,950
+maintaining persistent connections to your database for you.
+
+43
+00:02:24,950 --> 00:02:28,340
+Although there is additional costs associated with the service,
+
+44
+00:02:28,340 --> 00:02:31,250
+it should drastically reduce much of the overhead
+
+45
+00:02:31,250 --> 00:02:34,140
+involved with using RDS and Lambda.
+
+46
+00:02:34,140 --> 00:02:37,140
+The final pillar is what I call eventing.
+
+47
+00:02:37,140 --> 00:02:40,370
+This is sort of like the glue between all the pieces.
+
+48
+00:02:40,370 --> 00:02:41,970
+For web applications,
+
+49
+00:02:41,970 --> 00:02:46,280
+you'll often be needing an API layer or at least some way to access the
+
+50
+00:02:46,280 --> 00:02:50,820
+application from a URL in which case you'd use API Gateway.
+
+51
+00:02:50,820 --> 00:02:56,970
+You may also use Kinesis or Simple Queue Service to communicate between lambdas.
+
+52
+00:02:56,970 --> 00:03:00,030
+Of course, you can also invoke lambdas directly,
+
+53
+00:03:00,030 --> 00:03:04,230
+but the cost of making that call and the lambda should be considered.
+
+54
+00:03:04,230 --> 00:03:08,460
+If your main communication pattern is directly invoking other lambdas,
+
+55
+00:03:08,460 --> 00:03:12,140
+you may find yourself telescoping through functions and incurring
+
+56
+00:03:12,140 --> 00:03:15,400
+greater and greater costs for the earliest invocations.
+
+57
+00:03:15,400 --> 00:03:19,280
+It's good better to decouple your compute functions as much
+
+58
+00:03:19,280 --> 00:03:22,110
+as possible by using a messaging layer.
+
+59
+00:03:22,110 --> 00:03:23,810
+By going through these pillars,
+
+60
+00:03:23,810 --> 00:03:27,240
+you should have a rough outline of what type of app you'll be building,
+
+61
+00:03:27,240 --> 00:03:29,540
+and you can get to work quickly.
+
+62
+00:03:29,540 --> 00:03:33,600
+Later considerations for your architecture would look at Route 53
+
+63
+00:03:33,600 --> 00:03:42,000
+for routing or CloudFront for asset delivery. These can be added to your diagram later, once you've determined their need.
+

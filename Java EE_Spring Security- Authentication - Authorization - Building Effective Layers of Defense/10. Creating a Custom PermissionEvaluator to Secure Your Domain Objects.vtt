@@ -1,0 +1,181 @@
+WEBVTT
+1
+00:00:01.786 --> 00:00:05.711
+Implementing a custom PermissionEvaluator is simple.
+
+2
+00:00:05.711 --> 00:00:08.547
+You need to create a class that extends the PermissionEvaluator
+
+3
+00:00:08.547 --> 00:00:13.567
+interface and override the two hasPermission methods.
+
+4
+00:00:13.567 --> 00:00:15.530
+Here is the first one.
+
+5
+00:00:15.530 --> 00:00:17.784
+We have access to the Authentication object,
+
+6
+00:00:17.784 --> 00:00:22.023
+the Domain object, and the permission required.
+
+7
+00:00:22.023 --> 00:00:27.211
+Because you can only have one evaluator added to the SecurityExpressionHandler,
+
+8
+00:00:27.211 --> 00:00:31.812
+I have created a DelegatingPermissionEvaluator that simply delegates to
+
+9
+00:00:31.812 --> 00:00:36.867
+other evaluators depending on the target domain class name.
+
+10
+00:00:36.867 --> 00:00:37.961
+In the first method,
+
+11
+00:00:37.961 --> 00:00:43.406
+we look up the evaluatorMap for the target evaluator using the qualified
+
+12
+00:00:43.406 --> 00:00:48.350
+class name and execute the evaluator's hasPermission method.
+
+13
+00:00:48.350 --> 00:00:52.676
+In the other method, we look up using the targetType.
+
+14
+00:00:52.676 --> 00:00:56.631
+We have one implementation of the evaluator for the portfolio.
+
+15
+00:00:56.631 --> 00:00:58.640
+In the first hasPermission method,
+
+16
+00:00:58.640 --> 00:01:03.351
+we check the instance of the object is a portfolio.
+
+17
+00:01:03.351 --> 00:01:08.029
+Check if the user has read permission for the portfolio instance.
+
+18
+00:01:08.029 --> 00:01:12.117
+Now to store the ACL, we use a PortfolioAccessControl entity,
+
+19
+00:01:12.117 --> 00:01:17.424
+which has a username, portfolioId, and type.
+
+20
+00:01:17.424 --> 00:01:22.900
+The type is either read, write, or any custom one we need for our application.
+
+21
+00:01:22.900 --> 00:01:26.413
+We retrieve the access control entry for that user and check
+
+22
+00:01:26.413 --> 00:01:29.630
+if they have access to that portfolioId.
+
+23
+00:01:29.630 --> 00:01:32.870
+Otherwise, we return false.
+
+24
+00:01:32.870 --> 00:01:35.210
+In the other implementation, we do the same,
+
+25
+00:01:35.210 --> 00:01:39.137
+but we need to look up the portfolio instance as it
+
+26
+00:01:39.137 --> 00:01:41.382
+is not passed into the method.
+
+27
+00:01:41.382 --> 00:01:46.989
+Again, you can implement your own logic here based on any requirements,
+
+28
+00:01:46.989 --> 00:01:49.062
+and you would need to using caching here,
+
+29
+00:01:49.062 --> 00:01:52.261
+particularly for the ACL entries as your application won't
+
+30
+00:01:52.261 --> 00:01:55.766
+be able to scale well if you create a datasource each time
+
+31
+00:01:55.766 --> 00:01:57.947
+an instance is accessed.
+
+32
+00:01:57.947 --> 00:01:58.179
+Next,
+
+33
+00:01:58.179 --> 00:02:03.103
+you need to add the expression handler to the MethodSecurityExpressionHandler.
+
+34
+00:02:03.103 --> 00:02:05.370
+We create a configuration class that extends the
+
+35
+00:02:05.370 --> 00:02:11.668
+GlobalMethodSecurityConfiguration and override the createExpressHandler method.
+
+36
+00:02:11.668 --> 00:02:15.746
+We create an instance of our delegating expression handler and add it
+
+37
+00:02:15.746 --> 00:02:19.791
+as an expression evaluator for the new instance of the
+
+38
+00:02:19.791 --> 00:02:24.129
+DefaultMethodSecurityExpresionHandler and return it.
+
+39
+00:02:24.129 --> 00:02:30.261
+Now our has expressions are available in MethodSecurity annotations.
+
+40
+00:02:30.261 --> 00:02:31.637
+In the portfolio repository,
+
+41
+00:02:31.637 --> 00:02:37.126
+you can add it to the findByUsername method using the PostAuthorize to ensure
+
+42
+00:02:37.126 --> 00:02:42.050
+the user has permission to read the returned portfolio object.
+
+43
+00:02:42.050 --> 00:02:42.441
+And again,
+
+44
+00:02:42.441 --> 00:02:47.381
+you can also use the PostAuthorize and the pre and postFilter methods as well.
+
+45
+00:02:47.381 --> 00:02:59.000
+Here we have the PreAuthorize where we check the user has read permission to the instance of the portfolio class with that portfolio ID.
+

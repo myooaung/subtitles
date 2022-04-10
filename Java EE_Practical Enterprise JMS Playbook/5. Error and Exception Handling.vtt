@@ -1,0 +1,209 @@
+WEBVTT
+1
+00:00:02.292 --> 00:00:05.140
+So if you've been looking at other plays in this playbook,
+
+2
+00:00:05.140 --> 00:00:07.797
+you may have noticed that a lot of the methods we have created declare
+
+3
+00:00:07.797 --> 00:00:13.247
+the JMS exception as part of the throws declaration.
+
+4
+00:00:13.247 --> 00:00:15.676
+There are a large number of methods within the JMS API
+
+5
+00:00:15.676 --> 00:00:17.139
+that throw this pretty-generic exception.
+
+6
+00:00:17.139 --> 00:00:18.339
+Over the years,
+
+7
+00:00:18.339 --> 00:00:22.960
+there has been a more generic trend within Java to throw more
+
+8
+00:00:22.960 --> 00:00:25.110
+unchecked exceptions rather than checked exceptions.
+
+9
+00:00:25.110 --> 00:00:28.627
+This is pretty obvious in things like the Spring Framework
+
+10
+00:00:28.627 --> 00:00:30.962
+and other libraries available in Java.
+
+11
+00:00:30.962 --> 00:00:35.396
+The JMS API has been around for a long time and has its roots in the days
+
+12
+00:00:35.396 --> 00:00:39.682
+when checked exceptions were considered best practice.
+
+13
+00:00:39.682 --> 00:00:43.831
+Unfortunately, this leads to a proliferation of tricatch blocks,
+
+14
+00:00:43.831 --> 00:00:46.409
+and having to add the throws declaration to a lot of methods.
+
+15
+00:00:46.409 --> 00:00:47.859
+It's just something you're going to have to deal
+
+16
+00:00:47.859 --> 00:00:51.837
+with if you're going to use JMS, but it is a bit of a pain.
+
+17
+00:00:51.837 --> 00:00:55.577
+For the most part, I continue to pass the exception up the change,
+
+18
+00:00:55.577 --> 00:00:59.546
+but there are examples where you have to catch and deal with the exception,
+
+19
+00:00:59.546 --> 00:01:03.687
+typically in cases where you're closing off resources,
+
+20
+00:01:03.687 --> 00:01:04.205
+etc.
+
+21
+00:01:04.205 --> 00:01:07.364
+There is one particular use case I want to demonstrate.
+
+22
+00:01:07.364 --> 00:01:10.507
+If you lose connection to the message broker for some reason,
+
+23
+00:01:10.507 --> 00:01:11.703
+then in a highly-available system,
+
+24
+00:01:11.703 --> 00:01:17.088
+you don't want to have to restart your application to reestablish a connection.
+
+25
+00:01:17.088 --> 00:01:17.854
+On the JMSConnection Interface,
+
+26
+00:01:17.854 --> 00:01:21.371
+there is a method where you can add an instance of an ExceptionListener.
+
+27
+00:01:21.371 --> 00:01:26.198
+This can be useful for trying to reestablish a connection.
+
+28
+00:01:26.198 --> 00:01:32.155
+The JMS API says that a JMS provider should attempt to resolve connection
+
+29
+00:01:32.155 --> 00:01:34.506
+problems itself before it notifies the client of them.
+
+30
+00:01:34.506 --> 00:01:38.143
+So hopefully, it can deal with a connection issue for you,
+
+31
+00:01:38.143 --> 00:01:39.256
+but just in case,
+
+32
+00:01:39.256 --> 00:01:43.085
+I've added a piece of logic into my implementation of an ExceptionListener.
+
+33
+00:01:43.085 --> 00:01:47.296
+Basically it's a while loop that closes all JMS resources
+
+34
+00:01:47.296 --> 00:01:49.503
+associated with a current application,
+
+35
+00:01:49.503 --> 00:01:53.089
+and that attempts to create a new connection.
+
+36
+00:01:53.089 --> 00:01:55.671
+If the connection is established, then we start our application again,
+
+37
+00:01:55.671 --> 00:01:57.698
+and consume or produce messages.
+
+38
+00:01:57.698 --> 00:02:00.811
+If, however, the connection could not be reestablished,
+
+39
+00:02:00.811 --> 00:02:03.707
+then a JMS exception will again be thrown,
+
+40
+00:02:03.707 --> 00:02:07.169
+and we pause for 2 seconds and try again.
+
+41
+00:02:07.169 --> 00:02:09.080
+Let's see this in action.
+
+42
+00:02:09.080 --> 00:02:13.704
+I'll run the application, and we can see it processed 100 messages,
+
+43
+00:02:13.704 --> 00:02:16.865
+therefore it had a connection to the broker.
+
+44
+00:02:16.865 --> 00:02:19.383
+If I jump to the console, and shut down the broker,
+
+45
+00:02:19.383 --> 00:02:21.533
+and then jump back to the Application console,
+
+46
+00:02:21.533 --> 00:02:25.502
+then I can see after a short period of time that the
+
+47
+00:02:25.502 --> 00:02:26.695
+ExceptionListener was invoked,
+
+48
+00:02:26.695 --> 00:02:31.175
+and we are attempting to reconnected and continuing to do so.
+
+49
+00:02:31.175 --> 00:02:34.666
+Let's start the message broker back up again.
+
+50
+00:02:34.666 --> 00:02:37.969
+Now after a short period of time,
+
+51
+00:02:37.969 --> 00:02:41.157
+we can see that the connection has been reestablished,
+
+52
+00:02:41.157 --> 00:02:50.000
+and just to prove it, I'll run my messageSender application again, and we can see that the messages are consumed as they come in.
+

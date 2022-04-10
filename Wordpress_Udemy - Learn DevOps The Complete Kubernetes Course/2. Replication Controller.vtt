@@ -1,0 +1,244 @@
+WEBVTT
+1
+00:00:01.760 --> 00:00:09.380
+In this lecture I am going to show you all about scaling pods. If your application is stateless you can horizontally scale it.
+
+2
+00:00:09.380 --> 00:00:16.820
+Stateless means that your application doesn't have a state it doesn't write any local files
+
+3
+00:00:17.120 --> 00:00:23.460
+and cannot keep any local session data. If you would have two pods and the one pod is going to write
+
+4
+00:00:23.460 --> 00:00:26.930
+something locally, then those pods would be out of sync.
+
+5
+00:00:27.060 --> 00:00:33.620
+And that means that each pod would have its own state and that's why you cannot kill it. If both pods
+
+6
+00:00:33.800 --> 00:00:35.690
+would have always the same files.
+
+7
+00:00:35.760 --> 00:00:43.560
+So, they wouldn't really have their own state and if a request to one pod would always lead to the same
+
+8
+00:00:43.560 --> 00:00:50.890
+result as doing requests from the other pods then the pod is probably stalest.
+
+9
+00:00:51.050 --> 00:00:57.790
+That means that all traditional databases like mySQL, Postgres, other ones are stateful.
+
+10
+00:00:57.860 --> 00:01:02.200
+They have database files that cannot be split over multiple instances.
+
+11
+00:01:03.610 --> 00:01:09.550
+Most web applications can be made stateless. Session management needs to be done as the container.
+
+12
+00:01:09.580 --> 00:01:15.070
+So, if you want to get hits on your web application and you want to keep information of your visitors then you
+
+13
+00:01:15.070 --> 00:01:20.590
+need to use an outside service, you cannot store that kind of data within your container.
+
+14
+00:01:20.590 --> 00:01:26.750
+You can for instance use Memcache, or Redis, or even a database to store your sessions.
+
+15
+00:01:27.380 --> 00:01:33.190
+Any file that need to be saved cannot be saved locally on the container, because if you stop your
+
+16
+00:01:33.190 --> 00:01:36.630
+container, and you started again, the file files lost.
+
+17
+00:01:36.730 --> 00:01:43.420
+So, you need to also save any files you want to save outside the container, either on some shared storage
+
+18
+00:01:43.750 --> 00:01:47.510
+or on external service, or AWS, this can be for instance S3, which is an object storage.
+
+19
+00:01:47.530 --> 00:01:55.200
+Our example app is stateless,
+
+20
+00:01:55.420 --> 00:02:01.060
+if you would run the same at multiple times it doesn't change state, 
+
+21
+00:02:01.060 --> 00:02:02.330
+because in our app you're actually not running anything.
+
+22
+00:02:02.620 --> 00:02:06.070
+If you have multiple instances of the app you will just still get 
+
+23
+00:02:06.070 --> 00:02:06.920
+"Hello World!"
+
+24
+00:02:07.760 --> 00:02:16.230
+For more information about the best practices have a look at the 12factor.net. This "12factor" explains
+
+25
+00:02:16.230 --> 00:02:25.020
+the best practices for stateless applications or you can check out my other course "Learn DevOps:
+
+26
+00:02:25.040 --> 00:02:28.920
+Continuously delivering better software" or another course on
+
+27
+00:02:28.970 --> 00:02:30.750
+"Scaling apps on-premises in the cloud".
+
+28
+00:02:30.890 --> 00:02:33.270
+Both explain those principles.
+
+29
+00:02:34.560 --> 00:02:41.970
+Later in this course I'll explain how to use volumes to still run the stateful apps.  
+
+30
+00:02:42.060 --> 00:02:50.100
+Those stateful apps cannot horizontally scale, but you can run them in a single container and vertically scale. To better scale
+
+31
+00:02:50.260 --> 00:02:51.310
+apps horizontally.
+
+32
+00:02:51.370 --> 00:02:58.800
+So, adding more pots, you're just going to allocate more resources like CPU, memory, and disk to that pod.
+
+33
+00:02:58.820 --> 00:03:00.820
+That is vertically scaling.
+
+34
+00:03:01.040 --> 00:03:07.330
+Scaling in Kubernetes can be done using the "Replication Controller". The Replication Controller will
+
+35
+00:03:07.330 --> 00:03:12.330
+ensure a specified number of pod replicas will run at all time.
+
+36
+00:03:12.340 --> 00:03:18.130
+So, you just specify, let's say, 5 pod replicas, and then it's going to run the same pod, but that 5 times.
+
+37
+00:03:18.130 --> 00:03:26.070
+A pod created with a replica controller will automatically be replaced if they fail, get deleted, or are terminated.
+
+38
+00:03:27.370 --> 00:03:33.810
+If you tell Kubernetes to run 5 pods and there are only 4 running, because 1 node crashed for instance
+
+39
+00:03:34.230 --> 00:03:42.080
+then Kubernetes will launch another instance of that pod on another node. Using the replication controller
+
+40
+00:03:42.110 --> 00:03:43.290
+is also recommended 
+
+41
+00:03:43.340 --> 00:03:50.550
+If you just want to make sure your 1 pod is always running, even after reboots.
+
+42
+00:03:50.560 --> 00:03:51.610
+You can then run a replication controller with just 1 replica.
+
+43
+00:03:51.620 --> 00:04:00.590
+This makes sure that the pod is always running, even when a node crashes.
+
+44
+00:04:00.670 --> 00:04:04.660
+To replicate our example app of 2 times we can use this YAML file.
+
+45
+00:04:04.700 --> 00:04:10.420
+So, what has been changed, instead of "kind: Pod", we say "kind: Replication Controller".
+
+46
+00:04:10.850 --> 00:04:12.520
+We still have "metadata".
+
+47
+00:04:12.530 --> 00:04:13.520
+We have a "name: helloworld-controller".
+
+48
+00:04:13.520 --> 00:04:20.920
+The replication controller also has a spec, in this spec I am telling that 
+
+49
+00:04:20.920 --> 00:04:25.620
+we are going have 2 replicas and this is replication controller 
+
+50
+00:04:25.660 --> 00:04:26.820
+for the "app: helloworld"
+
+51
+00:04:27.160 --> 00:04:33.400
+That's why we have the selector that says, app needs to be "helloworld", which is going 
+
+52
+00:04:33.490 --> 00:04:34.940
+to select the label with "app: helloworld".
+
+53
+00:04:35.940 --> 00:04:37.190
+Then we have a template,
+
+54
+00:04:37.230 --> 00:04:39.900
+here goes our pod definition.
+
+55
+00:04:40.280 --> 00:04:42.330
+The pod definition also has a "metadata".
+
+56
+00:04:42.630 --> 00:04:48.320
+We have the "labels", the same as you saw under the selector and then we have the pod specification.
+
+57
+00:04:48.360 --> 00:04:58.370
+We still have one "container" with a "name: k8s-demo", and an image, and we expose "Port 3000"
+
+58
+00:04:58.380 --> 00:05:00.040
+What the Replication Controller is going to do in this case is
+
+59
+00:05:00.120 --> 00:05:06.950
+just going to run two times the pod that is defined in a template. 
+
+60
+00:05:06.950 --> 00:05:07.750
+How does it work on the Kubernetes cluster.
+
+61
+00:05:07.760 --> 00:05:09.620
+I'm going to show you in the next demo.

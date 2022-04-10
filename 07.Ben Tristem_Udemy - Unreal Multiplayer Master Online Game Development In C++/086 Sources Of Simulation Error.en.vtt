@@ -1,0 +1,640 @@
+WEBVTT
+1
+00:00:04.850 --> 00:00:12.320
+So in this lecture we are going to be looking at the cause of an error in the simulation which is currently
+
+2
+00:00:12.800 --> 00:00:20.900
+meaning that we are unable to have the same location on both the client and server and the results in
+
+3
+00:00:20.900 --> 00:00:22.260
+very funny gameplay doesn't it.
+
+4
+00:00:22.260 --> 00:00:28.760
+You can see the difference in the location So let's dive in and see what those sources of error are
+
+5
+00:00:29.090 --> 00:00:31.570
+and how we might approach fixing them.
+
+6
+00:00:33.320 --> 00:00:39.620
+So let's start with an overview of how the simulation error affects our game.
+
+7
+00:00:39.620 --> 00:00:46.550
+If I go ahead and hit play I'm playing here with two players go ahead hit play and put a server on the
+
+8
+00:00:46.580 --> 00:00:51.150
+right and client on the left hand drive my client around a little bit.
+
+9
+00:00:51.550 --> 00:00:56.420
+So I drive around I'm going to particularly go between these cones which seem to cause a bit of error
+
+10
+00:00:56.870 --> 00:01:04.350
+and then go all the way back to try and make it back to the bago you can already see the problem.
+
+11
+00:01:04.430 --> 00:01:06.620
+You can see that on the server.
+
+12
+00:01:06.830 --> 00:01:11.780
+My car is in a completely different location and is responding to my keypresses in a very different
+
+13
+00:01:11.780 --> 00:01:16.980
+way to what I'm doing here on the actual client.
+
+14
+00:01:17.030 --> 00:01:18.500
+So why is this.
+
+15
+00:01:18.500 --> 00:01:22.760
+Why is it that when I give keypresses to the client and insane key presses to the server.
+
+16
+00:01:22.850 --> 00:01:24.860
+They don't do exactly the same thing.
+
+17
+00:01:25.250 --> 00:01:30.410
+Well to do that we need to figure out what are the actual sources and overview the different sources
+
+18
+00:01:30.740 --> 00:01:32.510
+of simulation error.
+
+19
+00:01:33.020 --> 00:01:38.210
+The first thing we need to understand though is what numerical integration is.
+
+20
+00:01:38.210 --> 00:01:43.070
+You may have encountered integration before as the opposite of differentiation.
+
+21
+00:01:43.070 --> 00:01:46.690
+So let's just take a look and a quick overview of what that is.
+
+22
+00:01:46.730 --> 00:01:52.700
+So we've got an acceleration over time here and we're going to just be dealing with a really simple
+
+23
+00:01:52.700 --> 00:01:56.990
+case of constant acceleration so that's what you can see here.
+
+24
+00:01:56.990 --> 00:02:03.240
+This line is remaining constant over time as it changes well as time goes on.
+
+25
+00:02:03.290 --> 00:02:07.340
+Acceleration doesn't change so you've got constant acceleration and we've got the formula above this
+
+26
+00:02:07.730 --> 00:02:14.580
+which tells us that the delta V is equal to the acceleration multiplied by the delta T.
+
+27
+00:02:14.990 --> 00:02:21.080
+So that's actually a form of very rudimentary integration going on right there.
+
+28
+00:02:21.080 --> 00:02:22.760
+This simple multiplication.
+
+29
+00:02:22.780 --> 00:02:30.860
+Because remember that integration is trying to find the area underneath the curve and actually the change
+
+30
+00:02:30.860 --> 00:02:38.180
+in velocity over a given time period is the area underneath the acceleration curve.
+
+31
+00:02:38.180 --> 00:02:45.980
+And what we've been doing without really saying it is we have been doing a numerical integration in
+
+32
+00:02:46.070 --> 00:02:54.230
+our code we've been doing this formula here which multiplies the acceleration by the delta time had
+
+33
+00:02:54.280 --> 00:02:55.840
+that you look on this graph.
+
+34
+00:02:55.850 --> 00:02:59.350
+Well we've got our delta time that might be this span of time here.
+
+35
+00:02:59.390 --> 00:03:05.630
+We've got the acceleration which is this span here basically the whole height of the line and then our
+
+36
+00:03:05.650 --> 00:03:07.900
+delta v is the square.
+
+37
+00:03:08.120 --> 00:03:11.150
+That's what we're doing multiplying the size of the square to get its area.
+
+38
+00:03:11.180 --> 00:03:17.090
+So we get this area underneath the curve so that's very straightforward very easy when our curve is
+
+39
+00:03:17.090 --> 00:03:21.280
+just a straight line like this a straight horizontal line.
+
+40
+00:03:21.320 --> 00:03:27.650
+What happens if our curves suddenly is all crazy and squiggly like this which is much more realistic
+
+41
+00:03:27.650 --> 00:03:28.750
+in a real game.
+
+42
+00:03:29.030 --> 00:03:37.370
+Well then our Delta team multiplied by a is going to give us something which looks like this which as
+
+43
+00:03:37.370 --> 00:03:41.840
+you can tell isn't the same as the area underneath as quickly curve is much more.
+
+44
+00:03:41.840 --> 00:03:42.710
+In this case.
+
+45
+00:03:42.710 --> 00:03:44.390
+But it could be much less.
+
+46
+00:03:44.390 --> 00:03:45.720
+It really depends.
+
+47
+00:03:45.740 --> 00:03:47.210
+And what does it depend on.
+
+48
+00:03:47.210 --> 00:03:50.360
+Well it depends on the size of that delta t as one thing.
+
+49
+00:03:50.360 --> 00:03:53.600
+It also depends on just how squiggly the line is.
+
+50
+00:03:53.870 --> 00:03:58.160
+So you can see that there already were going to be getting some errors here just because we're doing
+
+51
+00:03:58.160 --> 00:04:03.830
+this simplified method of integration and one way that we could try to improve this without having to
+
+52
+00:04:03.830 --> 00:04:08.750
+do the actual integration we're just trying to do numerical integration because there isn't really a
+
+53
+00:04:08.750 --> 00:04:13.880
+function to integrate the user input the user inputs going to be completely random squiggly lines.
+
+54
+00:04:14.030 --> 00:04:16.120
+We can't integrate that.
+
+55
+00:04:16.130 --> 00:04:18.410
+We have to do a numerical approximation.
+
+56
+00:04:18.410 --> 00:04:22.800
+We can try and get better by making smaller Delta teams.
+
+57
+00:04:22.940 --> 00:04:29.120
+But as you can see even with this fairly simple line the smaller the delta T is still going to give
+
+58
+00:04:29.120 --> 00:04:36.170
+you errors and we could go further there are other numerical integration methods that try to alleviate
+
+59
+00:04:36.170 --> 00:04:41.840
+some of this error but there's always going to be some error because you just can't get to the actual
+
+60
+00:04:41.840 --> 00:04:48.050
+function and it's going to depend where you slice your Delta ts as to the area you're going to get underneath
+
+61
+00:04:48.060 --> 00:04:53.930
+the curve so you're going to get slightly different areas depending on what where your timestamps are.
+
+62
+00:04:53.930 --> 00:04:58.040
+And that is the source of the difference between the client and the server the client and the server
+
+63
+00:04:58.040 --> 00:05:03.770
+will be running at different frame rates which means that the sizes of the boxes are going to be different
+
+64
+00:05:04.130 --> 00:05:08.300
+and they're not going to be consistent either so they're going to be variable they're going to be varying
+
+65
+00:05:08.360 --> 00:05:09.500
+underneath the area.
+
+66
+00:05:09.500 --> 00:05:16.890
+This curve which means that the area underneath that you get measured the delta V is going to be different.
+
+67
+00:05:17.160 --> 00:05:23.210
+Okay so that is basically the key source of all that error is coming from this numerical integration
+
+68
+00:05:23.240 --> 00:05:25.480
+and the differences in the delta T.
+
+69
+00:05:25.640 --> 00:05:28.810
+But there are some things that make it even worse.
+
+70
+00:05:28.970 --> 00:05:32.690
+And one of these is the magnification of error with integration.
+
+71
+00:05:33.130 --> 00:05:38.170
+So here we've got a formula which accounts for some error because remember we've just calculated our
+
+72
+00:05:38.170 --> 00:05:39.290
+delta V.
+
+73
+00:05:39.430 --> 00:05:44.770
+It had some error from our numerical integration and have encompassed this into the formula with this
+
+74
+00:05:44.860 --> 00:05:47.160
+plus E plus error.
+
+75
+00:05:47.380 --> 00:05:48.820
+And what does actually look like.
+
+76
+00:05:48.820 --> 00:05:50.830
+Well it adds a bit to the line.
+
+77
+00:05:50.830 --> 00:05:56.770
+It adds this e amount and it means that the velocity is now just a little bit more than it really should
+
+78
+00:05:56.770 --> 00:05:57.790
+have been.
+
+79
+00:05:57.820 --> 00:05:59.950
+So that's why there's an error.
+
+80
+00:06:00.310 --> 00:06:06.490
+Now this doesn't look like a very big difference but what happens if we've got a delta T and we look
+
+81
+00:06:06.490 --> 00:06:14.770
+at the area and the sheer amount of error that's going to crop up in delta x while you can see that
+
+82
+00:06:14.770 --> 00:06:18.610
+it's going to be Delta team multiplied by E.
+
+83
+00:06:18.670 --> 00:06:25.020
+And so as time goes on this error is going to get bigger and bigger and bigger and bigger.
+
+84
+00:06:25.030 --> 00:06:30.180
+So if the error is in the acceleration you multiply by delta t twice then is going to get even bigger.
+
+85
+00:06:30.190 --> 00:06:35.260
+So this is why integration magnifies errors that are already present in the values.
+
+86
+00:06:35.260 --> 00:06:41.360
+If you got a small error in V then you're going to have an even bigger error over time in Delta X..
+
+87
+00:06:41.410 --> 00:06:42.610
+So that's one thing.
+
+88
+00:06:42.610 --> 00:06:47.440
+Integration is magnifying the errors caused by our numerical integration.
+
+89
+00:06:47.940 --> 00:06:53.410
+Furthermore rotation is doing a big thing for increasing the error as well.
+
+90
+00:06:53.820 --> 00:06:56.220
+If there is an error in our rotation.
+
+91
+00:06:56.270 --> 00:06:57.730
+So this is v.
+
+92
+00:06:57.810 --> 00:07:05.520
+This is the V that we wanted perhaps and we have a delta foetor which is the error in the rotation.
+
+93
+00:07:05.520 --> 00:07:10.740
+So it is the amount that we shouldn't really have rotated by but we did rotate a little bit extra.
+
+94
+00:07:10.950 --> 00:07:16.350
+And this gives us the V underscore n which has gone for vnu basically.
+
+95
+00:07:16.380 --> 00:07:21.120
+So what we're saying here is that this is the V we should have had v.n. is the V that we actually ended
+
+96
+00:07:21.120 --> 00:07:25.680
+up with because of a little bit of extra rotation we were meant to do a bit of rotation but we ended
+
+97
+00:07:25.680 --> 00:07:27.330
+up doing a bit extra.
+
+98
+00:07:27.360 --> 00:07:36.380
+This is now you can see very small delta foetor could be even smaller but very small and very large.
+
+99
+00:07:37.350 --> 00:07:45.300
+Arrow for a large velocity means that delta x the actual error in the location that results after one
+
+100
+00:07:45.300 --> 00:07:47.970
+iteration is going to be rather large.
+
+101
+00:07:47.970 --> 00:07:51.270
+And as time goes on is stealth X just gets bigger and bigger.
+
+102
+00:07:51.420 --> 00:07:57.510
+Basically set these things off on very divergent pathes and we are going to end up in very different
+
+103
+00:07:57.510 --> 00:08:01.270
+places so that is another magnification of error.
+
+104
+00:08:01.360 --> 00:08:06.950
+Sorry I noted that the title was wrong there so I have now changed its rotation magnification of error.
+
+105
+00:08:07.180 --> 00:08:12.360
+Okay so we've got these magnifications of error we've got these sources of error what are we going to
+
+106
+00:08:12.360 --> 00:08:13.620
+do about it.
+
+107
+00:08:13.650 --> 00:08:18.060
+How are we going to solve the error in our game.
+
+108
+00:08:18.090 --> 00:08:22.890
+So what I'd like you to do is to review the sources of error and review the magnifications of error.
+
+109
+00:08:23.280 --> 00:08:26.840
+Make a list of three potential solutions that you can think of.
+
+110
+00:08:27.850 --> 00:08:31.380
+Write down the pros and cons of each of the solutions.
+
+111
+00:08:32.900 --> 00:08:37.970
+And then I would like you to go ahead and share that on the community site and after you shared Don't
+
+112
+00:08:38.090 --> 00:08:43.610
+just share and hope that other people will reply to you make sure you go and comment on somebody else's
+
+113
+00:08:43.610 --> 00:08:48.620
+share and on their list of pros and cons and see if you can add any pros and cons to their potential
+
+114
+00:08:48.620 --> 00:08:53.030
+solutions see if you can think of any ways in which those solutions might not work.
+
+115
+00:08:53.030 --> 00:08:57.350
+So both the video and then will come back and have a look at my three potential solutions.
+
+116
+00:08:59.040 --> 00:08:59.760
+Okay welcome back.
+
+117
+00:08:59.760 --> 00:09:04.200
+So I really hope you have gone ahead and made your own potential list of solutions.
+
+118
+00:09:04.200 --> 00:09:08.260
+Don't worry if they're not exactly right or not the same as mine.
+
+119
+00:09:08.280 --> 00:09:12.720
+The important thing is to get brainstorming and get listing the pros and cons.
+
+120
+00:09:12.720 --> 00:09:15.960
+Don't worry if you can only find cons for your potential solutions.
+
+121
+00:09:16.050 --> 00:09:18.690
+If they could don't work that's fine.
+
+122
+00:09:18.690 --> 00:09:22.910
+You're just evaluating solutions and try get you into the habit of evaluating solutions.
+
+123
+00:09:23.130 --> 00:09:26.470
+Okay so let's have a look at my different approaches.
+
+124
+00:09:26.520 --> 00:09:33.450
+The first one is we noted that with velocity because there's a step we're going from acceleration to
+
+125
+00:09:33.450 --> 00:09:36.220
+velocity to delta x.
+
+126
+00:09:36.390 --> 00:09:41.970
+If we synchronize the velocity down from the server at least then we're going to remove some of the
+
+127
+00:09:42.000 --> 00:09:46.290
+error in creating that velocity locally.
+
+128
+00:09:46.290 --> 00:09:50.680
+We're going to remove one of those steps of integration so that should remove some error right.
+
+129
+00:09:50.730 --> 00:09:51.860
+That's a good approach.
+
+130
+00:09:51.870 --> 00:09:56.940
+Perhaps it's going to definitely reduce the error but it's not going to remove it entirely and it's
+
+131
+00:09:56.940 --> 00:10:03.330
+not going to do anything about our rotation magnification and it's still liable to introduce errors
+
+132
+00:10:03.420 --> 00:10:06.820
+from integrating that velocity into a delta X..
+
+133
+00:10:07.020 --> 00:10:08.700
+So it's not a complete solution.
+
+134
+00:10:08.700 --> 00:10:10.490
+It's maybe just an alleviation.
+
+135
+00:10:11.690 --> 00:10:14.840
+How about overwriting the location and rotation from the server.
+
+136
+00:10:15.050 --> 00:10:20.060
+Okay that could actually work because the server is the canonical source of state.
+
+137
+00:10:20.060 --> 00:10:25.640
+If we could write back the location of rotation from that kind of canonical source of date and if we've
+
+138
+00:10:25.910 --> 00:10:31.140
+got a difference in our simulation locally Well we just update it and overwrite it from the server.
+
+139
+00:10:31.340 --> 00:10:32.580
+No problem right.
+
+140
+00:10:32.600 --> 00:10:33.780
+Except well.
+
+141
+00:10:33.800 --> 00:10:38.900
+We're going to end up with some glitching because our simulation will take in a different direction
+
+142
+00:10:38.900 --> 00:10:44.720
+especially after rotation and we are then going to get reset back to where the server thinks we should
+
+143
+00:10:44.720 --> 00:10:44.960
+be.
+
+144
+00:10:44.960 --> 00:10:50.990
+So that could cause some uncomfortable gameplay for players and they think steering around the corner
+
+145
+00:10:50.990 --> 00:10:54.890
+when actually they whacked into the side that wouldn't be great.
+
+146
+00:10:54.890 --> 00:11:00.940
+And finally this is my last approach and probably the best one but also the most complicated so its
+
+147
+00:11:00.950 --> 00:11:04.000
+biggest con is that it's actually quite hard to implement.
+
+148
+00:11:04.160 --> 00:11:09.640
+Is that we simulate with a fixed timestep both on the server client and all the simulating clients.
+
+149
+00:11:09.680 --> 00:11:14.660
+What we're going to do is make sure the delta x is the same a delta T rather is the same on everything
+
+150
+00:11:14.930 --> 00:11:20.120
+which means that there will be errors from the integration but they will all be the same errors so we
+
+151
+00:11:20.120 --> 00:11:22.760
+should end up with the same results.
+
+152
+00:11:22.760 --> 00:11:24.560
+Now that's what we're going to aim towards.
+
+153
+00:11:24.560 --> 00:11:32.210
+But first of all we are going to try to implement number two and number one see see the limitations
+
+154
+00:11:32.210 --> 00:11:37.760
+see limitations actually in action and then we'll move on to the more complicated approach of simulating
+
+155
+00:11:37.940 --> 00:11:38.660
+3.
+
+156
+00:11:38.780 --> 00:11:44.060
+Always do it this way try and do the most simple approach first and see if it's going to be sufficient
+
+157
+00:11:44.300 --> 00:11:49.460
+because if no one and two were sufficient to make your game playable then you don't have to bother with
+
+158
+00:11:49.460 --> 00:11:52.790
+the complicated code involved in Step number three.
+
+159
+00:11:52.790 --> 00:11:57.050
+Okay so I'm going to see in the next video where we're going to get started on implementing the first
+
+160
+00:11:57.050 --> 00:11:57.930
+two approaches.

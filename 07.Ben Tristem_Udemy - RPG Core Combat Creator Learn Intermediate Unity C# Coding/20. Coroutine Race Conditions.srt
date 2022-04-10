@@ -1,0 +1,595 @@
+1
+00:00:04,070 --> 00:00:09,170
+Welcome this lecture we're gonna be fixing another race condition that could happen if you move between
+
+2
+00:00:09,170 --> 00:00:15,470
+your portals very quickly and you have a particularly large large fade wait time.
+
+3
+00:00:15,500 --> 00:00:19,550
+So let's dive in and see what that bug is and how we can fix it.
+
+4
+00:00:19,940 --> 00:00:25,320
+So there is still a potential race condition in the portal script.
+
+5
+00:00:25,370 --> 00:00:30,770
+Now if we go and have a look at it the issue that we had here was essentially that at the same time
+
+6
+00:00:30,800 --> 00:00:35,720
+we could have two co routines being called and that wasn't a very good idea.
+
+7
+00:00:35,720 --> 00:00:41,810
+Now if I open up the portal C.S. script then what we're going to see in that script is there are lots
+
+8
+00:00:41,810 --> 00:00:46,650
+of opportunities for two transitions to be going on at the same time.
+
+9
+00:00:46,670 --> 00:00:47,350
+Let's have a look.
+
+10
+00:00:47,360 --> 00:00:52,760
+Now basically whenever you're evaluating current scenes for potential race conditions you only have
+
+11
+00:00:52,760 --> 00:00:57,530
+to look at the yield return statements because these are the only places where something else could
+
+12
+00:00:57,530 --> 00:01:03,650
+be happening because the execution control from this transition function is being handed over back to
+
+13
+00:01:03,650 --> 00:01:04,660
+unity.
+
+14
+00:01:04,670 --> 00:01:08,930
+So in this first yield return the fader fades out.
+
+15
+00:01:08,930 --> 00:01:11,120
+Could anything else happen in this time.
+
+16
+00:01:11,120 --> 00:01:17,330
+Well yes potentially what could be happening here is that while we're fading out and before we saved
+
+17
+00:01:17,330 --> 00:01:23,120
+or loaded the level our player could move away and go into a different portal instead.
+
+18
+00:01:23,120 --> 00:01:28,280
+And then that could trigger another transition that's going to be racing with this transition to load
+
+19
+00:01:28,280 --> 00:01:29,860
+a different scene.
+
+20
+00:01:29,990 --> 00:01:32,470
+Obviously we don't want that sort of thing to happen.
+
+21
+00:01:32,510 --> 00:01:32,960
+Let's see.
+
+22
+00:01:32,990 --> 00:01:35,570
+Let's evaluate some more of these yield returns.
+
+23
+00:01:35,570 --> 00:01:41,120
+So the loading async there's not really much that could be happening while the scene is loadings.
+
+24
+00:01:41,120 --> 00:01:42,920
+That's probably quite safe.
+
+25
+00:01:43,010 --> 00:01:46,390
+This yield return new wait for seconds.
+
+26
+00:01:46,730 --> 00:01:52,880
+Well while we're waiting for that time we loaded up the new level we've saved it.
+
+27
+00:01:52,970 --> 00:02:02,390
+We're now waiting and we could potentially go back into the portal at this stage and that would trigger
+
+28
+00:02:02,510 --> 00:02:05,810
+another transition while that portal is still around.
+
+29
+00:02:05,810 --> 00:02:11,870
+Remember this portal has not yet been destroyed so that could potentially lead us to having some issues
+
+30
+00:02:11,960 --> 00:02:12,480
+as well.
+
+31
+00:02:12,470 --> 00:02:13,820
+That's not something that we want.
+
+32
+00:02:14,240 --> 00:02:18,530
+So how do we prevent that source stuff and let's see what does this actually happen.
+
+33
+00:02:18,530 --> 00:02:20,750
+Is this something that I'm just inventing.
+
+34
+00:02:20,750 --> 00:02:28,390
+Well one way that we can exacerbate the issue is if you open up the portal prefab and change it our
+
+35
+00:02:28,400 --> 00:02:31,660
+fade out we're going to put back down to about Point five.
+
+36
+00:02:31,850 --> 00:02:35,970
+But our wait time we can put up to ten seconds.
+
+37
+00:02:36,080 --> 00:02:41,480
+And because that's going to wait with a completely white screen I'm also going to make a little tweak
+
+38
+00:02:41,540 --> 00:02:48,440
+to our Fader script where instead of fading out to one alpha we're going to make it slightly transparent
+
+39
+00:02:48,440 --> 00:02:49,300
+of point five.
+
+40
+00:02:49,310 --> 00:02:54,960
+So we can still see what we're doing in here and can make that point five F because it wants a float.
+
+41
+00:02:56,040 --> 00:02:57,910
+So let's try this out.
+
+42
+00:02:58,040 --> 00:03:06,140
+If I hit play what I'm expecting to see is the following I try and go through a portal.
+
+43
+00:03:06,140 --> 00:03:10,150
+And while it's waiting with this alpha I go back through the portal.
+
+44
+00:03:10,170 --> 00:03:10,400
+Okay.
+
+45
+00:03:10,400 --> 00:03:16,670
+Nothing's happened there but what if I go back again then I am transported into some weird location.
+
+46
+00:03:16,790 --> 00:03:25,040
+Now I'm hypothesizing that this is because of a portal still being alive that should not have been there
+
+47
+00:03:25,040 --> 00:03:30,740
+any more so when it is going to try and find its corresponding destination portal it's actually finding
+
+48
+00:03:30,740 --> 00:03:32,650
+a portal that should have been destroyed.
+
+49
+00:03:33,260 --> 00:03:39,500
+And so it is putting us in a weird location so we can delete my safe folks that save files now Borked.
+
+50
+00:03:39,560 --> 00:03:40,830
+As a result of that.
+
+51
+00:03:40,940 --> 00:03:44,480
+But what should the fix for this kind of thing be.
+
+52
+00:03:44,480 --> 00:03:48,650
+Well really what should be happening is that while we're going through that portal transition the player
+
+53
+00:03:48,650 --> 00:03:53,030
+should not have control and shouldn't be able to get themselves in this mess in the first place.
+
+54
+00:03:53,450 --> 00:03:58,820
+So my challenge to you is to remove control from the player.
+
+55
+00:03:58,820 --> 00:04:00,900
+Now let's talk about where that should happen.
+
+56
+00:04:00,980 --> 00:04:05,580
+We should remove the control straight after we trigger this portal.
+
+57
+00:04:05,600 --> 00:04:07,900
+So before any of the yield returns.
+
+58
+00:04:07,910 --> 00:04:10,640
+So this is the first you'll return this fade out.
+
+59
+00:04:10,640 --> 00:04:16,460
+Remember we said while it's fading out we could go into a different portal so we want to remove control
+
+60
+00:04:16,580 --> 00:04:24,490
+here and then remember that once we load a new scene there is going to be a new player in that scene.
+
+61
+00:04:24,490 --> 00:04:28,810
+We want to remove control from that player straight away as soon as that scene is located.
+
+62
+00:04:28,810 --> 00:04:32,650
+We want to remove control from that new player.
+
+63
+00:04:32,740 --> 00:04:35,950
+And finally when do we want to restore that control.
+
+64
+00:04:35,950 --> 00:04:42,210
+Well we only want to restore that control just before we destroy this portal again.
+
+65
+00:04:42,220 --> 00:04:47,230
+It's fine if we restore it here because that last yield return is already done so we couldn't be running
+
+66
+00:04:47,230 --> 00:04:54,080
+any other code in between this restoring control so restore control can happen here.
+
+67
+00:04:54,160 --> 00:05:00,910
+Now that is because again there is no code can run between these two lines because we haven't got a
+
+68
+00:05:01,000 --> 00:05:02,420
+yield return.
+
+69
+00:05:02,470 --> 00:05:07,330
+So Paul's video and have a go at seeing if you can remove and restore control.
+
+70
+00:05:07,330 --> 00:05:13,120
+And remember that we have done this before in the cinematic control remove supposed video and have a
+
+71
+00:05:13,120 --> 00:05:15,180
+go okay.
+
+72
+00:05:15,180 --> 00:05:15,870
+Welcome back.
+
+73
+00:05:15,900 --> 00:05:20,460
+So the way we're going to do this is actually I'm gonna go and have a look at how we do it in the cinematic
+
+74
+00:05:20,460 --> 00:05:22,090
+control remover.
+
+75
+00:05:22,140 --> 00:05:24,170
+So I've got it here.
+
+76
+00:05:24,180 --> 00:05:27,240
+And first of all we're getting the plant by tag.
+
+77
+00:05:27,270 --> 00:05:29,960
+Yes that sounds like a sensible thing to do.
+
+78
+00:05:30,210 --> 00:05:35,250
+And we are then getting hold of the player controller component.
+
+79
+00:05:35,260 --> 00:05:36,780
+So let's do that.
+
+80
+00:05:36,900 --> 00:05:46,320
+Let's first of all get hold of the player then do a get components where we're getting the player control
+
+81
+00:05:46,740 --> 00:05:48,790
+oh we don't have access to the play controller yet.
+
+82
+00:05:48,790 --> 00:05:51,730
+So we're gonna have to add a namespace.
+
+83
+00:05:51,750 --> 00:05:52,990
+Is that a sensible thing to do.
+
+84
+00:05:52,990 --> 00:05:59,520
+Always remember to ask yourself is it sensible to have this scene management depend on the control namespace
+
+85
+00:05:59,520 --> 00:06:01,170
+which is what we're gonna have to include.
+
+86
+00:06:01,170 --> 00:06:01,880
+I think it is.
+
+87
+00:06:01,890 --> 00:06:06,690
+I think it's quite reasonable I don't think the control namespace depends on scene management so there's
+
+88
+00:06:06,690 --> 00:06:08,480
+no circular dependencies there.
+
+89
+00:06:08,910 --> 00:06:14,520
+We're going to store this player controller and I'm going to store it as a variable called a player
+
+90
+00:06:14,520 --> 00:06:15,720
+controller locally
+
+91
+00:06:19,080 --> 00:06:19,880
+like so.
+
+92
+00:06:19,890 --> 00:06:25,110
+And then this player controller we can remove control from it by doing play controller enabled equals
+
+93
+00:06:25,230 --> 00:06:25,890
+false.
+
+94
+00:06:25,920 --> 00:06:29,950
+So there is no control possible at this stage.
+
+95
+00:06:29,950 --> 00:06:34,610
+Now what we're going to do is we're going to have to remove control again after loading the scene.
+
+96
+00:06:34,620 --> 00:06:41,880
+Remember that you have to find the player again because it's a new player in a new scene so I'm going
+
+97
+00:06:41,880 --> 00:06:49,050
+to actually name this new player controller in here just to make things super clear with disabling control
+
+98
+00:06:49,440 --> 00:06:51,600
+and then and without a last comment.
+
+99
+00:06:51,600 --> 00:06:52,710
+This restore control.
+
+100
+00:06:52,710 --> 00:06:58,860
+We are just going to go to play a controller enabled equals true so that the control is returned to
+
+101
+00:06:58,860 --> 00:07:01,880
+the player once we have gone through our different fades.
+
+102
+00:07:01,890 --> 00:07:10,350
+So what I would expect to see now is if we go ahead and hit play and then we go through our portal I
+
+103
+00:07:10,410 --> 00:07:16,260
+expect to see that I can't move until this fade out has completely happened.
+
+104
+00:07:16,350 --> 00:07:21,530
+Takes 10 seconds and then if I go back through it's not giving me any issues whatsoever.
+
+105
+00:07:21,590 --> 00:07:26,250
+Okay so now the only thing left to do is restore things to how they were before.
+
+106
+00:07:26,250 --> 00:07:32,250
+So let's go to our portal and let's just restore this component reset the components to its originals
+
+107
+00:07:32,280 --> 00:07:37,550
+or maybe not everything to its original so let's set some sensible times.
+
+108
+00:07:37,560 --> 00:07:44,220
+The wait time I think we were saying well let's see what we had as our defaults in the portal C.S. our
+
+109
+00:07:44,220 --> 00:07:53,560
+fade in time is going to be about 2 seconds the wait time is going to be about point five and that should
+
+110
+00:07:53,560 --> 00:07:54,930
+be okay for the portal.
+
+111
+00:07:54,970 --> 00:08:01,900
+Next we want to make sure that our Fader code is fading out completely so fade to 1 and let's just check
+
+112
+00:08:01,930 --> 00:08:04,010
+that everything is working as we'd expect.
+
+113
+00:08:04,150 --> 00:08:10,720
+So come into the world and then we go between portals it fades out and it fades as back in over the
+
+114
+00:08:10,720 --> 00:08:14,460
+course of two seconds and until that fade is complete.
+
+115
+00:08:14,620 --> 00:08:22,040
+We are not able to do anything which I think is better means we can't get ourselves into any problems.
+
+116
+00:08:22,090 --> 00:08:27,370
+In fact there is one thing that I find slightly annoying about moving between scenes now is that that
+
+117
+00:08:27,370 --> 00:08:32,860
+fade out time is quite long and does prevent us from moving for a bit too long.
+
+118
+00:08:32,860 --> 00:08:38,550
+So what I'm gonna want to do instead is instead of yield return and waiting for the fade in.
+
+119
+00:08:38,710 --> 00:08:46,030
+I want to re enable control immediately and or rather just fade in and relinquish control and let the
+
+120
+00:08:46,600 --> 00:08:49,080
+CO routine run in the background.
+
+121
+00:08:49,120 --> 00:08:53,680
+Now in order to do that we need to change the way these co routine functions work.
+
+122
+00:08:53,830 --> 00:08:58,700
+Instead of returning an AI numerator we want them to return a CO routine directly.
+
+123
+00:08:59,050 --> 00:09:03,190
+And basically we can still yield return that car routine and other coatings.
+
+124
+00:09:03,220 --> 00:09:08,770
+Which basically means that we wait for that car routine to finish but it will now just run independently
+
+125
+00:09:09,040 --> 00:09:12,010
+without having to be yield returned.
+
+126
+00:09:12,010 --> 00:09:15,310
+It doesn't have to be yield return but if it is it will wait.
+
+127
+00:09:15,310 --> 00:09:21,730
+That means we need to change the return types of all of these fades so they return a car routine and
+
+128
+00:09:21,730 --> 00:09:28,920
+then crucially we are changing this yield return to a simple return of the currently active fade car
+
+129
+00:09:28,930 --> 00:09:34,220
+routine and that is what makes the difference is because now we're not yield returning here.
+
+130
+00:09:34,270 --> 00:09:39,000
+We don't actually have to yield return the whole function in order to get to this statement.
+
+131
+00:09:39,190 --> 00:09:43,980
+Now this statement just runs it returns a car routine that has been started in here.
+
+132
+00:09:44,350 --> 00:09:46,600
+And then if we yield return it great.
+
+133
+00:09:46,660 --> 00:09:49,060
+If we don't yield return it will go on running.
+
+134
+00:09:49,060 --> 00:09:56,410
+So that means that we can now remove the yield return from our Fader dot fade in and then it will go
+
+135
+00:09:56,410 --> 00:09:58,150
+subsequently on straight away.
+
+136
+00:09:58,150 --> 00:10:02,320
+As soon as it is started that currency and it's going to go on and enable control which means it will
+
+137
+00:10:02,320 --> 00:10:05,070
+be able to get control back immediately.
+
+138
+00:10:05,110 --> 00:10:07,070
+So let's go ahead and try that.
+
+139
+00:10:07,090 --> 00:10:13,810
+If we move between worlds now it's still fading but we can move around and because of the protection
+
+140
+00:10:13,810 --> 00:10:18,970
+we put in place on the fade it doesn't matter if we start another fade a while that fade out still happening
+
+141
+00:10:18,970 --> 00:10:24,790
+it just cancels the fader and does a fade up and fade down just as we would expect.
+
+142
+00:10:24,790 --> 00:10:26,510
+So I think that's just a little bit neater.
+
+143
+00:10:26,620 --> 00:10:27,190
+Great stuff.
+
+144
+00:10:27,190 --> 00:10:33,280
+So in this lecture we have figured out how we can stop these portals racing against each other and how
+
+145
+00:10:33,280 --> 00:10:39,820
+we need to be careful sometimes when we have yield returns because these are opportunities for other
+
+146
+00:10:39,880 --> 00:10:47,560
+code to be running so we need to think about what could happen in those yield return pauses and whether
+
+147
+00:10:47,560 --> 00:10:51,030
+that could conflict with what we are trying to do.
+
+148
+00:10:51,130 --> 00:10:51,670
+Awesome stuff.
+
+149
+00:10:51,670 --> 00:10:53,020
+I'll see you in the next lecture.

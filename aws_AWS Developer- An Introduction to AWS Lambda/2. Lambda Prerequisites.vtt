@@ -1,0 +1,433 @@
+WEBVTT
+1
+00:00:00.980 --> 00:00:03.850
+In this section, we'll be looking at all the components that we'll
+
+2
+00:00:03.850 --> 00:00:06.740
+put together to deploy our first Lambda function.
+
+3
+00:00:06.740 --> 00:00:10.020
+These should primarily be runtime agnostic, but keep in mind that there
+
+4
+00:00:10.020 --> 00:00:14.220
+will be some minor differences between deploying Python, JavaScript, or
+
+5
+00:00:14.220 --> 00:00:18.310
+Java code to Lambda, the same thing with any of the other runtimes. To
+
+6
+00:00:18.310 --> 00:00:21.950
+keep this course more succinct, we're looking exclusively at the Python
+
+7
+00:00:21.950 --> 00:00:24.300
+deployment process for right now.
+
+8
+00:00:24.300 --> 00:00:28.750
+So in this module, we're building our Lambda canary for Globomantics Pet Care.
+
+9
+00:00:28.750 --> 00:00:31.820
+As we mentioned before, this function has three main parts.
+
+10
+00:00:31.820 --> 00:00:34.090
+First, it's set to run on an interval,
+
+11
+00:00:34.090 --> 00:00:37.920
+triggering the function every few minutes. After the function is triggered,
+
+12
+00:00:37.920 --> 00:00:42.500
+it makes a request to a website and then reviews the status of that website.
+
+13
+00:00:42.500 --> 00:00:46.240
+Our function then logs the status of that website for future review.
+
+14
+00:00:46.240 --> 00:00:49.600
+Now let's take a look at how we'll be preparing this function.
+
+15
+00:00:49.600 --> 00:00:53.250
+The first step to deploying your function is to gather up the dependent parts
+
+16
+00:00:53.250 --> 00:00:57.210
+that you'll need the function to have. When I say dependent parts or
+
+17
+00:00:57.210 --> 00:00:59.620
+dependencies, I sometimes mean a few different things.
+
+18
+00:00:59.620 --> 00:01:03.170
+First, you'll need the external libraries that your function will be using.
+
+19
+00:01:03.170 --> 00:01:04.060
+For Python,
+
+20
+00:01:04.060 --> 00:01:06.730
+this means that everything not installed by default
+
+21
+00:01:06.730 --> 00:01:09.040
+in Python standard libraries.
+
+22
+00:01:09.040 --> 00:01:10.390
+When you deploy a Lambda function,
+
+23
+00:01:10.390 --> 00:01:14.050
+any additional dependencies will need to be bundled up with your code.
+
+24
+00:01:14.050 --> 00:01:16.940
+We'll take a look at how to do this in just a moment.
+
+25
+00:01:16.940 --> 00:01:17.750
+Additionally,
+
+26
+00:01:17.750 --> 00:01:20.830
+you'll want to include any other files that your function relies on,
+
+27
+00:01:20.830 --> 00:01:24.640
+such as HTML email templates or configuration files that you might be
+
+28
+00:01:24.640 --> 00:01:28.660
+loading information from. Next, you'll need to audit the AWS services
+
+29
+00:01:28.660 --> 00:01:30.410
+your function will be interacting with.
+
+30
+00:01:30.410 --> 00:01:34.100
+Does it send off queries to DynamoDB? Does it require integration with the
+
+31
+00:01:34.100 --> 00:01:37.920
+API Gateway? Each service Lambda interacts with is another service that it
+
+32
+00:01:37.920 --> 00:01:41.480
+needs explicit IAM permissions from to access them.
+
+33
+00:01:41.480 --> 00:01:43.140
+You'll need to make sure it has these permissions
+
+34
+00:01:43.140 --> 00:01:45.240
+within the role that you assign it.
+
+35
+00:01:45.240 --> 00:01:45.950
+Lastly,
+
+36
+00:01:45.950 --> 00:01:48.110
+you'll need to make sure that your function has all the API
+
+37
+00:01:48.110 --> 00:01:50.680
+keys and configuration information it needs.
+
+38
+00:01:50.680 --> 00:01:51.500
+Fortunately,
+
+39
+00:01:51.500 --> 00:01:53.860
+Lambda functions are given some AWS configuration
+
+40
+00:01:53.860 --> 00:01:56.260
+information based on the role you provide them.
+
+41
+00:01:56.260 --> 00:01:57.020
+However,
+
+42
+00:01:57.020 --> 00:01:59.330
+if you need to have your function interact with an external
+
+43
+00:01:59.330 --> 00:02:02.380
+API or a database, it's likely going to need some sort of
+
+44
+00:02:02.380 --> 00:02:04.330
+credential information to do so.
+
+45
+00:02:04.330 --> 00:02:06.740
+We'll talk about some best practices for this occasion
+
+46
+00:02:06.740 --> 00:02:10.940
+more in depth in a later module, but it's still good to keep this in mind now.
+
+47
+00:02:10.940 --> 00:02:13.510
+So how do we go about writing our function code?
+
+48
+00:02:13.510 --> 00:02:15.700
+When you're writing the content of your Lambda function,
+
+49
+00:02:15.700 --> 00:02:17.330
+you essentially have a few options.
+
+50
+00:02:17.330 --> 00:02:21.050
+You can write the code locally in your preferred IDE and bundle it all
+
+51
+00:02:21.050 --> 00:02:24.850
+together for deployment, or you can write the function code directly into the
+
+52
+00:02:24.850 --> 00:02:28.430
+Lambda editor in the AWS console. Fortunately for us,
+
+53
+00:02:28.430 --> 00:02:30.130
+with smaller function packages,
+
+54
+00:02:30.130 --> 00:02:32.950
+AWS will give us a bit of the best of both worlds.
+
+55
+00:02:32.950 --> 00:02:36.320
+When you upload a function package to AWS, you can actually edit
+
+56
+00:02:36.320 --> 00:02:39.430
+your function file in the Lambda code editor to make fixes or
+
+57
+00:02:39.430 --> 00:02:41.740
+changes to portions of the function.
+
+58
+00:02:41.740 --> 00:02:43.860
+You can also find plenty of ways to automate your function
+
+59
+00:02:43.860 --> 00:02:47.360
+deployment with the AWS command line or by using the AWS
+
+60
+00:02:47.360 --> 00:02:49.620
+SDKs to work with an interface.
+
+61
+00:02:49.620 --> 00:02:51.910
+There also frameworks for this purpose that we'll cover
+
+62
+00:02:51.910 --> 00:02:54.100
+in the last module of this course.
+
+63
+00:02:54.100 --> 00:02:56.470
+So what do you do when you've prepped all of your function code,
+
+64
+00:02:56.470 --> 00:02:58.930
+dependencies, and configuration information?
+
+65
+00:02:58.930 --> 00:03:02.230
+Well, you'll need to zip all of that up into a function package.
+
+66
+00:03:02.230 --> 00:03:05.490
+The function package is essentially just a zip archive of all
+
+67
+00:03:05.490 --> 00:03:08.790
+your function information that you can upload directly to the AWS
+
+68
+00:03:08.790 --> 00:03:14.310
+console or by using the AWS CLI. Now, once you've uploaded a function package,
+
+69
+00:03:14.310 --> 00:03:16.530
+you'll need to make sure it runs properly.
+
+70
+00:03:16.530 --> 00:03:19.320
+AWS allows you to test your functions with sample events
+
+71
+00:03:19.320 --> 00:03:21.610
+to make sure they run correctly before you activate the
+
+72
+00:03:21.610 --> 00:03:23.540
+triggers that make them run.
+
+73
+00:03:23.540 --> 00:03:25.560
+The more complicated your functions become,
+
+74
+00:03:25.560 --> 00:03:27.380
+the more I encourage you to take some steps to keep
+
+75
+00:03:27.380 --> 00:03:29.320
+track of what might cause them to fail.
+
+76
+00:03:29.320 --> 00:03:32.630
+Here are a few things to keep in mind when debugging your functions.
+
+77
+00:03:32.630 --> 00:03:34.900
+First, be sure to use logging.
+
+78
+00:03:34.900 --> 00:03:37.280
+It's important to know which portions of your function are running
+
+79
+00:03:37.280 --> 00:03:41.240
+properly and where the hiccups or failures occur in them.
+
+80
+00:03:41.240 --> 00:03:45.010
+Log key portions of your functions and the results that they generate.
+
+81
+00:03:45.010 --> 00:03:48.090
+These logs will be stored by default in AWS CloudWatch,
+
+82
+00:03:48.090 --> 00:03:50.150
+a separate AWS service that keeps track of your
+
+83
+00:03:50.150 --> 00:03:52.540
+logs for many other services too.
+
+84
+00:03:52.540 --> 00:03:53.320
+Also,
+
+85
+00:03:53.320 --> 00:03:56.290
+be aware of the differences between your environment, where
+
+86
+00:03:56.290 --> 00:03:58.530
+you test your functions on your local machine, and the
+
+87
+00:03:58.530 --> 00:04:00.270
+environment that you run it on.
+
+88
+00:04:00.270 --> 00:04:03.620
+If you're testing your function code locally on OS X or Windows,
+
+89
+00:04:03.620 --> 00:04:06.250
+you'll need to remember that the function will actually be executing
+
+90
+00:04:06.250 --> 00:04:09.370
+on an Amazon Linux machine inside of a container.
+
+91
+00:04:09.370 --> 00:04:11.830
+This is especially relevant if you have libraries that are
+
+92
+00:04:11.830 --> 00:04:14.120
+compiled to the machine that you're working on.
+
+93
+00:04:14.120 --> 00:04:17.310
+An easy way to avoid that particular problem is to create a function
+
+94
+00:04:17.310 --> 00:04:20.870
+package in an Amazon Linux EC2 instance where you have the exact
+
+95
+00:04:20.870 --> 00:04:24.030
+same environment or by using frameworks that help ensure that you're
+
+96
+00:04:24.030 --> 00:04:25.720
+doing this process correctly.
+
+97
+00:04:25.720 --> 00:04:26.310
+Lastly,
+
+98
+00:04:26.310 --> 00:04:29.310
+if you started working more with Lambda, you're almost guaranteed to run
+
+99
+00:04:29.310 --> 00:04:32.040
+into a few issues that don't have obvious solutions.
+
+100
+00:04:32.040 --> 00:04:32.550
+However,
+
+101
+00:04:32.550 --> 00:04:35.140
+there is a growing community of people using Lambda who are
+
+102
+00:04:35.140 --> 00:04:37.800
+likely to have encountered the same issue before,
+
+103
+00:04:37.800 --> 00:04:41.340
+so don't hesitate to search for solutions that they've created or
+
+104
+00:04:41.340 --> 00:04:43.430
+reach out directly to folks in the community.
+
+105
+00:04:43.430 --> 00:04:45.800
+And as your use cases get more advanced, be sure to
+
+106
+00:04:45.800 --> 00:04:47.480
+take a look at third‑party tooling,
+
+107
+00:04:47.480 --> 00:04:50.470
+which has come a long way since the early days of AWS Lambda.
+
+108
+00:04:50.470 --> 00:04:57.000
+All right, so that's all the context we need. Let's jump into how we'll be deploying our first function.
+

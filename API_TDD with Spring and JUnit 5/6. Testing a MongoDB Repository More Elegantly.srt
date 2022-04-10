@@ -1,0 +1,544 @@
+1
+00:00:00,400 --> 00:00:03,800
+Our implementation works great, but it could be better,
+
+2
+00:00:03,800 --> 00:00:06,453
+so let's see how we can make it better.
+
+3
+00:00:06,453 --> 00:00:10,298
+Loading a JSON file and populating Mongo from within our
+
+4
+00:00:10,298 --> 00:00:12,619
+test classes has a couple limitations.
+
+5
+00:00:12,619 --> 00:00:17,502
+First, our test class is responsible for loading our JSON file into MongoDB.
+
+6
+00:00:17,502 --> 00:00:18,170
+While this works,
+
+7
+00:00:18,170 --> 00:00:23,366
+it's not ideal to replicate this code across all of our Mongo test instances.
+
+8
+00:00:23,366 --> 00:00:28,005
+Second, the current implementation only supports a single JSON file.
+
+9
+00:00:28,005 --> 00:00:30,209
+BeforeEach is called before each test class,
+
+10
+00:00:30,209 --> 00:00:34,861
+so if we wanted to load a different JSON file into Mongo for different tests,
+
+11
+00:00:34,861 --> 00:00:37,129
+the implementation would get messy.
+
+12
+00:00:37,129 --> 00:00:41,069
+JUnit5 allows us to build custom extensions that can
+
+13
+00:00:41,069 --> 00:00:43,353
+subscribe to its lifecycle notifications.
+
+14
+00:00:43,353 --> 00:00:44,124
+In our case,
+
+15
+00:00:44,124 --> 00:00:46,374
+we're interested in being called before each test
+
+16
+00:00:46,374 --> 00:00:49,018
+runs and after each test completes.
+
+17
+00:00:49,018 --> 00:00:52,420
+The BeforeEachCallback interface defines a method called
+
+18
+00:00:52,420 --> 00:00:55,963
+BeforeEach that's called before each test runs.
+
+19
+00:00:55,963 --> 00:00:59,977
+We can use this to load an arbitrary JSON file into MongoDB.
+
+20
+00:00:59,977 --> 00:01:03,406
+The AfterEachCallback interface defines a method called
+
+21
+00:01:03,406 --> 00:01:05,932
+AfterEach that's called after each test completes.
+
+22
+00:01:05,932 --> 00:01:08,717
+We can use this to clean up the collection used by the test.
+
+23
+00:01:08,717 --> 00:01:12,303
+We're going to create a new JUnit 5 extension class called
+
+24
+00:01:12,303 --> 00:01:16,479
+MongoSpringExtension that implements the BeforeEachCallback and
+
+25
+00:01:16,479 --> 00:01:20,471
+AfterEachCallback interfaces and implements their corresponding methods.
+
+26
+00:01:20,471 --> 00:01:22,122
+These methods are passed an ExtensionContext,
+
+27
+00:01:22,122 --> 00:01:26,060
+which provides access to the test class and the test
+
+28
+00:01:26,060 --> 00:01:27,344
+method that's currently running.
+
+29
+00:01:27,344 --> 00:01:30,820
+We're going to require our test class to provide a getMongoTemplate
+
+30
+00:01:30,820 --> 00:01:35,366
+method that provides access to the autowire mongoTemplate instance so
+
+31
+00:01:35,366 --> 00:01:37,075
+that we can interact with the database,
+
+32
+00:01:37,075 --> 00:01:40,257
+and we're going to use reflection to invoke that method and
+
+33
+00:01:40,257 --> 00:01:43,199
+retrieve the current mongoTemplate in our extension.
+
+34
+00:01:43,199 --> 00:01:46,275
+We're also going to define a new annotation called MongoDataFile
+
+35
+00:01:46,275 --> 00:01:49,807
+that allows us to specify the JSON file to load,
+
+36
+00:01:49,807 --> 00:01:52,461
+the type of class that Jackson's ObjectMapper
+
+37
+00:01:52,461 --> 00:01:54,673
+should use to deserialize the JSON,
+
+38
+00:01:54,673 --> 00:01:58,187
+and the name of the MongoDB collection that's hosting the data.
+
+39
+00:01:58,187 --> 00:02:01,827
+The extension will use this information to populate the database before the
+
+40
+00:02:01,827 --> 00:02:05,004
+test runs and drop the collection after the test completes.
+
+41
+00:02:05,004 --> 00:02:07,822
+The new test class looks like this: It's annotated
+
+42
+00:02:07,822 --> 00:02:12,174
+with the ExtendWith annotation, specifying our custom extension.
+
+43
+00:02:12,174 --> 00:02:14,352
+It provides a getMongoTemplate method,
+
+44
+00:02:14,352 --> 00:02:18,718
+and the test cases are annotated with the new MongoDataFile annotation.
+
+45
+00:02:18,718 --> 00:02:19,501
+It's a little bit of work,
+
+46
+00:02:19,501 --> 00:02:22,679
+but it'll make our Mongo test classes look a lot more elegant
+
+47
+00:02:22,679 --> 00:02:25,626
+and will afford us the flexibility to allow different test
+
+48
+00:02:25,626 --> 00:02:28,094
+methods to use different JSON files.
+
+49
+00:02:28,094 --> 00:02:30,825
+Now let's take a look at the MongoSpringExtension class,
+
+50
+00:02:30,825 --> 00:02:35,174
+the MongoDataFile annotation, and the revised version of our test class.
+
+51
+00:02:35,174 --> 00:02:38,764
+Let's begin by looking at the MongoDataFile annotation.
+
+52
+00:02:38,764 --> 00:02:43,337
+It defines three fields: Value contains the name of the JSON file to load,
+
+53
+00:02:43,337 --> 00:02:48,021
+classType defines the Mongo document class to load from the JSON file,
+
+54
+00:02:48,021 --> 00:02:49,767
+such as the review class,
+
+55
+00:02:49,767 --> 00:02:51,756
+and collectionName defines the name of the
+
+56
+00:02:51,756 --> 00:02:53,577
+collection that hosts the Mongo document,
+
+57
+00:02:53,577 --> 00:02:54,943
+namely, reviews.
+
+58
+00:02:54,943 --> 00:02:59,002
+The MongoSpringExtension class is where all the fun happens.
+
+59
+00:02:59,002 --> 00:03:01,547
+It implements the BeforeEachCallback and AfterEachCallback
+
+60
+00:03:01,547 --> 00:03:05,725
+interfaces so JUnit will execute our BeforeEach and AfterEach
+
+61
+00:03:05,725 --> 00:03:08,712
+methods before and after each test case.
+
+62
+00:03:08,712 --> 00:03:11,389
+We define a JSON path variable that references the root
+
+63
+00:03:11,389 --> 00:03:14,636
+directory where we expect our JSON files to exist,
+
+64
+00:03:14,636 --> 00:03:15,675
+namely, src/test/resources/data,
+
+65
+00:03:15,675 --> 00:03:22,367
+then we create a Jackson ObjectMapper to use in our JSON deserialization.
+
+66
+00:03:22,367 --> 00:03:24,805
+Our BeforeEach and AfterEach methods are dependent
+
+67
+00:03:24,805 --> 00:03:28,645
+on the getMongoTemplate method, so let's look at that first.
+
+68
+00:03:28,645 --> 00:03:32,270
+The extension context provides us access to both the test class
+
+69
+00:03:32,270 --> 00:03:34,938
+and the instance of that running test class.
+
+70
+00:03:34,938 --> 00:03:37,714
+We retrieve the test class by invoking its getTestClass method,
+
+71
+00:03:37,714 --> 00:03:41,189
+which returns that class wrapped in an Optional.
+
+72
+00:03:41,189 --> 00:03:41,899
+From that class,
+
+73
+00:03:41,899 --> 00:03:44,380
+we attempt to retrieve its getMongoTemplate method by
+
+74
+00:03:44,380 --> 00:03:46,992
+calling the class's getMethod method.
+
+75
+00:03:46,992 --> 00:03:50,186
+We then get the test instance by calling the extension
+
+76
+00:03:50,186 --> 00:03:51,853
+context's getTestInstance method,
+
+77
+00:03:51,853 --> 00:03:55,065
+and finally we invoke the getMongoTemplate method on the
+
+78
+00:03:55,065 --> 00:03:58,291
+testInstance and return the response as a MongoTemplate.
+
+79
+00:03:58,291 --> 00:04:00,842
+This is a bit of ugly reflection code,
+
+80
+00:04:00,842 --> 00:04:02,188
+but the end result is that we invoke the
+
+81
+00:04:02,188 --> 00:04:05,230
+getMongoTemplate method provided by the test class.
+
+82
+00:04:05,230 --> 00:04:09,009
+The BeforeEach method begins by retrieving the test method from the
+
+83
+00:04:09,009 --> 00:04:12,807
+extension context by calling its getTestMethod method.
+
+84
+00:04:12,807 --> 00:04:13,637
+If it's present,
+
+85
+00:04:13,637 --> 00:04:16,511
+then we retrieve the MongoDataFile annotation by calling
+
+86
+00:04:16,511 --> 00:04:19,279
+that method's getAnnotation method,
+
+87
+00:04:19,279 --> 00:04:22,877
+passing a reference to the MongoDataFile.class annotation.
+
+88
+00:04:22,877 --> 00:04:25,058
+It then retrieves the MongoTemplate,
+
+89
+00:04:25,058 --> 00:04:27,547
+and then executes the same JSON loading code that we
+
+90
+00:04:27,547 --> 00:04:28,908
+previously wrote in our tests.
+
+91
+00:04:28,908 --> 00:04:31,157
+We call the ObjectMapper's readValue method,
+
+92
+00:04:31,157 --> 00:04:33,185
+passing it the file to read,
+
+93
+00:04:33,185 --> 00:04:37,087
+which is constructed by calling the JSON_PATH.resolve method,
+
+94
+00:04:37,087 --> 00:04:39,608
+appending the value returned by the MongoDataFiles value,
+
+95
+00:04:39,608 --> 00:04:45,437
+and calling its toFind method, and we also pass the type of Java Object to load.
+
+96
+00:04:45,437 --> 00:04:49,415
+When we wrote this code by hand, we passed in review array.class,
+
+97
+00:04:49,415 --> 00:04:52,393
+but doing this generically is a little more complicated.
+
+98
+00:04:52,393 --> 00:04:56,055
+We use the ObjectMapper's getTypeFactory methods,
+
+99
+00:04:56,055 --> 00:04:58,194
+constructCollectionType method,
+
+100
+00:04:58,194 --> 00:05:01,354
+passing it two parameters: a list class and the class type
+
+101
+00:05:01,354 --> 00:05:04,563
+returned by the MongoDataFile's classType method.
+
+102
+00:05:04,563 --> 00:05:04,714
+Essentially,
+
+103
+00:05:04,714 --> 00:05:08,035
+this is telling the ObjectMapper that we want to read a list of the class types,
+
+104
+00:05:08,035 --> 00:05:09,838
+such as a list of reviews.
+
+105
+00:05:09,838 --> 00:05:10,171
+Finally,
+
+106
+00:05:10,171 --> 00:05:13,631
+we iterate over the returned lists and pass each object
+
+107
+00:05:13,631 --> 00:05:15,127
+to the mongoTemplate's save method.
+
+108
+00:05:15,127 --> 00:05:17,639
+This is the same thing that we did in the last example,
+
+109
+00:05:17,639 --> 00:05:20,290
+but written a little more generically and driven by the
+
+110
+00:05:20,290 --> 00:05:22,990
+values in the MongoDataFile annotation.
+
+111
+00:05:22,990 --> 00:05:25,811
+The AfterEach method retrieves the test method,
+
+112
+00:05:25,811 --> 00:05:30,281
+retrieves its MongoDataFile annotation, retrieves the MongoTemplate,
+
+113
+00:05:30,281 --> 00:05:32,678
+and then drops the collection defined by the
+
+114
+00:05:32,678 --> 00:05:34,741
+MongoDataFile's collection attribute.
+
+115
+00:05:34,741 --> 00:05:38,235
+The code is a little ugly, but thankfully we only need to write it once.
+
+116
+00:05:38,235 --> 00:05:40,686
+Now let's look at our revised test class.
+
+117
+00:05:40,686 --> 00:05:43,380
+Our new test class is annotated with the ExtendWith annotation,
+
+118
+00:05:43,380 --> 00:05:48,938
+specifying our new custom extension, and it provides a getMongoTemplate method.
+
+119
+00:05:48,938 --> 00:05:50,906
+With these two prerequisites out of the way,
+
+120
+00:05:50,906 --> 00:05:53,669
+our tests are now fully in control of Mongo.
+
+121
+00:05:53,669 --> 00:05:57,819
+Each test method is annotated with the MongoDataFile annotation,
+
+122
+00:05:57,819 --> 00:06:00,014
+specifying the name of the sample JSON file,
+
+123
+00:06:00,014 --> 00:06:03,567
+the type of document that should be loaded from that JSON file,
+
+124
+00:06:03,567 --> 00:06:06,947
+and the name of the collection hosting those documents.
+
+125
+00:06:06,947 --> 00:06:10,463
+The contents of each test method are the same as we previously wrote.
+
+126
+00:06:10,463 --> 00:06:14,905
+Just for fun, I created a new sample6.json file that contains 6 reviews,
+
+127
+00:06:14,905 --> 00:06:18,922
+and a new testFindAll6 method that loads the JSON file and
+
+128
+00:06:18,922 --> 00:06:21,490
+validates that in fact it has 6 reviews.
+
+129
+00:06:21,490 --> 00:06:24,526
+Use of this custom extension is completely optional.
+
+130
+00:06:24,526 --> 00:06:27,168
+You're free to import data from within each test class,
+
+131
+00:06:27,168 --> 00:06:30,912
+but externalizing the JSON loading to a custom extension and
+
+132
+00:06:30,912 --> 00:06:34,380
+specifying its behavior in an annotation makes the solution
+
+133
+00:06:34,380 --> 00:06:36,301
+more elegant and more flexible.
+
+134
+00:06:36,301 --> 00:06:38,931
+And there are plenty of enhancements that you can make on your own,
+
+135
+00:06:38,931 --> 00:06:42,411
+such as optionally dropping a collection or caching the objects
+
+136
+00:06:42,411 --> 00:06:48,000
+loaded from a JSON file based on its file name. It's just a starting point for your own projects.
+

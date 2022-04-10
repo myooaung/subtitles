@@ -1,0 +1,705 @@
+WEBVTT
+1
+00:00:02.021 --> 00:00:04.955
+Now that the Spring Batch dependencies are in the project,
+
+2
+00:00:04.955 --> 00:00:07.342
+the next step is to configure Spring Batch to be
+
+3
+00:00:07.342 --> 00:00:09.589
+available in the Spring container at runtime.
+
+4
+00:00:09.589 --> 00:00:13.566
+To do this, I'll be creating a Spring configuration class,
+
+5
+00:00:13.566 --> 00:00:16.770
+which I'm displaying a snippet from now.
+
+6
+00:00:16.770 --> 00:00:17.109
+First,
+
+7
+00:00:17.109 --> 00:00:20.892
+you'll notice that I'm annotating this class as a component even
+
+8
+00:00:20.892 --> 00:00:24.071
+though I'm defining this as a configuration class.
+
+9
+00:00:24.071 --> 00:00:26.766
+The second annotation will explain why.
+
+10
+00:00:26.766 --> 00:00:30.367
+I've also annotated the class with EnableBatchProcessing.
+
+11
+00:00:30.367 --> 00:00:35.908
+This annotation triggers Spring Batch to include and configure
+
+12
+00:00:35.908 --> 00:00:39.357
+its features at runtime as Spring beans.
+
+13
+00:00:39.357 --> 00:00:42.489
+This class will then provide a strategy for how
+
+14
+00:00:42.489 --> 00:00:44.577
+several of these beans are configured.
+
+15
+00:00:44.577 --> 00:00:44.880
+Next,
+
+16
+00:00:44.880 --> 00:00:47.308
+I've declared that this class will implement the
+
+17
+00:00:47.308 --> 00:00:49.264
+Spring Batch interface BatchConfigurer.
+
+18
+00:00:49.264 --> 00:00:55.307
+The interface simply defines getters for the JobRepository,
+
+19
+00:00:55.307 --> 00:00:59.303
+JobExplorer, JobLauncher, and TransactionManager.
+
+20
+00:00:59.303 --> 00:01:02.053
+The implementation of this interface is then responsible for the
+
+21
+00:01:02.053 --> 00:01:05.271
+strategy of how these attributes are defined.
+
+22
+00:01:05.271 --> 00:01:08.890
+Spring Batch provides you with a default
+
+23
+00:01:08.890 --> 00:01:10.232
+BatchConfigurer implementation; however,
+
+24
+00:01:10.232 --> 00:01:13.931
+I prefer to provide my own implementation as it allows me to
+
+25
+00:01:13.931 --> 00:01:16.966
+control the configuration of these attributes.
+
+26
+00:01:16.966 --> 00:01:21.959
+Finally, I've defined three of the attributes needed for BatchConfiguration.
+
+27
+00:01:21.959 --> 00:01:25.007
+Let's look at these in a little bit more detail.
+
+28
+00:01:25.007 --> 00:01:28.839
+The first attribute is of the type JobRepository.
+
+29
+00:01:28.839 --> 00:01:32.217
+This class is responsible for persisting metadata about
+
+30
+00:01:32.217 --> 00:01:35.266
+batch jobs configured in the project.
+
+31
+00:01:35.266 --> 00:01:40.417
+This metadata gets persisted either in memory or in a database.
+
+32
+00:01:40.417 --> 00:01:44.649
+The most common way to use the JobRepository is with a database,
+
+33
+00:01:44.649 --> 00:01:46.568
+so I'll be demonstrating that shortly.
+
+34
+00:01:46.568 --> 00:01:48.275
+In order to use the database approach,
+
+35
+00:01:48.275 --> 00:01:51.707
+there are some obvious configurations we will need on the JobRepository,
+
+36
+00:01:51.707 --> 00:01:55.021
+including the data source and the TransactionManager.
+
+37
+00:01:55.021 --> 00:01:59.544
+The next attribute is of the type JobExplorer.
+
+38
+00:01:59.544 --> 00:02:03.489
+This class provides you with getters and find methods to retrieve
+
+39
+00:02:03.489 --> 00:02:07.742
+information for the metadata stored in the JobRepository.
+
+40
+00:02:07.742 --> 00:02:13.375
+Again, I'll need to configure the JobExplorer, in this case, with a data source.
+
+41
+00:02:13.375 --> 00:02:16.621
+The final attribute is of the type JobLauncher.
+
+42
+00:02:16.621 --> 00:02:17.847
+As the name implies,
+
+43
+00:02:17.847 --> 00:02:22.523
+this class is responsible for running a job with a given set of parameters.
+
+44
+00:02:22.523 --> 00:02:27.137
+I'll be using the JobLauncher to execute our job on demand
+
+45
+00:02:27.137 --> 00:02:31.000
+when I create it later in the course.
+
+46
+00:02:31.000 --> 00:02:35.362
+Let's create this new configuration class in the project.
+
+47
+00:02:35.362 --> 00:02:38.858
+Please note, I'll be following Demo 3 found in the DEMOS.
+
+48
+00:02:38.858 --> 00:02:42.672
+md file in the root project directory.
+
+49
+00:02:42.672 --> 00:02:47.542
+I'm going to walk you through the creation of the BatchConfiguration class.
+
+50
+00:02:47.542 --> 00:02:47.900
+Again,
+
+51
+00:02:47.900 --> 00:02:52.197
+this class is going to allow Spring Batch to register up beans
+
+52
+00:02:52.197 --> 00:02:54.582
+in your Spring container of the project.
+
+53
+00:02:54.582 --> 00:02:57.599
+Specifically, we're going to register JobRepository,
+
+54
+00:02:57.599 --> 00:03:00.079
+JobLauncher, and JobExplorer.
+
+55
+00:03:00.079 --> 00:03:06.217
+I've opened up the project, and I've expanded the src folder to the package com.
+
+56
+00:03:06.217 --> 00:03:07.163
+Pluralsight.
+
+57
+00:03:07.163 --> 00:03:08.108
+springbatch.
+
+58
+00:03:08.108 --> 00:03:09.053
+patientbatchloader.
+
+59
+00:03:09.053 --> 00:03:09.998
+config.
+
+60
+00:03:09.998 --> 00:03:12.247
+Let's create our class.
+
+61
+00:03:12.247 --> 00:03:16.184
+I'm going to name the class BatchConfiguration.
+
+62
+00:03:16.184 --> 00:03:20.007
+To start with, I want to register this class as a Spring component,
+
+63
+00:03:20.007 --> 00:03:22.938
+so therefore, I'm going to add the Component annotation.
+
+64
+00:03:22.938 --> 00:03:26.679
+I also want to use the EnableBatchProcessing annotation on this class,
+
+65
+00:03:26.679 --> 00:03:28.624
+so let's add that now.
+
+66
+00:03:28.624 --> 00:03:30.959
+With these two annotations in place,
+
+67
+00:03:30.959 --> 00:03:34.156
+we've turned down Spring Batch features and will assure this
+
+68
+00:03:34.156 --> 00:03:35.996
+class gets scanned with our configuration.
+
+69
+00:03:35.996 --> 00:03:36.301
+Next,
+
+70
+00:03:36.301 --> 00:03:40.714
+I want to add reference to the interface that this class
+
+71
+00:03:40.714 --> 00:03:42.785
+will implement named BatchConfigurer.
+
+72
+00:03:42.785 --> 00:03:45.131
+Let's update the class definition.
+
+73
+00:03:45.131 --> 00:03:48.416
+Notice here that we got an error.
+
+74
+00:03:48.416 --> 00:03:52.225
+We haven't implemented the interface methods yet, so we can ignore this for now.
+
+75
+00:03:52.225 --> 00:03:53.731
+With the class definition complete,
+
+76
+00:03:53.731 --> 00:03:58.932
+the next step is to add attributes to this class for the JobRepository,
+
+77
+00:03:58.932 --> 00:04:00.317
+JobExplorer, and JobLauncher.
+
+78
+00:04:00.317 --> 00:04:01.364
+Let's do that now.
+
+79
+00:04:01.364 --> 00:04:05.621
+Note that all of these attributes are part of the core Spring Batch dependency.
+
+80
+00:04:05.621 --> 00:04:10.640
+I also need to autowire two beans for supporting these attributes,
+
+81
+00:04:10.640 --> 00:04:14.123
+specifically the DataSource and the TransactionManager.
+
+82
+00:04:14.123 --> 00:04:15.255
+Let's add those.
+
+83
+00:04:15.255 --> 00:04:16.764
+If you remember earlier,
+
+84
+00:04:16.764 --> 00:04:19.757
+I overrode the default Spring Boot database configuration.
+
+85
+00:04:19.757 --> 00:04:23.275
+Here we see one of the drivers for doing so.
+
+86
+00:04:23.275 --> 00:04:27.270
+As I need to leverage the TransactionManager and DataSource for the repository,
+
+87
+00:04:27.270 --> 00:04:28.423
+explorer, and jobs,
+
+88
+00:04:28.423 --> 00:04:33.542
+I have control over the naming and configuration of these dependencies.
+
+89
+00:04:33.542 --> 00:04:37.402
+Here I've Autowired the batchTransactionManager and batchDataSource
+
+90
+00:04:37.402 --> 00:04:40.813
+that I defined in the DatabaseConfiguration class.
+
+91
+00:04:40.813 --> 00:04:42.646
+Now that we have the attributes in place,
+
+92
+00:04:42.646 --> 00:04:48.345
+let's define the getters on the interface to resolve our compilation error.
+
+93
+00:04:48.345 --> 00:04:49.936
+With these four getters,
+
+94
+00:04:49.936 --> 00:04:53.912
+Spring Batch has access now to our batch configuration beans.
+
+95
+00:04:53.912 --> 00:04:58.072
+The last step is to define the strategy for how these beans are defined.
+
+96
+00:04:58.072 --> 00:04:59.723
+First, let's define the JobLauncher.
+
+97
+00:04:59.723 --> 00:05:03.461
+What I've done here is I've configured the launcher
+
+98
+00:05:03.461 --> 00:05:06.387
+to be of type SimpleJobLauncher.
+
+99
+00:05:06.387 --> 00:05:09.712
+This launcher just executes a job task on demand.
+
+100
+00:05:09.712 --> 00:05:12.473
+Note that I've set the JobRepository on the Launcher and
+
+101
+00:05:12.473 --> 00:05:15.367
+called afterPropertiesSet to ensure that the dependencies of
+
+102
+00:05:15.367 --> 00:05:18.054
+the JobRepository have been set.
+
+103
+00:05:18.054 --> 00:05:20.946
+Next, let's create the JobRepository.
+
+104
+00:05:20.946 --> 00:05:22.891
+I'll go ahead and drop that in.
+
+105
+00:05:22.891 --> 00:05:25.564
+I've configured this JobRepository to be created
+
+106
+00:05:25.564 --> 00:05:27.489
+with a JobRepositoryFactoryBean.
+
+107
+00:05:27.489 --> 00:05:29.382
+I set the batchDataSource and
+
+108
+00:05:29.382 --> 00:05:32.269
+batchTransactionManager to be used by the repository,
+
+109
+00:05:32.269 --> 00:05:36.587
+then I call afterPropertiesSet to ensure dependencies have been set.
+
+110
+00:05:36.587 --> 00:05:40.593
+The final step is to configure a method to be called after dependency
+
+111
+00:05:40.593 --> 00:05:44.295
+injection has been performed by the Spring container.
+
+112
+00:05:44.295 --> 00:05:49.388
+This method will handle the actual bean configuration.
+
+113
+00:05:49.388 --> 00:05:53.212
+Now, as part of initialization, we will set the JobRepository,
+
+114
+00:05:53.212 --> 00:05:54.998
+JobExplorer, and JobLauncher.
+
+115
+00:05:54.998 --> 00:05:58.921
+I'll use the JobExplorerFactoryBean to set the
+
+116
+00:05:58.921 --> 00:06:01.285
+DataSource on the JobExplorer instance.
+
+117
+00:06:01.285 --> 00:06:04.148
+That completes the configuration for the Spring Batch JobExplorer,
+
+118
+00:06:04.148 --> 00:06:05.442
+JobRepository, and JobLauncher.
+
+119
+00:06:05.442 --> 00:06:10.433
+As part of configuration, there are a few properties that we need to change,
+
+120
+00:06:10.433 --> 00:06:11.843
+so let's do that now.
+
+121
+00:06:11.843 --> 00:06:17.235
+I'm going to go ahead and close this class and open back up the Project tab.
+
+122
+00:06:17.235 --> 00:06:19.893
+Spring and Spring Boot provide you with support for defining the
+
+123
+00:06:19.893 --> 00:06:22.313
+application properties to configure your project,
+
+124
+00:06:22.313 --> 00:06:24.732
+as well as your project dependencies.
+
+125
+00:06:24.732 --> 00:06:27.294
+There are two properties that I want to add for
+
+126
+00:06:27.294 --> 00:06:28.832
+support in the project moving forward.
+
+127
+00:06:28.832 --> 00:06:33.603
+We're going to start by opening up the resources folder.
+
+128
+00:06:33.603 --> 00:06:37.999
+And under the config folder, I have a properties file named application.
+
+129
+00:06:37.999 --> 00:06:38.365
+yml.
+
+130
+00:06:38.365 --> 00:06:39.990
+Let's open that now.
+
+131
+00:06:39.990 --> 00:06:43.706
+This property file contains the base properties for configuring
+
+132
+00:06:43.706 --> 00:06:46.320
+your project and your project dependencies.
+
+133
+00:06:46.320 --> 00:06:46.907
+By default,
+
+134
+00:06:46.907 --> 00:06:49.685
+the annotation that we added on the BatchConfiguration class
+
+135
+00:06:49.685 --> 00:06:53.542
+with the name EnableBatchProcessing will create a runner by
+
+136
+00:06:53.542 --> 00:06:55.711
+default and execute your jobs on startup.
+
+137
+00:06:55.711 --> 00:06:59.334
+If this is the behavior you want, then you can skip this step.
+
+138
+00:06:59.334 --> 00:07:02.942
+But in our case, I want to start jobs on demand; therefore,
+
+139
+00:07:02.942 --> 00:07:05.899
+I'm going to change the configuration spring.
+
+140
+00:07:05.899 --> 00:07:06.465
+batch.
+
+141
+00:07:06.465 --> 00:07:07.030
+job.
+
+142
+00:07:07.030 --> 00:07:08.728
+enable to false.
+
+143
+00:07:08.728 --> 00:07:12.122
+Let me drop that in now.
+
+144
+00:07:12.122 --> 00:07:12.366
+Next,
+
+145
+00:07:12.366 --> 00:07:15.047
+I want to define the input path for files that will
+
+146
+00:07:15.047 --> 00:07:16.944
+be processed by the batch job.
+
+147
+00:07:16.944 --> 00:07:19.761
+These files will contain patient records that get
+
+148
+00:07:19.761 --> 00:07:21.810
+transformed and saved in a database.
+
+149
+00:07:21.810 --> 00:07:25.911
+I'm going to define the input path as an application-specific property.
+
+150
+00:07:25.911 --> 00:07:29.104
+Let's scroll down to the bottom of the application.
+
+151
+00:07:29.104 --> 00:07:29.674
+yml file.
+
+152
+00:07:29.674 --> 00:07:31.954
+I'm going to drop in the property now.
+
+153
+00:07:31.954 --> 00:07:36.238
+Note that I'm using the inputPath as the project's data folder.
+
+154
+00:07:36.238 --> 00:07:37.391
+A few things to consider.
+
+155
+00:07:37.391 --> 00:07:40.943
+As this is a demo, I've defined the property in the base file; however,
+
+156
+00:07:40.943 --> 00:07:45.027
+there are also property files for the Spring dev profile and prod profile.
+
+157
+00:07:45.027 --> 00:07:48.175
+It's recommended that you override this property within
+
+158
+00:07:48.175 --> 00:07:49.965
+those property files individually.
+
+159
+00:07:49.965 --> 00:07:51.680
+In order for me to access these properties,
+
+160
+00:07:51.680 --> 00:07:54.151
+I've created an ApplicationProperties class that maps
+
+161
+00:07:54.151 --> 00:07:56.894
+to the property names and values.
+
+162
+00:07:56.894 --> 00:07:58.456
+Let's open that up now.
+
+163
+00:07:58.456 --> 00:08:00.329
+I'm going to close the application.
+
+164
+00:08:00.329 --> 00:08:02.138
+yml file, open back up the Project tab,
+
+165
+00:08:02.138 --> 00:08:05.153
+and we see here at the top the ApplicationProperties class.
+
+166
+00:08:05.153 --> 00:08:08.745
+It's in the config folder.
+
+167
+00:08:08.745 --> 00:08:09.574
+As you can see,
+
+168
+00:08:09.574 --> 00:08:11.908
+this class is annotated with the ConfigurationProperties annotation.
+
+169
+00:08:11.908 --> 00:08:16.353
+Note that the prefix matches the property name we
+
+170
+00:08:16.353 --> 00:08:18.310
+defined in the Properties file.
+
+171
+00:08:18.310 --> 00:08:22.470
+I'll define a value for this now including a static class for the mapping.
+
+172
+00:08:22.470 --> 00:08:23.253
+Now, at runtime,
+
+173
+00:08:23.253 --> 00:08:26.545
+I'll be able to access the inputPath for the Batch job
+
+174
+00:08:26.545 --> 00:08:29.276
+using this ApplicationProperties file.
+
+175
+00:08:29.276 --> 00:08:32.039
+Note that I also set the default of the inputPath just in
+
+176
+00:08:32.039 --> 00:08:39.000
+case the property doesn't get defined. That completes the initial Spring Batch configuration.
+

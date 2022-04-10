@@ -1,0 +1,214 @@
+WEBVTT
+
+00:02.360 --> 00:09.030
+If we have a look at our strategy, we implemented steps 1, 2, 3 and 5 but we're not storing the fetched data
+
+00:09.030 --> 00:10.530
+in the cache,
+
+00:10.530 --> 00:12.670
+so this is what I want to do right now.
+
+00:12.750 --> 00:17.980
+Back in our project, we have code in feed.js,
+
+00:18.130 --> 00:23.920
+so in our normal Javascript code where we reach out to the cache to get data and reach out to the network,
+
+00:24.520 --> 00:29.040
+however we don't have dynamic caching in place here with that strategy alone.
+
+00:29.260 --> 00:32.320
+Well actually we do because in the sw.js file,
+
+00:32.320 --> 00:36.190
+we still have our network first strategy taking effect.
+
+00:36.580 --> 00:39.670
+Well let's comment this out and let's comment
+
+00:39.680 --> 00:44.590
+our other strategy back in, which is cache then network.
+
+00:44.800 --> 00:53.670
+Now actually, I want to copy that and replace it with a different strategy which fits our general strategy,
+
+00:53.680 --> 00:56.260
+the one where we already added code in feed.js
+
+00:56.330 --> 00:57.010
+.
+
+00:57.070 --> 01:04.390
+So I want to implement the cache then network strategy also from the service worker side.
+
+01:04.480 --> 01:11.230
+So for that, what I need to do is I will simply add some code here,
+
+01:11.230 --> 01:17.500
+basically get rid of the old code and instead in respond with, I'll call caches open,
+
+01:17.560 --> 01:20.030
+now the question is which cache do I open?
+
+01:20.320 --> 01:21.680
+You could create a new one,
+
+01:21.850 --> 01:26.800
+I'm going to use the dynamic one for this because it's not static, it's not what I'm storing at the install
+
+01:26.800 --> 01:27.460
+state,
+
+01:27.520 --> 01:32.880
+it's something I want to install once I did fetch it with my cache then network strategy
+
+01:32.890 --> 01:35.010
+and initially when I first load this app,
+
+01:35.170 --> 01:39.220
+this simply is empty because I haven't visited any pages.
+
+01:39.260 --> 01:49.450
+So now cache is open and in there, I now can call function or call then I pass my function with the
+
+01:49.450 --> 01:57.370
+cache which was opened and on that cache, I now want to store the response I get back. Now for that, I will
+
+01:57.370 --> 02:06.350
+simply return the fetch request which we intercepted here and I will restore a return event request,
+
+02:06.390 --> 02:07.620
+so that is the fetch request
+
+02:07.620 --> 02:10.380
+I want to make, I'll return it, however I'll chain a
+
+02:10.410 --> 02:12.020
+then call too
+
+02:12.210 --> 02:16.280
+because of course, I want to use the response which this gives me.
+
+02:16.290 --> 02:22.590
+So keep in mind, this intercept any requests sent by my front-end, by my other Javascript files including
+
+02:23.220 --> 02:27.330
+the fetch request I'm making here in the feed.js file.
+
+02:27.360 --> 02:32.820
+So this gets intercepted and once I got the response here in the service worker,
+
+02:32.960 --> 02:35.110
+I want to put it into my cache,
+
+02:35.270 --> 02:42.710
+so cache put event request and clone the response as before because the response of course also should be
+
+02:42.710 --> 02:45.190
+returned so that it reaches my feed.js
+
+02:45.200 --> 02:46.390
+file
+
+02:46.430 --> 02:49.660
+otherwise it's not really in the cache then network strategy,
+
+02:49.700 --> 02:55.970
+we have to let this response pass through. With this in place, we're making sure that we do reach out
+
+02:55.970 --> 02:57.280
+to the cache first,
+
+02:57.380 --> 03:00.920
+if it's there, if the item is there, we display it immediately,
+
+03:00.920 --> 03:03.420
+we make a network request nonetheless.
+
+03:03.530 --> 03:08.910
+Once the response is back from the network, if it's a valid response, we store it here in the cache,
+
+03:08.960 --> 03:10.850
+if it's not, we don't do anything with it
+
+03:10.910 --> 03:15.620
+but then we still have something served from the cache. If we don't have it in the cache and we can't get
+
+03:15.620 --> 03:16.440
+it from the network,
+
+03:16.460 --> 03:18.330
+well there's nothing we can do.
+
+03:18.530 --> 03:26.390
+So with this in place, let me also update the static cache since I change the feed.js and
+
+03:26.390 --> 03:30.110
+then let's reload the page to install the service worker
+
+03:30.410 --> 03:34.910
+and let's quickly reopen the tab to activate it
+
+03:35.270 --> 03:36.650
+and now let's have a look at it.
+
+03:37.040 --> 03:43.400
+If I load it, everything works, if I go to application here and refresh the cache storage, you'll see that
+
+03:43.430 --> 03:47.630
+under dynamic, we get a lot of content there, it's fetching a lot of stuff
+
+03:48.020 --> 03:50.420
+and on the static, we also have the old content.
+
+03:50.570 --> 03:56.570
+Now the reason why we have that much content in the dynamic storage is that with our strategy, we're
+
+03:56.570 --> 04:03.560
+also re-caching everything we already pre-cached. The reason for that obviously is that on every request
+
+04:03.920 --> 04:11.630
+we make, we intercept in the service worker here, we simply put a copy of the response into our cache.
+
+04:11.660 --> 04:18.710
+Now before with the dynamic caching, we also did this but we only did it if we didn't find an entry
+
+04:18.710 --> 04:19.810
+in the cache yet
+
+04:19.810 --> 04:23.850
+and of course we did find an entry for all the pre-cached files.
+
+04:23.870 --> 04:27.060
+Now we're no longer checking if there is an entry in the cache already,
+
+04:27.170 --> 04:29.730
+we put a copy into the cache anyways.
+
+04:30.170 --> 04:34.970
+Now of course you could fine tune this to check if there is a place, a copy in the cache already and then
+
+04:34.970 --> 04:41.390
+not do it but you could argue you want to do it under all circumstances because you want to update outdated
+
+04:41.390 --> 04:43.160
+data with that strategy,
+
+04:43.190 --> 04:49.340
+so I will show you a different solution for this later when we actually parse the URL of the request
+
+04:49.550 --> 04:52.530
+and then decide which caching strategy to use.
+
+04:52.700 --> 04:55.320
+For now it's not optimal but it does work,
+
+04:55.700 --> 05:00.320
+however one thing this strategy won't do can be seen if we go offline.
+
+05:00.470 --> 05:06.190
+Now the application is offline even though our cache is filled with stuff.
+
+05:06.200 --> 05:09.180
+Now let's investigate this in the next lecture.

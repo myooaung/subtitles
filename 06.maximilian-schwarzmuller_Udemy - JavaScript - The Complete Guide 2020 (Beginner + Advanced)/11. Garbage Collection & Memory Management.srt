@@ -1,0 +1,651 @@
+1
+00:00:02,410 --> 00:00:05,280
+So we spent a lot of time on the internals of Javascript
+
+2
+00:00:05,290 --> 00:00:11,020
+but this doesn't matter, if you're working with a language, you need to understand at least a bit how it
+
+3
+00:00:11,020 --> 00:00:12,350
+works under the hood
+
+4
+00:00:12,370 --> 00:00:16,740
+so that you can optimize your code for it and you are not surprised by strange behaviors. 
+
+5
+00:00:17,890 --> 00:00:23,190
+The last important concept I want to have a look at here is the concept of garbage collection.
+
+6
+00:00:23,210 --> 00:00:29,320
+Now let's ignore the stack for that, the stack is short living memory and as you saw, the stack is cleared
+
+7
+00:00:29,350 --> 00:00:35,560
+automatically because items, function calls, execution contexts are popped off when they're done
+
+8
+00:00:35,560 --> 00:00:38,250
+but what about the heap, that long living memory? 
+
+9
+00:00:38,260 --> 00:00:40,420
+How is this memory managed?
+
+10
+00:00:40,420 --> 00:00:45,070
+It's important that it's managed because otherwise it might overflow at some time.
+
+11
+00:00:45,100 --> 00:00:51,910
+The operating system of your computer, of your machine of course only allocates a certain amount of memory
+
+12
+00:00:51,940 --> 00:00:57,110
+to Chrome and if that would be exceeded, it would simply kill Chrome
+
+13
+00:00:57,160 --> 00:01:03,160
+at some point of time. Now actually, that will never happen because Chrome also has internal memory management
+
+14
+00:01:03,400 --> 00:01:08,020
+and it will simply kill your website before it occupies too much memory.
+
+15
+00:01:08,020 --> 00:01:14,530
+So you want avoid that and the good thing is you don't really need to actively manage the memory unless
+
+16
+00:01:14,530 --> 00:01:22,450
+you're building super complex three dimensional calculation intensive applications which
+
+17
+00:01:22,450 --> 00:01:25,020
+you might want to build in totally different ways to begin with
+
+18
+00:01:25,030 --> 00:01:30,340
+so let's ignore that but still, there are some things which you should keep in mind and which you should
+
+19
+00:01:30,340 --> 00:01:33,910
+understand, how does Chrome manage this memory?
+
+20
+00:01:33,910 --> 00:01:37,000
+Well there is a thing which is called the garbage collector,
+
+21
+00:01:37,510 --> 00:01:39,550
+every Javascript engine has one.
+
+22
+00:01:39,640 --> 00:01:40,010
+So here
+
+23
+00:01:40,010 --> 00:01:45,880
+let's say we're talking about v8 garbage collector which is the engine, the Javascript engine Chrome
+
+24
+00:01:45,880 --> 00:01:48,680
+ships with but of course Firefox and so on,
+
+25
+00:01:48,730 --> 00:01:53,030
+the engines built into these browsers also have a garbage collector.
+
+26
+00:01:53,070 --> 00:01:55,280
+Now what does the garbage collector do?
+
+27
+00:01:55,380 --> 00:02:01,110
+And just a quick note, in case you have a night where you really can't sleep, attached you find a detailed
+
+28
+00:02:01,110 --> 00:02:06,930
+document of how the v8 garbage collector works in case you're interested and you can therefore definitely check
+
+29
+00:02:06,930 --> 00:02:10,220
+out this document if you want to learn all the nitty-gritty details.
+
+30
+00:02:10,350 --> 00:02:15,770
+I'll not dive that much into detail here because again, that really is beyond the scope of this course,
+
+31
+00:02:15,780 --> 00:02:17,840
+we're not trying to build our own browser,
+
+32
+00:02:17,880 --> 00:02:22,650
+we're just trying to understand what the browser, what the Javascript engine that is part of the browser
+
+33
+00:02:22,800 --> 00:02:24,110
+does for us.
+
+34
+00:02:24,180 --> 00:02:30,180
+So what does this garbage collector do? In the end, it periodically checks the heap memory for unused
+
+35
+00:02:30,270 --> 00:02:35,810
+objects and unused objects are objects without references.
+
+36
+00:02:35,820 --> 00:02:38,070
+Now remember, references are these things,
+
+37
+00:02:38,070 --> 00:02:43,410
+the addresses is in the end which are stored in variables and therefore the garbage collector will go
+
+38
+00:02:43,410 --> 00:02:51,150
+ahead and basically remove, clear all unused objects from the memory, from the heap memory, all the objects
+
+39
+00:02:51,150 --> 00:02:52,430
+where it sees that
+
+40
+00:02:52,470 --> 00:02:56,190
+you certainly won't work with them anymore in your code.
+
+41
+00:02:56,190 --> 00:02:56,910
+Now that's great,
+
+42
+00:02:56,910 --> 00:02:58,550
+let me show you an example.
+
+43
+00:02:58,590 --> 00:03:05,250
+Still this is this mini app or this mini demo which we started working on a few lectures ago and in
+
+44
+00:03:05,250 --> 00:03:05,540
+there,
+
+45
+00:03:05,540 --> 00:03:10,440
+let's add a new variable, let's say a variable person.
+
+46
+00:03:10,450 --> 00:03:14,970
+Now we don't need that for this application or for this demo here of course but let's say in some app,
+
+47
+00:03:15,000 --> 00:03:17,100
+we had this person variable.
+
+48
+00:03:17,100 --> 00:03:23,190
+It holds an object with the name of Max let's say and therefore since this is an object, this is of
+
+49
+00:03:23,190 --> 00:03:27,080
+course a reference value and this is stored on the heap.
+
+50
+00:03:27,120 --> 00:03:33,900
+Now as long as we have this variable, the person variable holding the address of this object, Javascript
+
+51
+00:03:33,900 --> 00:03:39,000
+sees that we hold a reference to this object, that we're interested in its address
+
+52
+00:03:39,000 --> 00:03:44,730
+and as long as that is the case, Javascript will not clear that object from memory.
+
+53
+00:03:44,730 --> 00:03:52,020
+Instead what Javascript is looking for whether there are any variables or any places in your code where
+
+54
+00:03:52,020 --> 00:03:54,840
+you're referencing an object like this one.
+
+55
+00:03:54,840 --> 00:03:57,570
+So when would garbage collection kick in?
+
+56
+00:03:57,570 --> 00:04:04,740
+Well in this example here, as soon as we for example set person equal to null. What we do here is we assign
+
+57
+00:04:04,740 --> 00:04:07,620
+a new value to this variable
+
+58
+00:04:07,620 --> 00:04:16,060
+and the consequence of that is that this object here is no longer referenced by anything in this script,
+
+59
+00:04:16,110 --> 00:04:20,510
+there is no place in the script where we would be interested in its address,
+
+60
+00:04:20,520 --> 00:04:23,740
+this address is not stored in this variable or anywhere else
+
+61
+00:04:23,850 --> 00:04:30,150
+and Javascript detects this and sees that this address, this pointer to this object is not used anywhere,
+
+62
+00:04:30,160 --> 00:04:36,420
+that you have no variable or no other place in your code where you're referencing this object and it
+
+63
+00:04:36,420 --> 00:04:38,540
+can now clean this up.
+
+64
+00:04:38,580 --> 00:04:46,560
+Now actually, the way modern browsers, modern Javascript engines work is such that even objects, arrays
+
+65
+00:04:46,560 --> 00:04:52,950
+which are also objects and so on which are stored in variables which you created with let or const can
+
+66
+00:04:52,950 --> 00:04:56,920
+be cleaned up by modern browsers, with modern Javascript engines
+
+67
+00:04:56,920 --> 00:05:02,940
+therefore if you're not using these variables anymore in any place of your script. So you don't have
+
+68
+00:05:02,940 --> 00:05:07,200
+to set a variable to null to let the browser clean this up,
+
+69
+00:05:07,200 --> 00:05:12,420
+if you're not using the variable anymore, that will also be picked up by garbage collectors.
+
+70
+00:05:12,420 --> 00:05:18,570
+So these are just different examples of when the garbage collector kicks in and will try to free up
+
+71
+00:05:18,570 --> 00:05:24,250
+memory. Now it will not instantly do so once you set person equal to null,
+
+72
+00:05:24,350 --> 00:05:29,540
+the Javascript garbage collector can't be triggered by you, you can't force Javascript to go ahead and
+
+73
+00:05:29,540 --> 00:05:30,770
+garbage collect,
+
+74
+00:05:30,770 --> 00:05:37,910
+instead it will run its algorithm, its logic for that and by the way attached you find a resource which
+
+75
+00:05:37,910 --> 00:05:41,270
+allows you to dive deeper into the internals if you're interested,
+
+76
+00:05:41,270 --> 00:05:47,090
+it will do that on its own schedule following its own logic but it will eventually pick this up and
+
+77
+00:05:47,090 --> 00:05:49,130
+clear this from memory.
+
+78
+00:05:49,140 --> 00:05:54,230
+Now that's a good mechanism and as I mentioned, you generally don't have to do anything for that to happen,
+
+79
+00:05:54,230 --> 00:05:58,520
+you don't have to tell the browser that it should go ahead and do garbage collection for example.
+
+80
+00:05:58,640 --> 00:06:03,950
+It will try to do that in a smart way without interrupting your web page or without slowing it down,
+
+81
+00:06:04,280 --> 00:06:07,120
+without being visible to your users.
+
+82
+00:06:07,210 --> 00:06:11,140
+Now you should still be aware of memory leaks,
+
+83
+00:06:11,140 --> 00:06:17,140
+that is when you actually write code where you have a certain object which you don't work with anymore
+
+84
+00:06:17,650 --> 00:06:19,690
+but you still have a reference to it,
+
+85
+00:06:19,690 --> 00:06:25,810
+so you still have some variable or some place in your code where you still hold a reference to that
+
+86
+00:06:25,810 --> 00:06:26,660
+object
+
+87
+00:06:26,800 --> 00:06:31,930
+and even though you're not interested in it anymore, it's still there and there still is a reference
+
+88
+00:06:31,930 --> 00:06:37,420
+to it and therefore it can't be garbage collected because even though you don't want it anymore, you
+
+89
+00:06:37,420 --> 00:06:41,030
+wrote code that doesn't make it clear that you don't want it anymore,
+
+90
+00:06:41,140 --> 00:06:47,440
+so you basically have a bug in your code and in this little application, there actually is an example
+
+91
+00:06:47,440 --> 00:06:48,060
+for this,
+
+92
+00:06:48,100 --> 00:06:53,310
+let me show you how we could actually introduce a little bug here in this application.
+
+93
+00:06:53,410 --> 00:06:54,970
+We have two event listeners here right,
+
+94
+00:06:54,970 --> 00:06:58,500
+this event listener here at the bottom executes or is set up
+
+95
+00:06:58,510 --> 00:07:04,870
+when this script executes, this other event listener here is only setup when we trigger this first
+
+96
+00:07:04,870 --> 00:07:10,480
+event listener because this first event listener is attached to this add a listener button and when
+
+97
+00:07:10,480 --> 00:07:16,030
+we then tap this button, we trigger this add listener function which sets up the event listener on the
+
+98
+00:07:16,090 --> 00:07:21,810
+other button which is that click me button. So the click me button only gets an event listener once
+
+99
+00:07:21,810 --> 00:07:23,810
+we clicked the other button.
+
+100
+00:07:23,830 --> 00:07:28,360
+Now when we then click that click me button, we in the end execute print message.
+
+101
+00:07:28,360 --> 00:07:34,180
+Now if we have a look at what that yields, here if we open that in the browser, we can see that if I enter
+
+102
+00:07:34,180 --> 00:07:38,170
+something here and I hit click me, nothing happens, nothing appears here in the console,
+
+103
+00:07:38,200 --> 00:07:42,610
+if I click add a listener though and then I click click me, you see test getting output there,
+
+104
+00:07:42,670 --> 00:07:44,660
+one test for every click.
+
+105
+00:07:44,790 --> 00:07:48,030
+Now if I change that text, we see that text being output.
+
+106
+00:07:48,040 --> 00:07:54,890
+Now if I click add a listener multiple times here, I still only see one output per click on click me,
+
+107
+00:07:54,910 --> 00:08:00,490
+so it's not the case that this print me message would run more often because you could think we're adding
+
+108
+00:08:00,490 --> 00:08:02,810
+more and more event listeners to this button,
+
+109
+00:08:02,830 --> 00:08:09,280
+so with every click on that add a listener button, we add a new listener to the click me button and therefore
+
+110
+00:08:09,280 --> 00:08:12,910
+we might see this function being executed more often for every click
+
+111
+00:08:12,910 --> 00:08:15,020
+but that's not what's happening
+
+112
+00:08:15,040 --> 00:08:21,040
+and the reason for that is that Javascript here is a really smart or the browser and Javascript together
+
+113
+00:08:21,040 --> 00:08:27,970
+and if you add an event listener to a button or to any element with an event to which you listen and
+
+114
+00:08:28,060 --> 00:08:33,790
+a function which you already use before, Javascript will replace that old listener with the new one and
+
+115
+00:08:33,790 --> 00:08:35,260
+not add a brand new one
+
+116
+00:08:35,260 --> 00:08:39,670
+and that's a good behavior because otherwise you could easily end up with hundreds of event listeners
+
+117
+00:08:39,700 --> 00:08:45,850
+on the same object and that would probably lead to a behavior in your app which you don't want and introduce
+
+118
+00:08:45,850 --> 00:08:51,250
+memory leaks because you're populating your memory with all these functions and functions in the end
+
+119
+00:08:51,280 --> 00:08:57,430
+also are just kind of objects and they are therefore also stored in the heap in memory and they clutter
+
+120
+00:08:57,430 --> 00:08:59,440
+up that memory over time.
+
+121
+00:08:59,560 --> 00:09:02,070
+So it's good that the browser doesn't allow that.
+
+122
+00:09:02,110 --> 00:09:08,620
+Now we can actually trick the browser if we copy that function and replace print message here with that
+
+123
+00:09:08,620 --> 00:09:10,680
+function and remove that name.
+
+124
+00:09:10,720 --> 00:09:12,060
+Now we haven't seen that before,
+
+125
+00:09:12,070 --> 00:09:14,070
+that's a so-called anonymous function,
+
+126
+00:09:14,080 --> 00:09:16,930
+we'll dive deeper into that in the functions module
+
+127
+00:09:16,930 --> 00:09:23,350
+and whilst this might look strange, what this does is it creates a function here in place,
+
+128
+00:09:23,350 --> 00:09:29,350
+it just doesn't assign a name to it but it's still getting stored in memory and the pointer to that
+
+129
+00:09:29,350 --> 00:09:35,130
+function, the address of the function is simply then passed in as a second argument to add event listener.
+
+130
+00:09:35,140 --> 00:09:40,360
+So this function is created on the fly so to say, it's not getting executed immediately or anything like
+
+131
+00:09:40,360 --> 00:09:43,930
+that, it behaves just as when we pointed at print message
+
+132
+00:09:43,960 --> 00:09:49,360
+but the difference here and that's a crucial difference is that this function doesn't have a name and
+
+133
+00:09:49,390 --> 00:09:56,020
+it is indeed created as a brand new object whenever this add listener function runs because this function
+
+134
+00:09:56,110 --> 00:09:57,890
+is created here on the fly.
+
+135
+00:09:57,940 --> 00:10:02,800
+Previously, this print message function here was only created once when this entire script ran for the
+
+136
+00:10:02,800 --> 00:10:03,620
+first time,
+
+137
+00:10:03,700 --> 00:10:08,510
+then this code never runs again and therefore only one function object is created,
+
+138
+00:10:08,560 --> 00:10:14,770
+here, we create a new one whenever add listener runs. Well and the behavior we see therefore is that if I
+
+139
+00:10:14,770 --> 00:10:19,290
+enter something here and I add a listener and I click click me, we got the same as before
+
+140
+00:10:19,450 --> 00:10:26,230
+but if I click add a listener multiple times here, we see more and more outputs printed for this test
+
+141
+00:10:26,230 --> 00:10:27,780
+thing here, for click me right.
+
+142
+00:10:27,790 --> 00:10:33,400
+So we see more and more outputs being printed, one for every time I clicked the add a listener to the
+
+143
+00:10:33,400 --> 00:10:40,150
+other button button and that simply is the case because a new function is now created for every execution
+
+144
+00:10:40,150 --> 00:10:41,650
+of add listener.
+
+145
+00:10:41,650 --> 00:10:47,440
+This is dangerous or a potential problem at least because that can lead to memory leaks where you have
+
+146
+00:10:47,680 --> 00:10:53,140
+dozens or hundreds of functional objects in your memory and Javascript is not able to clean them up
+
+147
+00:10:53,410 --> 00:10:59,050
+because every execution of add listener creates a brand new function. To Javascript, this is a brand new
+
+148
+00:10:59,050 --> 00:11:02,240
+object, not the same as before and therefore it thinks OK,
+
+149
+00:11:02,320 --> 00:11:06,090
+you want add a new click listener with the new function than you did before.
+
+150
+00:11:06,130 --> 00:11:11,410
+It doesn't see that the function does the same thing as the old function to Javascript since we create
+
+151
+00:11:11,410 --> 00:11:12,250
+a new function,
+
+152
+00:11:12,250 --> 00:11:13,580
+it is a new function,
+
+153
+00:11:13,810 --> 00:11:16,610
+so that's something you should be careful about.
+
+154
+00:11:16,660 --> 00:11:21,970
+Now this is a very rare and constructed scenario here of course and we'll dive deeper into anonymous
+
+155
+00:11:21,970 --> 00:11:26,780
+functions, into event listeners and also into performance management later in this course
+
+156
+00:11:26,890 --> 00:11:29,350
+but it is something which I want to highlight here
+
+157
+00:11:29,380 --> 00:11:35,050
+so that you understand the importance of the job of the garbage collector, that it does a lot for you
+
+158
+00:11:35,320 --> 00:11:40,380
+but that it's also not some magical tool that can rule out any errors you introduce.
+
+159
+00:11:40,380 --> 00:11:45,930
+Now again, we'll dive deeper into this and also how you can find and fix memory leaks later in the more advanced
+
+160
+00:11:45,930 --> 00:11:47,170
+parts of the course.
+
+161
+00:11:47,250 --> 00:11:49,170
+So you don't need to worry about this right now,
+
+162
+00:11:49,170 --> 00:11:54,780
+in most cases you don't introduce such leaks because it's not that easy thankfully to add them, the garbage
+
+163
+00:11:54,780 --> 00:11:58,560
+collector is really smart. Just still important to mention it right here.

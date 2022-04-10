@@ -1,0 +1,292 @@
+1
+00:00:01,804 --> 00:00:06,494
+Method handles also give you access to the fields of a class.
+
+2
+00:00:06,494 --> 00:00:10,562
+So suppose we have the same Person class with a private
+
+3
+00:00:10,562 --> 00:00:13,377
+field of type String called name,
+
+4
+00:00:13,377 --> 00:00:18,627
+and we created a nameReader MethodHandle using the same
+
+5
+00:00:18,627 --> 00:00:21,929
+pattern as the one we saw a few minutes ago.
+
+6
+00:00:21,929 --> 00:00:27,538
+We can invoke this method handle, passing the person object as parameter,
+
+7
+00:00:27,538 --> 00:00:33,034
+and it will return the value of the field directly read from the field
+
+8
+00:00:33,034 --> 00:00:36,784
+without going through the getter of that method.
+
+9
+00:00:36,784 --> 00:00:43,490
+And if we have a nameWriter method handle opened on that field in write mode,
+
+10
+00:00:43,490 --> 00:00:45,173
+we can do the same.
+
+11
+00:00:45,173 --> 00:00:47,738
+Call the invoke method on that nameWriter,
+
+12
+00:00:47,738 --> 00:00:51,799
+pass the person as a parameter, and the value,
+
+13
+00:00:51,799 --> 00:00:56,241
+here, in this example, John, that we want to set for that field.
+
+14
+00:00:56,241 --> 00:00:58,127
+This is going to work,
+
+15
+00:00:58,127 --> 00:01:04,836
+but a MethodHandle only gives you access to non-private members of a class.
+
+16
+00:01:04,836 --> 00:01:07,700
+Odds are that the methods you are going to invoke
+
+17
+00:01:07,700 --> 00:01:10,516
+are public so everything is fine,
+
+18
+00:01:10,516 --> 00:01:15,246
+but the field you want to read or write are going to be private.
+
+19
+00:01:15,246 --> 00:01:19,580
+So this is most probably here that you will see this exception,
+
+20
+00:01:19,580 --> 00:01:21,130
+this nasty exception,
+
+21
+00:01:21,130 --> 00:01:26,118
+telling you that this MethodHandle cannot access private fields.
+
+22
+00:01:26,118 --> 00:01:29,005
+There are two patterns to overcome this problem.
+
+23
+00:01:29,005 --> 00:01:33,618
+The first one is the one you need to use in Java 7 and 8,
+
+24
+00:01:33,618 --> 00:01:36,956
+and there is another one starting with Java 9 that
+
+25
+00:01:36,956 --> 00:01:39,327
+we are going to see in a minute.
+
+26
+00:01:39,327 --> 00:01:44,003
+So the starting point of the first one is the field object itself.
+
+27
+00:01:44,003 --> 00:01:46,651
+You get the Field object from the Person class,
+
+28
+00:01:46,651 --> 00:01:51,183
+which is not great because if you want to use MethodHandle,
+
+29
+00:01:51,183 --> 00:01:56,426
+it's precisely to get the performances offered by the MethodHandle
+
+30
+00:01:56,426 --> 00:02:00,544
+API and not the one offered by the Reflection API,
+
+31
+00:02:00,544 --> 00:02:02,968
+but there is no other solution.
+
+32
+00:02:02,968 --> 00:02:06,651
+You make this field accessible by calling the setAccessible
+
+33
+00:02:06,651 --> 00:02:10,202
+method and passing true as a parameter,
+
+34
+00:02:10,202 --> 00:02:16,302
+and then you use this unreflect getter method from the lookup object,
+
+35
+00:02:16,302 --> 00:02:20,836
+passing this accessible field as a parameter.
+
+36
+00:02:20,836 --> 00:02:23,193
+This is going to give you a MethodHandle,
+
+37
+00:02:23,193 --> 00:02:26,860
+and you can use this MethodHandle to read the value
+
+38
+00:02:26,860 --> 00:02:29,374
+of the private field directly.
+
+39
+00:02:29,374 --> 00:02:35,329
+And the same pattern also exists if you want to get write access to that field.
+
+40
+00:02:35,329 --> 00:02:38,783
+You call the unreflectWriter method on this lookup object,
+
+41
+00:02:38,783 --> 00:02:41,076
+pass the field as a parameter,
+
+42
+00:02:41,076 --> 00:02:45,395
+and the MethodHandle you get will be able to write
+
+43
+00:02:45,395 --> 00:02:47,775
+the value to that private field.
+
+44
+00:02:47,775 --> 00:02:52,422
+Those two patterns based on the use of the unreflectReader
+
+45
+00:02:52,422 --> 00:02:57,246
+and unreflectWriter are the only solution to overcome this
+
+46
+00:02:57,246 --> 00:03:00,481
+problem in Java 7 and 8.
+
+47
+00:03:00,481 --> 00:03:04,611
+Starting with Java 9, we have a much cleaner solution,
+
+48
+00:03:04,611 --> 00:03:08,499
+a much cleaner pattern, which is the following.
+
+49
+00:03:08,499 --> 00:03:12,978
+What you need to create is a private lookup object with
+
+50
+00:03:12,978 --> 00:03:18,902
+this special static factory method from the MethodHandles
+
+51
+00:03:18,902 --> 00:03:21,413
+class called privateLookupIn.
+
+52
+00:03:21,413 --> 00:03:24,267
+This method takes two arguments,
+
+53
+00:03:24,267 --> 00:03:30,944
+the class you want to introspect and the lookup object you previously created.
+
+54
+00:03:30,944 --> 00:03:35,329
+And this private lookup object is a regular lookup object
+
+55
+00:03:35,329 --> 00:03:39,893
+with more access to the Person class because it's created
+
+56
+00:03:39,893 --> 00:03:42,592
+really on the Person class only.
+
+57
+00:03:42,592 --> 00:03:46,305
+If you invoke the findGetter on this privateLookup object,
+
+58
+00:03:46,305 --> 00:03:51,530
+it will create a MethodHandle with private access to
+
+59
+00:03:51,530 --> 00:03:55,024
+the write field of the Person class.
+
+60
+00:03:55,024 --> 00:03:59,835
+So now if you try to read that field using that particular MethodHandle,
+
+61
+00:03:59,835 --> 00:04:01,346
+it will work.
+
+62
+00:04:01,346 --> 00:04:04,674
+You will not have the exception anymore,
+
+63
+00:04:04,674 --> 00:04:08,443
+and the same goes for the private write access.
+
+64
+00:04:08,443 --> 00:04:11,591
+You can use the findSetter method on this privateLookup
+
+65
+00:04:11,591 --> 00:04:16,995
+object and the MethodHandle object you will get has private
+
+66
+00:04:16,995 --> 00:04:20,617
+write access to this name field.
+
+67
+00:04:20,617 --> 00:04:25,000
+So those are the patterns offered by the MethodHandle API,
+
+68
+00:04:25,000 --> 00:04:30,500
+both to invoke a method and to read or write a field.
+
+69
+00:04:30,500 --> 00:04:36,000
+And remember, you have this particular behavior towards a private member.
+
+70
+00:04:36,000 --> 00:04:39,875
+It should not be a problem for methods because most of the time,
+
+71
+00:04:39,875 --> 00:04:43,500
+the methods you are going to invoke are public methods,
+
+72
+00:04:43,500 --> 00:04:46,929
+but it may be a problem with fields because usually,
+
+73
+00:04:46,929 --> 00:04:57,000
+the fields you want to access using Reflection based on MethodHandles are private fields.
+

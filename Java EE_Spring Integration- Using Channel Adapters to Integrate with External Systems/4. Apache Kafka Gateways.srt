@@ -1,0 +1,488 @@
+1
+00:00:00,140 --> 00:00:04,530
+Now let's look at how to set up inbound and outbound gateways for Kafka.
+
+2
+00:00:04,530 --> 00:00:05,100
+Kafka,
+
+3
+00:00:05,100 --> 00:00:07,870
+inbound gateways are implemented in Spring integration
+
+4
+00:00:07,870 --> 00:00:10,420
+using the KafkaInboundGateway class.
+
+5
+00:00:10,420 --> 00:00:14,530
+You define a KafkaInboundGateway with a RequestChannel that
+
+6
+00:00:14,530 --> 00:00:17,240
+handles the message and a ReplyChannel.
+
+7
+00:00:17,240 --> 00:00:22,440
+Kafka Outbound Gateways are implemented using the KafkaProducerMessageHandler,
+
+8
+00:00:22,440 --> 00:00:24,490
+which we saw in the last section.
+
+9
+00:00:24,490 --> 00:00:28,040
+The difference is that instead of using a KafkaTemplate,
+
+10
+00:00:28,040 --> 00:00:30,570
+we're going to use a ReplyingKafkaTemplate.
+
+11
+00:00:30,570 --> 00:00:32,290
+To create an inbound gateway,
+
+12
+00:00:32,290 --> 00:00:35,600
+we're going to create a KafkaTemplate exactly as we did when
+
+13
+00:00:35,600 --> 00:00:39,290
+creating the outbound channel adapter, which I don't show in the slide,
+
+14
+00:00:39,290 --> 00:00:42,040
+but we'll look at it when we review the code.
+
+15
+00:00:42,040 --> 00:00:42,610
+Next,
+
+16
+00:00:42,610 --> 00:00:46,420
+we create a KafkaMessageListenerContainer that listens on the
+
+17
+00:00:46,420 --> 00:00:50,290
+addressTopic and sets the GroupId to addressGroup.
+
+18
+00:00:50,290 --> 00:00:50,650
+Again,
+
+19
+00:00:50,650 --> 00:00:55,240
+the GroupId is used by consumers that want to handle the same set of messages.
+
+20
+00:00:55,240 --> 00:00:55,950
+Finally,
+
+21
+00:00:55,950 --> 00:00:58,680
+we create the KafkaInboundGateway with the
+
+22
+00:00:58,680 --> 00:01:03,100
+KafkaMessageListenerContainer and the KafkaTemplate wired into it.
+
+23
+00:01:03,100 --> 00:01:07,240
+The KafkaTemplate is used to send a response back to the caller,
+
+24
+00:01:07,240 --> 00:01:10,440
+so we set its DefaultTopic to our ReplyTopic.
+
+25
+00:01:10,440 --> 00:01:13,240
+Then we create a new KafkaInboundGateway,
+
+26
+00:01:13,240 --> 00:01:15,400
+passing it the container and the template,
+
+27
+00:01:15,400 --> 00:01:20,020
+and then we set the RequestChannel that will handle the incoming message,
+
+28
+00:01:20,020 --> 00:01:23,090
+and the ReplyChannel, to which it will publish its reply.
+
+29
+00:01:23,090 --> 00:01:28,290
+We add a 30 second timeout so that if the handler does not reply in 30 seconds,
+
+30
+00:01:28,290 --> 00:01:30,210
+we'll abandon the transaction.
+
+31
+00:01:30,210 --> 00:01:32,920
+The outbound gateway is a little more complicated,
+
+32
+00:01:32,920 --> 00:01:34,680
+so I broke it into three slides.
+
+33
+00:01:34,680 --> 00:01:35,400
+First,
+
+34
+00:01:35,400 --> 00:01:39,620
+the KafkaMessageListenerContainer receives a ConsumerFactory that
+
+35
+00:01:39,620 --> 00:01:43,370
+Spring creates for us when it sees Kafka in our class path and
+
+36
+00:01:43,370 --> 00:01:46,200
+listens for messages on the ReplyChannel.
+
+37
+00:01:46,200 --> 00:01:50,040
+This will handle the response that we received from the inbound gateway.
+
+38
+00:01:50,040 --> 00:01:54,540
+Next, the ReplyingKafkaTemplate is similar to the KafkaTemplate,
+
+39
+00:01:54,540 --> 00:01:57,830
+but it uses the KafkaMessageListenerContainer for a
+
+40
+00:01:57,830 --> 00:02:00,080
+reply once it sends its message.
+
+41
+00:02:00,080 --> 00:02:05,020
+The ProducerFactory, which isn't shown, defines the broker address to connect to,
+
+42
+00:02:05,020 --> 00:02:09,490
+as well as the key and value serializers that we've seen previously.
+
+43
+00:02:09,490 --> 00:02:10,320
+Finally,
+
+44
+00:02:10,320 --> 00:02:13,960
+the KafkaProducerMessageHandler is the being that sends
+
+45
+00:02:13,960 --> 00:02:16,430
+messages to Kafka and awaits a reply.
+
+46
+00:02:16,430 --> 00:02:20,770
+It creates a new KafkaProducerMessageHandler that uses the
+
+47
+00:02:20,770 --> 00:02:25,190
+ReplyingKafkaTemplate and sets the topic and the MessageKey,
+
+48
+00:02:25,190 --> 00:02:29,250
+which again is the partition in the topic to which to publish the message.
+
+49
+00:02:29,250 --> 00:02:33,540
+The example for this section is the same as we've seen in the other sections.
+
+50
+00:02:33,540 --> 00:02:36,380
+The ReservationListener receives a reservation,
+
+51
+00:02:36,380 --> 00:02:40,330
+but needs the user's address to complete the reservation.
+
+52
+00:02:40,330 --> 00:02:41,310
+In this case,
+
+53
+00:02:41,310 --> 00:02:44,490
+it uses a KafkaProducerMessageHandler with a
+
+54
+00:02:44,490 --> 00:02:49,010
+ReplyingKafkaTemplate to publish a message to the Kafka broker,
+
+55
+00:02:49,010 --> 00:02:51,480
+which will be routed to the addressTopic.
+
+56
+00:02:51,480 --> 00:02:54,780
+The KafkaInboundGateway will receive the message,
+
+57
+00:02:54,780 --> 00:02:57,940
+invoke the address service through its RequestChannel,
+
+58
+00:02:57,940 --> 00:03:00,640
+and published the response back to Kafka.
+
+59
+00:03:00,640 --> 00:03:04,810
+The response will be received by the ReplyingKafkaTemplate and
+
+60
+00:03:04,810 --> 00:03:07,770
+delivered back to the bazReservationListener.
+
+61
+00:03:07,770 --> 00:03:10,620
+Let's look at the code and see this in action.
+
+62
+00:03:10,620 --> 00:03:13,810
+Let's start with the KafkaOutboundGateway config,
+
+63
+00:03:13,810 --> 00:03:17,560
+which defines the components we need to send an address
+
+64
+00:03:17,560 --> 00:03:20,640
+request back to the baz reservation publisher.
+
+65
+00:03:20,640 --> 00:03:24,640
+First we create a new channel to which will publish our address requests,
+
+66
+00:03:24,640 --> 00:03:27,610
+and then we create a KafkaMessageListenerContainer.
+
+67
+00:03:27,610 --> 00:03:30,290
+This container is responsible for listening for the
+
+68
+00:03:30,290 --> 00:03:32,170
+response from the inbound gateway.
+
+69
+00:03:32,170 --> 00:03:37,020
+We specify that it should listen for requests from the addressReplyTopic,
+
+70
+00:03:37,020 --> 00:03:39,710
+and we set its GroupId to addressGroup.
+
+71
+00:03:39,710 --> 00:03:42,300
+We create a ProducerFactory that specifies the
+
+72
+00:03:42,300 --> 00:03:44,040
+broker address we want to connect to,
+
+73
+00:03:44,040 --> 00:03:48,240
+as well as we define that we want to use string serializers
+
+74
+00:03:48,240 --> 00:03:51,700
+to serialize both message keys and values.
+
+75
+00:03:51,700 --> 00:03:56,720
+Next we create a ReplyingKafkaTemplate, which is used to send a message to Kafka,
+
+76
+00:03:56,720 --> 00:03:58,370
+and wait for a response.
+
+77
+00:03:58,370 --> 00:04:03,080
+it uses the ProducerFactory that we created to connect to the broker,
+
+78
+00:04:03,080 --> 00:04:06,740
+and it uses the container to listen on the ReplyTopic.
+
+79
+00:04:06,740 --> 00:04:12,120
+Then we create a KafkaProducerMessageHandler that sends messages to Kafka.
+
+80
+00:04:12,120 --> 00:04:14,980
+Because we use the replaying KafkaTemplate,
+
+81
+00:04:14,980 --> 00:04:18,520
+it will wait for a response and return that to it's caller.
+
+82
+00:04:18,520 --> 00:04:21,800
+We configure that we want to publish our messages to the
+
+83
+00:04:21,800 --> 00:04:24,940
+address key partition in the addressTopic.
+
+84
+00:04:24,940 --> 00:04:25,780
+Finally,
+
+85
+00:04:25,780 --> 00:04:30,740
+we create a messaging gateway that publishes messages to the bazAddressChannel,
+
+86
+00:04:30,740 --> 00:04:33,560
+which will be directed to our KafkaProducerMessageHandler.
+
+87
+00:04:33,560 --> 00:04:39,130
+We update the bazReservationListener to wire in the addressGateway,
+
+88
+00:04:39,130 --> 00:04:43,930
+and then request the address with the reservation's Id and log it.
+
+89
+00:04:43,930 --> 00:04:46,640
+Looking now at the inbound gateway,
+
+90
+00:04:46,640 --> 00:04:49,810
+the bazAddressConfig creates an addressChannel,
+
+91
+00:04:49,810 --> 00:04:52,640
+to which address requests will be published,
+
+92
+00:04:52,640 --> 00:04:56,290
+and an addressReplyChannel, to which replies will be sent.
+
+93
+00:04:56,290 --> 00:05:00,700
+We create a new ProducerFactory that connects to the specified broker
+
+94
+00:05:00,700 --> 00:05:05,370
+address and uses the string serializer for keys and values.
+
+95
+00:05:05,370 --> 00:05:09,230
+And then we create a KafkaTemplate that uses that ProducerFactory.
+
+96
+00:05:09,230 --> 00:05:13,000
+We create a KafkaMessageListenerContainer and configure
+
+97
+00:05:13,000 --> 00:05:15,240
+it to listen to the addressTopic,
+
+98
+00:05:15,240 --> 00:05:18,780
+and then we create a KafkaInboundGateway that uses the
+
+99
+00:05:18,780 --> 00:05:22,200
+KafkaMessageListenerChannel to receive messages,
+
+100
+00:05:22,200 --> 00:05:24,990
+and the KafkaTemplate to send the reply.
+
+101
+00:05:24,990 --> 00:05:27,200
+We set the RequestChannel,
+
+102
+00:05:27,200 --> 00:05:31,640
+which will deliver messages to the address service and the ReplyChannel.
+
+103
+00:05:31,640 --> 00:05:35,640
+We set a 30 second timeout for the RequestChannel to complete.
+
+104
+00:05:35,640 --> 00:05:36,340
+Finally,
+
+105
+00:05:36,340 --> 00:05:38,800
+the address service is a Spring service with a
+
+106
+00:05:38,800 --> 00:05:41,560
+ServiceActivater that listens for messages on the
+
+107
+00:05:41,560 --> 00:05:45,400
+addressChannel and simply returns this as my address.
+
+108
+00:05:45,400 --> 00:05:49,790
+So let's run our applications and review the logs.
+
+109
+00:05:49,790 --> 00:05:54,480
+In the bazReservationPublisherApplicationLogs, we can see that we published
+
+110
+00:05:54,480 --> 00:05:59,940
+6 reservations and that we receive requests for addresses for each user.
+
+111
+00:05:59,940 --> 00:06:04,840
+And in the KafkaExampleApplicationLogs, we can see that we receive 6
+
+112
+00:06:04,840 --> 00:06:09,760
+reservations, and then we receive. this is my address responses to our
+
+113
+00:06:09,760 --> 00:06:14,790
+address lookup calls. In this section, we reviewed how Spring integration
+
+114
+00:06:14,790 --> 00:06:16,620
+works with Apache Kafka.
+
+115
+00:06:16,620 --> 00:06:19,670
+We saw how the Kafka message source was used in the
+
+116
+00:06:19,670 --> 00:06:22,040
+role of an inbound channel adapter,
+
+117
+00:06:22,040 --> 00:06:26,240
+and the KafkaInboundGateway provided inbound gateway support.
+
+118
+00:06:26,240 --> 00:06:30,570
+Then we saw that the KafkaProducerMessageHandler served the role of both
+
+119
+00:06:30,570 --> 00:06:34,220
+the outbound channel adapter and the outbound gateway,
+
+120
+00:06:34,220 --> 00:06:38,930
+with the difference being the type of KafkaTemplate that's used, a standard
+
+121
+00:06:38,930 --> 00:06:43,010
+KafkaTemplate in the case of an outbound channel adapter and a
+
+122
+00:06:43,010 --> 00:06:51,000
+ReplyingKafkaTemplate in the case of an outbound gateway. Next up, we're going to wrap up this module and review what we learned.
+

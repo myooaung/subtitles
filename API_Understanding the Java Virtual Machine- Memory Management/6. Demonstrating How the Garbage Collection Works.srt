@@ -1,0 +1,336 @@
+1
+00:00:02,840 --> 00:00:07,420
+So what I'd like to do is to run some code that's going to allocate
+
+2
+00:00:07,420 --> 00:00:11,080
+some memory and then take the address of that memory in Java and
+
+3
+00:00:11,080 --> 00:00:13,680
+print out the address of the memory.
+
+4
+00:00:13,680 --> 00:00:16,080
+And the idea behind this is that as we print these addresses,
+
+5
+00:00:16,080 --> 00:00:18,960
+we'll see that the memory address rises as we allocate more
+
+6
+00:00:18,960 --> 00:00:22,910
+and more objects. And then eventually, the garbage collector will run and,
+
+7
+00:00:22,910 --> 00:00:25,660
+at that point, will collect all the memory.
+
+8
+00:00:25,660 --> 00:00:29,140
+The next allocation will go back to the same address as the previous
+
+9
+00:00:29,140 --> 00:00:32,580
+allocation or close to the previous allocation at least.
+
+10
+00:00:32,580 --> 00:00:33,350
+We have some code here.
+
+11
+00:00:33,350 --> 00:00:36,360
+Let me run this first, and then I'll take you through the code.
+
+12
+00:00:36,360 --> 00:00:38,540
+So the application is called Sawtooth.
+
+13
+00:00:38,540 --> 00:00:39,230
+It's very simple.
+
+14
+00:00:39,230 --> 00:00:41,320
+We're going to run this with a classpath.
+
+15
+00:00:41,320 --> 00:00:46,080
+And if I run this code, we just see it prints out a large stream of numbers.
+
+16
+00:00:46,080 --> 00:00:49,840
+And at the moment, just by looking at those numbers, we can't see too much.
+
+17
+00:00:49,840 --> 00:00:56,050
+But those numbers are the addresses of the objects as they are being allocated.
+
+18
+00:00:56,050 --> 00:00:57,640
+So let me kill that.
+
+19
+00:00:57,640 --> 00:01:02,740
+If I come back into the code, we can see how this is going to work.
+
+20
+00:01:02,740 --> 00:01:06,340
+So we're allocating an object called GCMe.
+
+21
+00:01:06,340 --> 00:01:08,800
+And GCMe is defined here.
+
+22
+00:01:08,800 --> 00:01:11,070
+GCMe is simply a large object.
+
+23
+00:01:11,070 --> 00:01:12,940
+There's many longs in here. In fact,
+
+24
+00:01:12,940 --> 00:01:16,630
+there are 18 of them. So that makes this quite a large object. And
+
+25
+00:01:16,630 --> 00:01:19,980
+the reason for that is that when we allocate this, if it was a
+
+26
+00:01:19,980 --> 00:01:21,850
+small object, we need to allocate many,
+
+27
+00:01:21,850 --> 00:01:23,980
+many thousands of them before the garbage collector kicked
+
+28
+00:01:23,980 --> 00:01:28,010
+in. As it's larger, we need to allocate fewer objects before
+
+29
+00:01:28,010 --> 00:01:29,410
+the garbage collector kicks in.
+
+30
+00:01:29,410 --> 00:01:32,610
+So if I look at the code that allocates the objects,
+
+31
+00:01:32,610 --> 00:01:37,380
+you'll see there's a loop. Inside the loop, we allocate a new object,
+
+32
+00:01:37,380 --> 00:01:41,300
+GCMe. We take the address of the object, you'll see how we do that in
+
+33
+00:01:41,300 --> 00:01:45,850
+a moment, and then simply print out that address. To take the address
+
+34
+00:01:45,850 --> 00:01:49,120
+of the object, we have a helper method called addressOf that just gets
+
+35
+00:01:49,120 --> 00:01:50,560
+given an object.
+
+36
+00:01:50,560 --> 00:01:55,430
+And this helper uses the Unsafe class.
+
+37
+00:01:55,430 --> 00:01:59,810
+Now Unsafe is part of sun.misc.Unsafe.
+
+38
+00:01:59,810 --> 00:02:02,930
+This is not a standard part of the Java runtime.
+
+39
+00:02:02,930 --> 00:02:04,460
+It's an undocumented class,
+
+40
+00:02:04,460 --> 00:02:08,010
+but you'll find this used quite often, and it's quite possible that this
+
+41
+00:02:08,010 --> 00:02:12,110
+class will be included officially in the Java 9 runtime.
+
+42
+00:02:12,110 --> 00:02:15,440
+There are many websites out there that tell us how to use Unsafe.
+
+43
+00:02:15,440 --> 00:02:20,070
+But essentially, we have to get a reference to a singleton class.
+
+44
+00:02:20,070 --> 00:02:23,240
+We can't do that directly as the class is a private
+
+45
+00:02:23,240 --> 00:02:26,240
+constructor, and there's also security checks in place to
+
+46
+00:02:26,240 --> 00:02:28,850
+stop us creating instances of this class.
+
+47
+00:02:28,850 --> 00:02:30,600
+Once we have a reference to the class,
+
+48
+00:02:30,600 --> 00:02:34,320
+we can then use it to get the address of an object.
+
+49
+00:02:34,320 --> 00:02:38,900
+And here we're just seeing if the address size is 4 or 8, so I'll be
+
+50
+00:02:38,900 --> 00:02:42,770
+running on the 32‑bit environment or 64‑bit environment and then using
+
+51
+00:02:42,770 --> 00:02:47,550
+either getInt to get the address or getLong to get the address. And we
+
+52
+00:02:47,550 --> 00:02:49,540
+simply return that address.
+
+53
+00:02:49,540 --> 00:02:51,270
+So that's all the code is doing.
+
+54
+00:02:51,270 --> 00:02:54,640
+So if we run this code again,
+
+55
+00:02:54,640 --> 00:02:57,910
+we'll see the same output, again not very interesting. But what I'd
+
+56
+00:02:57,910 --> 00:03:04,170
+like to do is to run this code and capture that output to a file.
+
+57
+00:03:04,170 --> 00:03:07,990
+And we'll give this file a CSV extension so it'll act like a
+
+58
+00:03:07,990 --> 00:03:09,800
+comma‑separated variable file.
+
+59
+00:03:09,800 --> 00:03:12,420
+So I'll just call this out.csv.
+
+60
+00:03:12,420 --> 00:03:14,110
+Once that file has being created,
+
+61
+00:03:14,110 --> 00:03:18,710
+we can check the contents by using cat on out.csv, and that displays the same
+
+62
+00:03:18,710 --> 00:03:23,340
+date as we saw being printed to the console. Again, not very exciting.
+
+63
+00:03:23,340 --> 00:03:30,590
+However, what we can do is load that data into Excel.
+
+64
+00:03:30,590 --> 00:03:39,840
+So in Excel, if we open up out.csv, again, all we see is a column of numbers.
+
+65
+00:03:39,840 --> 00:03:46,350
+Now what we can do is if I highlight that column and insert a line graph,
+
+66
+00:03:46,350 --> 00:03:51,180
+so I go to Graphs, Line, and that'll take that data.
+
+67
+00:03:51,180 --> 00:03:52,240
+And as we can see,
+
+68
+00:03:52,240 --> 00:03:55,630
+we got a sawtooth graph. And what this is showing is that we
+
+69
+00:03:55,630 --> 00:03:58,790
+start allocating memory at a certain place inside the
+
+70
+00:03:58,790 --> 00:04:01,360
+address space. We keep allocating, allocating,
+
+71
+00:04:01,360 --> 00:04:02,650
+allocating, allocating.
+
+72
+00:04:02,650 --> 00:04:05,640
+Eventually, we'll try and allocate some memory.
+
+73
+00:04:05,640 --> 00:04:07,920
+We'll have no more space to allocate it.
+
+74
+00:04:07,920 --> 00:04:10,710
+The garbage collector will kick in, that will free up the memory, and the
+
+75
+00:04:10,710 --> 00:04:15,810
+next time we allocate memory is at some lower location inside the address
+
+76
+00:04:15,810 --> 00:04:18,180
+space. And again, we run through the same process.
+
+77
+00:04:18,180 --> 00:04:20,770
+We keep allocating until the garbage collector kicks in.
+
+78
+00:04:20,770 --> 00:04:21,790
+And then when that happens,
+
+79
+00:04:21,790 --> 00:04:25,330
+we run again, the GC runs, and we allocate the next piece of
+
+80
+00:04:25,330 --> 00:04:27,990
+memory at the lowest point inside the address space, and off we go
+
+81
+00:04:27,990 --> 00:04:33,540
+again. So hopefully this illustrates very simply what the GC is
+
+82
+00:04:33,540 --> 00:04:36,840
+doing inside this application.
+
+83
+00:04:36,840 --> 00:04:40,070
+We'll see later in this course that a far more sophisticated tool is out
+
+84
+00:04:40,070 --> 00:04:47,000
+there for showing the garbage collector, but this is a nice, simple approach for showing what's happening.
+

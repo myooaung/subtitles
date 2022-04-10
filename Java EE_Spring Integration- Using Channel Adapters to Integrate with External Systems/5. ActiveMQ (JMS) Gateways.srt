@@ -1,0 +1,368 @@
+1
+00:00:00,340 --> 00:00:03,480
+Now let's take a look at implementing inbound and
+
+2
+00:00:03,480 --> 00:00:05,990
+outbound gateways for ActiveMQ.
+
+3
+00:00:05,990 --> 00:00:10,790
+Building inbound and outbound gateways for JMS providers is accomplished using
+
+4
+00:00:10,790 --> 00:00:15,540
+the JmsInboundGateway and the JmsOutboundGateway classes.
+
+5
+00:00:15,540 --> 00:00:20,140
+Creating a JmsInboundGateway is similar to how we built our JMS
+
+6
+00:00:20,140 --> 00:00:23,140
+message driven endpoint in the previous video,
+
+7
+00:00:23,140 --> 00:00:23,890
+We, first,
+
+8
+00:00:23,890 --> 00:00:28,090
+create a SimpleMessageListenerContainer which manages the connection to
+
+9
+00:00:28,090 --> 00:00:33,020
+ActiveMQ and subscribes to the specified destination QUEUE_NAME.
+
+10
+00:00:33,020 --> 00:00:37,670
+Then we create a ChannelPublishingJmsMessageListener which converts
+
+11
+00:00:37,670 --> 00:00:41,140
+JMS messages into spring integration messages,
+
+12
+00:00:41,140 --> 00:00:45,140
+but this time we set it's ExpectReply property to true,
+
+13
+00:00:45,140 --> 00:00:48,720
+which means that we expect the request channel to return a
+
+14
+00:00:48,720 --> 00:00:51,190
+response that we will send back to our caller.
+
+15
+00:00:51,190 --> 00:00:52,650
+Finally, we create a .
+
+16
+00:00:52,650 --> 00:00:57,060
+JmsInboundGateway that uses the container and listener and we
+
+17
+00:00:57,060 --> 00:00:59,910
+set the request channel to the channel that will handle the
+
+18
+00:00:59,910 --> 00:01:02,140
+request and return a response.
+
+19
+00:01:02,140 --> 00:01:07,090
+For the outbound gateway, we create a JmsOutboundGateway and configure it.
+
+20
+00:01:07,090 --> 00:01:10,130
+We set the ActiveMQ ConnectionFactory,
+
+21
+00:01:10,130 --> 00:01:14,160
+which spring creates for us when it sees ActiveMQ in the class path.
+
+22
+00:01:14,160 --> 00:01:19,240
+Then we set the destination queue name and the reply destination queue name.
+
+23
+00:01:19,240 --> 00:01:23,360
+Finally, we specify the channel to which to send the reply.
+
+24
+00:01:23,360 --> 00:01:27,350
+The outbound gateway is triggered by a service activator listening
+
+25
+00:01:27,350 --> 00:01:30,240
+for messages published to the getAddressChannel.
+
+26
+00:01:30,240 --> 00:01:33,450
+We create a MessagingGateway that our service can use to
+
+27
+00:01:33,450 --> 00:01:36,160
+publish messages to the getAddressChannel,
+
+28
+00:01:36,160 --> 00:01:40,320
+but this time we specify that the channel will receive the reply,
+
+29
+00:01:40,320 --> 00:01:42,920
+namely the getAddressReplyChannel.
+
+30
+00:01:42,920 --> 00:01:47,340
+For this example, we're going to do the same thing that we did with RabbitMQ,
+
+31
+00:01:47,340 --> 00:01:52,040
+namely, we're going to request the address of the user in the reservation.
+
+32
+00:01:52,040 --> 00:01:57,400
+The bar service publishes a reservation to ActiveMQ that was received by the bar
+
+33
+00:01:57,400 --> 00:02:01,310
+reservation listener through a JMS message driven endpoint.
+
+34
+00:02:01,310 --> 00:02:06,280
+Now we're going to use a JMS Outbound Gateway to publish a new message
+
+35
+00:02:06,280 --> 00:02:11,000
+requesting the address to the GetAddress queue that will be received by a
+
+36
+00:02:11,000 --> 00:02:14,980
+JmsInboundGateway and handled by the address service.
+
+37
+00:02:14,980 --> 00:02:18,550
+The address service will publish the response back to a reply
+
+38
+00:02:18,550 --> 00:02:21,990
+queue that will be delivered back to our Bar Reservation
+
+39
+00:02:21,990 --> 00:02:24,700
+Listener by the JmsOutboundGateway.
+
+40
+00:02:24,700 --> 00:02:27,840
+Let's take a look at the code and see this in action.
+
+41
+00:02:27,840 --> 00:02:30,740
+Let's start by looking at the outbound gateway.
+
+42
+00:02:30,740 --> 00:02:36,520
+The ActiveMQOutboundGateway configuration class creates two channels.
+
+43
+00:02:36,520 --> 00:02:40,880
+The getAddressChannel is used to trigger the outbound gateway and send
+
+44
+00:02:40,880 --> 00:02:45,880
+an address requests to ActiveMQ and the getAddressReplyChannel is used
+
+45
+00:02:45,880 --> 00:02:48,140
+to receive the response from ActiveMQ.
+
+46
+00:02:48,140 --> 00:02:50,590
+We create a JmsOutboundGateway,
+
+47
+00:02:50,590 --> 00:02:55,850
+pass it the ActiveMQ connection factory that Spring configures for us when
+
+48
+00:02:55,850 --> 00:03:00,610
+it finds ActiveMQ in our class path, and then we set the request destination
+
+49
+00:03:00,610 --> 00:03:05,060
+queue name and the reply destination queue name. Finally, we set the
+
+50
+00:03:05,060 --> 00:03:08,030
+ReplyChannel to the getAddressReplyChannel.
+
+51
+00:03:08,030 --> 00:03:11,370
+We create an AddressGateway that publishes messages to the
+
+52
+00:03:11,370 --> 00:03:15,940
+getAddressChannel which triggers our outbound gateway service activator
+
+53
+00:03:15,940 --> 00:03:19,540
+and waits for a reply from the getAddressReplyChannel,
+
+54
+00:03:19,540 --> 00:03:22,750
+which is the channel that the outbound gateway publishes its
+
+55
+00:03:22,750 --> 00:03:27,650
+responses to, We update the BarReservationListener to autowire in
+
+56
+00:03:27,650 --> 00:03:32,160
+our gateway, and when we receive a reservation message, we invoke
+
+57
+00:03:32,160 --> 00:03:36,280
+the address gateway's getAddress method with the reservations user
+
+58
+00:03:36,280 --> 00:03:38,740
+ID to retrieve the address.
+
+59
+00:03:38,740 --> 00:03:43,980
+The address is returned as a Json string representation of a bar address so we
+
+60
+00:03:43,980 --> 00:03:48,440
+use a Jackson objectMapper to deserialize it and log it.
+
+61
+00:03:48,440 --> 00:03:51,810
+A bar address is a plain old Java object that manages
+
+62
+00:03:51,810 --> 00:03:56,160
+four fields, the address, city, state, and zipcode.
+
+63
+00:03:56,160 --> 00:03:57,270
+At this point,
+
+64
+00:03:57,270 --> 00:04:02,140
+we have published the request to ActiveMQ, now let's review how we handle it.
+
+65
+00:04:02,140 --> 00:04:06,390
+The ActiveMQInboundGateway configuration class creates
+
+66
+00:04:06,390 --> 00:04:09,090
+a getAddressInboundGatewayChannel,
+
+67
+00:04:09,090 --> 00:04:12,680
+which will be used to send requests to an address service.
+
+68
+00:04:12,680 --> 00:04:15,780
+The JmsInboundGateway is created using both a
+
+69
+00:04:15,780 --> 00:04:19,880
+SimpleMessageListenerContainer that listens for messages on the
+
+70
+00:04:19,880 --> 00:04:24,980
+getAddress queue and a ChannelPublishingJmsMessageListener which
+
+71
+00:04:24,980 --> 00:04:28,930
+converts JMS messages into Spring integration messages.
+
+72
+00:04:28,930 --> 00:04:33,680
+Note that we set its ExpectReply property to true denoting that we
+
+73
+00:04:33,680 --> 00:04:36,870
+expect the request channel to return a reply.
+
+74
+00:04:36,870 --> 00:04:42,300
+The JmsInboundGateway accepts both the SimpleMessageListenerContainer and the
+
+75
+00:04:42,300 --> 00:04:47,370
+ChannelPublishingJmsMessageListener in its constructor and then we set the
+
+76
+00:04:47,370 --> 00:04:50,570
+RequestChannel to which we want to send the message.
+
+77
+00:04:50,570 --> 00:04:54,440
+The address service is a spring service with a ServiceActivator that
+
+78
+00:04:54,440 --> 00:04:58,090
+listens for messages on the getAddressInboundGatewayChannel.
+
+79
+00:04:58,090 --> 00:05:01,910
+It receives a message with the user ID as its payload and
+
+80
+00:05:01,910 --> 00:05:05,200
+then returns a new JSON string representation of a
+
+81
+00:05:05,200 --> 00:05:08,680
+BarAddress using a Jackson objectMapper.
+
+82
+00:05:08,680 --> 00:05:11,940
+Let's run the code and review the logs.
+
+83
+00:05:11,940 --> 00:05:16,900
+As you can see in the logs, the BarReservation service publishes a reservation,
+
+84
+00:05:16,900 --> 00:05:21,590
+which is received by the bar ReservationListener that then sends a request for
+
+85
+00:05:21,590 --> 00:05:25,420
+the user's address. The address service receives the message,
+
+86
+00:05:25,420 --> 00:05:29,560
+returns a bar address that the bar reservation listener then
+
+87
+00:05:29,560 --> 00:05:33,440
+logs and it does this for all six reservations.
+
+88
+00:05:33,440 --> 00:05:38,380
+In this section, we reviewed how to integrate ActiveMQ with spring integration.
+
+89
+00:05:38,380 --> 00:05:42,300
+We saw that the JmsMessageDrivenEndpoint served as an
+
+90
+00:05:42,300 --> 00:05:45,330
+asynchronous inbound channel adapter that the
+
+91
+00:05:45,330 --> 00:05:50,250
+JmsSendingMessageHandler served as an outbound channel adapter
+
+92
+00:05:50,250 --> 00:05:59,000
+that the JmsInboundGateway is used as an inbound gateway, and the JmsOutboundGateway is used as an outbound gateway.
+

@@ -1,0 +1,340 @@
+1
+00:00:00,440 --> 00:00:03,440
+Now let's take a look at what a three‑node SQL Server
+
+2
+00:00:03,440 --> 00:00:06,510
+availability group looks like on Kubernetes.
+
+3
+00:00:06,510 --> 00:00:12,040
+First, we'll create a three‑node kubernetes cluster for the availability group,
+
+4
+00:00:12,040 --> 00:00:15,440
+one node for each of our SQL Server replicas.
+
+5
+00:00:15,440 --> 00:00:18,760
+Next, we're going to create three Persistent Volume Claims,
+
+6
+00:00:18,760 --> 00:00:22,650
+one for each SQL Server instance. Remember, in an availability
+
+7
+00:00:22,650 --> 00:00:26,910
+group each SQL Server system is an independent instance, so each
+
+8
+00:00:26,910 --> 00:00:29,990
+one needs its own storage and databases.
+
+9
+00:00:29,990 --> 00:00:34,500
+Next, we'll go ahead and create the SQL Server availability group.
+
+10
+00:00:34,500 --> 00:00:37,390
+That availability group is going to have three replicas.
+
+11
+00:00:37,390 --> 00:00:40,900
+One is going to be a primary replica, and then there's going to be two
+
+12
+00:00:40,900 --> 00:00:45,510
+secondary replicas. Just to cover all the bases, one of these replicas is
+
+13
+00:00:45,510 --> 00:00:49,320
+going to be synchronous and one replica is going to be asynchronous.
+
+14
+00:00:49,320 --> 00:00:53,270
+Kubernetes is going to provide the high availability for the SQL Server
+
+15
+00:00:53,270 --> 00:00:55,720
+instances by using a ReplicaSet.
+
+16
+00:00:55,720 --> 00:00:58,720
+This is exactly what you saw in the previous module for
+
+17
+00:00:58,720 --> 00:01:01,340
+SQL Server high availability; however,
+
+18
+00:01:01,340 --> 00:01:05,900
+this time there are three of them, one for each SQL Server
+
+19
+00:01:05,900 --> 00:01:11,150
+availability group replica. The SQL Server availability group, that's
+
+20
+00:01:11,150 --> 00:01:14,460
+going to take care of replicating the transactions on the primary
+
+21
+00:01:14,460 --> 00:01:17,500
+replica to the two secondary replicas.
+
+22
+00:01:17,500 --> 00:01:20,000
+This enables read scalability.
+
+23
+00:01:20,000 --> 00:01:23,780
+Kubernetes alone cannot provide this because SQL Server is a
+
+24
+00:01:23,780 --> 00:01:27,200
+stateful application; you can't scale it up just by adding new
+
+25
+00:01:27,200 --> 00:01:30,000
+SQL Server instances; however,
+
+26
+00:01:30,000 --> 00:01:34,960
+the availability group does allow read scaling. Reporting applications or
+
+27
+00:01:34,960 --> 00:01:40,140
+backup can take place on the secondary replica, freeing the primary replica
+
+28
+00:01:40,140 --> 00:01:45,370
+from those workloads. Here you can see an architectural overview of the SQL
+
+29
+00:01:45,370 --> 00:01:48,340
+Server availability group on Kubernetes solution.
+
+30
+00:01:48,340 --> 00:01:52,730
+Our solution uses three nodes and three pods running SQL Server
+
+31
+00:01:52,730 --> 00:01:55,920
+Red Hat Enterprise Linux in a Docker container.
+
+32
+00:01:55,920 --> 00:01:59,370
+Each pod has its own independent storage provided by a
+
+33
+00:01:59,370 --> 00:02:03,030
+Persistent Volume Claim, a load balancing service provides
+
+34
+00:02:03,030 --> 00:02:05,500
+network access to the SQL Server pods,
+
+35
+00:02:05,500 --> 00:02:08,880
+and it opens up the ports required by SQL Server and the
+
+36
+00:02:08,880 --> 00:02:13,020
+availability group. Before we leave this architecture slide, one
+
+37
+00:02:13,020 --> 00:02:16,100
+thing I'd like to point out is that while I've chosen to implement
+
+38
+00:02:16,100 --> 00:02:18,950
+this solution using Kubernetes deployments,
+
+39
+00:02:18,950 --> 00:02:23,440
+alternatively, I could have used Kubernetes stateful sets.
+
+40
+00:02:23,440 --> 00:02:28,450
+Stateful sets provide stable network identifiers, ordered deployment, as
+
+41
+00:02:28,450 --> 00:02:31,970
+well as ordered deletion and scaling for your pods.
+
+42
+00:02:31,970 --> 00:02:32,780
+However,
+
+43
+00:02:32,780 --> 00:02:36,600
+while the solution we're going through did require consistent
+
+44
+00:02:36,600 --> 00:02:39,630
+network identifiers in the form of host names,
+
+45
+00:02:39,630 --> 00:02:42,990
+it did not require ordered deployments. An ordered
+
+46
+00:02:42,990 --> 00:02:46,160
+deployment could have ensured that the primary replica
+
+47
+00:02:46,160 --> 00:02:48,540
+was created before the secondaries,
+
+48
+00:02:48,540 --> 00:02:51,910
+but we didn't really need that because subsequent configuration
+
+49
+00:02:51,910 --> 00:02:55,680
+steps were required to actually create the replicas.
+
+50
+00:02:55,680 --> 00:03:00,910
+Plus, stateful sets require a headless service for managing network identity,
+
+51
+00:03:00,910 --> 00:03:05,640
+and that was an additional new concept that wasn't really required.
+
+52
+00:03:05,640 --> 00:03:08,210
+So what's different about this solution from a
+
+53
+00:03:08,210 --> 00:03:10,360
+regular clustered availability group?
+
+54
+00:03:10,360 --> 00:03:15,000
+Well, obviously, one big difference is that this doesn't need a cluster.
+
+55
+00:03:15,000 --> 00:03:19,390
+There's no need for Windows failover clusters or pacemaker. With the
+
+56
+00:03:19,390 --> 00:03:23,610
+clusterless availability group, you get a readout solution which can
+
+57
+00:03:23,610 --> 00:03:27,840
+support things like reporting and backup.
+
+58
+00:03:27,840 --> 00:03:29,280
+In this solution, again,
+
+59
+00:03:29,280 --> 00:03:33,310
+Kubernetes is providing the availability for the SQL Server nodes.
+
+60
+00:03:33,310 --> 00:03:38,040
+Each SQL Server instance is part of a ReplicaSet that will specify
+
+61
+00:03:38,040 --> 00:03:40,810
+that there should always be one replica running.
+
+62
+00:03:40,810 --> 00:03:45,040
+Kubernetes will take care of the heavy lifting to make sure this happens.
+
+63
+00:03:45,040 --> 00:03:47,490
+Unlike a clustered availability group,
+
+64
+00:03:47,490 --> 00:03:52,650
+the clusterless availability group can have up to 17 distributed replicas.
+
+65
+00:03:52,650 --> 00:03:56,510
+Now, before we jump into the details of building this solution,
+
+66
+00:03:56,510 --> 00:03:59,290
+let's take a quick look at the requirements for building a
+
+67
+00:03:59,290 --> 00:04:02,410
+clusterless availability group. First,
+
+68
+00:04:02,410 --> 00:04:08,010
+the names for each SQL Server instance have to be 15 characters or less. For us,
+
+69
+00:04:08,010 --> 00:04:11,670
+that means we're going to need a host name entry in our deployment.
+
+70
+00:04:11,670 --> 00:04:15,780
+Otherwise, Kubernetes is going to assign the pod name as the host name,
+
+71
+00:04:15,780 --> 00:04:18,130
+and that's just going to be too long.
+
+72
+00:04:18,130 --> 00:04:18,690
+Next,
+
+73
+00:04:18,690 --> 00:04:23,150
+you need to enable HADR for each SQL Server instance in order to
+
+74
+00:04:23,150 --> 00:04:26,410
+support availability groups. In this example,
+
+75
+00:04:26,410 --> 00:04:28,990
+you'll see how we can do that using an environment
+
+76
+00:04:28,990 --> 00:04:31,970
+variable passed to the Linux container.
+
+77
+00:04:31,970 --> 00:04:33,090
+In addition,
+
+78
+00:04:33,090 --> 00:04:37,260
+the databases that are part of an availability group must be backed up,
+
+79
+00:04:37,260 --> 00:04:40,540
+and they also need to be in full recovery mode.
+
+80
+00:04:40,540 --> 00:04:41,110
+Next,
+
+81
+00:04:41,110 --> 00:04:44,380
+you're going to need a method to authenticate between the different servers,
+
+82
+00:04:44,380 --> 00:04:47,490
+and you can create and use a certificate for that,
+
+83
+00:04:47,490 --> 00:04:48,960
+and you'll see how that happens.
+
+84
+00:04:48,960 --> 00:04:49,640
+Finally,
+
+85
+00:04:49,640 --> 00:04:57,000
+each availability group replica needs an endpoint to communicate to the other replicas that are part of the availability group.
+

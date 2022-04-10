@@ -1,0 +1,788 @@
+1
+00:00:01,040 --> 00:00:06,680
+So now we'll walk through the process of updating our existing CDK app.
+
+2
+00:00:06,680 --> 00:00:12,520
+So here within this demo we're first going to be creating a custom construct.
+
+3
+00:00:12,520 --> 00:00:14,200
+And we'll spend some time looking at this.
+
+4
+00:00:14,200 --> 00:00:14,600
+Now,
+
+5
+00:00:14,600 --> 00:00:17,560
+the focus on creating reusable constructs will be covered
+
+6
+00:00:17,560 --> 00:00:19,940
+within the next course in this path.
+
+7
+00:00:19,940 --> 00:00:26,340
+Then we'll be adding a VPC to our CDK app using L2 constructs from the CDK.
+
+8
+00:00:26,340 --> 00:00:30,600
+Then we'll be utilizing the diff command from the CDK CLI to
+
+9
+00:00:30,600 --> 00:00:32,850
+see the difference between what's in the cloud and what is
+
+10
+00:00:32,850 --> 00:00:34,390
+within our local environment.
+
+11
+00:00:34,390 --> 00:00:37,530
+And then ultimately we'll be deploying our app update.
+
+12
+00:00:37,530 --> 00:00:40,080
+So, let's dive in.
+
+13
+00:00:40,080 --> 00:00:43,240
+So I want to start in a bit of an unusual place.
+
+14
+00:00:43,240 --> 00:00:48,490
+I'm here on GitHub looking at a sample that is provided by AWS.
+
+15
+00:00:48,490 --> 00:00:51,450
+Now this is within their WordPress reference architecture,
+
+16
+00:00:51,450 --> 00:00:54,360
+and this is a CloudFormation template that is a nested
+
+17
+00:00:54,360 --> 00:00:56,890
+stack within a larger CloudFormation stack.
+
+18
+00:00:56,890 --> 00:00:57,440
+Now,
+
+19
+00:00:57,440 --> 00:01:00,610
+what I want to showcase here is this is how they create a
+
+20
+00:01:00,610 --> 00:01:05,810
+configurable VPC using traditional CloudFormation templates.
+
+21
+00:01:05,810 --> 00:01:06,870
+Now if you remember,
+
+22
+00:01:06,870 --> 00:01:10,030
+looking back within the previous course in this path we talked
+
+23
+00:01:10,030 --> 00:01:13,530
+through declarative templates and some of the difficulties that exist
+
+24
+00:01:13,530 --> 00:01:15,780
+And we're going to see this played out here.
+
+25
+00:01:15,780 --> 00:01:19,470
+You can see here we can have potentially up to six different
+
+26
+00:01:19,470 --> 00:01:22,240
+availability zones that are supported with this template.
+
+27
+00:01:22,240 --> 00:01:23,020
+And that's great.
+
+28
+00:01:23,020 --> 00:01:23,740
+However,
+
+29
+00:01:23,740 --> 00:01:27,440
+to have this level of customization within a declarative template we're
+
+30
+00:01:27,440 --> 00:01:31,290
+going to have a lot of boilerplate and then a lot of these configuration
+
+31
+00:01:31,290 --> 00:01:33,700
+values for the different conditions that exist.
+
+32
+00:01:33,700 --> 00:01:35,690
+So if I scroll down, just as an example,
+
+33
+00:01:35,690 --> 00:01:37,870
+and I get to the Conditions section,
+
+34
+00:01:37,870 --> 00:01:40,150
+you're going to see that we're going to have to define a
+
+35
+00:01:40,150 --> 00:01:43,460
+lot of different values here based on the number of
+
+36
+00:01:43,460 --> 00:01:45,880
+availability zones that we pass in.
+
+37
+00:01:45,880 --> 00:01:47,360
+So if we say that we want six,
+
+38
+00:01:47,360 --> 00:01:51,400
+you can see here that we'll go through and set the value of these conditions.
+
+39
+00:01:51,400 --> 00:01:54,420
+And maybe where this was really best shown is if I scroll all
+
+40
+00:01:54,420 --> 00:01:56,390
+the way down to the bottom of the document where we actually
+
+41
+00:01:56,390 --> 00:01:59,440
+have the outputs of this template.
+
+42
+00:01:59,440 --> 00:02:03,440
+When we get to these outputs we're creating this tree of conditions to actually
+
+43
+00:02:03,440 --> 00:02:06,230
+get to the point where we're outputting the correct subnets.
+
+44
+00:02:06,230 --> 00:02:09,860
+And you can see here that to create this configurable VPC
+
+45
+00:02:09,860 --> 00:02:13,640
+we have about 1000 N1 lines of YAML.
+
+46
+00:02:13,640 --> 00:02:16,460
+So, we're going to talk about the way that we go about this.
+
+47
+00:02:16,460 --> 00:02:18,830
+And instead of putting that configuration within the
+
+48
+00:02:18,830 --> 00:02:22,950
+CloudFormation template we let the CDK do it for us.
+
+49
+00:02:22,950 --> 00:02:26,540
+That's what we're going to be adding to our existing application.
+
+50
+00:02:26,540 --> 00:02:30,140
+So, now let's navigate over to VS Code.
+
+51
+00:02:30,140 --> 00:02:31,720
+So I'm here within VS code,
+
+52
+00:02:31,720 --> 00:02:34,720
+and right now if you remember within our CDK stack
+
+53
+00:02:34,720 --> 00:02:38,940
+we have two different resources, our bucket and our CloudFormation output.
+
+54
+00:02:38,940 --> 00:02:40,980
+Now we could keep building things this way.
+
+55
+00:02:40,980 --> 00:02:45,160
+We could just keep going in and adding new resources here within this stack,
+
+56
+00:02:45,160 --> 00:02:48,040
+but that's going to become difficult at some point because we're
+
+57
+00:02:48,040 --> 00:02:50,350
+going to have enough resources that aren't really grouped
+
+58
+00:02:50,350 --> 00:02:53,290
+together that we're just going to have a huge long class that has
+
+59
+00:02:53,290 --> 00:02:54,740
+all the different resources.
+
+60
+00:02:54,740 --> 00:02:57,330
+So one of the things you will generally do is you'll create
+
+61
+00:02:57,330 --> 00:03:00,800
+some constructs within your overall stack,
+
+62
+00:03:00,800 --> 00:03:02,610
+and that's what we're going to do here.
+
+63
+00:03:02,610 --> 00:03:04,470
+So I'm going to go here under the lib directory and
+
+64
+00:03:04,470 --> 00:03:06,340
+I'm going to create a new file.
+
+65
+00:03:06,340 --> 00:03:11,160
+And we're going to call this one networking.
+
+66
+00:03:11,160 --> 00:03:16,640
+Now here within networking I have a snippet that we're going to use
+
+67
+00:03:16,640 --> 00:03:19,640
+And we're just going to call this one Networking.
+
+68
+00:03:19,640 --> 00:03:22,170
+And I want to point out a few things with this.
+
+69
+00:03:22,170 --> 00:03:23,100
+So first of all,
+
+70
+00:03:23,100 --> 00:03:26,070
+this particular snippet assumes that we're going to
+
+71
+00:03:26,070 --> 00:03:28,600
+be passing some properties in.
+
+72
+00:03:28,600 --> 00:03:34,140
+So, in this case I'm going to add a value to this.
+
+73
+00:03:34,140 --> 00:03:37,140
+And this is going to allow us to pass in a value for the
+
+74
+00:03:37,140 --> 00:03:40,040
+maximum number of availability zones.
+
+75
+00:03:40,040 --> 00:03:44,540
+And here with this we'll use that when we create our VPC.
+
+76
+00:03:44,540 --> 00:03:48,030
+Now the next thing I want to point out is within these custom constructs.
+
+77
+00:03:48,030 --> 00:03:52,780
+We also need to be able to expose variables because we want to be
+
+78
+00:03:52,780 --> 00:03:55,960
+able to make our VPC that we create here within our networking
+
+79
+00:03:55,960 --> 00:04:00,030
+construct available later within this course when we create our
+
+80
+00:04:00,030 --> 00:04:04,290
+Fargate service because it will need to know what VPC it needs to
+
+81
+00:04:04,290 --> 00:04:06,540
+launch that service into.
+
+82
+00:04:06,540 --> 00:04:09,930
+Now we're not going to implement this just yet because we need some
+
+83
+00:04:09,930 --> 00:04:13,460
+additional information because here we haven't yet installed a
+
+84
+00:04:13,460 --> 00:04:18,690
+package for EC2 that will allow us to get access to all the
+
+85
+00:04:18,690 --> 00:04:21,070
+different ways that we can create VPCs.
+
+86
+00:04:21,070 --> 00:04:26,940
+So, just like before, let's go ahead and jump over into the CDK documentation.
+
+87
+00:04:26,940 --> 00:04:33,240
+So I'm going to open up the terminal, and I'm going to type in cdk docs.
+
+88
+00:04:33,240 --> 00:04:37,240
+Once this opens up, I'm going to click on API REFERENCE.
+
+89
+00:04:37,240 --> 00:04:41,650
+And then here in the left pane I'm going to scroll down until I get to ec2.
+
+90
+00:04:41,650 --> 00:04:44,840
+And then I'll click on Overview.
+
+91
+00:04:44,840 --> 00:04:49,040
+So first of all, we're going to see here the package that we need to install.
+
+92
+00:04:49,040 --> 00:04:52,320
+So I'm actually going to grab this and we'll copy it.
+
+93
+00:04:52,320 --> 00:04:57,040
+We'll need this in just a bit once we get back over into VS Code.
+
+94
+00:04:57,040 --> 00:04:58,410
+Next thing you'll note here,
+
+95
+00:04:58,410 --> 00:05:04,090
+both the L1 and the L2 constructs are stable for this particular package.
+
+96
+00:05:04,090 --> 00:05:07,750
+Now the initial section that we have here is around VPC. And
+
+97
+00:05:07,750 --> 00:05:11,350
+you can see here that creating a VPC can be just as simple as
+
+98
+00:05:11,350 --> 00:05:13,200
+this single line that's shown here.
+
+99
+00:05:13,200 --> 00:05:17,840
+However, in most cases we're going to want to customize this to some extent.
+
+100
+00:05:17,840 --> 00:05:20,670
+So this includes some generalizations that exist.
+
+101
+00:05:20,670 --> 00:05:23,870
+If you've ever created a VPC from scratch you know that
+
+102
+00:05:23,870 --> 00:05:27,470
+you need to go in and create the VPC, create the different subnets,
+
+103
+00:05:27,470 --> 00:05:29,690
+go in and create the route tables,
+
+104
+00:05:29,690 --> 00:05:33,310
+go in and create the NAT gateways and potentially the Internet gateway,
+
+105
+00:05:33,310 --> 00:05:34,480
+and so on and so forth.
+
+106
+00:05:34,480 --> 00:05:37,430
+There's a lot of different steps that are taken. But here within
+
+107
+00:05:37,430 --> 00:05:41,270
+this L2 construct it's going to generalize a lot of this while still
+
+108
+00:05:41,270 --> 00:05:44,000
+providing room for us to configure it.
+
+109
+00:05:44,000 --> 00:05:45,350
+So I'm going to scroll down here.
+
+110
+00:05:45,350 --> 00:05:48,290
+First, note that it supports three different subnet types,
+
+111
+00:05:48,290 --> 00:05:50,410
+public, private, and isolated.
+
+112
+00:05:50,410 --> 00:05:53,760
+We're going to be using both public and private subnets.
+
+113
+00:05:53,760 --> 00:05:55,180
+So I'm going to keep scrolling down,
+
+114
+00:05:55,180 --> 00:05:57,140
+and you can see here that it does give you a level of
+
+115
+00:05:57,140 --> 00:05:59,240
+control over availability zones.
+
+116
+00:05:59,240 --> 00:06:03,220
+We'll talk about that in just a minute.
+
+117
+00:06:03,220 --> 00:06:07,040
+But I want to get here to this section of Advanced Subnet Configuration.
+
+118
+00:06:07,040 --> 00:06:10,070
+And here this allows us to pass in the cidr block,
+
+119
+00:06:10,070 --> 00:06:12,200
+the maximum number of availability zones,
+
+120
+00:06:12,200 --> 00:06:14,810
+and the different subnet configurations that we're going to need.
+
+121
+00:06:14,810 --> 00:06:17,750
+And this looks perfect for what we're going to do.
+
+122
+00:06:17,750 --> 00:06:19,090
+So, with this being said,
+
+123
+00:06:19,090 --> 00:06:21,680
+let's move back over to VS Code and let's start the
+
+124
+00:06:21,680 --> 00:06:25,000
+process of implementing this.
+
+125
+00:06:25,000 --> 00:06:29,160
+Now the first step to implementing this is we need to install our package.
+
+126
+00:06:29,160 --> 00:06:31,880
+So I'm going to do npm install.
+
+127
+00:06:31,880 --> 00:06:34,940
+I'm going to paste in the package that we copied from the
+
+128
+00:06:34,940 --> 00:06:40,970
+documentation, and then we'll save this.
+
+129
+00:06:40,970 --> 00:06:43,940
+Now I'm going to close out the terminal.
+
+130
+00:06:43,940 --> 00:06:49,540
+From here we can now import this package.
+
+131
+00:06:49,540 --> 00:06:51,010
+And now that we have this imported,
+
+132
+00:06:51,010 --> 00:06:54,680
+I'm now going to add a property in on the class.
+
+133
+00:06:54,680 --> 00:06:58,500
+So here we're going to have a public property, it's going to be readonly,
+
+134
+00:06:58,500 --> 00:07:00,490
+and it's going to be our vpc.
+
+135
+00:07:00,490 --> 00:07:07,240
+And this is going to be of type ec2.IVpc.
+
+136
+00:07:07,240 --> 00:07:11,840
+So now that we have that in place, we now need to create our VPC.
+
+137
+00:07:11,840 --> 00:07:15,530
+So here, I've pasted in a configuration for our VPC.
+
+138
+00:07:15,530 --> 00:07:18,970
+You can see here we have a defined cidr block and we have a
+
+139
+00:07:18,970 --> 00:07:21,880
+defined set of public and private subnets.
+
+140
+00:07:21,880 --> 00:07:25,750
+Now I have maxAzs here set at 2, but, if you remember,
+
+141
+00:07:25,750 --> 00:07:28,030
+we don't want to just use a static value here.
+
+142
+00:07:28,030 --> 00:07:30,040
+We want to be able to pass that in.
+
+143
+00:07:30,040 --> 00:07:32,830
+So here I'm going to change this instead of being just a static
+
+144
+00:07:32,830 --> 00:07:36,200
+number we're going to call this props?.maxAzs.
+
+145
+00:07:36,200 --> 00:07:39,480
+And now we're able to actually utilize that value.
+
+146
+00:07:39,480 --> 00:07:40,260
+Now in this case,
+
+147
+00:07:40,260 --> 00:07:42,660
+we're going to want this to not be optional so I'm going
+
+148
+00:07:42,660 --> 00:07:45,340
+to remove the question mark because we do need this value
+
+149
+00:07:45,340 --> 00:07:48,540
+to be able to create our VPC.
+
+150
+00:07:48,540 --> 00:07:49,220
+So perfect.
+
+151
+00:07:49,220 --> 00:07:51,700
+At this point we have a VPC that's configured,
+
+152
+00:07:51,700 --> 00:07:55,510
+we're able to receive props in, and, in addition to that,
+
+153
+00:07:55,510 --> 00:08:00,250
+we're exposing our VPC for future use within our application.
+
+154
+00:08:00,250 --> 00:08:03,100
+So at this point I'm going to save this and I'm
+
+155
+00:08:03,100 --> 00:08:06,140
+going to go back over to the stack.
+
+156
+00:08:06,140 --> 00:08:11,540
+Next, I'm going to go in and we're going to import this.
+
+157
+00:08:11,540 --> 00:08:12,650
+Now that I have this created,
+
+158
+00:08:12,650 --> 00:08:17,240
+I'm now able to go in and create a new instance of our custom construct
+
+159
+00:08:17,240 --> 00:08:19,810
+And we can see here we need to pass in the scope,
+
+160
+00:08:19,810 --> 00:08:23,760
+which is going to be our stack, and we need to give it a name.
+
+161
+00:08:23,760 --> 00:08:29,800
+We'll call this our NetworkingConstruct And we now need to pass in the props,
+
+162
+00:08:29,800 --> 00:08:32,400
+which in this case is going to have a single property,
+
+163
+00:08:32,400 --> 00:08:35,150
+which is going to be the maximum number of availability
+
+164
+00:08:35,150 --> 00:08:37,700
+zones. And we'll just set this at 2.
+
+165
+00:08:37,700 --> 00:08:42,330
+So now that I have that in place, we now have a change to our application.
+
+166
+00:08:42,330 --> 00:08:47,240
+So at this point I'm going to go in and I'm going to open the terminal back up.
+
+167
+00:08:47,240 --> 00:08:49,810
+And now I'm going to go in and type cdk,
+
+168
+00:08:49,810 --> 00:08:54,040
+and I'm going to type in a command we haven't yet used which is diff.
+
+169
+00:08:54,040 --> 00:08:58,310
+And so here we can see that we've added a lot of resources to our stack.
+
+170
+00:08:58,310 --> 00:09:01,650
+If I scroll all the way back up here to where we ran the command,
+
+171
+00:09:01,650 --> 00:09:03,320
+we can see here that we're adding in a VPC,
+
+172
+00:09:03,320 --> 00:09:07,130
+a subnet, a route table, subnet route table association,
+
+173
+00:09:07,130 --> 00:09:08,980
+route, Elastic IP,
+
+174
+00:09:08,980 --> 00:09:11,390
+so on and so forth You can see all of the different types
+
+175
+00:09:11,390 --> 00:09:13,410
+of resources that are created here.
+
+176
+00:09:13,410 --> 00:09:17,600
+And these are all things we would need to create explicitly if we were using
+
+177
+00:09:17,600 --> 00:09:21,460
+either L1 constructs or a CloudFormation template directly.
+
+178
+00:09:21,460 --> 00:09:24,860
+But in this case this has been abstracted for us in an L2 construct
+
+179
+00:09:24,860 --> 00:09:28,340
+that we can easily integrate within our application.
+
+180
+00:09:28,340 --> 00:09:37,440
+So now that we can see the changes that exist, we can now run cdk deploy.
+
+181
+00:09:37,440 --> 00:09:40,330
+And now we can see that the deployment process has
+
+182
+00:09:40,330 --> 00:09:42,340
+completed for our application.
+
+183
+00:09:42,340 --> 00:09:46,580
+So let's move over into the AWS Console.
+
+184
+00:09:46,580 --> 00:09:49,340
+So I'm here in the AWS Console and now I'm going to
+
+185
+00:09:49,340 --> 00:09:52,040
+navigate over to CloudFormation.
+
+186
+00:09:52,040 --> 00:09:57,640
+From within CloudFormation, I'm going to click on our TypescriptCdkStack.
+
+187
+00:09:57,640 --> 00:10:00,140
+And here, if I now go under Resources,
+
+188
+00:10:00,140 --> 00:10:02,200
+we're going to see that we have many additional
+
+189
+00:10:02,200 --> 00:10:04,040
+resources beyond what we had Initially.
+
+190
+00:10:04,040 --> 00:10:08,920
+We still have our CDKMetadata and our DocumentsBucket, but now we have all of
+
+191
+00:10:08,920 --> 00:10:11,880
+the additional networking components that we've added in,
+
+192
+00:10:11,880 --> 00:10:14,930
+everything from our VPC to the Internet gateway to all of the subnets
+
+193
+00:10:14,930 --> 00:10:17,340
+and the route tables and route table associations,
+
+194
+00:10:17,340 --> 00:10:21,540
+Elastic IPs, NAT gateways, all of those things are included within here.
+
+195
+00:10:21,540 --> 00:10:21,870
+So,
+
+196
+00:10:21,870 --> 00:10:24,830
+one of the things we're going to need to look at next is we're going to
+
+197
+00:10:24,830 --> 00:10:32,000
+need to look at how we categorize different components of our application for the purpose of cost allocation.
+

@@ -1,0 +1,744 @@
+WEBVTT
+1
+00:00:00.180 --> 00:00:06.810
+Now that your API is sending back authentication tokens When users sign up or log in it's time to start
+
+2
+00:00:06.810 --> 00:00:12.690
+talking about how those tokens are gonna be used to actually authenticate other requests.
+
+3
+00:00:12.690 --> 00:00:20.700
+Now remember every single request to the API is going to require authentication with the exception of
+
+4
+00:00:20.760 --> 00:00:27.810
+sign up and log in for everything else the client is going to need to provide that authentication token
+
+5
+00:00:28.110 --> 00:00:33.630
+and the server is going to validate it before performing whatever operation they're trying to do.
+
+6
+00:00:33.630 --> 00:00:39.480
+Now we're going to knock this feature out in this video and in the next one and where I'd like to start
+
+7
+00:00:39.540 --> 00:00:45.630
+is talking about Express middleware which is going to be at the core of allowing us to get all of this
+
+8
+00:00:45.630 --> 00:00:46.890
+done to get started.
+
+9
+00:00:46.890 --> 00:00:53.070
+Let's head over to visual studio code and explore how express Middleware is going to fit into our application
+
+10
+00:00:53.100 --> 00:00:54.400
+architecture.
+
+11
+00:00:54.420 --> 00:00:58.310
+Now for this video we'll be spending all of our time in index dot J.
+
+12
+00:00:58.320 --> 00:01:04.890
+S and over here I'm going to start by pasting in a set of JavaScript comments which are going to serve
+
+13
+00:01:04.890 --> 00:01:09.840
+as a little diagram illustrating what Express middleware will allow us to do.
+
+14
+00:01:10.080 --> 00:01:16.080
+So without middleware which is our current setup we have the following situation A new request comes
+
+15
+00:01:16.080 --> 00:01:20.640
+into the server and the first thing that runs is our root handler.
+
+16
+00:01:20.640 --> 00:01:23.340
+This is the only thing we've set up to execute.
+
+17
+00:01:23.430 --> 00:01:29.670
+So the new request comes in Express maps to the correct route and that function gets executed.
+
+18
+00:01:29.670 --> 00:01:36.090
+This is exactly what we've seen for the dozen or so requests we've created and run so far.
+
+19
+00:01:36.090 --> 00:01:41.730
+Now with middleware we can customize the behavior of the server to fit our needs.
+
+20
+00:01:41.730 --> 00:01:44.970
+So in this case we have something similar but slightly different.
+
+21
+00:01:44.970 --> 00:01:51.180
+There's a step added in the middle so we still have a new request coming into the express server but
+
+22
+00:01:51.180 --> 00:01:52.900
+then we do something now.
+
+23
+00:01:53.010 --> 00:01:59.040
+This something is nothing more than a function that runs and we can set up this function to do whatever
+
+24
+00:01:59.040 --> 00:01:59.970
+we'd like.
+
+25
+00:02:00.060 --> 00:02:05.520
+Maybe we want to log out some statistics about their request so we can keep track of it in our server
+
+26
+00:02:05.520 --> 00:02:11.500
+logs or maybe we want to check if there is a valid authentication token.
+
+27
+00:02:11.520 --> 00:02:18.000
+Now once the middleware runs we can continue to choose to run the regular route handler so the given
+
+28
+00:02:18.000 --> 00:02:20.560
+operation is completed successfully.
+
+29
+00:02:20.730 --> 00:02:24.150
+Now in here we have a ton of control over what we do.
+
+30
+00:02:24.180 --> 00:02:26.490
+We could allow the route handler to run.
+
+31
+00:02:26.610 --> 00:02:31.320
+We could prevent it from running if the user isn't authenticated as an example.
+
+32
+00:02:31.320 --> 00:02:37.430
+So express middleware gives us a lot of fine grained control over how we can customize our app.
+
+33
+00:02:37.560 --> 00:02:43.470
+Now when we set up our middleware functions we don't have to do it for every single route in the Express
+
+34
+00:02:43.500 --> 00:02:44.730
+application.
+
+35
+00:02:44.760 --> 00:02:48.810
+We can target individual ones which is what we'll be doing with authentication.
+
+36
+00:02:48.840 --> 00:02:51.570
+Because remember sign up and log in.
+
+37
+00:02:51.580 --> 00:02:54.420
+Aren't you going to require authentication to work.
+
+38
+00:02:54.420 --> 00:02:59.500
+Now let's actually write some code to register a middleware function of our own.
+
+39
+00:02:59.520 --> 00:03:05.070
+We're going to add this code right up here as one of the first things we do in the file make sure that
+
+40
+00:03:05.070 --> 00:03:11.070
+what you're adding is above our other app dot use calls and I'll talk more about why that needs to be
+
+41
+00:03:11.070 --> 00:03:12.220
+in a little bit.
+
+42
+00:03:12.330 --> 00:03:14.300
+And right here what are we going to do.
+
+43
+00:03:14.340 --> 00:03:21.390
+Well to register a new middleware function to run we use app dot use a method we've actually called
+
+44
+00:03:21.390 --> 00:03:22.420
+before.
+
+45
+00:03:22.500 --> 00:03:28.830
+Now every time in the past when we've called app use we always provide something that was created by
+
+46
+00:03:28.830 --> 00:03:29.850
+express.
+
+47
+00:03:29.910 --> 00:03:35.280
+We've never explicitly provided a function that we've defined but that's exactly what we're going to
+
+48
+00:03:35.280 --> 00:03:36.720
+do right here.
+
+49
+00:03:36.720 --> 00:03:38.090
+So let's go ahead and pass.
+
+50
+00:03:38.100 --> 00:03:41.700
+To use a single argument a function.
+
+51
+00:03:41.700 --> 00:03:48.120
+Now this function is the function that's going to run between the request coming to the server and the
+
+52
+00:03:48.120 --> 00:03:50.370
+root handler actually running.
+
+53
+00:03:50.370 --> 00:03:54.260
+And it has access to the same information as the root handler.
+
+54
+00:03:54.300 --> 00:04:03.020
+Right here I get access to the request and the response along with one additional argument called next.
+
+55
+00:04:03.060 --> 00:04:09.240
+Now request and response both of those contain the same information that we would have for our root
+
+56
+00:04:09.240 --> 00:04:09.950
+handler.
+
+57
+00:04:09.990 --> 00:04:11.340
+It is only next.
+
+58
+00:04:11.340 --> 00:04:15.190
+That's specific to registering middleware to get started.
+
+59
+00:04:15.210 --> 00:04:19.770
+Let's go ahead and just use console dialog and to print something into the terminal.
+
+60
+00:04:19.770 --> 00:04:24.340
+What I'm going to do is print out the request method and the path.
+
+61
+00:04:24.540 --> 00:04:27.920
+So was it I get a post a delete and what was the path.
+
+62
+00:04:27.930 --> 00:04:32.550
+Was it forward slash users or forward slash posts.
+
+63
+00:04:32.550 --> 00:04:37.970
+So right here we have access to all of that information on the request object.
+
+64
+00:04:38.010 --> 00:04:44.850
+We have a request dot method where we can get the H TTP method used and we have request dot path where
+
+65
+00:04:44.850 --> 00:04:46.510
+we can get that path.
+
+66
+00:04:46.650 --> 00:04:51.120
+Now for the moment we're not going to add anything else into the function we're just going to set it
+
+67
+00:04:51.120 --> 00:04:56.650
+up with this one line and we're going to test it out by running a request from man.
+
+68
+00:04:56.760 --> 00:05:01.720
+Let's go ahead and run a request like the read use request right here.
+
+69
+00:05:01.900 --> 00:05:04.740
+I'm gonna go ahead and fire that off and down below.
+
+70
+00:05:04.750 --> 00:05:05.750
+What do we see.
+
+71
+00:05:05.770 --> 00:05:06.210
+I see.
+
+72
+00:05:06.220 --> 00:05:07.300
+Loading printing.
+
+73
+00:05:07.300 --> 00:05:09.460
+And it's never gonna go away.
+
+74
+00:05:09.460 --> 00:05:13.460
+It's going to run until eventually post man just gives up.
+
+75
+00:05:13.480 --> 00:05:16.800
+Now we can always cancel that in order to stop their request.
+
+76
+00:05:16.810 --> 00:05:23.260
+But the question is why is it always loading why doesn't ever it get the response that it's expecting.
+
+77
+00:05:23.260 --> 00:05:25.470
+Which would be the users array.
+
+78
+00:05:25.540 --> 00:05:28.690
+The reasoning has to do with the function that we've created.
+
+79
+00:05:28.930 --> 00:05:33.140
+Your middleware function can do as much or as little as it needs to.
+
+80
+00:05:33.160 --> 00:05:39.100
+It could be something as simple as logging out a message or something as complex as validating a token
+
+81
+00:05:39.100 --> 00:05:42.310
+and making sure that user exists in the database.
+
+82
+00:05:42.310 --> 00:05:44.860
+But it's your job to call next.
+
+83
+00:05:44.890 --> 00:05:52.630
+If the next thing in the chain should run so down below we have the new request and we have do something.
+
+84
+00:05:52.630 --> 00:05:53.700
+If do something.
+
+85
+00:05:53.710 --> 00:05:56.320
+Our middleware function never calls next.
+
+86
+00:05:56.620 --> 00:05:58.980
+The root handler is never going to run.
+
+87
+00:05:59.500 --> 00:06:04.480
+If we do want the root handler to run all we do is we call next right here.
+
+88
+00:06:04.480 --> 00:06:06.940
+We don't have to provide any arguments to it.
+
+89
+00:06:06.940 --> 00:06:11.780
+We just call it letting express know that we're done with this middleware function.
+
+90
+00:06:11.830 --> 00:06:15.850
+So right here we can add the call to next and test things out.
+
+91
+00:06:15.880 --> 00:06:17.590
+We're not going to change anything else.
+
+92
+00:06:17.590 --> 00:06:21.680
+All we've done is we've added that in over inside of postmen.
+
+93
+00:06:21.700 --> 00:06:28.000
+What I'm gonna do is fire that off one more time and right here we are indeed getting the same old response
+
+94
+00:06:28.030 --> 00:06:31.900
+we were getting before we ever had that middleware function set up.
+
+95
+00:06:31.990 --> 00:06:38.110
+Now inside of visual studio code you'll notice that down in the terminal we have a get forward slash
+
+96
+00:06:38.140 --> 00:06:39.820
+users showing up.
+
+97
+00:06:39.820 --> 00:06:42.540
+So now we have the best of both worlds.
+
+98
+00:06:42.640 --> 00:06:48.370
+We're able to log out what we wanted to log out but in the end of the day our request is still able
+
+99
+00:06:48.370 --> 00:06:52.630
+to run providing the user with the information that they've requested.
+
+100
+00:06:52.630 --> 00:06:57.780
+Now it's possible that you don't always want to call next and there's valid reasons to do that.
+
+101
+00:06:57.790 --> 00:07:04.030
+Sometimes your middleware should stop the root handler from running like it's going to do when we eventually
+
+102
+00:07:04.030 --> 00:07:05.890
+set up authentication.
+
+103
+00:07:05.890 --> 00:07:09.660
+For the moment though let's go ahead and work through a simpler example.
+
+104
+00:07:09.730 --> 00:07:17.290
+We're going to say that if someone tries to use the get h TTP method we go ahead and send back a message
+
+105
+00:07:17.390 --> 00:07:18.890
+saying that they can't.
+
+106
+00:07:19.000 --> 00:07:23.520
+But if they tried to use post patch or delete will allow it to work.
+
+107
+00:07:23.560 --> 00:07:27.950
+So let's go ahead and see how we could set something like that up right here.
+
+108
+00:07:28.060 --> 00:07:34.000
+We're going to wipe out our middleware function and we'll start with a little conditional logic F right
+
+109
+00:07:34.000 --> 00:07:34.410
+here.
+
+110
+00:07:34.420 --> 00:07:38.260
+We're going to run this code if it is indeed a get request.
+
+111
+00:07:38.260 --> 00:07:45.730
+So for us that would be looking at request dotted method and checking if it is equal to the string capital
+
+112
+00:07:45.820 --> 00:07:47.300
+get if it is.
+
+113
+00:07:47.320 --> 00:07:49.840
+This code is going to run if it's not.
+
+114
+00:07:49.840 --> 00:07:53.250
+We could set up an else block that will run instead.
+
+115
+00:07:53.290 --> 00:07:58.060
+Now if it is valid if it's not get we can go ahead and call next.
+
+116
+00:07:58.060 --> 00:08:03.000
+That ensures that those root handlers will run if it is get currently.
+
+117
+00:08:03.280 --> 00:08:07.110
+It would just never respond and we would see that loading screen forever.
+
+118
+00:08:07.120 --> 00:08:09.040
+And that's not what we want either.
+
+119
+00:08:09.040 --> 00:08:14.770
+If we're not going to call next from our middleware it's a good idea to send back a response saying
+
+120
+00:08:14.770 --> 00:08:18.670
+why saying why things aren't working as expected.
+
+121
+00:08:18.760 --> 00:08:25.540
+Right here we can use response dot send which we've used plenty of times before to say something like
+
+122
+00:08:25.720 --> 00:08:29.690
+get requests are disabled.
+
+123
+00:08:29.720 --> 00:08:33.230
+Now let's go ahead and save the program and test things out.
+
+124
+00:08:33.230 --> 00:08:36.650
+If it's a get request I would expect us to see this message.
+
+125
+00:08:36.710 --> 00:08:40.100
+If it's anything else I would expect it to work right here.
+
+126
+00:08:40.100 --> 00:08:41.600
+I have read users.
+
+127
+00:08:41.690 --> 00:08:44.300
+I'm gonna go ahead and fire that off one more time.
+
+128
+00:08:44.300 --> 00:08:45.500
+And what do I get.
+
+129
+00:08:45.560 --> 00:08:48.920
+I get my get request message showing up.
+
+130
+00:08:48.920 --> 00:08:57.110
+Now let's try a non get request like create user which uses post I'll fire that off and it does indeed
+
+131
+00:08:57.110 --> 00:08:57.720
+work.
+
+132
+00:08:57.770 --> 00:09:01.730
+Now the user wasn't created because that e-mails already taken.
+
+133
+00:09:01.730 --> 00:09:05.450
+But it did indeed at least run the root handler.
+
+134
+00:09:05.450 --> 00:09:11.200
+So using just a little variation in our middleware we can limit what a user has access to.
+
+135
+00:09:11.210 --> 00:09:15.870
+And this is the exact same technique we'll use to enable authentication.
+
+136
+00:09:15.920 --> 00:09:21.950
+Now we'll get to that in the next video but before we do a quick challenge for you to setup some middleware
+
+137
+00:09:21.980 --> 00:09:26.900
+on your own up above I'm going to go ahead and comment out of the middleware function.
+
+138
+00:09:26.900 --> 00:09:33.140
+We've already created and it's going to be your job to create a middleware function for when your site
+
+139
+00:09:33.200 --> 00:09:34.740
+is in maintenance mode.
+
+140
+00:09:34.760 --> 00:09:39.530
+Right here it's going to be your challenge to create middleware for a maintenance mode.
+
+141
+00:09:39.530 --> 00:09:44.570
+So right here what you're going to do is register a new middleware function and you could do that right
+
+142
+00:09:44.570 --> 00:09:46.820
+here below our previous one.
+
+143
+00:09:46.880 --> 00:09:53.150
+And the job of this one is to disable every single request that matter what someone makes a request
+
+144
+00:09:53.180 --> 00:10:00.560
+to you're going to send back a response with a maintenance message and a 5 0 3 status code which means
+
+145
+00:10:00.560 --> 00:10:03.680
+that the service is temporarily unavailable.
+
+146
+00:10:03.680 --> 00:10:09.830
+Now for the actual message you could say something like the site is under maintenance please try back
+
+147
+00:10:09.890 --> 00:10:10.630
+soon.
+
+148
+00:10:10.700 --> 00:10:15.170
+This would be really useful if you were doing something like upgrading your database and you needed
+
+149
+00:10:15.170 --> 00:10:20.300
+the service to shut down temporarily though you would bring it back online shortly.
+
+150
+00:10:20.300 --> 00:10:25.640
+So in this case we don't want any of our request handler functions to ever run.
+
+151
+00:10:25.670 --> 00:10:30.030
+We want to send back that message for every single incoming request.
+
+152
+00:10:30.110 --> 00:10:35.510
+Now once you're done with that go ahead and test things out make a couple of requests over and post
+
+153
+00:10:35.510 --> 00:10:40.060
+man and make sure you see the correct message and status code showing up.
+
+154
+00:10:40.310 --> 00:10:45.710
+Take some time to knock that out test your work and when you're done go ahead and click play
+
+155
+00:10:49.760 --> 00:10:50.530
+how'd that go.
+
+156
+00:10:50.540 --> 00:10:54.220
+Let's go ahead and get started by calling app dot you.
+
+157
+00:10:54.290 --> 00:10:59.700
+So right here we are going to register a brand new middleware function to run.
+
+158
+00:10:59.750 --> 00:11:02.270
+And we know we get access to those three arguments.
+
+159
+00:11:02.270 --> 00:11:04.200
+We have a request and a response.
+
+160
+00:11:04.220 --> 00:11:05.540
+And next.
+
+161
+00:11:05.570 --> 00:11:09.530
+Now I already know that I'm not going to use next or response.
+
+162
+00:11:09.530 --> 00:11:14.170
+We don't have to name those but it's common practice to always list out all three.
+
+163
+00:11:14.270 --> 00:11:15.800
+Just so you have them available.
+
+164
+00:11:15.800 --> 00:11:21.260
+And do you remember what you have access to down below in the function itself.
+
+165
+00:11:21.260 --> 00:11:26.030
+We want to send back our maintenance message with a 5 0 3 status code.
+
+166
+00:11:26.030 --> 00:11:32.660
+So right here let's go ahead and do just that for that I'll be using response dot status to set these
+
+167
+00:11:32.660 --> 00:11:35.490
+status code to a 5 0 3.
+
+168
+00:11:35.490 --> 00:11:42.500
+Then I'll go ahead and use send to send back the message site is currently down.
+
+169
+00:11:42.500 --> 00:11:47.460
+Check back soon or any other message would get the job done.
+
+170
+00:11:47.510 --> 00:11:53.090
+So we have the middleware intercepting their requests we're sending back our maintenance response and
+
+171
+00:11:53.090 --> 00:11:54.830
+we're not calling next.
+
+172
+00:11:54.950 --> 00:12:01.720
+Which means that none of those root handlers will ever execute the last step is to test things out.
+
+173
+00:12:01.790 --> 00:12:02.840
+I'm going to try.
+
+174
+00:12:02.840 --> 00:12:08.470
+The requests from the server using postman and I'll make sure I get the correct response back.
+
+175
+00:12:08.630 --> 00:12:09.320
+Right here.
+
+176
+00:12:09.440 --> 00:12:12.270
+What I'm going to do is remove the challenge comments.
+
+177
+00:12:12.410 --> 00:12:16.380
+I'll also remove the little diagram we had down below.
+
+178
+00:12:16.460 --> 00:12:20.620
+I'll save the file then I'll test things from postman over here.
+
+179
+00:12:20.630 --> 00:12:26.450
+I have create user I'll fire that off and we get our maintenance message and the status code which is
+
+180
+00:12:26.450 --> 00:12:33.260
+great and expected and over here for another request like read users I should see the same thing.
+
+181
+00:12:33.260 --> 00:12:38.060
+And I am so using middleware we can customize our server to fit our needs.
+
+182
+00:12:38.060 --> 00:12:44.510
+Now currently we're setting up middleware that runs for every single root handler in the next video
+
+183
+00:12:44.570 --> 00:12:47.670
+as we actually set up the authentication middleware.
+
+184
+00:12:47.720 --> 00:12:51.710
+We'll learn how we can set it up for specific requests.
+
+185
+00:12:51.710 --> 00:12:52.910
+I'm excited to get to that.
+
+186
+00:12:52.940 --> 00:12:54.950
+So let's jump right into the next one.

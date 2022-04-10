@@ -1,0 +1,528 @@
+1
+00:00:02,057 --> 00:00:06,815
+Sometimes an XML Schema is left open to extra elements that
+
+2
+00:00:06,815 --> 00:00:10,865
+the schema itself doesn't know about to allow including
+
+3
+00:00:10,865 --> 00:00:13,408
+elements from other schemas in XML.
+
+4
+00:00:13,408 --> 00:00:17,728
+Let's see how JAXB deals with this and how you can
+
+5
+00:00:17,728 --> 00:00:20,739
+work with these extra elements.
+
+6
+00:00:20,739 --> 00:00:24,335
+In the complexType definition in an XML Schema,
+
+7
+00:00:24,335 --> 00:00:30,392
+you specify exactly what elements of that type can or must contain by
+
+8
+00:00:30,392 --> 00:00:33,633
+using xs:element and xs:attribute and other declarations.
+
+9
+00:00:33,633 --> 00:00:38,007
+One of the things that you can specify besides
+
+10
+00:00:38,007 --> 00:00:44,419
+xs:element and xs:attribute is xs:any, which is a more open-ended declaration.
+
+11
+00:00:44,419 --> 00:00:50,907
+What you specify when you use xs:any is that elements that are
+
+12
+00:00:50,907 --> 00:00:55,573
+instances of the complexType can contain other arbitrary elements
+
+13
+00:00:55,573 --> 00:00:59,150
+that belong to specific namespaces.
+
+14
+00:00:59,150 --> 00:01:05,278
+An example of this is the schema that defines XML Schema itself.
+
+15
+00:01:05,278 --> 00:01:09,678
+As you have seen when you were learning about customizing bindings,
+
+16
+00:01:09,678 --> 00:01:15,002
+it's possible to add the JAXB binding instructions into an XSD
+
+17
+00:01:15,002 --> 00:01:18,421
+by putting them inside an xs:appinfo element,
+
+18
+00:01:18,421 --> 00:01:22,755
+which is inside an xs:annotation element in,
+
+19
+00:01:22,755 --> 00:01:26,718
+for example, a complexType definition.
+
+20
+00:01:26,718 --> 00:01:31,855
+These binding instructions are XML elements from the JAXB bindings
+
+21
+00:01:31,855 --> 00:01:37,320
+namespace that XML Schema itself doesn't know about.
+
+22
+00:01:37,320 --> 00:01:42,836
+The schema that defines XSD itself contains an xs:any element to
+
+23
+00:01:42,836 --> 00:01:47,711
+allow these foreign JAXB elements inside an XSD.
+
+24
+00:01:47,711 --> 00:01:51,008
+We're going to look at how we can use this in our own
+
+25
+00:01:51,008 --> 00:01:55,313
+purchaseOrder schema and how JAXB maps this to Java.
+
+26
+00:01:55,313 --> 00:02:05,166
+There are two examples, and we'll start with the first one, ps-jaxb-26-xmlany-1.
+
+27
+00:02:05,166 --> 00:02:07,800
+Let's start with the purchaseOrder.
+
+28
+00:02:07,800 --> 00:02:08,327
+xsd.
+
+29
+00:02:08,327 --> 00:02:09,908
+In this example,
+
+30
+00:02:09,908 --> 00:02:14,201
+I've added an element named extra to the type
+
+31
+00:02:14,201 --> 00:02:16,586
+definition of the PurchaseOrder element.
+
+32
+00:02:16,586 --> 00:02:23,178
+The extra element has an anonymous complexType with an xs:any declaration.
+
+33
+00:02:23,178 --> 00:02:28,057
+The xs:any declaration has a few attributes.
+
+34
+00:02:28,057 --> 00:02:31,901
+The namespace attribute is set to ##other,
+
+35
+00:02:31,901 --> 00:02:37,128
+which means that any element is allowed here that is from a namespace
+
+36
+00:02:37,128 --> 00:02:40,955
+other than the target namespace of this schema.
+
+37
+00:02:40,955 --> 00:02:45,074
+The processContents attribute specifies how elements should
+
+38
+00:02:45,074 --> 00:02:48,646
+be validated if schema validation is used.
+
+39
+00:02:48,646 --> 00:02:52,424
+The value lax means that the validator should validate the
+
+40
+00:02:52,424 --> 00:02:55,894
+element that it finds in the XML if possible,
+
+41
+00:02:55,894 --> 00:03:00,067
+but it can skip validation if no definition is available
+
+42
+00:03:00,067 --> 00:03:03,001
+for the element to validate against.
+
+43
+00:03:03,001 --> 00:03:03,446
+Finally,
+
+44
+00:03:03,446 --> 00:03:09,467
+minOccurs and maxOccurs of course specify that there must be at least 0 elements
+
+45
+00:03:09,467 --> 00:03:13,786
+and that there can be an unlimited number of elements here.
+
+46
+00:03:13,786 --> 00:03:16,275
+Let's now look at the file purchaseOrder.
+
+47
+00:03:16,275 --> 00:03:21,610
+xml where you can see an example of what this would look like in a
+
+48
+00:03:21,610 --> 00:03:25,403
+concrete XML file that's valid according to this schema.
+
+49
+00:03:25,403 --> 00:03:30,846
+At the bottom of the purchaseOrder, I've added an extra element,
+
+50
+00:03:30,846 --> 00:03:34,579
+which contains a productStock element from a
+
+51
+00:03:34,579 --> 00:03:37,988
+different namespace with the inv prefix.
+
+52
+00:03:37,988 --> 00:03:41,141
+The idea is that inv stands for inventory,
+
+53
+00:03:41,141 --> 00:03:43,112
+and as you can see,
+
+54
+00:03:43,112 --> 00:03:46,521
+the extra information is about how many ballpoint pens
+
+55
+00:03:46,521 --> 00:03:49,926
+there are in stock at a given date.
+
+56
+00:03:49,926 --> 00:03:54,007
+We don't have a schema for the inv namespace.
+
+57
+00:03:54,007 --> 00:03:59,915
+This is just some extra data that the purchaseOrder schema doesn't know about.
+
+58
+00:03:59,915 --> 00:04:00,323
+First,
+
+59
+00:04:00,323 --> 00:04:05,938
+let's see what we get from xjc when we generate Java classes for the
+
+60
+00:04:05,938 --> 00:04:09,927
+purchaseOrder schema and then at how we can unmarshal this XML
+
+61
+00:04:09,927 --> 00:04:13,795
+document and work with the unknown elements.
+
+62
+00:04:13,795 --> 00:04:19,139
+Let's run xjc and then look at the PurchaseOrder class.
+
+63
+00:04:19,139 --> 00:04:22,749
+The class now has a new field named extra,
+
+64
+00:04:22,749 --> 00:04:27,721
+which represents the element that we added to the XSD.
+
+65
+00:04:27,721 --> 00:04:29,875
+Its type is PurchaseOrder.
+
+66
+00:04:29,875 --> 00:04:35,148
+Extra, which is a nested class defined inside class PurchaseOrder.
+
+67
+00:04:35,148 --> 00:04:42,156
+This type contains one field named any, which is a list of arbitrary objects.
+
+68
+00:04:42,156 --> 00:04:47,197
+The field any is annotated with the XmlAnyElement annotation,
+
+69
+00:04:47,197 --> 00:04:51,837
+which corresponds to the xs:any declaration in the schema.
+
+70
+00:04:51,837 --> 00:04:55,120
+It also has an attribute lax = true,
+
+71
+00:04:55,120 --> 00:05:00,111
+which corresponds to the processContents = lax attribute on
+
+72
+00:05:00,111 --> 00:05:04,132
+the xs:any declaration in the schema.
+
+73
+00:05:04,132 --> 00:05:08,179
+Now we know how xjc maps an xs:any to Java,
+
+74
+00:05:08,179 --> 00:05:12,764
+but the fact that the field any is a list of
+
+75
+00:05:12,764 --> 00:05:15,754
+arbitrary objects doesn't tell us a lot.
+
+76
+00:05:15,754 --> 00:05:20,698
+An interesting question to ask here is what kind of objects will actually be
+
+77
+00:05:20,698 --> 00:05:25,402
+put in the list if we try to unmarshal an XML document.
+
+78
+00:05:25,402 --> 00:05:29,466
+Let's run the unmarshalling example to find out.
+
+79
+00:05:29,466 --> 00:05:33,055
+What happens is that the inv:productStock element in the
+
+80
+00:05:33,055 --> 00:05:38,867
+XML is unmarshalled as a DOM element, so what's in the list is an org.
+
+81
+00:05:38,867 --> 00:05:39,455
+w3c.
+
+82
+00:05:39,455 --> 00:05:40,044
+DOM.
+
+83
+00:05:40,044 --> 00:05:41,221
+element object.
+
+84
+00:05:41,221 --> 00:05:47,695
+So this is how you can work with the extra elements.
+
+85
+00:05:47,695 --> 00:05:51,258
+The purchase order itself is unmarshalled into instances of
+
+86
+00:05:51,258 --> 00:05:54,467
+the classes of our well-known domain model,
+
+87
+00:05:54,467 --> 00:05:59,968
+and unknown elements inside the extra element are unmarshalled into DOM element
+
+88
+00:05:59,968 --> 00:06:04,838
+objects so that you can use the DOM API to deal with them.
+
+89
+00:06:04,838 --> 00:06:07,733
+We are not done yet with this subject.
+
+90
+00:06:07,733 --> 00:06:12,728
+There's a second example to look at, ps-jaxb-27-xmlany-2,
+
+91
+00:06:12,728 --> 00:06:18,035
+which shows some more possibilities.
+
+92
+00:06:18,035 --> 00:06:20,934
+Let's continue with the second example.
+
+93
+00:06:20,934 --> 00:06:27,065
+Suppose that the extra elements that we use are not completely unknown.
+
+94
+00:06:27,065 --> 00:06:32,423
+In this example, I've added a second schema, inventory.
+
+95
+00:06:32,423 --> 00:06:37,241
+xsd, which contains the definition of the productStock element.
+
+96
+00:06:37,241 --> 00:06:38,047
+To start,
+
+97
+00:06:38,047 --> 00:06:42,076
+we're going to run xjc two times to generate the
+
+98
+00:06:42,076 --> 00:06:45,356
+domain model classes for both schemas.
+
+99
+00:06:45,356 --> 00:06:49,783
+First, let's generate the PurchaseOrder domain model classes.
+
+100
+00:06:49,783 --> 00:06:58,104
+For this example, I'm going to put them in a different package, com.
+
+101
+00:06:58,104 --> 00:06:58,837
+jesperdj.
+
+102
+00:06:58,837 --> 00:06:59,570
+jaxb.
+
+103
+00:06:59,570 --> 00:07:00,303
+domain.
+
+104
+00:07:00,303 --> 00:07:01,036
+po.
+
+105
+00:07:01,036 --> 00:07:06,840
+Second, let's generate the domain model classes for the inventory schema.
+
+106
+00:07:06,840 --> 00:07:12,158
+I'm going to put these in the package com.
+
+107
+00:07:12,158 --> 00:07:12,748
+jesperdj.
+
+108
+00:07:12,748 --> 00:07:13,339
+jaxb.
+
+109
+00:07:13,339 --> 00:07:13,930
+domain.
+
+110
+00:07:13,930 --> 00:07:14,521
+inv.
+
+111
+00:07:14,521 --> 00:07:18,552
+Now let's look at the unmarshalling example.
+
+112
+00:07:18,552 --> 00:07:22,592
+It's important to note here that we now create the
+
+113
+00:07:22,592 --> 00:07:27,259
+JAXBContext for both packages by specifying the names of
+
+114
+00:07:27,259 --> 00:07:31,117
+the two packages separated by a colon.
+
+115
+00:07:31,117 --> 00:07:34,803
+Then we create an unmarshaller, unmarshal the XML,
+
+116
+00:07:34,803 --> 00:07:40,203
+and print the extra information we found in the purchaseOrder.
+
+117
+00:07:40,203 --> 00:07:44,184
+Let's run the example and see what happens.
+
+118
+00:07:44,184 --> 00:07:47,609
+Remember that in the first example where we didn't have a
+
+119
+00:07:47,609 --> 00:07:50,197
+domain model for the productStock element,
+
+120
+00:07:50,197 --> 00:07:53,144
+we got a DOM element object.
+
+121
+00:07:53,144 --> 00:07:59,675
+Now in this second example, we actually get a productStock object instead.
+
+122
+00:07:59,675 --> 00:08:03,986
+Because the JAXBContext now knows the productStock class,
+
+123
+00:08:03,986 --> 00:08:06,971
+which is bound to the productStock element,
+
+124
+00:08:06,971 --> 00:08:10,544
+the unmarshaller will properly unmarshal the element and
+
+125
+00:08:10,544 --> 00:08:13,754
+put the resulting object in the list.
+
+126
+00:08:13,754 --> 00:08:18,932
+Note that the extra element in the purchaseOrder is open to elements from
+
+127
+00:08:18,932 --> 00:08:22,268
+any namespace other than the purchaseOrder namespace,
+
+128
+00:08:22,268 --> 00:08:27,155
+so it's still possible to add other arbitrary elements here.
+
+129
+00:08:27,155 --> 00:08:30,563
+Of course, if there's no domain model for these elements,
+
+130
+00:08:30,563 --> 00:08:33,882
+they will show up as DOM element objects.
+
+131
+00:08:33,882 --> 00:08:39,463
+The list in the any field of the extra element may contain a mix
+
+132
+00:08:39,463 --> 00:08:50,000
+of different types of objects in that case, including unmarshalled JAXB objects and DOM element objects.
+

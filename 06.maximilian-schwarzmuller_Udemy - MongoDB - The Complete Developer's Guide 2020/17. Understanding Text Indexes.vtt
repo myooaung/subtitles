@@ -1,0 +1,308 @@
+WEBVTT
+1
+00:00:02.170 --> 00:00:09.670
+Speaking of multikey indexes, there is a special kind of multikey index, a text index.
+
+2
+00:00:09.790 --> 00:00:16.870
+Let's say we have this text stored in a field in our document, could be the product description of a
+
+3
+00:00:16.870 --> 00:00:18.220
+product.
+
+4
+00:00:18.220 --> 00:00:24.670
+Now if you want to search that text, we saw before that we can use the regex operator and that
+
+5
+00:00:24.670 --> 00:00:27.460
+is however not a really great way of searching text,
+
+6
+00:00:27.480 --> 00:00:35.780
+it offers a very low performance. Better is to use a text index and a text index is a special kind of
+
+7
+00:00:35.780 --> 00:00:42.590
+index supported by mongodb which will essentially turn this text into an array of single words and
+
+8
+00:00:42.590 --> 00:00:43.940
+it will store it as such,
+
+9
+00:00:43.940 --> 00:00:50.150
+so it stores it essentially as if you had an array of these single words, one extra thing it does for
+
+10
+00:00:50.150 --> 00:00:58.970
+you is it removes all the stop words and it stems all words, so that you have an array of keywords essentially
+
+11
+00:00:59.210 --> 00:01:05.450
+and things like is or the or a are not stored there because that is typically something you don't search
+
+12
+00:01:05.450 --> 00:01:07.690
+for because it's all over the place,
+
+13
+00:01:07.700 --> 00:01:11.060
+the keywords are one matter for text searches typically.
+
+14
+00:01:11.420 --> 00:01:14.020
+So this is the text index,
+
+15
+00:01:14.030 --> 00:01:16.560
+now let's have a look at such a text index
+
+16
+00:01:16.580 --> 00:01:24.360
+and for that I'll, whoops not index, insert many products into a newly created products collection here.
+
+17
+00:01:24.370 --> 00:01:27.280
+So the first product will have a name or
+
+18
+00:01:27.280 --> 00:01:37.880
+let's say a title to mix it up, title, a book and it will have a description, this is an awesome
+
+19
+00:01:37.910 --> 00:01:41.030
+book about a young artist.
+
+20
+00:01:42.050 --> 00:01:53.350
+The second document I add here should also describe product will have a title of red t-shirt and there,
+
+21
+00:01:53.890 --> 00:02:06.070
+we'll have a, whoops we'll have a description of this t-shirt is red and it's pretty awesome.
+
+22
+00:02:10.410 --> 00:02:14.090
+So after finding that missing quotation mark, it now worked fine for me
+
+23
+00:02:14.310 --> 00:02:20.380
+and now if I have a look at my products and I pretty print this, here are my two products.
+
+24
+00:02:20.790 --> 00:02:22.700
+Now let's use a text index,
+
+25
+00:02:22.710 --> 00:02:28.260
+let's use it on the description field let's say. So first of all, I'll put our products again so that we
+
+26
+00:02:28.260 --> 00:02:29.190
+can see them
+
+27
+00:02:29.400 --> 00:02:34.640
+and now we can create a new text index, again with create index as we create all indexes
+
+28
+00:02:35.010 --> 00:02:38.110
+and I say I want to create it on description and now important,
+
+29
+00:02:38.400 --> 00:02:40.100
+don't add 1 or -1,
+
+30
+00:02:40.110 --> 00:02:47.460
+you could do this but then it would simply index this as a single field index and you could then search
+
+31
+00:02:47.460 --> 00:02:54.010
+for exactly this text to utilize the index but not for individual keywords. You need the text index
+
+32
+00:02:54.150 --> 00:02:56.410
+so that mongodb splits this up,
+
+33
+00:02:56.460 --> 00:02:58.880
+so using this will not work so
+
+34
+00:02:58.980 --> 00:03:07.580
+let's quickly drop that index like this and let's recreate the index but now not with a 1 but with the
+
+35
+00:03:07.580 --> 00:03:14.270
+special text keyword, text in quotation marks. This will create a text index which is a special kind of
+
+36
+00:03:14.270 --> 00:03:21.170
+index where mongodb will go ahead and as I mentioned, remove all the stop words and store all the
+
+37
+00:03:21.170 --> 00:03:25.610
+keywords in an array essentially,
+
+38
+00:03:25.730 --> 00:03:27.000
+so let's have a look at this.
+
+39
+00:03:27.020 --> 00:03:29.230
+This is the data we have in there in general
+
+40
+00:03:29.540 --> 00:03:33.690
+and now let's use products and find and
+
+41
+00:03:33.830 --> 00:03:34.580
+here
+
+42
+00:03:35.000 --> 00:03:38.260
+let's now use the special $text key
+
+43
+00:03:39.370 --> 00:03:45.990
+and search and for that, you pass a document as a value for $text and there, you need
+
+44
+00:03:46.000 --> 00:03:46.960
+$search.
+
+45
+00:03:46.960 --> 00:03:52.000
+Now you might be wondering why do I not need to specify the field in which I want to search,
+
+46
+00:03:52.000 --> 00:03:54.120
+why don't I have to add description,
+
+47
+00:03:54.310 --> 00:03:57.290
+instead we just add hey I want to search for some text.
+
+48
+00:03:57.340 --> 00:04:04.300
+The reason for that is that you may only have one text index per collection because text indexes are
+
+49
+00:04:04.300 --> 00:04:06.610
+pretty expensive as you can imagine,
+
+50
+00:04:06.610 --> 00:04:11.410
+if you have a lot of long text that has to be split up, you don't want to do this like 10 times per
+
+51
+00:04:11.410 --> 00:04:16.080
+collection and therefore, you only have one text index where this could look into.
+
+52
+00:04:16.240 --> 00:04:21.730
+You can actually merge multiple fields into one text index as I will show you in a second and you will
+
+53
+00:04:21.730 --> 00:04:24.020
+then look through all of them automatically
+
+54
+00:04:24.250 --> 00:04:25.990
+but you can only do it like this,
+
+55
+00:04:25.990 --> 00:04:31.050
+you can't say hey I want to search for text and description like this, this won't work.
+
+56
+00:04:31.090 --> 00:04:34.640
+So now for search, we simply enter the words we want to look for
+
+57
+00:04:34.870 --> 00:04:38.480
+like awesome and the casing is not important here by the way,
+
+58
+00:04:38.590 --> 00:04:41.380
+everything is stored as lowercase.
+
+59
+00:04:41.380 --> 00:04:49.360
+If I hit enter and I pretty print this, you'll see I find both products because in both products, we have
+
+60
+00:04:49.360 --> 00:04:51.150
+the term awesome.
+
+61
+00:04:51.650 --> 00:04:53.090
+Now let's repeat this
+
+62
+00:04:53.140 --> 00:04:56.540
+but let's now just search for the term, book.
+
+63
+00:04:56.680 --> 00:05:00.960
+So here I'll search for book
+
+64
+00:05:01.130 --> 00:05:06.780
+and now you see I only get well this text or this document where we have book in the text,
+
+65
+00:05:06.800 --> 00:05:11.860
+now what if I search for red book, I have red in the document.
+
+66
+00:05:12.170 --> 00:05:17.810
+Well then I find both again because this is now actually not treated as one connected phrase where
+
+67
+00:05:17.810 --> 00:05:23.150
+it would look for a red book but it simply looks for documents that have a red text or some red
+
+68
+00:05:23.180 --> 00:05:30.120
+in a text and for documents that have book in a text. Of course you can also search for a specific phrase
+
+69
+00:05:30.120 --> 00:05:36.920
+though, you can search for phrases by wrapping that phrase in double quotes and since we are in
+
+70
+00:05:36.920 --> 00:05:41.500
+double quotes already, we have to escape them with a backslash double quote.
+
+71
+00:05:41.690 --> 00:05:46.580
+We have this at the beginning and at the end of the phrase and now we don't find anything because
+
+72
+00:05:46.580 --> 00:05:51.380
+we have no red book phrase anywhere in our text, for example
+
+73
+00:05:51.380 --> 00:05:53.210
+awesome book would work though,
+
+74
+00:05:53.210 --> 00:05:58.250
+so if I look for the awesome book phrase, we would find this document because we have awesome book right
+
+75
+00:05:58.250 --> 00:05:59.080
+there.
+
+76
+00:05:59.090 --> 00:06:02.870
+Now this is really powerful and much faster than regular expressions,
+
+77
+00:06:03.050 --> 00:06:07.450
+so this is definitely the way to go if you need to look for keywords in text.

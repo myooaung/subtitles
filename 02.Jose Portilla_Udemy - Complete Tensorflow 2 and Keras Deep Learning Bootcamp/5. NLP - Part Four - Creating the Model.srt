@@ -1,0 +1,511 @@
+1
+00:00:05,630 --> 00:00:11,000
+Welcome back everyone to part four of texture Narration In part four we're gonna be focusing on creating
+
+2
+00:00:11,000 --> 00:00:11,480
+the model.
+
+3
+00:00:11,480 --> 00:00:15,770
+We'll start off by setting up a lost function and then we'll create the model.
+
+4
+00:00:15,800 --> 00:00:20,660
+In this case this can be a pretty simple model just three layers and embedded layer a gated recurrent
+
+5
+00:00:20,660 --> 00:00:25,780
+unit layer and a dense layer one neuron per vocab character.
+
+6
+00:00:25,820 --> 00:00:30,280
+All right let's head over to the notebook and continue where we left off.
+
+7
+00:00:30,500 --> 00:00:35,730
+All right here we're at the notebook where we left off last time I want to quickly get some variables
+
+8
+00:00:35,850 --> 00:00:36,620
+out of the way.
+
+9
+00:00:36,720 --> 00:00:44,910
+One is vocab size which is just the length of the vocab list we made earlier essentially how many characters
+
+10
+00:00:44,910 --> 00:00:46,510
+or unique characters there are.
+
+11
+00:00:46,520 --> 00:00:51,480
+There's 80 for the next is the embedding dimension for our embedding layer.
+
+12
+00:00:51,540 --> 00:00:54,560
+So this is something you can play around with.
+
+13
+00:00:54,660 --> 00:01:01,750
+We're going to choose 64 since it's more or less in the same range as our total vocabulary size.
+
+14
+00:01:01,770 --> 00:01:03,460
+You don't want to go too large on this.
+
+15
+00:01:03,480 --> 00:01:09,060
+Otherwise you'll start embedding two too many dimensions where some of the mentions are features discover
+
+16
+00:01:09,060 --> 00:01:10,900
+there aren't gonna be very useful.
+
+17
+00:01:11,010 --> 00:01:17,580
+So you want to choose something at the same scale of your actual vocabulary size and then we're going
+
+18
+00:01:17,580 --> 00:01:19,280
+to just have a single layer.
+
+19
+00:01:19,320 --> 00:01:23,280
+So in our layer we'll just choose a lot of neurons.
+
+20
+00:01:23,280 --> 00:01:30,600
+So let's go ahead and choose one thousand and twenty six or 1024 doesn't really matter to much the details
+
+21
+00:01:30,600 --> 00:01:34,680
+there but we're going to choose to stay single layer with a lot of neurons.
+
+22
+00:01:34,710 --> 00:01:36,330
+This is something you can really play around with.
+
+23
+00:01:36,330 --> 00:01:41,160
+You can choose multiple layers and you can choose things like Ellis Tam layers or gated recurrent unit
+
+24
+00:01:41,160 --> 00:01:46,410
+layers stack them on top of each other you can add in drop out but we're going to try to just create
+
+25
+00:01:46,440 --> 00:01:49,440
+the simplest model that can produce realistic results.
+
+26
+00:01:49,440 --> 00:01:51,540
+And in our case that's just three layers.
+
+27
+00:01:51,540 --> 00:01:58,740
+OK so let's create a function that is going to actually create a loss function for us but to do that
+
+28
+00:01:59,010 --> 00:02:05,970
+I need to do a couple of imports first we're going to say from tensor flow that carries losses import
+
+29
+00:02:06,600 --> 00:02:11,550
+sparse categorical cross entropy and just using the tab for this.
+
+30
+00:02:11,550 --> 00:02:18,080
+So because our labels are one hot encoded we're going to need to use sparse categorical cross entropy.
+
+31
+00:02:18,130 --> 00:02:22,410
+And you can check out our notebook we have a link discussing the difference between sparse categorical
+
+32
+00:02:22,410 --> 00:02:26,180
+cross entropy versus just categorical cross entropy and cares.
+
+33
+00:02:26,310 --> 00:02:31,330
+And if you want more details on this you can just say help on this function sparse categorical cross
+
+34
+00:02:31,330 --> 00:02:36,820
+entropy and it will show you that essentially this from logics is what we need to edit.
+
+35
+00:02:36,820 --> 00:02:42,610
+So from logics that essentially relates to whether or not you're one hot and coded we are one encoded.
+
+36
+00:02:42,640 --> 00:02:48,730
+So we need this to be true which means we can't just pass in the string sparse categorical across entropy.
+
+37
+00:02:48,880 --> 00:02:58,070
+So we're going to do is we're essentially going to wrap this will say sparse cat loss take in y true
+
+38
+00:02:58,070 --> 00:03:07,560
+and widespread just as this original function does and then we're going to return sparse categorical
+
+39
+00:03:07,560 --> 00:03:18,720
+cross entropy function with that y true and Y spread however we'll specify that from logic it's is true.
+
+40
+00:03:18,730 --> 00:03:24,770
+So that's the main reason why we have to create our own custom lost function here.
+
+41
+00:03:24,910 --> 00:03:31,360
+Because when you specify this parameter to be true and the reason we can't just pass in the default
+
+42
+00:03:31,420 --> 00:03:37,340
+sparse categorical cross entropy is because the default there is false.
+
+43
+00:03:37,360 --> 00:03:41,430
+So we'll see in a second and we actually pass in the loss why that happens to be the great case.
+
+44
+00:03:41,440 --> 00:03:46,570
+So let's create the model we're gonna do this through a function that way when you're dealing with your
+
+45
+00:03:46,600 --> 00:03:52,560
+own vocabulary setting up text datasets you can easily adapt dysfunction to your own models.
+
+46
+00:03:52,720 --> 00:03:59,990
+So this will take in the vocab size the embedding dimensions the number of neurons and the recurrent
+
+47
+00:03:59,990 --> 00:04:05,560
+neural network layer and then the batch size all things you can edit sort of functional eyes in this
+
+48
+00:04:05,560 --> 00:04:10,720
+again kind of repeatability will create a sequential model which means you actually have to import these.
+
+49
+00:04:10,720 --> 00:04:13,950
+Let's go ahead and do that in a cell here.
+
+50
+00:04:13,990 --> 00:04:23,070
+Well just as we always do we'll import from tensor flow that curious that models import sequential and
+
+51
+00:04:23,070 --> 00:04:33,810
+then from tensor flow care to stop losses actually weeps from the curious the Lear's import and we'll
+
+52
+00:04:33,810 --> 00:04:42,030
+be using in embedding layer a gated recurrent loops G are you all caps and then a dense layer and you
+
+53
+00:04:42,030 --> 00:04:45,840
+can play around with this you can switch set for an Alice tablet if you want you can add in drop out
+
+54
+00:04:45,840 --> 00:04:51,630
+layers etc. really up to you but we'll use the simplest network possible that gives us realistic results.
+
+55
+00:04:51,780 --> 00:04:55,700
+So now I can say model sequential and let's add in those layers.
+
+56
+00:04:55,980 --> 00:05:00,810
+So the first layer is going to be that embedding layer which embeds this to some amount of dimensions
+
+57
+00:05:02,110 --> 00:05:06,230
+will say embedding go ahead and passing the vocab size.
+
+58
+00:05:06,300 --> 00:05:11,670
+So the actual input is if we do shift type here I'll tell you what is the actual input I much expected.
+
+59
+00:05:12,090 --> 00:05:19,830
+So the vocab size is the input dimension and then that's going to be output to some embedding dimension.
+
+60
+00:05:19,830 --> 00:05:25,080
+So embed dimension and then the batch input shape.
+
+61
+00:05:25,080 --> 00:05:32,480
+So if we take a look at this function and continue going down it has these keyword arguments that you
+
+62
+00:05:32,480 --> 00:05:38,510
+actually don't get to see and one of them if you end up looking at documentation is batch underscore
+
+63
+00:05:38,810 --> 00:05:47,370
+input underscore shape and the shape is just going to be batch size by none.
+
+64
+00:05:48,470 --> 00:05:50,490
+OK so that's the embedding layer.
+
+65
+00:05:50,630 --> 00:05:57,950
+Next we're going to add in our gated recurrent unit layer where we have the number of recurrent neural
+
+66
+00:05:58,220 --> 00:06:02,440
+network neurons you can choose in this layer and there's a couple of things we're gonna be showing you.
+
+67
+00:06:02,440 --> 00:06:03,950
+Slash playing around with.
+
+68
+00:06:03,980 --> 00:06:08,830
+So if we expand on this you'll notice it has a couple of parameters here.
+
+69
+00:06:08,840 --> 00:06:09,250
+They can do.
+
+70
+00:06:09,260 --> 00:06:14,120
+You can actually specify a drop out call within this layer which is kind of nice but the main thing
+
+71
+00:06:14,120 --> 00:06:18,660
+we're gonna be doing is we're going to say return sequences is equal to true.
+
+72
+00:06:18,860 --> 00:06:21,590
+And we're also going to say that Stateville is equal to true.
+
+73
+00:06:21,590 --> 00:06:26,690
+And if you kind of scroll down and start reading about these So first we'll show you return sequences.
+
+74
+00:06:26,690 --> 00:06:32,810
+So this basically tells the layer whether or not you returned the last output and the output sequence
+
+75
+00:06:32,900 --> 00:06:34,270
+or the full sequence.
+
+76
+00:06:34,370 --> 00:06:39,370
+And we do need to return that since we're dealing with those sequences shifted over by one time step
+
+77
+00:06:39,380 --> 00:06:44,240
+we want to see that history and then state full if it's true which we are going to say it's true.
+
+78
+00:06:44,420 --> 00:06:49,340
+Then the last state for a sample at the index I in a batch is going to be used as the initial state
+
+79
+00:06:49,340 --> 00:06:50,630
+for the sample of index.
+
+80
+00:06:50,690 --> 00:06:52,100
+In the following batch.
+
+81
+00:06:52,100 --> 00:06:54,980
+So we want it to keep that current state.
+
+82
+00:06:55,120 --> 00:06:58,330
+OK so we'll go ahead and pass those and it's true.
+
+83
+00:06:58,330 --> 00:07:07,760
+So say return sequences is true and then but this in a new line so state a little space we'll say state
+
+84
+00:07:07,760 --> 00:07:14,940
+full is true and the last thing we're also going to specify is the actual initialize or of the weight
+
+85
+00:07:14,940 --> 00:07:17,700
+values for our current layer.
+
+86
+00:07:17,700 --> 00:07:24,110
+And we can do this by saying recurrence underscore initialize R is equal to.
+
+87
+00:07:24,330 --> 00:07:27,050
+And there's several string codes can pass in here.
+
+88
+00:07:27,190 --> 00:07:33,870
+If you notice that the original signature of this function it takes in the kernel initialize her as
+
+89
+00:07:33,930 --> 00:07:37,770
+Gloria uniform but the recurrent initialize are as orthogonal.
+
+90
+00:07:37,770 --> 00:07:44,340
+So we're gonna change based off of just research in this topic that they recur initialize are typically
+
+91
+00:07:44,340 --> 00:07:48,590
+performs better if it's set to the glory uniform as well.
+
+92
+00:07:48,810 --> 00:07:52,420
+And Gloria is actually just the name of the person that developed this.
+
+93
+00:07:52,420 --> 00:07:57,040
+His name is save your Gloria so he has the first name is Xavier your last name Gloria.
+
+94
+00:07:57,120 --> 00:08:01,310
+So this is typically things are named after your last name.
+
+95
+00:08:01,320 --> 00:08:05,880
+If you're a researcher and develop them but for whatever reason it's actually quite common that people
+
+96
+00:08:05,880 --> 00:08:10,650
+just refer to this as exhibit initialization which is actually the guy's first name.
+
+97
+00:08:10,650 --> 00:08:11,710
+So it's kind of interesting.
+
+98
+00:08:11,850 --> 00:08:14,520
+And at the time of this filming he currently works at Deep Mind.
+
+99
+00:08:14,640 --> 00:08:18,540
+So he's very much still active in the space all right.
+
+100
+00:08:19,240 --> 00:08:24,670
+So finally we're going to add in our dense layer easiest to understand because it's just the vocab size
+
+101
+00:08:25,740 --> 00:08:26,300
+OK.
+
+102
+00:08:26,510 --> 00:08:34,160
+So then we compile our model we'll go ahead and compile it with the atom optimizer and then with our
+
+103
+00:08:34,160 --> 00:08:39,870
+loss function and for our loss function we actually just pass in the function itself.
+
+104
+00:08:39,920 --> 00:08:44,720
+We do not call the function and the because of the fact that we don't we're not allowed to call the
+
+105
+00:08:44,720 --> 00:08:46,640
+function inside us compile call.
+
+106
+00:08:46,640 --> 00:08:52,900
+That's the reason we had to essentially edit this function a little bit in order to specify from largest
+
+107
+00:08:52,970 --> 00:08:57,950
+is equal to true because there's no way could specify from largest equal to true if you're not allowed
+
+108
+00:08:57,950 --> 00:09:03,050
+to actually call the original function which by default has from largest equal to False.
+
+109
+00:09:03,050 --> 00:09:08,300
+So that's why we're not able to just pass in sparse categorical cross entropy as a string here because
+
+110
+00:09:08,300 --> 00:09:10,180
+this from logic statement.
+
+111
+00:09:10,390 --> 00:09:10,620
+OK.
+
+112
+00:09:10,670 --> 00:09:14,120
+Once you're done with all that we'll simply return the model.
+
+113
+00:09:14,120 --> 00:09:16,680
+Go ahead and run that and let's create the model.
+
+114
+00:09:16,730 --> 00:09:19,450
+So say models equal to create model.
+
+115
+00:09:19,550 --> 00:09:29,520
+The function we just made the vocab size is equal to the vocab side so we just defined the embedding
+
+116
+00:09:29,520 --> 00:09:33,330
+dimension is equal to the embedding.
+
+117
+00:09:33,330 --> 00:09:39,720
+I mentioned variable we created recurrent number of neurons equal to recurrent number of neurons and
+
+118
+00:09:39,720 --> 00:09:42,330
+then batch size is equal to the batch size you specified earlier.
+
+119
+00:09:42,330 --> 00:09:44,950
+So pretty much we've already made all these.
+
+120
+00:09:45,000 --> 00:09:50,490
+Go ahead and run that and then call for your model summary and it should look something like this.
+
+121
+00:09:50,490 --> 00:09:54,230
+So notice the shapes right here specifically notice the back seat.
+
+122
+00:09:54,370 --> 00:09:57,310
+So the hundred twenty eight is our current batch size.
+
+123
+00:09:57,330 --> 00:10:03,630
+Later on we're going to do when we're training the model is we will actually change this upon reloading
+
+124
+00:10:03,630 --> 00:10:10,470
+the models weights to expect just the batch size of 1 so coming up next in step number five we're going
+
+125
+00:10:10,470 --> 00:10:16,020
+to show you how to train the model and we'll first make sure everything is OK with our model by actually
+
+126
+00:10:16,050 --> 00:10:19,180
+running it without any training to just get a bunch of random characters.
+
+127
+00:10:19,200 --> 00:10:21,590
+So we'll do that in the very next video.
+
+128
+00:10:21,840 --> 00:10:22,290
+I'll see you there.

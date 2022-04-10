@@ -1,0 +1,384 @@
+﻿1
+00:00:05,330 --> 00:00:09,560
+Welcome everyone to a continued discussion on deep learning natural language processing.
+
+2
+00:00:09,620 --> 00:00:15,350
+In this next series of lectures we're going to be building out a question and answer Bob so we'll be
+
+3
+00:00:15,350 --> 00:00:20,090
+implementing a chat bot that can answer questions based on a story given to the but this is going to
+
+4
+00:00:20,090 --> 00:00:22,490
+be some pretty advanced state of the art stuff.
+
+5
+00:00:22,610 --> 00:00:28,130
+So we'll be using the babby dataset or baby dataset released by Facebook research and there's a link
+
+6
+00:00:28,130 --> 00:00:32,480
+there or you can just google search the term in order to figure out more about the datasets raising
+
+7
+00:00:32,480 --> 00:00:37,310
+a particular subset of that dataset which has stories questions and answers but there's actually lots
+
+8
+00:00:37,310 --> 00:00:40,440
+of different versions with different types of questions.
+
+9
+00:00:40,820 --> 00:00:44,330
+So the type of data we're going to be working with has three main components.
+
+10
+00:00:44,330 --> 00:00:45,680
+It has a story component.
+
+11
+00:00:45,680 --> 00:00:49,320
+So for example we can have a simple story of Jane went to the store.
+
+12
+00:00:49,460 --> 00:00:54,500
+Mike ran to the bedroom and sometimes within the paper they also refer to this as these sentences.
+
+13
+00:00:54,500 --> 00:00:57,930
+So we have a story and then we'll have a yes or no question.
+
+14
+00:00:57,950 --> 00:01:03,530
+And the question here is Is Mike in the store and our network is going to able to understand that since
+
+15
+00:01:03,530 --> 00:01:04,960
+Mike ran to the bedroom.
+
+16
+00:01:05,000 --> 00:01:06,360
+He is not in the store.
+
+17
+00:01:06,470 --> 00:01:09,110
+So we have a correct answer of no.
+
+18
+00:01:09,110 --> 00:01:15,410
+So again three main components the data a story a question or answer so a story or sentences question
+
+19
+00:01:15,410 --> 00:01:22,640
+a query and then an answer so we're going to be following along with a paper called end to end memory
+
+20
+00:01:22,640 --> 00:01:27,770
+networks by the following authors and a really key part to continuing on throughout these lectures is
+
+21
+00:01:27,770 --> 00:01:31,730
+that you really must read the paper to understand how this network works.
+
+22
+00:01:31,730 --> 00:01:34,340
+We'll be doing a brief overview of the paper here.
+
+23
+00:01:34,370 --> 00:01:38,510
+They should check out the resource link download the PDA and read the entire paper.
+
+24
+00:01:38,600 --> 00:01:39,710
+It's going to take a while to read.
+
+25
+00:01:39,710 --> 00:01:42,820
+It's probably about an hour long to really read it and understand it.
+
+26
+00:01:42,980 --> 00:01:46,790
+But keep that in mind that's going to really help you understand how we're actually building the model
+
+27
+00:01:46,940 --> 00:01:53,930
+and where we're getting our architecture of the network from so the overall idea of the model is that
+
+28
+00:01:53,930 --> 00:02:00,530
+it's going to take in a discrete set of inputs x 1 x 2 x etc. all the way to X event and those will
+
+29
+00:02:00,530 --> 00:02:05,000
+be the actual sentences or stories and those are going to be stored in the memory and then we'll also
+
+30
+00:02:05,000 --> 00:02:06,280
+take a corresponding query.
+
+31
+00:02:06,280 --> 00:02:09,500
+Q And then we're going to output an answer A.
+
+32
+00:02:09,500 --> 00:02:11,480
+So each of the X Q and A.
+
+33
+00:02:11,480 --> 00:02:12,210
+So that's the story.
+
+34
+00:02:12,210 --> 00:02:15,650
+The question answer are going to contain symbols coming from a dictionary.
+
+35
+00:02:15,650 --> 00:02:19,430
+With the amount of words so we'll be calling V a vocabulary.
+
+36
+00:02:19,430 --> 00:02:25,150
+So have a set or dictionary that contains the entire vocabulary across the entire datasets.
+
+37
+00:02:25,160 --> 00:02:28,990
+Basically what words are there words like journeyed bedroom Sandra.
+
+38
+00:02:29,120 --> 00:02:35,360
+Mike the names the places how they got there and we'll have a vocab length as well.
+
+39
+00:02:35,360 --> 00:02:41,120
+So then the model is going to write all x to the memory up to a fixed the buffer size and then finds
+
+40
+00:02:41,120 --> 00:02:46,970
+a continuous representation for the x and q so it's actually explore what this would look like.
+
+41
+00:02:48,600 --> 00:02:51,640
+And there's three main components to the end to end network.
+
+42
+00:02:51,660 --> 00:02:56,970
+There's gonna be the input memory representation basically how do we actually take in these stories
+
+43
+00:02:57,030 --> 00:03:01,620
+and the questions then we have an output memory representation and then we're gonna be able to generate
+
+44
+00:03:01,650 --> 00:03:02,790
+a final prediction.
+
+45
+00:03:02,790 --> 00:03:07,410
+And once we have that sub component of the network we're essentially going to create a full model using
+
+46
+00:03:07,410 --> 00:03:09,840
+recurrent neural networks with multiple layers.
+
+47
+00:03:09,870 --> 00:03:14,170
+So let's first discuss what a single layer looks like.
+
+48
+00:03:14,220 --> 00:03:17,310
+So this is a diagram representing the single layer.
+
+49
+00:03:17,460 --> 00:03:22,620
+So there's a single layer case which implements a single memory hop operation and then we'll show you
+
+50
+00:03:22,800 --> 00:03:27,470
+how you can expand this to multiple hops in memory simply using recurrent neural networks.
+
+51
+00:03:27,540 --> 00:03:33,690
+So we first start off with the first key component of the single layer which is the input memory representation.
+
+52
+00:03:33,690 --> 00:03:39,250
+So what we're going to receive is an input set of x of 1 x of 2 x 3 etc..
+
+53
+00:03:39,260 --> 00:03:42,820
+Remember those are the sentences or stories to be stored in memory.
+
+54
+00:03:43,260 --> 00:03:48,090
+And we're going to convert that entire set of Xs into memory vectors.
+
+55
+00:03:48,090 --> 00:03:51,060
+So those memory vectors we're gonna call em sub AI.
+
+56
+00:03:51,510 --> 00:03:57,560
+So you can see here we essentially have two types of encoders and the bottom one is the M survives.
+
+57
+00:03:57,610 --> 00:03:59,730
+That's one of the inputs there.
+
+58
+00:03:59,790 --> 00:04:04,920
+So then we're going to use is we'll use cares for embedding this to convert sentences and then we later
+
+59
+00:04:04,920 --> 00:04:11,760
+on have another embedding an encoder process for C sub AI and we'll also be getting that question or
+
+60
+00:04:11,760 --> 00:04:12,950
+query calling.
+
+61
+00:04:12,960 --> 00:04:19,200
+Q And that's also going to be embedded so we'll embed that to obtain an internal state which you will
+
+62
+00:04:19,200 --> 00:04:20,180
+label you.
+
+63
+00:04:20,180 --> 00:04:24,750
+So you can see at the bottom of the diagram we have Question Q It's going through an embedding process
+
+64
+00:04:24,840 --> 00:04:29,370
+and then we have the result which is just going to be an internal state of this embedding inside the
+
+65
+00:04:29,370 --> 00:04:32,940
+single layer called you and in the embedding space.
+
+66
+00:04:32,940 --> 00:04:39,630
+So within this single layer we're going to compute the match between you and memory M sub AI by taking
+
+67
+00:04:39,630 --> 00:04:45,290
+the inner product followed by a soft Max operation so that will look something like this.
+
+68
+00:04:45,370 --> 00:04:50,160
+We take that question embedded through embedding B then we have you.
+
+69
+00:04:50,230 --> 00:04:56,020
+And then we're going to take you transpose take the product of that with M sub I remember that's the
+
+70
+00:04:56,020 --> 00:05:01,840
+embedding of the sentences and take the soft max of that and then you get p sub AI so you can essentially
+
+71
+00:05:01,840 --> 00:05:05,320
+see that's what's going on from the bottom as well as the left hand side.
+
+72
+00:05:05,470 --> 00:05:10,600
+So that's the input memory representation and then we're going to need the output memory representation
+
+73
+00:05:11,790 --> 00:05:18,990
+so for the output memory representation each x AI has a corresponding OutPut vector C sub AI and this
+
+74
+00:05:18,990 --> 00:05:23,080
+is given in the simplest case by another embedding matrix which we'll just call C.
+
+75
+00:05:23,090 --> 00:05:28,980
+So that's kind of that top embedding embedding C then the response vector from the memory O is then
+
+76
+00:05:28,980 --> 00:05:36,720
+a sum over the transform inputs C sub I waited by the probability vector for the input and here's the
+
+77
+00:05:36,720 --> 00:05:44,370
+equation 0 is equal to the sum of PMI times see Evi and because the function from input output is smooth
+
+78
+00:05:44,760 --> 00:05:50,700
+we can then compute gradients and back propagate through this then the final third step is generating
+
+79
+00:05:50,820 --> 00:05:52,110
+a single final prediction.
+
+80
+00:05:52,470 --> 00:05:58,920
+So in this single layer case what we're gonna do is the sum of the output vector 0 and the input embedding
+
+81
+00:05:58,950 --> 00:06:06,480
+U is passed through a final weight matrix that will label a capital W here and then a soft Max is used
+
+82
+00:06:06,480 --> 00:06:07,960
+to produce the predicted label.
+
+83
+00:06:08,160 --> 00:06:15,120
+So we have that final weight matrix W and then we have 0 plus U and we pass it in through a soft Max
+
+84
+00:06:15,450 --> 00:06:19,610
+and that's essentially going to give us probabilities of the predicted answer.
+
+85
+00:06:19,830 --> 00:06:25,320
+So note what's actually happening here this network is actually going to produce a probability for every
+
+86
+00:06:25,320 --> 00:06:31,740
+single word in the vocabulary however we should only expect some relatively high probability on either
+
+87
+00:06:31,740 --> 00:06:36,720
+the yes or no and I'll become more clear when we actually code this out we can then expand that this
+
+88
+00:06:36,750 --> 00:06:42,180
+single layer into multiple layers using what we already know about recurrent neural networks we're simply
+
+89
+00:06:42,180 --> 00:06:47,520
+going to take the output of one of the single layers and have that be the input for the next layer.
+
+90
+00:06:47,930 --> 00:06:52,290
+So you can see here that the logic is essentially the same as what we saw in the single air we're just
+
+91
+00:06:52,290 --> 00:06:57,000
+repeating it over and over again taking the inputs from one layer and then setting that to be the output
+
+92
+00:06:57,090 --> 00:07:03,260
+of the next layer just as we discussed previously with recurrent natural networks so let's begin now
+
+93
+00:07:03,260 --> 00:07:08,330
+exploring how we can build out this network with Python and carers and please keep in mind I would highly
+
+94
+00:07:08,330 --> 00:07:13,010
+recommend that you read the paper before continuing on to the code it's really gonna help your understanding
+
+95
+00:07:13,220 --> 00:07:15,050
+of what we're actually typing out with cares.
+
+96
+00:07:15,500 --> 00:07:17,180
+OK I'll see you in the next lecture.
+

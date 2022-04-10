@@ -1,0 +1,1604 @@
+1
+00:00:01,070 --> 00:00:01,970
+<v ->All right.</v>
+
+2
+00:00:01,970 --> 00:00:05,850
+So let's now create a new booking document in our database
+
+3
+00:00:05,850 --> 00:00:09,083
+whenever a user successfully purchases a tour.
+
+4
+00:00:10,940 --> 00:00:13,400
+So we're back here in the booking controller
+
+5
+00:00:13,400 --> 00:00:15,130
+and in the raw tender,
+
+6
+00:00:15,130 --> 00:00:18,410
+which creates the checkout sessions, right?
+
+7
+00:00:18,410 --> 00:00:21,990
+And remember that here we have this success url
+
+8
+00:00:21,990 --> 00:00:25,210
+and this url is the basis of the functionality
+
+9
+00:00:25,210 --> 00:00:27,670
+that we're going to implement in this lecture.
+
+10
+00:00:27,670 --> 00:00:30,400
+So whenever a check out is successful,
+
+11
+00:00:30,400 --> 00:00:34,440
+the browser will automatically go to this url,
+
+12
+00:00:34,440 --> 00:00:39,140
+which right now is basically simply our homepage, right?
+
+13
+00:00:39,140 --> 00:00:41,190
+It's also at this point in time,
+
+14
+00:00:41,190 --> 00:00:44,360
+so when a checkout is successful that we want to create
+
+15
+00:00:44,360 --> 00:00:46,130
+a new booking, right?
+
+16
+00:00:46,130 --> 00:00:49,200
+So basically we want to create a new booking
+
+17
+00:00:49,200 --> 00:00:53,010
+whenever this url here is accessed.
+
+18
+00:00:53,010 --> 00:00:56,680
+Now we could now create a new route for this success,
+
+19
+00:00:56,680 --> 00:00:59,940
+but then we would have to create a whole new page
+
+20
+00:00:59,940 --> 00:01:02,690
+and that's not really worth it in this case.
+
+21
+00:01:02,690 --> 00:01:06,090
+And that's because what we're going to do in this lecture
+
+22
+00:01:06,090 --> 00:01:08,860
+is only a temporary solution anyway
+
+23
+00:01:08,860 --> 00:01:12,040
+because it's not really secure, okay?
+
+24
+00:01:12,040 --> 00:01:14,690
+So remember how we said some lectures ago
+
+25
+00:01:14,690 --> 00:01:17,980
+and that nice diagram that later when a website
+
+26
+00:01:17,980 --> 00:01:21,500
+is actually deployed on a server we will get access
+
+27
+00:01:21,500 --> 00:01:24,830
+to the session object once the purchase is completed
+
+28
+00:01:24,830 --> 00:01:27,200
+using Stripe Webhooks.
+
+29
+00:01:27,200 --> 00:01:29,750
+And so these webhooks will then be perfect
+
+30
+00:01:29,750 --> 00:01:31,970
+for us to create a new booking.
+
+31
+00:01:31,970 --> 00:01:32,803
+Okay?
+
+32
+00:01:32,803 --> 00:01:35,040
+But for now, since we can't do that yet,
+
+33
+00:01:35,040 --> 00:01:36,650
+let's use a work around,
+
+34
+00:01:36,650 --> 00:01:39,810
+which is simply to put the data that we need to create
+
+35
+00:01:39,810 --> 00:01:43,810
+a new booking right into this url as a query string.
+
+36
+00:01:43,810 --> 00:01:44,670
+Okay?
+
+37
+00:01:44,670 --> 00:01:47,800
+And we need to create a query string because Stripe
+
+38
+00:01:47,800 --> 00:01:51,620
+will just make a get request to this url here,
+
+39
+00:01:51,620 --> 00:01:55,280
+and so we cannot really send a body or any data with it
+
+40
+00:01:55,280 --> 00:01:57,680
+except for the query string.
+
+41
+00:01:57,680 --> 00:01:58,513
+All right?
+
+42
+00:01:58,513 --> 00:02:02,300
+So let's do that and what we need here is basically
+
+43
+00:02:02,300 --> 00:02:05,660
+the three required fields in our booking model.
+
+44
+00:02:05,660 --> 00:02:07,200
+So tour, user,
+
+45
+00:02:07,200 --> 00:02:08,930
+and price.
+
+46
+00:02:08,930 --> 00:02:10,200
+So
+
+47
+00:02:10,200 --> 00:02:11,400
+tour
+
+48
+00:02:11,400 --> 00:02:12,890
+is equal to
+
+49
+00:02:14,555 --> 00:02:16,478
+req.params
+
+50
+00:02:16,478 --> 00:02:17,311
+.tourid
+
+51
+00:02:18,410 --> 00:02:19,243
+right?
+
+52
+00:02:20,350 --> 00:02:21,793
+So what did I do here?
+
+53
+00:02:23,500 --> 00:02:25,290
+So that's correct.
+
+54
+00:02:25,290 --> 00:02:27,473
+Next up we need the user.
+
+55
+00:02:28,760 --> 00:02:29,793
+So user,
+
+56
+00:02:30,700 --> 00:02:32,887
+which is at request
+
+57
+00:02:32,887 --> 00:02:33,807
+.user
+
+58
+00:02:33,807 --> 00:02:35,290
+.id.
+
+59
+00:02:35,290 --> 00:02:38,170
+And finally we need the price,
+
+60
+00:02:38,170 --> 00:02:39,003
+which is
+
+61
+00:02:40,230 --> 00:02:41,063
+at tour
+
+62
+00:02:42,277 --> 00:02:43,110
+.price.
+
+63
+00:02:44,190 --> 00:02:45,630
+All right.
+
+64
+00:02:45,630 --> 00:02:47,250
+Now as I said before,
+
+65
+00:02:47,250 --> 00:02:50,140
+this is of course not secure at all
+
+66
+00:02:50,140 --> 00:02:54,760
+because right now anyone who knows this url structure here
+
+67
+00:02:54,760 --> 00:02:57,510
+could simply call it without going through the checkout
+
+68
+00:02:57,510 --> 00:02:59,250
+process, right?
+
+69
+00:02:59,250 --> 00:03:01,930
+And so anyone really could just book a tour
+
+70
+00:03:01,930 --> 00:03:03,630
+without having to pay.
+
+71
+00:03:03,630 --> 00:03:06,530
+All they'd have to do is to open this url
+
+72
+00:03:06,530 --> 00:03:08,830
+with the tour, user, and price
+
+73
+00:03:08,830 --> 00:03:11,900
+and then they would automatically create a new booking
+
+74
+00:03:11,900 --> 00:03:14,320
+without even paying, okay?
+
+75
+00:03:14,320 --> 00:03:16,080
+So again, not really secure,
+
+76
+00:03:16,080 --> 00:03:19,160
+but for now as a work around it works just fine
+
+77
+00:03:19,160 --> 00:03:22,240
+because not many people will of course will know
+
+78
+00:03:22,240 --> 00:03:24,920
+that this our success url.
+
+79
+00:03:24,920 --> 00:03:25,753
+Okay?
+
+80
+00:03:25,753 --> 00:03:28,790
+Because actually we're going to hide that fact a little bit
+
+81
+00:03:28,790 --> 00:03:30,910
+in a second, okay?
+
+82
+00:03:30,910 --> 00:03:35,120
+So let's now create the function that will actually create
+
+83
+00:03:35,120 --> 00:03:37,083
+the new booking in the database.
+
+84
+00:03:38,320 --> 00:03:40,610
+So that's going to exports
+
+85
+00:03:40,610 --> 00:03:42,150
+dot
+
+86
+00:03:42,150 --> 00:03:42,983
+create
+
+87
+00:03:44,000 --> 00:03:44,833
+booking
+
+88
+00:03:46,100 --> 00:03:47,150
+checkout
+
+89
+00:03:47,150 --> 00:03:49,600
+and it's called create booking checkout
+
+90
+00:03:49,600 --> 00:03:52,980
+because later on we will also have create booking,
+
+91
+00:03:52,980 --> 00:03:56,313
+which will then be accessible from our bookings API.
+
+92
+00:03:57,760 --> 00:03:59,360
+All right.
+
+93
+00:03:59,360 --> 00:04:00,193
+Anyway.
+
+94
+00:04:02,160 --> 00:04:03,523
+Here as always.
+
+95
+00:04:06,460 --> 00:04:09,990
+And let's start by getting our data from the query string.
+
+96
+00:04:09,990 --> 00:04:13,370
+And so for that I'm going to use the structuring.
+
+97
+00:04:13,370 --> 00:04:14,763
+So tour,
+
+98
+00:04:15,920 --> 00:04:17,520
+user,
+
+99
+00:04:17,520 --> 00:04:21,113
+and price are available at request
+
+100
+00:04:21,113 --> 00:04:22,520
+.query.
+
+101
+00:04:22,520 --> 00:04:25,540
+So remember that is the query string.
+
+102
+00:04:25,540 --> 00:04:28,830
+Then we actually only want to create a new booking
+
+103
+00:04:28,830 --> 00:04:31,720
+if all of these here are specified.
+
+104
+00:04:31,720 --> 00:04:35,060
+And so basically we say that if they don't exist
+
+105
+00:04:35,060 --> 00:04:37,980
+then we turn and go to the next middleware.
+
+106
+00:04:37,980 --> 00:04:41,003
+So that's our very standard procedure, right?
+
+107
+00:04:42,190 --> 00:04:45,890
+So we say that if there is no tour and
+
+108
+00:04:45,890 --> 00:04:47,480
+no user
+
+109
+00:04:47,480 --> 00:04:48,680
+and
+
+110
+00:04:48,680 --> 00:04:50,050
+no price.
+
+111
+00:04:50,050 --> 00:04:53,450
+So basically we require that all on them exist.
+
+112
+00:04:53,450 --> 00:04:55,253
+And so in that case,
+
+113
+00:04:56,580 --> 00:04:58,790
+we go to the next middleware.
+
+114
+00:04:58,790 --> 00:05:02,420
+Now what exactly is the next middleware actually?
+
+115
+00:05:02,420 --> 00:05:06,300
+Well remember that we want to create a new booking
+
+116
+00:05:06,300 --> 00:05:08,340
+on this home url.
+
+117
+00:05:08,340 --> 00:05:09,660
+So this one here.
+
+118
+00:05:09,660 --> 00:05:12,380
+Because again that is the url that is called
+
+119
+00:05:12,380 --> 00:05:15,610
+whenever a purchase is successful with Stripe.
+
+120
+00:05:15,610 --> 00:05:18,810
+And so what we need to do is add this middleware function
+
+121
+00:05:18,810 --> 00:05:21,990
+that we're creating right now onto the middleware stack
+
+122
+00:05:21,990 --> 00:05:23,393
+of this route handler.
+
+123
+00:05:24,230 --> 00:05:26,620
+So what route handler is that?
+
+124
+00:05:26,620 --> 00:05:30,943
+Well it's in view routes and it is this one,
+
+125
+00:05:32,170 --> 00:05:33,270
+right?
+
+126
+00:05:33,270 --> 00:05:36,040
+So that probably sounds a bit confusing.
+
+127
+00:05:36,040 --> 00:05:39,610
+But again this is the route that will be hit
+
+128
+00:05:39,610 --> 00:05:42,080
+when a credit card is successfully charged.
+
+129
+00:05:42,080 --> 00:05:44,730
+And so this is also the point of time where we want
+
+130
+00:05:44,730 --> 00:05:46,260
+to create a new booking.
+
+131
+00:05:46,260 --> 00:05:49,940
+And so here is where we need to add that middleware function
+
+132
+00:05:51,340 --> 00:05:53,350
+so let's actually do that
+
+133
+00:05:53,350 --> 00:05:56,060
+and require our controller
+
+134
+00:05:56,060 --> 00:05:57,963
+and now we'll just duplicate this here.
+
+135
+00:06:02,440 --> 00:06:06,850
+So booking controller and now I will actually edit here
+
+136
+00:06:06,850 --> 00:06:09,540
+right at the beginning cause it doesn't really matter
+
+137
+00:06:09,540 --> 00:06:11,743
+if we're logged in or not for this.
+
+138
+00:06:13,130 --> 00:06:16,780
+So bookingcontroller.get,
+
+139
+00:06:16,780 --> 00:06:18,300
+or actually dot
+
+140
+00:06:18,300 --> 00:06:19,770
+create
+
+141
+00:06:19,770 --> 00:06:20,603
+bookingcheckout.
+
+142
+00:06:22,878 --> 00:06:25,060
+Give it a save and
+
+143
+00:06:25,060 --> 00:06:26,230
+okay.
+
+144
+00:06:26,230 --> 00:06:29,150
+And again this is here just kind of temporary
+
+145
+00:06:29,150 --> 00:06:32,610
+until we actually have our websites deployed to a server
+
+146
+00:06:32,610 --> 00:06:35,560
+where we will then be able to create a better solution
+
+147
+00:06:35,560 --> 00:06:36,950
+for this.
+
+148
+00:06:36,950 --> 00:06:37,783
+Okay?
+
+149
+00:06:39,180 --> 00:06:41,230
+So here in the booking controller
+
+150
+00:06:41,230 --> 00:06:44,930
+it is now time to actually create that new booking.
+
+151
+00:06:44,930 --> 00:06:48,903
+And so actually we now need to import that model.
+
+152
+00:06:50,810 --> 00:06:52,053
+So let's do that here.
+
+153
+00:06:53,520 --> 00:06:54,780
+Booking
+
+154
+00:06:54,780 --> 00:06:55,613
+and
+
+155
+00:06:57,750 --> 00:06:59,363
+booking model here as well.
+
+156
+00:07:01,280 --> 00:07:04,830
+And for some reason here I have these weird path.
+
+157
+00:07:04,830 --> 00:07:08,170
+So these don't make any sense at all.
+
+158
+00:07:08,170 --> 00:07:11,910
+I'm not sure why I wrote them like this back then.
+
+159
+00:07:11,910 --> 00:07:15,160
+So what we have there is exactly the same as this.
+
+160
+00:07:15,160 --> 00:07:17,513
+But of course this is more readable.
+
+161
+00:07:18,570 --> 00:07:19,670
+Anyway.
+
+162
+00:07:19,670 --> 00:07:21,810
+Let's now create that booking.
+
+163
+00:07:21,810 --> 00:07:23,850
+And so for that we will have to await
+
+164
+00:07:26,520 --> 00:07:27,353
+booking
+
+165
+00:07:28,497 --> 00:07:29,330
+.create
+
+166
+00:07:30,900 --> 00:07:32,040
+with an object
+
+167
+00:07:32,040 --> 00:07:33,390
+of
+
+168
+00:07:33,390 --> 00:07:34,223
+tour,
+
+169
+00:07:35,120 --> 00:07:35,953
+user,
+
+170
+00:07:36,810 --> 00:07:37,843
+and price.
+
+171
+00:07:38,830 --> 00:07:40,310
+And that's it.
+
+172
+00:07:40,310 --> 00:07:42,660
+Now we also need to mark this one here as async
+
+173
+00:07:44,220 --> 00:07:45,660
+and as always
+
+174
+00:07:46,582 --> 00:07:47,499
+catchasync.
+
+175
+00:07:53,252 --> 00:07:54,085
+Okay?
+
+176
+00:07:54,085 --> 00:07:56,450
+And we're not saving this into any variable
+
+177
+00:07:56,450 --> 00:07:58,250
+well because we don't really need it.
+
+178
+00:07:58,250 --> 00:08:01,470
+We're not going to send this back as an API response.
+
+179
+00:08:01,470 --> 00:08:04,970
+At this point all we want to do here is create
+
+180
+00:08:04,970 --> 00:08:07,363
+that new document, okay?
+
+181
+00:08:08,480 --> 00:08:10,680
+Next up we could then say
+
+182
+00:08:12,280 --> 00:08:14,460
+next, like this.
+
+183
+00:08:14,460 --> 00:08:17,220
+And so that would then go the next middleware
+
+184
+00:08:17,220 --> 00:08:18,990
+but that's not really ideal.
+
+185
+00:08:18,990 --> 00:08:22,010
+So again keep in mind that the next middleware
+
+186
+00:08:22,010 --> 00:08:24,450
+in the stack is of course this one
+
+187
+00:08:24,450 --> 00:08:26,640
+and the get overview.
+
+188
+00:08:26,640 --> 00:08:29,041
+So basically the function that it's going to render
+
+189
+00:08:29,041 --> 00:08:30,800
+our page.
+
+190
+00:08:30,800 --> 00:08:35,023
+But remember that this url is all of this.
+
+191
+00:08:35,980 --> 00:08:38,920
+So all this with all this data here.
+
+192
+00:08:38,920 --> 00:08:41,610
+And so again that's not secure at all.
+
+193
+00:08:41,610 --> 00:08:45,200
+And so at least let's make it a little bit more secure,
+
+194
+00:08:45,200 --> 00:08:46,200
+all right?
+
+195
+00:08:46,200 --> 00:08:48,660
+And so what we can do here is to basically
+
+196
+00:08:48,660 --> 00:08:52,090
+redirect the application now to only this
+
+197
+00:08:52,090 --> 00:08:52,923
+url.
+
+198
+00:08:53,837 --> 00:08:55,980
+And so basically you're removing the query string
+
+199
+00:08:55,980 --> 00:08:57,277
+from the original url.
+
+200
+00:08:59,007 --> 00:09:01,710
+And so actually we're now going to use something
+
+201
+00:09:01,710 --> 00:09:03,300
+we never used before.
+
+202
+00:09:03,300 --> 00:09:04,763
+So that's great, right?
+
+203
+00:09:05,860 --> 00:09:08,193
+So we're going to use redirect.
+
+204
+00:09:10,810 --> 00:09:11,970
+All right?
+
+205
+00:09:11,970 --> 00:09:15,230
+So now what we want is the entire url,
+
+206
+00:09:15,230 --> 00:09:16,803
+but without the query string.
+
+207
+00:09:18,000 --> 00:09:20,620
+So what we could do is to just
+
+208
+00:09:20,620 --> 00:09:23,450
+kind of cheat and copy
+
+209
+00:09:23,450 --> 00:09:24,660
+this here.
+
+210
+00:09:24,660 --> 00:09:27,110
+But let's make it a bit more elegant.
+
+211
+00:09:27,110 --> 00:09:31,096
+So what we're doing is request
+
+212
+00:09:31,096 --> 00:09:33,090
+.theoriginalurl,
+
+213
+00:09:33,090 --> 00:09:34,573
+which we already used before.
+
+214
+00:09:35,870 --> 00:09:38,090
+And so that's the entire url basically
+
+215
+00:09:38,090 --> 00:09:40,190
+from which the request came.
+
+216
+00:09:40,190 --> 00:09:43,090
+And so now what we need to do is to split it
+
+217
+00:09:43,090 --> 00:09:44,283
+by the question mark.
+
+218
+00:09:48,010 --> 00:09:48,843
+Right?
+
+219
+00:09:48,843 --> 00:09:52,500
+Because that's the divider between the
+
+220
+00:09:52,500 --> 00:09:55,053
+part that we actually want and the query string.
+
+221
+00:09:56,700 --> 00:10:00,040
+So if we split this by the question mark,
+
+222
+00:10:00,040 --> 00:10:02,917
+then we will have an array where the first element is this
+
+223
+00:10:02,917 --> 00:10:06,420
+and the second element is all of the rest.
+
+224
+00:10:06,420 --> 00:10:08,430
+So the query string itself.
+
+225
+00:10:08,430 --> 00:10:11,210
+And so here we take the first element
+
+226
+00:10:11,210 --> 00:10:13,480
+and so that is then our homepage.
+
+227
+00:10:13,480 --> 00:10:14,463
+So our route url.
+
+228
+00:10:15,560 --> 00:10:19,520
+And what redirect here does is basically to create
+
+229
+00:10:19,520 --> 00:10:24,060
+a new request but to this new url that we passed in there.
+
+230
+00:10:24,060 --> 00:10:25,170
+All right?
+
+231
+00:10:25,170 --> 00:10:27,680
+So this will now create yet another request
+
+232
+00:10:27,680 --> 00:10:28,653
+to our route url.
+
+233
+00:10:29,890 --> 00:10:32,900
+So we're again gonna hit this route.
+
+234
+00:10:32,900 --> 00:10:37,230
+And so once more we will hit this middleware here.
+
+235
+00:10:37,230 --> 00:10:39,790
+So the one that we're just creating.
+
+236
+00:10:39,790 --> 00:10:42,850
+So for the second time we're going to be hitting that
+
+237
+00:10:42,850 --> 00:10:47,240
+but now the tour, user, and price are no longer defined.
+
+238
+00:10:47,240 --> 00:10:49,860
+And so then we will go to the next middleware,
+
+239
+00:10:49,860 --> 00:10:53,540
+which finally is the get overview handler function,
+
+240
+00:10:53,540 --> 00:10:57,870
+which then we'll just render the homepage, okay?
+
+241
+00:10:57,870 --> 00:10:59,080
+Made sense?
+
+242
+00:10:59,080 --> 00:11:01,700
+So this is kind of circular then.
+
+243
+00:11:01,700 --> 00:11:03,870
+So basically in the beginning we're gonna hit
+
+244
+00:11:03,870 --> 00:11:05,100
+this route here.
+
+245
+00:11:05,100 --> 00:11:07,430
+Then a new booking here is created
+
+246
+00:11:07,430 --> 00:11:10,860
+and we redirect the application again to this route,
+
+247
+00:11:10,860 --> 00:11:12,710
+this time without the query string.
+
+248
+00:11:12,710 --> 00:11:14,540
+And so without the query string
+
+249
+00:11:14,540 --> 00:11:16,370
+and this middleware,
+
+250
+00:11:16,370 --> 00:11:18,120
+we passed right to the next one.
+
+251
+00:11:18,120 --> 00:11:21,350
+And so only then we get to is logged in
+
+252
+00:11:21,350 --> 00:11:22,723
+and get overview.
+
+253
+00:11:24,020 --> 00:11:25,450
+All right?
+
+254
+00:11:25,450 --> 00:11:29,390
+And so that's actually it, all right?
+
+255
+00:11:29,390 --> 00:11:32,910
+Well that's just right here that this is only temporary
+
+256
+00:11:38,730 --> 00:11:39,563
+because it's
+
+257
+00:11:41,520 --> 00:11:42,523
+unsecure.
+
+258
+00:11:43,700 --> 00:11:47,410
+Everyone can make bookings
+
+259
+00:11:49,010 --> 00:11:49,963
+without paying.
+
+260
+00:11:50,930 --> 00:11:54,133
+So again that would be terrible for the business.
+
+261
+00:11:55,250 --> 00:11:57,733
+Okay, now it's time to test this out.
+
+262
+00:11:59,210 --> 00:12:02,990
+And so actually I want to do it with that other user
+
+263
+00:12:02,990 --> 00:12:06,620
+that we created which is jonas@mailsac.
+
+264
+00:12:06,620 --> 00:12:09,510
+And that's because I want to see if we actually get
+
+265
+00:12:09,510 --> 00:12:11,913
+that email receipt from Stripe.
+
+266
+00:12:13,510 --> 00:12:17,280
+So let's log in with that user
+
+267
+00:12:17,280 --> 00:12:18,466
+onto our website.
+
+268
+00:12:18,466 --> 00:12:20,170
+So
+
+269
+00:12:20,170 --> 00:12:21,063
+log out.
+
+270
+00:12:23,080 --> 00:12:24,323
+Well that's not working.
+
+271
+00:12:27,050 --> 00:12:28,090
+That's weird.
+
+272
+00:12:28,090 --> 00:12:29,023
+Let's reload.
+
+273
+00:12:30,430 --> 00:12:33,520
+And that should be working so let's see
+
+274
+00:12:33,520 --> 00:12:36,230
+if we have some error in our javascript.
+
+275
+00:12:36,230 --> 00:12:38,160
+Because that is actually client facing
+
+276
+00:12:39,210 --> 00:12:41,763
+and we get Stripe is not defined.
+
+277
+00:12:42,730 --> 00:12:46,180
+Let's see if we have the same error here on this page,
+
+278
+00:12:46,180 --> 00:12:48,170
+which we shouldn't, right?
+
+279
+00:12:48,170 --> 00:12:51,010
+And actually it's not there,
+
+280
+00:12:51,010 --> 00:12:52,393
+but back on all tours.
+
+281
+00:12:53,360 --> 00:12:54,660
+Yeah, it's there.
+
+282
+00:12:54,660 --> 00:12:58,480
+So the solution to that is to move it from the tour
+
+283
+00:12:59,400 --> 00:13:01,193
+basically to all of the pages.
+
+284
+00:13:02,910 --> 00:13:04,010
+All right?
+
+285
+00:13:04,010 --> 00:13:07,970
+So for some reason the parcel bundler does it so
+
+286
+00:13:07,970 --> 00:13:08,920
+that it needs to be
+
+287
+00:13:10,260 --> 00:13:12,703
+here in the main scope for all of them.
+
+288
+00:13:14,850 --> 00:13:16,933
+So for all the pages, okay?
+
+289
+00:13:19,090 --> 00:13:21,970
+So actually let's put that at the bottom
+
+290
+00:13:26,010 --> 00:13:27,673
+right here before our bundle.
+
+291
+00:13:29,530 --> 00:13:30,690
+All right?
+
+292
+00:13:30,690 --> 00:13:34,143
+Try that again and so now we're good to go.
+
+293
+00:13:35,170 --> 00:13:37,510
+So log out and
+
+294
+00:13:37,510 --> 00:13:38,343
+that worked.
+
+295
+00:13:39,200 --> 00:13:40,083
+Now log in.
+
+296
+00:13:42,183 --> 00:13:44,613
+Of course now our copy is gone.
+
+297
+00:13:53,790 --> 00:13:54,963
+One two three four.
+
+298
+00:13:56,400 --> 00:13:58,180
+No, that's not correct.
+
+299
+00:13:58,180 --> 00:14:00,043
+Test one two three four.
+
+300
+00:14:01,580 --> 00:14:04,470
+So I guess I changed the password at some point,
+
+301
+00:14:04,470 --> 00:14:07,363
+so let's try a new password,
+
+302
+00:14:08,920 --> 00:14:10,460
+which is not working either.
+
+303
+00:14:10,460 --> 00:14:13,180
+Let's try pass one two three four
+
+304
+00:14:14,170 --> 00:14:15,223
+and that worked.
+
+305
+00:14:16,100 --> 00:14:18,260
+So it's not test one two three four,
+
+306
+00:14:18,260 --> 00:14:20,603
+but pass one two three four.
+
+307
+00:14:21,460 --> 00:14:22,763
+At least here in my case.
+
+308
+00:14:23,810 --> 00:14:25,940
+So let's try to book the
+
+309
+00:14:26,960 --> 00:14:28,493
+let's say the sports lover.
+
+310
+00:14:30,520 --> 00:14:31,353
+All right.
+
+311
+00:14:33,150 --> 00:14:34,340
+Down here.
+
+312
+00:14:34,340 --> 00:14:35,310
+Book tour
+
+313
+00:14:37,010 --> 00:14:38,310
+and that still works
+
+314
+00:14:39,260 --> 00:14:41,091
+and that's the expensive one.
+
+315
+00:14:41,091 --> 00:14:42,100
+(laughs)
+
+316
+00:14:42,100 --> 00:14:45,020
+So four two four two and then four two
+
+317
+00:14:45,020 --> 00:14:46,203
+all the way to the end.
+
+318
+00:14:47,060 --> 00:14:52,020
+Then here's some month and here is some number.
+
+319
+00:14:52,020 --> 00:14:55,590
+Let's say my entire name here
+
+320
+00:14:55,590 --> 00:14:57,523
+and now let's hit pay.
+
+321
+00:14:59,970 --> 00:15:02,090
+And I'll take a look at the url bar.
+
+322
+00:15:02,090 --> 00:15:06,440
+And indeed we get our homepage so our route url
+
+323
+00:15:06,440 --> 00:15:10,280
+without any of the query string that we specified before.
+
+324
+00:15:10,280 --> 00:15:13,550
+So that means that something is working.
+
+325
+00:15:13,550 --> 00:15:18,400
+So let's take a look at compass and click up here to reload
+
+326
+00:15:20,520 --> 00:15:23,180
+and we get our bookings collection.
+
+327
+00:15:23,180 --> 00:15:24,540
+And that's a good sign.
+
+328
+00:15:24,540 --> 00:15:26,742
+And indeed here we go.
+
+329
+00:15:26,742 --> 00:15:30,360
+Our very first document is created.
+
+330
+00:15:30,360 --> 00:15:32,673
+So remember that was that price.
+
+331
+00:15:33,740 --> 00:15:36,350
+Let's also take a look at the user's id
+
+332
+00:15:38,100 --> 00:15:41,653
+which is this one ending in eight E three B.
+
+333
+00:15:43,280 --> 00:15:46,640
+So eight E three B, that's correct.
+
+334
+00:15:46,640 --> 00:15:50,100
+And I'm assuming that the tour is also going to be correct.
+
+335
+00:15:50,100 --> 00:15:51,220
+So perfect.
+
+336
+00:15:51,220 --> 00:15:52,540
+That worked as well
+
+337
+00:15:52,540 --> 00:15:56,200
+and so now we really have a way of creating bookings
+
+338
+00:15:56,200 --> 00:15:58,773
+whenever a booking happens with Stripe.
+
+339
+00:15:59,772 --> 00:16:04,040
+Let's also quickly checkout our dashboards here again.
+
+340
+00:16:04,040 --> 00:16:05,770
+That's really fun.
+
+341
+00:16:05,770 --> 00:16:07,720
+And I guess I just have to reload here.
+
+342
+00:16:13,662 --> 00:16:14,745
+So let's see.
+
+343
+00:16:15,770 --> 00:16:20,260
+Here is jonas at whatever we named that is.
+
+344
+00:16:20,260 --> 00:16:21,580
+We've got the sports lover
+
+345
+00:16:22,460 --> 00:16:23,860
+and
+
+346
+00:16:23,860 --> 00:16:25,100
+perfect.
+
+347
+00:16:25,100 --> 00:16:26,657
+That's working now.
+
+348
+00:16:26,657 --> 00:16:27,900
+And the final task.
+
+349
+00:16:27,900 --> 00:16:30,410
+Let's now check out mailsac.
+
+350
+00:16:31,390 --> 00:16:32,223
+Mail
+
+351
+00:16:32,223 --> 00:16:33,070
+sac
+
+352
+00:16:34,316 --> 00:16:35,149
+.com
+
+353
+00:16:36,490 --> 00:16:39,060
+and see if I got my
+
+354
+00:16:39,060 --> 00:16:39,923
+email there.
+
+355
+00:16:42,190 --> 00:16:45,050
+And well actually I did not,
+
+356
+00:16:45,050 --> 00:16:46,840
+but that's not a big deal.
+
+357
+00:16:46,840 --> 00:16:51,200
+I'm not sure maybe it just doesn't work with test data.
+
+358
+00:16:51,200 --> 00:16:53,160
+And so for now that's all I have to show you
+
+359
+00:16:53,160 --> 00:16:55,670
+about Stripe integration.
+
+360
+00:16:55,670 --> 00:16:58,230
+Now again once a website is deployed,
+
+361
+00:16:58,230 --> 00:17:00,690
+we will then actually use Stripe Webhooks
+
+362
+00:17:00,690 --> 00:17:03,320
+in order to create bookings in a more secure
+
+363
+00:17:03,320 --> 00:17:05,050
+and much better way.
+
+364
+00:17:05,050 --> 00:17:06,320
+All right?
+
+365
+00:17:06,320 --> 00:17:11,320
+So let's just again take a minute to recap what we did here.
+
+366
+00:17:12,000 --> 00:17:14,010
+So basically we added
+
+367
+00:17:14,970 --> 00:17:18,070
+all the variables that we need to create a new booking
+
+368
+00:17:18,070 --> 00:17:19,327
+to the success url.
+
+369
+00:17:20,610 --> 00:17:24,320
+Then we added a new middleware function here to the stack
+
+370
+00:17:24,320 --> 00:17:26,270
+of that exact route.
+
+371
+00:17:26,270 --> 00:17:27,790
+So this one here.
+
+372
+00:17:27,790 --> 00:17:31,200
+And so like this whenever this url here is hit
+
+373
+00:17:31,200 --> 00:17:34,387
+we will attempt to create a new booking.
+
+374
+00:17:34,387 --> 00:17:35,220
+All right?
+
+375
+00:17:35,220 --> 00:17:38,380
+But that new booking is of course only created
+
+376
+00:17:38,380 --> 00:17:43,290
+when the tour, user, and price are specified in the query.
+
+377
+00:17:43,290 --> 00:17:45,180
+And so in this middleware function,
+
+378
+00:17:45,180 --> 00:17:48,610
+if they are specified on the query well then we create
+
+379
+00:17:48,610 --> 00:17:50,900
+a new booking in here.
+
+380
+00:17:50,900 --> 00:17:53,870
+Then after that is done we remove the query string
+
+381
+00:17:53,870 --> 00:17:56,680
+from the url in order to make the whole process
+
+382
+00:17:56,680 --> 00:17:59,240
+a bit less transparent for the user.
+
+383
+00:17:59,240 --> 00:18:02,880
+Basically so that whole query string doesn't show up
+
+384
+00:18:02,880 --> 00:18:05,400
+in our browser's url bar.
+
+385
+00:18:05,400 --> 00:18:08,690
+And then down here we redirect our application
+
+386
+00:18:08,690 --> 00:18:11,940
+to this new route url here, okay?
+
+387
+00:18:11,940 --> 00:18:15,650
+And so this way this middleware here will be skipped
+
+388
+00:18:15,650 --> 00:18:19,233
+and then our normal homepage will simply get rendered.
+
+389
+00:18:20,530 --> 00:18:21,363
+All right?
+
+390
+00:18:22,320 --> 00:18:25,630
+Let's just get rid of this app error here
+
+391
+00:18:26,510 --> 00:18:30,340
+and the factory we will actually need in the next lecture.
+
+392
+00:18:30,340 --> 00:18:33,660
+So in that next lecture we will actually take care
+
+393
+00:18:33,660 --> 00:18:36,950
+of implementing one last piece of our website,
+
+394
+00:18:36,950 --> 00:18:41,110
+which basically is this page here for my bookings.
+
+395
+00:18:41,110 --> 00:18:44,140
+And what this page will do is to basically display
+
+396
+00:18:44,140 --> 00:18:48,040
+one tour card for each of the tours that we have booked.
+
+397
+00:18:48,040 --> 00:18:51,410
+So looking pretty similar to this homepage,
+
+398
+00:18:51,410 --> 00:18:54,630
+but only with the tours that the currently logged in user
+
+399
+00:18:54,630 --> 00:18:56,940
+has booked, all right?
+
+400
+00:18:56,940 --> 00:19:00,150
+So that's a nice feature for a website, right?
+
+401
+00:19:00,150 --> 00:19:02,663
+And so let's take care of that in the next one.
+

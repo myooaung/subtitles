@@ -1,0 +1,540 @@
+1
+00:00:00,055 --> 00:00:03,660
+Now let's turn our attention to the core functionality of this module,
+
+2
+00:00:03,660 --> 00:00:06,803
+namely, testing a MongoDB repository.
+
+3
+00:00:06,803 --> 00:00:09,805
+Recall that our goal, when testing the review repository,
+
+4
+00:00:09,805 --> 00:00:13,924
+is to pre-populate data in the review database with a known set of data
+
+5
+00:00:13,924 --> 00:00:18,306
+and then validate both that our review and reviewEntry classes are mapped
+
+6
+00:00:18,306 --> 00:00:22,766
+properly to MongoDB and that our persistence operations and custom query
+
+7
+00:00:22,766 --> 00:00:25,061
+method are generated correctly.
+
+8
+00:00:25,061 --> 00:00:28,481
+Let's review what a MongoDB test case looks like.
+
+9
+00:00:28,481 --> 00:00:31,840
+First, we annotate our test class with the DataMongoTest annotation,
+
+10
+00:00:31,840 --> 00:00:36,942
+which creates an embedded MongoDB instance and loads the subset of
+
+11
+00:00:36,942 --> 00:00:39,037
+our Spring configuration that supports MongoDB.
+
+12
+00:00:39,037 --> 00:00:43,273
+This means that we'll have an embedded MongoDB instance to test with,
+
+13
+00:00:43,273 --> 00:00:48,185
+as well as our repository, but it won't load our controller or service.
+
+14
+00:00:48,185 --> 00:00:50,967
+Then we autowire into our test class a Mongo template,
+
+15
+00:00:50,967 --> 00:00:54,285
+which is a Spring Data class that implements the template design
+
+16
+00:00:54,285 --> 00:00:57,844
+pattern and makes interacting with MongoDB easy.
+
+17
+00:00:57,844 --> 00:01:00,934
+Finally, we autowire the repository that we want to test.
+
+18
+00:01:00,934 --> 00:01:03,977
+So at this point, we have an embedded MongoDB instance,
+
+19
+00:01:03,977 --> 00:01:07,800
+a Mongo template that's connected to that embedded MongoDB instance,
+
+20
+00:01:07,800 --> 00:01:10,954
+and our review repository that will persist documents to and
+
+21
+00:01:10,954 --> 00:01:14,102
+from that same embedded MongoDB instance.
+
+22
+00:01:14,102 --> 00:01:16,925
+Getting back to our goal of pre-populating our embedded MongoDB instance
+
+23
+00:01:16,925 --> 00:01:19,693
+so that we can write tests against a known set of data,
+
+24
+00:01:19,693 --> 00:01:22,390
+we're going to hook into the JUnit 5 lifecycle methods.
+
+25
+00:01:22,390 --> 00:01:24,951
+First, we're going to define a BeforeEach method,
+
+26
+00:01:24,951 --> 00:01:28,368
+which is called before each test executes to
+
+27
+00:01:28,368 --> 00:01:30,584
+pre-populate our MongoDB data collection.
+
+28
+00:01:30,584 --> 00:01:33,734
+Then each test method will run against a known set of good data,
+
+29
+00:01:33,734 --> 00:01:36,596
+and finally we're going to define an AfterEach method,
+
+30
+00:01:36,596 --> 00:01:40,205
+which is called after each test invocation to drop the MongoDB
+
+31
+00:01:40,205 --> 00:01:43,235
+collection and delete all of our pre-populated data.
+
+32
+00:01:43,235 --> 00:01:48,201
+We'll create a JSON file that contains our test data as an array of reviews,
+
+33
+00:01:48,201 --> 00:01:52,339
+store that JSON file in the src/test/resources/data directory,
+
+34
+00:01:52,339 --> 00:01:54,862
+and then we'll handle both of the BeforeEach and
+
+35
+00:01:54,862 --> 00:01:56,688
+AfterEach lifecycle notifications.
+
+36
+00:01:56,688 --> 00:02:01,430
+Importing data that is stored in a JSON file into MongoDB is a simple process.
+
+37
+00:02:01,430 --> 00:02:04,929
+We're going to use the Jackson JSON library's ObjectMapper to load the
+
+38
+00:02:04,929 --> 00:02:08,089
+contents of a JSON file into a list of review objects,
+
+39
+00:02:08,089 --> 00:02:12,162
+and then we're going to use the MongoDB template's save method to
+
+40
+00:02:12,162 --> 00:02:15,576
+persist each review into our embedded MongoDB instance.
+
+41
+00:02:15,576 --> 00:02:19,017
+So it's quite a bit of design for what amounts to three lines of code.
+
+42
+00:02:19,017 --> 00:02:21,272
+The code to accomplish this is pretty simple.
+
+43
+00:02:21,272 --> 00:02:22,618
+In our BeforeEach method,
+
+44
+00:02:22,618 --> 00:02:25,922
+we use a Jackson ObjectMapper to read the contents of a
+
+45
+00:02:25,922 --> 00:02:28,547
+file into an array of review instances,
+
+46
+00:02:28,547 --> 00:02:31,305
+and then we iterate over each of those review instances and
+
+47
+00:02:31,305 --> 00:02:36,874
+pass it to mongoTemplate's save method, which inserts the review into MongoDB.
+
+48
+00:02:36,874 --> 00:02:38,112
+In our AfterEach method,
+
+49
+00:02:38,112 --> 00:02:41,031
+we invoke mongoTemplate's dropCollection method to
+
+50
+00:02:41,031 --> 00:02:43,104
+delete all the pre-populated data.
+
+51
+00:02:43,104 --> 00:02:45,503
+The end result is that when each test runs,
+
+52
+00:02:45,503 --> 00:02:49,024
+it can be certain that its database contains the contents of our sample JSON
+
+53
+00:02:49,024 --> 00:02:52,482
+file and implement its test functionality accordingly.
+
+54
+00:02:52,482 --> 00:02:53,841
+Now let's look at the source code for the
+
+55
+00:02:53,841 --> 00:02:57,454
+ReviewRepositoryTest and see how it all fits together.
+
+56
+00:02:57,454 --> 00:03:02,208
+The ReviewRepositoryTest class is annotated with the DataMongoTest annotation,
+
+57
+00:03:02,208 --> 00:03:04,551
+which creates an embedded MongoDB instance,
+
+58
+00:03:04,551 --> 00:03:08,708
+and loads the subset of your Spring configuration that pertains to Mongo,
+
+59
+00:03:08,708 --> 00:03:10,191
+namely your repository.
+
+60
+00:03:10,191 --> 00:03:14,664
+It has a MongoTemplate wired into it, which makes Mongo operations easy,
+
+61
+00:03:14,664 --> 00:03:18,508
+and it has the ReviewRepository that we want to test wired into it.
+
+62
+00:03:18,508 --> 00:03:23,376
+We create a Jackson ObjectMapper, which converts objects to and from JSON.
+
+63
+00:03:23,376 --> 00:03:25,632
+We'll use it to load the contents of our sample JSON
+
+64
+00:03:25,632 --> 00:03:28,599
+file into an array of review objects.
+
+65
+00:03:28,599 --> 00:03:28,915
+Next,
+
+66
+00:03:28,915 --> 00:03:32,166
+we use the Java NIO Path class to create a
+
+67
+00:03:32,166 --> 00:03:34,465
+platform-independent path to our sample JSON file,
+
+68
+00:03:34,465 --> 00:03:38,588
+which is located in the src/test/resources/data folder,
+
+69
+00:03:38,588 --> 00:03:41,401
+and then it calls the path's toFile method to build
+
+70
+00:03:41,401 --> 00:03:43,160
+a file object from that path.
+
+71
+00:03:43,160 --> 00:03:44,740
+Just as we talked about earlier,
+
+72
+00:03:44,740 --> 00:03:49,296
+the beforeEach method is annotated with the JUnit 5 BeforeEach annotation,
+
+73
+00:03:49,296 --> 00:03:52,795
+which means that it will be called before each test method runs.
+
+74
+00:03:52,795 --> 00:03:56,423
+We used the Jackson ObjectMapper to load the contents of our
+
+75
+00:03:56,423 --> 00:03:59,306
+sample JSON file into an array of review instances.
+
+76
+00:03:59,306 --> 00:04:02,267
+There are a couple ways to specify the type of object that
+
+77
+00:04:02,267 --> 00:04:08,189
+Jackson should create from the file, but Review array .class is the simplest.
+
+78
+00:04:08,189 --> 00:04:11,872
+In the next example, we'll see how to specify it a little bit more generically.
+
+79
+00:04:11,872 --> 00:04:13,600
+Once we have an array of review objects,
+
+80
+00:04:13,600 --> 00:04:16,431
+then we we'll use the Array's class to stream over the array,
+
+81
+00:04:16,431 --> 00:04:20,899
+and then pass each review to the MongoTemplate's save method.
+
+82
+00:04:20,899 --> 00:04:23,726
+This effectively loads the contents of the sample JSON
+
+83
+00:04:23,726 --> 00:04:26,591
+file into our embedded MongoDB instance.
+
+84
+00:04:26,591 --> 00:04:31,472
+The AfterEach method is annotated with the JUnit5 AfterEach annotation,
+
+85
+00:04:31,472 --> 00:04:34,602
+which means that it will be called after each test method runs.
+
+86
+00:04:34,602 --> 00:04:37,507
+In this case, we invoke the mongoTemplate's dropCollection method,
+
+87
+00:04:37,507 --> 00:04:40,918
+which deletes all the documents in the reviews collection.
+
+88
+00:04:40,918 --> 00:04:42,624
+Recall that when we created the review class,
+
+89
+00:04:42,624 --> 00:04:45,624
+we specified that it should map to the reviews collection.
+
+90
+00:04:45,624 --> 00:04:46,195
+At this point,
+
+91
+00:04:46,195 --> 00:04:49,356
+each of our tests can be sure that the embedded MongoDB instance
+
+92
+00:04:49,356 --> 00:04:52,503
+contains the documents in our sample JSON file.
+
+93
+00:04:52,503 --> 00:04:54,512
+But before we get into the test methods,
+
+94
+00:04:54,512 --> 00:04:58,323
+let's quickly look at the sample JSON file so that you can know what to expect.
+
+95
+00:04:58,323 --> 00:05:02,523
+The sample JSON file contains JSON representations of two reviews.
+
+96
+00:05:02,523 --> 00:05:05,965
+One for productId 1 and one for productId 2.
+
+97
+00:05:05,965 --> 00:05:08,249
+The first review contains a single review entry,
+
+98
+00:05:08,249 --> 00:05:10,539
+and the second review contains three review entries.
+
+99
+00:05:10,539 --> 00:05:13,955
+With our database populated, let's review out test methods.
+
+100
+00:05:13,955 --> 00:05:17,875
+The testFindAll method invokes the review repository's findAll method,
+
+101
+00:05:17,875 --> 00:05:20,690
+and then validates that two reviews are returned.
+
+102
+00:05:20,690 --> 00:05:25,851
+The testFindByIdSucess method invokes the review repository's findById method,
+
+103
+00:05:25,851 --> 00:05:29,969
+specifying the document ID 1, which is in our sample JSON file.
+
+104
+00:05:29,969 --> 00:05:33,787
+It validates that the review is found, and then it checks the ID,
+
+105
+00:05:33,787 --> 00:05:34,931
+productId, and version values,
+
+106
+00:05:34,931 --> 00:05:38,208
+and finally validates that it contains a single review entry.
+
+107
+00:05:38,208 --> 00:05:41,780
+The testFindByIdFailure method attempts to retrieve a review with a
+
+108
+00:05:41,780 --> 00:05:44,178
+document ID that does not exist in our sample data.
+
+109
+00:05:44,178 --> 00:05:47,062
+It calls the review repository's findById method,
+
+110
+00:05:47,062 --> 00:05:51,596
+passing the document ID 99, and then validates that the review is not present.
+
+111
+00:05:51,596 --> 00:05:55,754
+FindById and findAll are standard methods generated by Spring Data.
+
+112
+00:05:55,754 --> 00:06:00,597
+The next two tests validate the custom query method we defined, findByProductId.
+
+113
+00:06:00,597 --> 00:06:05,555
+The productId is an integer, so in the testFindByProductIdSuccess method,
+
+114
+00:06:05,555 --> 00:06:08,511
+we pass the findByProductId, the value 1,
+
+115
+00:06:08,511 --> 00:06:11,103
+and validate that the review is present.
+
+116
+00:06:11,103 --> 00:06:14,887
+The testFindByProductIdFailure method passes the product ID 99,
+
+117
+00:06:14,887 --> 00:06:19,250
+which is not in our sample data, so it verifies that the review is not present.
+
+118
+00:06:19,250 --> 00:06:22,716
+The testSave method creates a new review object with a single
+
+119
+00:06:22,716 --> 00:06:25,805
+review entry and saves it to the repository by calling the
+
+120
+00:06:25,805 --> 00:06:28,096
+review repository.save method.
+
+121
+00:06:28,096 --> 00:06:30,472
+The save method returns the savedReview,
+
+122
+00:06:30,472 --> 00:06:33,001
+which is now populated with the MongoDB generated ID,
+
+123
+00:06:33,001 --> 00:06:37,600
+so we validate that when we execute a findById method call,
+
+124
+00:06:37,600 --> 00:06:40,465
+we receive the same sample object back from Mongo.
+
+125
+00:06:40,465 --> 00:06:45,102
+The testUpdate method tests that we can update an existing review in Mongo.
+
+126
+00:06:45,102 --> 00:06:48,911
+We first retrieve the review with Id 2, which has 3 review entries,
+
+127
+00:06:48,911 --> 00:06:52,467
+we add a fourth entry to it, and then save it back to MongoDB.
+
+128
+00:06:52,467 --> 00:06:57,493
+We then retrieve the object again and validate that it now has 4 review entries.
+
+129
+00:06:57,493 --> 00:07:01,364
+Finally, the testDelete method deletes the review with the document ID of 2,
+
+130
+00:07:01,364 --> 00:07:05,003
+and validates that when we attempt to retrieve the review with ID 2,
+
+131
+00:07:05,003 --> 00:07:06,352
+it's now not present.
+
+132
+00:07:06,352 --> 00:07:08,543
+This test harness should allow you to test the other standard
+
+133
+00:07:08,543 --> 00:07:10,397
+methods that Spring Data generates for you,
+
+134
+00:07:10,397 --> 00:07:15,266
+as well as any other more advanced custom query methods that you define.
+
+135
+00:07:15,266 --> 00:07:23,000
+You can add more reviews to your sample JSON file and write your tests knowing that those reviews will be in your embedded MongoDB instance.
+

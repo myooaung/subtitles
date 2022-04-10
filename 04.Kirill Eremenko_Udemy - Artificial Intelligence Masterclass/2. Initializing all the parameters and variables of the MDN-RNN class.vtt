@@ -1,0 +1,502 @@
+WEBVTT
+
+00:00.540 --> 00:09.050
+Hello and welcome to Step 8 implementing the NTN Arnon meaning a record and neural network with a mixture
+
+00:09.060 --> 00:10.980
+density and network output layer.
+
+00:11.190 --> 00:16.980
+So you've just seen the record a neural network intuition lectures as well as the mixture density network
+
+00:17.040 --> 00:18.990
+intuition lectures with Curiel.
+
+00:18.990 --> 00:24.520
+And now back together we're going to implement from scratch the NTN Arnon.
+
+00:24.780 --> 00:27.660
+So just to make sure everybody is on the same page.
+
+00:27.720 --> 00:33.990
+What we're about to implement here is of course this component of the full world model which will be
+
+00:33.990 --> 00:41.370
+the component that will allow the AI to remember better the time related correlations in the dream environment
+
+00:41.430 --> 00:43.920
+and not in the real environment.
+
+00:43.920 --> 00:51.630
+That's the beauty of this model to predict better and better actions which will maximize the reward
+
+00:51.840 --> 00:53.430
+inside the environment.
+
+00:53.430 --> 00:59.760
+All right so no worries you will learn more about this reward system in Step 9 reinforcement learning.
+
+00:59.790 --> 01:06.480
+But before this indeed we need to implement this before we move on to the controller that will eventually
+
+01:06.480 --> 01:08.500
+play the final actions.
+
+01:08.520 --> 01:15.390
+So just before we move on to Python Let me show you what you must absolutely look at in one of the essential
+
+01:15.390 --> 01:21.690
+resources of discourse which is this amazing article on the full world model written by the original
+
+01:21.720 --> 01:27.420
+authors and the section that you must have with you when implementing this is of course this one engine
+
+01:27.480 --> 01:33.720
+Arnon and what you must absolutely understand is that this part of the full world model that we're about
+
+01:33.720 --> 01:41.310
+to implement is the part that models the probability of the next latent vector given the action that
+
+01:41.310 --> 01:42.250
+was just played.
+
+01:42.270 --> 01:45.980
+The current latent vector and the current hidden state.
+
+01:46.110 --> 01:52.740
+And then the very important thing to understand about the the end and especially its role in the Arnon
+
+01:53.070 --> 02:00.690
+is that instead of returning the late invoke disease in a deterministic way it will return them with
+
+02:00.810 --> 02:05.860
+a probability distribution meaning that it will return them sarcastically.
+
+02:05.910 --> 02:08.690
+Therefore it's just like what we did with this.
+
+02:08.730 --> 02:14.810
+And we you know classic our encoder returns to late and vectors in a deterministic way.
+
+02:14.970 --> 02:19.920
+And we added this variational plugin to return them to caustically.
+
+02:19.920 --> 02:21.450
+And here we are doing exactly the same.
+
+02:21.450 --> 02:27.570
+Instead of returning the latest vector deterministically we're returning it with a probability distribution
+
+02:27.570 --> 02:33.090
+which means we're going to sample it from this probability distribution in order to predict the next
+
+02:33.100 --> 02:39.840
+state and therefore what it will allow the full world model to do is to predict basically the future
+
+02:39.840 --> 02:41.960
+and this is exactly what it says here.
+
+02:42.090 --> 02:45.030
+The role of the model is to predict the future.
+
+02:45.150 --> 02:49.740
+But you have to understand inside the dream but clearly it works.
+
+02:49.770 --> 02:53.100
+It improves significantly the performance.
+
+02:53.100 --> 02:53.430
+All right.
+
+02:53.430 --> 03:00.690
+And then don't forget also to check out the appendix because indeed in the appendix you get more details
+
+03:01.050 --> 03:03.870
+on while not only the variational are incredible.
+
+03:03.870 --> 03:09.810
+So what we're about to implement which is the mixture density in that work plus regular neural network.
+
+03:09.840 --> 03:11.660
+So you have more details here.
+
+03:11.700 --> 03:13.710
+This is the classic Arnon.
+
+03:13.710 --> 03:21.420
+But as the output layer of this classic Arnon we are adding the gashing mixture which therefore will
+
+03:21.630 --> 03:28.260
+return to caustically the latent vectors which represent basically predictions of the future because
+
+03:28.620 --> 03:36.180
+as we can see in the full world moral Grafix the latent disease is an input of the controller.
+
+03:36.270 --> 03:42.000
+So basically the control will take as input the latent back disease of the variational or enquirers
+
+03:42.150 --> 03:50.370
+but also the hidden state age returned by the Indian Arnon and it will take these two inputs and return
+
+03:50.640 --> 03:56.820
+the final action to play inside the environment and at the same time you have to be aware of this retro
+
+03:56.880 --> 04:03.480
+action loob meaning that the hidden state is given back into the Indian Arnon because indeed this will
+
+04:03.480 --> 04:08.300
+help predict better the new latent vectors Z in a sticky lastic way.
+
+04:08.310 --> 04:14.340
+According to this probability distribution given the gashing mixture.
+
+04:14.340 --> 04:21.180
+All right so let's implement all this on life by now we will structure the code so that you can clearly
+
+04:21.180 --> 04:28.160
+see first the Arnon part of the Indian Arnon and then separately the Gulshan mixture apart.
+
+04:28.200 --> 04:35.040
+That is the end and part of the Arnon in a separate code section and eventually just like what we did
+
+04:35.070 --> 04:36.070
+for the V8.
+
+04:36.270 --> 04:43.050
+We will implement a separate section for the training operations and therefore the code structure will
+
+04:43.050 --> 04:47.320
+be as follows exactly the same as what we did for the Wii.
+
+04:47.390 --> 04:53.330
+First we will import the libraries but they will be the same as for the Wii in terms of flow.
+
+04:53.340 --> 05:00.190
+Then we'll build the engine arning model within a class then same we'll have this exact same code section
+
+05:00.190 --> 05:05.740
+where we initialize all the parameters and variables of the engine Arnon class and then Same here it
+
+05:05.740 --> 05:07.090
+will be exactly the same.
+
+05:07.120 --> 05:14.590
+We will make a build model method which will create the engine on a model architecture itself and inside
+
+05:14.590 --> 05:17.360
+will have three separate code sections.
+
+05:17.410 --> 05:24.520
+Just like here the first one which will build the Arnon part of the NTN Arnon a second one which will
+
+05:24.520 --> 05:31.600
+build the engine part of the engine Arnon and the third one which will implement the training operations
+
+05:31.990 --> 05:38.140
+so that you can clearly see the structure of what we're implementing and take whenever you want a step
+
+05:38.140 --> 05:40.670
+back to see the general process.
+
+05:40.690 --> 05:41.860
+All right so let's do this.
+
+05:41.860 --> 05:47.590
+And as you understood since the structure is going to be pretty similar as what we did here for the
+
+05:47.590 --> 05:48.430
+VAB.
+
+05:48.580 --> 05:56.910
+Well what we're going to do to be efficient is take everything from here to the top or up to here because
+
+05:57.020 --> 06:03.250
+I already included the title in this new Arnon that wildfowl that I've just created.
+
+06:03.250 --> 06:05.480
+All right so I'm going to take this.
+
+06:05.770 --> 06:12.550
+And now we're going to replace the right things for our engine Arnon model which are going to be only
+
+06:12.550 --> 06:19.690
+here because indeed we will use the same libraries none by intensive so to build our Indian Arnon models
+
+06:19.720 --> 06:20.970
+nothing to change here.
+
+06:21.130 --> 06:28.690
+But then we're building the design and d n r and then model within a class.
+
+06:28.780 --> 06:35.500
+Then of course we'll change the name of the class and we will call it M.D and R and N then comes the
+
+06:35.500 --> 06:42.850
+first code section where we initialize all the parameters and variables of the this time m d n r n n
+
+06:43.030 --> 06:44.130
+class.
+
+06:44.140 --> 06:44.740
+All right.
+
+06:44.740 --> 06:45.210
+All good.
+
+06:45.220 --> 06:50.620
+I always make sure to try as much as I can to create a framework so that we can you know switch from
+
+06:50.620 --> 06:53.760
+one model to another in order to code efficiently.
+
+06:53.770 --> 06:59.110
+So in the init method of course here we'll have to change the parameters because these parameters correspond
+
+06:59.110 --> 07:01.320
+to the CNN be morrow.
+
+07:01.420 --> 07:08.200
+And therefore I'm going to select everything here up to actually here because we will have these two
+
+07:08.200 --> 07:14.410
+arguments for our engine aren't in class and therefore the future instances of this class.
+
+07:14.530 --> 07:22.150
+But we will add a new one which will be H-P as and which will correspond to the hybrid parameters of
+
+07:22.150 --> 07:23.860
+the endian Arnon model.
+
+07:23.860 --> 07:29.560
+So don't worry about them now it's just that in the whole implementation there will be a hyper Bremner's
+
+07:29.560 --> 07:35.300
+class which will gather in one same object all the hyper parameters of the MDA and aren't.
+
+07:35.590 --> 07:43.270
+But we will actually see them when we build this huge method to create the engine Arnon model architecture
+
+07:43.510 --> 07:45.160
+as well as the training operation.
+
+07:45.160 --> 07:46.750
+So we will miss them.
+
+07:46.930 --> 07:51.000
+And actually we will create some object Voyles of course for each of them.
+
+07:51.190 --> 07:54.140
+So HP is here the hybrid parameters.
+
+07:54.280 --> 08:00.830
+And now let's change what needs to be change here in order to make it fit to the engine our model.
+
+08:00.850 --> 08:10.030
+But just before I'm going to replace it here by the end Arnon and here we go now let's initialize parameters
+
+08:10.030 --> 08:12.870
+and variables of the engine aren't in class.
+
+08:13.120 --> 08:19.790
+So I suggest that the way we do this is by just checking each of these lines of code one by one.
+
+08:19.950 --> 08:24.740
+So that that size equals that size that was specific to the Wii.
+
+08:24.760 --> 08:28.210
+So we'll just remove that then the batch size.
+
+08:28.210 --> 08:30.100
+Are we going to have a batch size here.
+
+08:30.160 --> 08:34.940
+Same that was specific to the Via e-mail then the learning rate.
+
+08:34.990 --> 08:36.670
+Yes we're going to have a learning rate.
+
+08:36.820 --> 08:41.000
+But of course this learning rate will be included in the hyper parameters.
+
+08:41.110 --> 08:48.340
+So we will get the learning right from this ABS object and therefore we can just remove this and then
+
+08:48.400 --> 08:55.700
+K.L. tolerance of course that was specific to the Wii then is training specific to the Wii as well.
+
+08:55.810 --> 09:01.730
+And then reuse Yes we can keep it or we can also choose to not keep it.
+
+09:01.870 --> 09:07.470
+But in that case we have to replace that we use here by just reuse.
+
+09:07.720 --> 09:14.790
+And this reuse will be exactly this reuse argument here set by default equal to Fox.
+
+09:14.800 --> 09:15.200
+All right.
+
+09:15.220 --> 09:20.990
+And then before we build the variable scope for which will change the name of course.
+
+09:21.010 --> 09:28.150
+Well we have to create one variable object which is Nabby's one which will contain all the hyper parameters
+
+09:28.180 --> 09:32.520
+because remember the HP is here corresponding to the hyper parameters.
+
+09:32.620 --> 09:39.050
+It's just an argument of the method therefore of the engine Arnon object.
+
+09:39.100 --> 09:47.890
+When we create an instance of the engine or in class so we have to as usual create an HP s variable
+
+09:47.890 --> 09:53.880
+object of the engine arland class which will be equal to what will be input in the object.
+
+09:53.920 --> 09:57.380
+When creating an instance of the engine arning class.
+
+09:57.400 --> 09:57.680
+All right.
+
+09:57.680 --> 09:59.410
+So just as usual.
+
+09:59.420 --> 10:01.690
+And then here comes the variables cope.
+
+10:01.710 --> 10:10.190
+So of course you will replace the A C by and the end are and then and then reuse equals reuse because
+
+10:10.190 --> 10:14.140
+we're not using a variable object that's optional then.
+
+10:14.180 --> 10:22.370
+If not GBM mode meaning if we're not using AGP you then we're going to use instead CPQ which we specify
+
+10:22.370 --> 10:24.700
+from the device function by sense of flow.
+
+10:24.730 --> 10:31.160
+So all get here then we have the logging info which is just like a print saying that indeed our model
+
+10:31.160 --> 10:34.890
+is using the Sibiu then here we are going to remove this.
+
+10:34.960 --> 10:40.310
+We are going to create a new variable which will correspond to the graph just like what we did for the
+
+10:40.360 --> 10:46.790
+Wii and we will create a new graph thanks to tons of flow the same way by calling tensor of so first
+
+10:47.210 --> 10:55.700
+and then Frampton's of what we call the graph class so that this Selda g here more will be on the engine
+
+10:55.760 --> 11:00.100
+on an object will be the graph for this engine.
+
+11:00.130 --> 11:04.250
+And so that's something we are did before then.
+
+11:04.250 --> 11:10.700
+Now we're going to connect all the hype of parameters of our energy and our own and moral to this graph
+
+11:11.030 --> 11:18.500
+and the way we're going to do this is with in with again and we are going to specify that by default
+
+11:19.530 --> 11:26.070
+this graph is going to be connected to all the hype of parameters and how are we going to make that
+
+11:26.070 --> 11:27.250
+connection right here.
+
+11:27.420 --> 11:31.350
+Well we will make it by including inside this graph.
+
+11:31.350 --> 11:39.090
+The build model method which will create the whole Indian art and model architecture including the training
+
+11:39.120 --> 11:39.960
+operations.
+
+11:40.170 --> 11:48.050
+But as I told you we're not going to call this method build graph but this time build model.
+
+11:48.150 --> 11:54.090
+And that's just to avoid confusion with what we implemented before for the V.A. and therefore what we
+
+11:54.090 --> 12:04.380
+have to include here is just self taught build model taking as input the hyper parameters HP is and
+
+12:04.380 --> 12:11.010
+therefore here besides the self we have to include of course the HP has hyper parameters as an argument
+
+12:11.340 --> 12:13.340
+of this build model method.
+
+12:13.440 --> 12:15.770
+Right so now everything is connected well.
+
+12:15.840 --> 12:21.420
+We have this huge bill model method which will build the whole architecture of the engine Arnon and
+
+12:21.420 --> 12:29.130
+it is well included inside this graph object variable g for the engine on it and then same in the else
+
+12:29.130 --> 12:34.320
+we're going to do kind of the same thing we can keep plugging in for which we'll just specify that this
+
+12:34.320 --> 12:34.700
+time.
+
+12:34.710 --> 12:38.000
+Our model is using the GP you in this condition.
+
+12:38.130 --> 12:46.110
+And then of course we will replace this self-taught build graph which was for the Wii by exactly what
+
+12:46.110 --> 12:49.770
+we implemented here for the condition when we're using the Sibiu.
+
+12:49.920 --> 12:55.890
+So let's just copy that again and let's replace this stuff that build grab by the connection to the
+
+12:56.220 --> 12:57.280
+novel method.
+
+12:57.450 --> 13:04.400
+And now let's just be careful with the evidence we have to do it this way that's the safe way.
+
+13:04.410 --> 13:05.710
+All right.
+
+13:05.800 --> 13:08.320
+And now get so perfect.
+
+13:08.320 --> 13:12.670
+Now the initialization of the parameters and variables is done correctly.
+
+13:12.880 --> 13:19.350
+And now we can move on to the big four of this implementation where we build the fool and then Arne
+
+13:19.350 --> 13:22.040
+and Moe into the training operations.
+
+13:22.240 --> 13:27.250
+So this is going to be a long code section which of course will divide in a couple of tutorials.
+
+13:27.250 --> 13:30.450
+This whole implementation is about one hundred lines of code.
+
+13:30.460 --> 13:32.410
+So again get some good energy.
+
+13:32.410 --> 13:38.080
+Make sure you understand world intuition and the theory of the engine Arnon model and as soon as you're
+
+13:38.080 --> 13:40.320
+ready let's tackle this together.
+
+13:40.420 --> 13:41.930
+Until then enjoy AI.

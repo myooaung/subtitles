@@ -1,0 +1,586 @@
+WEBVTT
+
+00:02.070 --> 00:06.500
+We set that timeout for clearing the token once it it's expired,
+
+00:06.690 --> 00:11.560
+now we also want to make sure we got that token if we do come back to that page,
+
+00:11.580 --> 00:19.290
+so if we still have a valid token and for that, we will have to store our data in some storage that actually
+
+00:19.290 --> 00:26.310
+survives a page reload and the local storage provided by the browser would be such a storage mechanism.
+
+00:26.900 --> 00:33.390
+Now local storage simply is a storage managed by the browser, accessible through Javascript,
+
+00:33.390 --> 00:40.320
+therefore vulnerable to cross-site scripting attacks but Angular prevents us against these by default
+
+00:40.380 --> 00:45.060
+so we can't output script tags with Angular for example,
+
+00:45.060 --> 00:49.150
+so we should be safe but of course we need to access this local storage.
+
+00:49.350 --> 00:52.590
+So in the auth service, I want to store data in the local storage
+
+00:52.590 --> 00:59.130
+once we are authenticated and for this, I'll add a new method here, a private method because I only call
+
+00:59.130 --> 01:07.260
+it from inside this service where I have my saveAuthData, let's say. saveAuthData is the method
+
+01:07.440 --> 01:10.390
+and there, I expect to get the data I want to save
+
+01:10.680 --> 01:19.100
+and for now that's the token, a string and that's the expiration date.
+
+01:19.220 --> 01:25.340
+And this should now be a date and not the time in seconds because the time in seconds of course is a
+
+01:25.340 --> 01:30.070
+relative measure and not helpful to us when we come back in the future, there
+
+01:30.110 --> 01:33.560
+we need to have a clear idea of when the token expires,
+
+01:33.560 --> 01:35.720
+so I expect to get a date here.
+
+01:35.810 --> 01:43.270
+Now all that data will be serialized and stored in local storage. Accessing local storage is easy,
+
+01:43.280 --> 01:49.430
+there is a local storage API you can access and then we just call setItem to store a value there
+
+01:49.760 --> 01:52.460
+and the values are simple key value pairs,
+
+01:52.460 --> 02:01.080
+so nothing fancy but great for strings, numbers, dates, complex objects also possible but a bit harder.
+
+02:01.100 --> 02:06.710
+So here we just store the token let's say, that's the key under which you want to store it and it's totally
+
+02:06.710 --> 02:07.660
+up to you
+
+02:08.180 --> 02:13.270
+and the value will be the token I'm getting as an argument. Then I will also store the date,
+
+02:13.370 --> 02:21.310
+so here I will set the item, store the expiration and that will be my expiration date,
+
+02:21.320 --> 02:25.070
+however the date object like this can't be saved,
+
+02:25.070 --> 02:32.240
+instead I should convert this to a string and I will not call toString but toISoString which is
+
+02:32.990 --> 02:38.660
+well serialized and standard style version of the date which I then can use to recreate it
+
+02:38.750 --> 02:41.050
+once I read in the data later.
+
+02:41.360 --> 02:45.260
+So this now stores the data to the local storage.
+
+02:45.260 --> 02:53.510
+I will also add a new method, clearAuthData, it's a private method too and there I will call local storage,
+
+02:54.800 --> 03:04.750
+remove item token and remove item expiration and clearAuthData will be called from within
+
+03:04.750 --> 03:12.430
+logout, there I will call this clearAuthData to clear the local storage. Now saveAuthData hasn't been
+
+03:12.430 --> 03:13.120
+called,
+
+03:13.120 --> 03:16.720
+I want to call it here inside my login method,
+
+03:16.720 --> 03:21.790
+so where we set the timer. There I set my authentication status
+
+03:21.910 --> 03:29.550
+and of course here, I also want to call this saveAuthData and I'll pass the token as an argument.
+
+03:29.560 --> 03:34.260
+Now the second value should be the expiration date and I first of all need to construct this.
+
+03:34.330 --> 03:40.720
+I'll first of all get the current timestamp with just new date, this creates a new date object for the
+
+03:40.720 --> 03:41.940
+current moment
+
+03:41.980 --> 03:46.540
+so to say and then I'll create my expiration date here which is now
+
+03:47.670 --> 03:59.040
+getTime plus expiresIn duration times 1000 because this also needs to be passed in in milliseconds.
+
+03:59.050 --> 04:05.680
+Now this again should be put into a new date object to create a new date based on that, well updated
+
+04:05.740 --> 04:08.990
+date here so to say, now is the expiration date
+
+04:09.100 --> 04:11.370
+I want to pass to saveAuthData,
+
+04:11.410 --> 04:15.280
+we can also console log this to be sure that this is correct.
+
+04:16.360 --> 04:19.200
+So now let's save that and let's have a look at it.
+
+04:19.420 --> 04:20.860
+If we now login,
+
+04:25.310 --> 04:29.940
+this is the date and if I have a look at my watch here, this looks right to me,
+
+04:30.070 --> 04:32.680
+this indeed is in one hour.
+
+04:32.720 --> 04:38.180
+We can also see it here under application in the Chrome developer tools, there you can access your local
+
+04:38.180 --> 04:38.960
+storage
+
+04:39.050 --> 04:44.920
+and here you see the expiration date being stored in this format here, that's that serialized format
+
+04:45.170 --> 04:46.720
+and the token.
+
+04:46.760 --> 04:54.290
+Now we can use that information to initialize our auth status whenever the app starts and for that, I'll add
+
+04:54.290 --> 04:56.420
+yet another new method here,
+
+04:56.720 --> 05:04.520
+I'll name it autoAuthUser where I tried to automatically authenticate the user
+
+05:04.620 --> 05:11.650
+if we got the information for it in our local storage. For that, I'll add a new private method,
+
+05:11.870 --> 05:14.390
+getAuthData
+
+05:14.480 --> 05:21.140
+and here, I will get my token from the local storage by calling getItem and accessing the token here
+
+05:21.800 --> 05:31.540
+and I will get my expiration date from the local storage by getting my item here, the key name was expiration
+
+05:31.820 --> 05:36.780
+and then I'll check if we got a token and expiration date,
+
+05:36.790 --> 05:42.780
+so if that exists because we don't want to proceed if it doesn't exist.
+
+05:42.800 --> 05:44.690
+So here, I will actually check the opposite,
+
+05:44.690 --> 05:51.710
+so if we don't have the token or if we don't have the expiration date, then I will return like this,
+
+05:51.710 --> 05:53.270
+we'll return nothing.
+
+05:53.270 --> 06:00.440
+If we got it though, then I want to return a javascript object where I have my token and my expiration
+
+06:00.590 --> 06:07.130
+date and there, I will create a new date where I simply can pass in that serialized expiration date string
+
+06:07.310 --> 06:11.140
+and it will construct a date object based on that.
+
+06:11.140 --> 06:18.210
+So now I have this information which I return. Now getAuthData will be called in autoAuthUser,
+
+06:18.370 --> 06:27.550
+so here I will reach out to this getAuthData and store the result in a new const, authInformation,
+
+06:27.560 --> 06:30.690
+so this will be that object I return or nothing
+
+06:30.740 --> 06:33.080
+if we don't fetch a token and so on.
+
+06:33.560 --> 06:37.360
+So here I'm fetching this and I'm storing it in authInformation
+
+06:37.430 --> 06:41.620
+and now the goal here is to check whether the token still is valid,
+
+06:41.690 --> 06:43.660
+that's the first thing we have to do
+
+06:43.970 --> 06:50.090
+and for that, we got the expiration date. We can't validate if it's a valid token, that can only be done
+
+06:50.090 --> 06:50.900
+by the server
+
+06:51.050 --> 06:54.960
+but at least we can tell if it's still valid from an expiration perspective.
+
+06:55.460 --> 07:01.470
+So in autoAuthUser, I will check if the expiration date is still in the future.
+
+07:01.910 --> 07:10.200
+So I will again get the current date time by creating a new date object and I can then simply check if
+
+07:10.200 --> 07:17.550
+it's in the future by creating a new constant, isInFuture where I simply create a boolean by comparing
+
+07:17.820 --> 07:21.890
+authInformation expiration date to now
+
+07:22.200 --> 07:29.130
+and if that is greater than now, well then we have a date which is in the future. If it is smaller or
+
+07:29.190 --> 07:33.230
+equal to now, then we know the token expired.
+
+07:33.240 --> 07:35.950
+So here I check if isInFuture,
+
+07:36.300 --> 07:39.790
+if that is the case then the user should be authenticated.
+
+07:39.810 --> 07:46.670
+So here I will, so that equal to the token we had in local storage, whoops, that's authInformation token though.
+
+07:46.980 --> 07:50.190
+I will then also set my timer,
+
+07:50.220 --> 07:51.860
+I'll do that in a second.
+
+07:52.230 --> 07:57.180
+First of all, I'll set isAuthenticated to true and push that information,
+
+07:57.210 --> 08:06.520
+so here I will set authStatusListener, call next and pass true to everyone because the user now is authenticated.
+
+08:06.870 --> 08:11.000
+But I just mentioned that I of course also need to set that timer.
+
+08:11.100 --> 08:13.670
+So since that needs to be done in two places,
+
+08:13.680 --> 08:18.510
+we should probably refactor this code and put it into a new place.
+
+08:18.510 --> 08:21.940
+So let's pull it out of the subscribe method here
+
+08:23.350 --> 08:33.490
+and instead create a new private property, setAuthTimer where I get the duration which is a number and
+
+08:33.490 --> 08:38.290
+then in here, I will call this token timer, set timeout where I still want to call this logout when
+
+08:38.290 --> 08:44.330
+it occurs. Duration is now the duration and I still need to multiply it with 1000
+
+08:44.470 --> 08:51.940
+and then in the subscribe method of the login method here, I can call this setAuthTimer and pass in
+
+08:51.940 --> 08:53.910
+the expiresIn duration.
+
+08:54.430 --> 09:01.060
+So now we're still setting the timer here but now I also want to set it here in autoAuthUser.
+
+09:01.060 --> 09:05.580
+Now one important note, the duration is something I don't know yet,
+
+09:05.650 --> 09:12.220
+well kind of. Instead of checking whether this is in the future, we could retrieve the difference,
+
+09:12.700 --> 09:14.640
+so expiresIn,
+
+09:14.680 --> 09:16.000
+we can name it like this,
+
+09:16.030 --> 09:23.770
+we can then pass it here to setAuthTimer. ExpiresIn then should be the expiration date minus
+
+09:23.770 --> 09:26.070
+now and this doesn't work though
+
+09:26.080 --> 09:33.130
+but we can just call get time again which will be the milliseconds since basically the start of time in
+
+09:33.130 --> 09:40.510
+javascript which is somewhere in 1970, 1st January there to be precise and also get that same value
+
+09:40.510 --> 09:41.860
+here for now.
+
+09:42.310 --> 09:49.300
+And now we know we're detecting the current timestamp from the timestamp in the future or maybe in the
+
+09:49.300 --> 09:49.870
+future,
+
+09:49.870 --> 09:56.860
+this of course could also be a negative number if the current time is greater than the, well expiresIn
+
+09:56.860 --> 09:57.940
+time.
+
+09:57.940 --> 10:03.970
+So we will simply check if expiresIn here is greater than zero because if it is, we know that the date
+
+10:04.000 --> 10:09.540
+is in the future, if it is smaller or equal to zero, it's right now or in the past,
+
+10:09.550 --> 10:13.080
+so the expiration time would be in the past which means it's expired.
+
+10:13.540 --> 10:17.140
+So now we get a duration in milliseconds here, that's important,
+
+10:17.290 --> 10:23.670
+so since authTimer works with seconds, I will actually divide it by 1000 here.
+
+10:23.690 --> 10:31.330
+I will also go to setAuthTimer and console log setting timer
+
+10:32.530 --> 10:36.620
+plus duration so that we can have an idea if that works correctly.
+
+10:37.800 --> 10:42.650
+So now we're getting that difference between expiration date and current date in milliseconds
+
+10:42.700 --> 10:44.700
+and we're setting the timer here too,
+
+10:44.920 --> 10:48.520
+now we get everything in place to automatically authenticate users.
+
+10:48.580 --> 10:55.480
+Now we just need to run that method and a great place to run this is in the app component. There,
+
+10:55.570 --> 11:00.010
+we know that this component gets loaded first, when our application is starting up,
+
+11:00.070 --> 11:01.700
+this component gets loaded,
+
+11:01.870 --> 11:06.720
+so this is a great place to actually do our basic initializations.
+
+11:06.970 --> 11:14.710
+So therefore, I'll actually implement onInit here by also importing it from @angular/core and then
+
+11:14.710 --> 11:20.680
+by adding the ngOnInit method and there I want to use something from my auth service, so time to
+
+11:20.680 --> 11:21.720
+inject it again.
+
+11:22.000 --> 11:27.760
+I'll add my constructor, private property auth service of type auth service of course,
+
+11:27.850 --> 11:32.340
+also make sure to add this import. And now in ngOnInit,
+
+11:32.370 --> 11:39.660
+I'll reach out to my auth service and simply autoAuthUser here, to kick off that automatic authentication
+
+11:39.660 --> 11:41.060
+workflow.
+
+11:41.310 --> 11:48.160
+With that if I save this and I reload my app, you'll see I'm not logged in right now
+
+11:48.480 --> 11:53.380
+even though I have data saved here. So something is going wrong,
+
+11:53.400 --> 11:54.720
+this should actually work.
+
+11:55.920 --> 12:04.200
+Let's go to the auth service autoAuthUser, we're calling getAuthData and we're returning the data from the local
+
+12:04.200 --> 12:05.160
+storage here.
+
+12:06.840 --> 12:15.390
+Let's throw in a console log here and output our authInformation as well as the calculated expiresIn value,
+
+12:15.780 --> 12:23.990
+save that and let it reload, go back to the console. We see expiresIn, pretty big number but that is in
+
+12:23.990 --> 12:24.650
+milliseconds,
+
+12:24.650 --> 12:30.890
+keep in mind, this is the value in seconds which we're setting which looks all right.
+
+12:30.890 --> 12:32.770
+We get a token, we got an expiration time,
+
+12:32.780 --> 12:34.240
+this is greater than zero
+
+12:34.250 --> 12:42.530
+so we should actually make it into that block here where we set our token.
+
+12:42.680 --> 12:49.400
+And I actually also do see my edit and delete button, so this kind of worked but the header somehow doesn't
+
+12:49.400 --> 12:52.590
+reflect this updated information. If I reload,
+
+12:52.610 --> 12:54.590
+we still see login and sign-up there,
+
+12:54.770 --> 12:59.610
+so the header is not getting the information about the user being authenticated.
+
+13:00.830 --> 13:07.760
+Now the issue should be the same as we had before, in the header component, we're listening to updates
+
+13:07.760 --> 13:09.670
+to the user authentication status
+
+13:09.950 --> 13:16.130
+but if that gets initialized a tiny bit too late and the chances for this are high since we do kick
+
+13:16.130 --> 13:21.590
+off that authentication workflow in the app component which loads first and we only got synchronous
+
+13:21.590 --> 13:26.740
+code in there, so all that code here executes pretty quickly,
+
+13:26.870 --> 13:29.780
+we got that information before the header is loaded.
+
+13:29.810 --> 13:32.360
+So what we should do is we should go to the header
+
+13:32.510 --> 13:38.270
+and besides setting up this listener here which is important, we should also set this user is authenticated
+
+13:38.330 --> 13:48.410
+equal to this auth service getIsAuth for the same reason we had to do it earlier in the post list component.
+
+13:49.190 --> 13:51.630
+With that, if I now reload,
+
+13:51.770 --> 13:53.630
+this looks better, we're setting the timer
+
+13:53.720 --> 13:55.060
+and now we get that in place.
+
+13:55.070 --> 14:01.100
+If I now hit logout and I go to the application tab again, we should see indeed the local storage
+
+14:01.130 --> 14:02.140
+is cleared
+
+14:02.300 --> 14:06.100
+and now if I reload that page, we are not logged in.
+
+14:06.110 --> 14:10.450
+Now we get an error though, cannot read property expiration date.
+
+14:11.070 --> 14:18.250
+That is happening in the auth service here and it makes sense because we got no authInformation here.
+
+14:18.290 --> 14:22.540
+I of course should check if we got no authInformation,
+
+14:22.580 --> 14:28.610
+this simply happens if we got no stored authentication information and then I just want to return, nothing
+
+14:28.610 --> 14:29.390
+else to do.
+
+14:29.420 --> 14:31.380
+We just don't want to sign in the user
+
+14:31.430 --> 14:33.230
+but there's nothing else we need to do.
+
+14:33.620 --> 14:39.920
+So with this added in autoAuthUser, we can now reload again, we're not authenticated therefore we can't
+
+14:39.950 --> 14:41.330
+edit and delete.
+
+14:41.450 --> 14:45.890
+We can login though and if we do that, we're redirected,
+
+14:45.920 --> 14:49.770
+the timer is set in the application tab in the local storage,
+
+14:49.820 --> 14:52.720
+we can see that that information is saved.
+
+14:53.000 --> 14:55.580
+And that means we can create new posts,
+
+14:55.580 --> 15:01.510
+we can edit and delete and we can do the same if we reload. There
+
+15:01.610 --> 15:08.420
+we can then also create new posts with that automatically loaded information due to our nice auto login
+
+15:08.420 --> 15:08.980
+flow
+
+15:09.050 --> 15:10.500
+we implemented.
+
+15:10.580 --> 15:12.280
+So this is now working as expected
+
+15:12.280 --> 15:17.960
+and with that, we get authentication added. As you see, it contains quite a lot of complex things to keep
+
+15:17.960 --> 15:18.600
+in mind
+
+15:18.830 --> 15:23.350
+but now we get a very robust and great authentication flow in place.
+
+15:23.360 --> 15:29.170
+One thing is missing of course and that is that we're not connecting our users to our posts.
+
+15:29.180 --> 15:34.370
+We've got these models on the back-end, we've got routes for both there but we're not taking advantage
+
+15:34.370 --> 15:35.470
+of our users.
+
+15:35.480 --> 15:41.360
+Of course we want to store the information, which user created which post in that post and we want to
+
+15:41.360 --> 15:44.360
+use that information on the front-end and back-end too.
+
+15:44.600 --> 15:48.940
+We want to make sure that you can only edit and delete posts which you created,
+
+15:49.190 --> 15:52.220
+so that will be something we implement in the next module.

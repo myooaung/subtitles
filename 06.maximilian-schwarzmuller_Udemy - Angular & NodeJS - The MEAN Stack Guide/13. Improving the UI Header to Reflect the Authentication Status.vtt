@@ -1,0 +1,280 @@
+WEBVTT
+
+00:02.150 --> 00:08.120
+Theoretically, our application is now done from an authentication perspective. From a user experience
+
+00:08.120 --> 00:09.610
+perspective, not so much,
+
+00:09.710 --> 00:12.520
+we can't tell whether we are authenticated or not,
+
+00:12.590 --> 00:15.830
+we can't tell what we're allowed to do or not.
+
+00:15.830 --> 00:21.740
+So for example, I certainly want to hide login and sign-up if we are logged in,
+
+00:21.740 --> 00:25.030
+instead I want to show a logout button which deletes the token.
+
+00:25.220 --> 00:32.490
+Additionally, we also have the problem that we don't really see if we are allowed to delete or edit this,
+
+00:32.510 --> 00:35.570
+we always see these buttons, the same for new posts,
+
+00:35.630 --> 00:38.540
+we see that even if we are not authenticated.
+
+00:38.840 --> 00:46.550
+So we certainly want to adjust the UI to reflect our authentication status because that will prevent some
+
+00:46.580 --> 00:50.660
+unnecessary errors. If I reload for example, our token is gone,
+
+00:50.660 --> 00:52.100
+that's another issue,
+
+00:52.100 --> 00:57.650
+it's gone because we only store it in the Angular service and that of course is just stored in the running
+
+00:57.650 --> 00:58.390
+Javascript,
+
+00:58.400 --> 01:04.320
+so in memory and reloading the page restarts the Angular app and therefore everything stored in services
+
+01:04.400 --> 01:06.640
+and therefore the memory simply is gone.
+
+01:06.770 --> 01:10.430
+So we also want to store the token somewhere else so that it survives
+
+01:10.430 --> 01:14.420
+page reloads and these are all things I want to work on next.
+
+01:14.420 --> 01:18.050
+Now let's actually work on updating the UI first.
+
+01:18.080 --> 01:24.710
+We have that token stored in the auth service, so we can inject that service in any component where we
+
+01:24.710 --> 01:27.270
+need that token to update the UI
+
+01:27.470 --> 01:30.840
+and one such component is the header component of course.
+
+01:31.070 --> 01:35.930
+There in the header, we get a couple of links which we only want to show if the user is authenticated
+
+01:36.050 --> 01:43.850
+and on the other hand, I want to add a new list item here which actually is there to allow us to log
+
+01:43.850 --> 01:44.690
+out.
+
+01:44.720 --> 01:50.120
+This should not be a link by the way, it should be a button and therefore won't have a router link or
+
+01:50.120 --> 01:51.250
+anything like that,
+
+01:51.530 --> 01:55.480
+it's a button which we will need to connect to some action.
+
+01:55.640 --> 02:01.400
+So we only want to show that button if we are authenticated, on the other hand, login and sign-up should only
+
+02:01.400 --> 02:03.500
+be shown if we are not authenticated.
+
+02:03.830 --> 02:09.480
+So in the header component, we can start by injecting the auth service which is where we have the token,
+
+02:09.710 --> 02:17.330
+so here I inject the auth service of type auth service, like this, make sure to add the import to the file
+
+02:17.330 --> 02:18.080
+at the top,
+
+02:18.230 --> 02:21.270
+you need to import the auth service class from there
+
+02:21.650 --> 02:28.690
+and then here, we need to use that auth service to get that token.
+
+02:28.810 --> 02:36.190
+Now to be very precise, we should also have some listener just as we have it for our posts because that
+
+02:36.220 --> 02:38.210
+token of course can change,
+
+02:38.260 --> 02:44.290
+for example if we log out and clear that token and so we want to be able to push that token information
+
+02:44.560 --> 02:47.520
+to our components which are interested.
+
+02:47.830 --> 02:50.410
+So let's actually go to the auth service first
+
+02:50.410 --> 02:59.290
+and besides storing the token there, I want to have another value or property here, my authStatusListener.
+
+03:00.130 --> 03:08.260
+That will actually be a new subject imported from rxjs and I will use that subject to push
+
+03:08.470 --> 03:10.570
+the authentication information
+
+03:10.570 --> 03:13.740
+to the components which are interested.
+
+03:14.080 --> 03:15.700
+So this will be a generic type
+
+03:15.700 --> 03:21.880
+and for now it will wrap a boolean because I don't really need the token in my other components,
+
+03:21.880 --> 03:24.580
+I only need it in my interceptor.
+
+03:24.580 --> 03:28.270
+I just need to know, is the user authenticated or not,
+
+03:28.270 --> 03:31.120
+so a true or false decision.
+
+03:31.300 --> 03:32.970
+Now I will add a new method
+
+03:32.980 --> 03:34.690
+then,
+
+03:34.690 --> 03:36.320
+getAuthStatusListener
+
+03:36.460 --> 03:42.220
+because it's a private property because I only want to return the observable part of that listener.
+
+03:42.220 --> 03:46.390
+So I will return AuthStatusListener as observable
+
+03:46.390 --> 03:49.870
+so that we can't emit new values from other components,
+
+03:49.870 --> 03:55.030
+I only want to be able to emit from within the service but I want to be able to listen from other parts
+
+03:55.030 --> 03:56.470
+of the app of course.
+
+03:56.470 --> 04:00.260
+Now these other parts can call this method to get the listener,
+
+04:00.520 --> 04:06.730
+now I want to emit a new value here in login after we got the token. There
+
+04:06.760 --> 04:13.690
+I will use this AuthStatusListener and call next and here, the value simply is true.
+
+04:13.960 --> 04:20.800
+So now we got a way of informing everyone who's interested about our user being authenticated. Back to
+
+04:20.800 --> 04:23.550
+the header component where we inject auth service,
+
+04:23.560 --> 04:34.030
+I will now implement onInit which is imported from @angular/core and I will implement
+
+04:34.030 --> 04:41.860
+it by adding the ngOnInit method where I want to set up my subscription to that AuthStatusListener.
+
+04:42.460 --> 04:48.550
+Now you learned that subscriptions for observables or subjects managed by you also have to be managed,
+
+04:48.550 --> 04:51.600
+so you should unsubscribe if the component gets destroyed,
+
+04:51.730 --> 04:59.080
+so I will add onDestroy here which forces me to add the ngOnDestroy method here. And then I'll add
+
+04:59.080 --> 05:00.080
+a new property,
+
+05:00.140 --> 05:10.560
+a private property, AuthListenerSubs which is a type subscription which is imported from rxjs,
+
+05:10.580 --> 05:14.260
+so make sure to add this import at the top of your file.
+
+05:15.330 --> 05:23.200
+In ngOnInit, we can then set the AuthListenerSubscription equal to the subscription we set up from
+
+05:23.350 --> 05:32.250
+auth service getAuthListener which is a method which returns that listener subject and then subscribe. 
+
+05:32.260 --> 05:39.670
+That yields the subscription and in ngOnDestroy, I will take that subscription and unsubscribe. And in the subscribe method
+
+05:39.670 --> 05:40.670
+up there,
+
+05:40.690 --> 05:48.460
+we of course want to do something. We get a result here, isAuthenticated, we get that information and
+
+05:48.510 --> 05:56.710
+in isAuthenticated, I can then set another public property of header component, maybe user is authenticated
+
+05:56.770 --> 06:02.590
+to not mix up names, you could name it the same though but I want to make a clear differentiation and
+
+06:02.590 --> 06:04.530
+that initially is false
+
+06:04.690 --> 06:11.980
+and here, I will set this user isAuthenticated equal to the isAuthenticated information I'm getting from my
+
+06:11.980 --> 06:13.300
+subscription.
+
+06:13.300 --> 06:18.940
+So now we have a way of pushing that information to components and using it in the components, like this
+
+06:18.940 --> 06:20.530
+header component.
+
+06:20.530 --> 06:26.020
+So there I get user isAuthenticated and now in the header component, I can use that, in the template I mean,
+
+06:26.560 --> 06:33.670
+for example for new posts. I'll add ngIf here and only add this if the user is authenticated,
+
+06:33.670 --> 06:41.450
+so only if user is authenticated which is that property name here,
+
+06:41.530 --> 06:46.200
+so only if that is true, only then we should be able to create new posts.
+
+06:46.950 --> 06:48.600
+The same for logging out,
+
+06:48.600 --> 06:51.410
+we should only be able to logout if we are logged in,
+
+06:51.420 --> 06:57.650
+so only if we are authenticated. For login and sign-up, the opposite is the case. There
+
+06:57.660 --> 07:04.350
+I will add not user isAuthenticated as a condition because of course I only want to show these if we're
+
+07:04.350 --> 07:10.640
+not authenticated. If we now save this and the app reloads, we correctly see login
+
+07:10.640 --> 07:20.020
+and if I now do login here, then we see that switches to new posts and logout, so it correctly reflects
+
+07:20.020 --> 07:21.400
+our updated status.

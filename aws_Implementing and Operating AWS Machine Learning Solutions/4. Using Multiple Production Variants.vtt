@@ -1,0 +1,281 @@
+WEBVTT
+1
+00:00:01.040 --> 00:00:04.250
+Now that we've explored SageMaker Hosting Services,
+
+2
+00:00:04.250 --> 00:00:07.430
+we're now going to look at how you can do A/B testing on your
+
+3
+00:00:07.430 --> 00:00:11.340
+models by using multiple production variants.
+
+4
+00:00:11.340 --> 00:00:12.360
+So first of all,
+
+5
+00:00:12.360 --> 00:00:14.870
+it's important to note that production variants are
+
+6
+00:00:14.870 --> 00:00:18.340
+defined in the endpoint configuration,
+
+7
+00:00:18.340 --> 00:00:22.460
+and every endpoint configuration has at least one production variant.
+
+8
+00:00:22.460 --> 00:00:24.150
+You'll actually configure it in there.
+
+9
+00:00:24.150 --> 00:00:27.640
+Now if you're using the SageMaker SDK,
+
+10
+00:00:27.640 --> 00:00:31.820
+you can actually do this without having to do it explicitly by calling deploy.
+
+11
+00:00:31.820 --> 00:00:35.330
+But there will be an endpoint configuration that will show one
+
+12
+00:00:35.330 --> 00:00:38.540
+production variant even if you're not doing A/B testing.
+
+13
+00:00:38.540 --> 00:00:42.590
+However, when you start to introduce multiple production variants,
+
+14
+00:00:42.590 --> 00:00:45.380
+this is where you can do the A/B testing.
+
+15
+00:00:45.380 --> 00:00:49.940
+Now it's important to note here we're talking about using multiple versions of,
+
+16
+00:00:49.940 --> 00:00:52.340
+in essence, the same type of model.
+
+17
+00:00:52.340 --> 00:00:55.710
+There's another concept called multi‑model endpoints that we'll talk about
+
+18
+00:00:55.710 --> 00:00:59.040
+later when we're talking about different and unique models.
+
+19
+00:00:59.040 --> 00:01:03.270
+Now the InitialVariantWeight parameter is what determines how much
+
+20
+00:01:03.270 --> 00:01:07.750
+traffic gets sent to each production variant. And so the way that it
+
+21
+00:01:07.750 --> 00:01:11.600
+works is it sums up all of the weights across all of the different
+
+22
+00:01:11.600 --> 00:01:15.000
+variants and then uses the weight of each variant to determine the
+
+23
+00:01:15.000 --> 00:01:16.940
+amount of traffic to route.
+
+24
+00:01:16.940 --> 00:01:17.390
+And so,
+
+25
+00:01:17.390 --> 00:01:22.370
+if we had three different production variants, each that had a weight of 1,
+
+26
+00:01:22.370 --> 00:01:27.540
+we would see roughly 33% of traffic go to each of the different variants.
+
+27
+00:01:27.540 --> 00:01:32.200
+Now the weights can be updated by updating the endpoint configuration,
+
+28
+00:01:32.200 --> 00:01:35.550
+and you can actually do that without downtime. So you can
+
+29
+00:01:35.550 --> 00:01:39.580
+seamlessly adjust how much traffic is getting sent to each of
+
+30
+00:01:39.580 --> 00:01:41.480
+the different production variants.
+
+31
+00:01:41.480 --> 00:01:44.240
+Now let's look and see this in action.
+
+32
+00:01:44.240 --> 00:01:48.340
+So let's say that we have our client ecommerce application,
+
+33
+00:01:48.340 --> 00:01:49.560
+and as a part of this,
+
+34
+00:01:49.560 --> 00:01:52.590
+we're going to be working with an inference model that's going to
+
+35
+00:01:52.590 --> 00:01:57.610
+give information on suggested products for our users to purchase
+
+36
+00:01:57.610 --> 00:02:00.220
+based on what is already in their cart.
+
+37
+00:02:00.220 --> 00:02:02.970
+And so if we go through, this would interact directly
+
+38
+00:02:02.970 --> 00:02:04.730
+with SageMaker Hosting Services.
+
+39
+00:02:04.730 --> 00:02:07.510
+Now, of course, we're not showing the full workflow here.
+
+40
+00:02:07.510 --> 00:02:11.360
+We're not talking about API Gateway and lambda and all of those things and
+
+41
+00:02:11.360 --> 00:02:14.100
+the load balancer within SageMaker Hosting Services.
+
+42
+00:02:14.100 --> 00:02:18.400
+This is just a simplified view of what's going on. But our client
+
+43
+00:02:18.400 --> 00:02:21.040
+application will eventually work with the endpoint.
+
+44
+00:02:21.040 --> 00:02:24.360
+The endpoint currently is working with a model,
+
+45
+00:02:24.360 --> 00:02:28.090
+and this model was put in place by our data science team 3 months ago.
+
+46
+00:02:28.090 --> 00:02:32.170
+It has worked extremely well. And so this is the tried and true model
+
+47
+00:02:32.170 --> 00:02:36.140
+for this particular suggested product's engine.
+
+48
+00:02:36.140 --> 00:02:36.790
+However,
+
+49
+00:02:36.790 --> 00:02:40.400
+they've worked on two different variations of this model that they want to
+
+50
+00:02:40.400 --> 00:02:45.450
+try out and be able to actually get some data in production on how successful
+
+51
+00:02:45.450 --> 00:02:48.590
+this new recommendations engine is going to be.
+
+52
+00:02:48.590 --> 00:02:52.240
+So we're going to take model variant 2 and model variant 3.
+
+53
+00:02:52.240 --> 00:02:55.100
+Now at this point, we're not routing any traffic to those,
+
+54
+00:02:55.100 --> 00:02:57.840
+but we already have them stored within S3.
+
+55
+00:02:57.840 --> 00:03:01.040
+And we could choose to update the endpoint configuration and
+
+56
+00:03:01.040 --> 00:03:05.020
+configure these as separate model variants.
+
+57
+00:03:05.020 --> 00:03:06.240
+Now, at this point,
+
+58
+00:03:06.240 --> 00:03:09.530
+we still want most of our traffic to go to the original
+
+59
+00:03:09.530 --> 00:03:11.710
+model, again our tried and true model.
+
+60
+00:03:11.710 --> 00:03:17.040
+But we want to start injecting 5% of traffic to both of the new models.
+
+61
+00:03:17.040 --> 00:03:21.140
+So here, we could go in and set a weight of 18 on the original
+
+62
+00:03:21.140 --> 00:03:25.090
+model variant, set a weight of 1 on each of the 2 new model
+
+63
+00:03:25.090 --> 00:03:27.040
+variants that we want to test out.
+
+64
+00:03:27.040 --> 00:03:31.570
+This would allow us to then route 90% of traffic to our old model variant
+
+65
+00:03:31.570 --> 00:03:34.790
+and then 5% of traffic to each of the new variants.
+
+66
+00:03:34.790 --> 00:03:35.860
+Now again, with this,
+
+67
+00:03:35.860 --> 00:03:39.090
+we could use this and then gather data because one of the
+
+68
+00:03:39.090 --> 00:03:41.810
+things we can do when we get inference back,
+
+69
+00:03:41.810 --> 00:03:46.510
+we find out which model was actually used for that inference.
+
+70
+00:03:46.510 --> 00:03:53.000
+And we can then track that and see how successful this is actually performing in production.
+

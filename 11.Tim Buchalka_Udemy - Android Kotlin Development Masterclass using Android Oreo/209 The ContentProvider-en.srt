@@ -1,0 +1,1588 @@
+1
+00:00:03,980 --> 00:00:07,290
+in the previous videos we created the
+
+2
+00:00:07,290 --> 00:00:10,110
+database that our app will use and wrote
+
+3
+00:00:10,110 --> 00:00:12,900
+the code to create the tasks table and
+
+4
+00:00:12,900 --> 00:00:15,540
+we also added a few test records now the
+
+5
+00:00:15,540 --> 00:00:17,850
+app will use a content provider to
+
+6
+00:00:17,850 --> 00:00:20,340
+access the database and we've seen how
+
+7
+00:00:20,340 --> 00:00:22,680
+to use a content provider earlier in the
+
+8
+00:00:22,680 --> 00:00:25,140
+course so it's now time to see how to
+
+9
+00:00:25,140 --> 00:00:27,119
+write a content provider so let's get
+
+10
+00:00:27,119 --> 00:00:28,160
+started with that
+
+11
+00:00:28,160 --> 00:00:30,750
+now once you've seen the code working
+
+12
+00:00:30,750 --> 00:00:32,730
+it's definitely well worth your time
+
+13
+00:00:32,730 --> 00:00:34,770
+reviewing the ER google documentation
+
+14
+00:00:34,770 --> 00:00:37,050
+about content providers let's just go to
+
+15
+00:00:37,050 --> 00:00:44,969
+that to link in a browser alright so the
+
+16
+00:00:44,969 --> 00:00:47,730
+first section in here really helps you
+
+17
+00:00:47,730 --> 00:00:50,010
+decide if you need a content provider
+
+18
+00:00:50,010 --> 00:00:52,260
+we've got a few reasons there and
+
+19
+00:00:52,260 --> 00:00:54,480
+whether you need one or not now in our
+
+20
+00:00:54,480 --> 00:00:56,489
+case we're going to be using a cursor
+
+21
+00:00:56,489 --> 00:00:58,890
+loader to retrieve the data from the
+
+22
+00:00:58,890 --> 00:01:01,770
+database without blocking our UI thread
+
+23
+00:01:01,770 --> 00:01:03,930
+now as we do need one of the listed
+
+24
+00:01:03,930 --> 00:01:05,580
+features here we're going to use a
+
+25
+00:01:05,580 --> 00:01:08,790
+content provider for this app so Google
+
+26
+00:01:08,790 --> 00:01:10,439
+are now suggesting that developers
+
+27
+00:01:10,439 --> 00:01:12,299
+should use the new room persistence
+
+28
+00:01:12,299 --> 00:01:14,909
+library rather than content providers
+
+29
+00:01:14,909 --> 00:01:17,159
+now you might think that's a strange
+
+30
+00:01:17,159 --> 00:01:19,380
+thing for me to say when we're about to
+
+31
+00:01:19,380 --> 00:01:21,000
+see how to implement a content provider
+
+32
+00:01:21,000 --> 00:01:23,310
+but there's a good reason why we're
+
+33
+00:01:23,310 --> 00:01:25,619
+sticking with it the rune persistence
+
+34
+00:01:25,619 --> 00:01:28,229
+library is certainly exciting but at the
+
+35
+00:01:28,229 --> 00:01:31,350
+moment it's not completely suitable when
+
+36
+00:01:31,350 --> 00:01:33,210
+you have linked to tables there's no
+
+37
+00:01:33,210 --> 00:01:35,250
+support for views for example any
+
+38
+00:01:35,250 --> 00:01:37,560
+attempt to use sequel views with the
+
+39
+00:01:37,560 --> 00:01:39,570
+rune persistence library will be an ugly
+
+40
+00:01:39,570 --> 00:01:42,540
+hack also because the library is still
+
+41
+00:01:42,540 --> 00:01:44,640
+evolving there's no guarantee that the
+
+42
+00:01:44,640 --> 00:01:47,220
+hacks would continue to work there are
+
+43
+00:01:47,220 --> 00:01:48,899
+ways to work around that
+
+44
+00:01:48,899 --> 00:01:51,659
+avoid using views basically but for that
+
+45
+00:01:51,659 --> 00:01:53,490
+reason we're recommending at least at
+
+46
+00:01:53,490 --> 00:01:55,619
+this stage you stick with content
+
+47
+00:01:55,619 --> 00:01:58,979
+providers when using linked tables we
+
+48
+00:01:58,979 --> 00:02:00,509
+are watching developments carefully and
+
+49
+00:02:00,509 --> 00:02:02,640
+we'll keep an eye on things but for nill
+
+50
+00:02:02,640 --> 00:02:03,659
+though we're going to see how to
+
+51
+00:02:03,659 --> 00:02:06,299
+implement a content provider so let's
+
+52
+00:02:06,299 --> 00:02:10,229
+start by you're creating a new class now
+
+53
+00:02:10,229 --> 00:02:12,780
+back to where Android studio so for now
+
+54
+00:02:12,780 --> 00:02:13,560
+though I'm going to create
+
+55
+00:02:13,560 --> 00:02:16,470
+a new class Kotlin vowel class and we'll
+
+56
+00:02:16,470 --> 00:02:19,770
+call this one app provider and we'll
+
+57
+00:02:19,770 --> 00:02:21,930
+specify it as a class not that it really
+
+58
+00:02:21,930 --> 00:02:24,840
+matters and we're going to put a comment
+
+59
+00:02:24,840 --> 00:02:27,480
+here relating to what the class is all
+
+60
+00:02:27,480 --> 00:02:30,500
+about and we'll say it's the provider or
+
+61
+00:02:30,500 --> 00:02:35,190
+the task of time we wrap and this is the
+
+62
+00:02:35,190 --> 00:02:40,500
+only class that knows about and in
+
+63
+00:02:40,500 --> 00:02:42,090
+square brackets I'm going to add an app
+
+64
+00:02:42,090 --> 00:02:46,320
+database and you can see now that that's
+
+65
+00:02:46,320 --> 00:02:47,970
+now a clickable link that about now that
+
+66
+00:02:47,970 --> 00:02:49,680
+I've actually added that and this is why
+
+67
+00:02:49,680 --> 00:02:51,150
+it's useful with a documentation because
+
+68
+00:02:51,150 --> 00:02:53,670
+now that it's clickable I can flip
+
+69
+00:02:53,670 --> 00:02:54,840
+through that and get straight back to
+
+70
+00:02:54,840 --> 00:02:56,820
+the class noting that this link is now
+
+71
+00:02:56,820 --> 00:02:57,420
+active
+
+72
+00:02:57,420 --> 00:02:59,010
+you know app database class I can click
+
+73
+00:02:59,010 --> 00:03:01,560
+back to there so Android studio doesn't
+
+74
+00:03:01,560 --> 00:03:03,660
+take care of a lot of that documentation
+
+75
+00:03:03,660 --> 00:03:06,150
+when programming in Java but it doesn't
+
+76
+00:03:06,150 --> 00:03:07,560
+do such a good job with Kotlin at the
+
+77
+00:03:07,560 --> 00:03:09,660
+moment all right so I expect that to
+
+78
+00:03:09,660 --> 00:03:11,250
+improve them over time so it's well
+
+79
+00:03:11,250 --> 00:03:13,200
+worth including Kay doc comments in your
+
+80
+00:03:13,200 --> 00:03:15,510
+classes all right so when related in
+
+81
+00:03:15,510 --> 00:03:17,700
+relation to this task to these so class
+
+82
+00:03:17,700 --> 00:03:20,100
+we need to extend content provider so
+
+83
+00:03:20,100 --> 00:03:28,590
+let's do that so we've got the usual
+
+84
+00:03:28,590 --> 00:03:30,299
+arrow there which would be relating to
+
+85
+00:03:30,299 --> 00:03:32,519
+functions not being implemented let's go
+
+86
+00:03:32,519 --> 00:03:35,670
+ahead and implement the misty various
+
+87
+00:03:35,670 --> 00:03:38,299
+sub functions I'm going to select them
+
+88
+00:03:38,299 --> 00:03:41,430
+let's enter all right so as you can see
+
+89
+00:03:41,430 --> 00:03:42,900
+there's quite a few there that have been
+
+90
+00:03:42,900 --> 00:03:44,310
+implemented and it's going to be
+
+91
+00:03:44,310 --> 00:03:47,100
+interesting to lock some information
+
+92
+00:03:47,100 --> 00:03:48,870
+when the functions in this class get
+
+93
+00:03:48,870 --> 00:03:50,880
+called so I'm gonna go ahead and create
+
+94
+00:03:50,880 --> 00:03:53,730
+the normal google usual the usual log
+
+95
+00:03:53,730 --> 00:03:57,209
+tag that we create for a class private
+
+96
+00:03:57,209 --> 00:04:04,739
+Const thou tag equals a provider next
+
+97
+00:04:04,739 --> 00:04:06,329
+I'm going to add a few constants and a
+
+98
+00:04:06,329 --> 00:04:08,970
+year awry for the content Authority I'll
+
+99
+00:04:08,970 --> 00:04:10,200
+let them first and then we'll look at
+
+100
+00:04:10,200 --> 00:04:15,150
+what they're all for private Val content
+
+101
+00:04:15,150 --> 00:04:19,260
+and a straw thority equals and that's
+
+102
+00:04:19,260 --> 00:04:21,919
+going to be learned programming
+
+103
+00:04:21,919 --> 00:04:26,639
+Don Academy dot Tosca timer
+
+104
+00:04:26,639 --> 00:04:30,180
+don't provider they want a private const
+
+105
+00:04:30,180 --> 00:04:35,759
+val tasks equals 100 private commenced
+
+106
+00:04:35,759 --> 00:04:39,319
+val tasks underscore ID equals 101
+
+107
+00:04:39,319 --> 00:04:41,879
+private oops
+
+108
+00:04:41,879 --> 00:04:44,939
+picks out previous line private const
+
+109
+00:04:44,939 --> 00:04:49,500
+val timings is equal to 200 private
+
+110
+00:04:49,500 --> 00:04:55,080
+const val timings underscore ID equals
+
+111
+00:04:55,080 --> 00:05:00,779
+201 in private const val task durations
+
+112
+00:05:00,779 --> 00:05:06,379
+is equal to 400 and private Const val
+
+113
+00:05:06,379 --> 00:05:09,599
+task and let's call durations and the
+
+114
+00:05:09,599 --> 00:05:12,870
+score ID equals 401 then last we want to
+
+115
+00:05:12,870 --> 00:05:17,569
+val content and let's go authority
+
+116
+00:05:17,569 --> 00:05:22,229
+underscore your i colon space your i is
+
+117
+00:05:22,229 --> 00:05:26,939
+equal to e RI dot pars in parentheses
+
+118
+00:05:26,939 --> 00:05:28,219
+then it's going to be double quotes
+
+119
+00:05:28,219 --> 00:05:30,449
+content colon forward slash forward
+
+120
+00:05:30,449 --> 00:05:33,210
+slash dollar and we'll select our
+
+121
+00:05:33,210 --> 00:05:34,349
+content and it's called a fight
+
+122
+00:05:34,349 --> 00:05:38,190
+authority each const alright so a good
+
+123
+00:05:38,190 --> 00:05:41,190
+place to understand what these constants
+
+124
+00:05:41,190 --> 00:05:43,319
+are is the google guide that we've
+
+125
+00:05:43,319 --> 00:05:44,669
+already opened up so let's go back to
+
+126
+00:05:44,669 --> 00:05:48,870
+the browser and there becomes our scroll
+
+127
+00:05:48,870 --> 00:05:49,949
+down a little bit here we've got a
+
+128
+00:05:49,949 --> 00:05:53,960
+section on designing content your eyes
+
+129
+00:05:53,960 --> 00:05:57,779
+this one here and that explains about
+
+130
+00:05:57,779 --> 00:06:00,990
+these your eyes so the authority is the
+
+131
+00:06:00,990 --> 00:06:03,529
+name of the provider and must be unique
+
+132
+00:06:03,529 --> 00:06:06,330
+that's why we use the package name with
+
+133
+00:06:06,330 --> 00:06:09,419
+dot provider appended to it package name
+
+134
+00:06:09,419 --> 00:06:11,069
+should also be unique when you come to
+
+135
+00:06:11,069 --> 00:06:13,199
+deploy your apps so they form a good
+
+136
+00:06:13,199 --> 00:06:15,689
+basis for the authority as well now when
+
+137
+00:06:15,689 --> 00:06:17,460
+other classes access the content
+
+138
+00:06:17,460 --> 00:06:19,620
+provider and that by the way includes
+
+139
+00:06:19,620 --> 00:06:21,479
+other apps as well as classes in our app
+
+140
+00:06:21,479 --> 00:06:25,740
+though user a URI to make life easier
+
+141
+00:06:25,740 --> 00:06:28,199
+the content and the score Authority and
+
+142
+00:06:28,199 --> 00:06:31,500
+a school URI has been set to public the
+
+143
+00:06:31,500 --> 00:06:33,689
+default in Kotlin go back to my code and
+
+144
+00:06:33,689 --> 00:06:36,050
+have a look you can see that on line 28
+
+145
+00:06:36,050 --> 00:06:39,089
+now that lets it be used outside of our
+
+146
+00:06:39,089 --> 00:06:40,220
+app because i've marked
+
+147
+00:06:40,220 --> 00:06:42,590
+as public now the Android contacts
+
+148
+00:06:42,590 --> 00:06:45,110
+contract class is also exposed it's your
+
+149
+00:06:45,110 --> 00:06:47,420
+eye and we used it when we called the
+
+150
+00:06:47,420 --> 00:06:49,700
+content resolvers query method in our
+
+151
+00:06:49,700 --> 00:06:53,060
+previous content resolver app instead of
+
+152
+00:06:53,060 --> 00:06:55,790
+having to find the correct uri we just
+
+153
+00:06:55,790 --> 00:06:59,210
+used contacts contract contacts dot
+
+154
+00:06:59,210 --> 00:07:02,630
+content and let's call your I so what is
+
+155
+00:07:02,630 --> 00:07:05,630
+a URI and what's this eurorider possible
+
+156
+00:07:05,630 --> 00:07:08,840
+about again on line 28 well a URI is a
+
+157
+00:07:08,840 --> 00:07:12,590
+Uniform Resource identifier and I'm sure
+
+158
+00:07:12,590 --> 00:07:13,730
+you'll be familiar with one particular
+
+159
+00:07:13,730 --> 00:07:16,940
+type of you arrive the URLs or Uniform
+
+160
+00:07:16,940 --> 00:07:19,670
+Resource locators that we use to access
+
+161
+00:07:19,670 --> 00:07:22,100
+resources on the World Wide Web so let's
+
+162
+00:07:22,100 --> 00:07:24,230
+so go to the browser again open a new
+
+163
+00:07:24,230 --> 00:07:29,980
+tab and we'll do a quick search for URI
+
+164
+00:07:29,980 --> 00:07:32,750
+it returns a number of useful links here
+
+165
+00:07:32,750 --> 00:07:34,730
+but one that we want to have a look at
+
+166
+00:07:34,730 --> 00:07:36,950
+well scroll down till we see with this
+
+167
+00:07:36,950 --> 00:07:39,860
+one here RFC 39.86 Uniform Resource
+
+168
+00:07:39,860 --> 00:07:44,380
+identifier so I'm going to click on that
+
+169
+00:07:44,380 --> 00:07:46,850
+so this is the elite to the original
+
+170
+00:07:46,850 --> 00:07:52,490
+spec in our RFC 3986 produced by Tim
+
+171
+00:07:52,490 --> 00:07:54,860
+berners-lee who's credited with being
+
+172
+00:07:54,860 --> 00:07:56,690
+the inventor of the World Wide Web
+
+173
+00:07:56,690 --> 00:07:58,910
+RFC or request for comments documents
+
+174
+00:07:58,910 --> 00:08:01,310
+tend to be very wordy but there's
+
+175
+00:08:01,310 --> 00:08:02,900
+generally no need to read the entire
+
+176
+00:08:02,900 --> 00:08:05,390
+document if you wanted to write your own
+
+177
+00:08:05,390 --> 00:08:07,790
+euro parser and you'd have to read and
+
+178
+00:08:07,790 --> 00:08:09,200
+understand everything in this document
+
+179
+00:08:09,200 --> 00:08:11,510
+but to learn just a little bit about the
+
+180
+00:08:11,510 --> 00:08:13,550
+format of your eyes what we can do is to
+
+181
+00:08:13,550 --> 00:08:15,200
+scroll down a little bit and skip
+
+182
+00:08:15,200 --> 00:08:17,000
+straight to section 3 up here by
+
+183
+00:08:17,000 --> 00:08:19,010
+clicking them on the link in the table
+
+184
+00:08:19,010 --> 00:08:21,460
+of comments I've got contents rather
+
+185
+00:08:21,460 --> 00:08:23,780
+another section here under syntax
+
+186
+00:08:23,780 --> 00:08:26,630
+components has a very useful diagram of
+
+187
+00:08:26,630 --> 00:08:29,060
+the various parts that make up a you
+
+188
+00:08:29,060 --> 00:08:31,760
+arrive so a euro starts with a scheme
+
+189
+00:08:31,760 --> 00:08:34,610
+and you'll be used to schemes like HTTP
+
+190
+00:08:34,610 --> 00:08:38,870
+or HTTPS that are used in URLs to access
+
+191
+00:08:38,870 --> 00:08:39,830
+content on the web
+
+192
+00:08:39,830 --> 00:08:43,060
+the URL is a specific type of your I and
+
+193
+00:08:43,060 --> 00:08:46,250
+conforms to this specification other
+
+194
+00:08:46,250 --> 00:08:48,920
+schemes you may have seen our FTP for
+
+195
+00:08:48,920 --> 00:08:50,959
+uploading and downloading files and file
+
+196
+00:08:50,959 --> 00:08:53,840
+used to display a local file in
+
+197
+00:08:53,840 --> 00:08:56,330
+browser now section 3.1 if we just bring
+
+198
+00:08:56,330 --> 00:08:57,700
+that up on the screen there that
+
+199
+00:08:57,700 --> 00:09:01,100
+describes the syntax for a scheme so
+
+200
+00:09:01,100 --> 00:09:02,870
+basically a scheme must start with a
+
+201
+00:09:02,870 --> 00:09:05,270
+letter followed by any combination of
+
+202
+00:09:05,270 --> 00:09:07,700
+letters numbers the plus symbol
+
+203
+00:09:07,700 --> 00:09:10,850
+full-stop or - in practice they tend to
+
+204
+00:09:10,850 --> 00:09:14,000
+mainly contain just letters the scheme
+
+205
+00:09:14,000 --> 00:09:16,390
+that Android content providers use is
+
+206
+00:09:16,390 --> 00:09:19,370
+content so I scrolling back up to where
+
+207
+00:09:19,370 --> 00:09:23,990
+syntax components again the next part of
+
+208
+00:09:23,990 --> 00:09:26,030
+the URI is the higher part this part
+
+209
+00:09:26,030 --> 00:09:28,370
+here which starts with two slashes
+
+210
+00:09:28,370 --> 00:09:32,060
+followed by the authority and a path now
+
+211
+00:09:32,060 --> 00:09:34,610
+when you enter HTTP colon forward slash
+
+212
+00:09:34,610 --> 00:09:38,660
+forward slash WWD Google com into your
+
+213
+00:09:38,660 --> 00:09:42,530
+browser's address bar the scheme is HTTP
+
+214
+00:09:42,530 --> 00:09:45,410
+your browser parses that out of the Euro
+
+215
+00:09:45,410 --> 00:09:47,540
+and knows that it must open a secure
+
+216
+00:09:47,540 --> 00:09:50,450
+connection it then passes out the
+
+217
+00:09:50,450 --> 00:09:53,870
+authority which in that example is wwo
+
+218
+00:09:53,870 --> 00:09:56,750
+com4 URLs which again are a specialized
+
+219
+00:09:56,750 --> 00:09:59,120
+form of your eyes the authority mapped
+
+220
+00:09:59,120 --> 00:10:01,910
+to an IP address that identifies the
+
+221
+00:10:01,910 --> 00:10:04,430
+server to connect to the the page we've
+
+222
+00:10:04,430 --> 00:10:06,020
+currently look at we're currently
+
+223
+00:10:06,020 --> 00:10:08,090
+looking at has the authority tools that
+
+224
+00:10:08,090 --> 00:10:11,960
+IETF org which currently maps to an IP
+
+225
+00:10:11,960 --> 00:10:14,720
+address we can check that by standing a
+
+226
+00:10:14,720 --> 00:10:17,570
+command prompt or terminal session so
+
+227
+00:10:17,570 --> 00:10:19,250
+I'm going to do now and then typing in
+
+228
+00:10:19,250 --> 00:10:20,660
+the command we should work on all
+
+229
+00:10:20,660 --> 00:10:21,950
+operating systems
+
+230
+00:10:21,950 --> 00:10:28,880
+I can type ping tools don't iet F dot
+
+231
+00:10:28,880 --> 00:10:32,070
+all
+
+232
+00:10:32,070 --> 00:10:34,730
+alright I'm just going to stop that now
+
+233
+00:10:34,730 --> 00:10:37,139
+and note that today's command doesn't
+
+234
+00:10:37,139 --> 00:10:39,240
+work for all Ural authorities for
+
+235
+00:10:39,240 --> 00:10:41,279
+security reasons many servers have been
+
+236
+00:10:41,279 --> 00:10:43,769
+configured so that they don't respond to
+
+237
+00:10:43,769 --> 00:10:46,290
+ping requests the authority can also
+
+238
+00:10:46,290 --> 00:10:48,839
+include a network port as well as the
+
+239
+00:10:48,839 --> 00:10:51,029
+username useful for sending emails for
+
+240
+00:10:51,029 --> 00:10:55,470
+example so for the HTTP and HTTPS
+
+241
+00:10:55,470 --> 00:10:58,139
+schemes the authority specifies the
+
+242
+00:10:58,139 --> 00:11:00,750
+location of a computer service on the
+
+243
+00:11:00,750 --> 00:11:03,389
+network now for our content scheme the
+
+244
+00:11:03,389 --> 00:11:05,670
+authority specifies a content provider
+
+245
+00:11:05,670 --> 00:11:07,709
+all right so it's going to close up to
+
+246
+00:11:07,709 --> 00:11:14,639
+here next comes the path separated
+
+247
+00:11:14,639 --> 00:11:17,519
+separated from the authority by slash so
+
+248
+00:11:17,519 --> 00:11:19,380
+the path itself can contain many
+
+249
+00:11:19,380 --> 00:11:22,769
+segments each separated by a slash so
+
+250
+00:11:22,769 --> 00:11:24,149
+the path for this particular web
+
+251
+00:11:24,149 --> 00:11:26,490
+document and we can see that in the URL
+
+252
+00:11:26,490 --> 00:11:33,060
+up here is HTML slash RFC 3986 for the
+
+253
+00:11:33,060 --> 00:11:35,430
+Euro eyes that we use in our content
+
+254
+00:11:35,430 --> 00:11:38,069
+provider the path contains the name of
+
+255
+00:11:38,069 --> 00:11:40,680
+the table and may also contain the ID of
+
+256
+00:11:40,680 --> 00:11:43,380
+a row in that table so that's really all
+
+257
+00:11:43,380 --> 00:11:45,990
+we need to know in order to understand
+
+258
+00:11:45,990 --> 00:11:47,779
+the euro rise in our content provider
+
+259
+00:11:47,779 --> 00:11:50,160
+but as you can see there can also be a
+
+260
+00:11:50,160 --> 00:11:52,980
+query and a fragment these last two
+
+261
+00:11:52,980 --> 00:11:55,529
+sections here now we've used the query
+
+262
+00:11:55,529 --> 00:11:58,260
+part of a URI when we specified the tags
+
+263
+00:11:58,260 --> 00:12:01,620
+and other parameters in the URL for our
+
+264
+00:12:01,620 --> 00:12:05,100
+flickr browser app when used in a URL a
+
+265
+00:12:05,100 --> 00:12:07,199
+fragments interpreted as meaning a
+
+266
+00:12:07,199 --> 00:12:09,990
+particular location within a HTML
+
+267
+00:12:09,990 --> 00:12:12,269
+document so if this page looking again
+
+268
+00:12:12,269 --> 00:12:15,870
+at the URL as a section named section -
+
+269
+00:12:15,870 --> 00:12:19,139
+3 now we added that to the URL to get
+
+270
+00:12:19,139 --> 00:12:20,730
+directly to this section 3 of the
+
+271
+00:12:20,730 --> 00:12:23,040
+document I want to say we added it we
+
+272
+00:12:23,040 --> 00:12:25,829
+click the link now one thing that may
+
+273
+00:12:25,829 --> 00:12:26,850
+confuse you later
+
+274
+00:12:26,850 --> 00:12:28,920
+is the use of a hash to separate the
+
+275
+00:12:28,920 --> 00:12:31,709
+fragment from the path when we come to
+
+276
+00:12:31,709 --> 00:12:34,259
+parse our your eyes shortly you'll see
+
+277
+00:12:34,259 --> 00:12:37,290
+the hash character used as a wildcard to
+
+278
+00:12:37,290 --> 00:12:40,350
+represent any number now this is not the
+
+279
+00:12:40,350 --> 00:12:43,079
+same meaning our euro eyes won't contain
+
+280
+00:12:43,079 --> 00:12:45,630
+fragments so bear that in mind
+
+281
+00:12:45,630 --> 00:12:48,480
+the hash character in our code just as a
+
+282
+00:12:48,480 --> 00:12:50,790
+wild-card for numbers and not as a
+
+283
+00:12:50,790 --> 00:12:53,010
+fragment separator to head to the
+
+284
+00:12:53,010 --> 00:12:55,560
+confusion will be using fragments in our
+
+285
+00:12:55,560 --> 00:12:57,600
+app and they've got nothing at all to do
+
+286
+00:12:57,600 --> 00:13:00,000
+with your eyes I'll talk about them when
+
+287
+00:13:00,000 --> 00:13:02,490
+we come to use them but once again bear
+
+288
+00:13:02,490 --> 00:13:05,340
+in mind that the same word is being used
+
+289
+00:13:05,340 --> 00:13:07,410
+for a completely different thing in the
+
+290
+00:13:07,410 --> 00:13:08,910
+Android fragments have nothing to do
+
+291
+00:13:08,910 --> 00:13:11,670
+with your eyes alright so there's a lot
+
+292
+00:13:11,670 --> 00:13:13,500
+more in this document and it's certainly
+
+293
+00:13:13,500 --> 00:13:14,970
+not going to win any prizes for a
+
+294
+00:13:14,970 --> 00:13:17,070
+literature but this extensible
+
+295
+00:13:17,070 --> 00:13:19,350
+definition of your eyes has allowed the
+
+296
+00:13:19,350 --> 00:13:21,480
+World Wide Web to continue working and
+
+297
+00:13:21,480 --> 00:13:23,790
+involving for nearly 30 years
+
+298
+00:13:23,790 --> 00:13:27,450
+so if it seems overly complicated bear
+
+299
+00:13:27,450 --> 00:13:29,010
+in mind that the spec itself was
+
+300
+00:13:29,010 --> 00:13:30,960
+intended to be future proof
+
+301
+00:13:30,960 --> 00:13:34,410
+there was no cloud back in 1994 but this
+
+302
+00:13:34,410 --> 00:13:36,540
+same system is used by Amazon Web
+
+303
+00:13:36,540 --> 00:13:40,170
+Services for example by specifying WSS
+
+304
+00:13:40,170 --> 00:13:43,860
+for the skinning so that's really all we
+
+305
+00:13:43,860 --> 00:13:45,690
+need to know or understand about your
+
+306
+00:13:45,690 --> 00:13:48,330
+eyes because Android provides a Euro I
+
+307
+00:13:48,330 --> 00:13:51,210
+match a class that we can use to make
+
+308
+00:13:51,210 --> 00:13:54,780
+matching owl your eyes easier so let's
+
+309
+00:13:54,780 --> 00:13:57,090
+go back to Android studio and then we're
+
+310
+00:13:57,090 --> 00:13:59,480
+going to create a variable to hold a
+
+311
+00:13:59,480 --> 00:14:02,310
+urimatcher so I'm going to add that
+
+312
+00:14:02,310 --> 00:14:05,040
+inside the class and then we're going to
+
+313
+00:14:05,040 --> 00:14:10,350
+create that variable private Bell your
+
+314
+00:14:10,350 --> 00:14:11,240
+eye matcher
+
+315
+00:14:11,240 --> 00:14:14,190
+boy lazy I'm just going to press ENTER
+
+316
+00:14:14,190 --> 00:14:16,560
+there to accept that rest of that code
+
+317
+00:14:16,560 --> 00:14:18,300
+and then print in the left or right
+
+318
+00:14:18,300 --> 00:14:20,940
+curly braces I'm going to type build you
+
+319
+00:14:20,940 --> 00:14:23,130
+arrive matchup which will be a function
+
+320
+00:14:23,130 --> 00:14:25,650
+we're going to call and in fact we'll
+
+321
+00:14:25,650 --> 00:14:27,660
+implement that in the next slide so
+
+322
+00:14:27,660 --> 00:14:30,380
+private fun build your eye matcher
+
+323
+00:14:30,380 --> 00:14:35,600
+parentheses : in this URI matcher
+
+324
+00:14:35,600 --> 00:14:38,550
+and open it left or right curly brace is
+
+325
+00:14:38,550 --> 00:14:40,590
+there and I'm going to start with the
+
+326
+00:14:40,590 --> 00:14:44,390
+log so I log dot d parentheses ter comma
+
+327
+00:14:44,390 --> 00:14:51,250
+build you awry matchup starts
+
+328
+00:14:51,250 --> 00:14:55,750
+and we're gonna do Val matcha is equal
+
+329
+00:14:55,750 --> 00:14:59,770
+to your eye matcha in parentheses your
+
+330
+00:14:59,770 --> 00:15:02,590
+eye matcha dot no one has called match
+
+331
+00:15:02,590 --> 00:15:06,970
+then we're going to return matchup so
+
+332
+00:15:06,970 --> 00:15:10,030
+we've set up now our urimatcher this is
+
+333
+00:15:10,030 --> 00:15:11,980
+one way to do it by creating a function
+
+334
+00:15:11,980 --> 00:15:14,860
+that returns a euro matter object now I
+
+335
+00:15:14,860 --> 00:15:16,840
+think that was a good use for a lazy
+
+336
+00:15:16,840 --> 00:15:18,610
+delegate to ensure that the function is
+
+337
+00:15:18,610 --> 00:15:21,250
+called the first time we try to use our
+
+338
+00:15:21,250 --> 00:15:23,140
+euro matcher and that's why we've used
+
+339
+00:15:23,140 --> 00:15:26,320
+by lazy for our variable now we're
+
+340
+00:15:26,320 --> 00:15:27,880
+filling in the details of that function
+
+341
+00:15:27,880 --> 00:15:29,230
+shortly when we've discussed what it's
+
+342
+00:15:29,230 --> 00:15:31,120
+going to do I want to switch back though
+
+343
+00:15:31,120 --> 00:15:33,010
+to the Google documentation again in the
+
+344
+00:15:33,010 --> 00:15:39,760
+browser and just below this note about
+
+345
+00:15:39,760 --> 00:15:41,200
+designing Authority there's this thing
+
+346
+00:15:41,200 --> 00:15:44,650
+about designing a path structure now we
+
+347
+00:15:44,650 --> 00:15:47,680
+can create your eyes to provide access
+
+348
+00:15:47,680 --> 00:15:50,530
+to individual tables by pending the name
+
+349
+00:15:50,530 --> 00:15:52,930
+or the table name to the authority now
+
+350
+00:15:52,930 --> 00:15:55,780
+for example in the document you can see
+
+351
+00:15:55,780 --> 00:15:58,390
+here they've got comdata example dot yep
+
+352
+00:15:58,390 --> 00:16:01,120
+nom dot provider and a forward slash
+
+353
+00:16:01,120 --> 00:16:04,510
+table one for the tasks in our code the
+
+354
+00:16:04,510 --> 00:16:07,030
+full euro I would be content colon
+
+355
+00:16:07,030 --> 00:16:09,040
+forward slash forward slash learn
+
+356
+00:16:09,040 --> 00:16:12,880
+programming dot Academy task timer dot
+
+357
+00:16:12,880 --> 00:16:15,580
+provider forward slash tasks and for the
+
+358
+00:16:15,580 --> 00:16:17,800
+other tables once we've created them we
+
+359
+00:16:17,800 --> 00:16:19,720
+just changed tasks for the name of the
+
+360
+00:16:19,720 --> 00:16:22,210
+table we want to use the you arrived for
+
+361
+00:16:22,210 --> 00:16:24,370
+the timings table for example would be
+
+362
+00:16:24,370 --> 00:16:26,500
+learned programming done Academy doc
+
+363
+00:16:26,500 --> 00:16:29,320
+task timer dot provider forward slash
+
+364
+00:16:29,320 --> 00:16:32,080
+timings so our content provider will be
+
+365
+00:16:32,080 --> 00:16:34,089
+getting different your eyes for the
+
+366
+00:16:34,089 --> 00:16:36,370
+different tables and views which means
+
+367
+00:16:36,370 --> 00:16:38,350
+we need some way to decide which table
+
+368
+00:16:38,350 --> 00:16:40,180
+is contained in the euro
+
+369
+00:16:40,180 --> 00:16:42,070
+now we could parse out the information
+
+370
+00:16:42,070 --> 00:16:44,440
+ourselves it's basically a case of
+
+371
+00:16:44,440 --> 00:16:46,210
+extracting the name that appears after
+
+372
+00:16:46,210 --> 00:16:49,150
+the slash in the euro but Google have
+
+373
+00:16:49,150 --> 00:16:51,339
+created this URI match a class to do
+
+374
+00:16:51,339 --> 00:16:53,530
+that for us so the document here
+
+375
+00:16:53,530 --> 00:16:55,170
+describes what we have to do
+
+376
+00:16:55,170 --> 00:16:57,280
+specifically in this handling content
+
+377
+00:16:57,280 --> 00:17:00,610
+your iid section now note that there can
+
+378
+00:17:00,610 --> 00:17:03,070
+be an ID at the end of the euro which
+
+379
+00:17:03,070 --> 00:17:05,079
+makes parsing slightly more difficult
+
+380
+00:17:05,079 --> 00:17:08,169
+so this handling content your iid
+
+381
+00:17:08,169 --> 00:17:10,720
+section explains why we need an
+
+382
+00:17:10,720 --> 00:17:13,390
+underscore ID column in our tables the
+
+383
+00:17:13,390 --> 00:17:15,640
+provider uses that when it needs to
+
+384
+00:17:15,640 --> 00:17:18,309
+provide a single record or row matching
+
+385
+00:17:18,309 --> 00:17:21,429
+an ID and the cursor adapter needs a
+
+386
+00:17:21,429 --> 00:17:24,730
+column called underscore ID to work when
+
+387
+00:17:24,730 --> 00:17:26,620
+the user taps an item in a list view or
+
+388
+00:17:26,620 --> 00:17:27,579
+recyclerview
+
+389
+00:17:27,579 --> 00:17:30,760
+it's the ID that's used to retrieve the
+
+390
+00:17:30,760 --> 00:17:32,380
+corresponding row from the databases
+
+391
+00:17:32,380 --> 00:17:35,230
+using the and the score ID column and
+
+392
+00:17:35,230 --> 00:17:37,240
+scrolling down here we can see that
+
+393
+00:17:37,240 --> 00:17:40,059
+under a Content URI patterns that
+
+394
+00:17:40,059 --> 00:17:41,769
+there's a description which also
+
+395
+00:17:41,769 --> 00:17:43,659
+includes a link to the Euro I match a
+
+396
+00:17:43,659 --> 00:17:46,419
+class up here and we'll have a look at
+
+397
+00:17:46,419 --> 00:17:50,669
+that in more detail in the next video
+

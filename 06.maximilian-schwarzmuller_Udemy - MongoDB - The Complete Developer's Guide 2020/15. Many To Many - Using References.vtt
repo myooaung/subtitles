@@ -1,0 +1,248 @@
+WEBVTT
+1
+00:00:02.200 --> 00:00:07.510
+So in the last lecture we had a look at a many-to-many relationship where changing data might not be
+
+2
+00:00:07.510 --> 00:00:14.120
+that bad for our duplicates and therefore embedding the documents might be fine.
+
+3
+00:00:14.140 --> 00:00:18.490
+Now let's have a look at a many-to-many relationship where splitting it up and using references might
+
+4
+00:00:18.490 --> 00:00:19.510
+be better.
+
+5
+00:00:19.700 --> 00:00:25.030
+Here we got a couple of books and a couple of authors and one book can be written by multiple authors
+
+6
+00:00:25.210 --> 00:00:27.990
+and one author will probably write more than one book,
+
+7
+00:00:28.090 --> 00:00:31.180
+so it's a typical many-to-many relationship,
+
+8
+00:00:31.190 --> 00:00:35.080
+now let's see how we could model that and how we could store that in our database.
+
+9
+00:00:35.140 --> 00:00:44.890
+Let's create our book registry database here and in there, I'll have my books collection and I'll insert
+
+10
+00:00:44.890 --> 00:00:47.290
+a new book with a name,
+
+11
+00:00:47.350 --> 00:00:55.800
+my favorite book and with some authors and here let's first of all go for the embedded approach.
+
+12
+00:00:55.940 --> 00:01:01.370
+So I'll have an author, Max Schwarz, age 29
+
+13
+00:01:01.380 --> 00:01:08.620
+and I'll have another author, name is Manuel Lor, age 30,
+
+14
+00:01:08.680 --> 00:01:18.380
+if I hit enter, we can of course find all our books here, pretty print them and see we got embedded author
+
+15
+00:01:18.380 --> 00:01:19.610
+documents.
+
+16
+00:01:19.730 --> 00:01:26.170
+Now we'll also have our authors collection typically because when we're managing books and authors, well
+
+17
+00:01:26.190 --> 00:01:34.370
+we'll need both kinds of data and authors might then be a collection where we insertMany authors with
+
+18
+00:01:34.370 --> 00:01:39.480
+square brackets as you learned, then multiple documents separated by commas and
+
+19
+00:01:39.520 --> 00:01:45.130
+there we might have name Max Schwarz, maybe that also is our unique identifier we can use,
+
+20
+00:01:45.170 --> 00:01:49.640
+otherwise we should also store an ID here in the authors of the book.
+
+21
+00:01:49.640 --> 00:01:52.340
+But here we got that, we also got the age
+
+22
+00:01:55.570 --> 00:02:04.900
+and there let's say we also have the address as an extra field with a street and so on. Now we get the
+
+23
+00:02:04.900 --> 00:02:12.100
+second author which is Manuel Lor, age 30
+
+24
+00:02:12.210 --> 00:02:16.350
+and there we also got an address with a street,
+
+25
+00:02:19.480 --> 00:02:21.720
+like this.
+
+26
+00:02:22.050 --> 00:02:25.550
+I can look into my authors of course with find and pretty print that
+
+27
+00:02:25.590 --> 00:02:27.170
+and I see my author data.
+
+28
+00:02:27.390 --> 00:02:29.130
+Now that would be a typical use case,
+
+29
+00:02:29.280 --> 00:02:35.330
+we got our books with embedded author data and that could be all or some of the data we have in the authors
+
+30
+00:02:35.340 --> 00:02:38.430
+collection and we get just the authors collection,
+
+31
+00:02:38.430 --> 00:02:45.720
+the problem is if one author changes, maybe I got older, maybe I moved, then I need to update that everywhere
+
+32
+00:02:45.720 --> 00:02:51.480
+where I use that and that's not just the authors collection but that would be all my books and that is
+
+33
+00:02:51.480 --> 00:02:56.730
+especially important let's say if I changed my name because I married, then I can't say now I don't care
+
+34
+00:02:56.730 --> 00:03:02.130
+it's an old snapshot like we did for the orders. For the books and for the authors, I want to have the most recent
+
+35
+00:03:02.130 --> 00:03:03.260
+data of course
+
+36
+00:03:03.420 --> 00:03:09.270
+and if I'm displaying the age in the book, I might say that is a snapshot data, that is ok, for the name
+
+37
+00:03:09.340 --> 00:03:14.140
+it's probably not and in my registry in the database even the age is not ok,
+
+38
+00:03:14.160 --> 00:03:18.790
+that should be all up-to-date for future books, for future prints, let's say.
+
+39
+00:03:18.810 --> 00:03:25.550
+So here, if we then change the name of the author, we have to change it here with the update method in
+
+40
+00:03:25.560 --> 00:03:26.910
+the authors collection
+
+41
+00:03:27.030 --> 00:03:32.970
+and we also have to change it in the books collection by finding all books where this author is an author
+
+42
+00:03:33.120 --> 00:03:39.570
+and that is a lot of work and a lot of write and update requests. This is bad from a performance perspective
+
+43
+00:03:39.720 --> 00:03:42.870
+because we have to well write a lot to the database,
+
+44
+00:03:42.870 --> 00:03:46.830
+it also is error prone because we might be overlooking some document
+
+45
+00:03:46.830 --> 00:03:47.800
+we should update
+
+46
+00:03:48.240 --> 00:03:55.010
+and therefore, this is probably not the best approach for this scenario because in our application, if
+
+47
+00:03:55.080 --> 00:03:58.130
+the data does change, it should change everywhere.
+
+48
+00:03:58.470 --> 00:04:04.100
+Now even with that, it might be ok if changes are very unlikely to happen
+
+49
+00:04:04.290 --> 00:04:10.320
+but some data like the age will change at least once a year, other data might change more frequently and
+
+50
+00:04:10.320 --> 00:04:13.010
+the more frequent we can expect such changes,
+
+51
+00:04:13.070 --> 00:04:18.930
+the more often we'll have to touch dozens or one hundreds of documents, so the worse the matter gets. So low
+
+52
+00:04:18.930 --> 00:04:24.960
+frequency might still let us get away with this approach and might make it a good approach, with higher
+
+53
+00:04:24.960 --> 00:04:25.900
+frequency,
+
+54
+00:04:25.980 --> 00:04:30.250
+it almost most certainly is not a good way of relating this.
+
+55
+00:04:30.450 --> 00:04:37.140
+So instead of using embedded documents here, we should go for the reference approach, so we should take
+
+56
+00:04:37.140 --> 00:04:44.690
+the references of our authors and then go to our books collection, update the book in our case here,
+
+57
+00:04:44.880 --> 00:04:54.150
+the one book we got and update it by setting the authors to an array of our objectIds, so of the objectId
+
+58
+00:04:54.180 --> 00:04:57.690
+of Max and the objectId of Manuel.
+
+59
+00:04:57.690 --> 00:05:03.650
+And now if we output our books here with findOne,
+
+60
+00:05:03.750 --> 00:05:09.360
+now we only got the references in there and this is better because now if we do fetch all the books, yeah
+
+61
+00:05:09.450 --> 00:05:16.260
+we will have to merge it manually with the author data but therefore, the author data is guaranteed to
+
+62
+00:05:16.260 --> 00:05:22.970
+be up-to-date and if we change the author data, we don't have to do that in hundreds or thousands of documents.

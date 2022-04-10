@@ -1,0 +1,160 @@
+1
+00:00:01,989 --> 00:00:05,726
+Because our demo application has three ways to authenticate,
+
+2
+00:00:05,726 --> 00:00:10,074
+form login, OAuth2 for Facebook, and OpenID Connect for Google,
+
+3
+00:00:10,074 --> 00:00:14,935
+the getPrincipal will return three different types of objects.
+
+4
+00:00:14,935 --> 00:00:18,564
+For form login it will be the type UserDetails.
+
+5
+00:00:18,564 --> 00:00:22,472
+For OAuth2, DefaultOAuth2User.
+
+6
+00:00:22,472 --> 00:00:27,001
+And for OpenID Connect, DefaultOidcUser.
+
+7
+00:00:27,001 --> 00:00:31,708
+Now the OpenID Connect user extends the DefaultOAuth2User class and
+
+8
+00:00:31,708 --> 00:00:35,431
+provides additional accesses like the idToken,
+
+9
+00:00:35,431 --> 00:00:37,836
+which makes sense as the specification of OpenID
+
+10
+00:00:37,836 --> 00:00:40,836
+Connect is built on top of OAuth.
+
+11
+00:00:40,836 --> 00:00:43,337
+This can, however, make things difficult in your code.
+
+12
+00:00:43,337 --> 00:00:46,061
+If we look at the authentication success handler,
+
+13
+00:00:46,061 --> 00:00:48,854
+you can see the messy code,
+
+14
+00:00:48,854 --> 00:00:51,961
+mainly because Facebook decided it wanted to be different
+
+15
+00:00:51,961 --> 00:00:54,796
+and not be an OpenID Connect provider,
+
+16
+00:00:54,796 --> 00:00:57,983
+which can cause your code to turn into a lot of messy if
+
+17
+00:00:57,983 --> 00:01:01,449
+statements for each non- OpenID Connect provider.
+
+18
+00:01:01,449 --> 00:01:05,651
+Imagine you wanted to get the name of user in one of our controllers.
+
+19
+00:01:05,651 --> 00:01:09,953
+Now previously when the application just had form login,
+
+20
+00:01:09,953 --> 00:01:13,633
+the UserDetailsService would extract the principal data from the database,
+
+21
+00:01:13,633 --> 00:01:19,803
+create a user object of type MFAUser, return it to the authentication provider,
+
+22
+00:01:19,803 --> 00:01:24,233
+which would then package it up into an authentication object.
+
+23
+00:01:24,233 --> 00:01:28,367
+So the principal was always of type MFAUser.
+
+24
+00:01:28,367 --> 00:01:29,402
+Hence in our controller,
+
+25
+00:01:29,402 --> 00:01:33,738
+we could simply use the @AuthenticationPrincipal annotation and
+
+26
+00:01:33,738 --> 00:01:35,865
+Spring would conveniently resolve it for us.
+
+27
+00:01:35,865 --> 00:01:38,560
+Basically, it would be the equivalent of this.
+
+28
+00:01:38,560 --> 00:01:44,176
+However, now if the user logs in with OAuth, this will simply return null.
+
+29
+00:01:44,176 --> 00:01:47,842
+Let's say we wanted to get the name of the principal.
+
+30
+00:01:47,842 --> 00:01:50,182
+We would need to do something like this.
+
+31
+00:01:50,182 --> 00:01:50,492
+Yeah.
+
+32
+00:01:50,492 --> 00:01:56,097
+First, we would check if the principal is of type MFAUser and extract the name.
+
+33
+00:01:56,097 --> 00:01:59,020
+Next, we can assume they logged in via OAuth.
+
+34
+00:01:59,020 --> 00:02:02,961
+We need to check if they are an OpenID Connect provider.
+
+35
+00:02:02,961 --> 00:02:03,969
+If they are, great.
+
+36
+00:02:03,969 --> 00:02:07,971
+We can use the standard claim names to get the first and last name.
+
+37
+00:02:07,971 --> 00:02:08,527
+If not,
+
+38
+00:02:08,527 --> 00:02:12,790
+then we would need to check which provider they are and surgically
+
+39
+00:02:12,790 --> 00:02:16,412
+extract the attributes based on the provider specification.
+
+40
+00:02:16,412 --> 00:02:22,000
+There has to be a better way. Next, we will look at how we can clean this up.
+

@@ -1,0 +1,400 @@
+1
+00:00:02,470 --> 00:00:06,240
+So I've been using the phrase live, and I've been talking about live roots.
+
+2
+00:00:06,240 --> 00:00:07,820
+But what does this actually mean?
+
+3
+00:00:07,820 --> 00:00:09,740
+What is a live root?
+
+4
+00:00:09,740 --> 00:00:12,360
+Well, a live root is a reference to an object from
+
+5
+00:00:12,360 --> 00:00:13,980
+something such as a stack frame.
+
+6
+00:00:13,980 --> 00:00:17,270
+The stack represents essentially the live running of the application,
+
+7
+00:00:17,270 --> 00:00:19,920
+so the stack across all threads.
+
+8
+00:00:19,920 --> 00:00:22,610
+So any references from variables on stack frames that are
+
+9
+00:00:22,610 --> 00:00:26,580
+referencing objects must be live references.
+
+10
+00:00:26,580 --> 00:00:27,900
+Any static variables.
+
+11
+00:00:27,900 --> 00:00:29,970
+So any static variables in the application that hold
+
+12
+00:00:29,970 --> 00:00:33,690
+references to objects, those static variables are not attached
+
+13
+00:00:33,690 --> 00:00:35,540
+to a particular instance or an object.
+
+14
+00:00:35,540 --> 00:00:38,120
+They're just there as essentially global variables.
+
+15
+00:00:38,120 --> 00:00:41,370
+Any objects referenced by static variables must also be kept alive.
+
+16
+00:00:41,370 --> 00:00:43,740
+And they're also some other references as well.
+
+17
+00:00:43,740 --> 00:00:46,380
+So if we're using, for example, the Java native interface,
+
+18
+00:00:46,380 --> 00:00:48,060
+if we're using synchronization monitors,
+
+19
+00:00:48,060 --> 00:00:49,360
+we'll be doing locking.
+
+20
+00:00:49,360 --> 00:00:51,120
+Those are live references as well.
+
+21
+00:00:51,120 --> 00:00:56,170
+So any object with a reference from a live root is kept alive during GC.
+
+22
+00:00:56,170 --> 00:00:58,360
+These references from live roots are followed.
+
+23
+00:00:58,360 --> 00:01:00,830
+So we have a reference to an object that's alive.
+
+24
+00:01:00,830 --> 00:01:06,180
+If it holds references to any other objects, those objects are also kept alive.
+
+25
+00:01:06,180 --> 00:01:10,670
+Remember that the garbage collector does not want to destroy any live objects.
+
+26
+00:01:10,670 --> 00:01:13,900
+We must follow any references from the root down through
+
+27
+00:01:13,900 --> 00:01:17,180
+all their child references until we find all the objects
+
+28
+00:01:17,180 --> 00:01:19,020
+that we now know are alive.
+
+29
+00:01:19,020 --> 00:01:20,580
+There's one other thing to think about here,
+
+30
+00:01:20,580 --> 00:01:24,520
+especially when we think about garbage collection in the young generation.
+
+31
+00:01:24,520 --> 00:01:27,860
+We may have a reference from a live root to an object
+
+32
+00:01:27,860 --> 00:01:30,130
+that's now in the old generation.
+
+33
+00:01:30,130 --> 00:01:33,110
+If that has a reference to an object in the young generation,
+
+34
+00:01:33,110 --> 00:01:36,400
+then we need to follow that reference to ensure that we don't
+
+35
+00:01:36,400 --> 00:01:39,440
+destroy that object in the young generation.
+
+36
+00:01:39,440 --> 00:01:42,780
+So here, in this simplified diagram, we have a root set,
+
+37
+00:01:42,780 --> 00:01:44,410
+and we have two live roots.
+
+38
+00:01:44,410 --> 00:01:47,180
+One references an object in the young generation and will follow
+
+39
+00:01:47,180 --> 00:01:49,210
+each reference and keep those objects alive.
+
+40
+00:01:49,210 --> 00:01:53,110
+Well that root set also has a reference to an object in the old generation,
+
+41
+00:01:53,110 --> 00:01:57,240
+and that itself then is a reference to an object in the young generation.
+
+42
+00:01:57,240 --> 00:01:59,310
+When we do a young garbage collect,
+
+43
+00:01:59,310 --> 00:02:02,930
+we don't want to remove the object from the young generation as
+
+44
+00:02:02,930 --> 00:02:05,510
+being referenced from the old generation.
+
+45
+00:02:05,510 --> 00:02:08,140
+So we need to make sure that that object is kept alive.
+
+46
+00:02:08,140 --> 00:02:11,040
+So this is an issue.
+
+47
+00:02:11,040 --> 00:02:14,230
+When we do a young generation garbage collect,
+
+48
+00:02:14,230 --> 00:02:17,740
+the garbage collector only looks at the references to
+
+49
+00:02:17,740 --> 00:02:20,660
+objects in the young generation, we route references to
+
+50
+00:02:20,660 --> 00:02:22,240
+objects in the young generation, i.e.
+
+51
+00:02:22,240 --> 00:02:25,640
+it ignores objects in the old generation.
+
+52
+00:02:25,640 --> 00:02:28,280
+And it does this for efficiency sake.
+
+53
+00:02:28,280 --> 00:02:30,940
+If we need to look at objects in the old generation,
+
+54
+00:02:30,940 --> 00:02:33,400
+then we may as well do a garbage collect in the old generation as well.
+
+55
+00:02:33,400 --> 00:02:34,900
+We have to load everything into memory.
+
+56
+00:02:34,900 --> 00:02:36,930
+We have to scan the entire memory set.
+
+57
+00:02:36,930 --> 00:02:39,870
+And this sort of defeats the purpose of having multiple
+
+58
+00:02:39,870 --> 00:02:43,340
+generations into which we can do garbage collections.
+
+59
+00:02:43,340 --> 00:02:50,210
+To fix this issue, we have something called a card table.
+
+60
+00:02:50,210 --> 00:02:52,240
+So what happens is this.
+
+61
+00:02:52,240 --> 00:02:57,650
+When a write to a reference to an object in the young generation happens,
+
+62
+00:02:57,650 --> 00:03:01,940
+these writes go through something called a write barrier.
+
+63
+00:03:01,940 --> 00:03:05,840
+The write barrier triggers code in the Java virtual machine,
+
+64
+00:03:05,840 --> 00:03:09,860
+and this code updates an entry in a table,
+
+65
+00:03:09,860 --> 00:03:12,990
+and these tables called card tables.
+
+66
+00:03:12,990 --> 00:03:19,800
+Each entry in the card table owns 512 bytes of memory.
+
+67
+00:03:19,800 --> 00:03:26,340
+So the idea is that if anything from that 512 bytes of memory is changed,
+
+68
+00:03:26,340 --> 00:03:28,110
+then the card table is updated.
+
+69
+00:03:28,110 --> 00:03:35,020
+On a minor GC, the card table is scanned, looking for any changed data.
+
+70
+00:03:35,020 --> 00:03:39,160
+That piece of memory is loaded, and any references in that memory are followed,
+
+71
+00:03:39,160 --> 00:03:45,030
+and those references are then marked as being in use.
+
+72
+00:03:45,030 --> 00:03:47,440
+So here we have a simplified picture of memory.
+
+73
+00:03:47,440 --> 00:03:51,310
+We're showing a young generation, an old generation, and the card table.
+
+74
+00:03:51,310 --> 00:03:55,100
+We're not showing any live roots here just to keep this simple.
+
+75
+00:03:55,100 --> 00:03:58,890
+So the idea now is that when an object in the old generation updates a
+
+76
+00:03:58,890 --> 00:04:00,800
+reference for an object in the young generation,
+
+77
+00:04:00,800 --> 00:04:03,540
+or, as we'll see here, allocates an object,
+
+78
+00:04:03,540 --> 00:04:06,240
+and that object is allocated into the young generation.
+
+79
+00:04:06,240 --> 00:04:07,680
+So it's something like this.
+
+80
+00:04:07,680 --> 00:04:08,710
+The object is allocated,
+
+81
+00:04:08,710 --> 00:04:14,040
+and the object in the old generation now has a reference that object.
+
+82
+00:04:14,040 --> 00:04:15,640
+When this happens,
+
+83
+00:04:15,640 --> 00:04:21,000
+that write to memory to allocate that object goes through a write barrier.
+
+84
+00:04:21,000 --> 00:04:25,090
+The Java VM manages the write barrier, and when it sees this write,
+
+85
+00:04:25,090 --> 00:04:30,040
+it updates the corresponding entry in a card table.
+
+86
+00:04:30,040 --> 00:04:30,530
+Again,
+
+87
+00:04:30,530 --> 00:04:34,340
+this happens for any write into the young generation. So if we
+
+88
+00:04:34,340 --> 00:04:36,660
+allocate another object in the young generation from something in the
+
+89
+00:04:36,660 --> 00:04:42,180
+old generation, then the write goes through a write barrier, the Java
+
+90
+00:04:42,180 --> 00:04:45,870
+VM manages the write barrier, and it again updates the corresponding
+
+91
+00:04:45,870 --> 00:04:48,610
+entry in the card table.
+
+92
+00:04:48,610 --> 00:04:51,750
+So now when the garbage collector runs and collects the young
+
+93
+00:04:51,750 --> 00:04:55,990
+generation, it starts with the live roots, follows those live roots to
+
+94
+00:04:55,990 --> 00:05:00,280
+any object in the young generation, follows any references from one
+
+95
+00:05:00,280 --> 00:05:02,830
+object in the young generation to another.
+
+96
+00:05:02,830 --> 00:05:05,580
+A young generation garbage collect doesn't look at
+
+97
+00:05:05,580 --> 00:05:08,340
+references to objects in the old generation.
+
+98
+00:05:08,340 --> 00:05:11,890
+Instead, what it does is it scans the card table.
+
+99
+00:05:11,890 --> 00:05:15,030
+If it finds any marked areas in the card table,
+
+100
+00:05:15,030 --> 00:05:24,000
+it loads the corresponding piece of memory and follows those references and marks those objects as being alive.
+

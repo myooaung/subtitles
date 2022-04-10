@@ -1,0 +1,217 @@
+WEBVTT
+
+00:02.100 --> 00:09.320
+In the last lecture we encountered a so-called cors error. Cors stands for cross origin resource
+
+00:09.320 --> 00:12.120
+sharing and that's exactly what we're doing.
+
+00:12.170 --> 00:14.800
+We have a separated server and client,
+
+00:14.810 --> 00:17.640
+remember they're running on different domains,
+
+00:17.730 --> 00:23.670
+localhost 3000 for the server, localhost 4200 for our angular app.
+
+00:23.930 --> 00:29.930
+Now client and server want to talk to each other and they're not on the same host, if they were, then
+
+00:30.020 --> 00:32.550
+we could communicate without any issues
+
+00:33.020 --> 00:38.990
+but if they're on different hosts like in our case, we got 4200 but it doesn't matter, if we have different
+
+00:38.990 --> 00:39.750
+hosts
+
+00:39.980 --> 00:43.620
+we're then communicating with such background requests will fail and
+
+00:43.640 --> 00:45.440
+that's a security mechanism.
+
+00:45.440 --> 00:51.590
+You should not be able to access the data on a server or its resources in general if you're not running
+
+00:51.590 --> 00:52.530
+on the same server,
+
+00:52.580 --> 00:58.340
+so if the request is coming from a different address, this will give us a so-called cors error.
+
+00:58.340 --> 01:04.080
+The problem just is for our setup and for many modern web apps, we want to allow this,
+
+01:04.160 --> 01:06.930
+it's not a security issue here it's a want behavior,
+
+01:07.100 --> 01:15.860
+we want to expose our server API to all possible clients and naturally, they will not run on our server.
+
+01:15.980 --> 01:18.990
+So we need to disable this default mechanism
+
+01:19.190 --> 01:26.340
+and this is done by setting the right headers on the server side response, now which headers are these?
+
+01:26.510 --> 01:30.260
+Back in our code, it has to be done in the server side code
+
+01:30.260 --> 01:30.990
+as I mentioned,
+
+01:31.010 --> 01:39.540
+so let's go there to the app.js file and there I will simply add one additional middleware. Now this middleware
+
+01:39.600 --> 01:45.210
+of course has to run before we handle the response sending here because there after the response is
+
+01:45.240 --> 01:46.170
+already sent,
+
+01:46.200 --> 01:51.210
+we can't manipulate it any more and we want to manipulate the response because we need to add headers
+
+01:51.210 --> 01:52.260
+to it.
+
+01:52.260 --> 01:58.980
+So app use, no filters added, so no path filters added because I want to do this for all incoming requests
+
+01:59.310 --> 02:04.450
+and then I get my default function as an argument here which gets the requests, the response and this
+
+02:04.650 --> 02:07.550
+next function it can call and in there,
+
+02:07.620 --> 02:13.010
+the goal is to call next at the end because request should be able to continue to the next middleware
+
+02:13.320 --> 02:19.260
+but before we do that, I want to manipulate the request or the response to be precise.
+
+02:19.440 --> 02:24.690
+So we'll take the response object and set a header with the set header method.
+
+02:25.110 --> 02:27.230
+Now the set header method is very simple,
+
+02:27.390 --> 02:33.890
+the first argument is the header key, the identifier and the second one is the value for that header.
+
+02:33.930 --> 02:42.900
+So I want to set a header which is called access-control-allow-origin and make sure
+
+02:42.900 --> 02:48.360
+to not mistype here because this is a clearly defined header understood by the browser.
+
+02:48.600 --> 02:51.600
+The value I want to set it to is a star,
+
+02:51.600 --> 02:59.190
+this means no matter which domain the app which is sending the request is running on, it's allowed to
+
+02:59.190 --> 03:01.370
+access our resources,
+
+03:01.380 --> 03:02.870
+this is one important header,
+
+03:02.920 --> 03:07.650
+it's not the only one though. We also need to set another header related to this,
+
+03:07.710 --> 03:16.860
+it's the access control allow headers header, well the first one allows which domains are able to access
+
+03:16.860 --> 03:17.780
+our resources
+
+03:18.030 --> 03:24.990
+but now we can also restrict this to domains sending requests with a certain set of headers besides
+
+03:24.990 --> 03:29.900
+the default headers, there are default headers like the browser and so on
+
+03:30.030 --> 03:32.320
+but we also want to allow some extra headers,
+
+03:32.430 --> 03:36.990
+we want to allow the origin header and that simply is a comma separated list here,
+
+03:37.220 --> 03:45.420
+the x requested with header, the content type header and the accept header. You can add more,
+
+03:45.420 --> 03:50.490
+you can also remove some of them, we don't use them all in this app but this essentially means the incoming
+
+03:50.490 --> 03:53.000
+request may have these extra headers,
+
+03:53.070 --> 03:59.120
+it doesn't have to have them but it may have them and it will still be allowed. If it has another non-default
+
+03:59.130 --> 04:02.070
+header which is not defined here, access would be blocked
+
+04:02.130 --> 04:07.010
+even though we do generally allow it for all domains but this is an additional criteria.
+
+04:07.440 --> 04:10.520
+Now there's one other header I will set with set header
+
+04:10.650 --> 04:20.190
+and that is the access control allow methods header and here we control which http verbs may be used to send
+
+04:20.190 --> 04:21.210
+requests
+
+04:21.390 --> 04:23.950
+and I want to allow get post
+
+04:24.030 --> 04:32.000
+and as you can see, this is again a comma separated list, patch, delete and important, options.
+
+04:32.010 --> 04:38.670
+This is an implicit request sent by the browser by default prior to post requests for example to check
+
+04:38.670 --> 04:40.880
+whether the post request is valid,
+
+04:40.890 --> 04:46.320
+so even if you never directly send such an options request from within your angular app, it will implicitly
+
+04:46.320 --> 04:49.610
+be sent and therefore you should allow it as http verb.
+
+04:49.950 --> 04:52.890
+Now you can also allow put for example if your app needs that,
+
+04:52.980 --> 04:56.010
+if you don't plan on using it, don't add it.
+
+04:56.010 --> 05:02.380
+So this is now our setup and with these headers, we should now be able to send that request,
+
+05:02.430 --> 05:06.240
+so if we save that, it should restart the server automatically.
+
+05:06.240 --> 05:10.410
+We can go back to our angular app and simply reload the page
+
+05:10.620 --> 05:14.710
+and now we see our two posts here and we get no error.
+
+05:14.730 --> 05:17.340
+These are the posts coming from the server
+
+05:17.430 --> 05:23.630
+and this is how we connect our angular app to our node express server in the most basic form.
+
+05:23.640 --> 05:25.140
+Now that's cool and all,
+
+05:25.140 --> 05:29.810
+now let's also make sure we can post new posts to the server.

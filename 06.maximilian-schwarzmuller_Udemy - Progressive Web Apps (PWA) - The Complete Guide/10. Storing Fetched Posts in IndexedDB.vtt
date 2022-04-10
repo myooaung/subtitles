@@ -1,0 +1,556 @@
+WEBVTT
+
+00:02.230 --> 00:04.480
+So we added the IDB file,
+
+00:04.540 --> 00:06.080
+we're using it in index.html
+
+00:06.100 --> 00:10.360
+but of course as you know, the service worker works independent of that page.
+
+00:10.360 --> 00:13.690
+So how can we use that package in the service worker?
+
+00:13.690 --> 00:19.030
+The answer is by default we can't because the service worker doesn't care about which polyfills or
+
+00:19.030 --> 00:24.370
+packages we load in our main project but service workers have a special syntax which allow us
+
+00:24.370 --> 00:31.220
+to import other packages and that special syntax is importScripts.
+
+00:31.360 --> 00:35.880
+This simply allows us to point to another script which we want to use in that service worker
+
+00:36.070 --> 00:40.360
+and this in general allows you to distribute your code across multiple files.
+
+00:40.450 --> 00:45.310
+You can of course also use this to make your service worker leaner and outsource some of the code into
+
+00:45.310 --> 00:50.890
+a separate file, though I prefer to keep everything in here to have one place where I can quickly see
+
+00:51.160 --> 00:54.410
+where I'm handling fetch events and so on
+
+00:54.520 --> 00:57.210
+though you could of course also argue for outsourcing this.
+
+00:57.340 --> 01:04.090
+Nonetheless what I will do here is I will import that IDB file, so I'll import to /src/js/idb.js/
+
+01:04.360 --> 01:05.530
+.
+
+01:05.650 --> 01:09.260
+Now of course it would be nice if that also works if we're offline,
+
+01:09.310 --> 01:13.420
+so for that I'll also import it into my static files cache,
+
+01:13.420 --> 01:15.640
+here I'll also store idb.js,
+
+01:15.730 --> 01:21.430
+just as I store promise and fetch to make sure that we can use all the functionality even without
+
+01:21.430 --> 01:22.670
+an internet connection
+
+01:23.170 --> 01:29.000
+and for that I'll bump up my cache version number here. So this imports idb.js
+
+01:29.000 --> 01:33.130
+and now we can use these features in our service worker file.
+
+01:33.340 --> 01:38.950
+Now to do so, I'll start by simply storing data when we get it from the database
+
+01:39.010 --> 01:43.150
+and do you know where we would do this in our existing service worker file?
+
+01:45.820 --> 01:47.850
+Well we can already see in the picture here,
+
+01:47.950 --> 01:52.630
+here. Right now we put something on the cache, on the application cache
+
+01:52.780 --> 01:55.390
+whenever we get data from the posts URL.
+
+01:55.450 --> 02:01.970
+Now I told you that for JSON data, we might prefer indexedDB because there we can really decide or define
+
+02:01.990 --> 02:03.340
+what we want to store there.
+
+02:03.610 --> 02:07.980
+So this is what I want to do, instead of putting something on the cache here,
+
+02:08.050 --> 02:12.220
+I want to put something or store something in indexedDB,
+
+02:12.430 --> 02:20.800
+so let's do that. For that, we first of all need to open an indexedDB database and also create an object
+
+02:20.800 --> 02:21.970
+store in there.
+
+02:22.420 --> 02:25.110
+So I will do this at the top of this file,
+
+02:25.120 --> 02:30.550
+maybe after initializing my static files and I'll store the database which can be accessed through a
+
+02:30.550 --> 02:33.700
+promise in a variable named dbPromise.
+
+02:33.700 --> 02:40.510
+So this will be a variable which in the end can give us access to the database in a promise-like way,
+
+02:40.510 --> 02:47.920
+you'll see how it works. Here I'll set it equal to IDB which we can now use due to this import being added,
+
+02:48.220 --> 02:53.520
+IDB open and this opens a new database, here
+
+02:53.590 --> 02:58.100
+I want to give it a name, like feed-store because it's for my news feed,
+
+02:58.210 --> 03:01.120
+you could also name it posts-store. Let's maybe name it like this
+
+03:01.120 --> 03:07.580
+now that I think about it because I use posts in Firebase too, so posts-store. We can pass more arguments,
+
+03:07.660 --> 03:13.420
+the version number of the database which we can simply bump up if we wanted, if we update it and then
+
+03:13.450 --> 03:15.010
+we get back a function.
+
+03:15.010 --> 03:18.970
+Now I told you it's promise based but this one function can't be avoided.
+
+03:18.970 --> 03:25.720
+This function will execute whenever the database has been created and there, we get back an object which
+
+03:25.780 --> 03:27.530
+allows us to access that database
+
+03:27.530 --> 03:35.560
+basically. Now here I want to create a new object store which is basically like a table, to create one,
+
+03:35.600 --> 03:40.870
+I call dbCreateObjectStore.
+
+03:41.270 --> 03:44.220
+Now we can set up this function with two arguments if we want to,
+
+03:44.240 --> 03:49.790
+the first one is the name of that store and I will simply name that posts, so we get the database
+
+03:49.890 --> 03:51.590
+and now we got the table in there,
+
+03:51.620 --> 03:52.760
+the object store.
+
+03:53.090 --> 04:00.590
+We can also pass a second argument to that to define an object where we define our primary key of
+
+04:00.620 --> 04:03.490
+each object we'll store in that object store,
+
+04:03.650 --> 04:06.680
+this allows us to later retrieve objects by that key.
+
+04:06.950 --> 04:12.620
+So we simply have to define a property named keyPath here, uppercase P and you have to get that name
+
+04:12.620 --> 04:18.310
+right for IDB to understand it and then the value is a string where you define the name of the key
+
+04:18.320 --> 04:22.150
+by which you later want to retrieve your data. I'll name this ID,
+
+04:22.160 --> 04:29.330
+so if I later add objects to that object store which have an ID property, I can conveniently search for
+
+04:29.330 --> 04:32.900
+objects with a given ID if I want to retrieve a single object,
+
+04:32.900 --> 04:37.320
+that's the good thing about providing these extra arguments here.
+
+04:37.340 --> 04:39.070
+This creates a new object store,
+
+04:39.080 --> 04:45.530
+the issue just is we'll use this promise here whenever we want to access the database and there we open
+
+04:45.530 --> 04:46.260
+the database,
+
+04:46.310 --> 04:50.760
+thus far that's no issue but we always also try to create an object store.
+
+04:50.960 --> 04:53.760
+We only want to do that if it doesn't exist yet
+
+04:53.840 --> 04:58.010
+and unfortunately, indexedDB and this package doesn't do that for us,
+
+04:58.010 --> 05:02.910
+it's not like in the cache where we open a cache and it either creates it or simply opens it, 
+
+05:02.960 --> 05:08.480
+here it always tries to create it and that of course is not a good idea if we already have it. So therefore
+
+05:08.510 --> 05:10.430
+I'll wrap this in an if statement where I check
+
+05:10.460 --> 05:12.710
+if we don't have this yet,
+
+05:12.800 --> 05:20.120
+so if we don't have it in our given DB here. I can do this by checking object store names,
+
+05:20.120 --> 05:25.460
+this will simply give me an array of all the existing objects stores and I can check if that contains
+
+05:25.820 --> 05:31.990
+the posts-store or object store and only if that's not the case,
+
+05:32.030 --> 05:33.960
+hence the exclamation mark in the beginning,
+
+05:34.010 --> 05:35.740
+I try to create it.
+
+05:36.140 --> 05:37.860
+So this creates a new object store
+
+05:37.880 --> 05:42.130
+and with this promise, I can access this database with this object store.
+
+05:42.560 --> 05:47.850
+So let's get rid of our old code here and actually, we don't need to open the cache anymore,
+
+05:47.990 --> 05:50.820
+just returning the fetch is all we need to do here,
+
+05:50.990 --> 05:59.700
+so let's get rid of that code too, that was too much just delete that and now with that, we're making sure
+
+06:00.030 --> 06:03.390
+that whenever we hit this URL, we respond with the fetch
+
+06:03.450 --> 06:05.650
+and in this case we just return the response.
+
+06:05.670 --> 06:08.330
+And of course, I want to do a little bit more than just that,
+
+06:08.380 --> 06:11.110
+instead I want to store that response
+
+06:11.250 --> 06:14.340
+or actually the transformed response
+
+06:14.490 --> 06:16.560
+also in indexedDB.
+
+06:16.830 --> 06:26.080
+Now to do that, I first of all need to create a copy of the response, I'll store it a new, maybe cloned
+
+06:26.130 --> 06:33.190
+res variable and I call clone on response here because the original response of course always needs
+
+06:33.190 --> 06:33.810
+to be returned
+
+06:33.820 --> 06:40.150
+even if I store the other one because otherwise, our fetch requests from our main application will fail.
+
+06:40.150 --> 06:45.160
+So here, I'm returning a cloned response or excuse me I'm returning the original response
+
+06:45.190 --> 06:46.520
+but I'm cloning it too
+
+06:46.900 --> 06:52.960
+and I want to store the transformed clone response, transformed because that's the good thing about
+
+06:52.960 --> 06:53.590
+indexedDB,
+
+06:53.620 --> 06:59.470
+we don't have to stick to the full response, we can pull out the data we want to store and store just
+
+06:59.470 --> 07:01.120
+that data in the database.
+
+07:01.720 --> 07:08.730
+So we have the cloned response, on the cloned response I now want to call JSON,
+
+07:08.780 --> 07:14.450
+this normal JSON method which of course gives us back a promise as we can confirm the feed.js
+
+07:14.500 --> 07:19.350
+file where we return response JSON and then chain another then call,
+
+07:19.360 --> 07:22.600
+that's of course possible because this also returns a promise.
+
+07:22.810 --> 07:30.280
+So here we know it gives us a promise, so we can call then and can therefore use the data we got back
+
+07:30.280 --> 07:31.480
+from the response,
+
+07:31.510 --> 07:37.840
+this is now the body data but still not transformed at all. Regarding the transformation, we can have
+
+07:37.840 --> 07:39.950
+a look at the feed.js file again,
+
+07:40.000 --> 07:42.440
+it's this transformation I want to apply.
+
+07:42.640 --> 07:48.490
+Pull out the key-value pairs from the data we get back from Firebase because we don't get back an array
+
+07:48.490 --> 07:52.210
+of posts, we get back an object where the keys are the Post IDs,
+
+07:52.210 --> 07:59.950
+that's just how the data is stored in Firebase. So I'll copy that loop here into my service worker and
+
+08:00.000 --> 08:02.380
+I'll get rid of the data array push thing in the middle
+
+08:02.380 --> 08:04.730
+but I want to loop through all the keys in my data,
+
+08:04.840 --> 08:10.510
+so though all the posts in the end. Keys of course is just the identifier of the post though.
+
+08:10.750 --> 08:14.140
+So with that, we got the data transformed,
+
+08:14.140 --> 08:17.620
+now of course I also want to store it in the database
+
+08:17.650 --> 08:20.550
+and for that, we use the dbPromise
+
+08:20.590 --> 08:23.120
+we set up here at the top.
+
+08:23.230 --> 08:30.100
+This gives us access to the database through a promise interface, so we can call then and inside of this
+
+08:30.130 --> 08:31.800
+then block in the function here,
+
+08:31.900 --> 08:36.500
+we get access to the opened database and to all the object storages
+
+08:36.520 --> 08:37.920
+we set up in this promise,
+
+08:37.960 --> 08:39.810
+so in this case only to the post storage
+
+08:39.910 --> 08:47.650
+but if we had more, we could access them all on this DB object we have here. Now I want to use that DB
+
+08:47.660 --> 08:50.390
+object to write some data to the database
+
+08:50.660 --> 08:55.500
+and for that, I first of all need to create a transaction which I'll store in the tx variable.
+
+08:55.670 --> 08:59.840
+I told you that indexedDB has this transactional operation model,
+
+08:59.840 --> 09:04.200
+so basically we have to use transactions for everything we do with the database.
+
+09:04.210 --> 09:10.490
+A transaction is easily created by using the DB object we get in this function and calling the transaction
+
+09:10.490 --> 09:11.320
+method.
+
+09:11.660 --> 09:17.510
+Now this method takes two arguments, the first arguments decides which store do we want to target with
+
+09:17.510 --> 09:18.550
+the transaction,
+
+09:18.770 --> 09:22.730
+now we only have one, the posts object store, this one
+
+09:22.940 --> 09:26.420
+but if we had more, we could of course decide which one to use.
+
+09:26.420 --> 09:30.490
+The second argument decides which kind of transaction is it.
+
+09:30.500 --> 09:32.270
+Now here you have a couple of options,
+
+09:32.270 --> 09:39.700
+the most important ones are read-write or read-only, here it is clearly readwrite, one word, don't mistype
+
+09:40.130 --> 09:42.210
+because we want to write something to the database,
+
+09:42.260 --> 09:44.960
+reading alone doesn't suffice.
+
+09:44.960 --> 09:48.320
+Next we have a store which we have to open,
+
+09:48.350 --> 09:52.560
+we do this via the transaction and the object store method.
+
+09:52.580 --> 09:57.350
+Now it might look strange because we already defined the store here but that's just how indexedDB
+
+09:57.350 --> 09:58.080
+works,
+
+09:58.080 --> 10:01.530
+here we basically say what we want to target with the transaction,
+
+10:01.610 --> 10:08.030
+then we explicitly have to open the store. Now that we got access to the opened store, we can use that and
+
+10:08.060 --> 10:13.030
+put something. Put is one of the methods you can execute on the store and throughout the module,
+
+10:13.070 --> 10:17.050
+you'll learn about a lot of other methods you can use, like get and so on.
+
+10:17.510 --> 10:18.740
+So here's put
+
+10:18.950 --> 10:26.750
+and of course I want to put my data, not the complete data though but the data key which just to bring
+
+10:26.750 --> 10:30.720
+this back in memory, is simply this object here,
+
+10:30.890 --> 10:36.100
+so the value of this key-value entry here, that's data key.
+
+10:36.260 --> 10:37.480
+That's the key,
+
+10:37.850 --> 10:44.760
+that's our data, all the different keys if we had more and therefore data key is just a stored value.
+
+10:44.780 --> 10:47.680
+This is what I want to store in the database with put.
+
+10:47.690 --> 10:54.710
+Now the good thing is in that object we store, we have an ID property, here this ID element property
+
+10:54.710 --> 10:59.690
+we stored in that object and I defined that ID would be my keyPath.
+
+10:59.960 --> 11:06.290
+So we can easily extract values later if we want to target single values by just pointing to ID because
+
+11:06.290 --> 11:09.640
+it's set up as the primary key here for posts.
+
+11:09.650 --> 11:13.980
+So with that, we put that data and we have that ID which is required
+
+11:14.270 --> 11:18.930
+and now we can close the transaction by returning tx complete.
+
+11:18.980 --> 11:19.850
+It's not a method,
+
+11:19.880 --> 11:21.410
+it's just a property
+
+11:21.650 --> 11:26.960
+and this simply makes sure that this transaction gets executed, that the put operation gets done and
+
+11:26.960 --> 11:32.010
+we have to use a transaction even if we only have one operation like we do have here.
+
+11:32.420 --> 11:40.420
+And with that, we're executing this for every item in this loop and we safely store data in the database
+
+11:40.430 --> 11:42.010
+with that.
+
+11:42.010 --> 11:47.630
+So now with this stored and of course our transaction completed and the original request still returned,
+
+11:47.650 --> 11:50.020
+that's important so that our app still works,
+
+11:50.020 --> 11:51.620
+let's see if it works,
+
+11:51.620 --> 11:55.930
+so let's go back to the application and let's clear the site data as always.
+
+11:55.930 --> 12:00.290
+Now of course as always you could also reload the page, close the tab and reopen it,
+
+12:00.310 --> 12:04.810
+I just want to make sure that the cache is clean though because we want made some significant changes
+
+12:04.810 --> 12:05.250
+to that.
+
+12:05.440 --> 12:08.850
+So let's reload the application now and with that reloaded,
+
+12:08.860 --> 12:12.760
+it still loads here. Now in our application tab,
+
+12:13.000 --> 12:19.920
+if we reload refresh indexedDB, we should see that there is a posts-store database with a posts
+
+12:19.930 --> 12:22.600
+object store which is empty though.
+
+12:22.630 --> 12:28.840
+That makes sense because our service worker was just installed and doesn't manage this page yet.
+
+12:28.930 --> 12:36.220
+If we reload one more time though, we should see that now in the application here, if we refresh that, we
+
+12:36.220 --> 12:39.490
+now have that key values store here in posts.
+
+12:39.490 --> 12:46.000
+So we have our first post ID which is simply extracted from there and was used as a key because we
+
+12:46.150 --> 12:52.900
+set up the keyPath to be ID and that we now have the object on the right, exactly the object we got
+
+12:52.930 --> 12:55.890
+from our Firebase database.
+
+12:56.200 --> 13:01.960
+Now in the console if we reload one more time, we also see that on the next call of course, it's not getting
+
+13:01.960 --> 13:08.200
+it from the cache because we only wrote the logic to put it there but not the logic to get it from there.
+
+13:08.200 --> 13:09.840
+So this is what I'll do next.

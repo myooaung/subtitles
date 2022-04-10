@@ -1,0 +1,953 @@
+WEBVTT
+1
+00:00:02.040 --> 00:00:03.120
+That was easy, right?
+
+2
+00:00:03.120 --> 00:00:06.090
+Creating stacks without dependencies is as simple as building
+
+3
+00:00:06.090 --> 00:00:08.390
+out individual disconnected constructs.
+
+4
+00:00:08.390 --> 00:00:11.780
+In the real world, resources have to talk to other resources.
+
+5
+00:00:11.780 --> 00:00:12.460
+Fortunately,
+
+6
+00:00:12.460 --> 00:00:14.660
+a lot of the techniques available for communicating between
+
+7
+00:00:14.660 --> 00:00:16.910
+stacks are techniques you would use in building everyday
+
+8
+00:00:16.910 --> 00:00:21.040
+TypeScript applications in the first place.
+
+9
+00:00:21.040 --> 00:00:24.500
+So let's refactor our first stack that'll include dependencies.
+
+10
+00:00:24.500 --> 00:00:27.060
+The CloudFront stack will require the bucket information
+
+11
+00:00:27.060 --> 00:00:30.140
+from which its web origin is represented.
+
+12
+00:00:30.140 --> 00:00:32.330
+Alright, so we have our To Do file open again.
+
+13
+00:00:32.330 --> 00:00:34.940
+So let's follow the same process for the CloudFront stack,
+
+14
+00:00:34.940 --> 00:00:36.860
+or the CdnStack in this case.
+
+15
+00:00:36.860 --> 00:00:38.850
+So I'm going to go ahead and create the stack file,
+
+16
+00:00:38.850 --> 00:00:42.640
+and then I'm going to go ahead and update the full‑stack application file.
+
+17
+00:00:42.640 --> 00:00:45.370
+So I've already created the folder and the TypeScript file,
+
+18
+00:00:45.370 --> 00:00:47.620
+so let's go ahead and do this same process,
+
+19
+00:00:47.620 --> 00:00:52.340
+and grab the source, and see what we've got.
+
+20
+00:00:52.340 --> 00:00:53.930
+So, already out of the gate,
+
+21
+00:00:53.930 --> 00:00:58.350
+I know that I am missing a property called CdnIndexDocument,
+
+22
+00:00:58.350 --> 00:01:01.220
+and that's okay, that's another property that we were interested in.
+
+23
+00:01:01.220 --> 00:01:05.440
+Let's go ahead and paste that in as an interface as well,
+
+24
+00:01:05.440 --> 00:01:12.570
+and then let's pass our CdnProps into the constructor. And now
+
+25
+00:01:12.570 --> 00:01:16.840
+let's change that toprops., and that's resolved.
+
+26
+00:01:16.840 --> 00:01:19.530
+But what you'll notice is that the CloudFront
+
+27
+00:01:19.530 --> 00:01:22.840
+distribution wants access to the websiteBucket.
+
+28
+00:01:22.840 --> 00:01:24.650
+Well, now we're running into a new situation.
+
+29
+00:01:24.650 --> 00:01:27.820
+The websiteBucket is another construct that came from our
+
+30
+00:01:27.820 --> 00:01:31.040
+S3Stack that's actually created on the fly.
+
+31
+00:01:31.040 --> 00:01:32.250
+So how do we deal with this?
+
+32
+00:01:32.250 --> 00:01:35.350
+This is something that's not even resolved until deployment time.
+
+33
+00:01:35.350 --> 00:01:42.340
+And further, if I go back into the full‑stack file and paste in that library,
+
+34
+00:01:42.340 --> 00:01:46.540
+and then we instantiate a CdnApplicationStack,
+
+35
+00:01:46.540 --> 00:01:48.650
+everything should be working, right?
+
+36
+00:01:48.650 --> 00:01:53.010
+Well, it's not, we know it's not, because when we go back over to the cdn file,
+
+37
+00:01:53.010 --> 00:01:55.540
+we know that we need some dynamic properties here.
+
+38
+00:01:55.540 --> 00:01:58.740
+So here's where we jump into the concept of interest.communication.
+
+39
+00:01:58.740 --> 00:02:01.180
+So let's stop and take a quick break and look through all
+
+40
+00:02:01.180 --> 00:02:03.520
+the methods by which you can actually pass needed
+
+41
+00:02:03.520 --> 00:02:06.640
+properties and data in between stacks.
+
+42
+00:02:06.640 --> 00:02:09.320
+There are quite literally more than half a dozen ways to
+
+43
+00:02:09.320 --> 00:02:12.540
+communicate between distributed resources in AWS,
+
+44
+00:02:12.540 --> 00:02:15.160
+and these translate well into CDK parlance.
+
+45
+00:02:15.160 --> 00:02:15.950
+In most cases,
+
+46
+00:02:15.950 --> 00:02:18.260
+these will resolve to ImportValue function calls in
+
+47
+00:02:18.260 --> 00:02:20.140
+the synthesized cloud assembly.
+
+48
+00:02:20.140 --> 00:02:23.010
+One of the most common ways to pass data from stack to stack is the
+
+49
+00:02:23.010 --> 00:02:26.200
+simple technique of passing properties along as parameters on the
+
+50
+00:02:26.200 --> 00:02:28.100
+constructor of the dependent stack.
+
+51
+00:02:28.100 --> 00:02:30.190
+You likely do this in all your coding today,
+
+52
+00:02:30.190 --> 00:02:33.440
+so this should be relatively elementary to you in practice.
+
+53
+00:02:33.440 --> 00:02:36.220
+Another technique I see a lot is to use the stack props of the
+
+54
+00:02:36.220 --> 00:02:38.460
+dependent object to send properties through.
+
+55
+00:02:38.460 --> 00:02:41.660
+This concept is somewhat similar to simple parameters, it
+
+56
+00:02:41.660 --> 00:02:43.630
+just gives you a little clearer picture of the needed
+
+57
+00:02:43.630 --> 00:02:45.740
+properties for each dependent stack.
+
+58
+00:02:45.740 --> 00:02:48.350
+When you simply have too many properties to pass,
+
+59
+00:02:48.350 --> 00:02:51.740
+passing the instantiated stack object is just fine.
+
+60
+00:02:51.740 --> 00:02:53.970
+Now, that can be a heavy payload for sure,
+
+61
+00:02:53.970 --> 00:02:56.800
+but in most cases we aren't talking about massive objects.
+
+62
+00:02:56.800 --> 00:02:58.910
+If you had a stack with 100 resources in it,
+
+63
+00:02:58.910 --> 00:03:01.180
+you might choose a different method of communication if the
+
+64
+00:03:01.180 --> 00:03:03.740
+dependent stack only needs a few properties.
+
+65
+00:03:03.740 --> 00:03:07.310
+Other nontraditional code techniques include context variables.
+
+66
+00:03:07.310 --> 00:03:11.030
+Context is essentially a name value pair keystore that can be used
+
+67
+00:03:11.030 --> 00:03:13.360
+throughout the entire application lifecycle.
+
+68
+00:03:13.360 --> 00:03:16.570
+You can build keys and values in the context JSON file,
+
+69
+00:03:16.570 --> 00:03:19.420
+and you can build the reference context in code.
+
+70
+00:03:19.420 --> 00:03:20.480
+In most cases, however,
+
+71
+00:03:20.480 --> 00:03:24.140
+context is used to cache information with the stack itself.
+
+72
+00:03:24.140 --> 00:03:27.020
+Then there's always existed the concept of environment variables.
+
+73
+00:03:27.020 --> 00:03:29.070
+Environment variables can be set and passed around
+
+74
+00:03:29.070 --> 00:03:30.780
+using the Definitely Typed module,
+
+75
+00:03:30.780 --> 00:03:34.310
+which is included in a cdk init via the process object.
+
+76
+00:03:34.310 --> 00:03:36.590
+Environment variables are a bit heavy to use to
+
+77
+00:03:36.590 --> 00:03:38.790
+simply communicate between stacks, however,
+
+78
+00:03:38.790 --> 00:03:41.520
+they are great choices when critical synthesize or deploy‑time
+
+79
+00:03:41.520 --> 00:03:44.460
+properties are needed across various resource types.
+
+80
+00:03:44.460 --> 00:03:46.060
+The demo application, for example,
+
+81
+00:03:46.060 --> 00:03:49.420
+uses environment variables to pass the Cognito user pool objects to
+
+82
+00:03:49.420 --> 00:03:52.240
+the buildspec used in the CodeBuild projects.
+
+83
+00:03:52.240 --> 00:03:54.170
+And last, but certainly not least,
+
+84
+00:03:54.170 --> 00:03:56.920
+the AWS Systems Manager includes a parameter store that can
+
+85
+00:03:56.920 --> 00:03:59.360
+store just about any attribute type you desire.
+
+86
+00:03:59.360 --> 00:04:02.240
+For fully dynamic deployments across dynamic regions,
+
+87
+00:04:02.240 --> 00:04:05.160
+you often need a global variable retrieved from some
+
+88
+00:04:05.160 --> 00:04:06.940
+place other than inside your code.
+
+89
+00:04:06.940 --> 00:04:10.740
+SSM parameters can also be set up as secure attributes.
+
+90
+00:04:10.740 --> 00:04:11.580
+As such,
+
+91
+00:04:11.580 --> 00:04:15.510
+they're a great candidate for any secure information needed during deployment.
+
+92
+00:04:15.510 --> 00:04:20.540
+Passing one‑off parameters as parameters is akin to Programming 101.
+
+93
+00:04:20.540 --> 00:04:21.990
+Using the stack constructor,
+
+94
+00:04:21.990 --> 00:04:24.290
+you can receive a value from the existing stack
+
+95
+00:04:24.290 --> 00:04:26.440
+declared as a public class member.
+
+96
+00:04:26.440 --> 00:04:29.660
+We declare our app and initial stack in the standard way,
+
+97
+00:04:29.660 --> 00:04:32.650
+assuming now that this stack exposes a public member.
+
+98
+00:04:32.650 --> 00:04:36.900
+We can then pass that value along in the creation of the dependent stack.
+
+99
+00:04:36.900 --> 00:04:37.880
+And as you'd expect,
+
+100
+00:04:37.880 --> 00:04:40.120
+the constructor is set up to receive this value and
+
+101
+00:04:40.120 --> 00:04:42.640
+use it as needed in the class.
+
+102
+00:04:42.640 --> 00:04:44.850
+Using stack properties is another clean way to pass
+
+103
+00:04:44.850 --> 00:04:46.940
+properties to the dependent stack.
+
+104
+00:04:46.940 --> 00:04:49.710
+We simply take advantage of the properties object passed into the
+
+105
+00:04:49.710 --> 00:04:53.260
+dependent class by combining the existing set of properties with any
+
+106
+00:04:53.260 --> 00:04:56.100
+new values using the spread operator like this.
+
+107
+00:04:56.100 --> 00:04:59.640
+Similar to the last view, we go ahead and create our app as usual.
+
+108
+00:04:59.640 --> 00:05:02.350
+Now I've created a few default dummy properties here as an object,
+
+109
+00:05:02.350 --> 00:05:03.500
+as you can see.
+
+110
+00:05:03.500 --> 00:05:06.060
+Now once our initial stack is created,
+
+111
+00:05:06.060 --> 00:05:08.650
+we can again pass our public member value along this
+
+112
+00:05:08.650 --> 00:05:10.280
+time through the stack properties.
+
+113
+00:05:10.280 --> 00:05:13.540
+Then in the dependent stack we can expose an interface
+
+114
+00:05:13.540 --> 00:05:15.870
+requiring the creation of any needed properties.
+
+115
+00:05:15.870 --> 00:05:17.690
+It's a very clean pattern that's easy to read,
+
+116
+00:05:17.690 --> 00:05:19.910
+and can help avoid long constructor signatures.
+
+117
+00:05:19.910 --> 00:05:21.490
+Using props in this way,
+
+118
+00:05:21.490 --> 00:05:23.590
+you also get to keep the constructor signature at its
+
+119
+00:05:23.590 --> 00:05:26.840
+baseline without adding additional parameters.
+
+120
+00:05:26.840 --> 00:05:30.070
+When you have too many parameters to bother reconciling and articulating,
+
+121
+00:05:30.070 --> 00:05:33.640
+you can pass the entire stack object to the dependent stack.
+
+122
+00:05:33.640 --> 00:05:36.170
+As I said earlier, the payload here can be high,
+
+123
+00:05:36.170 --> 00:05:38.890
+so you'd want to avoid passing a massive stack object to
+
+124
+00:05:38.890 --> 00:05:41.140
+a dependent stack out of laziness.
+
+125
+00:05:41.140 --> 00:05:41.980
+Just as before,
+
+126
+00:05:41.980 --> 00:05:45.360
+we'd simply create our stack and then pass it along to
+
+127
+00:05:45.360 --> 00:05:47.540
+the dependent stack constructor.
+
+128
+00:05:47.540 --> 00:05:48.240
+And, as you can guess,
+
+129
+00:05:48.240 --> 00:05:50.050
+the constructor is simply going to be set up to
+
+130
+00:05:50.050 --> 00:05:53.440
+receive the stack itself as a parameter.
+
+131
+00:05:53.440 --> 00:05:57.140
+Context is a highly misunderstood concept of the CDK world.
+
+132
+00:05:57.140 --> 00:06:00.090
+For the most part, it's generally not used for communicating between stacks,
+
+133
+00:06:00.090 --> 00:06:01.640
+but it certainly can be.
+
+134
+00:06:01.640 --> 00:06:04.680
+Context is generally used for setting and retrieving parameters from
+
+135
+00:06:04.680 --> 00:06:08.040
+the cachable context JSON file at synthesis time.
+
+136
+00:06:08.040 --> 00:06:11.180
+However, context can be set and retrieved with these methods.
+
+137
+00:06:11.180 --> 00:06:17.140
+Taking a simple example, I set a vpcid value to 123456 on Context,
+
+138
+00:06:17.140 --> 00:06:20.040
+and then I simply just receive it into a local vpc
+
+139
+00:06:20.040 --> 00:06:22.770
+variable with the tryGetContext method.
+
+140
+00:06:22.770 --> 00:06:25.640
+Environment variables are generally used for storing
+
+141
+00:06:25.640 --> 00:06:27.940
+and retrieving environmental data.
+
+142
+00:06:27.940 --> 00:06:32.240
+They're also very handy when values have to be passed across logical boundaries.
+
+143
+00:06:32.240 --> 00:06:36.340
+Environment variables aren't secure, but can be set and retrieved very easily.
+
+144
+00:06:36.340 --> 00:06:39.120
+In this simple code snippet, I set an environment variable,
+
+145
+00:06:39.120 --> 00:06:42.740
+MYVPC to the value of MyVPC.
+
+146
+00:06:42.740 --> 00:06:45.360
+I then retrieve it into a local vpcName variable.
+
+147
+00:06:45.360 --> 00:06:48.460
+Sure, you could use environment variables to pass data between stacks,
+
+148
+00:06:48.460 --> 00:06:51.440
+but that's generally not what they're used for.
+
+149
+00:06:51.440 --> 00:06:54.290
+To take what one might call system variables a step further,
+
+150
+00:06:54.290 --> 00:06:58.140
+AWS now has a Parameter Store in the Systems Manager.
+
+151
+00:06:58.140 --> 00:07:01.750
+SSM parameters are highly versatile and can be secured as desired,
+
+152
+00:07:01.750 --> 00:07:04.640
+such as for, say, a database root password.
+
+153
+00:07:04.640 --> 00:07:07.320
+They can also be read at either synthesis or deploy‑time,
+
+154
+00:07:07.320 --> 00:07:08.840
+depending on your needs.
+
+155
+00:07:08.840 --> 00:07:12.350
+To set a parameter, we simply set a new string parameter in the store.
+
+156
+00:07:12.350 --> 00:07:17.440
+Then to retrieve it, we use the fromStringParameterAttributes method like this.
+
+157
+00:07:17.440 --> 00:07:18.940
+Similar to environment variables,
+
+158
+00:07:18.940 --> 00:07:22.630
+SSM parameters are generally made for dynamic variable storage needs such
+
+159
+00:07:22.630 --> 00:07:25.400
+as regions or secure needs such as storing passwords.
+
+160
+00:07:25.400 --> 00:07:28.600
+You wouldn't really use SSM parameters in most cases
+
+161
+00:07:28.600 --> 00:07:31.150
+to pass simple data between stacks, however,
+
+162
+00:07:31.150 --> 00:07:33.360
+if you are deploying dependent stacks separately and
+
+163
+00:07:33.360 --> 00:07:35.440
+potentially in separate regions,
+
+164
+00:07:35.440 --> 00:07:37.770
+you can use the Parameter Store to grab needed global
+
+165
+00:07:37.770 --> 00:07:40.540
+variables at any time you need them.
+
+166
+00:07:40.540 --> 00:07:42.930
+So let's follow the new tasks in our To Do list.
+
+167
+00:07:42.930 --> 00:07:43.680
+At this point,
+
+168
+00:07:43.680 --> 00:07:46.940
+what we're going to do is use parameters between the two dependent stacks.
+
+169
+00:07:46.940 --> 00:07:49.600
+So the first thing we're going to need to do is expose the objects
+
+170
+00:07:49.600 --> 00:07:52.020
+from the source stack that we need, and in this case,
+
+171
+00:07:52.020 --> 00:07:55.140
+that's going to be the S3 buckets for the CDN.
+
+172
+00:07:55.140 --> 00:07:57.700
+After that, we just need to update the dependent constructor,
+
+173
+00:07:57.700 --> 00:08:00.450
+which in this case is the CdnStack constructor, to receive
+
+174
+00:08:00.450 --> 00:08:03.740
+the appropriate property at that point, which is the websiteBucket.
+
+175
+00:08:03.740 --> 00:08:05.870
+Then the last thing that we need to do is simply pass that
+
+176
+00:08:05.870 --> 00:08:08.140
+along when we instantiate the object.
+
+177
+00:08:08.140 --> 00:08:11.940
+So if I roll over and I look at the S3Stack,
+
+178
+00:08:11.940 --> 00:08:13.260
+the first thing that we're going to do is we're going to
+
+179
+00:08:13.260 --> 00:08:15.330
+expose the buckets as public properties.
+
+180
+00:08:15.330 --> 00:08:20.330
+So let me grab these and paste them in here. And now what
+
+181
+00:08:20.330 --> 00:08:21.570
+we're going to want to do is we're not going to want to
+
+182
+00:08:21.570 --> 00:08:22.880
+instantiate these. Instead,
+
+183
+00:08:22.880 --> 00:08:30.940
+we're going to want to use the private member variables.
+
+184
+00:08:30.940 --> 00:08:31.650
+So at that point,
+
+185
+00:08:31.650 --> 00:08:37.040
+we're all set on the S3Stack, so let me save that and move over to the CdnStack.
+
+186
+00:08:37.040 --> 00:08:42.180
+Now what we need is a parameter in the constructor to receive this value.
+
+187
+00:08:42.180 --> 00:08:44.690
+So I've created a websiteBucket as an S3 bucket in the
+
+188
+00:08:44.690 --> 00:08:47.390
+constructor, and I really don't have to change much because
+
+189
+00:08:47.390 --> 00:08:49.440
+that was the name of the property already.
+
+190
+00:08:49.440 --> 00:08:53.040
+So we're pretty much good to go here, so let me save that,
+
+191
+00:08:53.040 --> 00:08:55.140
+and then move over to the full‑stack file.
+
+192
+00:08:55.140 --> 00:08:55.310
+Now,
+
+193
+00:08:55.310 --> 00:08:58.650
+one thing I've done is I've created a useCdn property so that you can turn the
+
+194
+00:08:58.650 --> 00:09:02.910
+CDN on and off when you deploy. Now you can do this using Context or by some
+
+195
+00:09:02.910 --> 00:09:05.240
+other means, or you can just comment this out.
+
+196
+00:09:05.240 --> 00:09:09.940
+So now, instead of simply just instantiating the CdnStack as we did before,
+
+197
+00:09:09.940 --> 00:09:14.190
+I can use the props.cdn to conditionally instantiate the stack, and then I can
+
+198
+00:09:14.190 --> 00:09:17.840
+pass in the websiteBucket itself as the needed parameter.
+
+199
+00:09:17.840 --> 00:09:20.940
+So at this point, everything is good to go, and we could actually deploy.
+
+200
+00:09:20.940 --> 00:09:24.940
+Everything is wired up appropriately.
+
+201
+00:09:24.940 --> 00:09:28.330
+Now let's finish off the remaining four stacks by passing constructor
+
+202
+00:09:28.330 --> 00:09:32.030
+parameters for the LambdaStack, and then full‑stack objects as parameters
+
+203
+00:09:32.030 --> 00:09:36.240
+for the Cognito API Gateway in CodeAppStacks.
+
+204
+00:09:36.240 --> 00:09:39.910
+So now let's add a few items to our To Do list here. For a few of the
+
+205
+00:09:39.910 --> 00:09:42.250
+stacks, we're going to use the same technique we just did to pass
+
+206
+00:09:42.250 --> 00:09:45.170
+properties along through to the constructor. For a few of the other
+
+207
+00:09:45.170 --> 00:09:48.440
+stacks, we're going to pass entire stack objects.
+
+208
+00:09:48.440 --> 00:09:50.340
+So what we're going to need to do is update the dependent
+
+209
+00:09:50.340 --> 00:09:52.400
+stack constructors to make sure that they receive the
+
+210
+00:09:52.400 --> 00:09:54.640
+objects or the needed properties.
+
+211
+00:09:54.640 --> 00:09:57.950
+And then we're going to make sure that in the source classes we have public
+
+212
+00:09:57.950 --> 00:10:00.580
+members for sharing those properties. That says private,
+
+213
+00:10:00.580 --> 00:10:01.940
+it should say public.
+
+214
+00:10:01.940 --> 00:10:04.480
+And then from there, from our stack instantiation,
+
+215
+00:10:04.480 --> 00:10:07.120
+we want to make sure that we pass the appropriate properties or
+
+216
+00:10:07.120 --> 00:10:09.510
+complete stack objects through to the constructor we're
+
+217
+00:10:09.510 --> 00:10:14.440
+instantiating. So if I start back in the full‑stack file,
+
+218
+00:10:14.440 --> 00:10:19.010
+you can see that now I've created the other four stacks, and the LambdaStack
+
+219
+00:10:19.010 --> 00:10:24.000
+itself takes the goalsTable and dynamoDbRole as properties, so no full‑stack
+
+220
+00:10:24.000 --> 00:10:29.740
+here. And then Cognito doesn't have any parameters, but the ApiGatewayStack
+
+221
+00:10:29.740 --> 00:10:33.860
+takes the LambdaAppStack full‑stack object and the CognitoAppStack
+
+222
+00:10:33.860 --> 00:10:35.940
+full‑stack object as parameters.
+
+223
+00:10:35.940 --> 00:10:37.540
+And then finally,
+
+224
+00:10:37.540 --> 00:10:43.040
+the CodeAppStack takes all three of the other stacks as parameters.
+
+225
+00:10:43.040 --> 00:10:47.290
+So if I go over and I look at the code file, we can see that, quite simply,
+
+226
+00:10:47.290 --> 00:10:49.930
+all I'm doing is taking stack objects as
+
+227
+00:10:49.930 --> 00:10:54.140
+parameters, exactly as you would expect.
+
+228
+00:10:54.140 --> 00:10:58.740
+So now if I compile and run a cdk ls at this point,
+
+229
+00:10:58.740 --> 00:11:04.540
+you can see that we now have all stacks listed in our stack list.
+
+230
+00:11:04.540 --> 00:11:07.740
+And at this point now, if I deploy them all,
+
+231
+00:11:07.740 --> 00:11:12.140
+we'll get all full‑stacks deployed and connected together.
+
+232
+00:11:12.140 --> 00:11:15.380
+So these are not quite fully deployed yet, but if I go ahead
+
+233
+00:11:15.380 --> 00:11:17.150
+and flip over the CloudFormation console,
+
+234
+00:11:17.150 --> 00:11:20.760
+you can see now that each stack is being deployed independently,
+
+235
+00:11:20.760 --> 00:11:23.740
+which is exactly what we wanted.
+
+236
+00:11:23.740 --> 00:11:26.690
+Now that we're masters of distributed stack patterns and we have
+
+237
+00:11:26.690 --> 00:11:29.220
+a great start to a well‑designed application,
+
+238
+00:11:29.220 --> 00:11:35.000
+let's jump into the fun world of setting it all up to run in multiple environments.
+

@@ -1,0 +1,868 @@
+WEBVTT
+1
+00:00:00.450 --> 00:00:03.180
+Hello and welcome back to the course on machine learning.
+
+2
+00:00:03.180 --> 00:00:09.570
+Today we're talking about the upper confidence bound and the intuition behind this algorithm of the
+
+3
+00:00:09.570 --> 00:00:12.440
+reinforcement branch of machine learning.
+
+4
+00:00:12.450 --> 00:00:13.740
+So let's get started.
+
+5
+00:00:13.890 --> 00:00:19.890
+As we discussed previously the problem we're solving is a multi armed bandit problem where you've got
+
+6
+00:00:20.310 --> 00:00:27.120
+five or more or any number of slot machines and you can bet your money in any one of them and you need
+
+7
+00:00:27.120 --> 00:00:33.260
+to find out how to bet to maximize your returns.
+
+8
+00:00:33.330 --> 00:00:40.380
+And basically we agreed that behind every machine there is a certain distribution and that's because
+
+9
+00:00:40.380 --> 00:00:46.770
+you don't know which of these distributions is optimal You need to combine exploration of these machines
+
+10
+00:00:46.770 --> 00:00:53.820
+with their exploitation in order to find out which one of these machines is the best and then you can
+
+11
+00:00:53.820 --> 00:00:55.460
+start exploiting that one.
+
+12
+00:00:56.130 --> 00:00:59.910
+And the modern application of this problem is of course advertising.
+
+13
+00:00:59.910 --> 00:01:03.560
+So if you have five or 10 or 15 or 500 different ads.
+
+14
+00:01:03.780 --> 00:01:07.540
+How did you find out which one is the best one.
+
+15
+00:01:07.560 --> 00:01:12.270
+Of course you can run just an A B test and then use the results of that.
+
+16
+00:01:12.270 --> 00:01:15.690
+But that means you're doing exploration and then you do an exploitation.
+
+17
+00:01:15.690 --> 00:01:19.620
+Separately you're going to include lots of costs you're going to incur you're going to waste a lot of
+
+18
+00:01:19.620 --> 00:01:20.580
+time.
+
+19
+00:01:20.580 --> 00:01:27.240
+We want to combine exploration exploitation and get to the optimal result as soon as we can and maximize
+
+20
+00:01:27.450 --> 00:01:30.330
+the output of our efforts.
+
+21
+00:01:30.330 --> 00:01:30.660
+All right.
+
+22
+00:01:30.670 --> 00:01:36.120
+So this is a quick summary of the multi-hour by the problem.
+
+23
+00:01:36.120 --> 00:01:39.260
+So let's go through this very quickly so we can get to the fun stuff.
+
+24
+00:01:39.300 --> 00:01:45.450
+So we have deep arms for example arms our ads that we display each time a user comes to our Web page
+
+25
+00:01:45.930 --> 00:01:53.070
+if someone ad is displayed or a user visits this page that's around for each round and we choose which
+
+26
+00:01:53.070 --> 00:01:54.070
+ad to display.
+
+27
+00:01:54.140 --> 00:02:00.100
+You can only display one ad like with the one armed bandits you can only pull one of those arms and
+
+28
+00:02:00.120 --> 00:02:02.820
+is one machine to bet on each round.
+
+29
+00:02:02.820 --> 00:02:13.230
+And as I gives a reward whether it's a or a 1 and basically are I of and of and is equal to one if the
+
+30
+00:02:13.230 --> 00:02:16.030
+user clicks on the add and zero if you didn't.
+
+31
+00:02:16.050 --> 00:02:18.400
+These are different and I'll go some actual total reward.
+
+32
+00:02:18.420 --> 00:02:22.030
+We get over them in here and so that's basically what we are doing.
+
+33
+00:02:22.530 --> 00:02:26.880
+And this is how the upper confidence bond algorithm works.
+
+34
+00:02:26.880 --> 00:02:32.790
+And I won't go into too much detail on this because I actually had lunch is going to run you through
+
+35
+00:02:32.790 --> 00:02:40.110
+this and you you're going to code this from scratch in R and you can code this also in python in the
+
+36
+00:02:40.170 --> 00:02:44.010
+following lectures of course so we're not going to waste spend time on this we're actually going to
+
+37
+00:02:44.010 --> 00:02:45.900
+get to the essence of the algorithm.
+
+38
+00:02:45.900 --> 00:02:46.170
+Right.
+
+39
+00:02:46.170 --> 00:02:51.050
+So let's get to the intuition part which is how does it work.
+
+40
+00:02:51.050 --> 00:02:54.480
+What's actually happening in the background when this algorithm is running.
+
+41
+00:02:54.750 --> 00:02:56.380
+All right so let's have a look.
+
+42
+00:02:56.430 --> 00:03:04.530
+These are our slot machines or one arm bandits and they each one of them has a distribution behind it.
+
+43
+00:03:04.530 --> 00:03:07.790
+We want to find the best one right looking at them we can tell which one it is.
+
+44
+00:03:07.890 --> 00:03:09.500
+But let's see we do not.
+
+45
+00:03:09.510 --> 00:03:11.970
+Let's see we know the end result.
+
+46
+00:03:11.970 --> 00:03:14.410
+Just for argument's sake what would it look like.
+
+47
+00:03:14.550 --> 00:03:19.950
+Well this is for instance in this case the distribute these are the distributions behind those machines
+
+48
+00:03:20.280 --> 00:03:23.010
+you've got you know the machine.
+
+49
+00:03:23.040 --> 00:03:26.030
+This is how they're spitting out the results with these distributions.
+
+50
+00:03:26.160 --> 00:03:30.930
+And just by looking at this you can you can tell right away which one is the best machine.
+
+51
+00:03:30.930 --> 00:03:36.690
+Which one would you bet your money on constantly if you were playing in this one right.
+
+52
+00:03:36.690 --> 00:03:43.680
+So right away here you can see that this one has the best return and you would want to just come all
+
+53
+00:03:43.680 --> 00:03:47.330
+the time just bet on this one and your outcome would be best.
+
+54
+00:03:47.580 --> 00:03:48.780
+But we don't know that right.
+
+55
+00:03:48.780 --> 00:03:50.130
+We don't know that.
+
+56
+00:03:50.130 --> 00:03:56.610
+And we want to find that out in the process of playing these machines of or using those ads that were
+
+57
+00:03:56.940 --> 00:04:00.900
+running and find out you know which one is getting the most clicks.
+
+58
+00:04:00.930 --> 00:04:08.850
+We don't want to we don't have the time and money to do that exploration before the actual campaign
+
+59
+00:04:08.850 --> 00:04:09.180
+is running.
+
+60
+00:04:09.180 --> 00:04:14.060
+We want to do that in the process want to maximize our return already from the very start.
+
+61
+00:04:14.070 --> 00:04:14.940
+So how do we do that.
+
+62
+00:04:15.120 --> 00:04:21.330
+Well let's transfer these traditions are the actual expected return from the distributions onto a vertical
+
+63
+00:04:21.330 --> 00:04:27.090
+axis so we're going to take these values and we're going to put them onto a vertical axis or here so
+
+64
+00:04:27.090 --> 00:04:28.490
+there's a vertical axis.
+
+65
+00:04:28.490 --> 00:04:31.610
+So for distribution one let's say the value is there for distribution to.
+
+66
+00:04:31.620 --> 00:04:38.910
+There was a value we could remember it was lower distribution 3 even lower for higher five 5 the best.
+
+67
+00:04:38.940 --> 00:04:39.240
+Right.
+
+68
+00:04:39.240 --> 00:04:47.100
+So those are the expected values or returns for each of those distribution for each machine that's why
+
+69
+00:04:47.160 --> 00:04:48.280
+r y axis.
+
+70
+00:04:48.290 --> 00:04:52.040
+But again we don't know that so what how does this Hougan work.
+
+71
+00:04:52.050 --> 00:04:55.550
+Well it assumes some starting point for every distribution.
+
+72
+00:04:55.590 --> 00:05:02.330
+It just assumes that there is a certain starting value that let's just assume that because we can distinguish
+
+73
+00:05:02.330 --> 00:05:05.090
+we can't discriminate against these machines in any way.
+
+74
+00:05:05.150 --> 00:05:06.190
+They all look the same.
+
+75
+00:05:06.200 --> 00:05:10.330
+Let's assume that they all have the same return and let's put it on that level.
+
+76
+00:05:10.590 --> 00:05:20.510
+Now then what the algorithm does is those formulas that are behind algorithm they create a confidence
+
+77
+00:05:20.510 --> 00:05:21.020
+band.
+
+78
+00:05:21.200 --> 00:05:29.960
+And it is designed in such a way that we have a very high level of certainty that confidence bad will
+
+79
+00:05:29.960 --> 00:05:37.730
+include the actual will include the actual return or the actual expected return.
+
+80
+00:05:37.730 --> 00:05:43.470
+So basically the first couple of rounds are going to be trial runs.
+
+81
+00:05:43.520 --> 00:05:49.970
+So we're going to intentionally just try out the machines at least one time each in order for us to
+
+82
+00:05:49.970 --> 00:05:55.750
+be able to place this value here and come up with a confidence band who is going to be very large at
+
+83
+00:05:55.760 --> 00:05:56.930
+The rest are it's very large.
+
+84
+00:05:56.930 --> 00:06:05.230
+But it is designed specifically in a way that the expected value which is this one over here we have
+
+85
+00:06:05.240 --> 00:06:11.690
+very high level of confidence falls inside this confidence level with a very high degree of certainty
+
+86
+00:06:11.700 --> 00:06:19.190
+for inside this confidence band which is built around this red empirical value which we have derived
+
+87
+00:06:19.470 --> 00:06:21.570
+and the very start it's all the same right so.
+
+88
+00:06:21.700 --> 00:06:24.050
+And then how does this algorithm work well out of all of them.
+
+89
+00:06:24.050 --> 00:06:27.660
+We pick the machine with the highest confidence.
+
+90
+00:06:27.670 --> 00:06:32.120
+But right now it can be any of these machines right they all have the same confidence but that we're
+
+91
+00:06:32.120 --> 00:06:34.090
+talking about the upper confidence ball.
+
+92
+00:06:34.310 --> 00:06:37.560
+That's why the algorithms called Upper confidence bounce.
+
+93
+00:06:37.730 --> 00:06:40.990
+And so we're going to pick any one of them because it doesn't matter which one you pick.
+
+94
+00:06:41.000 --> 00:06:43.520
+Again we don't know these blue these color lines.
+
+95
+00:06:43.520 --> 00:06:44.330
+We don't know about them.
+
+96
+00:06:44.330 --> 00:06:53.630
+All we see as as agent or as the person analyzing this we only see these boxes and old they're all identical
+
+97
+00:06:53.630 --> 00:06:55.940
+to us so we just pick any you want them to pick this one.
+
+98
+00:06:56.120 --> 00:07:01.820
+So what happens next is we actually pull that lever over that machine and something happens or we place
+
+99
+00:07:01.820 --> 00:07:02.510
+that ad right.
+
+100
+00:07:02.510 --> 00:07:04.580
+So we display that ad next.
+
+101
+00:07:04.580 --> 00:07:08.320
+And we want to see did the person click on it or did the person not click on it.
+
+102
+00:07:08.390 --> 00:07:12.920
+And in this case the person didn't click on it.
+
+103
+00:07:12.920 --> 00:07:20.510
+Right so it went this red value goes down because it's well now we have another observation just for
+
+104
+00:07:20.510 --> 00:07:25.740
+this machine that is added to the whole sample of observations for this machine.
+
+105
+00:07:25.760 --> 00:07:34.460
+And the value goes down because we'll all always the read value is like the observed average the observed
+
+106
+00:07:34.490 --> 00:07:39.680
+average is going to according to law of large numbers is always going to be in the long run is going
+
+107
+00:07:39.680 --> 00:07:51.220
+to converge to the expected expected return or expected average or expected value for this distribution.
+
+108
+00:07:51.290 --> 00:07:56.270
+So therefore it is very likely that this value is going to go down.
+
+109
+00:07:56.450 --> 00:08:03.440
+And now because we have an extra observation the second thing happens is the confidence bonds confidence
+
+110
+00:08:03.440 --> 00:08:03.750
+in.
+
+111
+00:08:03.750 --> 00:08:09.290
+Will you see that confidence interval become smaller simply because we have an additional duration of
+
+112
+00:08:09.290 --> 00:08:10.700
+course does it become that much smaller.
+
+113
+00:08:10.720 --> 00:08:16.550
+But this is just to illustrate a point because we have an additional observation we are more confident
+
+114
+00:08:16.610 --> 00:08:17.690
+in our predictions.
+
+115
+00:08:17.690 --> 00:08:19.830
+We are more confident in everything that's going on.
+
+116
+00:08:19.850 --> 00:08:24.100
+So the confidence interval slowly starts to shrink.
+
+117
+00:08:24.110 --> 00:08:24.350
+All right.
+
+118
+00:08:24.350 --> 00:08:28.170
+So the next step is now we find the next one with the highest conference bond.
+
+119
+00:08:28.250 --> 00:08:31.550
+So obviously on this one it's one of these for just picking a random one.
+
+120
+00:08:31.550 --> 00:08:32.110
+There we go.
+
+121
+00:08:32.120 --> 00:08:34.580
+This one do the same thing.
+
+122
+00:08:34.580 --> 00:08:40.630
+So again ad is displayed a person either clicks or doesn't click.
+
+123
+00:08:40.790 --> 00:08:46.070
+And that affects the average that we've measured so far the empirical average or you've you've pulled
+
+124
+00:08:46.070 --> 00:08:51.590
+the lever you've got CRN you know you're either one or you lost and that affects your empirical averages
+
+125
+00:08:51.620 --> 00:08:58.730
+red line and as expected it slowly starts to converge over like lots of iterations it'll start to converge
+
+126
+00:08:59.130 --> 00:09:01.860
+to the to the expected value.
+
+127
+00:09:02.240 --> 00:09:07.820
+So it comes closer and right away you can see now this machine is all of a sudden above all of the other
+
+128
+00:09:07.820 --> 00:09:08.470
+machines right.
+
+129
+00:09:08.480 --> 00:09:14.360
+So if this was the end of this iteration that's it we we would assume from here that this is the best
+
+130
+00:09:14.360 --> 00:09:18.860
+machine and would start exploiting it and therefore this algorithm would be completely useless.
+
+131
+00:09:18.960 --> 00:09:25.010
+But we shouldn't forget about the second thing that happens the second thing that happens is that because
+
+132
+00:09:25.010 --> 00:09:32.930
+we got an additional observation in our sample now we are more confident in this interval and these
+
+133
+00:09:32.930 --> 00:09:34.970
+confidence bonds they're designed.
+
+134
+00:09:35.030 --> 00:09:42.230
+Their only purpose is to include the actual expected value wherever it is.
+
+135
+00:09:42.230 --> 00:09:48.410
+We don't know where it is but they are they are telling us that this value is Greenvale somewhere inside
+
+136
+00:09:48.410 --> 00:09:53.110
+this box but because we've got an additional observation we're more confident our sample size is larger.
+
+137
+00:09:53.210 --> 00:09:56.950
+So we're more confident in the overall picture for this machine.
+
+138
+00:09:56.990 --> 00:10:03.130
+So the confidence bounds decrease and now as you can see it's no longer the top machine because even
+
+139
+00:10:03.130 --> 00:10:05.200
+though it went up the confidence bonds went down.
+
+140
+00:10:05.200 --> 00:10:08.520
+So now we're going to look for the next highest conference bond.
+
+141
+00:10:08.590 --> 00:10:13.780
+It can be any one of these three machines and just look at any one randomly for now.
+
+142
+00:10:14.080 --> 00:10:16.720
+This one and here.
+
+143
+00:10:17.200 --> 00:10:19.570
+Even though the red line is above the blue line.
+
+144
+00:10:19.580 --> 00:10:23.900
+So according to the law large numbers you'd expect this to converge to that.
+
+145
+00:10:23.950 --> 00:10:27.940
+But sometimes it can randomly occur that it can go the other way.
+
+146
+00:10:27.940 --> 00:10:28.450
+Right.
+
+147
+00:10:28.480 --> 00:10:29.910
+Things can happen like this.
+
+148
+00:10:29.920 --> 00:10:31.290
+It's all probabilities.
+
+149
+00:10:31.420 --> 00:10:34.310
+So basically it might even go up.
+
+150
+00:10:34.330 --> 00:10:38.870
+So we're going to end up even though the blue line was below the red line.
+
+151
+00:10:38.950 --> 00:10:44.820
+It can happen as a you know like as a just as in per chance right.
+
+152
+00:10:44.820 --> 00:10:46.110
+In the long run it will converge.
+
+153
+00:10:46.120 --> 00:10:48.370
+But on a random occasion it can go up.
+
+154
+00:10:48.370 --> 00:10:50.170
+It can go in any way.
+
+155
+00:10:50.290 --> 00:10:51.900
+And again we've got another.
+
+156
+00:10:52.000 --> 00:10:54.040
+Another element in the sample.
+
+157
+00:10:54.040 --> 00:10:57.100
+So the confidence balance converges.
+
+158
+00:10:57.130 --> 00:10:57.390
+OK.
+
+159
+00:10:57.410 --> 00:11:00.160
+So can we kind of get the picture of what's going on here.
+
+160
+00:11:00.160 --> 00:11:06.070
+So now we're going to pick the next one of the highest up reconfigurable and let's say this one then
+
+161
+00:11:06.070 --> 00:11:08.830
+we do the trial we do the rounds.
+
+162
+00:11:08.830 --> 00:11:12.820
+What happens is a person can do we win money from the slot machine.
+
+163
+00:11:13.390 --> 00:11:14.800
+And it goes down.
+
+164
+00:11:14.800 --> 00:11:16.030
+Probably not.
+
+165
+00:11:16.540 --> 00:11:20.320
+We didn't didn't click on the ad and went from money for the slot slot machine.
+
+166
+00:11:20.320 --> 00:11:27.720
+So the average of observation goes down comes closer to the expected value and the conference bonds
+
+167
+00:11:27.760 --> 00:11:28.470
+also decrease.
+
+168
+00:11:28.480 --> 00:11:29.070
+OK.
+
+169
+00:11:29.080 --> 00:11:33.850
+Now we kind of when our in business we can all of them are kind of starting to play.
+
+170
+00:11:33.850 --> 00:11:35.070
+Next one is this one.
+
+171
+00:11:35.100 --> 00:11:35.340
+OK.
+
+172
+00:11:35.350 --> 00:11:38.440
+This is the now because we know the end result.
+
+173
+00:11:38.440 --> 00:11:39.910
+We know that this is the best one right.
+
+174
+00:11:39.910 --> 00:11:45.570
+We know that this is the best ad or this is the best machine we should be using but like because we
+
+175
+00:11:45.660 --> 00:11:51.630
+we were kind of like given this insight just for argument's sake or for the purpose of this exercise.
+
+176
+00:11:51.640 --> 00:11:57.520
+But the person that's reforming this algorithm all the algorithms doesn't know that so unknowingly it's
+
+177
+00:11:57.520 --> 00:12:01.700
+actually starting to exploit the best option right now.
+
+178
+00:12:01.750 --> 00:12:03.790
+So again ok goes up.
+
+179
+00:12:03.790 --> 00:12:06.100
+Good call his ban goes down.
+
+180
+00:12:06.280 --> 00:12:07.990
+And as you can see it's still the best one.
+
+181
+00:12:07.990 --> 00:12:10.210
+All right so now we're going to do it again.
+
+182
+00:12:10.360 --> 00:12:15.820
+We're going to use this one again and it comes closer and the confidence ballon goes down again this
+
+183
+00:12:15.820 --> 00:12:21.190
+is all just full illustration purposes of course it's not going to go down by that Maij just because
+
+184
+00:12:21.190 --> 00:12:21.930
+one observation.
+
+185
+00:12:21.940 --> 00:12:26.500
+But we don't want to be sitting here through a thousand iterations this is just to demonstrate the overall
+
+186
+00:12:26.500 --> 00:12:26.830
+picture.
+
+187
+00:12:26.830 --> 00:12:33.110
+So even though we exploited the best option by exploiting the best option we're decreasing the conference
+
+188
+00:12:33.190 --> 00:12:39.250
+on which gives an opportunity or Breakstone any option if it goes if it keeps going up because it keeps
+
+189
+00:12:39.250 --> 00:12:43.630
+being good because we're building up the sample size.
+
+190
+00:12:43.630 --> 00:12:47.330
+This gives an option to the other.
+
+191
+00:12:47.580 --> 00:12:53.230
+It gives opportunity to the other options to or machines or ads to have a chance in the play so that
+
+192
+00:12:53.230 --> 00:12:58.150
+we're not just you know we we're not biased towards which one we think is the best or optimal outcome
+
+193
+00:12:58.940 --> 00:12:59.930
+optimal machine.
+
+194
+00:13:00.070 --> 00:13:04.510
+So now we move onto this one same thing comes closer.
+
+195
+00:13:04.630 --> 00:13:05.680
+Decrease.
+
+196
+00:13:05.830 --> 00:13:14.200
+We want to this one vast increase and we move on to this one and does increase and then again this one
+
+197
+00:13:14.990 --> 00:13:15.760
+the crease.
+
+198
+00:13:15.760 --> 00:13:22.750
+And again this one much closer has increased and even though we were very close to finding the solution
+
+199
+00:13:22.750 --> 00:13:27.730
+at Sarwan bonds the bonds decreased so much and you actually see this in the practical application and
+
+200
+00:13:27.730 --> 00:13:36.070
+practical Torahs are following that sometimes we will after using the optimal option for some time we'll
+
+201
+00:13:36.070 --> 00:13:40.690
+switch the Algor will still switch to a suboptimal option just because the balls are decreasing all
+
+202
+00:13:40.690 --> 00:13:41.320
+the time.
+
+203
+00:13:41.540 --> 00:13:46.270
+And then we'll use this one as will decrease and now we're back to the best one on the increase.
+
+204
+00:13:46.270 --> 00:13:51.010
+And then we're just going to be exploiting this one and exploiting this one and exploiting this one
+
+205
+00:13:51.010 --> 00:13:53.530
+because we found out that it's the best one.
+
+206
+00:13:53.650 --> 00:14:02.520
+So that is in essence the whole concept behind this opera confidence bar algorithm and that's how it
+
+207
+00:14:02.550 --> 00:14:06.610
+solves the multi unbandaged problem.
+
+208
+00:14:06.950 --> 00:14:12.850
+It's it's a very interesting solution much more sophisticated and then just selecting randomly or running
+
+209
+00:14:12.850 --> 00:14:18.300
+an A B test and then selecting the option you know that that one.
+
+210
+00:14:18.310 --> 00:14:24.310
+So you know if you're in advertising or if you've got campaigns or if you come across problems that
+
+211
+00:14:24.310 --> 00:14:30.130
+are similar to this always just remember about pre-conference barn argument you can apply this in your
+
+212
+00:14:30.130 --> 00:14:31.010
+work as well.
+
+213
+00:14:31.030 --> 00:14:32.680
+Very powerful algorithm.
+
+214
+00:14:32.680 --> 00:14:38.190
+And on that note I hope you enjoyed today's tutorial in the next couple of videos Halonen will take
+
+215
+00:14:38.190 --> 00:14:44.490
+you through the programming of this algorithm both in our and in Python and you'll get your takeaway
+
+216
+00:14:44.500 --> 00:14:51.040
+templates and I can't wait to see you next time where we'll be talking about the Thomson sampling algorithm.
+
+217
+00:14:51.040 --> 00:14:53.020
+And until then in Germany learning.

@@ -1,0 +1,380 @@
+1
+00:00:00,970 --> 00:00:02,220
+In this demo,
+
+2
+00:00:02,220 --> 00:00:07,220
+we will enable Cross‑Region Replication between S3 buckets in different regions.
+
+3
+00:00:07,220 --> 00:00:10,310
+We will also examine the JSON policy for the IAM role
+
+4
+00:00:10,310 --> 00:00:14,370
+permissions that are required to support replication.
+
+5
+00:00:14,370 --> 00:00:18,590
+So here we are in S3, and you see the bucket we created earlier in
+
+6
+00:00:18,590 --> 00:00:23,090
+this course, and it's in the us‑east‑1 region.
+
+7
+00:00:23,090 --> 00:00:28,550
+Remember that we enabled default encryption on this bucket with SSE S3 as well.
+
+8
+00:00:28,550 --> 00:00:31,480
+But first I'm going to create another bucket in a different region
+
+9
+00:00:31,480 --> 00:00:34,800
+so we can demonstrate Cross‑Region Replication.
+
+10
+00:00:34,800 --> 00:00:38,610
+So I'll come over here to Create bucket, and we'll call this bucket
+
+11
+00:00:38,610 --> 00:00:44,620
+awscoursereplicationbucket, and we'll put this bucket in the us‑west‑1
+
+12
+00:00:44,620 --> 00:00:47,470
+region, and now that we've created that,
+
+13
+00:00:47,470 --> 00:00:51,160
+I'll choose the bucket I created earlier in this course, and up here,
+
+14
+00:00:51,160 --> 00:00:53,500
+I'll go to Management, and on this screen,
+
+15
+00:00:53,500 --> 00:00:58,530
+I'll select Replication, and now I'll click Get started.
+
+16
+00:00:58,530 --> 00:01:00,750
+So you'll see the first thing it's telling me here is that I
+
+17
+00:01:00,750 --> 00:01:02,950
+need to enable versioning on the bucket,
+
+18
+00:01:02,950 --> 00:01:07,660
+which fortunately I can do just by clicking this button here, and now I
+
+19
+00:01:07,660 --> 00:01:11,520
+can choose to replicate the entire bucket, so that's anything added or
+
+20
+00:01:11,520 --> 00:01:15,600
+updated in the bucket from this point forward, but it won't replicate any
+
+21
+00:01:15,600 --> 00:01:19,350
+existing items that are already in the bucket, and here you see I have
+
+22
+00:01:19,350 --> 00:01:23,730
+the option of also replicating objects encrypted with KMS. So when I
+
+23
+00:01:23,730 --> 00:01:24,960
+check this here,
+
+24
+00:01:24,960 --> 00:01:29,040
+you'll see it selects the keys from my account in this bucket's region.
+
+25
+00:01:29,040 --> 00:01:34,950
+So anything encrypted with either mycmk or the default S3 key can first be
+
+26
+00:01:34,950 --> 00:01:39,180
+decrypted using those keys in the source region before it gets replicated to
+
+27
+00:01:39,180 --> 00:01:43,410
+the destination region and re‑encrypted there with a key stored in that
+
+28
+00:01:43,410 --> 00:01:46,710
+region, and I'll go ahead and click next,
+
+29
+00:01:46,710 --> 00:01:49,380
+and you see here that my destination bucket could be in
+
+30
+00:01:49,380 --> 00:01:51,760
+this account or another AWS account.
+
+31
+00:01:51,760 --> 00:01:55,300
+But I'll go ahead and choose my replication bucket here, and you'll see
+
+32
+00:01:55,300 --> 00:01:59,490
+I also need to enable versioning on that bucket, and here now I can
+
+33
+00:01:59,490 --> 00:02:03,070
+choose my KMS key from the destination region.
+
+34
+00:02:03,070 --> 00:02:06,880
+So I don't have any of my own CMKs in us‑west‑1,
+
+35
+00:02:06,880 --> 00:02:10,130
+but I can choose the aws/s3 key here,
+
+36
+00:02:10,130 --> 00:02:12,780
+and that will be the key that is used to encrypt any
+
+37
+00:02:12,780 --> 00:02:17,890
+objects replicated to this bucket, and I'll go ahead and click Next.
+
+38
+00:02:17,890 --> 00:02:20,510
+Now if I already had an IAM role with the appropriate
+
+39
+00:02:20,510 --> 00:02:22,500
+permissions as we discussed earlier,
+
+40
+00:02:22,500 --> 00:02:26,330
+I could choose that here or just have a new one created, so I'll go
+
+41
+00:02:26,330 --> 00:02:30,460
+ahead and choose Create new role, and I'll give the rule a name and
+
+42
+00:02:30,460 --> 00:02:33,340
+make sure it's enabled, and click Save.
+
+43
+00:02:33,340 --> 00:02:37,470
+So here you'll see the name of the IAM role that was created for us, but
+
+44
+00:02:37,470 --> 00:02:41,110
+what I really want to do here is go through the JSON policy for this IAM
+
+45
+00:02:41,110 --> 00:02:45,240
+role, and walk through what it's doing. So I could drill in through the
+
+46
+00:02:45,240 --> 00:02:49,740
+console to IAM, and find this new role and look at the associated policy
+
+47
+00:02:49,740 --> 00:02:53,680
+document for it, but just like the sample key policy we looked at earlier
+
+48
+00:02:53,680 --> 00:02:54,790
+in this course,
+
+49
+00:02:54,790 --> 00:02:58,060
+the policy consists of a long series of statements, so I think
+
+50
+00:02:58,060 --> 00:03:00,810
+it's easier to break it down statement by statement here and show
+
+51
+00:03:00,810 --> 00:03:04,410
+you what it's doing; and if we follow the effect action resource
+
+52
+00:03:04,410 --> 00:03:06,440
+pattern like we did before,
+
+53
+00:03:06,440 --> 00:03:11,150
+we see this role is allowing S3 to call the list bucket operation, as
+
+54
+00:03:11,150 --> 00:03:14,400
+well as a bunch of get operations on my source bucket.
+
+55
+00:03:14,400 --> 00:03:17,160
+So this allows us to get the version of the object that needs to be
+
+56
+00:03:17,160 --> 00:03:21,160
+replicated, along with its ACL and any tags, retention properties,
+
+57
+00:03:21,160 --> 00:03:25,230
+etc. Then jumping over to the next statement, we see we're
+
+58
+00:03:25,230 --> 00:03:28,140
+going to allow these replicate actions on our destination
+
+59
+00:03:28,140 --> 00:03:30,580
+bucket, and here we have a condition.
+
+60
+00:03:30,580 --> 00:03:35,720
+So where the object is encrypted using kms or AES256, which is
+
+61
+00:03:35,720 --> 00:03:40,110
+SSES3, and where the key ID we specify here exists in the
+
+62
+00:03:40,110 --> 00:03:44,050
+destination region, and then this next statement allows S3 to
+
+63
+00:03:44,050 --> 00:03:47,920
+perform the decrypt operation on items from our source bucket; and
+
+64
+00:03:47,920 --> 00:03:50,640
+here you see a ViaService condition.
+
+65
+00:03:50,640 --> 00:03:55,510
+So when the request is coming from S3 in the us‑east‑1 region,
+
+66
+00:03:55,510 --> 00:03:59,330
+which in this case is our source region, we can decrypt the items from our
+
+67
+00:03:59,330 --> 00:04:04,280
+source bucket using these keys from us‑east‑1, and finally,
+
+68
+00:04:04,280 --> 00:04:08,010
+this last statement allows S3 to perform the encrypt operation on
+
+69
+00:04:08,010 --> 00:04:11,550
+items in our destination bucket, and again with the ViaService
+
+70
+00:04:11,550 --> 00:04:15,960
+condition to say when the request is coming from S3 in our destination
+
+71
+00:04:15,960 --> 00:04:20,550
+region, us‑west‑1, for our destination bucket using the key we
+
+72
+00:04:20,550 --> 00:04:24,380
+specified in us‑west‑1. So again,
+
+73
+00:04:24,380 --> 00:04:27,760
+I encourage you to go through the JSON policy documents for your IAM
+
+74
+00:04:27,760 --> 00:04:31,130
+roles in detail, because it will be very helpful as you prepare to
+
+75
+00:04:31,130 --> 00:04:35,190
+take the exam to see exactly what kinds of policies AWS generates to
+
+76
+00:04:35,190 --> 00:04:38,040
+support these kinds of operations.
+
+77
+00:04:38,040 --> 00:04:41,850
+Now that we've enabled replication, let's go ahead and see it in action.
+
+78
+00:04:41,850 --> 00:04:45,120
+So I'll go back to my source bucket here and click Upload,
+
+79
+00:04:45,120 --> 00:04:49,390
+and I'll pick a random text file here and click Upload, and remember,
+
+80
+00:04:49,390 --> 00:04:52,210
+we have default encryption enabled on this bucket.
+
+81
+00:04:52,210 --> 00:04:55,030
+So you'll see if I go over here, and here you'll see the
+
+82
+00:04:55,030 --> 00:04:57,730
+file's replication status is already completed,
+
+83
+00:04:57,730 --> 00:05:00,510
+so this file has already been replicated.
+
+84
+00:05:00,510 --> 00:05:05,340
+But down here, you see we have the AES256 encryption on this file.
+
+85
+00:05:05,340 --> 00:05:09,220
+So now let's go into our destination bucket, and here's the file we just
+
+86
+00:05:09,220 --> 00:05:13,740
+uploaded to us‑east‑1 sitting in our destination bucket replicated in
+
+87
+00:05:13,740 --> 00:05:19,100
+us‑west‑1, and here you see its replication status is replica, and there's
+
+88
+00:05:19,100 --> 00:05:22,740
+the AES256 encryption on this file as well.
+
+89
+00:05:22,740 --> 00:05:26,110
+So remember, to get this object replicated, our IAM role
+
+90
+00:05:26,110 --> 00:05:29,320
+permissions allowed S3 to decrypt it in the source bucket
+
+91
+00:05:29,320 --> 00:05:32,070
+using the S3 key in the source region.
+
+92
+00:05:32,070 --> 00:05:34,760
+Then the data was encrypted in transit as it was sent to the
+
+93
+00:05:34,760 --> 00:05:38,140
+destination region, and then it was finally re‑encrypted in the
+
+94
+00:05:38,140 --> 00:05:43,220
+destination bucket using the S3 key from the destination region; and
+
+95
+00:05:43,220 --> 00:05:49,000
+all of that happened in the blink of an eye. So that's Cross‑Region Replication with S3.
+

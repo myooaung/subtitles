@@ -1,0 +1,280 @@
+1
+00:00:02,800 --> 00:00:03,660
+Hi.
+
+2
+00:00:03,660 --> 00:00:05,160
+My name is Kevin Jones,
+
+3
+00:00:05,160 --> 00:00:08,830
+and this is the building and IoC container module of the Java Class
+
+4
+00:00:08,830 --> 00:00:14,040
+Loading and Reflection class. In this module,
+
+5
+00:00:14,040 --> 00:00:16,720
+we are going to take some of the ideas we saw in the previous
+
+6
+00:00:16,720 --> 00:00:19,780
+modules and bring them together to try and create something a
+
+7
+00:00:19,780 --> 00:00:22,990
+little bit more practical and to give some insight into how some of
+
+8
+00:00:22,990 --> 00:00:25,840
+these ideas are used. In particular,
+
+9
+00:00:25,840 --> 00:00:30,970
+we're going to build an inversion of control container, and we'll
+
+10
+00:00:30,970 --> 00:00:34,130
+use class loading and reflection to do this. Now,
+
+11
+00:00:34,130 --> 00:00:37,810
+the container we build will be simple, there won't be too much error tracking,
+
+12
+00:00:37,810 --> 00:00:39,220
+for example,
+
+13
+00:00:39,220 --> 00:00:43,120
+but it will show up some of the main ideas in using one of these containers.
+
+14
+00:00:43,120 --> 00:00:47,820
+The basic concept behind an IoC container is that in our code,
+
+15
+00:00:47,820 --> 00:00:51,280
+we can ask for a particular type of object and the
+
+16
+00:00:51,280 --> 00:00:53,840
+container will build that object for me.
+
+17
+00:00:53,840 --> 00:00:56,600
+So we look at the object, look at the constructors on the object,
+
+18
+00:00:56,600 --> 00:00:59,870
+and if those constructors require other types,
+
+19
+00:00:59,870 --> 00:01:03,010
+the container will resolve those types and look at
+
+20
+00:01:03,010 --> 00:01:05,400
+their constructors and so on and so on.
+
+21
+00:01:05,400 --> 00:01:08,000
+So it will build a tree of objects, look at the
+
+22
+00:01:08,000 --> 00:01:10,540
+constructors for all of those objects,
+
+23
+00:01:10,540 --> 00:01:13,820
+build the objects, and pass them further up the tree until finally
+
+24
+00:01:13,820 --> 00:01:19,650
+we get back the object that we expect. As an example of this, before
+
+25
+00:01:19,650 --> 00:01:21,990
+we actually get into the code itself,
+
+26
+00:01:21,990 --> 00:01:24,160
+we're going to see how we might create an object of type
+
+27
+00:01:24,160 --> 00:01:26,880
+Meeting and that's the meeting here.
+
+28
+00:01:26,880 --> 00:01:30,920
+My meeting object takes a single parameter in its
+
+29
+00:01:30,920 --> 00:01:34,540
+constructor and that's of type IMeetingService.
+
+30
+00:01:34,540 --> 00:01:39,300
+IMeetingService is an interface which has a one method on call getAttendees.
+
+31
+00:01:39,300 --> 00:01:42,990
+We have an implementation of that called MeetingService.
+
+32
+00:01:42,990 --> 00:01:45,700
+The MeetingService indeed returns this array of strings
+
+33
+00:01:45,700 --> 00:01:48,510
+with a couple of attendee names on it.
+
+34
+00:01:48,510 --> 00:01:52,320
+My Meeting also implemented an interface called IMeeting, and if
+
+35
+00:01:52,320 --> 00:01:57,160
+we look at IMeeting, then it has the get and set properties for
+
+36
+00:01:57,160 --> 00:02:00,580
+attendees in the getMeeting method.
+
+37
+00:02:00,580 --> 00:02:02,840
+So in my code,
+
+38
+00:02:02,840 --> 00:02:07,540
+I'd like to ask my container to resolve something of type IMeeting,
+
+39
+00:02:07,540 --> 00:02:10,050
+have the container build something that implements
+
+40
+00:02:10,050 --> 00:02:13,740
+IMeeting, the something it builds will need a constructor
+
+41
+00:02:13,740 --> 00:02:16,200
+parameter of type IMeetingService,
+
+42
+00:02:16,200 --> 00:02:19,350
+so I'd like my container to build me an IMeetingService and then
+
+43
+00:02:19,350 --> 00:02:23,620
+return the meeting object to me. Once I get the meeting back, then
+
+44
+00:02:23,620 --> 00:02:26,090
+I can get its attendees and print out, for example,
+
+45
+00:02:26,090 --> 00:02:28,670
+that list of attendees.
+
+46
+00:02:28,670 --> 00:02:31,970
+The configuration for this looks like this.
+
+47
+00:02:31,970 --> 00:02:36,880
+So inside here, I'm saying, when somebody asks for something of type IMeeting,
+
+48
+00:02:36,880 --> 00:02:39,240
+then map this onto a meeting.
+
+49
+00:02:39,240 --> 00:02:40,590
+If somebody asks for something of type
+
+50
+00:02:40,590 --> 00:02:44,880
+IMeetingService, map that onto IMeetingService.
+
+51
+00:02:44,880 --> 00:02:48,730
+So what will happen inside Main, we ask for
+
+52
+00:02:48,730 --> 00:02:51,200
+IMeeting, the container looks inside,
+
+53
+00:02:51,200 --> 00:02:58,030
+config.json, sees that IMeeting maps to Meeting, looks at meeting, sees
+
+54
+00:02:58,030 --> 00:03:01,240
+that meeting needs something of type IMeetingService,
+
+55
+00:03:01,240 --> 00:03:03,950
+goes back to the configuration and sees that
+
+56
+00:03:03,950 --> 00:03:07,070
+IMeetingService maps to MeetingService.
+
+57
+00:03:07,070 --> 00:03:10,340
+A Meeting Service is a default constructor, so it will build a
+
+58
+00:03:10,340 --> 00:03:14,240
+MeetingService instance for me, then create a Meeting instance for me
+
+59
+00:03:14,240 --> 00:03:19,320
+passing into it the meeting service just created, and inside main, we
+
+60
+00:03:19,320 --> 00:03:22,040
+should now be able to use that meeting service in the meeting and print out
+
+61
+00:03:22,040 --> 00:03:25,110
+the attendees. And to prove that this works,
+
+62
+00:03:25,110 --> 00:03:30,320
+in this instance, I will just run the application here.
+
+63
+00:03:30,320 --> 00:03:33,180
+When I run this, it should print out the name of the attendees and there we go.
+
+64
+00:03:33,180 --> 00:03:36,330
+There is Alice and Bob printed out and they come from
+
+65
+00:03:36,330 --> 00:03:40,110
+MeetingService.java, which returns Alice and Bob. And again, to
+
+66
+00:03:40,110 --> 00:03:44,520
+prove I'm not cheating here, if I change this to say,
+
+67
+00:03:44,520 --> 00:03:48,910
+Charlie as well and go back and rerun the application,
+
+68
+00:03:48,910 --> 00:03:52,580
+then we should now see Alice, Bob, and Charlie.
+
+69
+00:03:52,580 --> 00:03:57,940
+So we're using the container to create the objects for me.
+
+70
+00:03:57,940 --> 00:04:08,000
+And what we'll do in this module is to write various parts of the container to show how we how we use this.
+

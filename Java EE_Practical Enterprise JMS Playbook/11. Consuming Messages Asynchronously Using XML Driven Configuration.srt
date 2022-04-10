@@ -1,0 +1,264 @@
+1
+00:00:02,215 --> 00:00:05,971
+Consuming messages via JMS using Spring XML configuration is a bit
+
+2
+00:00:05,971 --> 00:00:08,989
+more involved than the annotation-driven approach.
+
+3
+00:00:08,989 --> 00:00:12,448
+I've generated a new class called EMailMessageListener,
+
+4
+00:00:12,448 --> 00:00:15,506
+which is a single method called onMessage,
+
+5
+00:00:15,506 --> 00:00:18,657
+which takes an email object as a parameter.
+
+6
+00:00:18,657 --> 00:00:21,225
+You'll notice it doesn't implement any interface or have any
+
+7
+00:00:21,225 --> 00:00:23,153
+knowledge outside its business domain.
+
+8
+00:00:23,153 --> 00:00:25,659
+It purely knows about email objects.
+
+9
+00:00:25,659 --> 00:00:29,636
+I guess this is one of the best things about Spring's pure XML configuration.
+
+10
+00:00:29,636 --> 00:00:31,532
+There is little clutter in your code.
+
+11
+00:00:31,532 --> 00:00:34,154
+However, that information has to be defined somewhere,
+
+12
+00:00:34,154 --> 00:00:37,232
+and that somewhere is in the configuration file.
+
+13
+00:00:37,232 --> 00:00:37,933
+If we look in it,
+
+14
+00:00:37,933 --> 00:00:40,713
+then I have a new Bean defined for the class we've just been looking at.
+
+15
+00:00:40,713 --> 00:00:43,158
+Then I have this section called ListenerContainer,
+
+16
+00:00:43,158 --> 00:00:47,289
+which has its own XML namespace defined.
+
+17
+00:00:47,289 --> 00:00:49,785
+We can see the definition of that at the top of the file,
+
+18
+00:00:49,785 --> 00:00:51,999
+which you'll need to add if you want to use it.
+
+19
+00:00:51,999 --> 00:00:56,018
+The ListenerContainer XML element is really a definition of a template,
+
+20
+00:00:56,018 --> 00:00:59,577
+then each JmsListener is an implementation of that template,
+
+21
+00:00:59,577 --> 00:01:03,546
+which is really a new DefaultMessageListenerContainer.
+
+22
+00:01:03,546 --> 00:01:05,757
+So each new container will use the ConnectionFactory called
+
+23
+00:01:05,757 --> 00:01:07,521
+ActiveMqConnectionFactory or message-converter,
+
+24
+00:01:07,521 --> 00:01:12,890
+and will have a dynamic number of consumers between 3 and 10,
+
+25
+00:01:12,890 --> 00:01:17,448
+depending on the load and a JMS acknowledgment mode of transacted.
+
+26
+00:01:17,448 --> 00:01:20,158
+Then you declare your actual destinations and consumer
+
+27
+00:01:20,158 --> 00:01:21,968
+implementations for each container.
+
+28
+00:01:21,968 --> 00:01:25,402
+I've only got one JmsListener declared here,
+
+29
+00:01:25,402 --> 00:01:27,014
+but you can have as many listeners as you want.
+
+30
+00:01:27,014 --> 00:01:29,636
+Notice the listener uses a reference to our
+
+31
+00:01:29,636 --> 00:01:31,954
+emailsMessageListener class and the method to use.
+
+32
+00:01:31,954 --> 00:01:35,398
+This also means you can have a single class that can
+
+33
+00:01:35,398 --> 00:01:36,452
+receive different message types.
+
+34
+00:01:36,452 --> 00:01:37,428
+So for the most part,
+
+35
+00:01:37,428 --> 00:01:40,667
+the only thing that will be different is the destination and method description.
+
+36
+00:01:40,667 --> 00:01:44,078
+It's also on the JmsListener that you declare the
+
+37
+00:01:44,078 --> 00:01:47,640
+messageSelector you want to use if you require one.
+
+38
+00:01:47,640 --> 00:01:51,314
+That's pretty much all it takes to declare an asynchronous JMS consumer.
+
+39
+00:01:51,314 --> 00:01:52,715
+So let's see this running.
+
+40
+00:01:52,715 --> 00:01:53,276
+In preparation,
+
+41
+00:01:53,276 --> 00:01:56,943
+I've placed a number of email messages on the emails queue earlier,
+
+42
+00:01:56,943 --> 00:02:00,104
+so let's see if this application consumes them correctly.
+
+43
+00:02:00,104 --> 00:02:03,575
+And we can see from the output it does.
+
+44
+00:02:03,575 --> 00:02:04,808
+Jumping into the Admin console,
+
+45
+00:02:04,808 --> 00:02:08,190
+I can see on our queue that we have a number of consumers,
+
+46
+00:02:08,190 --> 00:02:11,240
+which will scale up or down dynamically depending on load.
+
+47
+00:02:11,240 --> 00:02:14,241
+So we've seen an example of connecting to a queue,
+
+48
+00:02:14,241 --> 00:02:17,155
+we now need to configure another listenerContainer for topics.
+
+49
+00:02:17,155 --> 00:02:21,483
+Similar to our EmailMessageListener, I've got an OrderMessageListener,
+
+50
+00:02:21,483 --> 00:02:24,541
+which has a single onMessage method and receives order objects.
+
+51
+00:02:24,541 --> 00:02:25,877
+There's nothing new here.
+
+52
+00:02:25,877 --> 00:02:27,880
+Back in our Spring XML configuration,
+
+53
+00:02:27,880 --> 00:02:32,356
+I've got another listener container that is very similar to the queues one.
+
+54
+00:02:32,356 --> 00:02:36,641
+I've just added a couple of fields, namely the clientID and a destination-type,
+
+55
+00:02:36,641 --> 00:02:39,003
+which I want to be a durable topic.
+
+56
+00:02:39,003 --> 00:02:41,161
+I'm also setting concurrency to be always 1,
+
+57
+00:02:41,161 --> 00:02:44,619
+as any more than that doesn't make sense for a topic; otherwise,
+
+58
+00:02:44,619 --> 00:02:47,531
+the same message will be delivered to multiple consumers.
+
+59
+00:02:47,531 --> 00:02:52,187
+On my JmsListener itself, I declare the subscription name I want to use.
+
+60
+00:02:52,187 --> 00:02:54,047
+If you don't want to receive order messages,
+
+61
+00:02:54,047 --> 00:02:56,921
+but instead want to receive plain JMS message objects,
+
+62
+00:02:56,921 --> 00:02:59,702
+then your OrderMessageListener must change to implement
+
+63
+00:02:59,702 --> 00:03:02,430
+the JmsMessageListener interface, and in my XML,
+
+64
+00:03:02,430 --> 00:03:06,401
+I can get rid of the method name, as it won't be used.
+
+65
+00:03:06,401 --> 00:03:07,860
+Now if I try that,
+
+66
+00:03:07,860 --> 00:03:16,000
+I should start to see ActiveMQ text messages being received in my output, which we can see here.
+

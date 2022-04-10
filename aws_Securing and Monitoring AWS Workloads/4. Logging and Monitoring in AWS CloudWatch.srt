@@ -1,0 +1,352 @@
+1
+00:00:00,440 --> 00:00:06,350
+In this clip we will see how to set up a unified CloudWatch agent and
+
+2
+00:00:06,350 --> 00:00:11,040
+monitor the logs from EC2 instance in CloudWatch.
+
+3
+00:00:11,040 --> 00:00:15,340
+I just logged into AWS Management Console.
+
+4
+00:00:15,340 --> 00:00:18,640
+Click on IAM.
+
+5
+00:00:18,640 --> 00:00:24,140
+Before installing the CloudWatch agent, let's address some of the prerequisites.
+
+6
+00:00:24,140 --> 00:00:28,420
+And the important one is creating an IAM role and
+
+7
+00:00:28,420 --> 00:00:32,560
+attaching it to your EC2 instance.
+
+8
+00:00:32,560 --> 00:00:35,840
+To your left, click on Roles.
+
+9
+00:00:35,840 --> 00:00:39,310
+Choose Create role.
+
+10
+00:00:39,310 --> 00:00:45,040
+Under Choose a use case, select EC2.
+
+11
+00:00:45,040 --> 00:00:48,340
+Click on Permissions.
+
+12
+00:00:48,340 --> 00:00:54,340
+Let's search for AmazonEC2RoleforSSM.
+
+13
+00:00:54,340 --> 00:00:58,780
+This is one of the policies that you must have in your IAM role if you
+
+14
+00:00:58,780 --> 00:01:04,800
+would want the CloudWatch agent to be integrated with SSM.
+
+15
+00:01:04,800 --> 00:01:11,150
+Next policy that you need to have is CloudWatchAgentServerPolicy.
+
+16
+00:01:11,150 --> 00:01:15,690
+Let me search for it and include it as part of the role.
+
+17
+00:01:15,690 --> 00:01:19,140
+Click Review.
+
+18
+00:01:19,140 --> 00:01:26,400
+Give your role a name and click on Create role.
+
+19
+00:01:26,400 --> 00:01:30,840
+A new role with the name CloudWatchAgentRole has been created,
+
+20
+00:01:30,840 --> 00:01:35,540
+which we are going to associate with are EC2 instance.
+
+21
+00:01:35,540 --> 00:01:39,640
+Click EC2 from the Admin console.
+
+22
+00:01:39,640 --> 00:01:43,640
+I'm going to launch a new instance.
+
+23
+00:01:43,640 --> 00:01:50,540
+Let me choose 2018.03.0 AMI.
+
+24
+00:01:50,540 --> 00:01:55,440
+I'm going to stick to t2.micro type.
+
+25
+00:01:55,440 --> 00:01:59,840
+Click on Review and Launch.
+
+26
+00:01:59,840 --> 00:02:03,340
+Click Launch.
+
+27
+00:02:03,340 --> 00:02:12,140
+Acknowledge that you have access to the key pair and select Launch Instances.
+
+28
+00:02:12,140 --> 00:02:16,420
+Select the instance that we just launched.
+
+29
+00:02:16,420 --> 00:02:22,490
+Under Description, you can see there are no IAM rules being currently linked.
+
+30
+00:02:22,490 --> 00:02:26,430
+Right‑click the instance, the Instance Settings,
+
+31
+00:02:26,430 --> 00:02:31,010
+and click on Attach/Replace IAM Role.
+
+32
+00:02:31,010 --> 00:02:35,740
+Select the IAM role that you just created.
+
+33
+00:02:35,740 --> 00:02:36,420
+Click Apply.
+
+34
+00:02:36,420 --> 00:02:40,220
+Click Close.
+
+35
+00:02:40,220 --> 00:02:44,230
+Let's go back and check the IAM role on the Description tab.
+
+36
+00:02:44,230 --> 00:02:47,410
+Now you can see that the CloudWatchAgentRole has
+
+37
+00:02:47,410 --> 00:02:51,340
+been associated with this instance.
+
+38
+00:02:51,340 --> 00:02:56,840
+I just connected to this EC2 instance using a PuTTY terminal.
+
+39
+00:02:56,840 --> 00:03:03,410
+I'm going to install a few required packages like zip and unzip.
+
+40
+00:03:03,410 --> 00:03:08,200
+You can download the CloudWatch agent zip file from this URL.
+
+41
+00:03:08,200 --> 00:03:14,000
+And I'm going to wget to this URL and download the file.
+
+42
+00:03:14,000 --> 00:03:16,700
+Let me unzip the file.
+
+43
+00:03:16,700 --> 00:03:24,200
+I'm going to execute install.sh to install the CloudWatch agent.
+
+44
+00:03:24,200 --> 00:03:33,280
+The default location is under /opt/aws/amazon‑cloudwatch‑agent.
+
+45
+00:03:33,280 --> 00:03:36,540
+Our next step is to create a config file,
+
+46
+00:03:36,540 --> 00:03:39,310
+and you can use the wizard provided by CloudWatch
+
+47
+00:03:39,310 --> 00:03:43,040
+agent or manually create the file.
+
+48
+00:03:43,040 --> 00:03:46,200
+I'm going to use the wizard.
+
+49
+00:03:46,200 --> 00:03:50,260
+This wizard will ask you a series of questions and build a config file
+
+50
+00:03:50,260 --> 00:03:57,140
+in the JSON format. Let me accept the default choice here as we are
+
+51
+00:03:57,140 --> 00:04:05,450
+using a Linux instance. We are using the EC2 instance. Root user will
+
+52
+00:04:05,450 --> 00:04:08,800
+be running the agent in our case.
+
+53
+00:04:08,800 --> 00:04:12,070
+You may need to change this if you need to select a
+
+54
+00:04:12,070 --> 00:04:16,400
+different user who will be running the agent.
+
+55
+00:04:16,400 --> 00:04:20,250
+I would like the StatsD daemon to be turned on.
+
+56
+00:04:20,250 --> 00:04:25,940
+I'm going to accept the default 8125 port.
+
+57
+00:04:25,940 --> 00:04:31,910
+I won't accept the default collection and aggregation interval.
+
+58
+00:04:31,910 --> 00:04:39,360
+Let me choose the default choice to monitor metrics from CollectD. Yes,
+
+59
+00:04:39,360 --> 00:04:43,990
+I would like to monitor CPU and memory.
+
+60
+00:04:43,990 --> 00:04:47,170
+I'm going to accept the default choice to monitor the CPU
+
+61
+00:04:47,170 --> 00:04:54,320
+metrics per core, adding EC2 dimensions, default collection
+
+62
+00:04:54,320 --> 00:04:59,150
+interval, and the default metrics config.
+
+63
+00:04:59,150 --> 00:05:03,590
+It lists the default config that you just created using the wizard,
+
+64
+00:05:03,590 --> 00:05:10,480
+and you have the option either to keep it or to edit it further.
+
+65
+00:05:10,480 --> 00:05:15,170
+I'm not going to migrate any existing CloudWatch agent, but
+
+66
+00:05:15,170 --> 00:05:19,510
+I'm going to monitor existing log files.
+
+67
+00:05:19,510 --> 00:05:26,840
+I'm going to monitor /var/log/messages.
+
+68
+00:05:26,840 --> 00:05:32,420
+I'm going to provide a log group customized to name.
+
+69
+00:05:32,420 --> 00:05:35,950
+And then I don't want to monitor any other log files.
+
+70
+00:05:35,950 --> 00:05:41,190
+And I also don't want to store the config in the SSM Parameter Store.
+
+71
+00:05:41,190 --> 00:05:46,860
+You can see a new file with the name config.json has been created.
+
+72
+00:05:46,860 --> 00:05:51,210
+I'm going to use amazon‑cloudwatch‑agent‑ctl utility to start
+
+73
+00:05:51,210 --> 00:05:56,190
+the agent by giving a link to this file.
+
+74
+00:05:56,190 --> 00:06:00,340
+It looks like there is a failure when starting the agent.
+
+75
+00:06:00,340 --> 00:06:05,860
+I believe this instance doesn't come preloaded with collectd utility,
+
+76
+00:06:05,860 --> 00:06:09,750
+and I'm going to manually install it.
+
+77
+00:06:09,750 --> 00:06:12,660
+Now that collectd is installed, let us try restarting the
+
+78
+00:06:12,660 --> 00:06:18,840
+agent The message No csm configuration found is a warning
+
+79
+00:06:18,840 --> 00:06:23,880
+message and we can safely disregard it.
+
+80
+00:06:23,880 --> 00:06:29,590
+It looks like our agent is started now. Let's use the status
+
+81
+00:06:29,590 --> 00:06:33,830
+option and make sure our agent is running.
+
+82
+00:06:33,830 --> 00:06:37,400
+Let's go back to CloudWatch console and make sure
+
+83
+00:06:37,400 --> 00:06:40,940
+that the logs are being recorded.
+
+84
+00:06:40,940 --> 00:06:48,300
+Choose Logs to your left. Choose get started. Click on the
+
+85
+00:06:48,300 --> 00:06:54,900
+log group messages_Globomantics. Select the log stream
+
+86
+00:06:54,900 --> 00:06:57,610
+that matches the instance ID.
+
+87
+00:06:57,610 --> 00:07:05,340
+And you can see the logs from /var/logs/messages are being streamed here.
+
+88
+00:07:05,340 --> 00:07:15,000
+If you prefer to monitor any other application logs or OS logs all you need to do is to modify the JSON file and restart the service.
+

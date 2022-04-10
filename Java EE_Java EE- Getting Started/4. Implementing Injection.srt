@@ -1,0 +1,280 @@
+1
+00:00:02,128 --> 00:00:07,770
+So let's add some business logic to our BookRepository by injecting the beans,
+
+2
+00:00:07,770 --> 00:00:09,356
+TextUtil and NumberGenerator.
+
+3
+00:00:09,356 --> 00:00:13,464
+We need to create these two extra beans,
+
+4
+00:00:13,464 --> 00:00:18,141
+wire them just by adding the @Inject annotation and make
+
+5
+00:00:18,141 --> 00:00:20,845
+sure our deployment descriptor is set up.
+
+6
+00:00:20,845 --> 00:00:30,571
+And as usual, we will improve our tests so they can deal with CDI injection.
+
+7
+00:00:30,571 --> 00:00:34,305
+So let's start with our requirements.
+
+8
+00:00:34,305 --> 00:00:40,708
+What we want is to sanitize the title of the book.
+
+9
+00:00:40,708 --> 00:00:47,113
+So here the book title is a title and the test pass.
+
+10
+00:00:47,113 --> 00:00:52,620
+But imagine if I had two spaces between a and title,
+
+11
+00:00:52,620 --> 00:00:58,559
+the test fail because, as you can see, I have two spaces instead of one.
+
+12
+00:00:58,559 --> 00:01:05,855
+So I want this test to pass, I want to get rid of double spaces.
+
+13
+00:01:05,855 --> 00:01:07,723
+And for that,
+
+14
+00:01:07,723 --> 00:01:17,270
+I'm going to create a utility class called TextUtil under the package util.
+
+15
+00:01:17,270 --> 00:01:26,518
+This class has one method called sanitize and as a
+
+16
+00:01:26,518 --> 00:01:30,432
+parameter it takes the textToSanitize.
+
+17
+00:01:30,432 --> 00:01:36,915
+So I return the textToSanitize and I replace all the
+
+18
+00:01:36,915 --> 00:01:42,356
+double or triple spaces with a single one.
+
+19
+00:01:42,356 --> 00:01:48,764
+So now I have to go to the BookRepository,
+
+20
+00:01:48,764 --> 00:01:55,167
+inject this utility class, so with @Inject from CDI,
+
+21
+00:01:55,167 --> 00:01:59,267
+TextUtil and let's call it textUtil,
+
+22
+00:01:59,267 --> 00:02:04,695
+and now before I persist the book in the database,
+
+23
+00:02:04,695 --> 00:02:09,054
+I'm going to sanitize the title of the book.
+
+24
+00:02:09,054 --> 00:02:15,168
+So I get the title of the book and sanitize it and
+
+25
+00:02:15,168 --> 00:02:19,207
+set it again before the persist.
+
+26
+00:02:19,207 --> 00:02:25,547
+For this to work, the CDI to work, we need a bean XML file.
+
+27
+00:02:25,547 --> 00:02:33,055
+So I create this special WEB-INF directory and inside I create the beans.
+
+28
+00:02:33,055 --> 00:02:33,633
+xml.
+
+29
+00:02:33,633 --> 00:02:36,475
+I'll leave it empty.
+
+30
+00:02:36,475 --> 00:02:42,158
+Back to the repository, I navigate to TextUtil.
+
+31
+00:02:42,158 --> 00:02:48,492
+Okay, time to run the test again.
+
+32
+00:02:48,492 --> 00:02:52,112
+Oh, the test breaks.
+
+33
+00:02:52,112 --> 00:02:55,953
+Let's scroll down the logs and see why.
+
+34
+00:02:55,953 --> 00:02:58,354
+Oh, again, class not found.
+
+35
+00:02:58,354 --> 00:03:03,506
+I need to tell ShrinkWrap to package the TextUtil class.
+
+36
+00:03:03,506 --> 00:03:09,089
+So here I just add this new class, TextUtil,
+
+37
+00:03:09,089 --> 00:03:14,953
+ShrinkWrap packages the jar, Arquillian deploys it to WildFly,
+
+38
+00:03:14,953 --> 00:03:16,306
+it works.
+
+39
+00:03:16,306 --> 00:03:20,792
+So now I've sanitized the title of the book.
+
+40
+00:03:20,792 --> 00:03:25,806
+Okay but there's one more thing I need to do,
+
+41
+00:03:25,806 --> 00:03:33,105
+is when I create a new book I want to generate an isbn number and
+
+42
+00:03:33,105 --> 00:03:37,797
+this isbn number starts with the number 13.
+
+43
+00:03:37,797 --> 00:03:46,317
+So here because I have isbn the test should fail now.
+
+44
+00:03:46,317 --> 00:03:51,647
+Yeah, isbn doesn't start with 13.
+
+45
+00:03:51,647 --> 00:03:56,955
+So let's create an interface NumberGenerator,
+
+46
+00:03:56,955 --> 00:04:04,751
+so that's not a class, let's change it, interface,
+
+47
+00:04:04,751 --> 00:04:09,171
+and this interface has one method that returns a string,
+
+48
+00:04:09,171 --> 00:04:11,495
+which is the isbn number.
+
+49
+00:04:11,495 --> 00:04:16,296
+This is an interface, so I have to implement it.
+
+50
+00:04:16,296 --> 00:04:25,639
+So let's implement this interface and let's call the class IsbnGenerator,
+
+51
+00:04:25,639 --> 00:04:31,627
+okay I override the generateNumber method and this method will
+
+52
+00:04:31,627 --> 00:04:37,987
+return a random number starting with 13.
+
+53
+00:04:37,987 --> 00:04:47,004
+And because our test expects 13, the test should then work.
+
+54
+00:04:47,004 --> 00:04:52,864
+So let's use a random number, an integer, yep.
+
+55
+00:04:52,864 --> 00:04:58,848
+Let's go back to the BookRepository and this time inject the interface,
+
+56
+00:04:58,848 --> 00:05:00,612
+not the implementation.
+
+57
+00:05:00,612 --> 00:05:05,697
+TextUtil is an implementation, but here I'm injecting NumberGenerator,
+
+58
+00:05:05,697 --> 00:05:14,566
+and CDI should find out that there's one implementation and inject it for me.
+
+59
+00:05:14,566 --> 00:05:15,353
+Book.
+
+60
+00:05:15,353 --> 00:05:22,193
+setIsbn so before persisting the book I generate a number.
+
+61
+00:05:22,193 --> 00:05:22,809
+Yep,
+
+62
+00:05:22,809 --> 00:05:31,472
+we have to tell ShrinkWrap to package the interface and the implementation both,
+
+63
+00:05:31,472 --> 00:05:34,934
+so NumberGenerator and IsbnGenerator.
+
+64
+00:05:34,934 --> 00:05:43,982
+And now if I run the test, yes green.
+
+65
+00:05:43,982 --> 00:05:49,629
+The isbn number starts with the number 13.
+
+66
+00:05:49,629 --> 00:05:52,330
+Good, I've sanitized the title,
+
+67
+00:05:52,330 --> 00:05:57,822
+I've generated an isbn number by changing the BookRepository,
+
+68
+00:05:57,822 --> 00:06:00,612
+injecting these two beans.
+
+69
+00:06:00,612 --> 00:06:06,111
+I've created an interface and an implementation, TextUtil, beans.
+
+70
+00:06:06,111 --> 00:06:21,000
+xml for CDI, and update the test. So let's change that, Module 8 - Injection, and commit the code.
+

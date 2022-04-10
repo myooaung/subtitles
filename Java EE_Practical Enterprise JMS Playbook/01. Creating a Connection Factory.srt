@@ -1,0 +1,288 @@
+1
+00:00:00,000 --> 00:00:03,198
+Hi, this is Grant Little from Pluralsight,
+
+2
+00:00:03,198 --> 00:00:08,920
+and welcome back to Practical Enterprise JMS Playbook.
+
+3
+00:00:08,920 --> 00:00:11,911
+This module contains standalone plays on how to
+
+4
+00:00:11,911 --> 00:00:13,780
+perform some basic JMS functionality.
+
+5
+00:00:13,780 --> 00:00:16,285
+I'm assuming you already have some knowledge on JMS,
+
+6
+00:00:16,285 --> 00:00:18,973
+therefore these plays can be used as reminders how to do
+
+7
+00:00:18,973 --> 00:00:20,965
+some of the basic tasks using JMS.
+
+8
+00:00:20,965 --> 00:00:24,455
+I won't be going into great detail on any of them,
+
+9
+00:00:24,455 --> 00:00:26,171
+but just providing some guidance.
+
+10
+00:00:26,171 --> 00:00:28,140
+So first off, connection factories.
+
+11
+00:00:28,140 --> 00:00:31,378
+Once we have a message broker up and running,
+
+12
+00:00:31,378 --> 00:00:34,755
+the first thing we need to do is look at how to create a
+
+13
+00:00:34,755 --> 00:00:38,061
+ConnectionFactory that will connect to it.
+
+14
+00:00:38,061 --> 00:00:40,966
+Unfortunately, this is not part of the specification,
+
+15
+00:00:40,966 --> 00:00:43,059
+the resultant ConnectionFactory object is,
+
+16
+00:00:43,059 --> 00:00:48,216
+but how to create that factory object is not part of the JMS specification.
+
+17
+00:00:48,216 --> 00:00:50,632
+We're using Apache's ActiveMQ in our examples,
+
+18
+00:00:50,632 --> 00:00:54,729
+so let's see how you can achieve that with ActiveMQ.
+
+19
+00:00:54,729 --> 00:00:56,271
+Generally it's pretty simple actually.
+
+20
+00:00:56,271 --> 00:01:00,046
+You just need to know the host and the port that the
+
+21
+00:01:00,046 --> 00:01:01,663
+ActiveMQ broker is listening on.
+
+22
+00:01:01,663 --> 00:01:03,575
+This is not the admin port,
+
+23
+00:01:03,575 --> 00:01:07,620
+but the TCP port used for communication with the broker.
+
+24
+00:01:07,620 --> 00:01:11,853
+The default port for ActiveMQ is 61616.
+
+25
+00:01:11,853 --> 00:01:15,474
+We therefore need to create a ConnectionFactory that takes in a URI.
+
+26
+00:01:15,474 --> 00:01:19,574
+Just as a quick pointer, if you are using ActiveMQ in a HA environment,
+
+27
+00:01:19,574 --> 00:01:23,688
+then the URL you need to use is slightly different.
+
+28
+00:01:23,688 --> 00:01:25,849
+In that case, you would use the failover protocol,
+
+29
+00:01:25,849 --> 00:01:29,484
+passing in a list of URLs to your available brokers.
+
+30
+00:01:29,484 --> 00:01:32,159
+We only have one broker though,
+
+31
+00:01:32,159 --> 00:01:35,364
+so we'll go back to the original single broker configuration we had.
+
+32
+00:01:35,364 --> 00:01:39,682
+Now there are actually a few connection factories that we can create.
+
+33
+00:01:39,682 --> 00:01:41,933
+We've already seen the generic ConnectionFactory,
+
+34
+00:01:41,933 --> 00:01:45,128
+but the JMS API also supports a
+
+35
+00:01:45,128 --> 00:01:47,767
+QueueConnectionFactory and a TopicConnectionFactory.
+
+36
+00:01:47,767 --> 00:01:51,517
+If you specifically know the type of destination you will be using, e.
+
+37
+00:01:51,517 --> 00:01:51,938
+g.
+
+38
+00:01:51,938 --> 00:01:57,835
+a queue or a topic, then you can create instances of these interfaces directly.
+
+39
+00:01:57,835 --> 00:01:59,997
+Again, how is dependent on your JMS implementation,
+
+40
+00:01:59,997 --> 00:02:04,713
+but on the case of ActiveMQ and a number of other JMS implementations,
+
+41
+00:02:04,713 --> 00:02:07,516
+the ActiveMQ ConnectionFactory class implements all
+
+42
+00:02:07,516 --> 00:02:09,415
+three of the ConnectionFactories,
+
+43
+00:02:09,415 --> 00:02:13,980
+therefore we can create a new createQueueConnectionFactory method that
+
+44
+00:02:13,980 --> 00:02:16,537
+returns a QueueConnectionFactory implementation.
+
+45
+00:02:16,537 --> 00:02:23,674
+Inside that method, we can create a new instance of ActiveMQConnectionFactory,
+
+46
+00:02:23,674 --> 00:02:25,505
+and return that.
+
+47
+00:02:25,505 --> 00:02:26,733
+Similarly, for a TopicConnectionFactory,
+
+48
+00:02:26,733 --> 00:02:29,520
+we can create a new CreateTopicConnectionFactory method,
+
+49
+00:02:29,520 --> 00:02:32,618
+which returns a TopicConnectionFactory instance.
+
+50
+00:02:32,618 --> 00:02:38,695
+The implementation of that method also returns a new instance
+
+51
+00:02:38,695 --> 00:02:41,115
+of an ActiveMQConnectionFactory object.
+
+52
+00:02:41,115 --> 00:02:44,127
+If you are going to be using JMS within a transactional environment,
+
+53
+00:02:44,127 --> 00:02:46,675
+and by that I mean a distributed transaction environment,
+
+54
+00:02:46,675 --> 00:02:51,958
+then you will need to consider using the XA versions of these interfaces.
+
+55
+00:02:51,958 --> 00:02:54,900
+Now typically you will be more than likely using these in a
+
+56
+00:02:54,900 --> 00:02:57,018
+Java Enterprise Edition application server,
+
+57
+00:02:57,018 --> 00:03:00,855
+but let's demonstrate how you can create direct
+
+58
+00:03:00,855 --> 00:03:03,348
+instances of these required interfaces.
+
+59
+00:03:03,348 --> 00:03:06,636
+First off, we want to create an XA ConnectionFactory.
+
+60
+00:03:06,636 --> 00:03:09,825
+I'm actually just going to copy the existing
+
+61
+00:03:09,825 --> 00:03:12,353
+CreateConnectionFactory method and make a few changes.
+
+62
+00:03:12,353 --> 00:03:15,383
+First, I'll rename the new method to createXAConnectionFactory.
+
+63
+00:03:15,383 --> 00:03:19,765
+I'll change the return type to a XAConnectionFactory,
+
+64
+00:03:19,765 --> 00:03:24,790
+and finally, I need to change the implementing class.
+
+65
+00:03:24,790 --> 00:03:28,368
+I need to change from an ActiveMQConnectionFactory to
+
+66
+00:03:28,368 --> 00:03:29,682
+an ActiveMQXAConnectionFactory.
+
+67
+00:03:29,682 --> 00:03:34,019
+It takes the same parameters.
+
+68
+00:03:34,019 --> 00:03:37,167
+We can now replicate this pattern for the
+
+69
+00:03:37,167 --> 00:03:38,956
+XAQConnectionFactory and the XATopicConnectionFactory.
+
+70
+00:03:38,956 --> 00:03:43,217
+Now obviously this isn't the cleanest code,
+
+71
+00:03:43,217 --> 00:03:45,300
+there is a lot of duplication,
+
+72
+00:03:45,300 --> 00:03:53,000
+but I've done that deliberately to be a bit more verbose, so it's clear what's happening.
+

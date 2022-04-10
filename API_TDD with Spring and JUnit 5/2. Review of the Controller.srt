@@ -1,0 +1,424 @@
+1
+00:00:00,000 --> 00:00:00,477
+In this section,
+
+2
+00:00:00,477 --> 00:00:03,052
+we're going to review the functionality of the Globomantics
+
+3
+00:00:03,052 --> 00:00:06,256
+product controller and look at the existing source code so that
+
+4
+00:00:06,256 --> 00:00:08,195
+we'll better understand how to test it.
+
+5
+00:00:08,195 --> 00:00:10,592
+The product controller accepts web requests,
+
+6
+00:00:10,592 --> 00:00:14,402
+invokes the product service to execute the service's business functionality,
+
+7
+00:00:14,402 --> 00:00:18,022
+and then packages the responses into web responses,
+
+8
+00:00:18,022 --> 00:00:21,169
+namely, JSON with specific HTTP headers.
+
+9
+00:00:21,169 --> 00:00:24,800
+The product controller exposes four operations: First,
+
+10
+00:00:24,800 --> 00:00:28,140
+it handles a GET request to retrieve all products,
+
+11
+00:00:28,140 --> 00:00:32,671
+namely, get/products, and then it handles a GET request for a specific product,
+
+12
+00:00:32,671 --> 00:00:35,710
+the idea of which is passed as a path parameter.
+
+13
+00:00:35,710 --> 00:00:39,040
+It implements a POST request handler that allows the user to
+
+14
+00:00:39,040 --> 00:00:42,785
+create a new product; the URI is post/product.
+
+15
+00:00:42,785 --> 00:00:43,101
+Finally,
+
+16
+00:00:43,101 --> 00:00:46,036
+it includes a PUT request handler that allows the
+
+17
+00:00:46,036 --> 00:00:48,117
+user to update an existing product.
+
+18
+00:00:48,117 --> 00:00:53,060
+The URI is PUT/product/id, and includes an If-Match HTTP header,
+
+19
+00:00:53,060 --> 00:00:57,266
+which is used to validate the version of the product being updated.
+
+20
+00:00:57,266 --> 00:01:00,710
+REST implements versioning using entity tags, or ETags.
+
+21
+00:01:00,710 --> 00:01:05,724
+An ETag is returned in the HTTP header when a user retrieves a product,
+
+22
+00:01:05,724 --> 00:01:08,676
+and then when the user wants to update the product,
+
+23
+00:01:08,676 --> 00:01:12,615
+he sends that ETag value in the If-Match HTTP header.
+
+24
+00:01:12,615 --> 00:01:16,340
+If the two values match, then the PUT operation can be completed.
+
+25
+00:01:16,340 --> 00:01:18,137
+If the two values do not match,
+
+26
+00:01:18,137 --> 00:01:21,010
+it means that someone else updated the product in between the time
+
+27
+00:01:21,010 --> 00:01:24,390
+the GET was executed and the subsequent PUT call.
+
+28
+00:01:24,390 --> 00:01:29,002
+At this point, the product controller returns a 409 conflict response code.
+
+29
+00:01:29,002 --> 00:01:32,182
+You may be wondering where the delete operation is in the service.
+
+30
+00:01:32,182 --> 00:01:34,503
+We're going to save the implementation of the delete operation
+
+31
+00:01:34,503 --> 00:01:38,459
+to the end of this module so that we can add it using a proper
+
+32
+00:01:38,459 --> 00:01:40,551
+test-driven development methodology.
+
+33
+00:01:40,551 --> 00:01:43,269
+We'll build the test to validate the behavior that we expect,
+
+34
+00:01:43,269 --> 00:01:46,424
+and then we'll write the code, knowing that if our tests pass,
+
+35
+00:01:46,424 --> 00:01:48,455
+that the implementation is good.
+
+36
+00:01:48,455 --> 00:01:50,881
+Let's take a look at the source code for the product
+
+37
+00:01:50,881 --> 00:01:53,114
+controller and see how it works.
+
+38
+00:01:53,114 --> 00:01:56,173
+The product controller is a Spring RestController and is
+
+39
+00:01:56,173 --> 00:01:59,330
+annotated with the RestController annotation.
+
+40
+00:01:59,330 --> 00:02:01,842
+It defines a constructor that accepts a ProductService,
+
+41
+00:02:01,842 --> 00:02:05,197
+which implements its business logic and it saves that
+
+42
+00:02:05,197 --> 00:02:07,640
+ProductService to a member variable.
+
+43
+00:02:07,640 --> 00:02:10,357
+The first method we want to look at is the getProduct method.
+
+44
+00:02:10,357 --> 00:02:14,176
+This method is annotated with the GetMapping annotation.
+
+45
+00:02:14,176 --> 00:02:18,392
+It handles GET requests for the /product/id path.
+
+46
+00:02:18,392 --> 00:02:22,347
+Spring MVC converts the id path parameter to an Integer and
+
+47
+00:02:22,347 --> 00:02:25,659
+passes it to the getProduct method as an argument.
+
+48
+00:02:25,659 --> 00:02:29,967
+The getProduct method invokes the productService.findById method.
+
+49
+00:02:29,967 --> 00:02:32,247
+If a product with the specified ID is found,
+
+50
+00:02:32,247 --> 00:02:35,303
+it maps that product to a ResponseEntity.
+
+51
+00:02:35,303 --> 00:02:38,614
+It sets the HTTP response code to 200 OK,
+
+52
+00:02:38,614 --> 00:02:42,220
+it sets the eTag header to the version number of the return product,
+
+53
+00:02:42,220 --> 00:02:46,725
+it sets the location header to /product/ the ID of the product,
+
+54
+00:02:46,725 --> 00:02:51,351
+and it returns the full product back to the caller in the response body.
+
+55
+00:02:51,351 --> 00:02:53,816
+If there's a problem building the location header,
+
+56
+00:02:53,816 --> 00:02:57,519
+then it returns a ResponseEntity with an INTERNAL_SERVER_ERROR.
+
+57
+00:02:57,519 --> 00:03:00,752
+Finally, if a product with the specified ID is not found,
+
+58
+00:03:00,752 --> 00:03:05,403
+then it returns a ResponseEntity with a 404 notFound response code.
+
+59
+00:03:05,403 --> 00:03:10,334
+Next, the getProduct method is also annotated with the GetMapping annotation,
+
+60
+00:03:10,334 --> 00:03:12,617
+but it handles the /products path.
+
+61
+00:03:12,617 --> 00:03:16,031
+This method takes a little bit of a shortcut in that it
+
+62
+00:03:16,031 --> 00:03:19,216
+returns the Iterable product that it receives from the
+
+63
+00:03:19,216 --> 00:03:20,410
+productService's findAll method.
+
+64
+00:03:20,410 --> 00:03:25,947
+Spring MVC will automatically return a 200 OK response code with the body
+
+65
+00:03:25,947 --> 00:03:29,113
+containing all of the products referenced by the Iterable.
+
+66
+00:03:29,113 --> 00:03:32,437
+The createProduct method is annotated with a PostMapping
+
+67
+00:03:32,437 --> 00:03:36,659
+annotation and handles HTTP posts to /product.
+
+68
+00:03:36,659 --> 00:03:39,456
+It expects, as its request body, a product object.
+
+69
+00:03:39,456 --> 00:03:44,081
+When the client posts a JSON representation of a product to /product,
+
+70
+00:03:44,081 --> 00:03:49,054
+Spring MVC will convert that JSON into a product object for us.
+
+71
+00:03:49,054 --> 00:03:52,057
+The createProduct method delegates to the productService's save
+
+72
+00:03:52,057 --> 00:03:54,997
+method to persist the product to the database.
+
+73
+00:03:54,997 --> 00:03:58,093
+The save method returns the product that was created,
+
+74
+00:03:58,093 --> 00:04:01,446
+including the generated ID and assigned version number.
+
+75
+00:04:01,446 --> 00:04:05,797
+It then returns a ResponseEntity with a 201 created response code,
+
+76
+00:04:05,797 --> 00:04:09,655
+the location header set to /product/ the ID of the saved product,
+
+77
+00:04:09,655 --> 00:04:12,286
+an eTag header set to the version of the product,
+
+78
+00:04:12,286 --> 00:04:15,957
+which should be 1, and with the complete product as the body.
+
+79
+00:04:15,957 --> 00:04:16,920
+If an error occurs,
+
+80
+00:04:16,920 --> 00:04:20,736
+then it returns a ResponseEntity with an internal server error.
+
+81
+00:04:20,736 --> 00:04:25,259
+Finally, the updateProduct method is annotated with the PutMapping annotation,
+
+82
+00:04:25,259 --> 00:04:29,223
+and handles HTTP puts to /product/id.
+
+83
+00:04:29,223 --> 00:04:31,619
+It expects the body of the put to include a product,
+
+84
+00:04:31,619 --> 00:04:35,599
+the path to include the ID of the product to update,
+
+85
+00:04:35,599 --> 00:04:38,692
+and an If-Match HTTP header that contains the version number
+
+86
+00:04:38,692 --> 00:04:41,192
+of the product the client is updating.
+
+87
+00:04:41,192 --> 00:04:44,129
+The updateProduct method begins by retrieving the product with
+
+88
+00:04:44,129 --> 00:04:46,600
+the specified ID from the productService.
+
+89
+00:04:46,600 --> 00:04:47,641
+If it's not found,
+
+90
+00:04:47,641 --> 00:04:52,334
+then it returns a ResponseEntity with a 404 notFound HTTP response code.
+
+91
+00:04:52,334 --> 00:04:54,140
+If the product is found,
+
+92
+00:04:54,140 --> 00:04:58,517
+then it compares the product's version with the supplied ifMatch HTTP header.
+
+93
+00:04:58,517 --> 00:05:01,372
+If the product returned by the productService has a
+
+94
+00:05:01,372 --> 00:05:03,874
+different version number than the ifMatch value,
+
+95
+00:05:03,874 --> 00:05:08,778
+then it returns a ResponseEntity with a 409 conflict HTTP response code.
+
+96
+00:05:08,778 --> 00:05:11,674
+If the version number matches the ifMatch header value,
+
+97
+00:05:11,674 --> 00:05:15,088
+then the updateProduct method updates the product with a new
+
+98
+00:05:15,088 --> 00:05:19,147
+value and saves the new values to the database by invoking the
+
+99
+00:05:19,147 --> 00:05:20,795
+productService's update method.
+
+100
+00:05:20,795 --> 00:05:24,050
+The update method returns true on success and false on failure.
+
+101
+00:05:24,050 --> 00:05:25,795
+If the update was successful,
+
+102
+00:05:25,795 --> 00:05:29,299
+then the updateProduct method returns a 200 ok HTTP response
+
+103
+00:05:29,299 --> 00:05:33,211
+code with the appropriate location and eTag headers and the
+
+104
+00:05:33,211 --> 00:05:34,945
+updated product in the body.
+
+105
+00:05:34,945 --> 00:05:38,173
+Properly implementing put operations is a little bit of work,
+
+106
+00:05:38,173 --> 00:05:45,000
+but the steps are pretty straightforward. Now let's turn our attention back to testing the controller.
+

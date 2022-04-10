@@ -1,0 +1,460 @@
+1
+00:00:00,000 --> 00:00:04,164
+In this demo we're going to take a look at balancing
+
+2
+00:00:04,164 --> 00:00:06,064
+our load for Wired Brain Coffee.
+
+3
+00:00:06,064 --> 00:00:08,921
+Let's take a look at what they have right now.
+
+4
+00:00:08,921 --> 00:00:14,254
+If we go into their instances, we're sitting in the Sydney region,
+
+5
+00:00:14,254 --> 00:00:17,358
+a system in the southeast-2a availability zone,
+
+6
+00:00:17,358 --> 00:00:21,733
+and we have a system in the 2b availability zone.
+
+7
+00:00:21,733 --> 00:00:23,921
+These are our web servers.
+
+8
+00:00:23,921 --> 00:00:27,350
+Now, when we look at the web servers,
+
+9
+00:00:27,350 --> 00:00:31,635
+note that the web servers are on the private subnet,
+
+10
+00:00:31,635 --> 00:00:35,064
+private subnet for 2a, private subnet for 2b.
+
+11
+00:00:35,064 --> 00:00:38,921
+I thought they were going to be web servers?
+
+12
+00:00:38,921 --> 00:00:41,921
+That's right, but we don't need them to be out in the public realm.
+
+13
+00:00:41,921 --> 00:00:45,921
+What we need them to be is on the private side,
+
+14
+00:00:45,921 --> 00:00:49,921
+and then we have the load balancer on the public side,
+
+15
+00:00:49,921 --> 00:00:53,921
+the public subnet, send the requests through to the web servers.
+
+16
+00:00:53,921 --> 00:00:56,785
+So let's go look at our networking.
+
+17
+00:00:56,785 --> 00:01:02,921
+So if we go down to VPC, let's just filter on the Wired Brain VPC,
+
+18
+00:01:02,921 --> 00:01:06,858
+we've got our CIDR range, what about our subnets?
+
+19
+00:01:06,858 --> 00:01:09,921
+Our subnets are defined as public private.
+
+20
+00:01:09,921 --> 00:01:13,221
+Note the public are designated with a tag as load balancers.
+
+21
+00:01:13,221 --> 00:01:17,568
+Now there could be more private subnets in the future for our database,
+
+22
+00:01:17,568 --> 00:01:22,921
+but we're undecided whether we'll use a managed database or build it ourselves.
+
+23
+00:01:22,921 --> 00:01:24,671
+So let's set up the load balancer.
+
+24
+00:01:24,671 --> 00:01:27,171
+So you may think, well the load balancer is networking,
+
+25
+00:01:27,171 --> 00:01:32,225
+it should be here, but it's not here, it actually is balancing the instances,
+
+26
+00:01:32,225 --> 00:01:35,747
+so we have to go back up to EC2,
+
+27
+00:01:35,747 --> 00:01:40,771
+and then we go down and take a look at our load balancing options.
+
+28
+00:01:40,771 --> 00:01:43,921
+So let's select Load Balancers, let's Create Load Balancer.
+
+29
+00:01:43,921 --> 00:01:49,921
+We have our two choices, Application Load Balancer or Classic Load Balancer.
+
+30
+00:01:49,921 --> 00:01:51,477
+I think we'll start with the Classic,
+
+31
+00:01:51,477 --> 00:01:53,921
+and then we'll come back and finish up with the application.
+
+32
+00:01:53,921 --> 00:02:01,540
+So if I select Classic, our name, where do we want to create the load balancer,
+
+33
+00:02:01,540 --> 00:02:03,921
+Wired Brain, inside our VPC.
+
+34
+00:02:03,921 --> 00:02:07,921
+Protocol at this point 80, that's the listener we've got for this configuration.
+
+35
+00:02:07,921 --> 00:02:15,921
+I could add an additional listener, say for HTTPS, for port 443.
+
+36
+00:02:15,921 --> 00:02:20,553
+Now if I scroll down a little bit further for subnets,
+
+37
+00:02:20,553 --> 00:02:21,816
+note the message,
+
+38
+00:02:21,816 --> 00:02:24,862
+Please select two Subnets in different Availability
+
+39
+00:02:24,862 --> 00:02:26,745
+Zones for failover availability.
+
+40
+00:02:26,745 --> 00:02:33,121
+So we want to select our public subnets, so we click the + sign.
+
+41
+00:02:33,121 --> 00:02:34,321
+Our security groups,
+
+42
+00:02:34,321 --> 00:02:39,921
+see how it's picked up on what I said for listeners and said well,
+
+43
+00:02:39,921 --> 00:02:43,421
+then you must need rules for 80 and 443.
+
+44
+00:02:43,421 --> 00:02:46,921
+Security settings, so I have to select a certificate.
+
+45
+00:02:46,921 --> 00:02:49,921
+I can upload one if I don't have one,
+
+46
+00:02:49,921 --> 00:02:53,921
+I can choose an existing certificate if I've got one in place,
+
+47
+00:02:53,921 --> 00:02:56,921
+or I can say I'd like one from the Certificate Manager,
+
+48
+00:02:56,921 --> 00:02:59,103
+and since I don't have one right now,
+
+49
+00:02:59,103 --> 00:03:02,421
+we're going to add in some false security information
+
+50
+00:03:02,421 --> 00:03:04,921
+here to get through this screen.
+
+51
+00:03:04,921 --> 00:03:08,289
+Let's scroll down and look at the cipher.
+
+52
+00:03:08,289 --> 00:03:11,237
+Remember that the negotiation for SSL offload,
+
+53
+00:03:11,237 --> 00:03:14,484
+I can define the policy that Amazon has defined,
+
+54
+00:03:14,484 --> 00:03:17,921
+and you can see the different versions that have been updated.
+
+55
+00:03:17,921 --> 00:03:22,921
+So you can go through and look at the default or say I want a custom option.
+
+56
+00:03:22,921 --> 00:03:27,225
+Next we go through and say, we want a health check,
+
+57
+00:03:27,225 --> 00:03:31,921
+so we're setting up an interval every 30 seconds between health checks.
+
+58
+00:03:31,921 --> 00:03:35,450
+The response timeout, time to wait when receiving a response,
+
+59
+00:03:35,450 --> 00:03:36,862
+and the unhealthy threshold,
+
+60
+00:03:36,862 --> 00:03:41,921
+the number of consecutive health check failures before I say hey,
+
+61
+00:03:41,921 --> 00:03:43,921
+this instance is unhealthy.
+
+62
+00:03:43,921 --> 00:03:47,739
+Now let's look at the instances that we want to add in.
+
+63
+00:03:47,739 --> 00:03:50,921
+I've got 2 instances, 1 in 2a, 1 in 2b.
+
+64
+00:03:50,921 --> 00:03:55,553
+I want to add both of these in, there's my failover.
+
+65
+00:03:55,553 --> 00:03:58,921
+Do I want to enable cross-zone load balancing?
+
+66
+00:03:58,921 --> 00:04:00,521
+Well, I certainly do.
+
+67
+00:04:00,521 --> 00:04:04,921
+I want distribution of the traffic across all the back-end instances.
+
+68
+00:04:04,921 --> 00:04:08,032
+Connection Draining is the aspect where if an
+
+69
+00:04:08,032 --> 00:04:12,221
+instance doesn't pass its health check, well then the cross draining,
+
+70
+00:04:12,221 --> 00:04:15,821
+or the number of seconds that you're going to actually be able
+
+71
+00:04:15,821 --> 00:04:18,274
+to be a functional web server is defined,
+
+72
+00:04:18,274 --> 00:04:20,392
+in this case is five minutes.
+
+73
+00:04:20,392 --> 00:04:23,921
+The next thing we have to do is add tags.
+
+74
+00:04:23,921 --> 00:04:27,627
+My Classic Load Balancer, so I've got my scenarios,
+
+75
+00:04:27,627 --> 00:04:30,921
+the load balancer, the health check, the instances,
+
+76
+00:04:30,921 --> 00:04:32,588
+the security groups, the tags,
+
+77
+00:04:32,588 --> 00:04:35,921
+and I could go through and create by clicking Create.
+
+78
+00:04:35,921 --> 00:04:40,121
+After I click create, it would take a few minutes to register the instances,
+
+79
+00:04:40,121 --> 00:04:42,821
+and then the load balancer would be in effect.
+
+80
+00:04:42,821 --> 00:04:45,221
+Now remember, we didn't put proper security in,
+
+81
+00:04:45,221 --> 00:04:49,483
+so I'm going to sneak out of this demo, and go back and say,
+
+82
+00:04:49,483 --> 00:04:52,921
+what would happen if I added in the application load balancer?
+
+83
+00:04:52,921 --> 00:04:55,621
+So let's cancel out of here, all that work,
+
+84
+00:04:55,621 --> 00:04:58,021
+gone, and go back into Create Load Balancer,
+
+85
+00:04:58,021 --> 00:05:00,285
+and we'll say Application Load Balancer.
+
+86
+00:05:00,285 --> 00:05:02,557
+Again, give it a name.
+
+87
+00:05:02,557 --> 00:05:03,921
+Internet-facing or internal?
+
+88
+00:05:03,921 --> 00:05:09,171
+It's internet facing, so we can add in a listener for HTTP/S.
+
+89
+00:05:09,171 --> 00:05:13,421
+Selecting our availability zones, the VPC Wired Brain Coffee,
+
+90
+00:05:13,421 --> 00:05:17,921
+from the southeast we will select the public subnet,
+
+91
+00:05:17,921 --> 00:05:22,321
+from the southeast 2b, we'll pick the public subnet again,
+
+92
+00:05:22,321 --> 00:05:25,921
+for tags, the application load balancer for Wired Brain.
+
+93
+00:05:25,921 --> 00:05:28,229
+Let's configure our security settings.
+
+94
+00:05:28,229 --> 00:05:31,921
+So for certificate again we'll do some cheating.
+
+95
+00:05:31,921 --> 00:05:36,658
+We have options for selecting again the security policy choice,
+
+96
+00:05:36,658 --> 00:05:40,921
+our security group, 80, 443, next the routing aspect.
+
+97
+00:05:40,921 --> 00:05:42,803
+Little different, isn't it?
+
+98
+00:05:42,803 --> 00:05:46,568
+The target group for Wired Brain, HTTP, protocols,
+
+99
+00:05:46,568 --> 00:05:50,921
+health check to the index page, the / gives us that.
+
+100
+00:05:50,921 --> 00:05:53,921
+We can change the port for the health checks,
+
+101
+00:05:53,921 --> 00:05:57,921
+rather than using the default port 80, we can actually change that,
+
+102
+00:05:57,921 --> 00:05:59,921
+so a little more flexibility here.
+
+103
+00:05:59,921 --> 00:06:03,921
+Again, we've got the aspect of how our threshold is going to be defined.
+
+104
+00:06:03,921 --> 00:06:06,254
+Let's go and register some targets.
+
+105
+00:06:06,254 --> 00:06:11,350
+We don't have containers, but we can actually go through and define instances,
+
+106
+00:06:11,350 --> 00:06:16,921
+and the instances we want to use are these two instances right here.
+
+107
+00:06:16,921 --> 00:06:21,921
+So we've now added them to be registered targets for the load balancer.
+
+108
+00:06:21,921 --> 00:06:24,921
+If we had a certificate, we could click Create, and we would be happy.
+
+109
+00:06:24,921 --> 00:06:28,921
+Let's just see what happens, click Create at this point,
+
+110
+00:06:28,921 --> 00:06:32,521
+and it says well, we can't do it insecurely,
+
+111
+00:06:32,521 --> 00:06:32,921
+Mark.
+
+112
+00:06:32,921 --> 00:06:36,921
+So there's the process of creating the load balancer and defining it.
+
+113
+00:06:36,921 --> 00:06:41,553
+The key concept with this demo, going back into our instances,
+
+114
+00:06:41,553 --> 00:06:45,921
+my instances are not running on the public subnet,
+
+115
+00:06:45,921 --> 00:06:55,000
+they're running on the private subnets. There's a look at the options for creating load balancers at AWS.
+

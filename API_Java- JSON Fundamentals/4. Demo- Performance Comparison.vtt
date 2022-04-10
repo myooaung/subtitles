@@ -1,0 +1,401 @@
+WEBVTT
+1
+00:00:01.811 --> 00:00:07.294
+Earlier on, I said that streaming APIs were the fastest type of JSON API.
+
+2
+00:00:07.294 --> 00:00:08.769
+I never quantified that claim though.
+
+3
+00:00:08.769 --> 00:00:09.261
+In practice,
+
+4
+00:00:09.261 --> 00:00:12.822
+the extent to which a streaming API is faster would depend
+
+5
+00:00:12.822 --> 00:00:16.213
+upon your documents in your use cases, and in many cases,
+
+6
+00:00:16.213 --> 00:00:18.758
+the other styles of APIs may be fast enough.
+
+7
+00:00:18.758 --> 00:00:19.702
+In this demo,
+
+8
+00:00:19.702 --> 00:00:23.462
+we'll look at a simple benchmark comparison between the speed of
+
+9
+00:00:23.462 --> 00:00:27.190
+parsing a JSON document using streaming and binding APIs.
+
+10
+00:00:27.190 --> 00:00:27.505
+Then,
+
+11
+00:00:27.505 --> 00:00:30.757
+we'll look at another example comparing the memory consumption of
+
+12
+00:00:30.757 --> 00:00:35.877
+processing a large JSON document through the streaming and DOM APIs so
+
+13
+00:00:35.877 --> 00:00:39.137
+you can understand where the advantages are.
+
+14
+00:00:39.137 --> 00:00:42.382
+So we're going to produce a little benchmark here
+
+15
+00:00:42.382 --> 00:00:44.185
+using the JMH benchmarking framework.
+
+16
+00:00:44.185 --> 00:00:46.397
+That's where these annotations come from.
+
+17
+00:00:46.397 --> 00:00:47.645
+This isn't an introduction to JMH,
+
+18
+00:00:47.645 --> 00:00:50.271
+so I won't go through what all of this stuff means,
+
+19
+00:00:50.271 --> 00:00:55.430
+but basically in this benchmark, we read a file into memory so we can compare it.
+
+20
+00:00:55.430 --> 00:00:59.346
+And we look at the approach of DOM-based parsing and JsonFactory-based parsing.
+
+21
+00:00:59.346 --> 00:01:04.594
+Now I want to caveat with this benchmark, so I'm only using a single file here.
+
+22
+00:01:04.594 --> 00:01:07.979
+So feel free to go and take this benchmark and experiment on it with different
+
+23
+00:01:07.979 --> 00:01:12.615
+JSON files that you have for yourself and see how much they compare or differ
+
+24
+00:01:12.615 --> 00:01:15.136
+from performance from benchmark to benchmark.
+
+25
+00:01:15.136 --> 00:01:16.867
+There are a few different things to note here.
+
+26
+00:01:16.867 --> 00:01:19.134
+Firstly, there's the streaming benchmark.
+
+27
+00:01:19.134 --> 00:01:21.513
+Now it takes what's known as a blackhole object,
+
+28
+00:01:21.513 --> 00:01:25.008
+so that's an object that will ensure that a value is read,
+
+29
+00:01:25.008 --> 00:01:28.332
+so the compiler can't optimize away the code that we're doing here,
+
+30
+00:01:28.332 --> 00:01:31.742
+and then we just parse the file from our bankLoanFile,
+
+31
+00:01:31.742 --> 00:01:32.998
+loop through it,
+
+32
+00:01:32.998 --> 00:01:38.282
+and find all scalar values and just consume the text that they have there.
+
+33
+00:01:38.282 --> 00:01:39.961
+Then there's the binding approach here where we just
+
+34
+00:01:39.961 --> 00:01:41.827
+take the ObjectMapper and do a.
+
+35
+00:01:41.827 --> 00:01:44.440
+readValue on the basic bank loan class.
+
+36
+00:01:44.440 --> 00:01:47.880
+So this is an example of a, how much simpler the code is,
+
+37
+00:01:47.880 --> 00:01:50.573
+but also, as we'll see when we look at the results,
+
+38
+00:01:50.573 --> 00:01:55.114
+how much slower it is as well.
+
+39
+00:01:55.114 --> 00:01:59.780
+This is the output from the benchmark after being run on a quiet machine.
+
+40
+00:01:59.780 --> 00:02:02.807
+It shows the number of operations per second that can be performed
+
+41
+00:02:02.807 --> 00:02:06.418
+for both the binding and the streaming APIs.
+
+42
+00:02:06.418 --> 00:02:10.689
+Now even after consuming all of the output of the streaming API,
+
+43
+00:02:10.689 --> 00:02:14.650
+the worst case, and only using a small JSON document as input,
+
+44
+00:02:14.650 --> 00:02:20.143
+it is still nearly 20% faster achieving 413,
+
+45
+00:02:20.143 --> 00:02:24.483
+000 operations per second, rather than 347,
+
+46
+00:02:24.483 --> 00:02:28.732
+000 operations per second with the binding API.
+
+47
+00:02:28.732 --> 00:02:33.689
+Now, as I say, results may different based upon the input and the workload,
+
+48
+00:02:33.689 --> 00:02:38.389
+but this is just to demonstrate that it is genuinely faster.
+
+49
+00:02:38.389 --> 00:02:39.213
+So, for this demo,
+
+50
+00:02:39.213 --> 00:02:42.814
+we're going to look at the amount of memory consumption that exists
+
+51
+00:02:42.814 --> 00:02:46.892
+within different JSON streaming and parsing APIs.
+
+52
+00:02:46.892 --> 00:02:53.463
+Here is a huge JSON document that represents a bunch of features
+
+53
+00:02:53.463 --> 00:02:56.179
+about different properties in San Francisco.
+
+54
+00:02:56.179 --> 00:03:01.849
+So it has a bunch of lots that the city has divided into in blocks and it
+
+55
+00:03:01.849 --> 00:03:05.456
+carries information about what properties and things exist on those blocks
+
+56
+00:03:05.456 --> 00:03:10.308
+and has coordinates as to where those blocks are.
+
+57
+00:03:10.308 --> 00:03:14.726
+So, what we're going to do is write some code that looks up a given block number.
+
+58
+00:03:14.726 --> 00:03:17.552
+I'm just going to use block number 22 and it's going to count
+
+59
+00:03:17.552 --> 00:03:19.634
+the number of features in that block number.
+
+60
+00:03:19.634 --> 00:03:22.425
+So the number of interesting properties or what have you
+
+61
+00:03:22.425 --> 00:03:24.759
+that exists within that block of the city.
+
+62
+00:03:24.759 --> 00:03:29.926
+The first thing we're going to do is count that using the DOM API,
+
+63
+00:03:29.926 --> 00:03:31.237
+the document object model API,
+
+64
+00:03:31.237 --> 00:03:35.034
+and then at the end I'm going to print the memory consumption.
+
+65
+00:03:35.034 --> 00:03:39.854
+So to do that, we parse the file, okay, as our JsonNode.
+
+66
+00:03:39.854 --> 00:03:43.407
+Then we get the array of features within that file.
+
+67
+00:03:43.407 --> 00:03:44.878
+We loop over the features.
+
+68
+00:03:44.878 --> 00:03:46.644
+We get the properties about it.
+
+69
+00:03:46.644 --> 00:03:48.374
+And we get the block node.
+
+70
+00:03:48.374 --> 00:03:53.091
+And if the block number is equal to the block number that we're looking for,
+
+71
+00:03:53.091 --> 00:03:54.860
+then we increment the featureCount.
+
+72
+00:03:54.860 --> 00:03:56.634
+At the end, we print the memory consumption.
+
+73
+00:03:56.634 --> 00:04:00.589
+So we look up the amount of memory the JVM is currently using.
+
+74
+00:04:00.589 --> 00:04:05.456
+I just divide by a 1024 to get that value in kilobytes.
+
+75
+00:04:05.456 --> 00:04:09.810
+So, if we run this code, so the DOM version of the API,
+
+76
+00:04:09.810 --> 00:04:12.467
+we can see it takes a little bit of time to run.
+
+77
+00:04:12.467 --> 00:04:13.751
+If you're in the room with me,
+
+78
+00:04:13.751 --> 00:04:18.859
+you could probably also hear that the fan on my laptop is accelerating.
+
+79
+00:04:18.859 --> 00:04:20.171
+Okay, here we go.
+
+80
+00:04:20.171 --> 00:04:23.778
+So, that found 5 features, and in order to do so,
+
+81
+00:04:23.778 --> 00:04:27.926
+it used up nearly 900MB of memory.
+
+82
+00:04:27.926 --> 00:04:31.481
+Wow, 868 thousand KB of memory.
+
+83
+00:04:31.481 --> 00:04:33.168
+That is a lot.
+
+84
+00:04:33.168 --> 00:04:37.767
+So let's remove the tree or DOM-based version of the API,
+
+85
+00:04:37.767 --> 00:04:41.216
+and look at the streaming version of the API.
+
+86
+00:04:41.216 --> 00:04:44.446
+So this is one that uses the streaming parser, familiar code.
+
+87
+00:04:44.446 --> 00:04:46.686
+It loops over the different tokens.
+
+88
+00:04:46.686 --> 00:04:48.927
+If the token is a string,
+
+89
+00:04:48.927 --> 00:04:50.361
+which is what we're looking for because the block
+
+90
+00:04:50.361 --> 00:04:51.426
+numbers are actually string encoded,
+
+91
+00:04:51.426 --> 00:04:55.586
+then it checks the name is equal to BLOCK_NUM and that the text is
+
+92
+00:04:55.586 --> 00:04:58.072
+equal to that blockNumber that we're looking for,
+
+93
+00:04:58.072 --> 00:04:58.460
+i.
+
+94
+00:04:58.460 --> 00:04:58.849
+e.
+
+95
+00:04:58.849 --> 00:05:00.014
+block number 22.
+
+96
+00:05:00.014 --> 00:05:00.402
+Then,
+
+97
+00:05:00.402 --> 00:05:04.397
+it increments the featureCount and at the end prints out the memory consumption.
+
+98
+00:05:04.397 --> 00:05:05.921
+If we run this,
+
+99
+00:05:05.921 --> 00:05:11.602
+we see it runs much faster and it only uses 2MB of memory or less
+
+100
+00:05:11.602 --> 00:05:21.000
+than 2MB of memory because we're just streaming through the data rather than parsing it all in one big go.
+

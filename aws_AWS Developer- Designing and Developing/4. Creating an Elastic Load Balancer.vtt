@@ -1,0 +1,333 @@
+WEBVTT
+1
+00:00:00.840 --> 00:00:03.650
+An Elastic Load Balancer is an essential resource
+
+2
+00:00:03.650 --> 00:00:05.860
+for any elastic web application,
+
+3
+00:00:05.860 --> 00:00:09.110
+establishing a single entry point for web requests
+
+4
+00:00:09.110 --> 00:00:11.440
+that can handle any size load.
+
+5
+00:00:11.440 --> 00:00:14.440
+Let's create our load balancer by opening the file
+
+6
+00:00:14.440 --> 00:00:18.040
+create‑load‑balancer.js in our scripts folder.
+
+7
+00:00:18.040 --> 00:00:22.110
+I've already taken care of some ancillary functions in this file so
+
+8
+00:00:22.110 --> 00:00:25.910
+that we can focus on the load balancer creation. But I will go over
+
+9
+00:00:25.910 --> 00:00:28.980
+them in the course of our modifications.
+
+10
+00:00:28.980 --> 00:00:33.540
+So, start by putting your region into the string on line 5.
+
+11
+00:00:33.540 --> 00:00:38.550
+Next on line 8, we need to create an ELB object. Specifically, we'll
+
+12
+00:00:38.550 --> 00:00:44.480
+be creating a version 2 ELB object. Load balancing has its own SDK
+
+13
+00:00:44.480 --> 00:00:47.140
+object, different from auto scaling.
+
+14
+00:00:47.140 --> 00:00:51.140
+Create a const variable named elbv2,
+
+15
+00:00:51.140 --> 00:00:58.040
+then assign to it a new AWS.ELBv2 constructor call.
+
+16
+00:00:58.040 --> 00:01:00.510
+Now we need to get some information from the AWS
+
+17
+00:01:00.510 --> 00:01:04.290
+console for our VPC ID and subnets.
+
+18
+00:01:04.290 --> 00:01:08.940
+This is needed for the load balancer and target group creation.
+
+19
+00:01:08.940 --> 00:01:12.940
+Move to the AWS console and go to the VPC dashboard.
+
+20
+00:01:12.940 --> 00:01:17.930
+We'll get the VPC ID first by clicking on Your VPCs in the
+
+21
+00:01:17.930 --> 00:01:22.240
+left‑hand menu. You'll likely only have one VPC.
+
+22
+00:01:22.240 --> 00:01:23.640
+Mine is the default.
+
+23
+00:01:23.640 --> 00:01:27.830
+So, copy the VPC ID. If you have multiples,
+
+24
+00:01:27.830 --> 00:01:32.340
+use the one where you've been launching resources so far. In your code
+
+25
+00:01:32.340 --> 00:01:36.140
+editor, paste that value in the string on line 12.
+
+26
+00:01:36.140 --> 00:01:40.940
+Now back to the console, click on the Subnets menu entry.
+
+27
+00:01:40.940 --> 00:01:44.270
+We need at least two subnets for the load balancer,
+
+28
+00:01:44.270 --> 00:01:48.140
+and they need to be in the VPC that we just pasted.
+
+29
+00:01:48.140 --> 00:01:48.970
+In this case,
+
+30
+00:01:48.970 --> 00:01:57.340
+I'll use us‑east‑1a and us‑east‑1b. So, I'll copy these subnet IDs and
+
+31
+00:01:57.340 --> 00:02:01.090
+paste both of those into the subnet array on line.
+
+32
+00:02:01.090 --> 00:02:02.240
+13.
+
+33
+00:02:02.240 --> 00:02:03.440
+Great.
+
+34
+00:02:03.440 --> 00:02:08.170
+The next few lines do the actual operations to create the load balancer.
+
+35
+00:02:08.170 --> 00:02:11.530
+The code starts by creating a new security group for the
+
+36
+00:02:11.530 --> 00:02:14.540
+load balancer that is open on port 80.
+
+37
+00:02:14.540 --> 00:02:19.140
+This is so that users can access the load balancer over HTTP.
+
+38
+00:02:19.140 --> 00:02:22.660
+Then, a target group is created, and then a load balancer.
+
+39
+00:02:22.660 --> 00:02:25.080
+I'll explain the target group in a second.
+
+40
+00:02:25.080 --> 00:02:29.210
+Then we get the Amazon resource names for the target group and load
+
+41
+00:02:29.210 --> 00:02:33.730
+balancer and create a listener with those values. I want to explain the
+
+42
+00:02:33.730 --> 00:02:36.940
+relationship of all these resources real quick.
+
+43
+00:02:36.940 --> 00:02:41.510
+A load balancer is in charge of responding to HTTP requests and
+
+44
+00:02:41.510 --> 00:02:46.150
+sending them somewhere. A target group is the destination defined
+
+45
+00:02:46.150 --> 00:02:49.240
+where a load balancer will send those requests.
+
+46
+00:02:49.240 --> 00:02:52.430
+This is going to be connected to our auto scaling group
+
+47
+00:02:52.430 --> 00:02:55.920
+and will basically end up being a group of EC2 instances
+
+48
+00:02:55.920 --> 00:02:58.340
+with our demo project running.
+
+49
+00:02:58.340 --> 00:03:01.490
+The listener defines the relationship between the two.
+
+50
+00:03:01.490 --> 00:03:02.230
+In our case,
+
+51
+00:03:02.230 --> 00:03:06.760
+the load balancer will be listening on port 80, which is for HTTP, and
+
+52
+00:03:06.760 --> 00:03:11.350
+our target group will be listening on port 3000 since that's what our
+
+53
+00:03:11.350 --> 00:03:15.660
+demo application is using. The listener will facilitate sending those
+
+54
+00:03:15.660 --> 00:03:18.040
+requests between the two ports.
+
+55
+00:03:18.040 --> 00:03:21.600
+Now let's implement the createLoadBalancer function. On
+
+56
+00:03:21.600 --> 00:03:24.990
+line 34, create your params const object.
+
+57
+00:03:24.990 --> 00:03:27.670
+The first property will be the load balancer name, which
+
+58
+00:03:27.670 --> 00:03:30.940
+is passed in as the lbName argument.
+
+59
+00:03:30.940 --> 00:03:35.680
+Next are the Subnets property, which are the subnets the load balancer will use.
+
+60
+00:03:35.680 --> 00:03:39.780
+We defined these earlier in a subnets variable, so add that as the
+
+61
+00:03:39.780 --> 00:03:43.790
+value. Then we need to add the SecurityGroups property,
+
+62
+00:03:43.790 --> 00:03:48.040
+which is the security groups for the load balancer itself. Set the
+
+63
+00:03:48.040 --> 00:03:53.780
+value as an array with a single item named sgId. Now create a new
+
+64
+00:03:53.780 --> 00:03:59.560
+line and let's return a new promise with resolve and reject arguments
+
+65
+00:03:59.560 --> 00:04:06.320
+in a function argument. Inside we'll use the elbv2 object and call
+
+66
+00:04:06.320 --> 00:04:08.940
+createLoadBalancer on it.
+
+67
+00:04:08.940 --> 00:04:11.280
+The first argument is params,
+
+68
+00:04:11.280 --> 00:04:16.120
+and the second argument is a callback with the err and data arguments.
+
+69
+00:04:16.120 --> 00:04:19.260
+If there's an err object, then call reject with it.
+
+70
+00:04:19.260 --> 00:04:20.350
+Otherwise,
+
+71
+00:04:20.350 --> 00:04:24.740
+call resolve, passing in data. Below this function are functions
+
+72
+00:04:24.740 --> 00:04:28.210
+to create the target group and the listener. I've already
+
+73
+00:04:28.210 --> 00:04:30.120
+implemented these to save us some time,
+
+74
+00:04:30.120 --> 00:04:34.740
+but definitely take a look to get a better understanding of what they're doing.
+
+75
+00:04:34.740 --> 00:04:36.300
+Now we can run this file,
+
+76
+00:04:36.300 --> 00:04:38.410
+move over to your command line and execute the
+
+77
+00:04:38.410 --> 00:04:43.190
+command node create‑load‑balancer.js.
+
+78
+00:04:43.190 --> 00:04:47.140
+There should be some output, specifically I want to draw your
+
+79
+00:04:47.140 --> 00:04:51.940
+attention to the line that says Target Group Name ARN.
+
+80
+00:04:51.940 --> 00:04:55.170
+We will need this in the next clip, so either leave your
+
+81
+00:04:55.170 --> 00:04:58.810
+command line alone or copy and save it somewhere.
+
+82
+00:04:58.810 --> 00:05:02.890
+And with this, we have a load balancer ready for instances to send
+
+83
+00:05:02.890 --> 00:05:10.000
+requests to. In the next clip we're going to create an auto scaling group that will create those instances.
+

@@ -1,0 +1,466 @@
+WEBVTT
+
+00:02.200 --> 00:07.040
+Over the last lectures, we spend a lot of time to store data and files,
+
+00:07.160 --> 00:13.730
+now we also want to get them when we visit find place. Getting all that is much easier than storing
+
+00:13.730 --> 00:14.250
+it,
+
+00:14.450 --> 00:20.680
+all we need to do is get all the places we store here or in a real app, you probably want to chunk this
+
+00:20.690 --> 00:24.840
+but since you might be using any backend, I'm not going to dive into how this works in firebase, the
+
+00:24.860 --> 00:27.700
+firebase docs can help you with filtering your results though,
+
+00:27.740 --> 00:32.080
+so we'll be getting all the places here so everything in this places object
+
+00:32.360 --> 00:37.920
+and then just output it here. Find place is where we want to render it in the end
+
+00:37.940 --> 00:41.060
+and this is where we all have our nice animation,
+
+00:41.060 --> 00:49.050
+so what the goal will be is to somehow dispatch an action that will fetch all the images and then store
+
+00:49.050 --> 00:55.340
+them in our redux store so that they are available once we click that find button,
+
+00:55.340 --> 01:01.310
+so I want to load them in advance so that we don't start loading once we click find them because I don't
+
+01:01.310 --> 01:02.600
+want to wait for this to finish,
+
+01:02.600 --> 01:08.150
+I don't want to have the effect of my animation being finished without the images being there,
+
+01:08.240 --> 01:09.870
+that's not optimal.
+
+01:10.010 --> 01:12.680
+Therefore in advance is what I want to do,
+
+01:12.680 --> 01:15.340
+so I will actually add a lifecycle
+
+01:15.350 --> 01:22.970
+hook here, componentDidMount, this is I want to dispatch an action to fetch the places but yeah, the action
+
+01:22.970 --> 01:24.360
+itself is missing.
+
+01:24.680 --> 01:28.450
+So let's revisit the places files in the actions folder,
+
+01:28.640 --> 01:35.560
+we got an add place constant, we got delete place and deleting is something we'll also need to implement,
+
+01:35.720 --> 01:43.370
+now we also clearly need export const get places, there we don't need any arguments,
+
+01:43.360 --> 01:49.580
+the goal just is to reachout to our backend and get the places. So since we will be running async
+
+01:49.580 --> 01:50.280
+code here,
+
+01:50.330 --> 01:59.260
+I will also return dispatch here, so I will return a function so that we can do this and redux thunk helps
+
+01:59.260 --> 02:00.820
+us.
+
+02:00.890 --> 02:05.060
+Now we got a lot of logic here already which I can now reuse,
+
+02:05.060 --> 02:07.120
+I don't want to target a cloud function,
+
+02:07.280 --> 02:15.010
+I want to target my normal cloud firebase database there, so I can actually catch or use this whole fetch
+
+02:15.010 --> 02:18.760
+block here from before and enter it here,
+
+02:18.920 --> 02:25.560
+however without a payload, we don't need to add a body and we don't need to set the method to post,
+
+02:25.610 --> 02:32.660
+I want to use the default of get. I want to target exactly this url though because this targets the
+
+02:32.690 --> 02:36.310
+places node where all our places are stored
+
+02:36.950 --> 02:47.150
+and then I can simply catch any errors and as you learned, simply alert something went wrong,
+
+02:47.180 --> 02:48.230
+sorry
+
+02:48.230 --> 02:49.790
+or do something else,
+
+02:50.700 --> 02:53.790
+also log the error in this case.
+
+02:53.790 --> 02:56.280
+I don't dispatch start and stop loading,
+
+02:56.280 --> 03:01.890
+we could do that here but I don't plan on using a spitter so I don't need it in the screen where we
+
+03:01.890 --> 03:03.740
+will be active,
+
+03:03.750 --> 03:08.390
+I will then also add a then block to handle the response,
+
+03:08.550 --> 03:14.370
+extracted.json data and then another block to have the parsed response where we can work with
+
+03:14.370 --> 03:14.780
+it.
+
+03:16.620 --> 03:22.950
+This is now the interesting part, here I need to dispatch another action which will be consumed by our
+
+03:22.950 --> 03:28.600
+reducer which then should set up the places. For this I'll go to action types
+
+03:28.600 --> 03:34.500
+and I actually no longer need add place and delete place because we don't use them,
+
+03:34.560 --> 03:35.510
+we remove them,
+
+03:35.520 --> 03:41.210
+we use them in our synchronous action creators which return just actions in the past.
+
+03:41.430 --> 03:48.570
+Instead here, I need an action type which can be handled by the reducer which is used when the data is
+
+03:48.630 --> 03:49.590
+there,
+
+03:49.620 --> 03:56.720
+I will name it set places and the identifier will be set places too.
+
+03:56.790 --> 04:03.250
+So therefore in the places action file, I'll add a new function, a new action creator which I name
+
+04:03.260 --> 04:04.790
+set places,
+
+04:04.810 --> 04:10.070
+the idea here is that this is the action we use when we got a response,
+
+04:10.090 --> 04:17.260
+so here I will receive the places we got and I will simply return a javascript object here where the
+
+04:17.260 --> 04:20.940
+type is then set places,
+
+04:20.940 --> 04:27.300
+so I will import that from the action type, set places and remove the imports of add and delete place
+
+04:27.800 --> 04:35.160
+because we don't have these anymore and then at the bottom, the type will be set places and I will forward
+
+04:35.220 --> 04:39.300
+the places, so pass them as a property of that action.
+
+04:39.300 --> 04:40.250
+This is what I want to
+
+04:40.250 --> 04:41.580
+dispatch here,
+
+04:41.610 --> 04:48.580
+here I want to dispatch set places and execute it to essentially dispatch this action object.
+
+04:48.960 --> 04:57.930
+However I need to pass places to that and the parsed places will not be an array of places but a javascript
+
+04:57.990 --> 05:04.920
+object where the keys will be these unique IDs and the values will then be the nested objects with location,
+
+05:04.920 --> 05:06.060
+name and so on.
+
+05:07.090 --> 05:08.970
+So first of all what I'll quickly do is
+
+05:09.010 --> 05:16.030
+I will clean up the invalid data points which don't have an image yet because these would lead to wrong
+
+05:16.050 --> 05:17.000
+displayals
+
+05:19.650 --> 05:26.900
+and now I need to add some logic to turn this structure into a structure where I work with an array.
+
+05:27.360 --> 05:31.700
+Well for that, I'll simply add a places constant here which is an empty array
+
+05:32.150 --> 05:38.820
+and now I want to loop with a for/in loop through all the keys in this javascript object which I just mentioned
+
+05:38.970 --> 05:43.190
+would in the end hold these cryptic keys or IDs
+
+05:43.200 --> 05:51.230
+as keys and the rest as values. So I can say let key in parsed response
+
+05:52.580 --> 06:02.520
+and in the body of that for/in loop, I can then use places and push a place object where I will essentially
+
+06:02.790 --> 06:07.740
+distribute all the properties of parsed response for the given key,
+
+06:07.830 --> 06:13.390
+so that will be the value of one of these keys like this one with image, location and name.
+
+06:13.530 --> 06:19.020
+I'm just saying that I distribute the properties because I want to add one additional one to this newly
+
+06:19.020 --> 06:24.820
+created object and that should be let's say the ID of that place which is the key,
+
+06:24.840 --> 06:31.520
+so that cryptic key. So with that, we're creating a place and we're pushing it on that places array
+
+06:31.670 --> 06:35.360
+and now we can pass this place array to set places.
+
+06:35.400 --> 06:42.030
+This is now an array of objects which have this structure with image, location and name and an extra
+
+06:42.030 --> 06:48.780
+ID field which will hold this automatically generated ID, that will be important for deleting them later.
+
+06:48.780 --> 06:53.760
+Now we need a reducer function or a case that handles this,
+
+06:53.790 --> 06:59.940
+so let's go to the places reducer and add place is no longer something we need,
+
+07:00.090 --> 07:02.500
+so I will get rid of it here,
+
+07:02.610 --> 07:05.140
+I will leave delete place for now though
+
+07:05.460 --> 07:07.500
+but chances are that we'll also change
+
+07:07.500 --> 07:09.960
+this a bit but let's leave it as it is for now.
+
+07:10.410 --> 07:16.710
+And I now want to remove these imports here and that means I have to comment out delete place
+
+07:16.710 --> 07:22.510
+otherwise we get an error and I will import set places.
+
+07:22.580 --> 07:28.990
+Now let's handle the case for set places, there the goal is to return a new javascript object of course
+
+07:29.000 --> 07:31.760
+where we distribute the old state
+
+07:32.120 --> 07:41.870
+but now I want to initialize my places array here with places and that should come from action places
+
+07:42.080 --> 07:48.230
+because if you have a look at the action creator, set places, there we have a places property, this is
+
+07:48.230 --> 07:49.940
+what I'm now extracting here.
+
+07:50.230 --> 07:57.020
+This is how we now set the places equal to the places we fetched from the server and each place will
+
+07:57.020 --> 07:59.570
+have an image, a location and a name.
+
+07:59.930 --> 08:04.760
+Let's now verify that this structure fits our find place screen still,
+
+08:05.120 --> 08:14.670
+so there we connect it to redux and we get to the places, the question now just is to place list where
+
+08:14.670 --> 08:15.290
+we pass
+
+08:15.290 --> 08:16.960
+this places prop,
+
+08:17.280 --> 08:19.570
+if we have a look at place list,
+
+08:19.720 --> 08:29.230
+there we try to extract the name, the image and the key and keep in mind, the image will be a url. So
+
+08:29.230 --> 08:37.060
+in list item if we inspect this, we see that we set the source equal to props place image,
+
+08:37.060 --> 08:43.780
+now we need to change this because since the image now is just a url and no longer an object with
+
+08:43.840 --> 08:46.700
+uri assigned to this,
+
+08:46.780 --> 08:48.230
+we need to change it.
+
+08:48.280 --> 08:54.610
+We could change it here by turning this into a javascript object where we store or we set props place
+
+08:54.640 --> 08:56.930
+image equal to uri
+
+08:57.120 --> 08:58.370
+but I don't like that approach,
+
+08:58.370 --> 09:01.920
+I want to keep this list image relatively reusable.
+
+09:01.920 --> 09:10.650
+Instead I want to change that in my places action file where I transform the incoming places anyways,
+
+09:10.940 --> 09:13.250
+I don't just want to add the ID,
+
+09:13.460 --> 09:21.320
+I will also change the image property to be a javascript object which has a uri property that
+
+09:21.320 --> 09:32.820
+is equal to parsed response for the given key image, so that the image path is now passed or stored
+
+09:32.840 --> 09:39.800
+in a uri, in a javascript object which is then used as an image value, so that the rest of our application
+
+09:39.800 --> 09:43.780
+will work as before due to how react natives
+
+09:43.880 --> 09:49.660
+image component works, it needs this uri property. With that,
+
+09:49.690 --> 09:51.070
+we got all of this in place,
+
+09:51.070 --> 09:57.150
+we got the get places function which hopefully triggers our reducer to act correctly.
+
+09:57.170 --> 09:59.490
+Now make sure to save all the files
+
+09:59.680 --> 10:05.200
+but for this to really work, we need to call get places.
+
+10:05.200 --> 10:07.220
+Now this should happen in find place,
+
+10:07.300 --> 10:14.240
+as I said in componentDidMount, here I will use that new action,
+
+10:14.320 --> 10:16.970
+for that I'll go into my index.js file
+
+10:17.170 --> 10:24.160
+and no longer not only export add and delete place but also set places, excuse me, get places, that is what
+
+10:24.160 --> 10:25.540
+I'm using from outside,
+
+10:25.750 --> 10:35.050
+so that now in find place, I can import that, I can add an import at the top where I import something from
+
+10:37.160 --> 10:44.480
+the store folder, the actions folder, the index file and that something is that get places function which
+
+10:44.480 --> 10:52.790
+will reach out to the server and get the places. In componentDidMount, I can then use that by dispatching
+
+10:52.790 --> 10:53.660
+an action,
+
+10:53.810 --> 10:58.340
+so I will need to add this to actions I can dispatch,
+
+10:58.400 --> 11:07.280
+so I will add const map dispatch to props at the bottom, get the dispatch function here and then return
+
+11:07.280 --> 11:18.010
+my mapping object where I set on load places equal to a function which will in the end dispatch get
+
+11:18.010 --> 11:26.360
+places as a function. So on load places is now accessible on props and can be executed to initialize the
+
+11:26.370 --> 11:27.860
+fetching of places,
+
+11:27.990 --> 11:35.050
+this is what I now do in componentDidMount, I will execute this props on load places, like this.
+
+11:35.850 --> 11:39.140
+Now let's see if it works, for this, let's reload
+
+11:39.150 --> 11:39.650
+the app
+
+11:39.660 --> 11:46.470
+and for the first time, we don't need to add a new place to visit find places,
+
+11:46.500 --> 11:49.700
+that's what we hope at least.
+
+11:49.820 --> 11:56.870
+One thing I could change to fix the error you just saw is to add map dispatch to props here to connect
+
+11:56.900 --> 11:58.610
+as a second argument.
+
+11:58.640 --> 12:03.270
+Now with that, back we are, let's reload this and let's try again
+
+12:05.810 --> 12:11.070
+and let's click find places, this is looking good.
+
+12:11.070 --> 12:13.880
+We get the places, the images are coming in too,
+
+12:14.250 --> 12:16.110
+we see the location here,
+
+12:16.360 --> 12:18.830
+let's see a couple of different locations.
+
+12:21.900 --> 12:25.810
+So the location always seems to be in the same spot,
+
+12:25.860 --> 12:29.460
+that's not looking super correct to me here,
+
+12:29.520 --> 12:34.800
+also the image is not loading because we're always viewing testing from Android if you click on them,
+
+12:34.800 --> 12:35.790
+you see at the top,
+
+12:35.820 --> 12:38.100
+it's always testing from Android.
+
+12:38.100 --> 12:46.140
+So we always load the same place here, always the first one, this probably has to do with the ID. Let's
+
+12:46.200 --> 12:52.950
+fix this in the next lecture and let's thereafter also add functionality to delete places.

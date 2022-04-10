@@ -1,0 +1,697 @@
+WEBVTT
+1
+00:00:00.640 --> 00:00:04.680
+Now it's time to jump into the technical details of creating this solution.
+
+2
+00:00:04.680 --> 00:00:07.780
+This is the first of two pretty code‑heavy sections.
+
+3
+00:00:07.780 --> 00:00:08.570
+But don't worry.
+
+4
+00:00:08.570 --> 00:00:09.800
+After the last module,
+
+5
+00:00:09.800 --> 00:00:13.920
+you should see several familiar things and be able to follow along.
+
+6
+00:00:13.920 --> 00:00:17.740
+Now first, we'll cover the code to create the Kubernetes cluster.
+
+7
+00:00:17.740 --> 00:00:18.700
+As we go through it,
+
+8
+00:00:18.700 --> 00:00:21.540
+I'll explain the important parts about what makes it work
+
+9
+00:00:21.540 --> 00:00:24.270
+and how it's different from the standalone SQL Server
+
+10
+00:00:24.270 --> 00:00:26.290
+instance you saw in the last module.
+
+11
+00:00:26.290 --> 00:00:30.490
+After that, we'll go live, and you can follow as we build this online.
+
+12
+00:00:30.490 --> 00:00:34.280
+Here in this slide, to create the cluster on AKS,
+
+13
+00:00:34.280 --> 00:00:38.080
+you can see that we use the az aks create command.
+
+14
+00:00:38.080 --> 00:00:41.340
+The cluster is named SQLAG.
+
+15
+00:00:41.340 --> 00:00:44.540
+In this example, the node count is bumped up to 3,
+
+16
+00:00:44.540 --> 00:00:48.990
+and the node VM size is bumped up to the standard B2ms level,
+
+17
+00:00:48.990 --> 00:00:53.040
+which has to virtual CPUs and 8GB of RAM.
+
+18
+00:00:53.040 --> 00:00:56.850
+I guess the important part here is that I used a larger VM size in this
+
+19
+00:00:56.850 --> 00:01:01.230
+example because availability groups require a bit more memory than the
+
+20
+00:01:01.230 --> 00:01:04.440
+plain vanilla SQL Server installation.
+
+21
+00:01:04.440 --> 00:01:05.310
+Next,
+
+22
+00:01:05.310 --> 00:01:07.470
+we need to get the credentials for that cluster so
+
+23
+00:01:07.470 --> 00:01:13.660
+we can manage it with kubectl, and the az aks get credentials command does that.
+
+24
+00:01:13.660 --> 00:01:18.130
+After retrieving the credentials and then running the kubectl get nodes command,
+
+25
+00:01:18.130 --> 00:01:22.970
+you can see the output here, and you can see that we have three nodes running.
+
+26
+00:01:22.970 --> 00:01:26.740
+Remember, these commands work for Azure Kubernetes services.
+
+27
+00:01:26.740 --> 00:01:29.360
+If you're using a different Kubernetes provider,
+
+28
+00:01:29.360 --> 00:01:32.080
+you'll have to use the commands that work for your provider,
+
+29
+00:01:32.080 --> 00:01:33.920
+so they'll be a little bit different.
+
+30
+00:01:33.920 --> 00:01:36.730
+But if you run this on Azure Kubernetes services,
+
+31
+00:01:36.730 --> 00:01:39.500
+you can run the code just as it is.
+
+32
+00:01:39.500 --> 00:01:43.650
+Next, let's look at creating the storage for our three SQL Server pods.
+
+33
+00:01:43.650 --> 00:01:44.960
+Like you saw before,
+
+34
+00:01:44.960 --> 00:01:48.250
+we defined the storage in a YAML file that we can create
+
+35
+00:01:48.250 --> 00:01:51.580
+by running the kubectl apply command that you can see
+
+36
+00:01:51.580 --> 00:01:53.660
+here at the top of the screen.
+
+37
+00:01:53.660 --> 00:01:57.760
+The sqlAGstorage.yaml file that's used to declaratively define the
+
+38
+00:01:57.760 --> 00:02:00.760
+storage is shown in the top part of the screen.
+
+39
+00:02:00.760 --> 00:02:01.020
+First,
+
+40
+00:02:01.020 --> 00:02:04.950
+a storage class is defined that tells Kubernetes
+
+41
+00:02:04.950 --> 00:02:07.370
+what type of Azure storage to use.
+
+42
+00:02:07.370 --> 00:02:11.150
+Since this is a test example, I used Standard_LRS.
+
+43
+00:02:11.150 --> 00:02:12.990
+If this were a production system,
+
+44
+00:02:12.990 --> 00:02:19.010
+I would have used the higher‑performant Standard_SSDLRS or Premium_LRS types.
+
+45
+00:02:19.010 --> 00:02:20.590
+In the bottom portion of the screen,
+
+46
+00:02:20.590 --> 00:02:24.740
+you can see where the first of three persistent volume claims is defined.
+
+47
+00:02:24.740 --> 00:02:27.600
+This is the one for the pod that will act as the primary
+
+48
+00:02:27.600 --> 00:02:29.840
+replica in the availability group.
+
+49
+00:02:29.840 --> 00:02:33.750
+The claim name is mssql‑pdb.
+
+50
+00:02:33.750 --> 00:02:37.540
+The ReadWriteOnce declaration means that only one pod
+
+51
+00:02:37.540 --> 00:02:39.150
+at a time can use this storage.
+
+52
+00:02:39.150 --> 00:02:43.680
+And at the bottom, you can see that 8GB will be allocated.
+
+53
+00:02:43.680 --> 00:02:48.400
+This slide is a continuation of the previous sqlAGstorage.yaml file.
+
+54
+00:02:48.400 --> 00:02:53.270
+This shows how the next two persistent volumes are going to be created.
+
+55
+00:02:53.270 --> 00:02:55.240
+The specs are essentially the same as the
+
+56
+00:02:55.240 --> 00:02:58.350
+persistentVolumeClaim that we used for the primary replica.
+
+57
+00:02:58.350 --> 00:03:03.310
+However, here, each different persistentVolumeClaim has its own name.
+
+58
+00:03:03.310 --> 00:03:08.670
+The first one for the first secondary is mssql‑s1db.
+
+59
+00:03:08.670 --> 00:03:15.360
+The next one for the second secondary replica is called mssql‑s2db.
+
+60
+00:03:15.360 --> 00:03:18.790
+Okay, now on to the actual deployment.
+
+61
+00:03:18.790 --> 00:03:20.150
+First we're going to look at the
+
+62
+00:03:20.150 --> 00:03:24.190
+sqlAGPdeployment.yaml file that you can see here.
+
+63
+00:03:24.190 --> 00:03:28.440
+This defines the primary SQL Server Availability Group replica.
+
+64
+00:03:28.440 --> 00:03:30.940
+There's going to be two more of these files,
+
+65
+00:03:30.940 --> 00:03:37.650
+sqlAGS1deployment.yaml and sqlAGS2deployment.yaml for the
+
+66
+00:03:37.650 --> 00:03:40.300
+two secondary availability group replicas.
+
+67
+00:03:40.300 --> 00:03:43.420
+The kubectl apply command that you can see at the top of
+
+68
+00:03:43.420 --> 00:03:46.840
+the screen will create this deployment.
+
+69
+00:03:46.840 --> 00:03:51.280
+The first part of the sqlAGdeployment file is starting with
+
+70
+00:03:51.280 --> 00:03:54.470
+kind, declaring that this is a deployment.
+
+71
+00:03:54.470 --> 00:03:55.090
+Next,
+
+72
+00:03:55.090 --> 00:03:59.950
+a replica set is defined that will ensure that one replica is always running.
+
+73
+00:03:59.950 --> 00:04:03.930
+This replica set will work with the mssql‑primary app
+
+74
+00:04:03.930 --> 00:04:06.210
+that we're defining in this deployment.
+
+75
+00:04:06.210 --> 00:04:11.040
+This is a continuation of that sqlAGPdeployment.yaml file.
+
+76
+00:04:11.040 --> 00:04:14.520
+So far, this looks a lot like the example from the previous module.
+
+77
+00:04:14.520 --> 00:04:18.140
+However, here's where you're going to begin to see some differences.
+
+78
+00:04:18.140 --> 00:04:19.750
+At the top of the screen,
+
+79
+00:04:19.750 --> 00:04:23.210
+you can see where we define the hostname that will be used with the pod.
+
+80
+00:04:23.210 --> 00:04:25.640
+We need to do this because, by default,
+
+81
+00:04:25.640 --> 00:04:28.470
+Kubernetes will make the hostname the same as the pod name,
+
+82
+00:04:28.470 --> 00:04:32.660
+which is quite long, exceeding the availability group maximum length.
+
+83
+00:04:32.660 --> 00:04:35.780
+The hostname assigned here will be the hostname for the SQL
+
+84
+00:04:35.780 --> 00:04:38.550
+Server instance that's used in our example.
+
+85
+00:04:38.550 --> 00:04:38.990
+Next,
+
+86
+00:04:38.990 --> 00:04:42.370
+you can see where we're pulling the latest Red Hat Enterprise Linux
+
+87
+00:04:42.370 --> 00:04:46.840
+version of SQL Server 2019 from Microsoft's repository.
+
+88
+00:04:46.840 --> 00:04:48.340
+In the middle of the screen,
+
+89
+00:04:48.340 --> 00:04:51.670
+you can see where the environment variables that are required
+
+90
+00:04:51.670 --> 00:04:54.440
+for SQL Server Linux containers are defined.
+
+91
+00:04:54.440 --> 00:04:59.420
+Like the example in the last module, ACCEPT_EULA is required for licensing.
+
+92
+00:04:59.420 --> 00:05:04.560
+MSSQL_PID specifies the edition of the SQL Server that we're using,
+
+93
+00:05:04.560 --> 00:05:06.760
+and, in this case, it's the developer edition.
+
+94
+00:05:06.760 --> 00:05:14.840
+What's new is the MSSQL_ENABLE_HADR and the MSSQL_AGENT_ENABLED declarations.
+
+95
+00:05:14.840 --> 00:05:19.000
+MSSQL_ENABLE_HDR is a prerequisite that's required
+
+96
+00:05:19.000 --> 00:05:21.190
+to support availability groups.
+
+97
+00:05:21.190 --> 00:05:26.090
+MSSQL_AGENT_ENABLED makes sure that the SQL agent is available on
+
+98
+00:05:26.090 --> 00:05:28.940
+the SQL Server instance that we're creating.
+
+99
+00:05:28.940 --> 00:05:32.490
+Next, the password is supplied from a Kubernetes secret.
+
+100
+00:05:32.490 --> 00:05:34.340
+That's pretty much the same.
+
+101
+00:05:34.340 --> 00:05:35.590
+And at the bottom,
+
+102
+00:05:35.590 --> 00:05:37.580
+you can see another new section where we're
+
+103
+00:05:37.580 --> 00:05:40.010
+limiting the pod's memory utilization.
+
+104
+00:05:40.010 --> 00:05:43.120
+This controls how much memory the pod can consume.
+
+105
+00:05:43.120 --> 00:05:46.990
+If we leave this blank, it's possible the pod will consume too much memory,
+
+106
+00:05:46.990 --> 00:05:50.040
+resulting in its being evicted from the cluster.
+
+107
+00:05:50.040 --> 00:05:54.540
+Next, we can see the last part of the sqlAGPdeployment file.
+
+108
+00:05:54.540 --> 00:05:55.220
+At the top,
+
+109
+00:05:55.220 --> 00:05:59.080
+you can see the mount point that the container will use for external storage.
+
+110
+00:05:59.080 --> 00:06:03.090
+We defined this external storage earlier with the persistentVolumeClaim.
+
+111
+00:06:03.090 --> 00:06:06.400
+Note that the claim here has to match the name we used when
+
+112
+00:06:06.400 --> 00:06:08.590
+we defined that persistentVolumeClaim.
+
+113
+00:06:08.590 --> 00:06:11.680
+In the bottom portion beneath the dashes,
+
+114
+00:06:11.680 --> 00:06:14.310
+you can see the definition for the load balancing service
+
+115
+00:06:14.310 --> 00:06:16.680
+that's going to be used with this deployment.
+
+116
+00:06:16.680 --> 00:06:19.900
+The selector defines the app that this service is going to work with,
+
+117
+00:06:19.900 --> 00:06:23.340
+and, in this case, it's the mssql‑primary app.
+
+118
+00:06:23.340 --> 00:06:26.840
+Below that, you can see the ports that are going to be opened.
+
+119
+00:06:26.840 --> 00:06:30.480
+Port 1433 is the default port for SQL Server.
+
+120
+00:06:30.480 --> 00:06:31.580
+For simplicity,
+
+121
+00:06:31.580 --> 00:06:35.570
+I've kept the default ports both inside and outside the pod the same.
+
+122
+00:06:35.570 --> 00:06:37.230
+However, this isn't required.
+
+123
+00:06:37.230 --> 00:06:40.040
+You could change the external port if you wanted.
+
+124
+00:06:40.040 --> 00:06:44.290
+Port 5022 is the default port for SQL Server endpoints.
+
+125
+00:06:44.290 --> 00:06:47.660
+SQL Server Availability Groups communicate over endpoints.
+
+126
+00:06:47.660 --> 00:06:52.020
+So opening and endpoint here is required for availability group
+
+127
+00:06:52.020 --> 00:06:54.320
+replicas to communicate with one another.
+
+128
+00:06:54.320 --> 00:06:58.900
+Here again, for simplicity, I've kept the port assignments the same.
+
+129
+00:06:58.900 --> 00:07:01.590
+I know this has been quite a bit of code, but we're almost there.
+
+130
+00:07:01.590 --> 00:07:05.250
+And hopefully, a lot of this has been familiar.
+
+131
+00:07:05.250 --> 00:07:10.030
+As I mentioned earlier, this example is using three different deployment files.
+
+132
+00:07:10.030 --> 00:07:12.880
+If you wanted, you could put them all into one big file.
+
+133
+00:07:12.880 --> 00:07:15.930
+But I separated them to make it easier to logically follow
+
+134
+00:07:15.930 --> 00:07:17.660
+the different parts of this deployment.
+
+135
+00:07:17.660 --> 00:07:20.590
+All of the deployment files are quite similar,
+
+136
+00:07:20.590 --> 00:07:22.910
+but there are some important differences.
+
+137
+00:07:22.910 --> 00:07:28.270
+Here's the sqlAGS1deployment.yaml file that defines the
+
+138
+00:07:28.270 --> 00:07:30.660
+deployment for the first secondary replica.
+
+139
+00:07:30.660 --> 00:07:31.820
+At the top,
+
+140
+00:07:31.820 --> 00:07:35.340
+you can see where the kubectl apply command will create this deployment,
+
+141
+00:07:35.340 --> 00:07:38.380
+and this is the one for our secondary replica.
+
+142
+00:07:38.380 --> 00:07:39.190
+As I mentioned,
+
+143
+00:07:39.190 --> 00:07:41.770
+this is very similar to the deployment that was used
+
+144
+00:07:41.770 --> 00:07:44.100
+for the availability group primary.
+
+145
+00:07:44.100 --> 00:07:46.740
+However, there are some important differences.
+
+146
+00:07:46.740 --> 00:07:50.010
+So let's go through and see how this declaration differs
+
+147
+00:07:50.010 --> 00:07:52.440
+from the first one for our primary.
+
+148
+00:07:52.440 --> 00:07:56.120
+First, you can see that the deployment has a different name.
+
+149
+00:07:56.120 --> 00:07:59.990
+This one is called mssqlag‑secondary1‑deployment
+
+150
+00:07:59.990 --> 00:08:02.940
+for our first secondary replica.
+
+151
+00:08:02.940 --> 00:08:06.080
+Next, you can see that our app name here is different.
+
+152
+00:08:06.080 --> 00:08:09.610
+Here we're using the app name of mssql‑secondary1,
+
+153
+00:08:09.610 --> 00:08:12.770
+again for our first secondary replica.
+
+154
+00:08:12.770 --> 00:08:14.840
+So those are two differences.
+
+155
+00:08:14.840 --> 00:08:18.900
+Next, moving on to the second part of this deployment,
+
+156
+00:08:18.900 --> 00:08:24.420
+you can see where the hostname has been set to mssql‑secondary1.
+
+157
+00:08:24.420 --> 00:08:27.530
+This is also going to be the name of the SQL Server
+
+158
+00:08:27.530 --> 00:08:29.940
+instance for the secondary replica.
+
+159
+00:08:29.940 --> 00:08:33.900
+The other specs we see here for the image and the environment variables,
+
+160
+00:08:33.900 --> 00:08:35.830
+they're pretty much the same.
+
+161
+00:08:35.830 --> 00:08:39.330
+In the last part of this deployment file for the secondary replica,
+
+162
+00:08:39.330 --> 00:08:42.940
+you can see where the mount point for the container is set to that
+
+163
+00:08:42.940 --> 00:08:46.790
+persistentVolumeClaim that we created for the secondary.
+
+164
+00:08:46.790 --> 00:08:48.660
+This is different from what we use before.
+
+165
+00:08:48.660 --> 00:08:55.740
+And here, our persistentVolumeClaim is named mssql‑s1db.
+
+166
+00:08:55.740 --> 00:08:59.380
+You can also see that the load balancing service at the
+
+167
+00:08:59.380 --> 00:09:02.310
+bottom is using a different name.
+
+168
+00:09:02.310 --> 00:09:03.650
+The ports are all the same.
+
+169
+00:09:03.650 --> 00:09:07.190
+The difference here is that this service is using the app selector
+
+170
+00:09:07.190 --> 00:09:10.900
+of mssql‑secondary1 for the secondary replica.
+
+171
+00:09:10.900 --> 00:09:16.530
+Okay, the deployment for the next secondary replica is pretty much the same.
+
+172
+00:09:16.530 --> 00:09:18.030
+I won't go through that here.
+
+173
+00:09:18.030 --> 00:09:22.120
+But the same points that were changed in this deployment were also changed
+
+174
+00:09:22.120 --> 00:09:31.000
+for the deployment that was used for mssql‑secondar2. And we'll see that in just a second as we build all this live.
+

@@ -1,0 +1,364 @@
+1
+00:00:00,000 --> 00:00:01,980
+With the batch job configured,
+
+2
+00:00:01,980 --> 00:00:05,915
+I can now start to implement the full processing of
+
+3
+00:00:05,915 --> 00:00:09,362
+patient data from an input file, through a processor,
+
+4
+00:00:09,362 --> 00:00:10,863
+and into a database.
+
+5
+00:00:10,863 --> 00:00:14,616
+Let's begin by defining the input that will be used.
+
+6
+00:00:14,616 --> 00:00:16,895
+Probably one of the most common ways to input data
+
+7
+00:00:16,895 --> 00:00:19,070
+into a batch job is through a file.
+
+8
+00:00:19,070 --> 00:00:23,773
+This input is usually a flat structure with each line representing a record
+
+9
+00:00:23,773 --> 00:00:27,938
+and each field in the record separated by a delimiter.
+
+10
+00:00:27,938 --> 00:00:28,789
+In our implementation,
+
+11
+00:00:28,789 --> 00:00:33,323
+I'll be using a file where fields in a record are delimited by commas.
+
+12
+00:00:33,323 --> 00:00:36,778
+Other formats you may come across include tab
+
+13
+00:00:36,778 --> 00:00:39,695
+delimited fields or fixed width fields.
+
+14
+00:00:39,695 --> 00:00:43,210
+An input file may or may not include a header row.
+
+15
+00:00:43,210 --> 00:00:45,465
+For the demo, I've included a header row,
+
+16
+00:00:45,465 --> 00:00:48,145
+which I can easily ignore using Spring Batch.
+
+17
+00:00:48,145 --> 00:00:51,954
+Remember that your input file is, in a sense,
+
+18
+00:00:51,954 --> 00:00:56,236
+a contract between your batch processor and the provider of the data.
+
+19
+00:00:56,236 --> 00:00:56,864
+Given this,
+
+20
+00:00:56,864 --> 00:00:59,689
+I cannot stress how important it is to fully
+
+21
+00:00:59,689 --> 00:01:01,586
+understand the requirements for this file.
+
+22
+00:01:01,586 --> 00:01:05,621
+Here are some key things to consider when structuring your input file.
+
+23
+00:01:05,621 --> 00:01:05,985
+First,
+
+24
+00:01:05,985 --> 00:01:10,131
+make sure that the provider and consumer understand which fields
+
+25
+00:01:10,131 --> 00:01:13,390
+are required and which fields are optional.
+
+26
+00:01:13,390 --> 00:01:18,380
+Next, make sure the provider and consumer agree on how errors will be handled.
+
+27
+00:01:18,380 --> 00:01:20,997
+Should an error stop the processing of a file?
+
+28
+00:01:20,997 --> 00:01:23,872
+Should failed records be emailed to the provider?
+
+29
+00:01:23,872 --> 00:01:26,013
+Will a total count of records be given?
+
+30
+00:01:26,013 --> 00:01:30,819
+Make sure you agree on the type of data that will be passed in each record.
+
+31
+00:01:30,819 --> 00:01:31,464
+For example,
+
+32
+00:01:31,464 --> 00:01:35,471
+if you're expecting a timestamp and the provider only gives you the month,
+
+33
+00:01:35,471 --> 00:01:39,379
+day, and year, it could result in invalid data for time-based calculations.
+
+34
+00:01:39,379 --> 00:01:39,855
+Finally,
+
+35
+00:01:39,855 --> 00:01:44,215
+assure you agree on the process for archiving the
+
+36
+00:01:44,215 --> 00:01:46,714
+file after processing is complete.
+
+37
+00:01:46,714 --> 00:01:49,748
+Now let's look at the structure for the demo input.
+
+38
+00:01:49,748 --> 00:01:53,165
+I'm showing you the new PatientRecord class I'll be creating as it
+
+39
+00:01:53,165 --> 00:01:56,204
+contains the fields that will be found in the input file.
+
+40
+00:01:56,204 --> 00:01:57,626
+A little later in this section,
+
+41
+00:01:57,626 --> 00:02:01,588
+I'll be using an item reader to map data from the input file
+
+42
+00:02:01,588 --> 00:02:04,480
+into attributes on instances in this class.
+
+43
+00:02:04,480 --> 00:02:07,326
+Note the fields I'm using for patients include
+
+44
+00:02:07,326 --> 00:02:10,478
+basic information such as the name, address,
+
+45
+00:02:10,478 --> 00:02:12,563
+email, phone, and birthdate.
+
+46
+00:02:12,563 --> 00:02:17,212
+There are a few additional fields including a sourceId and action.
+
+47
+00:02:17,212 --> 00:02:20,781
+SourceId is a common way to map an input record back to the
+
+48
+00:02:20,781 --> 00:02:24,491
+original source's unique identifier for the record.
+
+49
+00:02:24,491 --> 00:02:28,176
+Action is also a common approach to designate what action
+
+50
+00:02:28,176 --> 00:02:30,626
+batch processing should perform on the record.
+
+51
+00:02:30,626 --> 00:02:33,864
+In our demo, I'll only be using inserts; however,
+
+52
+00:02:33,864 --> 00:02:36,996
+you will be supporting a mixture of insertions,
+
+53
+00:02:36,996 --> 00:02:41,747
+updates, and deletions with your data and a full batch process.
+
+54
+00:02:41,747 --> 00:02:47,131
+Now let's create the resources we need to support the item reader.
+
+55
+00:02:47,131 --> 00:02:49,553
+I'll be demonstrating the addition of the PatientRecord
+
+56
+00:02:49,553 --> 00:02:52,464
+class that will be used by the item reader.
+
+57
+00:02:52,464 --> 00:02:56,726
+Note that I'll be following Demo 9 found in the DEMOS.
+
+58
+00:02:56,726 --> 00:03:00,148
+md file in the root project directory.
+
+59
+00:03:00,148 --> 00:03:03,195
+I'll be demonstrating the creation of a domain object that contains
+
+60
+00:03:03,195 --> 00:03:07,253
+attributes directly tied to the fields in our input file record.
+
+61
+00:03:07,253 --> 00:03:09,554
+Let's start by taking a look at the input file.
+
+62
+00:03:09,554 --> 00:03:15,575
+I've got the project opened, expand the data folder, and open up the test.
+
+63
+00:03:15,575 --> 00:03:16,435
+csv file.
+
+64
+00:03:16,435 --> 00:03:18,232
+Note that earlier in the course,
+
+65
+00:03:18,232 --> 00:03:21,056
+I defined an application property to point to the
+
+66
+00:03:21,056 --> 00:03:23,113
+data folder as the input directory.
+
+67
+00:03:23,113 --> 00:03:26,378
+Again, you'll likely configure this to be a folder outside of the project,
+
+68
+00:03:26,378 --> 00:03:29,459
+and it's only meant for demo purposes.
+
+69
+00:03:29,459 --> 00:03:33,687
+The file contains a header row with the field labels for each record.
+
+70
+00:03:33,687 --> 00:03:37,778
+We're simply going to skip this line when we read the file with Spring Batch.
+
+71
+00:03:37,778 --> 00:03:38,063
+Next,
+
+72
+00:03:38,063 --> 00:03:41,202
+note that each line represents a single record and that each
+
+73
+00:03:41,202 --> 00:03:44,532
+field in a record is separated by a comma.
+
+74
+00:03:44,532 --> 00:03:47,696
+Now let's create the class where data records will be mapped to.
+
+75
+00:03:47,696 --> 00:03:49,212
+I'm going to close this test file,
+
+76
+00:03:49,212 --> 00:03:52,053
+and I'm going to expand the domain package of the project.
+
+77
+00:03:52,053 --> 00:03:56,379
+Here we're going to create a class with the name PatientRecord.
+
+78
+00:03:56,379 --> 00:04:00,408
+I'll enter in the class name.
+
+79
+00:04:00,408 --> 00:04:02,308
+First, we want this object to be serializable,
+
+80
+00:04:02,308 --> 00:04:05,900
+so I'm going to add the interface to the class declaration.
+
+81
+00:04:05,900 --> 00:04:09,562
+Now I'll drop in the attributes to the class.
+
+82
+00:04:09,562 --> 00:04:12,744
+I'm going to right-click on the attributes and select
+
+83
+00:04:12,744 --> 00:04:15,107
+to create the getters and setters.
+
+84
+00:04:15,107 --> 00:04:17,368
+With the getters and setters created,
+
+85
+00:04:17,368 --> 00:04:21,145
+the next thing I want to do is create a constructor with no
+
+86
+00:04:21,145 --> 00:04:23,531
+fields and a constructor with all fields.
+
+87
+00:04:23,531 --> 00:04:28,150
+Select to generate a constructor, so now I have my empty constructor.
+
+88
+00:04:28,150 --> 00:04:29,442
+Let's create a full constructor.
+
+89
+00:04:29,442 --> 00:04:34,489
+And the last step at the bottom of the class is to create a toString method.
+
+90
+00:04:34,489 --> 00:04:36,923
+Now you could make your life easier and use a
+
+91
+00:04:36,923 --> 00:04:46,000
+library like Lombok if you wanted to. But for now, this completes the creation of our PatientRecord domain object.
+

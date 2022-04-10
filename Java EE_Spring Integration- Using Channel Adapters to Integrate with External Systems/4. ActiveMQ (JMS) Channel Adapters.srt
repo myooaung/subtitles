@@ -1,0 +1,496 @@
+1
+00:00:00,140 --> 00:00:01,280
+In this section,
+
+2
+00:00:01,280 --> 00:00:04,950
+we're going to review ActiveMQ in performing an integration
+
+3
+00:00:04,950 --> 00:00:07,900
+using the JMS support in Spring integration.
+
+4
+00:00:07,900 --> 00:00:11,520
+The definition of JMS from Oracle's website is,
+
+5
+00:00:11,520 --> 00:00:16,160
+"a messaging standard that allows application components based on the
+
+6
+00:00:16,160 --> 00:00:20,890
+Java Platform Enterprise Edition (Java EE) to create,
+
+7
+00:00:20,890 --> 00:00:23,640
+send, receive, and read messages.
+
+8
+00:00:23,640 --> 00:00:27,460
+It enables distributed communication that is loosely coupled,
+
+9
+00:00:27,460 --> 00:00:32,000
+reliable, and asynchronous." We looked at AMQP already,
+
+10
+00:00:32,000 --> 00:00:37,100
+so you might be curious about the differences between AMQP and JMS.
+
+11
+00:00:37,100 --> 00:00:42,740
+The main difference is that AMQP is a binary wire‑level protocol
+
+12
+00:00:42,740 --> 00:00:46,430
+used for integrating different systems that are potentially
+
+13
+00:00:46,430 --> 00:00:48,900
+built on different technology stacks,
+
+14
+00:00:48,900 --> 00:00:54,520
+whereas JMS is a Java API that abstracts Java programs from the underlying
+
+15
+00:00:54,520 --> 00:00:58,230
+complexities of communicating with the JMS provider,
+
+16
+00:00:58,230 --> 00:01:01,340
+much like JDBC does for databases.
+
+17
+00:01:01,340 --> 00:01:06,630
+Let's begin by looking at sending messages to and receiving messages from
+
+18
+00:01:06,630 --> 00:01:11,040
+ActiveMQ using inbound and outbound channel adapters.
+
+19
+00:01:11,040 --> 00:01:15,540
+Inbound requests are handled using the JmsMessageDrivenEndpoint,
+
+20
+00:01:15,540 --> 00:01:19,340
+which subscribes to a queue and publishes messages that it
+
+21
+00:01:19,340 --> 00:01:21,950
+receives to a channel asynchronously.
+
+22
+00:01:21,950 --> 00:01:27,140
+Outbound messages are published using the JmsSendingMessageHandler,
+
+23
+00:01:27,140 --> 00:01:29,860
+which will be triggered by a service activator when a
+
+24
+00:01:29,860 --> 00:01:32,190
+message is published to a channel.
+
+25
+00:01:32,190 --> 00:01:36,890
+In order to create an inbound channel adaptor, we create three beans.
+
+26
+00:01:36,890 --> 00:01:40,280
+First, we create a SimpleMessageListenerContainer,
+
+27
+00:01:40,280 --> 00:01:42,210
+as we did in the last section.
+
+28
+00:01:42,210 --> 00:01:45,520
+The container accepts a ConnectionFactory, which Spring will
+
+29
+00:01:45,520 --> 00:01:48,890
+create when it sees ActiveMQ in the class path.
+
+30
+00:01:48,890 --> 00:01:51,440
+We then create the SimpleMessageListenerContainer,
+
+31
+00:01:51,440 --> 00:01:54,590
+set its ConnectionFactory,
+
+32
+00:01:54,590 --> 00:01:58,970
+and set the destination queue name that we want to listen on. Again, the
+
+33
+00:01:58,970 --> 00:02:03,380
+SimpleMessage listenerContainer does the underlying work of subscribing to the
+
+34
+00:02:03,380 --> 00:02:07,270
+queue and managing the interactions with the JMS broker.
+
+35
+00:02:07,270 --> 00:02:11,640
+Next, we create a ChannelPublishingJmsMessageListener.
+
+36
+00:02:11,640 --> 00:02:16,450
+This is a JmsMessageListener that converts a JMS message into a Spring
+
+37
+00:02:16,450 --> 00:02:20,250
+integration message and sends that message to a channel.
+
+38
+00:02:20,250 --> 00:02:23,850
+Finally, we create a JmsMessageDrivenEndpoint.
+
+39
+00:02:23,850 --> 00:02:27,440
+The endpoint uses the listener container to listen for
+
+40
+00:02:27,440 --> 00:02:29,530
+messages published to the queue,
+
+41
+00:02:29,530 --> 00:02:32,670
+convert them to Spring integration messages using the
+
+42
+00:02:32,670 --> 00:02:36,550
+ChannelPublishingJmsMessageListener, and then publishes
+
+43
+00:02:36,550 --> 00:02:39,140
+them to the specified output channel.
+
+44
+00:02:39,140 --> 00:02:42,010
+In order to publish a message to ActiveMQ,
+
+45
+00:02:42,010 --> 00:02:46,760
+we create a new channel and then create a MessageHandler Bean that
+
+46
+00:02:46,760 --> 00:02:50,580
+is triggered by a ServiceActivator when a message is published to
+
+47
+00:02:50,580 --> 00:02:55,590
+that channel. The jmsMessageHandler Bean accepts a JmsTemplate,
+
+48
+00:02:55,590 --> 00:03:00,170
+which will be automatically created by Spring when it sees ActiveMQ
+
+49
+00:03:00,170 --> 00:03:01,440
+in the class path.
+
+50
+00:03:01,440 --> 00:03:07,050
+It creates a JmsSendingMessage handler with the JmsTemplate and then sets
+
+51
+00:03:07,050 --> 00:03:10,630
+the destination queue name to which to publish messages.
+
+52
+00:03:10,630 --> 00:03:11,450
+Finally,
+
+53
+00:03:11,450 --> 00:03:14,960
+we create a MessagingGateway that our application can use to
+
+54
+00:03:14,960 --> 00:03:17,640
+publish a message to the publishing channel.
+
+55
+00:03:17,640 --> 00:03:21,850
+This example is going to be the same as the example in the last section,
+
+56
+00:03:21,850 --> 00:03:27,020
+namely another reservation system, the bar reservation system, is going to
+
+57
+00:03:27,020 --> 00:03:31,280
+publish reservations to ActiveMQ, and we're going to handle them.
+
+58
+00:03:31,280 --> 00:03:36,150
+The bar reservation service will publish a bar reservation to a reservation
+
+59
+00:03:36,150 --> 00:03:39,470
+channel that will be published to ActiveMQ through a.
+
+60
+00:03:39,470 --> 00:03:43,700
+JMS sending message handler. The reservation will be published to a
+
+61
+00:03:43,700 --> 00:03:48,330
+queue and received by a JMS message driven endpoint, which will
+
+62
+00:03:48,330 --> 00:03:52,130
+publish it to a channel to be handled by the bar reservation
+
+63
+00:03:52,130 --> 00:03:55,490
+listener. Just as we did in the last section, we're going to run
+
+64
+00:03:55,490 --> 00:03:57,940
+ActiveMQ in a Docker container.
+
+65
+00:03:57,940 --> 00:04:01,350
+ActiveMQ has two major releases; the classic
+
+66
+00:04:01,350 --> 00:04:04,440
+version, which uses JMS, and Artemis,
+
+67
+00:04:04,440 --> 00:04:09,700
+which uses AMQP. Because we're viewing Spring integration's JMS support,
+
+68
+00:04:09,700 --> 00:04:11,940
+I opted to use the classic version.
+
+69
+00:04:11,940 --> 00:04:17,990
+The rmohr/activemq Docker image has over 10 million downloads and is one
+
+70
+00:04:17,990 --> 00:04:24,600
+of the most popular ActiveMQ images. We expose 2 ports; 61616 is the
+
+71
+00:04:24,600 --> 00:04:29,870
+standard port that JMS clients will connect to, and 8161, which is the
+
+72
+00:04:29,870 --> 00:04:32,590
+port to the HTTP management console.
+
+73
+00:04:32,590 --> 00:04:36,810
+You can start it with this command. With ActiveMQ running, let's
+
+74
+00:04:36,810 --> 00:04:39,580
+take a look at the code and see this in action.
+
+75
+00:04:39,580 --> 00:04:43,590
+Let's look at the configuration for our inbound channel adapter.
+
+76
+00:04:43,590 --> 00:04:48,940
+The ActiveMQInboundConfig class is a Spring configuration class.
+
+77
+00:04:48,940 --> 00:04:52,790
+It defines our destination queue name as reservation‑queue.
+
+78
+00:04:52,790 --> 00:04:55,690
+It creates a reservationConsumerChannel,
+
+79
+00:04:55,690 --> 00:04:59,460
+which is the channel to which messages publish to an ActiveMQ queue
+
+80
+00:04:59,460 --> 00:05:04,610
+will be delivered. Our goal is to subscribe to a queue, and when a
+
+81
+00:05:04,610 --> 00:05:09,240
+message is published to that queue to publish a message to a channel to
+
+82
+00:05:09,240 --> 00:05:11,340
+be handled by one of our components.
+
+83
+00:05:11,340 --> 00:05:12,290
+To do this,
+
+84
+00:05:12,290 --> 00:05:16,640
+we create a simpleMessageListenerContainer with a ConnectionFactory
+
+85
+00:05:16,640 --> 00:05:20,380
+that Spring automatically creates when it sees ActiveMQ in our class
+
+86
+00:05:20,380 --> 00:05:24,190
+path and then set its destination queue name. We create a
+
+87
+00:05:24,190 --> 00:05:29,440
+ChannelPublishingJmsMessage listener that converts a JMS message into
+
+88
+00:05:29,440 --> 00:05:31,340
+a Spring integration message.
+
+89
+00:05:31,340 --> 00:05:35,850
+And then we create a JmsMessageDrivenEndpoint that uses both the
+
+90
+00:05:35,850 --> 00:05:39,740
+simpleMessageListenerContainer to receive messages and the
+
+91
+00:05:39,740 --> 00:05:44,670
+channelPublishingJmsMessageListener to convert JMS messages to
+
+92
+00:05:44,670 --> 00:05:48,760
+Spring integration messages, and then to publish the message to the
+
+93
+00:05:48,760 --> 00:05:50,740
+reservationConsumerChannel.
+
+94
+00:05:50,740 --> 00:05:54,700
+The BarReservationListener is a Spring service that defines a
+
+95
+00:05:54,700 --> 00:05:58,550
+handleMessage method with a ServiceActivator that listens for
+
+96
+00:05:58,550 --> 00:06:01,480
+messages on the reservationConsumerChannel.
+
+97
+00:06:01,480 --> 00:06:02,840
+As we'll see shortly,
+
+98
+00:06:02,840 --> 00:06:08,920
+the BarReservationService will be publishing a BarReservation as a JSON string,
+
+99
+00:06:08,920 --> 00:06:13,260
+so we use the Jackson objectMapper to convert the string that we
+
+100
+00:06:13,260 --> 00:06:17,140
+receive into a BarReservation object and log it.
+
+101
+00:06:17,140 --> 00:06:23,810
+A BarReservation is a plain old Java object with two fields, an ID and a name.
+
+102
+00:06:23,810 --> 00:06:25,800
+Now let's look at the publisher.
+
+103
+00:06:25,800 --> 00:06:30,570
+The ActiveMQOutboundConfig class defines the same queue name,
+
+104
+00:06:30,570 --> 00:06:33,880
+reservation‑queue, and then creates two channels.
+
+105
+00:06:33,880 --> 00:06:38,080
+The first channel, reservationChannel, is the channel to which the
+
+106
+00:06:38,080 --> 00:06:41,440
+BarReservationService will publish its reservations.
+
+107
+00:06:41,440 --> 00:06:44,960
+It's delivered to the ObjectToJsonTransformer Bean,
+
+108
+00:06:44,960 --> 00:06:48,680
+which converts the reservation object to a JSON string.
+
+109
+00:06:48,680 --> 00:06:53,610
+The second channel, publishReservationToActiveMQ, is the channel to
+
+110
+00:06:53,610 --> 00:06:57,070
+which our transformer publishes the JSON string.
+
+111
+00:06:57,070 --> 00:07:02,620
+The jmsMessageHandler receives the message using the ServiceActivator and
+
+112
+00:07:02,620 --> 00:07:06,760
+publishes it to the destination queue specified by its name.
+
+113
+00:07:06,760 --> 00:07:07,600
+Finally,
+
+114
+00:07:07,600 --> 00:07:11,670
+the BarReservationGateway is a messaging gateway that publishes
+
+115
+00:07:11,670 --> 00:07:14,680
+a BarReservation to the ReservationChannel.
+
+116
+00:07:14,680 --> 00:07:18,230
+The BarReservationService is a Spring service with the
+
+117
+00:07:18,230 --> 00:07:23,080
+BarReservationGateway wired into it that publishes a BarReservation
+
+118
+00:07:23,080 --> 00:07:25,740
+to the ReservationChannel through the gateway.
+
+119
+00:07:25,740 --> 00:07:29,420
+The ActiveMQSampleApplication is a command‑line Spring boot
+
+120
+00:07:29,420 --> 00:07:33,560
+application with the BarReservationService wired into it that
+
+121
+00:07:33,560 --> 00:07:37,230
+publishes six reservations to ActiveMQ through the
+
+122
+00:07:37,230 --> 00:07:40,790
+BarReservationService with a 2‑second delay.
+
+123
+00:07:40,790 --> 00:07:46,580
+Let's run the application and review the logs. In the logs, we can see the
+
+124
+00:07:46,580 --> 00:07:57,000
+BarReservationService publishing each of its six reservations, and then we can see that the BarReservationListener receives each reservation.
+

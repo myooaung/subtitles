@@ -1,0 +1,616 @@
+WEBVTT
+1
+00:00:02.430 --> 00:00:08.310
+So we got certain routes on our back and to be precise the route for creating a new place for updating
+
+2
+00:00:08.310 --> 00:00:12.630
+a place and for deleting a place which should be protected.
+
+3
+00:00:12.660 --> 00:00:17.880
+Which means you shouldn't be able to send the request to them if you're not authenticated.
+
+4
+00:00:17.880 --> 00:00:24.480
+If you don't have a valid token now how can we ensure that no request without a token or without a valid
+
+5
+00:00:24.480 --> 00:00:28.480
+token I should say can reach these free routes.
+
+6
+00:00:28.500 --> 00:00:31.360
+Well we can add a middleware in front of them.
+
+7
+00:00:31.440 --> 00:00:36.880
+We can add a middleware in front of them which ensures that requests have to have a token.
+
+8
+00:00:37.020 --> 00:00:42.690
+If we use ruder use here we can add a middleware to any request that reaches this middleware.
+
+9
+00:00:42.690 --> 00:00:48.150
+Now keep in mind that requests in the end travel through your middleware from top to bottom in your
+
+10
+00:00:48.150 --> 00:00:48.980
+files.
+
+11
+00:00:49.080 --> 00:00:55.950
+And if we add a middleware here we therefore ensure that these first two requests here are open to everyone.
+
+12
+00:00:56.130 --> 00:00:58.380
+And that actually should be fine here.
+
+13
+00:00:58.380 --> 00:01:01.710
+I'm fine with returning place data to everyone.
+
+14
+00:01:01.710 --> 00:01:07.830
+But then once a request didn't make it into this or this route it encounters this middleware.
+
+15
+00:01:07.860 --> 00:01:14.220
+And here we can then do something to for example sent back an error response if the request has no valid
+
+16
+00:01:14.250 --> 00:01:14.700
+token.
+
+17
+00:01:14.940 --> 00:01:20.760
+So a request without a valid token will never reach the bottom roots here because it will always be
+
+18
+00:01:20.760 --> 00:01:22.270
+handled by this middleware.
+
+19
+00:01:22.440 --> 00:01:23.640
+That is the plan.
+
+20
+00:01:23.640 --> 00:01:28.620
+So we need to write a middleware here which checks an incoming request for a valid token.
+
+21
+00:01:28.680 --> 00:01:32.040
+And if the token is invalid it will send back a response.
+
+22
+00:01:32.040 --> 00:01:36.920
+And it will block the request from continuing its journey to the other routes.
+
+23
+00:01:36.930 --> 00:01:40.300
+This is how we could protect these bottom three routes here.
+
+24
+00:01:40.380 --> 00:01:45.140
+So the only missing piece at this point is a middleware that helps us do that.
+
+25
+00:01:45.270 --> 00:01:51.610
+And for that I will create a new file in the middleware folder which I'll just name off or check dash
+
+26
+00:01:51.790 --> 00:01:58.570
+off J.S. in any year we'll write all the logic to validate an incoming request for its token.
+
+27
+00:01:58.570 --> 00:02:02.170
+So in the end here I want to export a function.
+
+28
+00:02:02.170 --> 00:02:02.430
+Right.
+
+29
+00:02:02.440 --> 00:02:06.370
+Because a middleware is a function as you learned of function which gets this request.
+
+30
+00:02:06.370 --> 00:02:08.220
+Object is response object.
+
+31
+00:02:08.260 --> 00:02:14.860
+And this next function here and then here we want to check whether we have a token and not just whether
+
+32
+00:02:14.860 --> 00:02:18.100
+we have a token but if it's a valid token.
+
+33
+00:02:18.100 --> 00:02:21.670
+So first of all we can extract our token from the incoming request.
+
+34
+00:02:21.700 --> 00:02:26.760
+And now the question is Where do we expect this token on the incoming request.
+
+35
+00:02:26.800 --> 00:02:31.930
+You could argue that it should be part of the request body but you might not always be protecting routes
+
+36
+00:02:31.930 --> 00:02:37.060
+that have a request body for example the delete request doesn't have a request body.
+
+37
+00:02:37.060 --> 00:02:42.940
+So the token couldn't be part of the request body here any get request wouldn't have a request body.
+
+38
+00:02:42.970 --> 00:02:45.670
+We're not protecting a get request in this application.
+
+39
+00:02:45.670 --> 00:02:49.270
+But in other applications you might be protecting such roads as well.
+
+40
+00:02:49.300 --> 00:02:52.390
+So the request body is not a great choice.
+
+41
+00:02:52.390 --> 00:02:58.150
+You could go for query parents instead query parents are these things in the U are L which come after
+
+42
+00:02:58.150 --> 00:03:04.820
+a question mark something like token equals and then your token that could be part of the U.R.L..
+
+43
+00:03:04.990 --> 00:03:07.780
+And that would be a valid way of sending a token.
+
+44
+00:03:07.960 --> 00:03:11.410
+But I personally am a friend of using headers.
+
+45
+00:03:11.410 --> 00:03:18.400
+This does not affect our you are L and therefore keeps it cleaner and a token really can be considered
+
+46
+00:03:18.430 --> 00:03:21.230
+metadata that is attached to a request.
+
+47
+00:03:21.250 --> 00:03:28.120
+So I really like the idea of encoding the token in the headers of the incoming request so we can access
+
+48
+00:03:28.120 --> 00:03:31.750
+the request object and there we will find a headers property.
+
+49
+00:03:31.810 --> 00:03:38.200
+This is automatically provided by express J Yes this is the end of javascript object where we've got
+
+50
+00:03:38.200 --> 00:03:44.950
+key value pairs where the keys are to headers and the values well are the values for these headers and
+
+51
+00:03:44.950 --> 00:03:48.560
+there we will find out all for ization header.
+
+52
+00:03:48.610 --> 00:03:55.570
+Now remember that earlier in the course in app J.S. when we worked on the course headers I allowed the
+
+53
+00:03:55.570 --> 00:03:58.620
+attachment of authorisation header.
+
+54
+00:03:58.630 --> 00:03:59.940
+Now here with a capital A.
+
+55
+00:04:00.010 --> 00:04:03.460
+But headers are actually case insensitive.
+
+56
+00:04:03.460 --> 00:04:08.520
+So here we're allowing the front end the client to add an authorization header.
+
+57
+00:04:08.680 --> 00:04:12.320
+And now I'm using this authorization header here again.
+
+58
+00:04:12.320 --> 00:04:15.750
+They're not case sensitive to extract data.
+
+59
+00:04:15.910 --> 00:04:21.500
+So I access does authorisation header and in there I expect to get my token.
+
+60
+00:04:21.580 --> 00:04:29.980
+However this header will not be authorization and then the token instead the convention is to have as
+
+61
+00:04:29.980 --> 00:04:38.740
+a value something like bearer token to indicate that this request basically bears such a token here
+
+62
+00:04:39.170 --> 00:04:43.900
+sort of token here as part of the string which is stored in the authorization header.
+
+63
+00:04:44.590 --> 00:04:51.180
+So we want to split the value in the authorization header on the whitespace on the blank.
+
+64
+00:04:51.190 --> 00:04:58.050
+So basically here on this whitespace and as a result we will get an array with two values the First
+
+65
+00:04:58.050 --> 00:05:01.210
+the value the first element will be this bearer string.
+
+66
+00:05:01.210 --> 00:05:02.980
+The second element will be our token.
+
+67
+00:05:03.550 --> 00:05:09.860
+So on the result of the split operation I can access the second element with index 1 because indexes
+
+68
+00:05:09.870 --> 00:05:12.780
+and JavaScript start at 0 in a race.
+
+69
+00:05:12.820 --> 00:05:15.980
+So this should be our token.
+
+70
+00:05:16.050 --> 00:05:20.870
+Now of course that token might not be found or it might be invalid.
+
+71
+00:05:20.910 --> 00:05:30.270
+So if we don't have this token if it's undefined if this fails then I of course don't want to continue.
+
+72
+00:05:30.280 --> 00:05:35.000
+Instead we know that we certainly have no valid request at this point.
+
+73
+00:05:35.080 --> 00:05:43.970
+So here we can create a new error a new age to the p error and for that I will import my age to be error
+
+74
+00:05:44.590 --> 00:05:56.760
+by requiring it from models HBP error and there as a message you could say authentication failed.
+
+75
+00:05:56.940 --> 00:06:02.390
+You can of course also provide a more detailed message and sent back a status code or 401.
+
+76
+00:06:02.430 --> 00:06:04.710
+For not authenticated basically.
+
+77
+00:06:05.130 --> 00:06:09.200
+And then here I call next and attach my error.
+
+78
+00:06:09.270 --> 00:06:13.370
+And I always returned us to ensure that no code thereafter executes.
+
+79
+00:06:13.380 --> 00:06:17.640
+Now the problem we also have here at this point by the way is dead.
+
+80
+00:06:17.640 --> 00:06:18.690
+When we split this.
+
+81
+00:06:18.720 --> 00:06:24.780
+If the authorization header is not set at all this would actually crash and generate an error instead
+
+82
+00:06:24.780 --> 00:06:27.780
+of just returning undefined for the token.
+
+83
+00:06:27.780 --> 00:06:34.830
+So we should actually all the Raptors with try catch here to catch any error or we might be having here.
+
+84
+00:06:34.860 --> 00:06:41.880
+So this should go into try and then actually we can send this error in catch in here where I check for
+
+85
+00:06:41.880 --> 00:06:45.200
+the token existence I just want to throw an error.
+
+86
+00:06:45.270 --> 00:06:51.390
+I just want to throw a new error whereas say authentication failed.
+
+87
+00:06:51.390 --> 00:06:56.970
+But that doesn't matter too much because in the catch block I generate a new error anyways so if dad
+
+88
+00:06:56.970 --> 00:07:02.190
+were handling two scenarios scenario one is that the authorization header isn't set at all and therefore
+
+89
+00:07:02.190 --> 00:07:05.930
+split fails and scenario 2 is that it succeeds.
+
+90
+00:07:06.030 --> 00:07:09.400
+But whatever we had in there doesn't give us such a token.
+
+91
+00:07:09.750 --> 00:07:12.460
+Now if we survived both cases.
+
+92
+00:07:12.480 --> 00:07:16.090
+So we do have a token the tokens still might be invalid.
+
+93
+00:07:16.200 --> 00:07:23.070
+So as a next step we need to verify the token and for this we can reuse this Jason web token package
+
+94
+00:07:23.420 --> 00:07:30.240
+so I'll imported here Jason web token and store it into JWT constant because this was the package we
+
+95
+00:07:30.240 --> 00:07:32.370
+used to generate the token.
+
+96
+00:07:32.370 --> 00:07:36.060
+It's all of the package we can use to verify a token.
+
+97
+00:07:36.060 --> 00:07:45.840
+So for this we can call JWT verify now to verify we pass our token and then as a second argument the
+
+98
+00:07:45.840 --> 00:07:48.990
+private key we was to generate the token.
+
+99
+00:07:48.990 --> 00:07:54.230
+So we have to use the exact same key we used in the user's controller to generate our tokens.
+
+100
+00:07:54.300 --> 00:07:59.910
+So make sure to copied from there and not introduce any typos because of course you can only verify
+
+101
+00:07:59.910 --> 00:08:04.690
+the tokens validity if you use the exact same private key.
+
+102
+00:08:04.750 --> 00:08:08.410
+Now this verify process will not return a boolean.
+
+103
+00:08:08.410 --> 00:08:10.870
+Instead it returns a string or an object.
+
+104
+00:08:10.870 --> 00:08:14.470
+It returns the payload that was encoded into the token.
+
+105
+00:08:14.500 --> 00:08:22.540
+So here we got our decoded token and from that payload we can therefore also get the user I.D. to which
+
+106
+00:08:22.540 --> 00:08:29.050
+just token longs because remember that when we created the token we store the user I.D. anti email in
+
+107
+00:08:29.050 --> 00:08:35.200
+the token so when we called verify in decoded tokens we got an object which has this user I.D. and which
+
+108
+00:08:35.200 --> 00:08:43.060
+has this email and now here we know at this point that if this didn't fail if this verification didn't
+
+109
+00:08:43.060 --> 00:08:46.930
+fail didn't throw an error or that the user is authenticated.
+
+110
+00:08:46.930 --> 00:08:54.650
+So at this point I also want to call next here and not add an error but instead allowed a request to
+
+111
+00:08:54.650 --> 00:09:00.960
+continue its journey so that it is able to reach any other routes thereafter that require authentication.
+
+112
+00:09:01.160 --> 00:09:04.880
+But I also want to add something to the request object.
+
+113
+00:09:04.880 --> 00:09:07.600
+I will add a user data property.
+
+114
+00:09:07.670 --> 00:09:12.640
+You can always dynamically add data to the request object like this and the user data.
+
+115
+00:09:12.650 --> 00:09:19.550
+I want to add to the request includes my user I.D. let's say which I get from the decoded token and
+
+116
+00:09:19.550 --> 00:09:26.970
+their user I.D. because again when we create the token we added a user I.D. to its payload.
+
+117
+00:09:27.080 --> 00:09:34.190
+So now every request there after will be able to use this user data object which is part of the request
+
+118
+00:09:34.220 --> 00:09:39.710
+object and gets that user I.D. we extracted in this middleware.
+
+119
+00:09:39.710 --> 00:09:40.880
+So we're doing two things here.
+
+120
+00:09:40.880 --> 00:09:48.930
+We're validating the token and once it is valid we let the request continue and we add data to the request.
+
+121
+00:09:48.940 --> 00:09:54.200
+Now if verification fails this will throw an error and therefore we'll make it into the catch block
+
+122
+00:09:55.260 --> 00:09:57.840
+this day of rest of finished authentication middleware.
+
+123
+00:09:57.840 --> 00:10:01.990
+And now my app crashed after saving because in places routes I have as empty malware.
+
+124
+00:10:02.190 --> 00:10:07.350
+But this year will now not stay empty instead here we can now use this finished middleware.
+
+125
+00:10:07.350 --> 00:10:18.420
+So back here in places routes let's import check off by requiring middleware check off so the middleware
+
+126
+00:10:18.420 --> 00:10:24.540
+function we're exporting here and here in you as I just point at check off I don't execute it because
+
+127
+00:10:24.540 --> 00:10:26.450
+this already is the middleware function.
+
+128
+00:10:26.460 --> 00:10:32.490
+Instead I just pass a pointer at this function to use so that this function gets registered by express
+
+129
+00:10:32.730 --> 00:10:34.500
+as a middleware.
+
+130
+00:10:34.500 --> 00:10:38.040
+And now with that any route after DESC check here.
+
+131
+00:10:38.040 --> 00:10:43.820
+So all these routes at the bottom are protected and can only be reached with a valid token.
+
+132
+00:10:44.090 --> 00:10:45.290
+I can already prove this.
+
+133
+00:10:45.330 --> 00:10:53.470
+If we go back to the front end and we try to authenticate here for one you see that this fails.
+
+134
+00:10:53.630 --> 00:10:59.210
+We could not log in because we created this user here earlier in the course and therefore it has its
+
+135
+00:10:59.210 --> 00:11:05.690
+plain text passwords stored in the database which can't be compared with the new decrypt hash algorithm.
+
+136
+00:11:05.900 --> 00:11:15.890
+But for example if I create a new user here pick an image like this here and then unused email address.
+
+137
+00:11:15.960 --> 00:11:21.450
+Now we sign up but we're not redirected the reason for that is that we changed the data we're returning
+
+138
+00:11:21.660 --> 00:11:22.680
+on sign up
+
+139
+00:11:26.570 --> 00:11:32.320
+we're no longer returning a user object which is what we expect on the front end though and they therefore
+
+140
+00:11:32.330 --> 00:11:38.240
+log in here in the end failed when we tried to extract the idea from the user object on a response which
+
+141
+00:11:38.240 --> 00:11:39.180
+is no longer there.
+
+142
+00:11:39.260 --> 00:11:43.060
+But since we don't do anything the error handler we didn't see an error for debt.
+
+143
+00:11:43.070 --> 00:11:45.850
+Note it's not a problem because this is an error we will have to fix.
+
+144
+00:11:45.860 --> 00:11:52.070
+As a developer anyways our return data changes and in general how we work with this authenticated user
+
+145
+00:11:52.220 --> 00:11:58.610
+changed nonetheless import this that you won't be able to send requests to the back end to the protected
+
+146
+00:11:58.610 --> 00:12:00.240
+routes now without a token.
+
+147
+00:12:00.350 --> 00:12:06.620
+And whilst I can show us here in the front end we can of course use postman for this here on postman.
+
+148
+00:12:06.650 --> 00:12:15.700
+I created a request to create a new place with some dummy data and if I click send here you see I get
+
+149
+00:12:15.700 --> 00:12:19.380
+back a four and one area authentication failed.
+
+150
+00:12:19.540 --> 00:12:23.860
+So this proves that this request doesn't even reach our protected route.
+
+151
+00:12:23.860 --> 00:12:28.980
+It's blocked earlier by our brand new middleware and that is exactly what should be happening.
+
+152
+00:12:29.140 --> 00:12:34.810
+So now with that let's work on the front and make sure we use that new return data that token and that
+
+153
+00:12:34.810 --> 00:12:40.960
+user I.D. which is returned and we then kind of store it on the front end and also attach it to requests
+
+154
+00:12:40.960 --> 00:12:46.240
+we send to the back end to ensure that we have access to the protected routes again.

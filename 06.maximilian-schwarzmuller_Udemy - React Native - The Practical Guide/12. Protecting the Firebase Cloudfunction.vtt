@@ -1,0 +1,238 @@
+WEBVTT
+
+00:02.140 --> 00:05.930
+So over the last lectures we ensure that we can get and delete places,
+
+00:05.930 --> 00:17.440
+so now if we login here and we press find place, we get the places and we can also delete them successfully
+
+00:17.440 --> 00:23.710
+here as you see because if I now log in again, this second place indeed should be gone
+
+00:26.510 --> 00:34.910
+and it is but one thing we don't really take care of is that we also can add places because there, we're
+
+00:34.910 --> 00:41.890
+not only communicating with the firebase database but also with our own cloud function.
+
+00:41.990 --> 00:49.430
+So we need to ensure that we actually do check for authentication there too,
+
+00:49.580 --> 00:51.980
+now let's write the code we need for that.
+
+00:52.550 --> 00:58.520
+Let's go to our index.js file in the functions folder which is where our cloud function code lives
+
+00:58.970 --> 01:04.730
+and there I now want to find out whether the user is authenticated or not.
+
+01:04.730 --> 01:08.250
+Now it's totally up to you on how we check this,
+
+01:08.270 --> 01:14.870
+I will set up a check where I don't actually parse some query parameter in the url though we could
+
+01:14.870 --> 01:19.380
+do this but I want to have an authorization header.
+
+01:19.460 --> 01:27.860
+So I'll first of all add an if check here and check if we don't have a request header, so in the request headers
+
+01:27.860 --> 01:29.780
+object which will be there,
+
+01:29.780 --> 01:33.380
+this request we're getting from firebase will have a headers object,
+
+01:33.380 --> 01:42.530
+if we don't have an authorization header in there or additionally another thing where I would want
+
+01:42.560 --> 01:46.000
+to fail or not succeed in this if statement here,
+
+01:46.190 --> 01:58.340
+I also want to check if we don't have an authorization header that starts with bearer because I want
+
+01:58.340 --> 02:03.010
+to have this typical authorization header with bearer and then your token.
+
+02:03.200 --> 02:09.970
+So even if we have an authorization header that doesn't fit this schema, I want it to fail.
+
+02:10.260 --> 02:16.920
+So these are two things, two checks where I want to actually fail if I either have no token or the wrong one
+
+02:16.920 --> 02:20.470
+basically or no header or the wrong one.
+
+02:20.700 --> 02:29.010
+In these cases, I'll console log no token present or whatever you want, just an internal log and I'll
+
+02:29.010 --> 02:32.560
+respond with a status of 403
+
+02:32.580 --> 02:43.070
+for Access Denied and basically send a json object back where we could add an error object which is
+
+02:43.070 --> 02:46.110
+a message maybe where we say unauthorized.
+
+02:46.110 --> 02:50.190
+Now this logic is totally up to you, it depends on what you want to use on the frontend
+
+02:50.400 --> 02:55.890
+and thereafter important, I'll return to not execute any other code because just setting the response
+
+02:55.890 --> 02:58.750
+alone won't quit this function.
+
+02:59.040 --> 03:03.630
+If we make it after this if statement, it means we will have some form of header,
+
+03:03.780 --> 03:06.310
+so now I can get my token,
+
+03:06.720 --> 03:20.760
+I can now set ID token equal to and now get my request headers authorization header and split it after
+
+03:20.760 --> 03:21.920
+the bearer part,
+
+03:21.950 --> 03:27.350
+so bearer then a whitespace and then I want to get the first element of the resulting array which
+
+03:27.350 --> 03:29.010
+will be the part after that,
+
+03:29.060 --> 03:36.180
+so that will be our token. That token doesn't necessarily have to be valid though,
+
+03:36.320 --> 03:40.770
+now thankfully firebase offers us a tool we can use to validate it
+
+03:40.910 --> 03:43.130
+and this is a tool we don't even have to install,
+
+03:43.160 --> 03:44.980
+it's included by default.
+
+03:45.350 --> 03:53.270
+We can store it in a constant named admin and require it from firebase admin, this is an extra package which
+
+03:53.540 --> 03:56.750
+is provided for any firebase cloud function.
+
+03:56.780 --> 04:03.130
+It gives us some admin functionality and one of them is to verify tokens, to see if they are valid,
+
+04:03.260 --> 04:08.750
+for that we need firebase help because firebase was what created the token.
+
+04:08.750 --> 04:14.220
+Now for the admin toolkit here to work, we need to initialize it though,
+
+04:14.250 --> 04:22.210
+I'll do that after initialising Google Cloud Storage, I'll execute admin initialize app and to initialize
+
+04:22.210 --> 04:26.860
+app, we need to pass at least one argument here for our purposes,
+
+04:27.070 --> 04:34.420
+the credential property which should be admin and there credential and there, the cert function and to
+
+04:34.420 --> 04:42.280
+that function here, you'll simply pass your file here, your key file.
+
+04:42.280 --> 04:45.880
+Now to this function, we can't just pass a path though,
+
+04:45.880 --> 04:49.070
+instead we should require the file to essentially import it.
+
+04:49.270 --> 04:54.660
+So awesome-places.json like this,
+
+04:54.670 --> 04:56.160
+I'm requiring it here
+
+04:59.830 --> 05:08.260
+and I'm then sending this to this cert function and this should initialize my admin toolkit here. With
+
+05:08.270 --> 05:09.550
+it initialized,
+
+05:09.880 --> 05:18.760
+I can go down here where we got the token which we now want to verify, I'll call admin auth and then verify
+
+05:18.760 --> 05:21.940
+ID token and pass the token to it.
+
+05:21.940 --> 05:24.150
+Now that's an asynchronous task,
+
+05:24.460 --> 05:32.890
+so I'll actually chain a then call here where we would have the decoded token and we only get here
+
+05:32.980 --> 05:34.630
+if it's valid.
+
+05:34.840 --> 05:41.020
+Now this is essentially where I want to continue with my other code where I get the body, store my file and
+
+05:41.020 --> 05:42.580
+upload my file.
+
+05:42.850 --> 05:49.180
+So all the other code here which comes thereafter should go into this then block because I only want
+
+05:49.180 --> 05:55.350
+to execute it if we do have a valid token, that's super important and we could get some data from the
+
+05:55.350 --> 05:58.800
+token like user ID if we needed that here,
+
+05:58.870 --> 06:03.530
+I don't do here but it's an important thing for you to keep in mind.
+
+06:03.770 --> 06:10.160
+So we only make it here if we did succeed, of course that means that at the very end of everything,
+
+06:10.310 --> 06:14.360
+so after this then block here essentially,
+
+06:18.020 --> 06:22.340
+I'll add a catch handler where we get an error,
+
+06:22.380 --> 06:27.400
+here we are if we extracted some token from our header but it's invalid,
+
+06:27.420 --> 06:31.550
+there I can console log token is invalid
+
+06:32.950 --> 06:39.730
+and I can then send a response with status 403 because we're not granting access with a json
+
+06:39.730 --> 06:47.340
+object maybe where we set the error to unauthorized or whatever you want, you could send an error code
+
+06:47.360 --> 06:49.260
+here, whatever you need.
+
+06:49.260 --> 06:52.660
+So now we have our cloud function updated,
+
+06:52.710 --> 06:58.780
+we can now run firebase deploy to ship it to our firebase project, to the server,
+
+06:59.380 --> 07:04.900
+so that in future requests, we actually use it. Now in the next lecture,
+
+07:04.920 --> 07:12.510
+we'll also update our frontend to ensure that there, we do set this header which we try to extract
+
+07:12.510 --> 07:13.730
+in the cloud function,
+
+07:13.770 --> 07:17.390
+so this authorization header. Let's do that in the next lectures.

@@ -1,0 +1,393 @@
+WEBVTT
+1
+00:00:02.240 --> 00:00:03.840
+In this demonstration,
+
+2
+00:00:03.840 --> 00:00:05.480
+we're going to be working with the CloudWatch event
+
+3
+00:00:05.480 --> 00:00:07.320
+rule to invoke a step function.
+
+4
+00:00:07.320 --> 00:00:10.500
+Throughout this demonstration, we're going to be working with the AWS console,
+
+5
+00:00:10.500 --> 00:00:13.180
+and, as always, to follow along with this demonstration,
+
+6
+00:00:13.180 --> 00:00:15.150
+you will need your own AWS account.
+
+7
+00:00:15.150 --> 00:00:19.040
+But be warned, anything you deploy to AWS can cost you money.
+
+8
+00:00:19.040 --> 00:00:21.440
+I'm back in the AWS console,
+
+9
+00:00:21.440 --> 00:00:25.240
+specifically the EC2 dashboard in the Ireland region.
+
+10
+00:00:25.240 --> 00:00:28.940
+In Ireland I've got a single EC2 instance that's currently running.
+
+11
+00:00:28.940 --> 00:00:32.240
+This instance is host to an application that I want to protect.
+
+12
+00:00:32.240 --> 00:00:34.350
+So if this instance was to fail in any way,
+
+13
+00:00:34.350 --> 00:00:37.220
+I would like it replaced, and I don't want to do that manually,
+
+14
+00:00:37.220 --> 00:00:40.970
+I would like AWS to automatically replace that instance on my behalf.
+
+15
+00:00:40.970 --> 00:00:43.120
+To that end then, we're going to use several services.
+
+16
+00:00:43.120 --> 00:00:46.340
+For example, we're going to be using CloudFormation.
+
+17
+00:00:46.340 --> 00:00:48.320
+This is the CloudFormation dashboard for Ireland,
+
+18
+00:00:48.320 --> 00:00:52.600
+and I would like a new CloudFormation stack created that launches my
+
+19
+00:00:52.600 --> 00:00:56.100
+replacement EC2 instance when the first one fails.
+
+20
+00:00:56.100 --> 00:01:01.240
+This CloudFormation stack then is going to be invoked by a lambda function.
+
+21
+00:01:01.240 --> 00:01:04.640
+Let's take a quick look at that lambda function.
+
+22
+00:01:04.640 --> 00:01:07.440
+This is my Node.js lambda function then that's going to
+
+23
+00:01:07.440 --> 00:01:10.380
+get triggered to create that CloudFormation stack that
+
+24
+00:01:10.380 --> 00:01:11.940
+will deploy my infrastructure.
+
+25
+00:01:11.940 --> 00:01:14.120
+This function is capable of doing several things.
+
+26
+00:01:14.120 --> 00:01:16.870
+The part of the code we're particularly interested in is this
+
+27
+00:01:16.870 --> 00:01:19.880
+section that will create a stack when invoked,
+
+28
+00:01:19.880 --> 00:01:22.680
+and it'll create that stack based on a CloudFormation
+
+29
+00:01:22.680 --> 00:01:24.820
+template stored in an S3 bucket.
+
+30
+00:01:24.820 --> 00:01:28.100
+It gets the location of that template from the environment variable,
+
+31
+00:01:28.100 --> 00:01:32.540
+and if I scroll down a little bit, we can see the environment variables,
+
+32
+00:01:32.540 --> 00:01:36.840
+that includes a name for the stack and location of the CloudFormation template.
+
+33
+00:01:36.840 --> 00:01:40.540
+So the function will deploy the stack, the stack will deploy the instance,
+
+34
+00:01:40.540 --> 00:01:42.240
+but what triggers the function?
+
+35
+00:01:42.240 --> 00:01:46.140
+Well, this lambda function is triggered from a step function,
+
+36
+00:01:46.140 --> 00:01:48.510
+so let's take a look at the step function.
+
+37
+00:01:48.510 --> 00:01:50.990
+I'm in the step function dashboard in the Ireland region,
+
+38
+00:01:50.990 --> 00:01:54.640
+and I can see this single state machine deploycode.
+
+39
+00:01:54.640 --> 00:01:56.640
+Let's select Edit.
+
+40
+00:01:56.640 --> 00:01:59.300
+Here then you can see the state machine code and a graphical
+
+41
+00:01:59.300 --> 00:02:02.320
+representation of this state machine with a startpoint,
+
+42
+00:02:02.320 --> 00:02:04.930
+an endpoint and two steps in between.
+
+43
+00:02:04.930 --> 00:02:08.860
+The first step is a deploy step that will invoke a lambda function,
+
+44
+00:02:08.860 --> 00:02:11.920
+and as we know a lambda function is going to create that
+
+45
+00:02:11.920 --> 00:02:13.990
+CloudFormation stack that deploys the infrastructure.
+
+46
+00:02:13.990 --> 00:02:16.410
+The second step sends a message to an SNS topic,
+
+47
+00:02:16.410 --> 00:02:18.300
+and this topic is used for reporting,
+
+48
+00:02:18.300 --> 00:02:22.860
+to report this event has taken place and to inform the relevant support
+
+49
+00:02:22.860 --> 00:02:26.540
+teams that their infrastructure's failed and been replaced.
+
+50
+00:02:26.540 --> 00:02:30.070
+Now in order for this function to interact with lambda and SNS,
+
+51
+00:02:30.070 --> 00:02:33.740
+it needs to be given an IAM role, and if we scroll down a little bit,
+
+52
+00:02:33.740 --> 00:02:37.070
+we can see the role that's been assigned and we can also see login information,
+
+53
+00:02:37.070 --> 00:02:38.700
+at the minute turned off,
+
+54
+00:02:38.700 --> 00:02:41.400
+but you can enable login so that invocations about the
+
+55
+00:02:41.400 --> 00:02:43.730
+state machine can be logged to CloudWatch.
+
+56
+00:02:43.730 --> 00:02:44.800
+So let's enable that.
+
+57
+00:02:44.800 --> 00:02:47.390
+So under Log level if we select the drop‑down list,
+
+58
+00:02:47.390 --> 00:02:48.850
+I will choose to log all events,
+
+59
+00:02:48.850 --> 00:02:52.380
+and you can see it's going to create a new log group for us inside
+
+60
+00:02:52.380 --> 00:02:55.440
+CloudWatch to store all this login information.
+
+61
+00:02:55.440 --> 00:02:59.610
+Let's save the changes to the state machine by scrolling up and clicking Save.
+
+62
+00:02:59.610 --> 00:03:01.890
+So, with our state machine in place,
+
+63
+00:03:01.890 --> 00:03:05.570
+our lambda function in place and our CloudFormation template in place,
+
+64
+00:03:05.570 --> 00:03:09.440
+let's bring all these things together by using CloudWatch.
+
+65
+00:03:09.440 --> 00:03:13.840
+I'm in the CloudWatch dashboard, specifically in the Ireland region.
+
+66
+00:03:13.840 --> 00:03:20.140
+I'm already in the event rules section, so let's select Create rule.
+
+67
+00:03:20.140 --> 00:03:22.640
+Here, I want to match an event pattern.
+
+68
+00:03:22.640 --> 00:03:25.190
+So under Service Name, let's choose EC2,
+
+69
+00:03:25.190 --> 00:03:30.700
+and for Event Type, I'll choose EC2 Instance State‑change Notification.
+
+70
+00:03:30.700 --> 00:03:32.760
+Now for the purposes of this exercise,
+
+71
+00:03:32.760 --> 00:03:36.200
+I'm going to have to simulate a failure by stopping my EC2 machine.
+
+72
+00:03:36.200 --> 00:03:39.440
+So if I choose the specific state radio button,
+
+73
+00:03:39.440 --> 00:03:42.740
+then from the drop‑down list, I will choose stopped.
+
+74
+00:03:42.740 --> 00:03:45.040
+Now you could further tune this event pattern by
+
+75
+00:03:45.040 --> 00:03:49.340
+including a specific instance ID, but I'm happy with my settings.
+
+76
+00:03:49.340 --> 00:03:52.890
+We can see the JSON representation of our pattern as well,
+
+77
+00:03:52.890 --> 00:03:59.050
+and now I select Add target, and we want to invoke a step function,
+
+78
+00:03:59.050 --> 00:04:05.240
+and we can choose the step function name from the state machine drop‑down.
+
+79
+00:04:05.240 --> 00:04:09.440
+As you can see, it's going to create a new IAM role to invoke this step function,
+
+80
+00:04:09.440 --> 00:04:10.920
+or you can select an existing role.
+
+81
+00:04:10.920 --> 00:04:13.020
+But if we're happy with our event rule, we can scroll
+
+82
+00:04:13.020 --> 00:04:16.140
+down and say Configure details.
+
+83
+00:04:16.140 --> 00:04:19.620
+We provide a name and optional description for our rule and then say
+
+84
+00:04:19.620 --> 00:04:22.650
+Create rule and here we can see our rule's been created.
+
+85
+00:04:22.650 --> 00:04:24.970
+So the thing to do now is to simulate the failure.
+
+86
+00:04:24.970 --> 00:04:29.330
+So if I go back to the EC2 dashboard and shut down this running machine. So
+
+87
+00:04:29.330 --> 00:04:34.530
+under Actions, we can select Instance state and then I'll just say stop
+
+88
+00:04:34.530 --> 00:04:39.640
+instance. Similar in our virtual machine failure.
+
+89
+00:04:39.640 --> 00:04:41.990
+So things should take a second or two to kick in, but if we
+
+90
+00:04:41.990 --> 00:04:46.210
+go back to CloudFormation stacks, we can see that our stack
+
+91
+00:04:46.210 --> 00:04:48.740
+creation now is in progress.
+
+92
+00:04:48.740 --> 00:04:50.940
+If we go back to the EC2 dashboard,
+
+93
+00:04:50.940 --> 00:04:54.440
+we should see that a new EC2 instance is being launched.
+
+94
+00:04:54.440 --> 00:04:56.950
+So back in the EC2 dashboard, we can see we've got this
+
+95
+00:04:56.950 --> 00:04:59.580
+second running machine that's now initializing. So this
+
+96
+00:04:59.580 --> 00:05:01.160
+is all our healing in action.
+
+97
+00:05:01.160 --> 00:05:04.250
+One virtual machine failed, that event was picked up by a CloudWatch
+
+98
+00:05:04.250 --> 00:05:13.000
+event rule, which then automated a remediation process. We have so much choice when it comes to event response and healing in AWS.
+

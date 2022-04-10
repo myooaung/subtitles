@@ -1,0 +1,391 @@
+1
+00:00:02,130 --> 00:00:04,240
+Now that we had a look at covered queries,
+
+2
+00:00:04,320 --> 00:00:08,980
+let's also see when mongodb actually rejects a plan.
+
+3
+00:00:09,000 --> 00:00:16,670
+Now for that, I'll reuse my customers collection from the last video and remember there we have two indexes, the
+
+4
+00:00:16,760 --> 00:00:19,760
+standard ID index and our own name index.
+
+5
+00:00:19,760 --> 00:00:27,050
+Now I'll also add additional compound index on customers with create index and I will add age here
+
+6
+00:00:27,140 --> 00:00:29,060
+in ascending order and name,
+
+7
+00:00:29,060 --> 00:00:34,910
+now please note that the order here is important for compound indexes and if I would have put name
+
+8
+00:00:34,910 --> 00:00:41,250
+first, this index here wouldn't make much sense because then I would have a single field index or
+
+9
+00:00:41,250 --> 00:00:42,080
+name
+
+10
+00:00:42,090 --> 00:00:47,300
+even though the name is the first field in a compound index and you learned from left to right, a compound
+
+11
+00:00:47,320 --> 00:00:52,490
+index can be used well standalone, so each field can be used standalone from left to right.
+
+12
+00:00:52,610 --> 00:00:58,370
+So in this case, if age comes first, we can also filter just for age and take advantage of this index, for
+
+13
+00:00:58,370 --> 00:00:59,060
+name,
+
+14
+00:00:59,090 --> 00:01:04,580
+we can take advantage of this index because name is only the second value is mapped to the respective
+
+15
+00:01:04,610 --> 00:01:07,680
+ages and only sorted within the age category,
+
+16
+00:01:07,700 --> 00:01:13,750
+so if you filtered for just name and you didn't have that index, name could not be supported by index.
+
+17
+00:01:13,760 --> 00:01:18,770
+Here it can because we have a single field index and we also get this compound index for the combination
+
+18
+00:01:18,770 --> 00:01:20,850
+of age and name or just age.
+
+19
+00:01:21,140 --> 00:01:23,460
+So now I create this compound index here
+
+20
+00:01:23,750 --> 00:01:26,570
+and now I have three indexes of course.
+
+21
+00:01:26,570 --> 00:01:29,860
+Now let's search or let's explain,
+
+22
+00:01:30,000 --> 00:01:41,710
+so customers explain, let's search for all persons with a name and an age, so name maybe Max and age 30.
+
+23
+00:01:42,210 --> 00:01:50,020
+If I hit enter, you'll see the winning plan is index scan where I use the compound index
+
+24
+00:01:50,120 --> 00:01:56,930
+and as I mentioned in the compound index lecture, the order in which you specify your arguments when writing
+
+25
+00:01:56,930 --> 00:02:02,840
+the query does not matter, our compound index was created with age as the first value and name as a second
+
+26
+00:02:03,020 --> 00:02:06,150
+and then the query I have name as the first value and age is the second
+
+27
+00:02:06,260 --> 00:02:11,480
+but here in the query, the order does not matter, it still is able to use that compound index because
+
+28
+00:02:11,480 --> 00:02:13,280
+we have a simple and condition here
+
+29
+00:02:13,370 --> 00:02:18,480
+and you can of course reverse that and mongodb does reverse it for us, automatically so to say.
+
+30
+00:02:18,680 --> 00:02:23,000
+Therefore the winning plan is an index scan using that compound index.
+
+31
+00:02:23,000 --> 00:02:29,660
+Now what we can see is that we now also have a rejected plan and the rejected plan was to use an
+
+32
+00:02:29,660 --> 00:02:35,450
+index scan just on the name index, that is the single field name index I created.
+
+33
+00:02:35,450 --> 00:02:41,430
+Of course it made sense for mongodb to also consider this because we have that name index,
+
+34
+00:02:41,510 --> 00:02:44,880
+we had a query that included a search for name,
+
+35
+00:02:44,930 --> 00:02:48,040
+so it made sense to consider that name index
+
+36
+00:02:48,140 --> 00:02:52,970
+but of course since we have another index which simply fits this query better, this compound index,
+
+37
+00:02:53,270 --> 00:02:58,750
+mongodb chose to use this one as a winning plan and rejected this one.
+
+38
+00:02:58,760 --> 00:03:00,490
+Now this is interesting to know,
+
+39
+00:03:00,560 --> 00:03:08,450
+the question of course is how exactly does mongodb figure out which plan is better? For this, mongodb
+
+40
+00:03:08,450 --> 00:03:10,820
+uses an approach where it simply
+
+41
+00:03:10,820 --> 00:03:15,790
+first of all looks for indexes that could help you with the query at hand,
+
+42
+00:03:15,830 --> 00:03:23,120
+so in our last lecture and example, we had the name single field index and age and name as a compound index.
+
+43
+00:03:23,180 --> 00:03:29,540
+Since our query, our find method included a look for name, mongodb automatically derived that
+
+44
+00:03:29,540 --> 00:03:35,370
+both the name single field index and the age name compound index could be helpful.
+
+45
+00:03:35,390 --> 00:03:40,730
+So it came up with two approaches, for other scenarios you might of course have more approaches,
+
+46
+00:03:40,760 --> 00:03:46,490
+so let's say we have three approaches, mongodb then simply let's those approaches race against each
+
+47
+00:03:46,490 --> 00:03:49,820
+other but not for the full dataset
+
+48
+00:03:49,820 --> 00:03:55,040
+but it sets a certain winning condition, right now that should be one hundred documents.
+
+49
+00:03:55,040 --> 00:04:02,210
+So it looks who's the first to find 100 documents and of course one of the approaches will be the fastest
+
+50
+00:04:02,390 --> 00:04:09,030
+to reach that threshold, mongodb will then basically use that approach for the real query
+
+51
+00:04:09,380 --> 00:04:14,060
+and of course that would be cumbersome if it would have to do this for every find method, for every
+
+52
+00:04:14,060 --> 00:04:19,030
+query you send to the database because that obviously costs a little bit of performance.
+
+53
+00:04:19,900 --> 00:04:22,130
+Therefore mongodb caches 
+
+54
+00:04:22,180 --> 00:04:24,420
+this winning plan for this exact query,
+
+55
+00:04:24,460 --> 00:04:29,440
+so for exactly the query you send with the fields you were looking for and the values for the fields
+
+56
+00:04:29,440 --> 00:04:30,520
+you were looking for,
+
+57
+00:04:30,520 --> 00:04:37,480
+so it caches this plan as the winner plan for this kind of query. And for future queries that are looking
+
+58
+00:04:37,480 --> 00:04:43,450
+exactly equal, it uses this winning plan, for future queries that look different, that use different values
+
+59
+00:04:43,450 --> 00:04:44,650
+or different keys,
+
+60
+00:04:44,650 --> 00:04:49,120
+it will of course race again and find a winning plan for that type of query.
+
+61
+00:04:49,120 --> 00:04:51,860
+Now of course this cache is not there forever,
+
+62
+00:04:52,210 --> 00:04:56,830
+it is cleared after a certain amount of inserts or a db restart.
+
+63
+00:04:57,130 --> 00:05:00,130
+To be precise, instead of being stored forever,
+
+64
+00:05:00,340 --> 00:05:07,360
+this winning plan is removed from cache after you wrote a certain amount of documents to that collection,
+
+65
+00:05:07,680 --> 00:05:09,480
+currently there should be one thousand,
+
+66
+00:05:09,490 --> 00:05:15,190
+so after you added that many documents, mongodb says I don't know if the current winning plan will still
+
+67
+00:05:15,190 --> 00:05:17,410
+win because the collection changed a lot,
+
+68
+00:05:17,410 --> 00:05:19,360
+so I should reconsider.
+
+69
+00:05:19,450 --> 00:05:25,840
+The same happens if you rebuild the index, so if you drop it and recreate it for example,
+
+70
+00:05:25,840 --> 00:05:31,640
+it also gets deleted if you add other indexes because that new index could be better,
+
+71
+00:05:31,660 --> 00:05:39,730
+so the cache for indexes or winning plans I should say gets cleared when you add new indexes or when
+
+72
+00:05:39,730 --> 00:05:41,620
+you restart the mongodb server,
+
+73
+00:05:41,710 --> 00:05:44,530
+then this also gets reset.
+
+74
+00:05:44,530 --> 00:05:46,260
+So this is how mongodb derives
+
+75
+00:05:46,270 --> 00:05:48,240
+the winning plan and how it stores it
+
+76
+00:05:48,390 --> 00:05:55,660
+and it's interesting for you as a developer to regularly check your queries, your find or update or delete
+
+77
+00:05:55,660 --> 00:05:59,390
+queries and see what mongodb actually does,
+
+78
+00:05:59,560 --> 00:06:05,710
+if it uses indexes efficiently, if maybe a new index should be added, something you can do on your own
+
+79
+00:06:05,710 --> 00:06:10,160
+if you own the database or you pass that information to your db administrator
+
+80
+00:06:10,420 --> 00:06:15,940
+or if you maybe need to adjust the query. Maybe you're always fetching data that you don't really need
+
+81
+00:06:16,240 --> 00:06:20,070
+and you could get a covered query if you just would project the data you need
+
+82
+00:06:20,110 --> 00:06:22,800
+which happens to be the data stored in the index.
+
+83
+00:06:22,810 --> 00:06:27,610
+That is why you as a developer need to know how indexes work because either you need to create them
+
+84
+00:06:27,610 --> 00:06:33,970
+on your own in your next project on which you work alone or because you can optimize your queries or
+
+85
+00:06:34,060 --> 00:06:37,510
+tell your administrator to optimize the indexes.
+
+86
+00:06:37,510 --> 00:06:44,020
+Now with that information gained, let's have a look at the last level of verbosity the explain method offers
+
+87
+00:06:44,500 --> 00:06:50,500
+and that is that we can add all plans execution as a value here.
+
+88
+00:06:50,500 --> 00:06:56,140
+Now what this will do is it will give us a bunch of output because here, we get detailed statistics for all
+
+89
+00:06:56,140 --> 00:06:57,020
+plans,
+
+90
+00:06:57,070 --> 00:07:04,330
+also the rejected plans. So there we can see in detail how would an index scan on our compound index
+
+91
+00:07:04,330 --> 00:07:10,330
+perform but then also what would happen if we had that index scan on the name index,
+
+92
+00:07:10,330 --> 00:07:11,700
+how long would that take,
+
+93
+00:07:11,710 --> 00:07:16,630
+how many documents would it there consider documents and how many keys would it consider,
+
+94
+00:07:16,630 --> 00:07:17,770
+how long would it take,
+
+95
+00:07:17,770 --> 00:07:22,630
+here we have zero because it's so super fast but for larger collections, you would of course see a difference.
+
+96
+00:07:22,720 --> 00:07:29,740
+And with that, you can get detailed analytics on the different indexes and queries and possible ways
+
+97
+00:07:29,740 --> 00:07:34,540
+of running your query and therefore you should have all the tools you need to optimize your queries
+
+98
+00:07:34,810 --> 00:07:35,620
+and your indexes.

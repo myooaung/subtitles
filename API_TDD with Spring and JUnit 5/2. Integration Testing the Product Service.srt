@@ -1,0 +1,432 @@
+1
+00:00:00,000 --> 00:00:03,553
+In this section, we're going to write integration tests for the product service.
+
+2
+00:00:03,553 --> 00:00:06,179
+In order to develop integration tests for the product service,
+
+3
+00:00:06,179 --> 00:00:09,515
+we're going to leverage MockMvc and DbUnit.
+
+4
+00:00:09,515 --> 00:00:12,762
+We'll configure the integration test class to create a MockMvc
+
+5
+00:00:12,762 --> 00:00:16,317
+instance to set up the full Spring application context,
+
+6
+00:00:16,317 --> 00:00:19,211
+and then we'll configure DbUnit to pre-populate an H2 database
+
+7
+00:00:19,211 --> 00:00:22,582
+with a known set of data before each test runs.
+
+8
+00:00:22,582 --> 00:00:26,316
+Then we'll use MockMvc to execute HTTP requests against the product
+
+9
+00:00:26,316 --> 00:00:30,177
+service and validate that we receive the expected responses.
+
+10
+00:00:30,177 --> 00:00:30,798
+To do this,
+
+11
+00:00:30,798 --> 00:00:33,027
+we'll configure our test class to leverage both the
+
+12
+00:00:33,027 --> 00:00:35,648
+SpringExtension and the DBUnitExtension.
+
+13
+00:00:35,648 --> 00:00:37,791
+We'll load the full Spring application context
+
+14
+00:00:37,791 --> 00:00:39,682
+through the SpringBootTest annotation,
+
+15
+00:00:39,682 --> 00:00:42,678
+we'll set our ActiveProfiles to test so that our
+
+16
+00:00:42,678 --> 00:00:44,148
+test configuration will be loaded,
+
+17
+00:00:44,148 --> 00:00:47,810
+and we'll use the AutoConfigureMockMvc annotation to tell
+
+18
+00:00:47,810 --> 00:00:50,351
+Spring to create a MockMvc instance.
+
+19
+00:00:50,351 --> 00:00:53,553
+We'll add the getConnectionHolder method that DbUnit requires,
+
+20
+00:00:53,553 --> 00:00:57,001
+and then we'll annotate each test method with the dataset annotation
+
+21
+00:00:57,001 --> 00:01:00,105
+so that DbUnit will pre-populate our database.
+
+22
+00:01:00,105 --> 00:01:02,198
+Let's take a look at the source code for the
+
+23
+00:01:02,198 --> 00:01:05,732
+ProductServiceIntegrationTest and see how it all fits together.
+
+24
+00:01:05,732 --> 00:01:09,583
+The ProductServiceIntegrationTest class is annotated with the
+
+25
+00:01:09,583 --> 00:01:12,255
+ExtendWith annotation that includes both the DBUnitExtension
+
+26
+00:01:12,255 --> 00:01:14,597
+and the SpringExtension classes.
+
+27
+00:01:14,597 --> 00:01:17,098
+The DBUnitExtension will allow us to pre-populate our
+
+28
+00:01:17,098 --> 00:01:18,722
+database before each test runs,
+
+29
+00:01:18,722 --> 00:01:22,536
+and the SpringExtension will manage the Spring application context.
+
+30
+00:01:22,536 --> 00:01:25,556
+It's annotated with the SpringBootTest annotation to tell Spring to
+
+31
+00:01:25,556 --> 00:01:28,319
+load all of our classes and wire them together.
+
+32
+00:01:28,319 --> 00:01:31,795
+The ActiveProfiles annotation tells Spring to use the test profile,
+
+33
+00:01:31,795 --> 00:01:34,978
+which has our embedded H2 database configuration.
+
+34
+00:01:34,978 --> 00:01:38,316
+And the AutoConfigureMockMvc annotation will create a MockMvc instance
+
+35
+00:01:38,316 --> 00:01:41,540
+that we can use to make web requests against our service.
+
+36
+00:01:41,540 --> 00:01:44,075
+From the AutoConfigureMockMvc annotation,
+
+37
+00:01:44,075 --> 00:01:47,299
+we have an autowired MockMvc instance, and from our test configuration,
+
+38
+00:01:47,299 --> 00:01:50,289
+we have an autowired DataSource instance.
+
+39
+00:01:50,289 --> 00:01:54,134
+The DBUnitExtension requires that we provide a getConnectionHolder method that
+
+40
+00:01:54,134 --> 00:01:56,754
+returns a function that returns a data source connection.
+
+41
+00:01:56,754 --> 00:02:00,172
+With these prerequisites complete, we're ready to write our tests.
+
+42
+00:02:00,172 --> 00:02:03,683
+The first test method is testGetProductByIdFound.
+
+43
+00:02:03,683 --> 00:02:05,987
+This method is annotated with the DataSet annotation
+
+44
+00:02:05,987 --> 00:02:08,617
+that references the products.yml file.
+
+45
+00:02:08,617 --> 00:02:11,873
+DbUnit will pre-populate the H2 database through the
+
+46
+00:02:11,873 --> 00:02:14,168
+connection returned by the getConnectionHolder method with
+
+47
+00:02:14,168 --> 00:02:16,268
+the contents of the products.yml file.
+
+48
+00:02:16,268 --> 00:02:21,301
+The products.yml file contains two products with IDs 1 and 2, respectively.
+
+49
+00:02:21,301 --> 00:02:26,871
+In this test, we use MockMvc to perform a GET request to the URI /product/1,
+
+50
+00:02:26,871 --> 00:02:29,494
+and then we validate that we receive a 200 OK HTTP
+
+51
+00:02:29,494 --> 00:02:32,159
+response code that the body contains JSON,
+
+52
+00:02:32,159 --> 00:02:34,861
+that we have the correct ETAG and LOCATION headers,
+
+53
+00:02:34,861 --> 00:02:38,124
+and then we validate that the id, name, quantity,
+
+54
+00:02:38,124 --> 00:02:41,601
+and version numbers match the data that's in the products.yml file.
+
+55
+00:02:41,601 --> 00:02:42,826
+While this test is simple,
+
+56
+00:02:42,826 --> 00:02:46,596
+it's important to note that MockMvc is invoking the product controller,
+
+57
+00:02:46,596 --> 00:02:49,399
+which extracts the ID from the URI path and makes the
+
+58
+00:02:49,399 --> 00:02:50,664
+appropriate call to the product service,
+
+59
+00:02:50,664 --> 00:02:54,749
+which in turn calls the product repository that queries the database.
+
+60
+00:02:54,749 --> 00:02:57,040
+This test is validating the end-to-end functionality
+
+61
+00:02:57,040 --> 00:02:59,821
+of a get/product request handler.
+
+62
+00:02:59,821 --> 00:03:03,177
+The testGetProductByIdNotFound method uses mockMvc to
+
+63
+00:03:03,177 --> 00:03:05,204
+perform a GET request for /product/99,
+
+64
+00:03:05,204 --> 00:03:10,933
+and then validates that it returns a 404 Not Found HTTP response code.
+
+65
+00:03:10,933 --> 00:03:15,162
+The testCreateProductMethod tests the creation of a new product in the database.
+
+66
+00:03:15,162 --> 00:03:17,661
+First, we create a new product to post to the product service,
+
+67
+00:03:17,661 --> 00:03:21,903
+it has a name of Product Name, and a quantity of 10.
+
+68
+00:03:21,903 --> 00:03:25,486
+We then use mockMvc to post a request to /product with the
+
+69
+00:03:25,486 --> 00:03:27,053
+contentType set to APPLICATION_JSON,
+
+70
+00:03:27,053 --> 00:03:31,648
+and the body containing a JSON representation of the new product.
+
+71
+00:03:31,648 --> 00:03:35,484
+We then verify that we receive a 201 created HTTP response code,
+
+72
+00:03:35,484 --> 00:03:38,813
+a JSON contentType, and an ETAG with a value of 1.
+
+73
+00:03:38,813 --> 00:03:41,020
+Because DbUnit initializes our database with the
+
+74
+00:03:41,020 --> 00:03:42,263
+contents of the products.yml file,
+
+75
+00:03:42,263 --> 00:03:46,146
+we know that there are 2 products with IDs 1 and 2.
+
+76
+00:03:46,146 --> 00:03:48,530
+So the next automatically generated ID will be 3.
+
+77
+00:03:48,530 --> 00:03:51,935
+So we validate that the LOCATION header is set to /product/3
+
+78
+00:03:51,935 --> 00:03:55,435
+and that the returned product has an ID of 3.
+
+79
+00:03:55,435 --> 00:03:58,947
+We validate that the product name and quantity match what we passed in,
+
+80
+00:03:58,947 --> 00:04:00,574
+and then we check that the version is set to 1,
+
+81
+00:04:00,574 --> 00:04:03,456
+which is should be because we just created the new product.
+
+82
+00:04:03,456 --> 00:04:06,489
+The testProductPutSuccess method updates an existing product.
+
+83
+00:04:06,489 --> 00:04:11,375
+It creates a new product with the name Product 2 Updated, and a quantity of 10.
+
+84
+00:04:11,375 --> 00:04:14,863
+It uses mockMvc to perform a PUT request to /product/2,
+
+85
+00:04:14,863 --> 00:04:18,502
+passing it a JSON representation of the new product
+
+86
+00:04:18,502 --> 00:04:21,163
+and an IF_MATCH header value of 2,
+
+87
+00:04:21,163 --> 00:04:23,759
+which matches the version number of product 2 in the database.
+
+88
+00:04:23,759 --> 00:04:27,937
+It validates that it receives a 200 OK HTTP response code,
+
+89
+00:04:27,937 --> 00:04:31,313
+a new ETAG version of 3, the correct LOCATION header,
+
+90
+00:04:31,313 --> 00:04:33,713
+and the new values that we updated.
+
+91
+00:04:33,713 --> 00:04:37,032
+The testProductPutVersionMismatch method performs similar steps,
+
+92
+00:04:37,032 --> 00:04:41,476
+attempting to put a product update to /product/1,
+
+93
+00:04:41,476 --> 00:04:44,931
+but it specifies the wrong version number in the IF_MATCH header.
+
+94
+00:04:44,931 --> 00:04:49,358
+It then validates that we receive a 409 Conflict HTTP response code.
+
+95
+00:04:49,358 --> 00:04:52,019
+The testProductPutNotFound method attempts to update a
+
+96
+00:04:52,019 --> 00:04:53,692
+product that doesn't exist in the database.
+
+97
+00:04:53,692 --> 00:04:57,382
+It performs a put to /product/99 and validates that it
+
+98
+00:04:57,382 --> 00:05:00,522
+receives a 404 NotFound HTTP response code.
+
+99
+00:05:00,522 --> 00:05:03,905
+The testProductDeleteSuccess method deletes product 1 by
+
+100
+00:05:03,905 --> 00:05:07,183
+performing a delete request against /product/1 and validates that
+
+101
+00:05:07,183 --> 00:05:10,668
+it receives a 200 OK HTTP response code.
+
+102
+00:05:10,668 --> 00:05:11,810
+And finally,
+
+103
+00:05:11,810 --> 00:05:15,733
+the testProductDeleteNotFound method attempts to delete product 99 and
+
+104
+00:05:15,733 --> 00:05:18,524
+validates that it receives a 404 NotFound HTTP response code.
+
+105
+00:05:18,524 --> 00:05:21,543
+All of these tests are very similar to the product
+
+106
+00:05:21,543 --> 00:05:22,697
+controller test that we wrote,
+
+107
+00:05:22,697 --> 00:05:25,693
+but the difference is that we're not mocking responses from the service,
+
+108
+00:05:25,693 --> 00:05:35,000
+but instead the requests are passing through the entire technology stack and interacting with a real database.
+

@@ -1,0 +1,256 @@
+WEBVTT
+1
+00:00:02.220 --> 00:00:05.030
+In the last lecture, we added user sign up,
+
+2
+00:00:05.060 --> 00:00:12.400
+now I want to add user sign in. Now for user sign in, a request will reach this route here in the node app
+
+3
+00:00:13.040 --> 00:00:17.620
+and there, I also get the email and password with which the user tries to sign in
+
+4
+00:00:17.660 --> 00:00:22.220
+and now we need to write some logic to check whether that is some valid data
+
+5
+00:00:22.220 --> 00:00:29.150
+and for that, I first of all need to try to retrieve a user by that e-mail from inside my database.
+
+6
+00:00:29.150 --> 00:00:35.000
+So to do that, I get access to my database, call db here
+
+7
+00:00:35.250 --> 00:00:42.060
+and then collection and get access to the users collection and then there, I want to find a user. Now for
+
+8
+00:00:42.060 --> 00:00:48.120
+that, I want to find one element because well there should be only one user for that email anyways if
+
+9
+00:00:48.120 --> 00:00:50.700
+at all and I'll search for the e-mail,
+
+10
+00:00:50.760 --> 00:00:56.490
+so a good thing that we created the index and pass my e-mail which I extract here as a value.
+
+11
+00:00:56.820 --> 00:00:58.860
+So I'll search for a user with that e-mail
+
+12
+00:00:59.280 --> 00:01:09.580
+and then I either get an error or I get well a user. In the case of an error, I will return this error here, 
+
+13
+00:01:09.790 --> 00:01:11.310
+a 401 error,
+
+14
+00:01:12.010 --> 00:01:16.080
+in the case of a success, I'll get my user document here.
+
+15
+00:01:16.150 --> 00:01:17.380
+But now we're not done,
+
+16
+00:01:17.380 --> 00:01:21.930
+I still need to verify whether the password is correct
+
+17
+00:01:22.420 --> 00:01:31.260
+and for this, I'll use the bcrypt package which I also used for hashing and there, there is a compare method
+
+18
+00:01:31.840 --> 00:01:39.440
+and compare simply takes a string as an input and compares whether this can be the valid password basically.
+
+19
+00:01:39.700 --> 00:01:45.890
+So I pass in the password which I extracted from the incoming request and I pass in the hashed password
+
+20
+00:01:45.890 --> 00:01:51.170
+which is stored in a database and then this package compares whether the hashed password could be based
+
+21
+00:01:51.290 --> 00:01:52.930
+on that password the user passed in,
+
+22
+00:01:52.940 --> 00:01:57.880
+so here I'll pass in the user doc password field,
+
+23
+00:01:58.010 --> 00:02:04.330
+so basically that will be this hashed value here.
+
+24
+00:02:04.410 --> 00:02:14.040
+So this is what I pass in and I will actually return this because bcrypt compare also returns a promise
+
+25
+00:02:14.250 --> 00:02:20.010
+and if I return a promise in a then block, then I can simply chain another then block and I could
+
+26
+00:02:20.010 --> 00:02:25.440
+have done that down here too by the way because collection insert one returns a promise,
+
+27
+00:02:25.470 --> 00:02:31.820
+so I could have returned this entire block and then simply added this then block after this first then
+
+28
+00:02:31.820 --> 00:02:33.900
+block. You can do that if you want,
+
+29
+00:02:33.960 --> 00:02:34.970
+here I will do it,
+
+30
+00:02:35.130 --> 00:02:38.200
+I return the compare function,
+
+31
+00:02:38.250 --> 00:02:44.820
+then I add another then block and in here, I know that we found a user with that e-mail and that the
+
+32
+00:02:44.820 --> 00:02:46.450
+password is valid.
+
+33
+00:02:46.650 --> 00:02:52.760
+So in here, I don't really care about the result but I know that it should be correct,
+
+34
+00:02:53.010 --> 00:03:01.630
+so let's grab that response and let's send a success response here with a message of authentication
+
+35
+00:03:01.630 --> 00:03:02.820
+succeeded
+
+36
+00:03:03.040 --> 00:03:05.590
+and now here, I'll also create a token,
+
+37
+00:03:05.590 --> 00:03:13.510
+so I'll take that token constant, create that before I send the response and then include that token
+
+38
+00:03:14.170 --> 00:03:15.220
+in the response
+
+39
+00:03:15.220 --> 00:03:18.260
+and now let's see if that works or if there is some gotcha.
+
+40
+00:03:18.280 --> 00:03:19.290
+So if I now
+
+41
+00:03:22.940 --> 00:03:33.250
+restart my backend, let me switch to log in and let's try logging in with a wrong email and I get an
+
+42
+00:03:33.250 --> 00:03:34.090
+error.
+
+43
+00:03:34.110 --> 00:03:39.880
+Now let's try logging in with the correct e-mail but a wrong password
+
+44
+00:03:41.140 --> 00:03:42.310
+and this succeeds
+
+45
+00:03:42.310 --> 00:03:50.920
+and the reason for that is that compare doesn't throw an error if it fails, instead it yields a result
+
+46
+00:03:50.930 --> 00:03:55.780
+here and I can console log that result to see what's inside there,
+
+47
+00:03:56.330 --> 00:03:57.250
+so the result in the
+
+48
+00:03:57.250 --> 00:04:07.080
+then block after comparing. If I now restart my backend server and I log out again and go to login mode, enter
+
+49
+00:04:07.080 --> 00:04:14.350
+the correct e-mail but the wrong password, you see I get false as a result here.
+
+50
+00:04:14.440 --> 00:04:17.010
+I don't get an error, I just get false as a result,
+
+51
+00:04:17.020 --> 00:04:21.320
+so it basically tells me this did not succeed but it throws no error.
+
+52
+00:04:21.700 --> 00:04:28.740
+So I should simply check if result or if not result, so if this is false
+
+53
+00:04:28.960 --> 00:04:36.740
+and then I can simply throw an error here and this will then not execute this code but go into the catch
+
+54
+00:04:36.740 --> 00:04:38.300
+block.
+
+55
+00:04:38.360 --> 00:04:41.480
+So with that check added in the then block here,
+
+56
+00:04:41.510 --> 00:04:49.610
+now if I restart my server and I go back to that login page one more time with the correct password
+
+57
+00:04:49.640 --> 00:04:50.390
+but wrong,
+
+58
+00:04:50.440 --> 00:04:53.330
+with the correct e-mail but wrong password, I fail.
+
+59
+00:04:53.810 --> 00:04:56.740
+Now let's try this with the correct password
+
+60
+00:04:56.750 --> 00:05:04.110
+but wrong e-mail, I fail and now correct e-mail and correct password and I'm forwarded
+
+61
+00:05:04.400 --> 00:05:06.240
+and now we got this in place too.
+
+62
+00:05:06.320 --> 00:05:11.980
+So that's a bunch of javascript logic but also some logic where I fetch data from mongodb.
+
+63
+00:05:12.530 --> 00:05:13.980
+And this is basically it,
+
+64
+00:05:14.000 --> 00:05:16.500
+let me now conclude this in the next lecture.

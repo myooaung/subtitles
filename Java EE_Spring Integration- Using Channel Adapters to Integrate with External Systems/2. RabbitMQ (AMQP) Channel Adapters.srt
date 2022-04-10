@@ -1,0 +1,600 @@
+1
+00:00:00,040 --> 00:00:01,060
+In this section,
+
+2
+00:00:01,060 --> 00:00:04,580
+we're going to review RabbitMQ and performing an integration
+
+3
+00:00:04,580 --> 00:00:08,280
+using the AMQP support in Spring Integration.
+
+4
+00:00:08,280 --> 00:00:13,740
+RabbitMQ uses the Advanced Message Queueing Protocol, or AMQP.
+
+5
+00:00:13,740 --> 00:00:18,030
+AMQP is an open standard for passing business messages
+
+6
+00:00:18,030 --> 00:00:20,840
+between applications or organizations.
+
+7
+00:00:20,840 --> 00:00:22,050
+In other words,
+
+8
+00:00:22,050 --> 00:00:26,760
+it's a platform‑independent protocol that connects disparate systems.
+
+9
+00:00:26,760 --> 00:00:30,420
+It uses a binary protocol that can be used by different
+
+10
+00:00:30,420 --> 00:00:33,140
+programming languages on different platforms.
+
+11
+00:00:33,140 --> 00:00:35,300
+AMQP works as follows.
+
+12
+00:00:35,300 --> 00:00:41,340
+A producer publishes a message to an exchange inside the AMQP broker.
+
+13
+00:00:41,340 --> 00:00:45,560
+AMQP does not support standard Spring Integration messages,
+
+14
+00:00:45,560 --> 00:00:49,970
+so the AMQP library creates a message abstraction that
+
+15
+00:00:49,970 --> 00:00:53,130
+ultimately sends a byte array to the exchange.
+
+16
+00:00:53,130 --> 00:00:56,680
+The exchange is responsible for routing messages with
+
+17
+00:00:56,680 --> 00:00:59,940
+links and routing keys to various queues.
+
+18
+00:00:59,940 --> 00:01:03,140
+A queue is a buffer that stores messages,
+
+19
+00:01:03,140 --> 00:01:06,620
+and consumers receive messages from queues.
+
+20
+00:01:06,620 --> 00:01:08,960
+As I mentioned in the previous section,
+
+21
+00:01:08,960 --> 00:01:13,720
+we receive messages from a message broker through an inbound channel,
+
+22
+00:01:13,720 --> 00:01:17,550
+and we send messages to a broker using an output channel.
+
+23
+00:01:17,550 --> 00:01:20,040
+To integrate with AMQP,
+
+24
+00:01:20,040 --> 00:01:26,140
+the AmqpOutboundChannelAdapter provides inbound channel adaptor capabilities,
+
+25
+00:01:26,140 --> 00:01:32,580
+and the AmqpOutboundEndpoint provides outbound channel adaptor capabilities.
+
+26
+00:01:32,580 --> 00:01:37,550
+Let's review how to create an inbound channel adapter that works with AMQP.
+
+27
+00:01:37,550 --> 00:01:42,110
+First, we create a MessageChannel to which messages should be delivered.
+
+28
+00:01:42,110 --> 00:01:42,740
+Next,
+
+29
+00:01:42,740 --> 00:01:46,040
+we create a simple MessageListenerContainer that
+
+30
+00:01:46,040 --> 00:01:49,340
+accepts as input a ConnectionFactory,
+
+31
+00:01:49,340 --> 00:01:53,720
+which will be created when Spring finds RabbitMQ in the class path.
+
+32
+00:01:53,720 --> 00:01:57,790
+The container handles the active responsibilities so
+
+33
+00:01:57,790 --> 00:02:00,280
+that listeners can remain passive.
+
+34
+00:02:00,280 --> 00:02:05,280
+It uses the provided ConnectionFactory to connect to RabbitMQ and
+
+35
+00:02:05,280 --> 00:02:08,340
+listen for messages on the specified queue.
+
+36
+00:02:08,340 --> 00:02:09,090
+Finally,
+
+37
+00:02:09,090 --> 00:02:14,510
+the AmqpInboundChannelAdapter creates an inbound channel adapter
+
+38
+00:02:14,510 --> 00:02:18,920
+using the message listenerContainer and publishes messages that it
+
+39
+00:02:18,920 --> 00:02:21,920
+receives to the specified output channel.
+
+40
+00:02:21,920 --> 00:02:25,140
+Now let's review how to create an outbound channel adapter.
+
+41
+00:02:25,140 --> 00:02:29,190
+We begin by creating a MessageChannel to which our application will
+
+42
+00:02:29,190 --> 00:02:32,540
+publish messages that should be sent to RabbitMQ.
+
+43
+00:02:32,540 --> 00:02:36,610
+Next, we create the queue to which we want to publish our messages.
+
+44
+00:02:36,610 --> 00:02:41,940
+And finally we create an AmqpOutboundEndpoint that is invoked when a
+
+45
+00:02:41,940 --> 00:02:45,670
+message is published to the amqpOutboundChannel,
+
+46
+00:02:45,670 --> 00:02:51,040
+The AmqpOutboundEndpoint is configured with an amqpTemplate,
+
+47
+00:02:51,040 --> 00:02:53,990
+which Spring will automatically create for us when it
+
+48
+00:02:53,990 --> 00:02:56,070
+finds RabbitMQ in our class path,
+
+49
+00:02:56,070 --> 00:02:59,730
+and we specify the queue name to which we want to publish our
+
+50
+00:02:59,730 --> 00:03:04,620
+messages as the AmqpOutboundEndpoint's routing key.
+
+51
+00:03:04,620 --> 00:03:08,150
+When the AMQP exchange receives the message,
+
+52
+00:03:08,150 --> 00:03:12,940
+it will use this routing key to route the message to the specified queue name.
+
+53
+00:03:12,940 --> 00:03:14,210
+For our example,
+
+54
+00:03:14,210 --> 00:03:17,510
+we're going to integrate the foo reservation system into the
+
+55
+00:03:17,510 --> 00:03:20,540
+Globomantics conference registration system.
+
+56
+00:03:20,540 --> 00:03:24,740
+When a user books a reservation in the foo reservation system,
+
+57
+00:03:24,740 --> 00:03:28,390
+it will publish a message to the foo reservation queue in
+
+58
+00:03:28,390 --> 00:03:32,530
+RabbitMQ and will handle that message to register the user
+
+59
+00:03:32,530 --> 00:03:34,420
+for a particular conference.
+
+60
+00:03:34,420 --> 00:03:38,440
+The code example we'll look at runs in two different JVMs.
+
+61
+00:03:38,440 --> 00:03:41,750
+The foo reservation publisher application defines a
+
+62
+00:03:41,750 --> 00:03:45,830
+FoodReservationService that publishes a foo reservation to an
+
+63
+00:03:45,830 --> 00:03:51,070
+AmqpOutboundEndpoint that sends it to the RabbitMQ exchange that
+
+64
+00:03:51,070 --> 00:03:53,320
+routes it to the foo reservation queue.
+
+65
+00:03:53,320 --> 00:03:57,210
+The Globomantics reservation service defines an
+
+66
+00:03:57,210 --> 00:04:02,800
+AmqpInboundChannelAdapter that listens for messages on that queue
+
+67
+00:04:02,800 --> 00:04:06,320
+and publishes his messages to the foo reservation listener.
+
+68
+00:04:06,320 --> 00:04:09,120
+In order to run the example application,
+
+69
+00:04:09,120 --> 00:04:12,240
+you're going to need a RabbitMQ instance to connect to.
+
+70
+00:04:12,240 --> 00:04:15,260
+You can download and install RabbitMQ,
+
+71
+00:04:15,260 --> 00:04:18,160
+or you can run it inside a Docker container.
+
+72
+00:04:18,160 --> 00:04:23,590
+I've tested the example application using the official RabbitMQ Docker image,
+
+73
+00:04:23,590 --> 00:04:27,070
+so if you've installed Docker Desktop on your computer,
+
+74
+00:04:27,070 --> 00:04:29,240
+you can run it with this command.
+
+75
+00:04:29,240 --> 00:04:33,260
+The official RabbitMQ Docker image is rabbitmq:3,
+
+76
+00:04:33,260 --> 00:04:38,910
+where rabbitmq is the name of the image and 3 is the version.
+
+77
+00:04:38,910 --> 00:04:43,640
+I opted to run 3‑management so that we can access the
+
+78
+00:04:43,640 --> 00:04:47,570
+RabbitMQ web interface on port 15672.
+
+79
+00:04:47,570 --> 00:04:52,470
+The default username is guest, and the default password is guest.
+
+80
+00:04:52,470 --> 00:04:57,540
+For more configuration options, see the RabbitMQ DockerHub page.
+
+81
+00:04:57,540 --> 00:05:01,830
+But this configuration is a simple way to get a RabbitMQ instance
+
+82
+00:05:01,830 --> 00:05:04,540
+up and running in your local Docker environment.
+
+83
+00:05:04,540 --> 00:05:07,410
+Let's dive into the code and see this in action.
+
+84
+00:05:07,410 --> 00:05:10,190
+We'll begin by building two applications,
+
+85
+00:05:10,190 --> 00:05:12,680
+the foo reservation publisher,
+
+86
+00:05:12,680 --> 00:05:19,430
+which will use an AmqpOutboundEndpoint to publish foo reservations to RabbitMQ,
+
+87
+00:05:19,430 --> 00:05:22,240
+and the Globomantics Registration Service,
+
+88
+00:05:22,240 --> 00:05:26,030
+which will use an AmqpInboundChannelAdapter to
+
+89
+00:05:26,030 --> 00:05:28,370
+receive and process those messages.
+
+90
+00:05:28,370 --> 00:05:33,670
+Then we'll start both applications, publish foo reservations to RabbitMQ,
+
+91
+00:05:33,670 --> 00:05:39,130
+and validate that the Globomantics Registration Service receives those messages.
+
+92
+00:05:39,130 --> 00:05:43,640
+The RabbitMQ config class is a Spring Configuration class.
+
+93
+00:05:43,640 --> 00:05:47,740
+It creates a DirectChannel named reservationChannel and then an
+
+94
+00:05:47,740 --> 00:05:51,690
+ObjectToJsonTransformer that receives messages from the
+
+95
+00:05:51,690 --> 00:05:57,260
+reservationChannel and publishes messages to the amqpOutboundChannel.
+
+96
+00:05:57,260 --> 00:06:04,640
+Because AMQP uses a binary protocol, we can only send serializable objects to it,
+
+97
+00:06:04,640 --> 00:06:07,640
+and a JSON string is a good candidate,
+
+98
+00:06:07,640 --> 00:06:11,260
+especially for interoperability with other systems.
+
+99
+00:06:11,260 --> 00:06:16,820
+We then create another DirectChannel named amqpOutboundChannel that is used
+
+100
+00:06:16,820 --> 00:06:21,210
+by a ServiceActivator to invoke our AMQP outbound bean.
+
+101
+00:06:21,210 --> 00:06:26,830
+This bean creates an AmqpOutboundEndpoint and sets its routing key to the
+
+102
+00:06:26,830 --> 00:06:30,140
+name of the queue to which we want to publish the message,
+
+103
+00:06:30,140 --> 00:06:32,720
+which in this case, is foo‑reservation‑queue.
+
+104
+00:06:32,720 --> 00:06:38,620
+When the RabbitMQ exchange receives the message and sees this routing key,
+
+105
+00:06:38,620 --> 00:06:42,690
+it will know to publish the message to the queue with the same name.
+
+106
+00:06:42,690 --> 00:06:47,440
+Finally, we could go into RabbitMQ and create the queue manually,
+
+107
+00:06:47,440 --> 00:06:50,670
+but instead we create a new queue bean with the name of
+
+108
+00:06:50,670 --> 00:06:52,640
+the queue that we want to create.
+
+109
+00:06:52,640 --> 00:06:56,750
+This will cause Spring to create the queue in RabbitMQ for us.
+
+110
+00:06:56,750 --> 00:07:00,510
+The foo reservation gateway is a messaging gateway that
+
+111
+00:07:00,510 --> 00:07:03,370
+publishes messages to the reservationChannel.
+
+112
+00:07:03,370 --> 00:07:06,830
+It defines a single method, publishReservation,
+
+113
+00:07:06,830 --> 00:07:11,840
+that accepts a fooReservation and publishes it to the reservationChannel.
+
+114
+00:07:11,840 --> 00:07:17,040
+A FooReservation is a plain old Java object that has an id and a name.
+
+115
+00:07:17,040 --> 00:07:20,430
+The FooReservationService is a Spring service that
+
+116
+00:07:20,430 --> 00:07:24,580
+publishes foo reservations to the FooReservation gateway
+
+117
+00:07:24,580 --> 00:07:26,880
+through its publishReservation method.
+
+118
+00:07:26,880 --> 00:07:30,710
+The RabbitMQ example application is a command‑line Spring Boot
+
+119
+00:07:30,710 --> 00:07:35,020
+application with the FooReservation service wired into it that
+
+120
+00:07:35,020 --> 00:07:38,870
+creates six reservations and publishes them to the
+
+121
+00:07:38,870 --> 00:07:42,340
+FoodReservationService with a 2‑second delay.
+
+122
+00:07:42,340 --> 00:07:46,230
+This is the application that will publish our reservations.
+
+123
+00:07:46,230 --> 00:07:50,340
+So now let's look at the application that will receive the reservations.
+
+124
+00:07:50,340 --> 00:07:54,990
+The RabbitMQ inbound config is a Spring Configuration class.
+
+125
+00:07:54,990 --> 00:07:56,910
+It creates a new DirectChannel named
+
+126
+00:07:56,910 --> 00:07:59,590
+fooReservationListenerChannel and then and
+
+127
+00:07:59,590 --> 00:08:04,840
+AmqpInboundChannelAdapter that sends messages to that channel.
+
+128
+00:08:04,840 --> 00:08:08,220
+It's configured with a simple message listenerContainer
+
+129
+00:08:08,220 --> 00:08:10,300
+that accepts a connectionFactory,
+
+130
+00:08:10,300 --> 00:08:14,800
+which Spring will create for us when it sees RabbitMQ in our class path
+
+131
+00:08:14,800 --> 00:08:17,320
+and sets the name of the queue on which to listen.
+
+132
+00:08:17,320 --> 00:08:21,980
+This is all that you need to do to listen for messages on a RabbitMQ
+
+133
+00:08:21,980 --> 00:08:25,140
+queue and publish those messages to a channel.
+
+134
+00:08:25,140 --> 00:08:29,080
+We also create the same channel that we did in the previous application.
+
+135
+00:08:29,080 --> 00:08:32,790
+This is only required if the queue does not already exist.
+
+136
+00:08:32,790 --> 00:08:36,180
+But if we start our listener application before starting our
+
+137
+00:08:36,180 --> 00:08:40,050
+publishing application and the queue does not exist,
+
+138
+00:08:40,050 --> 00:08:42,640
+then the application will fail to start.
+
+139
+00:08:42,640 --> 00:08:47,570
+And don't worry, as long as the names match, it will not create a new queue.
+
+140
+00:08:47,570 --> 00:08:51,140
+The fooReservationListener is a Spring service with a
+
+141
+00:08:51,140 --> 00:08:53,910
+ServiceActivator that receives messages from the
+
+142
+00:08:53,910 --> 00:08:58,620
+fooReservationListenerChannel and invokes the handleMessage method.
+
+143
+00:08:58,620 --> 00:08:59,600
+At this point,
+
+144
+00:08:59,600 --> 00:09:03,200
+we're just going to log the payload of the message that we receive.
+
+145
+00:09:03,200 --> 00:09:04,240
+Finally,
+
+146
+00:09:04,240 --> 00:09:09,060
+the RabbitMQ example application is a command line Spring Boot application.
+
+147
+00:09:09,060 --> 00:09:13,830
+Spring will find our configuration component in the fooReservationListener
+
+148
+00:09:13,830 --> 00:09:17,860
+service in its component scan and start listening for messages.
+
+149
+00:09:17,860 --> 00:09:21,920
+Let's start the listening application and the publishing application.
+
+150
+00:09:21,920 --> 00:09:32,000
+We can see from the logs that it publishes six messages, and in the listener application we can see those messages bean received.
+

@@ -1,0 +1,268 @@
+WEBVTT
+1
+00:00:02.240 --> 00:00:09.350
+So we are redirecting to the 500 error page in this catch block and we can do this in any catch block where
+
+2
+00:00:09.350 --> 00:00:13.130
+we want to ensure that we do handle errors.
+
+3
+00:00:13.220 --> 00:00:18.500
+Now the problem is we'll quickly duplicate our code a lot because we've got a lot of catch blocks where
+
+4
+00:00:18.500 --> 00:00:24.680
+we interact with the database and in every catch block here, we should redirect to the 500 page, at
+
+5
+00:00:24.680 --> 00:00:24.980
+least
+
+6
+00:00:24.980 --> 00:00:31.670
+in a lot of them, we would want to do that probably because for all these database failures or permission
+
+7
+00:00:31.670 --> 00:00:34.070
+problems, it seems to be a bigger problem
+
+8
+00:00:34.070 --> 00:00:40.430
+so returning this page might be a good solution. But replicating that code all over the place is
+
+9
+00:00:40.520 --> 00:00:42.510
+rarely what we want to do,
+
+10
+00:00:42.740 --> 00:00:50.330
+what we can do instead is instead of redirecting here, we can throw a new error, this built-in error object
+
+11
+00:00:50.420 --> 00:00:53.600
+with the built-in throw function or keyword.
+
+12
+00:00:53.600 --> 00:00:55.180
+We do that inside of the catch block,
+
+13
+00:00:55.250 --> 00:01:00.260
+in this case here, of the post add product action.
+
+14
+00:01:00.260 --> 00:01:06.280
+So here I throw a new error and I can throw a new error with a bit more details
+
+15
+00:01:06.290 --> 00:01:16.660
+by first of all creating an error object with new error, I can pass my error message like creating
+
+16
+00:01:17.200 --> 00:01:20.940
+a product failed or something like that
+
+17
+00:01:21.190 --> 00:01:28.540
+or simply keep that error object which also has a message which you get returned by the catch block
+
+18
+00:01:28.540 --> 00:01:29.060
+here.
+
+19
+00:01:29.380 --> 00:01:35.600
+So I'm creating my own object which is built up on that now and then we can also add a new field here,
+
+20
+00:01:35.750 --> 00:01:40.460
+http status code and set this to 500 for example
+
+21
+00:01:40.600 --> 00:01:44.320
+and now here's something cool, we can return next
+
+22
+00:01:44.320 --> 00:01:47.660
+and pass the error as an argument to next.
+
+23
+00:01:47.680 --> 00:01:50.680
+We didn't do that before right, before when we called
+
+24
+00:01:50.680 --> 00:01:58.110
+next like in app.js here, we simply called it without arguments to let the next middleware take over.
+
+25
+00:01:58.540 --> 00:02:07.000
+Well when we call next with an error passed as an argument, then we actually let express know that
+
+26
+00:02:07.000 --> 00:02:14.050
+an error occurred and it will skip all other middlewares and move right away to an error handling
+
+27
+00:02:14.160 --> 00:02:16.840
+middleware and that's the middleware I'll define now.
+
+28
+00:02:16.990 --> 00:02:23.890
+So next error is the trick here with an error object being passed instead of throwing it
+
+29
+00:02:24.050 --> 00:02:30.030
+and now we can go to app.js and there at the bottom, let's add a new middleware
+
+30
+00:02:30.050 --> 00:02:36.210
+with app use and normally this could never be reached because we have our catch all middleware down there
+
+31
+00:02:36.830 --> 00:02:40.720
+but there's a special type of middleware which we haven't seen before.
+
+32
+00:02:40.790 --> 00:02:47.630
+All middlewares we added thus far, for example this get 404 action in the error controller,
+
+33
+00:02:47.630 --> 00:02:55.100
+all these middlewares use three arguments, request response and next. Express also knows a middleware with
+
+34
+00:02:55.100 --> 00:03:01.640
+four arguments, a so-called error handling middleware and there, the first argument will be the error and
+
+35
+00:03:01.640 --> 00:03:05.040
+then followed by the other three arguments.
+
+36
+00:03:05.040 --> 00:03:11.300
+Now express is clever enough to detect that this is a special kind of middleware and it will move right away
+
+37
+00:03:11.450 --> 00:03:18.770
+to these error handling middlewares when you call next with an error passed to it, so it will then
+
+38
+00:03:18.770 --> 00:03:21.130
+skip all the other middlewares and move to that
+
+39
+00:03:21.260 --> 00:03:33.440
+and therefore here I could now render my 500 page or simply redirect to /500,
+
+40
+00:03:33.590 --> 00:03:39.680
+I could do that. And now if I save that and I go back to my application and I try adding that product
+
+41
+00:03:39.950 --> 00:03:43.820
+which will still fail because I didn't fix that issue,
+
+42
+00:03:43.880 --> 00:03:52.390
+I load my error handling page but now with this central error handling middleware. Now that we added this
+
+43
+00:03:52.410 --> 00:03:53.510
+error handling code,
+
+44
+00:03:53.700 --> 00:03:58.430
+we can of course also repeat this in other places and you could refactor it into one function of course
+
+45
+00:03:58.450 --> 00:04:03.690
+which you then just call in all these places, for example to also send an error here where we fail to
+
+46
+00:04:03.960 --> 00:04:06.450
+edit or load the data for editing a product.
+
+47
+00:04:06.450 --> 00:04:11.300
+We can force this to fail by manually throwing a new dummy error in here,
+
+48
+00:04:11.310 --> 00:04:16.200
+again this is of course now kind of a set up scenario, you would never write this but this allows you
+
+49
+00:04:16.200 --> 00:04:17.430
+to force this to fail,
+
+50
+00:04:17.430 --> 00:04:22.140
+it would be kind of hard to force the database to fail right now because most of the time thankfully
+
+51
+00:04:22.230 --> 00:04:22.950
+it works.
+
+52
+00:04:23.160 --> 00:04:30.910
+But now I have this dummy error and hence if I now edit a product, I also see my 500 page because
+
+53
+00:04:30.910 --> 00:04:35.890
+I throw this dummy error which I'll of course remove now because it does not make any sense to add this
+
+54
+00:04:36.070 --> 00:04:42.310
+but then we made it into catch and there we created this error object and we called next with it and that
+
+55
+00:04:42.310 --> 00:04:46.210
+again will then trigger this special error handling middleware.
+
+56
+00:04:46.210 --> 00:04:49.280
+Now in case you're wondering what the status code is doing here,
+
+57
+00:04:49.390 --> 00:04:54.730
+well in this scenario, I'm always redirecting to the 500 route here but of course we could have a different
+
+58
+00:04:54.730 --> 00:04:58.930
+scenario where we don't redirect here but we want to render a page instead
+
+59
+00:04:59.080 --> 00:05:04.150
+or we want return some json data, something we'll do later in the course and then I would want to set
+
+60
+00:05:04.420 --> 00:05:09.910
+my error http status code code here as a response code.
+
+61
+00:05:10.120 --> 00:05:14.020
+So this is not the solution we're using here but this is what you could do
+
+62
+00:05:14.020 --> 00:05:19.420
+and I just want to show that you can pass extra information with the error object so that you can use it in
+
+63
+00:05:19.420 --> 00:05:22.410
+this central error handler here.
+
+64
+00:05:22.450 --> 00:05:29.160
+Now please note, the this error handler will not execute for 404 errors.
+
+65
+00:05:29.160 --> 00:05:35.520
+There we still handle this manually because technically, the 404 error is simply just a valid url
+
+66
+00:05:35.580 --> 00:05:41.100
+which we catch with our catch all handler there where we then just happen to render the 404 page,
+
+67
+00:05:41.100 --> 00:05:44.990
+it's not a technical error object that gets created at any point here.

@@ -1,0 +1,520 @@
+1
+00:00:01,084 --> 00:00:01,746
+In this demo,
+
+2
+00:00:01,746 --> 00:00:05,230
+we'll be working with the PagingAndSortingRepository to perform
+
+3
+00:00:05,230 --> 00:00:08,143
+paginated queries against our scheduled flights table.
+
+4
+00:00:08,143 --> 00:00:13,425
+We'll try different types of page and sort instances along the way and then
+
+5
+00:00:13,425 --> 00:00:17,555
+finally enrich our derived queries with paging and sorting.
+
+6
+00:00:17,555 --> 00:00:20,034
+To get started, let's navigate to our FlightRepository,
+
+7
+00:00:20,034 --> 00:00:24,357
+this time changing it so it inherits from
+
+8
+00:00:24,357 --> 00:00:26,927
+PagingAndSortingRepository instead of CRUDRepository.
+
+9
+00:00:26,927 --> 00:00:28,352
+If we step into the PagingAndSortingRepository,
+
+10
+00:00:28,352 --> 00:00:32,583
+we can see that it's a subclass of the CRUDRepository,
+
+11
+00:00:32,583 --> 00:00:35,145
+so we don't lose out on any of our existing functionality
+
+12
+00:00:35,145 --> 00:00:38,555
+while gaining two new useful methods.
+
+13
+00:00:38,555 --> 00:00:40,871
+These are a findAll method with a sort argument,
+
+14
+00:00:40,871 --> 00:00:45,202
+letting us sort our results, and a findAll method with a pageable argument,
+
+15
+00:00:45,202 --> 00:00:47,577
+letting us paginate our results.
+
+16
+00:00:47,577 --> 00:00:51,716
+Okay, let's create a new test called PagingAndSortingTests.
+
+17
+00:00:51,716 --> 00:00:56,093
+We'll run it with the SpringRunner and annotate it with DataJpaTest again.
+
+18
+00:00:56,093 --> 00:01:00,141
+Then we'll wire in our FlightRepository after which we'll create a setUp method,
+
+19
+00:01:00,141 --> 00:01:03,456
+which deletes and resets the database between each test.
+
+20
+00:01:03,456 --> 00:01:06,495
+For our first test, we'll keep it simple,
+
+21
+00:01:06,495 --> 00:01:09,566
+calling it shouldSortFlightsByDestination.
+
+22
+00:01:09,566 --> 00:01:11,417
+We'll create a flight which arrives at Madrid,
+
+23
+00:01:11,417 --> 00:01:14,480
+create a helper method in the process so it sets some
+
+24
+00:01:14,480 --> 00:01:16,388
+defaults for the rest of the fields.
+
+25
+00:01:16,388 --> 00:01:20,169
+Then we'll create two more flights, one to London and one to Paris,
+
+26
+00:01:20,169 --> 00:01:23,266
+and then save them both to the database.
+
+27
+00:01:23,266 --> 00:01:26,405
+Okay, now we can create our first sort query.
+
+28
+00:01:26,405 --> 00:01:30,673
+We can call findAll, but this time call Sort.by destination.
+
+29
+00:01:30,673 --> 00:01:31,491
+If it's not obvious,
+
+30
+00:01:31,491 --> 00:01:35,267
+this will mean that the results to findAll will be sorted by the field
+
+31
+00:01:35,267 --> 00:01:38,029
+named destination in ascending order by default.
+
+32
+00:01:38,029 --> 00:01:40,492
+Let's complete our test with an assertion.
+
+33
+00:01:40,492 --> 00:01:43,583
+We'll check that we got all three flights and then iterate
+
+34
+00:01:43,583 --> 00:01:45,737
+through them checking that the order was London,
+
+35
+00:01:45,737 --> 00:01:47,767
+Madrid, and then Paris.
+
+36
+00:01:47,767 --> 00:01:49,969
+Then let's run our test.
+
+37
+00:01:49,969 --> 00:01:50,310
+Great.
+
+38
+00:01:50,310 --> 00:01:54,085
+It's gone green, verifying our query worked as expected,
+
+39
+00:01:54,085 --> 00:01:57,232
+and we organized our flights into ascending order.
+
+40
+00:01:57,232 --> 00:02:00,925
+Now let's try a more complicated sort query where we sort by two
+
+41
+00:02:00,925 --> 00:02:03,521
+separate fields with the first field taking precedence.
+
+42
+00:02:03,521 --> 00:02:07,761
+We'll call it shouldSortFlightsByScheduledAndThenName.
+
+43
+00:02:07,761 --> 00:02:09,692
+We'll start by creating a flight to Paris,
+
+44
+00:02:09,692 --> 00:02:12,680
+this time creating an extra helper method that
+
+45
+00:02:12,680 --> 00:02:15,060
+allows us to provide a schedule time.
+
+46
+00:02:15,060 --> 00:02:17,471
+We'll then create an additional two flights.
+
+47
+00:02:17,471 --> 00:02:21,241
+So we have one flight to Paris now, one flight to Paris in 2 hours,
+
+48
+00:02:21,241 --> 00:02:23,631
+and one flight to Paris an hour ago.
+
+49
+00:02:23,631 --> 00:02:28,413
+Then, let's create two flights to London, one in an hour's time and one now.
+
+50
+00:02:28,413 --> 00:02:31,479
+What we can do now is create a sort query similar to before,
+
+51
+00:02:31,479 --> 00:02:34,445
+only this time we'll sort it by destination.
+
+52
+00:02:34,445 --> 00:02:38,727
+And if the destination fields match, then it will then be sorted by scheduledAt.
+
+53
+00:02:38,727 --> 00:02:41,441
+Spring Data is intelligent enough to know how to create a
+
+54
+00:02:41,441 --> 00:02:43,499
+query that sorts by a local date/time.
+
+55
+00:02:43,499 --> 00:02:46,649
+Finally, let's create our assertions.
+
+56
+00:02:46,649 --> 00:02:49,411
+We'll check that we have all five flights and then that
+
+57
+00:02:49,411 --> 00:02:51,303
+they return in the correct order.
+
+58
+00:02:51,303 --> 00:02:53,080
+Our flight to London should be first,
+
+59
+00:02:53,080 --> 00:02:56,332
+and then the one with the latest schedule time should be last.
+
+60
+00:02:56,332 --> 00:02:58,588
+Then we should receive our three flights to Paris,
+
+61
+00:02:58,588 --> 00:03:01,556
+again ordered by schedule time ascending.
+
+62
+00:03:01,556 --> 00:03:04,724
+Okay, let's run our test and see if it all goes green.
+
+63
+00:03:04,724 --> 00:03:09,503
+It does, verifying our more advanced sort query works perfectly.
+
+64
+00:03:09,503 --> 00:03:13,286
+Now we've experimented with sorting, let's try out some paging.
+
+65
+00:03:13,286 --> 00:03:14,779
+We'll create a test called shouldPageResults,
+
+66
+00:03:14,779 --> 00:03:18,688
+and in it we'll say 50 flights in a for loop.
+
+67
+00:03:18,688 --> 00:03:20,563
+To keep things simple when asserting,
+
+68
+00:03:20,563 --> 00:03:24,557
+we'll give each flight a destination which matches the valueOf i.
+
+69
+00:03:24,557 --> 00:03:25,018
+After this,
+
+70
+00:03:25,018 --> 00:03:28,460
+we can query a page or a slice of the total results using
+
+71
+00:03:28,460 --> 00:03:31,223
+findAll and passing in a page request.
+
+72
+00:03:31,223 --> 00:03:35,114
+We can do PageRequest., passing in 2 to request that we're on the second
+
+73
+00:03:35,114 --> 00:03:38,865
+page and 5 to denote that each page has a length of 5.
+
+74
+00:03:38,865 --> 00:03:40,835
+Rather than the response being a list again,
+
+75
+00:03:40,835 --> 00:03:43,898
+in this case a response is a page abstraction.
+
+76
+00:03:43,898 --> 00:03:48,675
+We can assert that it's working as we expect by verifying some of its fields.
+
+77
+00:03:48,675 --> 00:03:51,538
+We'd expect a total of 50 elements with 5 elements on
+
+78
+00:03:51,538 --> 00:03:56,617
+each page and a page total of 10, which is 50 elements divided by 5.
+
+79
+00:03:56,617 --> 00:04:00,266
+We can then assert that the page-content returns the correct elements.
+
+80
+00:04:00,266 --> 00:04:03,974
+We'd expect page 0 to contain destinations not to 4,
+
+81
+00:04:03,974 --> 00:04:07,082
+page 1 to contain destinations 5 to 9, and,
+
+82
+00:04:07,082 --> 00:04:11,714
+in our case, we'd expect page 2 to contain a 10 to 14 of element.
+
+83
+00:04:11,714 --> 00:04:14,830
+AssertJ makes this easy to check by using the extracted
+
+84
+00:04:14,830 --> 00:04:16,479
+method combined with containsExactly.
+
+85
+00:04:16,479 --> 00:04:19,590
+The destination field is converted to a list,
+
+86
+00:04:19,590 --> 00:04:23,626
+and we assert the list contains the given destinations in the given order.
+
+87
+00:04:23,626 --> 00:04:26,933
+Let's run the test and see if it goes green.
+
+88
+00:04:26,933 --> 00:04:30,924
+It does proving how simple it is to get started with paging.
+
+89
+00:04:30,924 --> 00:04:33,134
+We didn't need to write any special query,
+
+90
+00:04:33,134 --> 00:04:35,883
+only passing the page object with a couple of parameters.
+
+91
+00:04:35,883 --> 00:04:40,022
+Okay, whilst these two concepts have been very much separate so far,
+
+92
+00:04:40,022 --> 00:04:43,136
+what we can do is combine them together so we both page
+
+93
+00:04:43,136 --> 00:04:45,953
+and sort our results at the same time.
+
+94
+00:04:45,953 --> 00:04:48,790
+We can do this by copying and pasting our existing test,
+
+95
+00:04:48,790 --> 00:04:52,034
+renaming it to shouldPageAndSortResults.
+
+96
+00:04:52,034 --> 00:04:55,133
+All we need to do now is pass in our sort object into
+
+97
+00:04:55,133 --> 00:04:57,416
+our page request as an argument.
+
+98
+00:04:57,416 --> 00:04:59,633
+Let's sort by destination descending,
+
+99
+00:04:59,633 --> 00:05:01,940
+which should reverse the order of our elements.
+
+100
+00:05:01,940 --> 00:05:04,894
+We'll pass in 44, 43, 42, 41,
+
+101
+00:05:04,894 --> 00:05:08,806
+and 40 and then run our test to see if it's gone green.
+
+102
+00:05:08,806 --> 00:05:13,877
+It has meaning we can successfully sort both paging and sorting of our queries.
+
+103
+00:05:13,877 --> 00:05:14,163
+Great.
+
+104
+00:05:14,163 --> 00:05:17,579
+So far our tests have been dependent on the provided methods
+
+105
+00:05:17,579 --> 00:05:20,046
+within the paging and sorting repository,
+
+106
+00:05:20,046 --> 00:05:23,717
+but a use of these is actually optional as it's perfectly possible to make
+
+107
+00:05:23,717 --> 00:05:26,827
+these abstractions arguments to the derived queries too,
+
+108
+00:05:26,827 --> 00:05:30,432
+combining all three concepts together into one query.
+
+109
+00:05:30,432 --> 00:05:32,041
+Let's try this out.
+
+110
+00:05:32,041 --> 00:05:34,267
+We can first copy and paste our existing query,
+
+111
+00:05:34,267 --> 00:05:38,459
+this time renaming it to shouldPageAndSortADerivedQuery.
+
+112
+00:05:38,459 --> 00:05:41,051
+We'll then change it so we save 10 flights from
+
+113
+00:05:41,051 --> 00:05:43,045
+Paris and 10 flights from London.
+
+114
+00:05:43,045 --> 00:05:45,220
+Then we'll create a new findByOrigin method,
+
+115
+00:05:45,220 --> 00:05:48,140
+this time passing in London and our page request.
+
+116
+00:05:48,140 --> 00:05:51,941
+It's really nice that Spring Data is capable of this as it
+
+117
+00:05:51,941 --> 00:05:55,006
+further abstracts this from the underlying data store whilst
+
+118
+00:05:55,006 --> 00:05:57,243
+being as feature-rich as possible.
+
+119
+00:05:57,243 --> 00:06:00,382
+All we needed to do was add an extra field to our method.
+
+120
+00:06:00,382 --> 00:06:05,293
+Finally, let's change the parameters to our assertion and then run our test.
+
+121
+00:06:05,293 --> 00:06:08,734
+In this case, it's gone red,
+
+122
+00:06:08,734 --> 00:06:11,190
+and this was done deliberately as it's a common gotcha.
+
+123
+00:06:11,190 --> 00:06:14,746
+It doesn't recognize a page request class and instead needs the
+
+124
+00:06:14,746 --> 00:06:17,369
+pageable interfaces and argument instead,
+
+125
+00:06:17,369 --> 00:06:20,089
+which is what the page request implements.
+
+126
+00:06:20,089 --> 00:06:22,616
+Once we make this change, we can run our test again,
+
+127
+00:06:22,616 --> 00:06:25,749
+and this time it will go green.
+
+128
+00:06:25,749 --> 00:06:27,505
+And that covers it for this demo.
+
+129
+00:06:27,505 --> 00:06:27,973
+By now,
+
+130
+00:06:27,973 --> 00:06:35,000
+we're hopefully building up some knowledge of how powerful Spring Data can be when all of these concepts are combined.
+

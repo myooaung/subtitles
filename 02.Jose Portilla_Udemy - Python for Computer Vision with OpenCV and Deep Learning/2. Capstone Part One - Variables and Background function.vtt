@@ -1,0 +1,408 @@
+WEBVTT
+1
+00:00:05.280 --> 00:00:09.870
+Welcome to part one of our cap some project we're going to be focusing on some global variables and
+
+2
+00:00:09.870 --> 00:00:11.800
+setting up a background function.
+
+3
+00:00:12.900 --> 00:00:17.190
+So first come to find some global variables and then afterwards we'll set up a function that updates
+
+4
+00:00:17.250 --> 00:00:21.470
+a running average of the background values in a particular region of interests.
+
+5
+00:00:21.480 --> 00:00:26.880
+This will later on allow us to test new objects such as a hand entering into the region of interest.
+
+6
+00:00:28.160 --> 00:00:32.200
+So let's talk about our overall strategy for actually counting figure fingers.
+
+7
+00:00:32.450 --> 00:00:36.620
+First we're going to grab a region of interest that was that red box you saw in the previous lecture
+
+8
+00:00:37.130 --> 00:00:41.990
+then we're going to calculate a running average background value for some amount of frames like 60 frames
+
+9
+00:00:41.990 --> 00:00:47.690
+of video and then once the average value is found then we can have the hand enter the region of interest.
+
+10
+00:00:48.850 --> 00:00:54.130
+So to understand this visually we set our NY calculate that average running value for some amount of
+
+11
+00:00:54.130 --> 00:00:56.200
+frames like 60 frames.
+
+12
+00:00:56.560 --> 00:01:01.180
+Then once a hand actually enters we can detect the change and then apply some thresholding techniques
+
+13
+00:01:01.480 --> 00:01:04.540
+to isolate the hand and isolate the Hans segment.
+
+14
+00:01:05.920 --> 00:01:10.370
+Now once we actually have that threshold at hand segment we're going to have that hand enter the region
+
+15
+00:01:10.370 --> 00:01:16.870
+of interest and we're going to do what's known as a convex hole to dry polygon around the hand and we'll
+
+16
+00:01:16.870 --> 00:01:22.330
+talk about convex hole and more detail later on though once we have this polygon what we can do is we
+
+17
+00:01:22.330 --> 00:01:28.880
+can use a little bit of clever math to calculate the center of the hand then using some more math will
+
+18
+00:01:28.900 --> 00:01:34.180
+calculate the center of the hand against the angle of the outer points to and for a finger count.
+
+19
+00:01:34.180 --> 00:01:40.480
+So you notice that this polygon should in theory have points at each particular finger and then based
+
+20
+00:01:40.480 --> 00:01:44.920
+off a distance from the center we'll be able to detect whether or not that finger is extended.
+
+21
+00:01:46.410 --> 00:01:51.130
+And then we'll also be able to use some angle in order to calculate some distances between fingers.
+
+22
+00:01:52.550 --> 00:01:57.250
+So keep in mind the strategy won't be perfect if you're holding up your fingers here like Spock is.
+
+23
+00:01:57.260 --> 00:02:00.400
+And you'll notice he's actually holding up all five fingers.
+
+24
+00:02:00.410 --> 00:02:06.530
+Our particular method isn't going to be able to read this because it's going to detect his fingers as
+
+25
+00:02:06.530 --> 00:02:08.050
+three fingers being held up.
+
+26
+00:02:08.090 --> 00:02:14.390
+It's not going to detect a space between for instance his index and middle finger and his ring finger
+
+27
+00:02:14.420 --> 00:02:15.290
+and pinky finger.
+
+28
+00:02:15.320 --> 00:02:20.390
+So unfortunately our technique is a little too naive to actually understand someone holding up all five
+
+29
+00:02:20.390 --> 00:02:21.970
+fingers in that fashion.
+
+30
+00:02:21.980 --> 00:02:22.430
+All right.
+
+31
+00:02:22.520 --> 00:02:28.100
+Let's get started with the average background function and some global variables in imports.
+
+32
+00:02:28.100 --> 00:02:28.490
+All right.
+
+33
+00:02:28.490 --> 00:02:30.440
+I'm starting a brand new notebook.
+
+34
+00:02:30.440 --> 00:02:35.810
+But if you want to follow along or reference the notebook code all you need to do is open up the capstone
+
+35
+00:02:35.810 --> 00:02:41.120
+project folder and then you should see a finger underscore count notebook file which if you open it
+
+36
+00:02:41.330 --> 00:02:45.410
+has all the code that we're going to be working through through this series of lectures.
+
+37
+00:02:45.690 --> 00:02:50.130
+OK let's go back to our new notebook and began typing some of this code out.
+
+38
+00:02:50.240 --> 00:02:53.000
+First we actually need to perform some imports.
+
+39
+00:02:53.000 --> 00:03:01.790
+So we're going to import too we'll import them pie as NPE and we're also going to say from S-K learn
+
+40
+00:03:02.670 --> 00:03:10.520
+the metrics import pairwise later on we're going to be using some distance calculation to actually calculate
+
+41
+00:03:10.550 --> 00:03:14.840
+how many fingers are being held up and we're going to be using a library called sikat learnt for that
+
+42
+00:03:15.050 --> 00:03:17.140
+which should come with Anaconda already.
+
+43
+00:03:17.180 --> 00:03:21.920
+So go ahead and import that really right now we're just going to be using CB2 later on throughout the
+
+44
+00:03:21.920 --> 00:03:26.650
+series of lectures we'll introduce this pairwise now that we have our imports.
+
+45
+00:03:26.660 --> 00:03:29.450
+We're going to create some global variables.
+
+46
+00:03:29.450 --> 00:03:37.330
+We're going to start off by creating background as none and then we want to say accumulated weight as
+
+47
+00:03:37.330 --> 00:03:41.110
+a variable and set that equal halfway point between 0 and 1.
+
+48
+00:03:41.110 --> 00:03:48.220
+So say 0.5 and then we're going to set up a region of interest that is the actual red bounding box that
+
+49
+00:03:48.220 --> 00:03:49.440
+we're looking for.
+
+50
+00:03:49.600 --> 00:03:51.960
+And at first we're just going to have it be empty.
+
+51
+00:03:51.970 --> 00:03:56.500
+We're going to calculate an average background value and then later on we'll actually insur or hand
+
+52
+00:03:56.560 --> 00:03:59.910
+into that region of interest and we'll be able to see how many fingers we're holding up.
+
+53
+00:04:00.220 --> 00:04:02.680
+It's up to you what your region of interest should be.
+
+54
+00:04:02.710 --> 00:04:04.600
+We're just defending it as a rectangle.
+
+55
+00:04:05.080 --> 00:04:15.170
+And I'm going to define it as our top as equal to 20 or I bottom is equal to 300 are all I write is
+
+56
+00:04:15.170 --> 00:04:21.130
+equal to 300 an r y left is equal to 600.
+
+57
+00:04:21.140 --> 00:04:25.130
+These are essentially going to be the corners of the rectangle that I draw on the screen.
+
+58
+00:04:25.180 --> 00:04:30.080
+Again you can play around with these values if you want the bounding box to be at the center of your
+
+59
+00:04:30.080 --> 00:04:30.980
+video stream.
+
+60
+00:04:31.070 --> 00:04:35.210
+You may just want to actually calculate it based off the width and height of the actual video camera
+
+61
+00:04:35.210 --> 00:04:36.000
+stream.
+
+62
+00:04:36.020 --> 00:04:37.470
+Again it's really up to you.
+
+63
+00:04:37.520 --> 00:04:40.700
+I just found these values convenient for my particular USP camera.
+
+64
+00:04:40.700 --> 00:04:44.840
+So you may need to change these values if they're too close to the edge.
+
+65
+00:04:45.020 --> 00:04:47.790
+So those are all the global variables we're going to find for now.
+
+66
+00:04:47.990 --> 00:04:52.590
+And then up next we're going to create a function that will find the average background value.
+
+67
+00:04:52.880 --> 00:05:01.450
+We're going to call this function calculates accumulated average or X whom underscore avi G and it's
+
+68
+00:05:01.450 --> 00:05:07.760
+going to take in a frame and it's going to take in some value for the accumulated weight.
+
+69
+00:05:07.800 --> 00:05:10.690
+So he's going to say accumulated weight
+
+70
+00:05:14.850 --> 00:05:21.340
+and then we're actually going to grab the global background value which starts off as none.
+
+71
+00:05:21.360 --> 00:05:24.450
+So the very first time around this background is going to be none.
+
+72
+00:05:24.450 --> 00:05:26.550
+We haven't sensed it from the frame yet.
+
+73
+00:05:26.790 --> 00:05:34.680
+So for the first time if the background is none then we're going to set the background to be a copy
+
+74
+00:05:34.710 --> 00:05:36.340
+of the frame being passed in.
+
+75
+00:05:36.420 --> 00:05:39.880
+And later on we're going to use this function as part of a larger piece of code.
+
+76
+00:05:40.140 --> 00:05:49.050
+So say if background is done say background is equal to frame copy and then we're going to call it as
+
+77
+00:05:49.050 --> 00:05:53.640
+type fliped and then we're going to return
+
+78
+00:05:57.160 --> 00:06:02.800
+so the very first time around we're going to set background and make sure it's capital N going to check
+
+79
+00:06:02.890 --> 00:06:06.450
+if the background is done meaning the very first loop background is done here.
+
+80
+00:06:06.460 --> 00:06:10.930
+We're just going to set background equal to a framed copy and this actual function isn't going to return
+
+81
+00:06:11.350 --> 00:06:17.000
+in accumulated average and it's going to return them if the background happens I actually have a value.
+
+82
+00:06:17.020 --> 00:06:18.290
+Meaning it's no longer done.
+
+83
+00:06:18.550 --> 00:06:26.270
+Well we're going to do here is say to and we're going to call accumulated or accumulated weighted so
+
+84
+00:06:26.270 --> 00:06:27.580
+accumulate weighted.
+
+85
+00:06:27.650 --> 00:06:33.720
+And what that does is you passen if you take a shift tab here you can check out you passen the source
+
+86
+00:06:33.720 --> 00:06:38.930
+to the destination and then some alpha value and this function what does is a calculator the way that
+
+87
+00:06:38.930 --> 00:06:44.870
+some of the input image source and the accumulator destination so that the station becomes a running
+
+88
+00:06:44.930 --> 00:06:47.330
+average of a frame sequence.
+
+89
+00:06:47.330 --> 00:06:52.760
+So it's actually going to be accumulating the weight based off the running average.
+
+90
+00:06:52.760 --> 00:06:55.320
+So we're going to do here is the following.
+
+91
+00:06:55.580 --> 00:07:02.400
+We're going to pass in our current frame and then pass in the background and then we're going to have
+
+92
+00:07:02.400 --> 00:07:04.870
+a current accumulated weight.
+
+93
+00:07:05.220 --> 00:07:10.640
+Now notice what I'm doing here I'm not actually going to return this accumulated weight.
+
+94
+00:07:10.650 --> 00:07:15.270
+Instead I'm just going to be affecting the global background here.
+
+95
+00:07:15.420 --> 00:07:16.640
+Again something to note here.
+
+96
+00:07:16.690 --> 00:07:21.000
+I'm not returning anything on this function unless it's the very first time.
+
+97
+00:07:21.030 --> 00:07:25.190
+I'm just going to return on for everything else when I call this function.
+
+98
+00:07:25.380 --> 00:07:32.820
+I'm just grabbing the global background variable and then I'm going to update with the accumulated weight.
+
+99
+00:07:33.330 --> 00:07:35.100
+So that's it for this function.
+
+100
+00:07:35.130 --> 00:07:40.740
+Again we did our imports we set up some global variables and we have our accumulated weight function
+
+101
+00:07:41.490 --> 00:07:45.900
+coming up next we're going to do is learn how to segment the hand region in the frame we'll see at the
+
+102
+00:07:45.900 --> 00:07:46.470
+next lecture.

@@ -1,0 +1,401 @@
+WEBVTT
+1
+00:00:03.140 --> 00:00:05.910
+So, we've used the URLClassLoader,
+
+2
+00:00:05.910 --> 00:00:09.270
+which is one of the classes that comes part of the Java virtual machine, the
+
+3
+00:00:09.270 --> 00:00:13.070
+JVM. We'll now take a look at writing our own classloader,
+
+4
+00:00:13.070 --> 00:00:16.880
+something that doesn't rely on the URLClassLoader. So
+
+5
+00:00:16.880 --> 00:00:20.810
+when we write our own classloader, there's several things we have to think about.
+
+6
+00:00:20.810 --> 00:00:25.370
+Our classloader will not load all the classes that the application asks for.
+
+7
+00:00:25.370 --> 00:00:28.040
+It will delegate it to other classloaders.
+
+8
+00:00:28.040 --> 00:00:30.900
+So by the system classloader here in quotes,
+
+9
+00:00:30.900 --> 00:00:34.270
+I mean it will delegate to things like the application classloader, that'll
+
+10
+00:00:34.270 --> 00:00:37.650
+then delegate to the extensions classloader, that will then delegate up to the
+
+11
+00:00:37.650 --> 00:00:43.380
+Bootstrap classloader. When we delegate the parent classloader, if it can't
+
+12
+00:00:43.380 --> 00:00:45.670
+load the class, it will throw an exception.
+
+13
+00:00:45.670 --> 00:00:47.940
+It'll throw a ClassNotFoundException.
+
+14
+00:00:47.940 --> 00:00:52.240
+Now a classloader has to handle that exception.
+
+15
+00:00:52.240 --> 00:00:54.540
+When we find a ClassNotFoundException,
+
+16
+00:00:54.540 --> 00:00:57.190
+our classloader will then look in the database, so we can
+
+17
+00:00:57.190 --> 00:01:00.020
+configure the classloader with a connection string that
+
+18
+00:01:00.020 --> 00:01:02.160
+points to the database we want to use,
+
+19
+00:01:02.160 --> 00:01:03.930
+and then the classloader will use a particular
+
+20
+00:01:03.930 --> 00:01:07.350
+structural database, a specific table,
+
+21
+00:01:07.350 --> 00:01:11.360
+and that table will contain the actual bytes that make up the class, so we load
+
+22
+00:01:11.360 --> 00:01:16.830
+in those bytes into memory. Once we load the bytes into memory, we then use the
+
+23
+00:01:16.830 --> 00:01:21.230
+built‑in ClassLoader class's defineClass method.
+
+24
+00:01:21.230 --> 00:01:25.020
+So we pass the defineClass a byte array, and that byte array
+
+25
+00:01:25.020 --> 00:01:29.440
+contains the byte code of the class that we are trying to define.
+
+26
+00:01:29.440 --> 00:01:32.140
+The example we create will use SQL Server.
+
+27
+00:01:32.140 --> 00:01:37.200
+I'll provide scripts as part of the code to allow you to insert a class file
+
+28
+00:01:37.200 --> 00:01:40.870
+into the database and to show you the actual command line that we need to run
+
+29
+00:01:40.870 --> 00:01:44.340
+the Java application if you are using SQL Server.
+
+30
+00:01:44.340 --> 00:01:48.900
+So the code we have here is similar to the code from the previous demonstration,
+
+31
+00:01:48.900 --> 00:01:52.940
+except that now we have our own SQL Server classloader,
+
+32
+00:01:52.940 --> 00:01:58.360
+to which we pass a connection string, and that's going to load the class for me.
+
+33
+00:01:58.360 --> 00:01:59.000
+And in this case,
+
+34
+00:01:59.000 --> 00:02:01.760
+we're asking it for a class by name, so we're asking it for this
+
+35
+00:02:01.760 --> 00:02:06.280
+com.pluralsight.Quote class. And then once that class has being loaded,
+
+36
+00:02:06.280 --> 00:02:10.140
+we create a newInstance and cast that to the IQuote
+
+37
+00:02:10.140 --> 00:02:11.760
+and then print out getQuote again.
+
+38
+00:02:11.760 --> 00:02:16.870
+This class is loaded into SQL Server, and here's the table.
+
+39
+00:02:16.870 --> 00:02:19.820
+We have a table called Classes inside a database called
+
+40
+00:02:19.820 --> 00:02:22.600
+ClassLoading, and this is the actual class file in the
+
+41
+00:02:22.600 --> 00:02:25.400
+table, and that starts with 0xCAFEBABE,
+
+42
+00:02:25.400 --> 00:02:28.770
+which is a signature that's the start of all Java class files, and
+
+43
+00:02:28.770 --> 00:02:31.860
+the name we give it here is com.pluralsight.Quote.
+
+44
+00:02:31.860 --> 00:02:36.100
+In this demonstration, we'll write the SQL Server classloader, so
+
+45
+00:02:36.100 --> 00:02:39.840
+the code is here. So we'll start with a base class,
+
+46
+00:02:39.840 --> 00:02:43.240
+SqlServerClassLoader, that extends classloader.
+
+47
+00:02:43.240 --> 00:02:44.810
+And this has a couple constructors,
+
+48
+00:02:44.810 --> 00:02:50.020
+one to which we can pass the parent class loader and the connection string or
+
+49
+00:02:50.020 --> 00:02:53.640
+one to which we simply pass the connection string, this thing called
+
+50
+00:02:53.640 --> 00:02:58.710
+ClassLoader.getSystemClassLoader to set the parent classloader,
+
+51
+00:02:58.710 --> 00:03:00.950
+and it's this classloader that we'll delegate to.
+
+52
+00:03:00.950 --> 00:03:06.670
+So we'll need a method to get the binary data from the database,
+
+53
+00:03:06.670 --> 00:03:09.570
+and that method is a JDBC method.
+
+54
+00:03:09.570 --> 00:03:12.740
+I won't go into details here, but we create a connection.
+
+55
+00:03:12.740 --> 00:03:18.840
+We create a prepared statement to get the class data from the classes table
+
+56
+00:03:18.840 --> 00:03:23.230
+with a specific class name when we load that data as a blob,
+
+57
+00:03:23.230 --> 00:03:25.380
+so as a binary large object on.
+
+58
+00:03:25.380 --> 00:03:26.640
+And then take that blob,
+
+59
+00:03:26.640 --> 00:03:29.720
+extract the bytes from it, and save this into a byte array,
+
+60
+00:03:29.720 --> 00:03:32.340
+and return that byte array to the caller.
+
+61
+00:03:32.340 --> 00:03:34.320
+So to make this our classloader,
+
+62
+00:03:34.320 --> 00:03:38.380
+we need to override the findClass method. So findClass takes
+
+63
+00:03:38.380 --> 00:03:42.820
+the name of the class and returns a class object, so it
+
+64
+00:03:42.820 --> 00:03:45.440
+returns something of type Class.
+
+65
+00:03:45.440 --> 00:03:48.890
+This method will call loadClassFromDatabase, and if
+
+66
+00:03:48.890 --> 00:03:52.200
+you can find the class from there, then return that class.
+
+67
+00:03:52.200 --> 00:03:55.330
+Remember that the first thing this method does is delegate to its
+
+68
+00:03:55.330 --> 00:03:59.740
+parents, so we'll call our parent.loadClass method.
+
+69
+00:03:59.740 --> 00:04:05.210
+If that fails to load the class, then that will throw a ClassNotFoundException.
+
+70
+00:04:05.210 --> 00:04:10.130
+And from here, we need to return the class that's being loaded.
+
+71
+00:04:10.130 --> 00:04:12.710
+So if we get a ClassNotFoundException,
+
+72
+00:04:12.710 --> 00:04:18.040
+it's now down to s to try and load the class. We need to make two method calls.
+
+73
+00:04:18.040 --> 00:04:23.440
+We'll call loadClassFromDatabase, passing in the name of the class.
+
+74
+00:04:23.440 --> 00:04:24.670
+If that succeeds,
+
+75
+00:04:24.670 --> 00:04:27.160
+that will return as a byte array, and then we can
+
+76
+00:04:27.160 --> 00:04:30.120
+call defineClass on that byte array.
+
+77
+00:04:30.120 --> 00:04:33.000
+We need to wrap these in a try catch.
+
+78
+00:04:33.000 --> 00:04:36.000
+And if we catch SQLException,
+
+79
+00:04:36.000 --> 00:04:39.390
+then throw a new ClassNotFoundException, passing in the
+
+80
+00:04:39.390 --> 00:04:41.950
+SQLException that caused the error in the first place.
+
+81
+00:04:41.950 --> 00:04:43.550
+And with that code in place,
+
+82
+00:04:43.550 --> 00:04:46.270
+we should now be able to load a class from the database.
+
+83
+00:04:46.270 --> 00:04:50.140
+The code for running this app is slightly more complex than normal.
+
+84
+00:04:50.140 --> 00:04:55.220
+We have to specify a Java library path here that points at the
+
+85
+00:04:55.220 --> 00:05:00.310
+DLL that SQL Server JDBC driver uses to provide authentication
+
+86
+00:05:00.310 --> 00:05:05.550
+when we have to specify, as part of our classpath, the path to
+
+87
+00:05:05.550 --> 00:05:07.540
+the SQL Server JDBC driver.
+
+88
+00:05:07.540 --> 00:05:08.760
+Apart from that, it's the same.
+
+89
+00:05:08.760 --> 00:05:12.740
+We have the Interfaces.jar, we have a client library that contains the
+
+90
+00:05:12.740 --> 00:05:17.290
+quote interface, and then we'll run com.mantiso.Main.
+
+91
+00:05:17.290 --> 00:05:20.340
+So from a command prompt, if I simply do run,
+
+92
+00:05:20.340 --> 00:05:21.550
+run the application,
+
+93
+00:05:21.550 --> 00:05:26.090
+which will load the Quote class from the database, cast it to be of type IQuote,
+
+94
+00:05:26.090 --> 00:05:29.500
+call getMessage, and print the message on the screen. To hopefully
+
+95
+00:05:29.500 --> 00:05:32.970
+prove that this is doing the correct thing, let's change the name of
+
+96
+00:05:32.970 --> 00:05:37.870
+the class here from com.pluralsight.Quote to com.pluralsight.Quota,
+
+97
+00:05:37.870 --> 00:05:39.570
+again, build the application.
+
+98
+00:05:39.570 --> 00:05:43.790
+So if we run the code again, we now end up with a ClassNotFoundException here.
+
+99
+00:05:43.790 --> 00:05:46.110
+And this is coming from the loadClassFromDatabase call, so
+
+100
+00:05:46.110 --> 00:05:54.000
+loadClassFromDatabase can't find the class. That that throws the ClassNotFoundException, and that's bubbled back up into our code.
+

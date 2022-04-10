@@ -1,0 +1,640 @@
+WEBVTT
+1
+00:00:02.490 --> 00:00:07.480
+With our code improvements out of the way, let's dive back into some internals of Flutter,
+
+2
+00:00:07.650 --> 00:00:13.130
+though this time internals you can actively take advantage of or which you will need from time to time
+
+3
+00:00:13.230 --> 00:00:15.370
+and that's the lifecycle of a widget.
+
+4
+00:00:15.370 --> 00:00:16.670
+Now what's that?
+
+5
+00:00:16.710 --> 00:00:21.980
+Now we'll actually have a different lifecycle for the different types of widgets we have. For a stateless widget,
+
+6
+00:00:21.990 --> 00:00:24.980
+the lifecycle essentially is that it's created
+
+7
+00:00:25.050 --> 00:00:30.060
+and of course as you learned, widgets are recreated multiple times when the build method of their parent
+
+8
+00:00:30.060 --> 00:00:34.890
+widget is called and that means the constructor is executed and then the build method is executed,
+
+9
+00:00:34.890 --> 00:00:38.290
+that's what you already learned. For stateful widgets,
+
+10
+00:00:38.310 --> 00:00:44.430
+we also have the constructor function being called but then there, we also have create state being
+
+11
+00:00:44.430 --> 00:00:46.500
+called to create that state object
+
+12
+00:00:46.560 --> 00:00:48.930
+and that's now where the interesting part begins.
+
+13
+00:00:48.930 --> 00:00:55.590
+Inside of that state object, you can add an initState method which will be called automatically,
+
+14
+00:00:55.590 --> 00:01:00.990
+so that's a reserved method name for a method that is executed automatically by Flutter when the state
+
+15
+00:01:01.050 --> 00:01:03.550
+object is created for the first time
+
+16
+00:01:03.660 --> 00:01:07.260
+and remember that the state object is managed independently of the widget,
+
+17
+00:01:07.320 --> 00:01:11.100
+so when the widget is rebuilt, initState will not run again,
+
+18
+00:01:11.100 --> 00:01:14.770
+it only runs when the state is created for the first time.
+
+19
+00:01:14.790 --> 00:01:22.080
+Thereafter, we have the build method which executes. Now you can always call set state to update the widget
+
+20
+00:01:22.080 --> 00:01:23.410
+and rebuild it
+
+21
+00:01:23.610 --> 00:01:31.170
+and in that case or when the widget is rebuilt because its parent widget build method was called, in
+
+22
+00:01:31.170 --> 00:01:36.740
+which case all child widgets are rebuilt as you learned, then didUpdateWidget executes.
+
+23
+00:01:36.900 --> 00:01:40.550
+So that's another method you can add in your state
+
+24
+00:01:40.560 --> 00:01:46.290
+actually, in the state object which is triggered whenever the widget that belongs to that state was updated
+
+25
+00:01:47.100 --> 00:01:50.070
+and then thereafter again, build runs.
+
+26
+00:01:50.100 --> 00:01:58.210
+Now if a widget is destroyed, so if it's removed because you rendered it conditionally and the condition now
+
+27
+00:01:58.230 --> 00:02:01.940
+is false, then dispose is called.
+
+28
+00:02:01.950 --> 00:02:07.260
+So all these special methods, initState, didUpdateWidget, dispose are all methods you can add
+
+29
+00:02:07.260 --> 00:02:14.010
+to your state object and they run when the state is created, when the attached widget changed or when
+
+30
+00:02:14.010 --> 00:02:18.650
+the state object is cleared, is removed, which happens when the widget is removed.
+
+31
+00:02:18.900 --> 00:02:20.430
+So not when the widget is rebuilt,
+
+32
+00:02:20.430 --> 00:02:25.530
+so when it's deleted and a new one is added, in that case the state would stick around
+
+33
+00:02:25.530 --> 00:02:30.510
+but if the widget is removed and is not rebuilt because again, it might have been rendered conditionally
+
+34
+00:02:30.510 --> 00:02:32.880
+and the condition now returns false.
+
+35
+00:02:33.240 --> 00:02:36.050
+Let's have a look at this in practice. Back in our code,
+
+36
+00:02:36.060 --> 00:02:43.650
+let's pick a nice widget where we can add these lifecycles and the new transaction widget isn't too
+
+37
+00:02:43.650 --> 00:02:52.180
+bad for that because it's a widget which also gets removed when we close this modal here, then when we close
+
+38
+00:02:52.420 --> 00:02:57.340
+this, this widget will be removed and therefore, this is a good candidate for implementing these different
+
+39
+00:02:57.970 --> 00:02:59.410
+lifecycle methods.
+
+40
+00:02:59.410 --> 00:03:05.170
+So as you learned, you implement them in NewTransactionState and to get a full overview of what's
+
+41
+00:03:05.170 --> 00:03:05.810
+happening,
+
+42
+00:03:05.860 --> 00:03:10.600
+let's actually start with the constructor of the widgets, not have the state but of the widget.
+
+43
+00:03:10.600 --> 00:03:19.930
+So there, we can now print constructor NewTransaction widget.
+
+44
+00:03:20.130 --> 00:03:25.950
+Now let's also print when create state is called and for that, I'll convert from a single expression
+
+45
+00:03:25.950 --> 00:03:31.620
+function here into a function with curly braces, where we can have more than one expression because of
+
+46
+00:03:31.620 --> 00:03:37.050
+course, I want to create my NewTransactionState and return it here
+
+47
+00:03:37.350 --> 00:03:40.890
+but before we do that, I also want to print create
+
+48
+00:03:43.410 --> 00:03:51.270
+state in NewTransaction widget and I also have to remove the semicolon after the constructor.
+
+49
+00:03:51.270 --> 00:03:52.890
+So now we have print statements in the widget,
+
+50
+00:03:52.890 --> 00:03:54.720
+let's now go to the state.
+
+51
+00:03:54.960 --> 00:03:57.260
+There, we can add a constructor,
+
+52
+00:03:57.270 --> 00:03:59.910
+we don't need it here but we can add it of course.
+
+53
+00:03:59.940 --> 00:04:05.880
+So let's add the constructor by repeating the name of the class, which is
+
+54
+00:04:05.880 --> 00:04:06.730
+_NewTransactionState
+
+55
+00:04:06.750 --> 00:04:12.430
+and here we can print constructor NewTransaction State.
+
+56
+00:04:12.450 --> 00:04:16.870
+Now you learned that there is an initState method which you can add
+
+57
+00:04:16.890 --> 00:04:23.940
+and here my IDE helps me, when I type init, I can hit enter and it adds initState. Override is added
+
+58
+00:04:23.970 --> 00:04:30.870
+because initState is implemented by the state class we're inheriting from, we're extending and if we
+
+59
+00:04:30.870 --> 00:04:35.850
+add it on our own, we add override to make it clear that this is not a mistake but that we deliberately
+
+60
+00:04:35.850 --> 00:04:41.310
+want to add our own, which means that the one in the parent class state which we're extending is not
+
+61
+00:04:41.310 --> 00:04:46.110
+called anymore but our own one is called and hence here, you also have to do something which you haven't
+
+62
+00:04:46.110 --> 00:04:46.930
+seen before,
+
+63
+00:04:47.100 --> 00:04:55.110
+we're calling super.initState. Super is a keyword in Dart which refers to the parent class. So we
+
+64
+00:04:55.110 --> 00:05:01.410
+inherit state here and that means that when the NewTransactionState is created, a state object is created
+
+65
+00:05:01.410 --> 00:05:02.310
+as well
+
+66
+00:05:02.310 --> 00:05:08.760
+and super here refers to that parent object, to that state object basically and makes sure that we also
+
+67
+00:05:08.760 --> 00:05:14.010
+call initState there, so that not just our own initState function runs but also the one that
+
+68
+00:05:14.010 --> 00:05:21.380
+was built into the state. Now before that is called however, you can do your own initialization and often,
+
+69
+00:05:21.380 --> 00:05:27.080
+that is for example used to make a HTTP request and load some data from a server or load some data
+
+70
+00:05:27.110 --> 00:05:27.920
+from a database,
+
+71
+00:05:27.920 --> 00:05:28.960
+anything like that.
+
+72
+00:05:29.030 --> 00:05:35.280
+It's also something we'll do later in the course once we reach the HTTP module. For now, all
+
+73
+00:05:35.280 --> 00:05:42.620
+I will do here is I will print initState, just like this, so that we can see that this really executes.
+
+74
+00:05:43.430 --> 00:05:47.560
+Now it's also worth pointing out that the official docs now state that you should call 
+
+75
+00:05:47.550 --> 00:05:51.670
+super.initState first and therefore put your code after super.initState, not before it.
+
+76
+00:05:51.740 --> 00:05:55.580
+Now it won't make a difference because what happens in super.initState,
+
+77
+00:05:55.580 --> 00:06:01.730
+so initState of the parent class is very trivial and only matters for debugging, has no impact when
+
+78
+00:06:01.730 --> 00:06:05.810
+your app runs in production and you find more details about that in the next lecture.
+
+79
+00:06:05.840 --> 00:06:10.220
+In this course, I mostly call my code before super.initState and that's also what you find in
+
+80
+00:06:10.250 --> 00:06:12.620
+a lot of official examples
+
+81
+00:06:12.620 --> 00:06:17.990
+which is why I followed this practice but be aware that the official recommendation now is that you
+
+82
+00:06:17.990 --> 00:06:23.480
+call super.initState first and that's also the case for other lifecycle hooks I'll show later. When you
+
+83
+00:06:23.480 --> 00:06:26.840
+called super.something, call that first and have your code
+
+84
+00:06:26.900 --> 00:06:33.290
+after that. However, it actually won't make a difference, there is no code running in these super methods
+
+85
+00:06:33.520 --> 00:06:36.140
+that would not work or run differently
+
+86
+00:06:36.140 --> 00:06:38.090
+if you run your code first, that's really important.
+
+87
+00:06:39.300 --> 00:06:45.240
+Now I also mentioned that there is another method, didUpdateWidget. We can add this as well.
+
+88
+00:06:45.240 --> 00:06:48.930
+Now again, this is a method which also exists in the parent class,
+
+89
+00:06:48.930 --> 00:06:55.180
+we override it deliberately and just as with initState, we have to call the method in the parent class.
+
+90
+00:06:55.170 --> 00:07:01.320
+Important, you get an argument here and that is the previous widget that was attached to this state.
+
+91
+00:07:01.410 --> 00:07:07.290
+As I mentioned, this gets called when the widget that is attached to the state changes and then Flutter actually
+
+92
+00:07:07.290 --> 00:07:08.800
+gives you the old widget
+
+93
+00:07:08.850 --> 00:07:14.910
+so that you for example could compare it to the new widget because remember, you have that special widget
+
+94
+00:07:14.910 --> 00:07:16.950
+property which you can use in your state,
+
+95
+00:07:16.950 --> 00:07:22.500
+it always gives you access to your related widget, to your attached widget that belongs to that state.
+
+96
+00:07:22.920 --> 00:07:26.270
+Widget will now automatically refer to the updated widget,
+
+97
+00:07:26.310 --> 00:07:32.340
+so let's say the widget updated because it received a new argument in case it took any,
+
+98
+00:07:32.430 --> 00:07:36.940
+then here you could get access to the new widget and if you wanted to compare it to the old one,
+
+99
+00:07:37.040 --> 00:07:41.640
+Flutter gives you the old one as a convenience feature here as an argument.
+
+100
+00:07:41.640 --> 00:07:49.910
+In my case here, I only want to print didUpdateWidget though, to see when this runs. Now last but not
+
+101
+00:07:49.910 --> 00:07:56.840
+least, the state also can get removed at some point of time and for that, we can add dispose here.
+
+102
+00:07:56.840 --> 00:07:58.620
+Again we override a built-in method,
+
+103
+00:07:58.640 --> 00:08:05.690
+we have to call it on the parent class and then here, we can print dispose. With that,
+
+104
+00:08:05.700 --> 00:08:10.800
+let's refresh the entire app here and let's see what we get. Clear
+
+105
+00:08:10.810 --> 00:08:13.290
+the debug log so that we can clearly see everything
+
+106
+00:08:13.290 --> 00:08:15.820
+and now let's open that bottom sheet.
+
+107
+00:08:15.820 --> 00:08:21.550
+It comes up and if we now go back, we see what happens is that the constructor of the new transaction
+
+108
+00:08:21.550 --> 00:08:27.070
+widget is called, which makes sense because the new transaction widget is part of this modal sheet and
+
+109
+00:08:27.070 --> 00:08:32.020
+therefore this is created. Then create state is called, 
+
+110
+00:08:32.030 --> 00:08:36.390
+that also make sense because that is what Flutter does for stateful widgets when it creates
+
+111
+00:08:36.390 --> 00:08:42.540
+the widgets. In that state, the constructor is therefore called, makes sense because we're creating our
+
+112
+00:08:42.540 --> 00:08:47.000
+own instance of our state class here and we're calling the constructor here ourselves,
+
+113
+00:08:47.010 --> 00:08:52.710
+hence of course we see the log here and then thereafter, you see initState is called, that's done
+
+114
+00:08:52.710 --> 00:08:54.060
+by Flutter
+
+115
+00:08:54.060 --> 00:08:59.490
+and now what you also see here, the constructor of new transaction was called again.
+
+116
+00:08:59.490 --> 00:09:05.340
+Now that does not happen because we're using a stateful widget here or anything like that, that simply
+
+117
+00:09:05.340 --> 00:09:07.400
+is it behavior Flutter has here
+
+118
+00:09:08.250 --> 00:09:10.660
+for this modal bottom sheet.
+
+119
+00:09:10.970 --> 00:09:12.170
+It does call
+
+120
+00:09:15.020 --> 00:09:21.290
+this builder function here in showModalBottomSheet, this function which returns a new transaction,
+
+121
+00:09:21.320 --> 00:09:25.600
+it simply call this builder function more than once.
+
+122
+00:09:25.610 --> 00:09:32.120
+Now the good thing about this, indeed a bit of weird behavior, is that it shows us that the constructor
+
+123
+00:09:32.120 --> 00:09:36.710
+of new transactions is called again because if this builder function here runs again, all these widgets
+
+124
+00:09:36.710 --> 00:09:37.670
+get created again,
+
+125
+00:09:37.670 --> 00:09:39.660
+so new transaction gets created again
+
+126
+00:09:39.710 --> 00:09:45.020
+but what we see now also is that create state is not called again and therefore, the constructor of the
+
+127
+00:09:45.020 --> 00:09:47.390
+state and initState is not called again
+
+128
+00:09:47.400 --> 00:09:52.760
+because, what I mentioned, the state is managed as a separate object and when the widget rebuilds, the
+
+129
+00:09:52.760 --> 00:09:55.240
+state is not recreated automatically,
+
+130
+00:09:55.250 --> 00:10:01.280
+instead it sticks around and simply the reference of the element, which manages the state, is updated
+
+131
+00:10:01.280 --> 00:10:05.600
+to point at the new widget. What is called however is didUpdateWidget,
+
+132
+00:10:05.600 --> 00:10:09.220
+this is called because our widget updated, the connected widget,
+
+133
+00:10:09.230 --> 00:10:15.170
+the new transaction widget was replaced with a new one because of the duplicate call in showModalBottomSheet
+
+134
+00:10:15.170 --> 00:10:22.340
+and therefore we get didUpdateWidget executed because the widget attached to the state was replaced
+
+135
+00:10:22.550 --> 00:10:27.860
+and that's why this is a convenient example because of this strange showModalBottomSheet behavior,
+
+136
+00:10:28.130 --> 00:10:32.280
+we actually see both initState and didUpdateWidget.
+
+137
+00:10:32.290 --> 00:10:39.070
+Now when I close this by clicking somewhere on the backdrop, you now see showModalBottomSheet really
+
+138
+00:10:39.070 --> 00:10:46.480
+goes into a frenzy and recreates this widget a couple of times, probably because of the animation it's
+
+139
+00:10:46.480 --> 00:10:52.780
+playing, this slide down animation which also uses a stateful widget behind the scenes, one built into
+
+140
+00:10:52.780 --> 00:10:58.870
+Flutter to update this. It recreates the new transaction widget a couple of times, as you see this triggers
+
+141
+00:10:58.870 --> 00:11:04.900
+didUpdateWidget but then in the end, you see dispose is called because in the end, once the animation
+
+142
+00:11:04.900 --> 00:11:10.780
+finished playing, this widget is gone and it's not on the screen anymore and therefore the element and
+
+143
+00:11:10.780 --> 00:11:15.340
+the render object is removed because that needs to be removed, you don't want to see it on the screen
+
+144
+00:11:15.340 --> 00:11:20.740
+anymore and hence dispose is called because when the element is cleared, the state object is cleared
+
+145
+00:11:20.830 --> 00:11:29.670
+as well and therefore removed. Now that is the lifecycle of widgets and most importantly, of state.
+
+146
+00:11:29.740 --> 00:11:36.520
+Now when would you use that? As I said, initState is often used for fetching some initial data you
+
+147
+00:11:36.520 --> 00:11:43.630
+need in your app or in a widget of your app. didUpdateWidget is probably used way less often, you could
+
+148
+00:11:43.630 --> 00:11:50.350
+use it if you know something changed in your parent widget and you need to refetch data in your state.
+
+149
+00:11:50.350 --> 00:11:55.570
+So if you're fetching data from a database and you received a new ID in your widget which is attached
+
+150
+00:11:55.570 --> 00:12:01.790
+to the state and for that ID, you want to fetch new data, you could do this here in didUpdateWidget
+
+151
+00:12:02.380 --> 00:12:09.910
+with the information that you have and the new ID and dispose is great for cleaning up data.
+
+152
+00:12:10.350 --> 00:12:16.930
+Let's say you have a listener to a real time Internet connection which sends you new messages because
+
+153
+00:12:16.930 --> 00:12:23.830
+you're building a chat application or anything like that, then you want to clean up this connection to your
+
+154
+00:12:23.830 --> 00:12:30.130
+server here when your widget is removed, so that you don't have that ongoing connection in memory even
+
+155
+00:12:30.130 --> 00:12:31.480
+though you have no widget anymore,
+
+156
+00:12:31.480 --> 00:12:35.140
+this will lead to strange bugs and also to memory leaks.
+
+157
+00:12:35.170 --> 00:12:42.640
+So cleaning up listeners or life connections, that is something you would often do in dispose and that's
+
+158
+00:12:42.640 --> 00:12:49.630
+it for the widget lifecycle. For now, we'll not use too many of these methods but later, we'll definitely
+
+159
+00:12:49.630 --> 00:12:50.800
+need initState
+
+160
+00:12:50.830 --> 00:12:53.050
+once we start interacting with web servers.

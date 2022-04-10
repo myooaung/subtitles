@@ -1,0 +1,205 @@
+WEBVTT
+1
+00:00:02.332 --> 00:00:06.779
+Let's configure our pricing service to only allow access to
+
+2
+00:00:06.779 --> 00:00:09.722
+authorized clients with the pricing scope.
+
+3
+00:00:09.722 --> 00:00:15.548
+If we look at how Spring Boot configured our resource server in
+
+4
+00:00:15.548 --> 00:00:19.945
+the OAuth2ResourceServerAutoConfiguration class,
+
+5
+00:00:19.945 --> 00:00:25.149
+which used the OAuth2ResourceServerWebSecurity Configuration,
+
+6
+00:00:25.149 --> 00:00:29.663
+by default it's all requests should be authenticated
+
+7
+00:00:29.663 --> 00:00:32.971
+by a resource server using JWT.
+
+8
+00:00:32.971 --> 00:00:34.974
+Let's override it.
+
+9
+00:00:34.974 --> 00:00:35.897
+To do that,
+
+10
+00:00:35.897 --> 00:00:39.643
+we need to create our own config class that extends
+
+11
+00:00:39.643 --> 00:00:43.008
+the WebSecurityConfigurerAdapter,
+
+12
+00:00:43.008 --> 00:00:45.787
+you're probably already very familiar with this class,
+
+13
+00:00:45.787 --> 00:00:52.270
+and override the configure method is the HttpSecurity builder.
+
+14
+00:00:52.270 --> 00:01:01.666
+Configure it to authorize any requests that have the authority SCOPE_pricing.
+
+15
+00:01:01.666 --> 00:01:02.550
+If you recall,
+
+16
+00:01:02.550 --> 00:01:06.367
+all scopes are added to the granted authorities by
+
+17
+00:01:06.367 --> 00:01:11.877
+Spring by default with a capital SCOPE_.
+
+18
+00:01:11.877 --> 00:01:15.957
+And enable ResourceServer with JWT.
+
+19
+00:01:15.957 --> 00:01:20.702
+Now only the tokens created by the portfolio service via the
+
+20
+00:01:20.702 --> 00:01:25.076
+client credentials grant will have the pricing scope and
+
+21
+00:01:25.076 --> 00:01:28.529
+therefore have access to the pricing service.
+
+22
+00:01:28.529 --> 00:01:32.550
+In our portfolio client's MVC web app,
+
+23
+00:01:32.550 --> 00:01:38.730
+let's go through some of the more complex URI authorizations.
+
+24
+00:01:38.730 --> 00:01:44.547
+Here we are using an mvcMatcher to be more specific.
+
+25
+00:01:44.547 --> 00:01:48.561
+For the login and login-error page, we use the permitALL,
+
+26
+00:01:48.561 --> 00:01:53.818
+which will allow unauthenticated users access to these URLs
+
+27
+00:01:53.818 --> 00:01:57.121
+so that they can authenticate themselves.
+
+28
+00:01:57.121 --> 00:02:03.088
+Next, for /portfolio, which is used for the portfolio controller,
+
+29
+00:02:03.088 --> 00:02:08.168
+only authenticated users with the role USER have access.
+
+30
+00:02:08.168 --> 00:02:13.816
+For the support page, it's USERS and ADMINS.
+
+31
+00:02:13.816 --> 00:02:18.324
+Now for the admin URL that maps to the admin controller,
+
+32
+00:02:18.324 --> 00:02:26.596
+we want only clients with the approved scope of portfolio_ADMIN.
+
+33
+00:02:26.596 --> 00:02:34.550
+So we use the hasAuthority, the SCOPE_ prefix, followed by a portfolio_ADMIN.
+
+34
+00:02:34.550 --> 00:02:35.410
+In effect,
+
+35
+00:02:35.410 --> 00:02:39.310
+our React clients will never be able to generate a
+
+36
+00:02:39.310 --> 00:02:41.695
+token with the portfolio admin scope.
+
+37
+00:02:41.695 --> 00:02:42.760
+And therefore,
+
+38
+00:02:42.760 --> 00:02:49.630
+even users with the admin role will not be able to access admin features.
+
+39
+00:02:49.630 --> 00:02:52.387
+If we look at the token that will be generated for
+
+40
+00:02:52.387 --> 00:02:55.373
+Victoria via the Crypto Portfolio clients,
+
+41
+00:02:55.373 --> 00:03:00.886
+the scopes will be automatically mapped by Spring into the granted authorities,
+
+42
+00:03:00.886 --> 00:03:03.983
+but the roles won't be by default.
+
+43
+00:03:03.983 --> 00:03:10.552
+We need to instruct Spring on how to map them to the granted authorities.
+
+44
+00:03:10.552 --> 00:03:14.904
+So in the GrantedAuthoritiesMapper that we created in module 2,
+
+45
+00:03:14.904 --> 00:03:17.700
+we simply look up the roles attribute.
+
+46
+00:03:17.700 --> 00:03:20.945
+And if it contains our portfolio-admin role,
+
+47
+00:03:20.945 --> 00:03:26.220
+we add an admin role to the granted authorities.
+
+48
+00:03:26.220 --> 00:03:26.532
+Next,
+
+49
+00:03:26.532 --> 00:03:30.635
+we need to do the same authorization in our portfolio service as
+
+50
+00:03:30.635 --> 00:03:34.876
+we don't want someone to get around this authorization by going
+
+51
+00:03:34.876 --> 00:03:42.000
+directly to the portfolio service. Let's look at how to do that next.
+

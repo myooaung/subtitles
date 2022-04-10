@@ -1,0 +1,524 @@
+1
+00:00:04,143 --> 00:00:05,575
+It was a lot of code to bite off,
+
+2
+00:00:05,575 --> 00:00:09,683
+but I think it gave --- hopefully gave you a sense like the end-to-end
+
+3
+00:00:09,683 --> 00:00:12,906
+process of like migrating a database in this way.
+
+4
+00:00:12,906 --> 00:00:15,469
+So it was about half and half,
+
+5
+00:00:15,469 --> 00:00:19,356
+so what I think we'll do is actually live code this solution
+
+6
+00:00:19,356 --> 00:00:22,323
+together so we understand how to --- like all the pieces of code
+
+7
+00:00:22,323 --> 00:00:25,451
+that are necessary to make this change happen.
+
+8
+00:00:25,451 --> 00:00:29,700
+So, the first bit that you're going to want to do,
+
+9
+00:00:29,700 --> 00:00:33,247
+like if I'm going to want to update my data model,
+
+10
+00:00:33,247 --> 00:00:37,446
+the first thing I want to is generate a migration,
+
+11
+00:00:37,446 --> 00:00:44,558
+and that piece of code or that documentation I put in the chat kind of
+
+12
+00:00:44,558 --> 00:00:48,569
+takes you through how that works using Sequelize.
+
+13
+00:00:48,569 --> 00:00:51,677
+So I'm going to use the sequelize command line utility,
+
+14
+00:00:51,677 --> 00:00:56,519
+and then it has an option called migration:create,
+
+15
+00:00:56,519 --> 00:01:04,769
+and that's going to create a new migration file for me in my project.
+
+16
+00:01:04,769 --> 00:01:09,549
+So, let me close some of this stuff down.
+
+17
+00:01:09,549 --> 00:01:16,246
+Alright, so again, when we have a migration like this,
+
+18
+00:01:16,246 --> 00:01:19,534
+a migration is going to consist of two operations,
+
+19
+00:01:19,534 --> 00:01:21,885
+the up and the down operation.
+
+20
+00:01:21,885 --> 00:01:25,233
+So when I am migrating my database up,
+
+21
+00:01:25,233 --> 00:01:27,976
+when I am modifying it from its previous state,
+
+22
+00:01:27,976 --> 00:01:31,846
+all of the logic to do that is going to be within the up function,
+
+23
+00:01:31,846 --> 00:01:36,293
+and when I --- if for some reason I need to roll that database change back,
+
+24
+00:01:36,293 --> 00:01:40,943
+all the logic to do that is going to be in my down function.
+
+25
+00:01:40,943 --> 00:01:47,044
+And one of the mistakes I saw of people making was trying to like
+
+26
+00:01:47,044 --> 00:01:51,610
+recreate the table for a user within the up function,
+
+27
+00:01:51,610 --> 00:01:54,546
+adding in that Boolean field that we had before.
+
+28
+00:01:54,546 --> 00:01:56,658
+So, totally understandable why you'd think so,
+
+29
+00:01:56,658 --> 00:02:00,295
+like you want to update the definition of this model,
+
+30
+00:02:00,295 --> 00:02:04,973
+but with a database you probably already have a database full of
+
+31
+00:02:04,973 --> 00:02:07,799
+like hundreds of thousands of todos or whatever,
+
+32
+00:02:07,799 --> 00:02:13,019
+and you can't recreate that database table or you'll lose all the data.
+
+33
+00:02:13,019 --> 00:02:15,618
+So what you want to do is modify it in place,
+
+34
+00:02:15,618 --> 00:02:19,784
+and that is the role of code in a migration.
+
+35
+00:02:19,784 --> 00:02:27,292
+So in the up function I want to add a column to my existing database.
+
+36
+00:02:27,292 --> 00:02:28,786
+So the way that I do that,
+
+37
+00:02:28,786 --> 00:02:33,986
+and this is again in the documentation that I put in the chat,
+
+38
+00:02:33,986 --> 00:02:36,082
+is using queryInterface.
+
+39
+00:02:36,082 --> 00:02:36,781
+addColumn.
+
+40
+00:02:36,781 --> 00:02:39,376
+And this takes a couple of arguments.
+
+41
+00:02:39,376 --> 00:02:45,432
+The first is going to be the name of an existing table,
+
+42
+00:02:45,432 --> 00:02:48,893
+which I believe is Todos.
+
+43
+00:02:48,893 --> 00:02:55,031
+I can double check that actually in my model file.
+
+44
+00:02:55,031 --> 00:02:57,207
+Todo actually it might be called.
+
+45
+00:02:57,207 --> 00:03:01,207
+So that's going to be the name of my table,
+
+46
+00:03:01,207 --> 00:03:10,608
+and then it's going to be the name of the attribute that I want to add,
+
+47
+00:03:10,608 --> 00:03:16,631
+and in this case I'll call it completed.
+
+48
+00:03:16,631 --> 00:03:19,855
+And then finally, I need the data type that I want it to be,
+
+49
+00:03:19,855 --> 00:03:22,799
+and in this case I'm going to make it a Boolean,
+
+50
+00:03:22,799 --> 00:03:24,145
+so I'll say Sequelize.
+
+51
+00:03:24,145 --> 00:03:25,230
+BOOLEAN type.
+
+52
+00:03:25,230 --> 00:03:32,055
+So I'm going to add a column to the Todo table called completed,
+
+53
+00:03:32,055 --> 00:03:35,782
+and it's going to be of type BOOLEAN.
+
+54
+00:03:35,782 --> 00:03:40,966
+And then in the down I'm going to do something very similar.
+
+55
+00:03:40,966 --> 00:03:49,191
+So rather than add column, I'm going to remove column,
+
+56
+00:03:49,191 --> 00:03:54,214
+and the two parameters I'm going to pass in again are the
+
+57
+00:03:54,214 --> 00:03:59,873
+name of the table and then the actual --- just the name of
+
+58
+00:03:59,873 --> 00:04:03,052
+the property I want to remove.
+
+59
+00:04:03,052 --> 00:04:09,905
+So we have Todo and then the name of column.
+
+60
+00:04:09,905 --> 00:04:10,279
+Alright.
+
+61
+00:04:10,279 --> 00:04:16,500
+So, now I've got my migration logic in a place where I feel like I want it.
+
+62
+00:04:16,500 --> 00:04:18,874
+Now what I want to do is,
+
+63
+00:04:18,874 --> 00:04:22,215
+you know that timestamp that gets generated for the migration
+
+64
+00:04:22,215 --> 00:04:25,942
+is important because it lets us --- Sequelize know like which
+
+65
+00:04:25,942 --> 00:04:29,241
+migrations have actually been applied because each migration is
+
+66
+00:04:29,241 --> 00:04:32,424
+ordered chronologically, so that I don't want to touch,
+
+67
+00:04:32,424 --> 00:04:36,259
+but the second part is just for humans to make it more readable.
+
+68
+00:04:36,259 --> 00:04:44,765
+So I'm going to call this migration add-completed-column or something like that.
+
+69
+00:04:44,765 --> 00:04:48,884
+I had Todos for the table name instead of the Todo.
+
+70
+00:04:48,884 --> 00:04:49,740
+It is Todos.
+
+71
+00:04:49,740 --> 00:04:50,441
+Is it Todos?
+
+72
+00:04:50,441 --> 00:04:52,843
+If you look at your other migration, it has an s on it.
+
+73
+00:04:52,843 --> 00:04:53,395
+Oh, okay.
+
+74
+00:04:53,395 --> 00:04:56,984
+So I'm sure I would've figured that out when my code didn't run,
+
+75
+00:04:56,984 --> 00:04:58,420
+but I appreciate the heads up.
+
+76
+00:04:58,420 --> 00:05:01,473
+So, can you explain again why would the down add the column?
+
+77
+00:05:01,473 --> 00:05:03,050
+Wouldn't it remove a column?
+
+78
+00:05:03,050 --> 00:05:04,247
+Oh, I'm sorry.
+
+79
+00:05:04,247 --> 00:05:05,843
+That was another typo.
+
+80
+00:05:05,843 --> 00:05:08,636
+It was copy/paste error on my part.
+
+81
+00:05:08,636 --> 00:05:09,358
+Thank you guys.
+
+82
+00:05:09,358 --> 00:05:09,839
+Appreciate it.
+
+83
+00:05:09,839 --> 00:05:12,005
+You are helping me debug left, right, and center.
+
+84
+00:05:12,005 --> 00:05:14,087
+So yeah, the up is going to add the column,
+
+85
+00:05:14,087 --> 00:05:16,544
+and the down is going to remove the column.
+
+86
+00:05:16,544 --> 00:05:18,556
+So that is my bad.
+
+87
+00:05:18,556 --> 00:05:21,832
+That is definitely the danger doing it live.
+
+88
+00:05:21,832 --> 00:05:27,284
+So my migration is created, I've given it a human readable label,
+
+89
+00:05:27,284 --> 00:05:34,116
+and then I can head out to the command line again,
+
+90
+00:05:34,116 --> 00:05:40,414
+and I'm going to run sequelize db:migrate.
+
+91
+00:05:40,414 --> 00:05:48,662
+Do you want to be allowing null as a value for the completed
+
+92
+00:05:48,662 --> 00:05:52,398
+attribute here or does it not matter in this instance?
+
+93
+00:05:52,398 --> 00:05:55,963
+So that's a question you have to answer like based on your application logic.
+
+94
+00:05:55,963 --> 00:05:59,338
+So if it is very important that this value is not null and you
+
+95
+00:05:59,338 --> 00:06:01,946
+want to have that constraint in the database,
+
+96
+00:06:01,946 --> 00:06:05,915
+in your migration you'll also have to update all of the other
+
+97
+00:06:05,915 --> 00:06:09,797
+columns or all of the other rows in the database to have either
+
+98
+00:06:09,797 --> 00:06:11,713
+a true or false value for that.
+
+99
+00:06:11,713 --> 00:06:13,883
+So, you'd have to code that into the migration.
+
+100
+00:06:13,883 --> 00:06:15,954
+In this case, we are going to allow a null,
+
+101
+00:06:15,954 --> 00:06:18,646
+and we're not going to mutate the rest of the table,
+
+102
+00:06:18,646 --> 00:06:23,288
+but you can kind of decide based on the needs of your application.
+
+103
+00:06:23,288 --> 00:06:27,603
+That's definitely something you have to think through.
+
+104
+00:06:27,603 --> 00:06:30,109
+Alright, so I've run my migration,
+
+105
+00:06:30,109 --> 00:06:35,309
+so now if I check my database and I --- this is another little tool
+
+106
+00:06:35,309 --> 00:06:38,229
+that I use a lot when I'm using Postgres locally,
+
+107
+00:06:38,229 --> 00:06:44,763
+it's called Postico, I don't know what exactly it's suppose to be called,
+
+108
+00:06:44,763 --> 00:06:51,417
+but it's a nice Mac GUI over my database,
+
+109
+00:06:51,417 --> 00:06:58,984
+and it lets me sort of take a look at the current status of my database.
+
+110
+00:06:58,984 --> 00:07:03,734
+And I think actually my database configuration might still be --- yeah,
+
+111
+00:07:03,734 --> 00:07:07,402
+it's actually set up to go to this other thing.
+
+112
+00:07:07,402 --> 00:07:13,477
+So I'm just going to delete that because I don't care about that,
+
+113
+00:07:13,477 --> 00:07:20,900
+and I'll run my migration again, and this will actually target my local database.
+
+114
+00:07:20,900 --> 00:07:26,027
+And I'll hit Refresh, and now I have my completed column,
+
+115
+00:07:26,027 --> 00:07:31,027
+but it's null because I didn't do any mutation of the existing data.
+
+116
+00:07:31,027 --> 00:07:32,573
+So now my database is in a good state.
+
+117
+00:07:32,573 --> 00:07:38,512
+Now I need to update my model to reflect this new value.
+
+118
+00:07:38,512 --> 00:07:41,633
+I missed the command for the update database.
+
+119
+00:07:41,633 --> 00:07:43,734
+What was that again?
+
+120
+00:07:43,734 --> 00:07:44,907
+It was sequelize db:migrate.
+
+121
+00:07:44,907 --> 00:07:48,853
+It was the same command that you ran to run the first migration initially,
+
+122
+00:07:48,853 --> 00:07:52,479
+but now it's going to pick up that there's a new migration
+
+123
+00:07:52,479 --> 00:07:55,547
+that it needs to run against the database.
+
+124
+00:07:55,547 --> 00:07:57,734
+Or npm run migrate.
+
+125
+00:07:57,734 --> 00:07:58,120
+Exactly.
+
+126
+00:07:58,120 --> 00:08:00,822
+We added that feature in earlier today.
+
+127
+00:08:00,822 --> 00:08:01,838
+Good point.
+
+128
+00:08:01,838 --> 00:08:07,935
+So, we run the migrations, and now we have this new column.
+
+129
+00:08:07,935 --> 00:08:12,287
+Now we need to update our model declaration in JavaScript to be aware of
+
+130
+00:08:12,287 --> 00:08:16,284
+this new property to make this property persistent.
+
+131
+00:08:16,284 --> 00:08:27,000
+So we'll add a completed attribute to the model, which again is going to be of type BOOLEAN.
+

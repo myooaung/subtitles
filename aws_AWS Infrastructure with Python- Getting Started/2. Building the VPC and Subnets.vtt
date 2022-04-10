@@ -1,0 +1,513 @@
+WEBVTT
+1
+00:00:01.240 --> 00:00:08.960
+So in this demo, we're first going to use the VPC construct to create a VPC.
+
+2
+00:00:08.960 --> 00:00:16.040
+We'll then create custom network ACLs in that VPC.
+
+3
+00:00:16.040 --> 00:00:21.360
+Thirdly, we're going to connect the VPC stack and the containers back together.
+
+4
+00:00:21.360 --> 00:00:27.340
+We'll also see how CDK handles those dependencies.
+
+5
+00:00:27.340 --> 00:00:31.040
+So now, we're back here at our development environment,
+
+6
+00:00:31.040 --> 00:00:33.670
+which you should all know very well by now,
+
+7
+00:00:33.670 --> 00:00:38.940
+and we're going to do the same thing we did with our ecs_stack.
+
+8
+00:00:38.940 --> 00:00:45.840
+We are going to first duplicate our lambda_stack,
+
+9
+00:00:45.840 --> 00:00:51.140
+and we're going to rename this lambda_stack as network_stack.
+
+10
+00:00:51.140 --> 00:01:00.340
+This network_stack will hold all of our network constructs for this application.
+
+11
+00:01:00.340 --> 00:01:04.210
+We're going to rename the class as NetworkStack,
+
+12
+00:01:04.210 --> 00:01:05.870
+and as usual,
+
+13
+00:01:05.870 --> 00:01:10.980
+we're going to get rid of all of the Lambda code and get rid of the
+
+14
+00:01:10.980 --> 00:01:15.300
+Lamda dependencies that we imported because we will not be needing
+
+15
+00:01:15.300 --> 00:01:18.630
+these dependencies for the networking stack.
+
+16
+00:01:18.630 --> 00:01:24.330
+The only dependency that the network_stack actually needs is EC2,
+
+17
+00:01:24.330 --> 00:01:30.840
+so we're going to import the aws_ec2 library as ec2.
+
+18
+00:01:30.840 --> 00:01:35.540
+We'll also edit the setup.py file,
+
+19
+00:01:35.540 --> 00:01:41.040
+and we're going to add ec2 to the setup.py file.
+
+20
+00:01:41.040 --> 00:01:42.850
+So similar to what we did before,
+
+21
+00:01:42.850 --> 00:01:47.400
+I'll just copy this dependency and replace the library that
+
+22
+00:01:47.400 --> 00:01:53.940
+we're going to be requiring to aws_ec2.
+
+23
+00:01:53.940 --> 00:01:54.690
+Afterwards,
+
+24
+00:01:54.690 --> 00:02:00.130
+we can just install these libraries as usual and have the
+
+25
+00:02:00.130 --> 00:02:05.240
+dependencies added into our Python virtual environment.
+
+26
+00:02:05.240 --> 00:02:06.700
+Just so you know,
+
+27
+00:02:06.700 --> 00:02:11.720
+these dependencies are not actually added to the requirements.text file.
+
+28
+00:02:11.720 --> 00:02:16.370
+They fully depend on setup.py for the list of
+
+29
+00:02:16.370 --> 00:02:21.140
+dependencies or to enumerate these dependencies.
+
+30
+00:02:21.140 --> 00:02:28.140
+Now, we will also be specifying arguments that are not here by default.
+
+31
+00:02:28.140 --> 00:02:33.500
+As we are creating a network stack, we may require more inputs,
+
+32
+00:02:33.500 --> 00:02:40.110
+or more user provided options, that can help us with the network stack specifics,
+
+33
+00:02:40.110 --> 00:02:45.340
+so we're going to add custom arguments to this constructor.
+
+34
+00:02:45.340 --> 00:02:52.340
+First off, we're going to add cidr as our custom argument,
+
+35
+00:02:52.340 --> 00:02:56.380
+and we're going to pass a default value to this.
+
+36
+00:02:56.380 --> 00:03:01.940
+I'm just going to make it 10.10.0.0/16.
+
+37
+00:03:01.940 --> 00:03:05.870
+Next customer argument that I'm going to pass is the subnet_mask,
+
+38
+00:03:05.870 --> 00:03:12.940
+and I'm just going to change this to a default value of 24.
+
+39
+00:03:12.940 --> 00:03:17.740
+Third, we're going to specify how many NAT gateways we're going to provision.
+
+40
+00:03:17.740 --> 00:03:24.640
+In this case, I'll just say 1 nat_gateways because they are quite expensive.
+
+41
+00:03:24.640 --> 00:03:25.490
+Next,
+
+42
+00:03:25.490 --> 00:03:32.960
+our last argument is the database port that we want to
+
+43
+00:03:32.960 --> 00:03:36.830
+possibly add to our network access control list,
+
+44
+00:03:36.830 --> 00:03:39.450
+so we'll add a db_port argument,
+
+45
+00:03:39.450 --> 00:03:44.740
+and I'm going to put 5432 as the default db_port.
+
+46
+00:03:44.740 --> 00:03:50.540
+That is actually the default db_port of postgres.
+
+47
+00:03:50.540 --> 00:03:55.460
+So our constructor can now access all of the arguments
+
+48
+00:03:55.460 --> 00:03:58.540
+that we specified in the function.
+
+49
+00:03:58.540 --> 00:04:02.140
+Now, let's actually write our VPC code.
+
+50
+00:04:02.140 --> 00:04:08.840
+So I'm going to create a resource here called vpc,
+
+51
+00:04:08.840 --> 00:04:12.460
+and I'm going to assign it to this class so that it's
+
+52
+00:04:12.460 --> 00:04:15.130
+accessible from outside the class.
+
+53
+00:04:15.130 --> 00:04:20.440
+We'll talk about how that's done later or why we're doing that later.
+
+54
+00:04:20.440 --> 00:04:24.140
+So I'm creating an ec2.vpc resource.
+
+55
+00:04:24.140 --> 00:04:30.230
+As usual, I'm passing in the stack itself and the label for that VPC resource,
+
+56
+00:04:30.230 --> 00:04:33.340
+and I'm just calling it VPC.
+
+57
+00:04:33.340 --> 00:04:40.640
+Now, the VPC resource can have several arguments in CDK.
+
+58
+00:04:40.640 --> 00:04:47.840
+CDK actually has very nice tools that can help you provision VPCs more easily.
+
+59
+00:04:47.840 --> 00:04:53.240
+So first, we're going to have to pass in an argument to max_azs.
+
+60
+00:04:53.240 --> 00:04:57.160
+Max_azs allows you to specify what the maximum
+
+61
+00:04:57.160 --> 00:05:01.840
+number of AZs your VPC will exist in.
+
+62
+00:05:01.840 --> 00:05:09.540
+So, for example, if I specify 2, it means that if I am in a region with 3 AZs,
+
+63
+00:05:09.540 --> 00:05:16.240
+my VPC will only create subnets in 2 of these availability zones.
+
+64
+00:05:16.240 --> 00:05:22.240
+In this case, we're actually going to specify a max_azs value of 6.
+
+65
+00:05:22.240 --> 00:05:27.460
+This is because the North Virginia region has the most number of
+
+66
+00:05:27.460 --> 00:05:33.340
+availability zones and has six availability zones.
+
+67
+00:05:33.340 --> 00:05:38.310
+This will always assure us that we're going to create one
+
+68
+00:05:38.310 --> 00:05:46.340
+subnet for every AZ in a particular region.
+
+69
+00:05:46.340 --> 00:05:49.390
+Next, we're going to specify the cidr value,
+
+70
+00:05:49.390 --> 00:05:53.850
+and we're going to take the input from our constructor
+
+71
+00:05:53.850 --> 00:05:58.040
+as the value for this parameter.
+
+72
+00:05:58.040 --> 00:06:00.840
+Next, we'll specify nat_gateways.
+
+73
+00:06:00.840 --> 00:06:09.240
+You can actually specify how many nat_gateways you want to exist in this VPC.
+
+74
+00:06:09.240 --> 00:06:15.540
+In this case, we're going to pass in the nat_gateways parameter as well.
+
+75
+00:06:15.540 --> 00:06:19.740
+Next, we're going to specify the subnet_configuration.
+
+76
+00:06:19.740 --> 00:06:19.910
+Now,
+
+77
+00:06:19.910 --> 00:06:24.360
+the subnet_configuration is an array of the different
+
+78
+00:06:24.360 --> 00:06:28.740
+subnets you're going to create on this VPC.
+
+79
+00:06:28.740 --> 00:06:36.040
+This array should contain elements that are of type subnet_configuration.
+
+80
+00:06:36.040 --> 00:06:40.260
+We're going to be creating three types of subnets,
+
+81
+00:06:40.260 --> 00:06:44.320
+so we will need three subnet_configurations.
+
+82
+00:06:44.320 --> 00:06:50.990
+The first configuration we're going to pass is the public subnets.
+
+83
+00:06:50.990 --> 00:06:57.840
+So we're going to say ec2.SubnetConfiguration,
+
+84
+00:06:57.840 --> 00:07:03.840
+and we're going to specify what our first subnet_configuration is going to be.
+
+85
+00:07:03.840 --> 00:07:09.120
+So this SubnetConfiguration class takes in three arguments,
+
+86
+00:07:09.120 --> 00:07:15.240
+first, the subnet_type, second, the name of the subnet,
+
+87
+00:07:15.240 --> 00:07:21.740
+and third, the subnet_mask or cidr_mask for this subnet.
+
+88
+00:07:21.740 --> 00:07:28.040
+Now, what are the values of these parameters going to be?
+
+89
+00:07:28.040 --> 00:07:31.310
+First, the subnet type, like I mentioned earlier,
+
+90
+00:07:31.310 --> 00:07:34.530
+is going to be a public subnet,
+
+91
+00:07:34.530 --> 00:07:37.870
+and there is a constant for that that we have to use.
+
+92
+00:07:37.870 --> 00:07:42.340
+That is ec2.SubnetType.PUBLIC.
+
+93
+00:07:42.340 --> 00:07:47.940
+Secondly, we're just going to name this subnet Public.
+
+94
+00:07:47.940 --> 00:07:48.640
+Third,
+
+95
+00:07:48.640 --> 00:07:53.750
+we're going to pass in the subnet_mask that we took
+
+96
+00:07:53.750 --> 00:07:57.340
+from the argument in the constructor.
+
+97
+00:07:57.340 --> 00:07:57.560
+Now,
+
+98
+00:07:57.560 --> 00:08:00.950
+what this means right now is that it's going to
+
+99
+00:08:00.950 --> 00:08:05.630
+create a maximum of 6 public subnets,
+
+100
+00:08:05.630 --> 00:08:13.440
+1 public subnet in every availability zone in the region.
+
+101
+00:08:13.440 --> 00:08:17.240
+That is because we set the max_azs to 6.
+
+102
+00:08:17.240 --> 00:08:19.420
+Take note that this is max_azs.
+
+103
+00:08:19.420 --> 00:08:23.160
+So if we're in a region with three AZs,
+
+104
+00:08:23.160 --> 00:08:28.850
+then it's only going to create three public subnets in that region
+
+105
+00:08:28.850 --> 00:08:33.740
+because there's only three AZs in that region.
+
+106
+00:08:33.740 --> 00:08:39.060
+We can actually copy this configuration for our other two subnet_configurations.
+
+107
+00:08:39.060 --> 00:08:49.340
+So I'm going to paste this block of code two more times,
+
+108
+00:08:49.340 --> 00:08:54.360
+and I'm just going to change the configuration of the other two subnets.
+
+109
+00:08:54.360 --> 00:09:00.230
+So first, I am going to specify that the second subnet_configuration is private,
+
+110
+00:09:00.230 --> 00:09:02.840
+and we're going to name it private,
+
+111
+00:09:02.840 --> 00:09:08.040
+and I'm going to specify that the third subnet_configuration is isolated,
+
+112
+00:09:08.040 --> 00:09:10.940
+and I'm going to name it the DB subnet.
+
+113
+00:09:10.940 --> 00:09:18.240
+An isolated subnet just means that there is no route to a NAT gateway.
+
+114
+00:09:18.240 --> 00:09:23.840
+The private subnet will have a route to a NAT gateway.
+
+115
+00:09:23.840 --> 00:09:24.790
+So now,
+
+116
+00:09:24.790 --> 00:09:33.340
+what is going to happen is we're going to create a maximum of 18 subnets total.
+
+117
+00:09:33.340 --> 00:09:34.040
+Why?
+
+118
+00:09:34.040 --> 00:09:40.140
+Because the max_azs applies to each subnet.
+
+119
+00:09:40.140 --> 00:09:46.680
+So if we have a max_azs value of 6,
+
+120
+00:09:46.680 --> 00:09:51.430
+that means it's going to create a maximum of 6 public subnets,
+
+121
+00:09:51.430 --> 00:09:57.340
+6 private subnets, and 6 isolated subnets.
+
+122
+00:09:57.340 --> 00:10:00.540
+If I am deploying this in the Singapore region though,
+
+123
+00:10:00.540 --> 00:10:02.730
+which is what I'm going to do now,
+
+124
+00:10:02.730 --> 00:10:06.560
+then I'm going to be actually creating nine subnets,
+
+125
+00:10:06.560 --> 00:10:12.140
+three public, three private, and three isolated.
+
+126
+00:10:12.140 --> 00:10:18.240
+The CDK will take care of your cidr block computation for you.
+
+127
+00:10:18.240 --> 00:10:22.840
+So that's actually all you need to do to create your VPC.
+
+128
+00:10:22.840 --> 00:10:35.000
+You can see how the CDK again abstracts a lot of the configuration for you using these high‑level subnet_configuration constructs.
+

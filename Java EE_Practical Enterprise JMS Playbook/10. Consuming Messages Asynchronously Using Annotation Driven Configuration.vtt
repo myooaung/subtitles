@@ -1,0 +1,253 @@
+WEBVTT
+1
+00:00:02.166 --> 00:00:05.546
+To get message listening to work using annotations,
+
+2
+00:00:05.546 --> 00:00:09.081
+for basic use case, there isn't actually much more we need to do.
+
+3
+00:00:09.081 --> 00:00:11.572
+We already have most of the wiring in place,
+
+4
+00:00:11.572 --> 00:00:14.332
+including the MessageConverter we want to use,
+
+5
+00:00:14.332 --> 00:00:19.997
+the ConnectionFactory, and the EnableJMS annotation on our configuration.
+
+6
+00:00:19.997 --> 00:00:24.296
+Creating a JMS consumer with Spring annotations is really quite simple.
+
+7
+00:00:24.296 --> 00:00:27.751
+I've got a component here named EMailMessageListener.
+
+8
+00:00:27.751 --> 00:00:31.052
+Inside that, I've got a method called onMessage,
+
+9
+00:00:31.052 --> 00:00:33.820
+which takes an email object as a parameter.
+
+10
+00:00:33.820 --> 00:00:36.894
+This will be the email that we receive from the queue.
+
+11
+00:00:36.894 --> 00:00:39.688
+In this case, we simply output the email to the console.
+
+12
+00:00:39.688 --> 00:00:44.100
+The method is annotated with a JmsListener annotation.
+
+13
+00:00:44.100 --> 00:00:46.746
+This is a marker for the Spring Framework to create a new
+
+14
+00:00:46.746 --> 00:00:48.983
+instance of a default messageListener container.
+
+15
+00:00:48.983 --> 00:00:53.349
+When it starts, it will deliver email messages to this method.
+
+16
+00:00:53.349 --> 00:00:57.088
+Most of the attributes on this annotation are used to create the container,
+
+17
+00:00:57.088 --> 00:01:00.411
+for example, the destination name, in this case the Emails queue,
+
+18
+00:01:00.411 --> 00:01:02.779
+and the number of consumers we want.
+
+19
+00:01:02.779 --> 00:01:03.891
+In our example,
+
+20
+00:01:03.891 --> 00:01:10.319
+we want dynamic scaling with a minimum of 3 consumers and a maximum of 10.
+
+21
+00:01:10.319 --> 00:01:12.709
+There is also an option to declare a messageSelector
+
+22
+00:01:12.709 --> 00:01:14.652
+attribute here if you require one.
+
+23
+00:01:14.652 --> 00:01:16.947
+So that's it, pretty simple, eh?
+
+24
+00:01:16.947 --> 00:01:18.703
+Let's just actually prove it works though.
+
+25
+00:01:18.703 --> 00:01:21.699
+In an earlier section, we created an email producer,
+
+26
+00:01:21.699 --> 00:01:24.688
+so we should have messages on our emails queue.
+
+27
+00:01:24.688 --> 00:01:28.447
+Let's start the application up, and see if they get consumed.
+
+28
+00:01:28.447 --> 00:01:32.500
+In the output, I can see that the messages are now consumed.
+
+29
+00:01:32.500 --> 00:01:34.830
+If I jump quickly into the ActiveMQ Admin console,
+
+30
+00:01:34.830 --> 00:01:38.509
+then I can see on the Emails queue that we have a number of consumers,
+
+31
+00:01:38.509 --> 00:01:41.313
+which will scale up or down depending on load.
+
+32
+00:01:41.313 --> 00:01:46.279
+Now if you've noticed, I've explicitly said the destination was the Emails queue.
+
+33
+00:01:46.279 --> 00:01:48.837
+What if we wanted to use a topic?
+
+34
+00:01:48.837 --> 00:01:51.287
+Well under the hood, a bit like the JmsTemplate,
+
+35
+00:01:51.287 --> 00:01:56.123
+the DefaultMessageListenerContainer assumes the destination is a queue.
+
+36
+00:01:56.123 --> 00:02:00.641
+Therefore, we need to define some configuration for connecting to topics.
+
+37
+00:02:00.641 --> 00:02:03.531
+However, rather than creating a DefaultMessageListenerContainer directly,
+
+38
+00:02:03.531 --> 00:02:08.978
+we instead define a factory class that is responsible for creating them.
+
+39
+00:02:08.978 --> 00:02:09.937
+In this piece of code,
+
+40
+00:02:09.937 --> 00:02:11.902
+I'm creating a new instance of a DefaultJmsListenercontainerFactory,
+
+41
+00:02:11.902 --> 00:02:16.288
+giving it a Bean name of TopicListenerContainerFactory,
+
+42
+00:02:16.288 --> 00:02:19.536
+and setting some default properties.
+
+43
+00:02:19.536 --> 00:02:23.635
+As this factory is for topics, I call the setPubSubDomain method,
+
+44
+00:02:23.635 --> 00:02:25.394
+and set the value to true.
+
+45
+00:02:25.394 --> 00:02:29.501
+I'm going to use the JacksonMessageConverter for message conversion.
+
+46
+00:02:29.501 --> 00:02:31.908
+I'm also going to assume it's a durable subscription,
+
+47
+00:02:31.908 --> 00:02:37.263
+therefore I need to define a clientId that is injected as a property.
+
+48
+00:02:37.263 --> 00:02:40.849
+I'm also setting concurrency to a minimum and maximum of 1.
+
+49
+00:02:40.849 --> 00:02:45.253
+For topics, it doesn't make sense to set it to anything other than 1; otherwise,
+
+50
+00:02:45.253 --> 00:02:48.074
+the consumers will all receive exactly the same message.
+
+51
+00:02:48.074 --> 00:02:52.117
+I have then created another service called OrderMessageListener.
+
+52
+00:02:52.117 --> 00:02:54.714
+I have another onMessage method,
+
+53
+00:02:54.714 --> 00:02:58.350
+which is decorated with the JmSListener annotation.
+
+54
+00:02:58.350 --> 00:03:00.494
+This time I've declared the ConnectionFactory attribute,
+
+55
+00:03:00.494 --> 00:03:03.889
+and set it to the name of the Factory Bean we've just created,
+
+56
+00:03:03.889 --> 00:03:05.117
+which is the TopicListenerContainerFactory.
+
+57
+00:03:05.117 --> 00:03:10.750
+I've also defined the name of the subscription, which is orders.
+
+58
+00:03:10.750 --> 00:03:14.949
+So you can see this is fairly simple,
+
+59
+00:03:14.949 --> 00:03:17.355
+and it will in fact receive any order messages that
+
+60
+00:03:17.355 --> 00:03:18.799
+are sent to the orders queue.
+
+61
+00:03:18.799 --> 00:03:20.838
+If you do want to receive the raw JMS message,
+
+62
+00:03:20.838 --> 00:03:22.025
+rather than the order object,
+
+63
+00:03:22.025 --> 00:03:31.000
+you can do this by simply changing the parameter from an order to a JMS message, and that is what you'll receive.
+

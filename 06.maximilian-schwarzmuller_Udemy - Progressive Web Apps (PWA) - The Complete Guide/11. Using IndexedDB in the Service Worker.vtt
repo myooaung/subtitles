@@ -1,0 +1,154 @@
+WEBVTT
+
+00:02.180 --> 00:09.930
+In the last lecture, we added the logic to put data onto our indexedDB database, so into the posts-store.
+
+00:10.250 --> 00:14.960
+Now that is great but of course, it's more useful if we can also fetch it from there,
+
+00:15.260 --> 00:17.940
+so let's make sure to do this now.
+
+00:18.230 --> 00:25.070
+Now fetching should happen in the feed.js file, at least for our cache then network strategy which
+
+00:25.070 --> 00:26.040
+we're using here,
+
+00:26.240 --> 00:31.580
+we used it with the cache API before but as I mentioned earlier in this module, you can use the same
+
+00:31.580 --> 00:33.550
+strategies with indexedDB.
+
+00:33.770 --> 00:40.340
+So if you had a strategy where you also fetch in the service worker, like for example our cache with
+
+00:40.340 --> 00:45.920
+network fallback where we first look into the cache, you could also of course start by looking into
+
+00:45.950 --> 00:46.830
+indexedDB.
+
+00:46.850 --> 00:49.610
+Now as I just said, this is not what we'll do though,
+
+00:49.730 --> 00:57.920
+so I will simply go to feed.js to follow with my strategy. Now in feed.js, I again need to
+
+00:57.920 --> 01:03.840
+set up this database promise first to get access to the database. So I can copy the code from the service
+
+01:03.840 --> 01:04.410
+worker
+
+01:04.460 --> 01:11.210
+but you probably already see that we would duplicate a lot of code now. We would duplicate this variable
+
+01:11.210 --> 01:11.890
+here
+
+01:11.900 --> 01:14.460
+and we would have to write a method for getting data
+
+01:14.660 --> 01:19.570
+and if we decide to ever get data in the service worker, we had to write that get data method there
+
+01:19.580 --> 01:20.270
+too.
+
+01:20.540 --> 01:25.900
+So maybe we add a new script file which will name utility.js
+
+01:25.910 --> 01:31.820
+or you could name it indexedDB or DB or whatever you like. In that new file, I'll
+
+01:31.850 --> 01:39.320
+first of all add the code here to set up this dbPromise which opens the database and creates a new
+
+01:39.320 --> 01:41.440
+object store when needed.
+
+01:41.960 --> 01:49.910
+I'll then create a new method which I'll name writeData because I want to have a generic utility which
+
+01:49.910 --> 01:53.080
+I can use from anywhere in the application.
+
+01:53.090 --> 02:00.310
+writeData should in the end simply encapsulate that code we have in our fetch listener right now,
+
+02:00.350 --> 02:06.920
+so basically this code here where we access the promise and then write something into it, that goes into
+
+02:06.920 --> 02:08.110
+writeData.
+
+02:08.450 --> 02:13.690
+Of course I want to create a reusable method so I don't want to hardcode the store we have to access
+
+02:13.700 --> 02:14.400
+in there
+
+02:14.510 --> 02:16.800
+and of course I need to be able to get the data,
+
+02:17.060 --> 02:22.910
+so I want to get information about the store, I'll name that st and about the data which should be stored.
+
+02:23.210 --> 02:30.110
+So I'll remove the key access because I expect to get the finished data I should enter in this function
+
+02:30.110 --> 02:39.290
+here already and I'll replace the posts string here with st so that we can simply call that function.
+
+02:39.290 --> 02:46.160
+Now with that outsourced, let's already go back to the service worker and let's use our new file. We have to import
+
+02:46.160 --> 02:51.180
+it just as we had to import IDB, let we bring this down so that it's easy to see.
+
+02:51.410 --> 02:59.220
+So I'll import utility, of course import it after the IDB import because we depend on that
+
+02:59.550 --> 03:05.290
+and with that imported, I can get rid of dbPromise here because I do have it set up in the utility.js
+
+03:05.300 --> 03:06.960
+file
+
+03:07.210 --> 03:10.270
+and I also can simply use writeData here now.
+
+03:10.300 --> 03:16.330
+So instead of accessing dbPromise here, I can simply call writeData, pass the store which I want to
+
+03:16.330 --> 03:22.160
+access, posts and the data I want to write, data and then access the key here.
+
+03:22.180 --> 03:27.430
+So now we have a leaner service worker and we can reuse that in other parts of the application
+
+03:27.430 --> 03:28.210
+too.
+
+03:28.210 --> 03:34.140
+Now one important thing in that utility.js file is we of course have to return dbPromise here
+
+03:34.150 --> 03:35.300
+in writeData,
+
+03:35.410 --> 03:41.190
+otherwise we execute it but we never get back the response of that.
+
+03:41.200 --> 03:43.690
+So make sure to return dbPromise
+
+03:43.960 --> 03:47.960
+and with that, we finish this, we outsourced everything into the utility file,
+
+03:47.980 --> 03:51.840
+we can now use this from the normal Javascript in the service worker.
+
+03:51.970 --> 03:54.630
+Let's now move on to finally reading data.

@@ -1,0 +1,305 @@
+WEBVTT
+1
+00:00:01.287 --> 00:00:04.672
+Let's now zoom in into the FilterChainProxy.
+
+2
+00:00:04.672 --> 00:00:09.099
+The SecurityFilterChain proxy manages SecurityFilterChains.
+
+3
+00:00:09.099 --> 00:00:10.760
+When it receives a request,
+
+4
+00:00:10.760 --> 00:00:14.475
+it iterates through all the SecurityFilterChains in order to
+
+5
+00:00:14.475 --> 00:00:17.693
+find the one that matches the request.
+
+6
+00:00:17.693 --> 00:00:21.755
+It then requests that filter chain to perform the security checks.
+
+7
+00:00:21.755 --> 00:00:25.396
+Hence, in this example, if the request was /admin,
+
+8
+00:00:25.396 --> 00:00:29.291
+then the second chain would be invoked.
+
+9
+00:00:29.291 --> 00:00:30.459
+Order is key here.
+
+10
+00:00:30.459 --> 00:00:34.254
+You have to make sure that the higher SecurityFilterChain
+
+11
+00:00:34.254 --> 00:00:37.058
+mappers do not overlap with lower ones.
+
+12
+00:00:37.058 --> 00:00:40.583
+Otherwise, your request might not reach the desired chain.
+
+13
+00:00:40.583 --> 00:00:41.877
+Generally though,
+
+14
+00:00:41.877 --> 00:00:45.635
+you would only have one SecurityFilterChain in your application.
+
+15
+00:00:45.635 --> 00:00:49.225
+But if you do want variety in your authentication strategies,
+
+16
+00:00:49.225 --> 00:00:54.221
+say for example /admin would use digest and the remainder of
+
+17
+00:00:54.221 --> 00:00:55.966
+the application to use basic authentication,
+
+18
+00:00:55.966 --> 00:01:00.390
+then setting up two filter chains will do the job.
+
+19
+00:01:00.390 --> 00:01:02.410
+If we take a look at the filter chain interface,
+
+20
+00:01:02.410 --> 00:01:05.809
+you can see that there are two methods.
+
+21
+00:01:05.809 --> 00:01:07.864
+The first is the matches method,
+
+22
+00:01:07.864 --> 00:01:10.557
+and this will check if the request matches the criteria
+
+23
+00:01:10.557 --> 00:01:13.591
+for that particular SecurityFilterChain.
+
+24
+00:01:13.591 --> 00:01:17.645
+And the second one retrieves the filters associated with the chain,
+
+25
+00:01:17.645 --> 00:01:22.923
+which will perform the security checks on the request.
+
+26
+00:01:22.923 --> 00:01:26.105
+Let's take a look at a filter chain and see how
+
+27
+00:01:26.105 --> 00:01:28.374
+authentication requests are handled.
+
+28
+00:01:28.374 --> 00:01:31.821
+There are many filters that do a multitude of security tasks.
+
+29
+00:01:31.821 --> 00:01:37.367
+We won't have time to cover all of them, but we will cover some of the key ones.
+
+30
+00:01:37.367 --> 00:01:40.978
+One of the first key filters a request might encounter is
+
+31
+00:01:40.978 --> 00:01:44.145
+the SecurityContextPersistenceFilter.
+
+32
+00:01:44.145 --> 00:01:47.708
+It is responsible for managing the security context.
+
+33
+00:01:47.708 --> 00:01:52.045
+The security context holds the details of the authenticated principal,
+
+34
+00:01:52.045 --> 00:01:56.024
+like a user, things like their usernames,
+
+35
+00:01:56.024 --> 00:01:59.738
+roles, and any type of identification details.
+
+36
+00:01:59.738 --> 00:02:02.974
+It first tries to retrieve the security context from
+
+37
+00:02:02.974 --> 00:02:05.742
+a Security Context repository.
+
+38
+00:02:05.742 --> 00:02:07.721
+In your typical web application,
+
+39
+00:02:07.721 --> 00:02:12.099
+that would be the session using an HTTP session repository.
+
+40
+00:02:12.099 --> 00:02:16.143
+In this case, we haven't authenticated previously,
+
+41
+00:02:16.143 --> 00:02:21.737
+so it will add an empty security context to the SecurityContextHolder.
+
+42
+00:02:21.737 --> 00:02:24.125
+The holder is a thread local,
+
+43
+00:02:24.125 --> 00:02:27.790
+making the security context available to all subsequent
+
+44
+00:02:27.790 --> 00:02:31.160
+security filters and your application that are running in
+
+45
+00:02:31.160 --> 00:02:33.393
+the same thread of execution.
+
+46
+00:02:33.393 --> 00:02:38.320
+The request will then eventually be intercepted by an AuthenticationFilter.
+
+47
+00:02:38.320 --> 00:02:40.827
+Now there are many ways to authenticate a request,
+
+48
+00:02:40.827 --> 00:02:44.371
+and hence, there are many different flavors of the AuthenticationFilter,
+
+49
+00:02:44.371 --> 00:02:49.771
+from basic, digest, OpenID, just to name a few.
+
+50
+00:02:49.771 --> 00:02:53.352
+You can also create your own custom AuthenticationFilters.
+
+51
+00:02:53.352 --> 00:02:55.493
+Once the authentication is successful,
+
+52
+00:02:55.493 --> 00:03:00.912
+the filter places the authenticated principal into the security context so
+
+53
+00:03:00.912 --> 00:03:04.128
+that all future requests don't need to re- authenticate,
+
+54
+00:03:04.128 --> 00:03:09.500
+unless, of course, the session expires or the user logs out.
+
+55
+00:03:09.500 --> 00:03:14.160
+Next, the request might hit the AnonymousAuthenticationFilter.
+
+56
+00:03:14.160 --> 00:03:17.261
+If at this stage the security context still hasn't been
+
+57
+00:03:17.261 --> 00:03:19.272
+updated with an authentication object,
+
+58
+00:03:19.272 --> 00:03:25.016
+it will add an anonymous authentication object to the security context.
+
+59
+00:03:25.016 --> 00:03:26.952
+Two other key filters are the
+
+60
+00:03:26.952 --> 00:03:31.370
+ExceptionTranslationFilter and FilterSecurityInterceptor.
+
+61
+00:03:31.370 --> 00:03:34.565
+The interceptor performs authorization.
+
+62
+00:03:34.565 --> 00:03:35.811
+In a web application,
+
+63
+00:03:35.811 --> 00:03:39.056
+it will check if the authenticated principal has
+
+64
+00:03:39.056 --> 00:03:43.728
+permissions to access a particular HTTP resource.
+
+65
+00:03:43.728 --> 00:03:47.496
+And it can throw either an authentication or authorization exception,
+
+66
+00:03:47.496 --> 00:03:53.405
+which will then be caught and handled by the ExceptionTranslationFilter.
+
+67
+00:03:53.405 --> 00:03:57.298
+The ExceptionTranslationFilter might then redirect the client to an
+
+68
+00:03:57.298 --> 00:04:01.935
+error page or a logging page or update the header or content type to
+
+69
+00:04:01.935 --> 00:04:05.611
+inform the client that they need to authenticate or that they do not
+
+70
+00:04:05.611 --> 00:04:08.551
+have permission to access the resource.
+
+71
+00:04:08.551 --> 00:04:13.229
+Now let's take a quick look at the interface of the security context.
+
+72
+00:04:13.229 --> 00:04:15.832
+It's quite simple really, just two methods,
+
+73
+00:04:15.832 --> 00:04:19.519
+to set and retrieve the Authentication object.
+
+74
+00:04:19.519 --> 00:04:21.440
+Like many things in Spring,
+
+75
+00:04:21.440 --> 00:04:25.541
+the context can be extended and updated to add features
+
+76
+00:04:25.541 --> 00:04:33.000
+that you require to be stored for authentication and authorization in your application.
+

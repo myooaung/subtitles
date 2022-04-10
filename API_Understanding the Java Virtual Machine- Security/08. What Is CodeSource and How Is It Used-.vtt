@@ -1,0 +1,217 @@
+WEBVTT
+1
+00:00:02.140 --> 00:00:04.730
+So now that we've seen how to create a policy file,
+
+2
+00:00:04.730 --> 00:00:08.540
+how to edit a policy file, how to apply the policy to our code,
+
+3
+00:00:08.540 --> 00:00:11.800
+how we can both augment and override policy,
+
+4
+00:00:11.800 --> 00:00:15.910
+we now need to take a look at how policy is applied to our code.
+
+5
+00:00:15.910 --> 00:00:19.490
+There's another course in this series which covers class loading in depth,
+
+6
+00:00:19.490 --> 00:00:22.440
+so I'm not going to go into the details here.
+
+7
+00:00:22.440 --> 00:00:23.940
+If you see that course,
+
+8
+00:00:23.940 --> 00:00:27.840
+you'll know that all Java code is loaded by a class loader.
+
+9
+00:00:27.840 --> 00:00:31.470
+And we also discussed the fact most code is loaded by
+
+10
+00:00:31.470 --> 00:00:34.040
+something called the URLClassLoader.
+
+11
+00:00:34.040 --> 00:00:37.540
+Now the URLClassLoader itself derives from something called a
+
+12
+00:00:37.540 --> 00:00:42.890
+SecureClassLoader. And it's the job of the SecureClassLoader to attach
+
+13
+00:00:42.890 --> 00:00:47.420
+information to the loaded classes that let security happen, that let
+
+14
+00:00:47.420 --> 00:00:50.740
+that these permissions take effect.
+
+15
+00:00:50.740 --> 00:00:54.970
+So the SecureClassLoader tags each loaded class with something
+
+16
+00:00:54.970 --> 00:00:59.890
+called a CodeSource, and the CodeSource contains,
+
+17
+00:00:59.890 --> 00:01:01.210
+as it might suggest,
+
+18
+00:01:01.210 --> 00:01:03.080
+the source that the code was loaded from, so the
+
+19
+00:01:03.080 --> 00:01:05.440
+location the code was loaded from.
+
+20
+00:01:05.440 --> 00:01:07.440
+So how is this done?
+
+21
+00:01:07.440 --> 00:01:07.770
+Well,
+
+22
+00:01:07.770 --> 00:01:11.270
+the codebase information is saved when we first load a
+
+23
+00:01:11.270 --> 00:01:13.560
+class, and this isn't done directly.
+
+24
+00:01:13.560 --> 00:01:17.440
+What happens is there's an object created of type ProtectionDomain, and
+
+25
+00:01:17.440 --> 00:01:21.640
+it's the job of the ProtectionDomain to map this codebase, location the
+
+26
+00:01:21.640 --> 00:01:27.040
+code is loaded from, into these policy permissions, and security‑aware code
+
+27
+00:01:27.040 --> 00:01:30.440
+can retrieve this codebase at any time.
+
+28
+00:01:30.440 --> 00:01:33.950
+So the SecureClassLoader has a defineClass call which looks
+
+29
+00:01:33.950 --> 00:01:37.450
+something like this. It takes the name of the class, the byte
+
+30
+00:01:37.450 --> 00:01:39.080
+array that makes up the class.
+
+31
+00:01:39.080 --> 00:01:42.940
+But it also takes a ProtectionDomain object. That ProtectionDomain
+
+32
+00:01:42.940 --> 00:01:46.160
+object holds the CodeSource, and it's the CodeSource that holds
+
+33
+00:01:46.160 --> 00:01:48.940
+the information about the codebase.
+
+34
+00:01:48.940 --> 00:01:53.270
+We can retrieve this anywhere in code by getting hold of the current class
+
+35
+00:01:53.270 --> 00:01:57.600
+or of a class object, calling getProtectionDomain on that object, and then
+
+36
+00:01:57.600 --> 00:02:02.040
+calling getCodeSource on that ProtectionDomain.
+
+37
+00:02:02.040 --> 00:02:03.940
+So how is this used?
+
+38
+00:02:03.940 --> 00:02:04.670
+So, for example,
+
+39
+00:02:04.670 --> 00:02:07.980
+we might want to use this CodeSource and get all the permissions
+
+40
+00:02:07.980 --> 00:02:12.680
+associated with this current code location. And we know those
+
+41
+00:02:12.680 --> 00:02:16.390
+permissions are set using the policy object, so we can use this policy
+
+42
+00:02:16.390 --> 00:02:21.340
+object to get these permissions from the CodeSource. So we have code
+
+43
+00:02:21.340 --> 00:02:22.940
+which looks something like this.
+
+44
+00:02:22.940 --> 00:02:27.640
+So Java has a singleton policy object, and we can get that by calling
+
+45
+00:02:27.640 --> 00:02:32.970
+policy.getPolicy. If we were in some method somewhere inside a class,
+
+46
+00:02:32.970 --> 00:02:36.650
+we can call getClass to get hold of the current class object for
+
+47
+00:02:36.650 --> 00:02:41.870
+our class, and then from that we can call getProtectionDomain. So
+
+48
+00:02:41.870 --> 00:02:45.840
+this gives us access to the ProtectionDomain object. From that we
+
+49
+00:02:45.840 --> 00:02:50.080
+can call getCodeSource, and that gives me access to the CodeSource object.
+
+50
+00:02:50.080 --> 00:02:51.290
+And then after that,
+
+51
+00:02:51.290 --> 00:02:55.490
+I can pass the CodeSource to the policy.getPermissions call.
+
+52
+00:02:55.490 --> 00:02:57.900
+And this would give me back a collection of all the
+
+53
+00:02:57.900 --> 00:03:02.240
+permissions associated with this class.
+
+54
+00:03:02.240 --> 00:03:10.000
+At this point, we can enumerate those permissions. So let's let's take a look at this code.
+

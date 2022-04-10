@@ -1,0 +1,1004 @@
+1
+00:00:01,110 --> 00:00:02,100
+<v Instructor>In this video,</v>
+
+2
+00:00:02,100 --> 00:00:05,090
+we're gonna be building a handler factory function
+
+3
+00:00:05,090 --> 00:00:07,460
+in order to delete review documents,
+
+4
+00:00:07,460 --> 00:00:10,640
+but also documents from all the other collections,
+
+5
+00:00:10,640 --> 00:00:12,713
+all with one simple function.
+
+6
+00:00:14,150 --> 00:00:17,970
+So, as I mentioned right at the beginning of this section,
+
+7
+00:00:17,970 --> 00:00:21,540
+adding very similar handlers to all of our controllers
+
+8
+00:00:21,540 --> 00:00:25,010
+will create a lot of duplicate code, right?
+
+9
+00:00:25,010 --> 00:00:26,880
+Because all these update handlers,
+
+10
+00:00:26,880 --> 00:00:28,580
+or all these delete handlers,
+
+11
+00:00:28,580 --> 00:00:30,420
+or all these create handlers,
+
+12
+00:00:30,420 --> 00:00:33,640
+they really all just look basically the same, right?
+
+13
+00:00:33,640 --> 00:00:36,070
+Also, imagine that we wanted to change
+
+14
+00:00:36,070 --> 00:00:40,010
+like some https status code or status message.
+
+15
+00:00:40,010 --> 00:00:43,380
+Then we would have to go into each and every controller
+
+16
+00:00:43,380 --> 00:00:45,900
+and then change all the handlers in there.
+
+17
+00:00:45,900 --> 00:00:49,470
+And so, instead of manually writing all these handlers,
+
+18
+00:00:49,470 --> 00:00:52,410
+why not simply create a factory function
+
+19
+00:00:52,410 --> 00:00:54,830
+that's gonna return these handlers for us?
+
+20
+00:00:54,830 --> 00:00:57,710
+So, a factory function is exactly that.
+
+21
+00:00:57,710 --> 00:01:00,690
+It's a function that returns another function,
+
+22
+00:01:00,690 --> 00:01:02,950
+and in this case our handler function.
+
+23
+00:01:02,950 --> 00:01:06,230
+So, for deleting, for creating, for updating,
+
+24
+00:01:06,230 --> 00:01:08,780
+and also for reading resources.
+
+25
+00:01:08,780 --> 00:01:13,400
+Okay and I know that this whole concept can be a bit complex
+
+26
+00:01:13,400 --> 00:01:14,980
+to wrap your head around,
+
+27
+00:01:14,980 --> 00:01:16,930
+and that's the reason why I left this
+
+28
+00:01:16,930 --> 00:01:19,350
+for the later part of this course.
+
+29
+00:01:19,350 --> 00:01:21,460
+But now, I believe that you're actually ready
+
+30
+00:01:21,460 --> 00:01:23,580
+to implement this kinda stuff.
+
+31
+00:01:23,580 --> 00:01:25,900
+So this kind of logic is what every advanced
+
+32
+00:01:25,900 --> 00:01:28,800
+JavaScript developer should be able to implement,
+
+33
+00:01:28,800 --> 00:01:31,770
+and so again I believe that at this point in the course
+
+34
+00:01:31,770 --> 00:01:34,860
+you're really ready to start using advanced concept
+
+35
+00:01:34,860 --> 00:01:36,570
+like this, all right.
+
+36
+00:01:36,570 --> 00:01:39,510
+But enough talk, let me now show you how it actually works
+
+37
+00:01:39,510 --> 00:01:42,860
+by using the delete handler as a first example.
+
+38
+00:01:42,860 --> 00:01:47,540
+And so actually we have one in the tour controller,
+
+39
+00:01:47,540 --> 00:01:50,063
+and so let's go ahead and copy that one,
+
+40
+00:01:51,410 --> 00:01:52,763
+so delete tour.
+
+41
+00:01:53,760 --> 00:01:56,490
+Okay, so I copied it basically
+
+42
+00:01:56,490 --> 00:01:58,283
+as a template for us to follow.
+
+43
+00:01:59,710 --> 00:02:02,770
+So let's create a new file, and I'm going to do that
+
+44
+00:02:02,770 --> 00:02:03,883
+in the controllers.
+
+45
+00:02:04,910 --> 00:02:05,743
+All right,
+
+46
+00:02:07,150 --> 00:02:08,310
+so handler...
+
+47
+00:02:09,990 --> 00:02:11,883
+factory.js.
+
+48
+00:02:13,160 --> 00:02:15,690
+And I'm doing this is the controllers folder,
+
+49
+00:02:15,690 --> 00:02:18,060
+well because the functions that we're gonna write here
+
+50
+00:02:18,060 --> 00:02:20,070
+will basically return controllers.
+
+51
+00:02:20,070 --> 00:02:21,860
+And so for me it makes a lot of sense
+
+52
+00:02:21,860 --> 00:02:23,010
+that you put them here.
+
+53
+00:02:24,530 --> 00:02:26,300
+So let's just copy this part here,
+
+54
+00:02:26,300 --> 00:02:28,640
+just to keep it as a reference.
+
+55
+00:02:28,640 --> 00:02:32,010
+So again the goal here is to basically create a function,
+
+56
+00:02:32,010 --> 00:02:33,580
+which will then return a function
+
+57
+00:02:33,580 --> 00:02:35,750
+that looks like this one here.
+
+58
+00:02:35,750 --> 00:02:37,870
+But of course not only for the tour,
+
+59
+00:02:37,870 --> 00:02:40,670
+but for every single model that we have in our application
+
+60
+00:02:40,670 --> 00:02:42,840
+and that we might have in the future.
+
+61
+00:02:42,840 --> 00:02:45,270
+So this function needs to be prepared for that,
+
+62
+00:02:45,270 --> 00:02:49,150
+and so what that means is that inside the factory function,
+
+63
+00:02:49,150 --> 00:02:51,843
+we will pass in the model, all right.
+
+64
+00:02:53,760 --> 00:02:55,937
+So let's call this one deleteOne.
+
+65
+00:02:59,070 --> 00:03:00,960
+And it's called like this, again,
+
+66
+00:03:00,960 --> 00:03:02,830
+because this function is not only going
+
+67
+00:03:02,830 --> 00:03:04,610
+to work to delete tours,
+
+68
+00:03:04,610 --> 00:03:07,580
+but also to delete reviews and users
+
+69
+00:03:07,580 --> 00:03:09,630
+and in the future some other documents
+
+70
+00:03:09,630 --> 00:03:10,923
+that we might also have.
+
+71
+00:03:12,582 --> 00:03:14,750
+So as I was saying in the beginning,
+
+72
+00:03:14,750 --> 00:03:17,680
+we will pass the model into this function.
+
+73
+00:03:17,680 --> 00:03:21,930
+So we pass the model and then we create a new function,
+
+74
+00:03:21,930 --> 00:03:23,620
+and that function will right away
+
+75
+00:03:23,620 --> 00:03:26,438
+then return our async function,
+
+76
+00:03:26,438 --> 00:03:27,271
+so basically all of this or async handler function.
+
+77
+00:03:33,580 --> 00:03:37,310
+Okay, and so now all we need to do is to actually change
+
+78
+00:03:37,310 --> 00:03:41,663
+from the specific tool model to the more generic model.
+
+79
+00:03:43,685 --> 00:03:48,240
+Then here we will also change this from tour to the document
+
+80
+00:03:48,240 --> 00:03:51,890
+because again, we will not know what kinda document is this.
+
+81
+00:03:51,890 --> 00:03:54,810
+So this function will not really know if it is a tour,
+
+82
+00:03:54,810 --> 00:03:56,963
+or if it is a review, or a user.
+
+83
+00:03:58,220 --> 00:04:02,063
+And so we need to take the tour out of all of this,
+
+84
+00:04:03,760 --> 00:04:05,550
+and that's actually it.
+
+85
+00:04:05,550 --> 00:04:07,870
+So this basically the generalization
+
+86
+00:04:07,870 --> 00:04:11,710
+of this specific function, which worked only for tours,
+
+87
+00:04:11,710 --> 00:04:14,263
+and now this new one works for every model.
+
+88
+00:04:16,586 --> 00:04:20,420
+What we also need to do here is to import this catchAsync
+
+89
+00:04:20,420 --> 00:04:21,793
+and also this AppError.
+
+90
+00:04:25,040 --> 00:04:26,290
+So catchAsync...
+
+91
+00:04:32,630 --> 00:04:35,023
+and I believe it's in the utilities folder.
+
+92
+00:04:36,280 --> 00:04:40,213
+And then, not AppError but catchAsync.
+
+93
+00:04:43,780 --> 00:04:45,030
+Then duplicate this here,
+
+94
+00:04:48,070 --> 00:04:51,243
+AppError, and this here is uppercase.
+
+95
+00:04:52,320 --> 00:04:54,840
+Give it a save, and we're now ready
+
+96
+00:04:54,840 --> 00:04:56,323
+to actually test this out.
+
+97
+00:04:58,240 --> 00:05:01,490
+So this is how it's going to work,
+
+98
+00:05:01,490 --> 00:05:05,333
+first of all we need to import that handler factory.
+
+99
+00:05:06,760 --> 00:05:07,843
+And so let's say,
+
+100
+00:05:10,310 --> 00:05:12,560
+and I'm simply going to call it factory here.
+
+101
+00:05:15,070 --> 00:05:19,730
+So require, and it's in the same folder,
+
+102
+00:05:19,730 --> 00:05:21,113
+so handler factory.
+
+103
+00:05:23,300 --> 00:05:28,110
+All right and so let's comment this one here out,
+
+104
+00:05:28,110 --> 00:05:29,510
+or actually not all of this.
+
+105
+00:05:31,380 --> 00:05:34,343
+Yeah or actually we can comment it out,
+
+106
+00:05:37,300 --> 00:05:41,917
+and so the new exports.deletes tour will be...
+
+107
+00:05:45,670 --> 00:05:50,670
+factory.deleteOne and then pass in the model,
+
+108
+00:05:50,900 --> 00:05:52,410
+which is tour.
+
+109
+00:05:52,410 --> 00:05:55,053
+And that's it, that's all we need to do.
+
+110
+00:05:55,960 --> 00:05:58,650
+So just to recap very quickly here,
+
+111
+00:05:58,650 --> 00:06:01,450
+so we call this deleteOne function,
+
+112
+00:06:01,450 --> 00:06:03,550
+then in there we pass the model,
+
+113
+00:06:03,550 --> 00:06:06,520
+and so what's going to happen is that this function
+
+114
+00:06:06,520 --> 00:06:09,433
+will then right away return this handler function
+
+115
+00:06:09,433 --> 00:06:10,773
+that we had before.
+
+116
+00:06:11,630 --> 00:06:15,070
+Simply the specific model, which before was the tour,
+
+117
+00:06:15,070 --> 00:06:17,200
+is now going to be replaced with the one
+
+118
+00:06:17,200 --> 00:06:18,923
+that we passed into the function.
+
+119
+00:06:19,920 --> 00:06:23,160
+And by the way this works because of JavaScript closures,
+
+120
+00:06:23,160 --> 00:06:25,690
+which is just a fancy way of saying
+
+121
+00:06:25,690 --> 00:06:28,670
+that this inner function here will get access
+
+122
+00:06:28,670 --> 00:06:30,820
+to the variables of the outer function
+
+123
+00:06:30,820 --> 00:06:33,643
+even after the outer has already returned.
+
+124
+00:06:34,992 --> 00:06:37,370
+So calling this function here
+
+125
+00:06:37,370 --> 00:06:39,660
+will then return another function,
+
+126
+00:06:39,660 --> 00:06:43,000
+which will then sit here and wait until it is finally called
+
+127
+00:06:43,000 --> 00:06:46,260
+as soon as we hit the corresponding route.
+
+128
+00:06:46,260 --> 00:06:48,343
+And so let's now try exactly that.
+
+129
+00:06:49,380 --> 00:06:50,873
+So delete tour,
+
+130
+00:06:52,670 --> 00:06:54,773
+okay, and let's choose a tour
+
+131
+00:06:54,773 --> 00:06:57,580
+that we don't really need here for now.
+
+132
+00:06:57,580 --> 00:06:59,130
+So let's say...
+
+133
+00:07:00,050 --> 00:07:01,970
+now let's say here The Snow Adventurer
+
+134
+00:07:01,970 --> 00:07:03,970
+'cause it also doesn't have any reviews.
+
+135
+00:07:07,900 --> 00:07:10,133
+So let's send that,
+
+136
+00:07:11,230 --> 00:07:14,350
+oh and now we don't have permission to preform the action,
+
+137
+00:07:14,350 --> 00:07:17,633
+and that's because we're not logged in as an admin.
+
+138
+00:07:18,890 --> 00:07:20,413
+So let's try that,
+
+139
+00:07:22,280 --> 00:07:25,913
+and so this is the admin that we need to be logged in.
+
+140
+00:07:27,200 --> 00:07:28,740
+Okay, so that's done.
+
+141
+00:07:28,740 --> 00:07:33,300
+And so now this should work, and indeed it did work.
+
+142
+00:07:33,300 --> 00:07:36,300
+And so that's proof that our factory function
+
+143
+00:07:36,300 --> 00:07:37,883
+is really doing it's job.
+
+144
+00:07:38,870 --> 00:07:41,820
+Okay 'cause if you now come back here,
+
+145
+00:07:41,820 --> 00:07:46,530
+we had 10 results and so now we should only get nine,
+
+146
+00:07:46,530 --> 00:07:47,513
+so perfect.
+
+147
+00:07:49,010 --> 00:07:51,510
+And now the goal is to be able to use this
+
+148
+00:07:51,510 --> 00:07:53,373
+in each and every single controller.
+
+149
+00:07:54,870 --> 00:07:57,230
+So let's copy this here
+
+150
+00:07:59,010 --> 00:08:00,483
+and go to the reviews.
+
+151
+00:08:01,870 --> 00:08:03,670
+Oh and of course we need it up here,
+
+152
+00:08:04,950 --> 00:08:08,090
+right in the beginning, now right,
+
+153
+00:08:08,090 --> 00:08:12,320
+and so now export.deleteReview
+
+154
+00:08:15,850 --> 00:08:18,893
+is equal to factory.deleteOne
+
+155
+00:08:22,600 --> 00:08:24,680
+with the review model.
+
+156
+00:08:24,680 --> 00:08:26,710
+And that's it, that's all we need to do
+
+157
+00:08:26,710 --> 00:08:29,890
+in order to implement the delete handler.
+
+158
+00:08:29,890 --> 00:08:33,293
+Now of course we also need to specify the route handler.
+
+159
+00:08:35,640 --> 00:08:39,000
+Now of course we need to specify the route itself,
+
+160
+00:08:39,000 --> 00:08:41,243
+and so let's do that here as well.
+
+161
+00:08:43,790 --> 00:08:47,450
+So router.route
+
+162
+00:08:49,710 --> 00:08:52,553
+because here we actually need the ID parameter.
+
+163
+00:08:55,152 --> 00:09:00,053
+And now delete is simply reviewController.deleteReview,
+
+164
+00:09:02,940 --> 00:09:05,970
+and I'm not messing with the permission here,
+
+165
+00:09:05,970 --> 00:09:07,910
+neither with authentication
+
+166
+00:09:07,910 --> 00:09:10,190
+because for now I just want to make this work
+
+167
+00:09:10,190 --> 00:09:13,053
+and worry about that stuff a bit later in this section.
+
+168
+00:09:14,350 --> 00:09:19,350
+Okay, so let's close this stuff up here.
+
+169
+00:09:21,590 --> 00:09:23,623
+So get all reviews,
+
+170
+00:09:26,280 --> 00:09:27,113
+all right,
+
+171
+00:09:29,300 --> 00:09:33,430
+let's save this and this one as well.
+
+172
+00:09:33,430 --> 00:09:35,890
+So that now we can start with a blank sheet here
+
+173
+00:09:37,390 --> 00:09:39,710
+and let's just start by getting all reviews,
+
+174
+00:09:39,710 --> 00:09:41,933
+so that we can now delete one.
+
+175
+00:09:42,880 --> 00:09:46,463
+And so let's delete, well just this one.
+
+176
+00:09:52,663 --> 00:09:55,830
+Okay, now we also need of course this,
+
+177
+00:10:00,350 --> 00:10:03,563
+and then the delete http method.
+
+178
+00:10:04,750 --> 00:10:06,900
+We need no authorization at this point,
+
+179
+00:10:06,900 --> 00:10:08,840
+so let's just send it.
+
+180
+00:10:08,840 --> 00:10:11,980
+And indeed no content, so 204.
+
+181
+00:10:11,980 --> 00:10:14,360
+And if we now get all the reviews,
+
+182
+00:10:14,360 --> 00:10:16,883
+then we should be back to having just three.
+
+183
+00:10:17,730 --> 00:10:22,730
+Yep, that works and so let's move on to the next one.
+
+184
+00:10:23,340 --> 00:10:26,203
+Okay so reviews, reviews.
+
+185
+00:10:28,680 --> 00:10:32,220
+Let's get this line of code here and now finally add it
+
+186
+00:10:32,220 --> 00:10:34,183
+to the user controller as well.
+
+187
+00:10:39,130 --> 00:10:42,700
+All right, and of course all of this,
+
+188
+00:10:42,700 --> 00:10:45,450
+I understand it's a bit confusing now messing
+
+189
+00:10:45,450 --> 00:10:47,200
+with all of these different files,
+
+190
+00:10:47,200 --> 00:10:50,190
+but we just need to do it once and then we're done
+
+191
+00:10:50,190 --> 00:10:51,533
+with all that confusion.
+
+192
+00:10:52,636 --> 00:10:55,033
+So here we already had the export.deleteUser,
+
+193
+00:10:55,986 --> 00:11:00,845
+now all we need to do is to then call our factory function,
+
+194
+00:11:00,845 --> 00:11:03,428
+so deleteOne and then the user.
+
+195
+00:11:06,220 --> 00:11:09,140
+Now only the administrator should later be able
+
+196
+00:11:09,140 --> 00:11:12,760
+to actually delete users because remember that
+
+197
+00:11:12,760 --> 00:11:14,750
+when the user deletes himself,
+
+198
+00:11:14,750 --> 00:11:17,750
+then they will not actually get deleted
+
+199
+00:11:17,750 --> 00:11:20,350
+but only active will be set to false.
+
+200
+00:11:20,350 --> 00:11:22,400
+But the administrator on the other hand
+
+201
+00:11:22,400 --> 00:11:25,710
+is really gonna be able to delete the user effectively
+
+202
+00:11:25,710 --> 00:11:26,940
+from the database.
+
+203
+00:11:26,940 --> 00:11:28,550
+But again, we're going to worry
+
+204
+00:11:28,550 --> 00:11:31,023
+about that permission stuff a bit later.
+
+205
+00:11:31,980 --> 00:11:35,487
+For now, let's check in the userRoutes
+
+206
+00:11:37,057 --> 00:11:39,210
+if the route is actually implemented,
+
+207
+00:11:39,210 --> 00:11:41,560
+and yeah it is down here.
+
+208
+00:11:41,560 --> 00:11:43,730
+And so since we now implemented this,
+
+209
+00:11:43,730 --> 00:11:47,653
+let's also test it here again also on Postman.
+
+210
+00:11:49,290 --> 00:11:50,983
+So first let's save this one.
+
+211
+00:11:54,440 --> 00:11:55,360
+So...
+
+212
+00:11:56,210 --> 00:11:59,373
+delete review,
+
+213
+00:12:02,000 --> 00:12:07,000
+and now let's simply copy this
+
+214
+00:12:08,420 --> 00:12:10,910
+into yet another route.
+
+215
+00:12:10,910 --> 00:12:13,063
+So delete and then one user,
+
+216
+00:12:14,340 --> 00:12:16,690
+but I'm actually not really going to do it now.
+
+217
+00:12:17,970 --> 00:12:22,253
+All I want is to just get some random ID.
+
+218
+00:12:23,350 --> 00:12:26,703
+Or actually let's just create a new user,
+
+219
+00:12:27,780 --> 00:12:31,323
+so basically sign up, and then delete that one right away.
+
+220
+00:12:32,500 --> 00:12:35,563
+So hello, like this.
+
+221
+00:12:38,690 --> 00:12:43,360
+Get all users, and then it's this guy here.
+
+222
+00:12:43,360 --> 00:12:46,963
+And so let's delete him right away,
+
+223
+00:12:48,310 --> 00:12:51,560
+so we send, we get 204 no content.
+
+224
+00:12:51,560 --> 00:12:53,833
+And of course, now he should be gone.
+
+225
+00:12:54,840 --> 00:12:56,740
+Now if we try to see her again,
+
+226
+00:12:56,740 --> 00:12:58,680
+so basically trying to delete a user
+
+227
+00:12:58,680 --> 00:13:01,320
+that is no longer there, we should get an error.
+
+228
+00:13:01,320 --> 00:13:04,673
+So let's take a look, and indeed no document found
+
+229
+00:13:04,673 --> 00:13:06,330
+with that ID.
+
+230
+00:13:06,330 --> 00:13:09,203
+And so this means that in our factory function,
+
+231
+00:13:10,570 --> 00:13:15,550
+so right here, all of this the AppError and the catchAsync,
+
+232
+00:13:15,550 --> 00:13:17,240
+all of that is still intact.
+
+233
+00:13:17,240 --> 00:13:20,490
+So everything still works just the same as before.
+
+234
+00:13:20,490 --> 00:13:23,283
+Now so that was also important to test here.
+
+235
+00:13:25,670 --> 00:13:27,860
+Let's just quickly save this here as well,
+
+236
+00:13:27,860 --> 00:13:31,660
+so each and every single endpoint that we're implementing,
+
+237
+00:13:31,660 --> 00:13:33,810
+I'm also adding it here into Postman
+
+238
+00:13:33,810 --> 00:13:36,890
+because a bit later we will then actually be able
+
+239
+00:13:36,890 --> 00:13:39,420
+to actually create some API documentation
+
+240
+00:13:39,420 --> 00:13:43,970
+based on all of this that we have saved here in Postman.
+
+241
+00:13:43,970 --> 00:13:47,713
+So that's yet another handy feature of this application.
+
+242
+00:13:50,253 --> 00:13:51,960
+So we have delete the current user,
+
+243
+00:13:51,960 --> 00:13:54,520
+and again that's different from just deleting the user
+
+244
+00:13:54,520 --> 00:13:56,800
+because this one here is for administration
+
+245
+00:13:56,800 --> 00:13:59,803
+and this one is for the currently logged in user,
+
+246
+00:14:00,820 --> 00:14:01,963
+so very different.
+
+247
+00:14:03,320 --> 00:14:06,750
+Okay, so this was our first factory function
+
+248
+00:14:06,750 --> 00:14:09,660
+only for deleting and only for you to understand
+
+249
+00:14:09,660 --> 00:14:11,290
+the concept itself.
+
+250
+00:14:11,290 --> 00:14:13,740
+Next up, we're then gonna implement factory functions
+
+251
+00:14:13,740 --> 00:14:16,293
+for updating and for creating documents.
+

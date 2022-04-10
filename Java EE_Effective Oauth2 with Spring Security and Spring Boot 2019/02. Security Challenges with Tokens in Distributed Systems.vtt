@@ -1,0 +1,205 @@
+WEBVTT
+1
+00:00:02.108 --> 00:00:06.161
+One solution is that once the client gets their job access
+
+2
+00:00:06.161 --> 00:00:08.490
+token from the authentication server,
+
+3
+00:00:08.490 --> 00:00:14.869
+the same token can be passed around between the services for authorization.
+
+4
+00:00:14.869 --> 00:00:19.659
+It's called token relay just like in a relay race where the next
+
+5
+00:00:19.659 --> 00:00:22.663
+runner starts when the baton is passed to them.
+
+6
+00:00:22.663 --> 00:00:26.268
+This can work and like anything has both pros and cons.
+
+7
+00:00:26.268 --> 00:00:29.484
+It's very simple to set up and configure.
+
+8
+00:00:29.484 --> 00:00:34.168
+The token can have state, like the resource owner's claims and roles,
+
+9
+00:00:34.168 --> 00:00:36.988
+which is useful for stateless services.
+
+10
+00:00:36.988 --> 00:00:39.991
+But that can be both a positive and a negative.
+
+11
+00:00:39.991 --> 00:00:42.355
+Because the token needs to be used across services,
+
+12
+00:00:42.355 --> 00:00:45.617
+we have to pack it with all the claims, scopes,
+
+13
+00:00:45.617 --> 00:00:50.474
+and roles that satisfy all services in the request chain.
+
+14
+00:00:50.474 --> 00:00:53.658
+Hence, if it gets leaked in say the pricing service,
+
+15
+00:00:53.658 --> 00:00:56.936
+the bearer can now use it against any service.
+
+16
+00:00:56.936 --> 00:01:02.478
+Hence, the expiry needs to be short-lived to minimize that damage,
+
+17
+00:01:02.478 --> 00:01:06.433
+which is a problem because the lifespan of the job needs to be enough
+
+18
+00:01:06.433 --> 00:01:10.854
+to satisfy all the hops the service needs to make.
+
+19
+00:01:10.854 --> 00:01:13.646
+If it expires mid-request, it will fail,
+
+20
+00:01:13.646 --> 00:01:17.210
+and the client's exception handling will have to deal with that by
+
+21
+00:01:17.210 --> 00:01:21.109
+either refreshing the token and resubmitting the request.
+
+22
+00:01:21.109 --> 00:01:26.400
+Additionally, the pricing service doesn't need to know about the user's claims,
+
+23
+00:01:26.400 --> 00:01:28.320
+which could contain things like their address,
+
+24
+00:01:28.320 --> 00:01:35.285
+email, and any other identity information required by the other services.
+
+25
+00:01:35.285 --> 00:01:37.658
+And if the developers of the pricing service decided
+
+26
+00:01:37.658 --> 00:01:42.671
+to write the token to the logs, then over the course of a day,
+
+27
+00:01:42.671 --> 00:01:44.667
+it could log a lot of tokens.
+
+28
+00:01:44.667 --> 00:01:47.176
+And even if the tokens were expired,
+
+29
+00:01:47.176 --> 00:01:52.276
+it could still be of use to a hacker if it contained claims like their address,
+
+30
+00:01:52.276 --> 00:01:55.440
+email, and other sensitive information.
+
+31
+00:01:55.440 --> 00:01:58.929
+Now between the single-page application and its BFF,
+
+32
+00:01:58.929 --> 00:02:01.424
+it's totally a viable option.
+
+33
+00:02:01.424 --> 00:02:03.594
+And if you're using OpenID Connect,
+
+34
+00:02:03.594 --> 00:02:08.054
+you can even pass the ID token to it as really it's a part of the front end.
+
+35
+00:02:08.054 --> 00:02:10.812
+With OAuth2 and OpenID Connect,
+
+36
+00:02:10.812 --> 00:02:14.038
+if you're passing around the access token between services,
+
+37
+00:02:14.038 --> 00:02:19.173
+another option to secure the user's data is to not put any
+
+38
+00:02:19.173 --> 00:02:23.017
+user's claims on the actual access token,
+
+39
+00:02:23.017 --> 00:02:27.116
+but require each service that needs the claims to make a call
+
+40
+00:02:27.116 --> 00:02:30.906
+to the userinfo endpoint to retrieve them.
+
+41
+00:02:30.906 --> 00:02:34.062
+The benefit of this approach is that services,
+
+42
+00:02:34.062 --> 00:02:36.609
+like our pricing services,
+
+43
+00:02:36.609 --> 00:02:42.186
+that don't need to handle any user claims no longer have to handle them
+
+44
+00:02:42.186 --> 00:02:47.251
+as expired tokens are no longer of any use to a hacker if they are
+
+45
+00:02:47.251 --> 00:02:49.618
+leaked as there's no sensitive data on them.
+
+46
+00:02:49.618 --> 00:02:53.859
+So it just provides that little bit of extra added security.
+
+47
+00:02:53.859 --> 00:02:54.170
+However,
+
+48
+00:02:54.170 --> 00:02:59.555
+there is a performance hit with the additional hop to the userinfo endpoint.
+
+49
+00:02:59.555 --> 00:03:02.919
+An alternative to token relay is for the services to get a new
+
+50
+00:03:02.919 --> 00:03:06.695
+token from the authorization server to connect to the next
+
+51
+00:03:06.695 --> 00:03:12.000
+microservice in the request chain. Let's look at that option next.
+

@@ -1,0 +1,556 @@
+1
+00:00:00,840 --> 00:00:02,980
+There are a lot of different things you can do with
+
+2
+00:00:02,980 --> 00:00:05,800
+EBS volumes like creating snapshots,
+
+3
+00:00:05,800 --> 00:00:09,700
+creating new EBS volumes from snapshots, and attaching
+
+4
+00:00:09,700 --> 00:00:12,540
+multiple volumes, just to name a few.
+
+5
+00:00:12,540 --> 00:00:17,050
+For this course, I wanted to give you just a taste of some EBS operations.
+
+6
+00:00:17,050 --> 00:00:17,690
+In this clip,
+
+7
+00:00:17,690 --> 00:00:22,380
+we're going to detach an EBS volume from one instance and attach
+
+8
+00:00:22,380 --> 00:00:28,560
+it to another. In the scripts/module_04 folder, we'll start with
+
+9
+00:00:28,560 --> 00:00:31,940
+the create‑ec2‑instance.js file.
+
+10
+00:00:31,940 --> 00:00:34,630
+Hey, didn't we already use this?
+
+11
+00:00:34,630 --> 00:00:37,270
+Yep, I just copied some of the code from the work we
+
+12
+00:00:37,270 --> 00:00:40,140
+did in module 2 and modified it.
+
+13
+00:00:40,140 --> 00:00:41,860
+This file works a little different.
+
+14
+00:00:41,860 --> 00:00:46,160
+It will first stop an instance, the one which we'll be removing the EBS volume
+
+15
+00:00:46,160 --> 00:00:51,855
+from. Then we'll create a new vanilla instance that we can attach the volume to.
+
+16
+00:00:51,855 --> 00:00:56,490
+Another file that we'll modify will manipulate the EBS volume, but let's go
+
+17
+00:00:56,490 --> 00:00:59,480
+ahead and modify and run this file first.
+
+18
+00:00:59,480 --> 00:01:03,900
+There are only four small pieces we need to change in this file.
+
+19
+00:01:03,900 --> 00:01:09,270
+First, add your region at line 4. Then on line 10, we need to enter
+
+20
+00:01:09,270 --> 00:01:13,720
+the instanceId for the instance we want to remove the EBS volume
+
+21
+00:01:13,720 --> 00:01:18,640
+from. Let's go to the EC2 dashboard to find this. Click on Instances
+
+22
+00:01:18,640 --> 00:01:23,250
+on the left‑hand side menu, and you'll probably have a few instances now.
+
+23
+00:01:23,250 --> 00:01:28,070
+One of them will be the instance we started from the AWS Marketplace.
+
+24
+00:01:28,070 --> 00:01:31,740
+You can tell by selecting the different instances and find the one
+
+25
+00:01:31,740 --> 00:01:35,620
+that has the AMI ID with this long string that starts with
+
+26
+00:01:35,620 --> 00:01:41,790
+bitnami‑node.js. First note which availability zone it's in. This is
+
+27
+00:01:41,790 --> 00:01:45,270
+going to be important so that we can launch our new instance in the
+
+28
+00:01:45,270 --> 00:01:47,640
+same availability zone.
+
+29
+00:01:47,640 --> 00:01:50,990
+Copy the instanceId and paste it on line.
+
+30
+00:01:50,990 --> 00:01:52,340
+10.
+
+31
+00:01:52,340 --> 00:01:56,660
+On line 23, we have a Placement object, which describes
+
+32
+00:01:56,660 --> 00:01:59,440
+where the instant should be launched in.
+
+33
+00:01:59,440 --> 00:02:04,040
+We're only indicating an AvailabilityZone, and it should match the instance
+
+34
+00:02:04,040 --> 00:02:10,810
+that we are removing the EBS instance from. Mine was in us‑east‑1b, so I'm
+
+35
+00:02:10,810 --> 00:02:14,780
+adding that here. It's important to launch the new instance in the same
+
+36
+00:02:14,780 --> 00:02:19,180
+availability zone as the instance we are removing the EBS volume from
+
+37
+00:02:19,180 --> 00:02:24,110
+because EBS volumes can only be connected to an instance in the same
+
+38
+00:02:24,110 --> 00:02:26,640
+availability zone that it's in.
+
+39
+00:02:26,640 --> 00:02:28,900
+This is kind of a practical consideration,
+
+40
+00:02:28,900 --> 00:02:33,270
+since the latency from connecting a volume in another data center,
+
+41
+00:02:33,270 --> 00:02:38,870
+even as low as it is within the AWS network, would likely be prohibitive. On
+
+42
+00:02:38,870 --> 00:02:43,060
+line 18, we need to add the ImageId to boot our new instance.
+
+43
+00:02:43,060 --> 00:02:46,470
+This should be just a vanilla AWS Linux instance.
+
+44
+00:02:46,470 --> 00:02:49,110
+So back in the AWS Console,
+
+45
+00:02:49,110 --> 00:02:54,265
+click the Launch Instance button, and copy the AMI ID from the first
+
+46
+00:02:54,265 --> 00:02:59,640
+AWS Linux entry. Paste that as the value for ImageId.
+
+47
+00:02:59,640 --> 00:03:01,220
+Now in your command line,
+
+48
+00:03:01,220 --> 00:03:08,250
+navigate to the scripts/module_04 folder and run create‑ec2‑instance.js.
+
+49
+00:03:08,250 --> 00:03:10,910
+This will stop the instance we're going to remove the EBS
+
+50
+00:03:10,910 --> 00:03:14,640
+volume from and create a fresh instance.
+
+51
+00:03:14,640 --> 00:03:16,560
+This is a great time for a quick note.
+
+52
+00:03:16,560 --> 00:03:22,160
+Why are we stopping the instance? Well, to detach a root volume from an instance,
+
+53
+00:03:22,160 --> 00:03:24,380
+the instance must be stopped.
+
+54
+00:03:24,380 --> 00:03:28,240
+The instance in question only has one attached EBS volume,
+
+55
+00:03:28,240 --> 00:03:30,760
+and that is its root volume.
+
+56
+00:03:30,760 --> 00:03:31,410
+To detach it,
+
+57
+00:03:31,410 --> 00:03:35,430
+we need to stop it. If it had multiple volumes and we were detaching a
+
+58
+00:03:35,430 --> 00:03:39,340
+non‑root volume, we could detach it while it was running.
+
+59
+00:03:39,340 --> 00:03:44,650
+Alright, now open up the reuse‑ebs‑volume.js file. This
+
+60
+00:03:44,650 --> 00:03:47,860
+file does two things, detaches the volume from one
+
+61
+00:03:47,860 --> 00:03:50,210
+instance and attaches it to another.
+
+62
+00:03:50,210 --> 00:03:51,690
+Pretty simple.
+
+63
+00:03:51,690 --> 00:03:55,320
+The first step is to add your region on line 4.
+
+64
+00:03:55,320 --> 00:04:00,260
+Now we have two IDs we need, the VolumeId of the EBS volume we'll be
+
+65
+00:04:00,260 --> 00:04:05,870
+detaching and the InstanceId of the EC2 instance we just created, that
+
+66
+00:04:05,870 --> 00:04:09,840
+we'll be attaching it to. For the second value, you can get that from the
+
+67
+00:04:09,840 --> 00:04:14,000
+command line. In the output from the command we just executed, copy the
+
+68
+00:04:14,000 --> 00:04:19,200
+InstanceId and paste it on line 9. For the VolumeId, we need to go to the
+
+69
+00:04:19,200 --> 00:04:21,040
+EC2 dashboard again.
+
+70
+00:04:21,040 --> 00:04:24,240
+In the left‑hand side menu, click on Volumes.
+
+71
+00:04:24,240 --> 00:04:26,200
+You should have a number of volumes equal to the
+
+72
+00:04:26,200 --> 00:04:28,540
+number of instances that you have.
+
+73
+00:04:28,540 --> 00:04:29,980
+Which Volume ID do we want?
+
+74
+00:04:29,980 --> 00:04:34,400
+Well, we need the volume attached to the instance that was stopped.
+
+75
+00:04:34,400 --> 00:04:39,250
+So look at the Instance ID you copied, and select the volume that is
+
+76
+00:04:39,250 --> 00:04:45,640
+attached to that instance. Copy the Volume ID and paste it on line 8.
+
+77
+00:04:45,640 --> 00:04:49,970
+Now with the correct values in place, let's implement the detachVolume function.
+
+78
+00:04:49,970 --> 00:04:53,520
+I've already added a little more code for you, so start by
+
+79
+00:04:53,520 --> 00:04:57,740
+declaring the params const object on line 15.
+
+80
+00:04:57,740 --> 00:05:02,100
+The only property it needs to know when detaching is the VolumeId.
+
+81
+00:05:02,100 --> 00:05:05,800
+So add a VolumeId parameter and set the value to the
+
+82
+00:05:05,800 --> 00:05:09,040
+VolumeId argument that we passed in.
+
+83
+00:05:09,040 --> 00:05:10,130
+Now Inside the Promise,
+
+84
+00:05:10,130 --> 00:05:15,400
+call the ec2.detachVolume function, passing in params as the first
+
+85
+00:05:15,400 --> 00:05:20,425
+argument and a callback with err and data arguments as the second.
+
+86
+00:05:20,425 --> 00:05:26,400
+Reject if there is an err object, and otherwise resolve with data.
+
+87
+00:05:26,400 --> 00:05:28,540
+Once the volume is detached,
+
+88
+00:05:28,540 --> 00:05:33,270
+it'll be available to be attached to another instance, so let's implement
+
+89
+00:05:33,270 --> 00:05:38,740
+attachVolume now. On line 28, create a params const object.
+
+90
+00:05:38,740 --> 00:05:44,595
+The first parameter attachVolume needs is the InstanceId to attach to.
+
+91
+00:05:44,595 --> 00:05:48,540
+Set the value to the InstanceId function argument.
+
+92
+00:05:48,540 --> 00:05:51,080
+The second property is the VolumeId that we'll be
+
+93
+00:05:51,080 --> 00:05:55,840
+attaching, so set the value to VolumeId.
+
+94
+00:05:55,840 --> 00:05:58,440
+The last property we'll add is Device.
+
+95
+00:05:58,440 --> 00:06:03,340
+This is the name the volume will be referenced as on the attached instance.
+
+96
+00:06:03,340 --> 00:06:11,840
+These values are usually things like /dev/sda1 or /dev/xvda, we'll call ours
+
+97
+00:06:11,840 --> 00:06:19,140
+something way more creative than that, enter /dev/sdf.
+
+98
+00:06:19,140 --> 00:06:23,750
+Now on line 35, let's call ec2.attachVolume, passing in
+
+99
+00:06:23,750 --> 00:06:27,910
+prams as our first argument and a callback with err and
+
+100
+00:06:27,910 --> 00:06:30,790
+data arguments as the second.
+
+101
+00:06:30,790 --> 00:06:34,850
+If there's an err object, then call reject with it; otherwise,
+
+102
+00:06:34,850 --> 00:06:37,790
+call resolve with the data argument.
+
+103
+00:06:37,790 --> 00:06:42,940
+Now when we run this, it'll swap the volume in question to the new instance.
+
+104
+00:06:42,940 --> 00:06:47,630
+But there's just one more thing to do, we need to stop the newly‑created
+
+105
+00:06:47,630 --> 00:06:51,640
+instance before we can attach this EBS volume to it.
+
+106
+00:06:51,640 --> 00:06:53,040
+Why is that?
+
+107
+00:06:53,040 --> 00:06:53,480
+Well,
+
+108
+00:06:53,480 --> 00:06:57,880
+let me show you. Go to the EC2 dashboard, and look at your Volumes again.
+
+109
+00:06:57,880 --> 00:07:02,630
+On the volume that we're working with, there is a Product code attribute
+
+110
+00:07:02,630 --> 00:07:05,940
+that says marketplace, and then some ID.
+
+111
+00:07:05,940 --> 00:07:09,070
+This indicates that the EBS volume was launched from a
+
+112
+00:07:09,070 --> 00:07:12,480
+snapshot from the AWS Marketplace.
+
+113
+00:07:12,480 --> 00:07:16,250
+It's sort of a way to stamp the original AMI, so it
+
+114
+00:07:16,250 --> 00:07:19,840
+can't be resold or used in weird ways.
+
+115
+00:07:19,840 --> 00:07:23,910
+Another tricky thing is that an EBS volume with a product code
+
+116
+00:07:23,910 --> 00:07:26,840
+can't be attached to a running instance.
+
+117
+00:07:26,840 --> 00:07:28,740
+It's kind of odd, I agree,
+
+118
+00:07:28,740 --> 00:07:33,390
+but we will need to shut down the instance we just created before we
+
+119
+00:07:33,390 --> 00:07:37,570
+can attach the volume to it. Click on the Instances menu option, and
+
+120
+00:07:37,570 --> 00:07:42,100
+find the instance we just created You can tell by the AMI ID on the
+
+121
+00:07:42,100 --> 00:07:47,580
+instance. Select it, then click the Actions drop‑down, Instance
+
+122
+00:07:47,580 --> 00:07:50,040
+State, and Stop.
+
+123
+00:07:50,040 --> 00:07:52,610
+Yes, we could've done this with our file as well,
+
+124
+00:07:52,610 --> 00:07:57,350
+but this can be a little bit quicker in our case. You will need to keep
+
+125
+00:07:57,350 --> 00:08:02,150
+an eye on when this instance finishes shutting down, but I'll skip in
+
+126
+00:08:02,150 --> 00:08:06,600
+time a little bit here until it has shut down. In your command line, run
+
+127
+00:08:06,600 --> 00:08:11,640
+the command node reuse‑ebs‑volume.js.
+
+128
+00:08:11,640 --> 00:08:12,900
+Once you get some output,
+
+129
+00:08:12,900 --> 00:08:17,540
+it should've detached and reattached the volume to the new instance.
+
+130
+00:08:17,540 --> 00:08:21,380
+Now we can check our work by going to the EC2 instance dashboard in
+
+131
+00:08:21,380 --> 00:08:26,110
+the AWS Console. Refresh and select the target instance that we
+
+132
+00:08:26,110 --> 00:08:30,820
+attached it to. In its attributes, it'll have a section for Block
+
+133
+00:08:30,820 --> 00:08:35,540
+devices, and you should see entries for the root and then the volume
+
+134
+00:08:35,540 --> 00:08:37,470
+that we just attached.
+
+135
+00:08:37,470 --> 00:08:40,240
+You can start the instance now if you like, and then you'd
+
+136
+00:08:40,240 --> 00:08:43,560
+have full access to all the data on that volume by
+
+137
+00:08:43,560 --> 00:08:48,080
+referencing that /dev/sdf device.
+
+138
+00:08:48,080 --> 00:08:50,900
+There's plenty more you can do with EBS, but I hope that gave
+
+139
+00:08:50,900 --> 00:08:58,000
+you an idea of the versatility of the service. In the next clip, we're going to get started with S3 buckets.
+

@@ -1,0 +1,815 @@
+1
+00:00:00,180 --> 00:00:05,910
+In this video you're going to learn how to create a link between the image uploaded and the user who
+
+2
+00:00:05,910 --> 00:00:07,400
+actually uploaded it.
+
+3
+00:00:07,410 --> 00:00:12,960
+Right now all of the Avatar pictures are being dumped into a directory and there's no link between the
+
+4
+00:00:12,960 --> 00:00:16,260
+user who created it and the image that was uploaded.
+
+5
+00:00:16,290 --> 00:00:21,430
+This route isn't even behind authentication so those are all things we want to fix.
+
+6
+00:00:21,450 --> 00:00:27,150
+We'll start by putting the route behind authentication and then we'll create a place on the User model
+
+7
+00:00:27,180 --> 00:00:29,430
+for the image data to be stored.
+
+8
+00:00:29,700 --> 00:00:36,360
+And finally we'll be creating a separate route that authenticated users can use to delete a profile
+
+9
+00:00:36,360 --> 00:00:38,190
+picture they've set.
+
+10
+00:00:38,190 --> 00:00:41,490
+So let's go ahead and talk about how we're gonna get all of this done.
+
+11
+00:00:41,490 --> 00:00:43,980
+Step one is to set up authentication.
+
+12
+00:00:43,980 --> 00:00:49,200
+Adding authentication is gonna be just as simple as it's been for all of the other routes we've worked
+
+13
+00:00:49,200 --> 00:00:49,700
+with.
+
+14
+00:00:49,710 --> 00:00:56,060
+Now the only difference is that this route already has one piece of middleware in place that is melter.
+
+15
+00:00:56,160 --> 00:01:01,020
+All we're going to do is add our authentication middleware before.
+
+16
+00:01:01,020 --> 00:01:07,080
+So we want to make sure they're authenticated before we worry about accepting their upload because if
+
+17
+00:01:07,080 --> 00:01:10,200
+they're not authenticated we would never accept the upload.
+
+18
+00:01:10,560 --> 00:01:13,890
+So right here that is off followed by a comma.
+
+19
+00:01:13,890 --> 00:01:17,340
+So now we are passing multiple arguments to post.
+
+20
+00:01:17,340 --> 00:01:21,580
+We have first the path then we make sure they're authenticated.
+
+21
+00:01:21,630 --> 00:01:25,100
+Then we go ahead and validate and accept the upload.
+
+22
+00:01:25,110 --> 00:01:31,860
+Right here we send back the success message and down below we handle any errors that might occur when
+
+23
+00:01:31,920 --> 00:01:33,690
+the upload was processed.
+
+24
+00:01:34,140 --> 00:01:40,710
+So this is step number one the next step is to figure out where exactly we're going to store that image.
+
+25
+00:01:40,710 --> 00:01:46,560
+We're actually not going to store it on the file system for the project like we've been doing so far.
+
+26
+00:01:46,650 --> 00:01:52,650
+The reasoning behind this is that almost all deployment platforms require you to take your code and
+
+27
+00:01:52,650 --> 00:01:56,240
+push it up to the repository on their servers.
+
+28
+00:01:56,250 --> 00:02:01,530
+We saw this with Heroku and the same would be true if you were using something like a W us.
+
+29
+00:02:01,680 --> 00:02:07,470
+So the file system actually gets wiped every time you deploy which means that we would lose data when
+
+30
+00:02:07,470 --> 00:02:10,370
+we deployed we would lose those user images.
+
+31
+00:02:10,620 --> 00:02:16,620
+So instead of storing them on the file system we're actually going to add a field onto the User model
+
+32
+00:02:16,620 --> 00:02:19,470
+to store the image of binary data.
+
+33
+00:02:19,470 --> 00:02:26,520
+That means we're going to make a very small change to the user model over here after tokens or before
+
+34
+00:02:26,550 --> 00:02:28,320
+the order doesn't matter.
+
+35
+00:02:28,320 --> 00:02:34,380
+We're gonna be setting up a new field which we can call Avatar and we're only going to configure this
+
+36
+00:02:34,380 --> 00:02:35,590
+with a type.
+
+37
+00:02:35,610 --> 00:02:40,740
+So right here the type is going to be capital B buffer.
+
+38
+00:02:40,740 --> 00:02:47,250
+This is going to allow us to store the buffer with our binary image data right in the database alongside
+
+39
+00:02:47,370 --> 00:02:50,760
+of the user who the image belongs to.
+
+40
+00:02:50,790 --> 00:02:55,230
+Now we don't need to make this required as we're not going to make profile pictures required.
+
+41
+00:02:55,230 --> 00:03:01,050
+They'll be completely optional and there's no need to perform any validation send smelter already takes
+
+42
+00:03:01,050 --> 00:03:02,750
+care of that for us.
+
+43
+00:03:02,790 --> 00:03:08,400
+This is actually the only change we need to make to the user model so we can go ahead and save this
+
+44
+00:03:08,400 --> 00:03:13,540
+file and figure out how we're actually going to get access to the data over here.
+
+45
+00:03:13,560 --> 00:03:19,860
+Now what would be ideal is the ability to actually access the binary data right here we would update
+
+46
+00:03:19,920 --> 00:03:26,100
+the user profile and use that save method we've used to so many times before to save these changes to
+
+47
+00:03:26,100 --> 00:03:27,390
+the database.
+
+48
+00:03:27,390 --> 00:03:29,700
+The problem is that our root handler.
+
+49
+00:03:29,700 --> 00:03:30,660
+This function.
+
+50
+00:03:30,660 --> 00:03:35,610
+Right here it does not get access to the file data that was uploaded.
+
+51
+00:03:35,610 --> 00:03:42,780
+That's because Mulder runs first and it processes the image saving the image to the avatars directory.
+
+52
+00:03:42,780 --> 00:03:48,780
+Now Malta does give us a way to actually access the data inside of here and all we need to do to get
+
+53
+00:03:48,780 --> 00:03:54,600
+that done is remove the dest property from our options object up above.
+
+54
+00:03:54,690 --> 00:04:01,260
+When we do this the multicore library is no longer going to save images to the avatars directory.
+
+55
+00:04:01,260 --> 00:04:07,920
+Instead it's simply going to pass that data through to our function so we can do something with it.
+
+56
+00:04:08,130 --> 00:04:11,030
+We could save it to the file system if we wanted to.
+
+57
+00:04:11,100 --> 00:04:12,570
+But in this case we don't.
+
+58
+00:04:12,570 --> 00:04:15,570
+We want to save it on the user profile.
+
+59
+00:04:15,570 --> 00:04:21,270
+So now we're still going to have Malta processed the image data and validate it as we've set up above
+
+60
+00:04:21,510 --> 00:04:27,060
+but it will pass the validated data through to our callback function so we can access it.
+
+61
+00:04:27,210 --> 00:04:30,820
+The data is accessible on request dot file.
+
+62
+00:04:30,870 --> 00:04:36,720
+This is an object which contains all of those properties we explored before about the file and we're
+
+63
+00:04:36,720 --> 00:04:43,820
+gonna be using one called buffer buffer contains a buffer of all of the binary data for that file.
+
+64
+00:04:43,920 --> 00:04:47,310
+And this is exactly what we want access to.
+
+65
+00:04:47,310 --> 00:04:52,950
+So this is something that once again we can only access in our handler when we don't have that dest
+
+66
+00:04:53,010 --> 00:04:54,790
+option setup.
+
+67
+00:04:54,810 --> 00:05:00,790
+The next thing we're going to do is actually take this value and store it on the user avid char field.
+
+68
+00:05:00,880 --> 00:05:01,660
+So over here.
+
+69
+00:05:01,660 --> 00:05:09,360
+Request dot user dot Avatar is going to equal whatever is on request dot file dot buffer.
+
+70
+00:05:09,360 --> 00:05:15,280
+And the last thing we need to do is save the user profile since we've just made a change to it.
+
+71
+00:05:15,450 --> 00:05:22,520
+So I'll use a wait with request dot user dot save like we've done plenty of times before.
+
+72
+00:05:22,590 --> 00:05:28,710
+Now if I do want to take advantage of a way all I need to do is make sure I am working in an async function.
+
+73
+00:05:28,710 --> 00:05:35,260
+I'm currently not but I can add a sync up front of the arrow function definition to change that.
+
+74
+00:05:35,280 --> 00:05:41,490
+So at this point motor is processing the data passing it through to our function or storing the file
+
+75
+00:05:41,490 --> 00:05:44,520
+data on the avatar field and saving it.
+
+76
+00:05:44,520 --> 00:05:50,850
+And what I'd like to do from here is actually test our work and make sure it's working as expected.
+
+77
+00:05:50,880 --> 00:05:57,030
+What I'm going to do is save this file and try to upload a new avatar over inside of post man.
+
+78
+00:05:57,030 --> 00:06:02,970
+I already have my upload Avatar request and I'm uploading the data correctly like we were doing earlier
+
+79
+00:06:03,180 --> 00:06:09,090
+and I'm already authenticated because I've created this request in the task app collection and under
+
+80
+00:06:09,090 --> 00:06:14,640
+authorization it's inheriting it from the parent which we set up a few sections ago.
+
+81
+00:06:14,640 --> 00:06:21,810
+That means all I need to do is actually send this off to have the data added on to the user profile.
+
+82
+00:06:21,840 --> 00:06:27,570
+Now when it comes to what we send back from this request it doesn't really make much sense to send anything
+
+83
+00:06:27,570 --> 00:06:27,930
+back.
+
+84
+00:06:27,930 --> 00:06:34,440
+Though you could if you wanted to in this case we can send back an empty body with the 200 status code
+
+85
+00:06:34,470 --> 00:06:37,020
+so they know that things went well.
+
+86
+00:06:37,020 --> 00:06:43,140
+Now at this point I would expect to see an avatar field on the user in the database.
+
+87
+00:06:43,170 --> 00:06:49,590
+What I'm gonna do is head over to robo 3D for the first time in a little while and I'll refresh the
+
+88
+00:06:49,620 --> 00:06:51,100
+user's collection.
+
+89
+00:06:51,150 --> 00:06:55,920
+I have a single user and if I crack them open down near the bottom what do I have.
+
+90
+00:06:55,920 --> 00:07:00,510
+I have that Avatar field with my binary data right here.
+
+91
+00:07:00,510 --> 00:07:05,400
+Now for the moment we're not going to worry about creating a route to actually serve this image up.
+
+92
+00:07:05,400 --> 00:07:08,700
+That's something we'll focus on in the next lesson for the moment.
+
+93
+00:07:08,700 --> 00:07:15,510
+What we can do is just copy this binary data to the clipboard and write a little H2 UML in the browser
+
+94
+00:07:15,660 --> 00:07:18,690
+so you can see what it would take to render the image.
+
+95
+00:07:18,750 --> 00:07:24,210
+What I'm going to do is right click my document and click edit document and what we're looking for here
+
+96
+00:07:24,210 --> 00:07:26,550
+is the Avatar binary data.
+
+97
+00:07:26,760 --> 00:07:30,920
+Now down below we have Avatar when we use the buffer type.
+
+98
+00:07:30,960 --> 00:07:37,740
+It's actually set to an object and the dollar sign binary property that's what contains our data.
+
+99
+00:07:38,070 --> 00:07:42,480
+So I need everything starting right here to the very end of this quote.
+
+100
+00:07:42,600 --> 00:07:47,730
+So what I'm gonna do is highlight a part of it then using the scroll bar I'll go all the way to the
+
+101
+00:07:47,730 --> 00:07:54,510
+bottom and I will shift click right at the end just before that closing quote to highlight everything.
+
+102
+00:07:54,510 --> 00:07:59,010
+I'm gonna copy it to the clipboard and that is the binary image data.
+
+103
+00:07:59,040 --> 00:08:04,320
+Now we can go ahead and click cancel to close down the editor and we're gonna move into the browser
+
+104
+00:08:04,440 --> 00:08:05,790
+for just a moment.
+
+105
+00:08:05,850 --> 00:08:11,040
+We're gonna go over to one of those Web sites that allow you to write a little bit of markup and then
+
+106
+00:08:11,040 --> 00:08:11,670
+see it.
+
+107
+00:08:11,670 --> 00:08:17,050
+We have things like code pen J.S. bean code sandbox and dozens of others.
+
+108
+00:08:17,100 --> 00:08:21,390
+I'm gonna use J.S. bean which is just the tool I've used the most.
+
+109
+00:08:21,600 --> 00:08:26,820
+Now right here by default we see HDL javascript end of the rendered output.
+
+110
+00:08:26,910 --> 00:08:31,640
+We're gonna go ahead and close down the javascript tab as we're not going to need it.
+
+111
+00:08:31,710 --> 00:08:38,250
+We need to do is be able to write some HDL like an h1 tag and see it rendered over here.
+
+112
+00:08:38,280 --> 00:08:45,060
+Now what we're gonna do is setup an image tag and render an image based just off of our binary data
+
+113
+00:08:45,570 --> 00:08:48,720
+for the image we have to set the source attribute.
+
+114
+00:08:48,720 --> 00:08:54,300
+Now typically this would be a you are out a path to where the image lives in the browser would fetch
+
+115
+00:08:54,300 --> 00:08:56,520
+it and render it to the screen.
+
+116
+00:08:56,520 --> 00:09:02,910
+We can also though provide binary data right here to render the image without needing to make that extra
+
+117
+00:09:02,970 --> 00:09:05,790
+request right here to get that done.
+
+118
+00:09:05,850 --> 00:09:09,380
+We first start by specifying what exactly we're providing.
+
+119
+00:09:09,450 --> 00:09:11,380
+It's not a U.R.L. it's data.
+
+120
+00:09:11,610 --> 00:09:12,410
+So that is data.
+
+121
+00:09:12,420 --> 00:09:15,090
+Colon followed by the type of data.
+
+122
+00:09:15,090 --> 00:09:18,560
+In this case it is image forward slash JP G.
+
+123
+00:09:18,730 --> 00:09:23,290
+If it was a PSG it would be image forward slash PSG.
+
+124
+00:09:23,430 --> 00:09:31,920
+Next up after a semicolon it is the encoding our data is Base64 encoded which just removes special characters
+
+125
+00:09:31,920 --> 00:09:35,760
+that typically cause problems with things like you are ls.
+
+126
+00:09:35,980 --> 00:09:38,850
+Then after a comma what do we provide.
+
+127
+00:09:38,850 --> 00:09:41,680
+This is where we provide our binary data.
+
+128
+00:09:41,760 --> 00:09:46,530
+So this prefix makes sure the browser knows how to render the data we're providing it.
+
+129
+00:09:46,680 --> 00:09:49,110
+Then we simply paste in that data.
+
+130
+00:09:49,110 --> 00:09:52,630
+Now over here on the right hand side we have a grey box.
+
+131
+00:09:52,740 --> 00:09:55,300
+That's just because our image is really really big.
+
+132
+00:09:55,470 --> 00:09:59,460
+But if I scroll around we can indeed find the profile picture.
+
+133
+00:09:59,490 --> 00:10:01,310
+Our robots face.
+
+134
+00:10:01,470 --> 00:10:07,830
+So using our binary data we can render images in the browser by just specifying that you are well structure
+
+135
+00:10:07,890 --> 00:10:08,850
+like this.
+
+136
+00:10:08,850 --> 00:10:12,270
+This is one way we can show those profile pictures.
+
+137
+00:10:12,270 --> 00:10:14,470
+We request the user's profile.
+
+138
+00:10:14,520 --> 00:10:19,710
+We grab the avatar data and we dump it into an image element.
+
+139
+00:10:19,740 --> 00:10:24,450
+Now that we've seen this we're going to wrap up the video with a challenge where you're going to set
+
+140
+00:10:24,450 --> 00:10:31,140
+up a route for deleting that data from the user profile in the next video we'll talk about how we can
+
+141
+00:10:31,140 --> 00:10:34,660
+create a U.R.L. to serve those images up.
+
+142
+00:10:34,710 --> 00:10:39,570
+But for now let's go ahead and talk about what I'd like you to do for the challenge and I'll paste the
+
+143
+00:10:39,570 --> 00:10:42,930
+challenge comments right here down below right here.
+
+144
+00:10:42,930 --> 00:10:48,630
+Your goal is to set up a route allowing someone to delete the avatar they've previously uploaded.
+
+145
+00:10:48,630 --> 00:10:54,900
+You're gonna start by setting up the route delete forward slash users forward slash me forward slash
+
+146
+00:10:54,990 --> 00:10:56,160
+avatar.
+
+147
+00:10:56,160 --> 00:11:02,370
+So essentially it's the same request structure up above but we're swapping out post for delete and you're
+
+148
+00:11:02,370 --> 00:11:08,940
+also going to add authentication as we need to know which user we are deleting the avatar for and the
+
+149
+00:11:08,940 --> 00:11:10,350
+actual root handler.
+
+150
+00:11:10,350 --> 00:11:17,150
+All you have to do is set the correct field to undefined to save the user document to wipe that data.
+
+151
+00:11:17,400 --> 00:11:20,660
+And finally send back something like a two hundred.
+
+152
+00:11:20,760 --> 00:11:23,760
+There's no need to send back an actual response body.
+
+153
+00:11:23,780 --> 00:11:25,920
+The status code is enough.
+
+154
+00:11:25,920 --> 00:11:27,480
+Last up test your work.
+
+155
+00:11:27,540 --> 00:11:31,750
+Create the new request for the task app collection in post man.
+
+156
+00:11:31,860 --> 00:11:36,120
+Fire it off for the user and then check the data in the database.
+
+157
+00:11:36,120 --> 00:11:39,940
+They should no longer have that Avatar field showing up.
+
+158
+00:11:40,020 --> 00:11:40,920
+Pause the video.
+
+159
+00:11:40,950 --> 00:11:42,120
+Knock this out.
+
+160
+00:11:42,120 --> 00:11:46,690
+You can add the new route right here when you're done and come back and click play.
+
+161
+00:11:50,450 --> 00:11:51,290
+How'd that go.
+
+162
+00:11:51,320 --> 00:11:54,130
+Let's go ahead and get started by calling a router.
+
+163
+00:11:54,140 --> 00:12:01,550
+Dot delete to set up the root entity you are L is forward slash users forward slash me a forward slash
+
+164
+00:12:01,610 --> 00:12:05,790
+avatar as we are deleting the avatar for ourselves.
+
+165
+00:12:05,810 --> 00:12:11,730
+Next up we do on authentication so I'll add that in right now followed by our function.
+
+166
+00:12:11,750 --> 00:12:19,040
+I plan on using a wait inside of there so I'll set it up as an async function and from inside of here
+
+167
+00:12:19,070 --> 00:12:28,050
+the goal is to start by wiping the avatar field on a user so request dot user dot right here.
+
+168
+00:12:28,070 --> 00:12:33,710
+Avatar will get set equal to undefined when we wanted to save a profile picture.
+
+169
+00:12:33,710 --> 00:12:36,170
+We set that field when I want to delete it.
+
+170
+00:12:36,170 --> 00:12:38,410
+I clear that field.
+
+171
+00:12:38,450 --> 00:12:41,510
+Next up we have to make sure to save that user profile.
+
+172
+00:12:41,540 --> 00:12:46,800
+So I will await a call to request dot user dot save.
+
+173
+00:12:46,820 --> 00:12:53,660
+And next up we can go ahead and use response dot send to send back a two hundred request.
+
+174
+00:12:53,740 --> 00:12:58,540
+Now from here we have knocked out steps 1 2 and 3.
+
+175
+00:12:58,610 --> 00:13:04,910
+The last thing we need to do is to test our work and make sure this actually functions correctly.
+
+176
+00:13:04,910 --> 00:13:11,190
+I'm going to go ahead and remove the challenge comments I'll make sure to save the user router and we're
+
+177
+00:13:11,190 --> 00:13:14,130
+going to head over to postmen and give this a try.
+
+178
+00:13:14,180 --> 00:13:22,000
+So I have to create the new request which I will do by adding it to the task app collection I can call
+
+179
+00:13:22,000 --> 00:13:23,410
+this whatever I'd like.
+
+180
+00:13:23,500 --> 00:13:26,060
+I'll go ahead and call it something like delete.
+
+181
+00:13:26,080 --> 00:13:29,700
+Avatar I'm going to create it.
+
+182
+00:13:29,910 --> 00:13:35,250
+Down below it shows up I'll crack that open and customize it to fit my needs.
+
+183
+00:13:35,250 --> 00:13:42,180
+This does indeed use delete and the structure starts with you are L stored in the environment variable
+
+184
+00:13:42,600 --> 00:13:48,380
+followed by a forward slash user's forward slash me forward slash avatar.
+
+185
+00:13:48,450 --> 00:13:52,190
+Now authorization is already set up right here in this tab.
+
+186
+00:13:52,200 --> 00:13:53,310
+So we're good to go.
+
+187
+00:13:53,310 --> 00:13:55,760
+We can actually fire that request off.
+
+188
+00:13:55,830 --> 00:13:58,540
+I'm going to send this off using post man.
+
+189
+00:13:58,620 --> 00:14:05,400
+I get a two hundred back and we can verify it actually worked by looking at the database over in robo
+
+190
+00:14:05,400 --> 00:14:06,340
+3 T.
+
+191
+00:14:06,390 --> 00:14:10,800
+I have my avatar I use it command R to refresh it.
+
+192
+00:14:10,800 --> 00:14:16,310
+I cracked that open again and now the avatar is gone which is fantastic.
+
+193
+00:14:16,320 --> 00:14:23,140
+So now when we are uploading avatars those are getting uploaded and saved as part of the user profile.
+
+194
+00:14:23,220 --> 00:14:28,770
+And we've also provided a user with the ability to delete their profile picture if they don't want it
+
+195
+00:14:28,770 --> 00:14:29,670
+anymore.
+
+196
+00:14:29,670 --> 00:14:35,670
+Now if I simply wanted to change my profile picture I could just use this request again to actually
+
+197
+00:14:35,670 --> 00:14:36,690
+get that done.
+
+198
+00:14:37,050 --> 00:14:44,550
+So if I was creating a front end application for this task app this route right here would be used for
+
+199
+00:14:44,640 --> 00:14:50,160
+creating an avatar and for updating it and the one below would be used for just wiping it.
+
+200
+00:14:50,310 --> 00:14:52,910
+There's no need to wipe before saving.
+
+201
+00:14:53,160 --> 00:14:58,380
+Now that we have this in place we are all done for this lesson in the next video we're going to explore
+
+202
+00:14:58,410 --> 00:15:06,060
+some of the ways we can serve up this image data so it can actually be accessed and used by our client.
+
+203
+00:15:06,060 --> 00:15:07,340
+I'm excited to get to that.
+
+204
+00:15:07,380 --> 00:15:10,080
+So let's jump right in to the next one.

@@ -1,0 +1,617 @@
+WEBVTT
+1
+00:00:00.840 --> 00:00:06.030
+We've already changed our code to directly access assets in S3, so
+
+2
+00:00:06.030 --> 00:00:09.830
+let's create a CloudFront distribution based off that bucket so
+
+3
+00:00:09.830 --> 00:00:12.540
+that we can get even better performance.
+
+4
+00:00:12.540 --> 00:00:15.650
+CloudFront SDK functions might hold the award for
+
+5
+00:00:15.650 --> 00:00:18.320
+most properties in a params object.
+
+6
+00:00:18.320 --> 00:00:22.200
+I seriously made a separate file for us just because there are
+
+7
+00:00:22.200 --> 00:00:28.520
+so many. Navigate to the scripts/module_07 folder and open the
+
+8
+00:00:28.520 --> 00:00:31.600
+CloudFront parameters.js file.
+
+9
+00:00:31.600 --> 00:00:35.540
+I moved the two biggest sections of params into this file so that
+
+10
+00:00:35.540 --> 00:00:38.740
+the actual create file is much easier to read.
+
+11
+00:00:38.740 --> 00:00:44.140
+We've got two sections here, the origins and defaultCashBehavior properties.
+
+12
+00:00:44.140 --> 00:00:47.250
+Let's get started with adding the origin properties.
+
+13
+00:00:47.250 --> 00:00:50.820
+This origins object can hold one or many origins,
+
+14
+00:00:50.820 --> 00:00:56.270
+so there is a quantity property we'll add first. This tells AWS
+
+15
+00:00:56.270 --> 00:00:59.200
+how many origins will be in the items array.
+
+16
+00:00:59.200 --> 00:01:02.610
+We're only creating one here, so enter the number 1.
+
+17
+00:01:02.610 --> 00:01:07.080
+The next property is Items and it has the value of an array.
+
+18
+00:01:07.080 --> 00:01:09.680
+This is where the origin details will go.
+
+19
+00:01:09.680 --> 00:01:11.840
+Create one object here.
+
+20
+00:01:11.840 --> 00:01:15.540
+The first property for the object is DomainName.
+
+21
+00:01:15.540 --> 00:01:19.970
+This will be the domain for your S3 bucket. We'll build it dynamically,
+
+22
+00:01:19.970 --> 00:01:22.670
+so create a string template,
+
+23
+00:01:22.670 --> 00:01:28.040
+then create a variable and add the bucketName function argument.
+
+24
+00:01:28.040 --> 00:01:28.760
+After that,
+
+25
+00:01:28.760 --> 00:01:36.280
+continue with .s3.amazonaws.com. And with that we'll build the domain
+
+26
+00:01:36.280 --> 00:01:39.840
+name dynamically based on whatever your bucket name is.
+
+27
+00:01:39.840 --> 00:01:41.840
+The next property is Id.
+
+28
+00:01:41.840 --> 00:01:44.920
+This is going to be a unique value that will be referenced in
+
+29
+00:01:44.920 --> 00:01:49.140
+the other params chunk, defaultCacheBehavior.
+
+30
+00:01:49.140 --> 00:01:49.930
+For this value,
+
+31
+00:01:49.930 --> 00:01:52.880
+create another string template and again reference a
+
+32
+00:01:52.880 --> 00:01:56.340
+variable with the bucketName function argument.
+
+33
+00:01:56.340 --> 00:02:00.040
+After add an underscore and the word origin,
+
+34
+00:02:00.040 --> 00:02:02.540
+this will make an Id based on your bucketName,
+
+35
+00:02:02.540 --> 00:02:06.040
+so it should be unique enough for our purposes.
+
+36
+00:02:06.040 --> 00:02:12.440
+The next property is S3OriginConfig, which has the value of an object.
+
+37
+00:02:12.440 --> 00:02:14.840
+This property is unused by us,
+
+38
+00:02:14.840 --> 00:02:18.840
+but it's required by CloudFront for an S3 origin to work.
+
+39
+00:02:18.840 --> 00:02:25.130
+Give it one property, OriginAccessIdentity with the value of an empty string.
+
+40
+00:02:25.130 --> 00:02:25.910
+Like I said,
+
+41
+00:02:25.910 --> 00:02:30.500
+it's unused. Now that's everything we need to configure for our origin.
+
+42
+00:02:30.500 --> 00:02:35.070
+Let's configure the defaultCacheBehavior below to use that origin.
+
+43
+00:02:35.070 --> 00:02:39.220
+These DefaultCacheBehavior properties do exactly as they say.
+
+44
+00:02:39.220 --> 00:02:43.640
+They configure the default behavior that our created distribution will follow.
+
+45
+00:02:43.640 --> 00:02:48.880
+The first property is FowardedValues, which has the value of an object.
+
+46
+00:02:48.880 --> 00:02:51.630
+This will tell our distribution to forward on cookies
+
+47
+00:02:51.630 --> 00:02:54.160
+or query parameters to the origin.
+
+48
+00:02:54.160 --> 00:02:56.720
+In our case, we don't want any of this behavior.
+
+49
+00:02:56.720 --> 00:03:01.380
+Add the property Cookies with the value of an object. Inside give
+
+50
+00:03:01.380 --> 00:03:06.305
+it one property called Forward and the value of none as a string.
+
+51
+00:03:06.305 --> 00:03:11.210
+After the Cookies property, add a property named QueryString and
+
+52
+00:03:11.210 --> 00:03:14.040
+give it the value of false.
+
+53
+00:03:14.040 --> 00:03:14.530
+Now,
+
+54
+00:03:14.530 --> 00:03:18.150
+after the FowardedValues object, add a new property
+
+55
+00:03:18.150 --> 00:03:22.140
+called MinTTL and set it to 0.
+
+56
+00:03:22.140 --> 00:03:25.660
+This is the minimum time to keep an object in cache before
+
+57
+00:03:25.660 --> 00:03:28.140
+forwarding the request back to the origin.
+
+58
+00:03:28.140 --> 00:03:31.620
+The next property is TargetOriginId, which needs to
+
+59
+00:03:31.620 --> 00:03:34.740
+match the origin Id we defined above.
+
+60
+00:03:34.740 --> 00:03:38.620
+The easiest thing is to just copy the value from above and paste
+
+61
+00:03:38.620 --> 00:03:41.640
+it here, that way you won't get any typos.
+
+62
+00:03:41.640 --> 00:03:47.070
+Next, add the property TrustedSigners, which has the value of an object.
+
+63
+00:03:47.070 --> 00:03:50.800
+This will let you create signed URLs for CloudFront content and
+
+64
+00:03:50.800 --> 00:03:55.170
+only allow users to access content that way. We won't be doing
+
+65
+00:03:55.170 --> 00:03:57.880
+that, but this is another required field.
+
+66
+00:03:57.880 --> 00:04:01.540
+Add the property Quantity with the number 0,
+
+67
+00:04:01.540 --> 00:04:06.120
+then the property Enabled with the value false. After
+
+68
+00:04:06.120 --> 00:04:10.920
+TrustedSigners, add a property named ViewerProtocolPolicy.
+
+69
+00:04:10.920 --> 00:04:19.140
+This is where you can define https only, redirect http to https, or both.
+
+70
+00:04:19.140 --> 00:04:23.930
+I like to redirect http calls to https so add the
+
+71
+00:04:23.930 --> 00:04:29.910
+string redirect‑to‑https. Next,
+
+72
+00:04:29.910 --> 00:04:34.210
+add the property AllowedMethods with the value of an object. Here we'll
+
+73
+00:04:34.210 --> 00:04:39.950
+define what http methods can be used with this distribution. We'll have 2,
+
+74
+00:04:39.950 --> 00:04:44.140
+so add a property named Quantity with the value 2.
+
+75
+00:04:44.140 --> 00:04:48.775
+Then add a property called Items with an array as the value. We'll
+
+76
+00:04:48.775 --> 00:04:55.190
+add two methods here, GET in all caps and HEAD in all caps. After
+
+77
+00:04:55.190 --> 00:05:00.290
+the Items property, add another property called CachedMethods with
+
+78
+00:05:00.290 --> 00:05:02.390
+the value as an object.
+
+79
+00:05:02.390 --> 00:05:07.610
+This defines the http methods that CloudFront will cache. Add
+
+80
+00:05:07.610 --> 00:05:11.690
+the property Quantity with the value 2.
+
+81
+00:05:11.690 --> 00:05:16.370
+Then add the property Items with the value of an array.
+
+82
+00:05:16.370 --> 00:05:21.840
+The items here will copy what's above with GET and HEAD entered here.
+
+83
+00:05:21.840 --> 00:05:25.640
+And with that, our long properties are complete.
+
+84
+00:05:25.640 --> 00:05:30.550
+Now we can open create‑cloudfront‑distribution.js. You can
+
+85
+00:05:30.550 --> 00:05:35.340
+start by updating your region on line 5. On line 8 we need to
+
+86
+00:05:35.340 --> 00:05:38.340
+create a CloudFront SDK object.
+
+87
+00:05:38.340 --> 00:05:44.690
+Declare a const called cf and assign to it a new AWS.CloudFront
+
+88
+00:05:44.690 --> 00:05:48.400
+constructor call. On line 10 we're calling the
+
+89
+00:05:48.400 --> 00:05:52.770
+createDistribution function and you'll need to enter your bucket
+
+90
+00:05:52.770 --> 00:05:55.840
+name in the string function argument.
+
+91
+00:05:55.840 --> 00:05:59.090
+Now let's implement the createDistribution function.
+
+92
+00:05:59.090 --> 00:06:02.640
+Start by creating our params const object.
+
+93
+00:06:02.640 --> 00:06:06.000
+Even though I've offloaded most of the properties to that different file,
+
+94
+00:06:06.000 --> 00:06:08.740
+we've still got quite a few to add here.
+
+95
+00:06:08.740 --> 00:06:12.260
+Start by adding a DistributionConfig property and
+
+96
+00:06:12.260 --> 00:06:14.840
+giving it the value of an object.
+
+97
+00:06:14.840 --> 00:06:17.880
+The first property here will be CallerReference,
+
+98
+00:06:17.880 --> 00:06:21.680
+which you may remember from the Route 53 hosted zone.
+
+99
+00:06:21.680 --> 00:06:26.560
+This is a unique identifier for the SDK request we're making. Add a
+
+100
+00:06:26.560 --> 00:06:31.750
+string template with a variable and the expression Date.now to get a
+
+101
+00:06:31.750 --> 00:06:33.970
+timestamp. The next property is Comment,
+
+102
+00:06:33.970 --> 00:06:37.480
+which is sort of like a description or name for your distribution.
+
+103
+00:06:37.480 --> 00:06:40.150
+It'll be visible on the CloudFront dashboard,
+
+104
+00:06:40.150 --> 00:06:43.500
+so name it something that will help you distinguish the distribution.
+
+105
+00:06:43.500 --> 00:06:46.120
+The next property is DefaultCacheBehavior.
+
+106
+00:06:46.120 --> 00:06:48.330
+This is what we set up in the other file.
+
+107
+00:06:48.330 --> 00:06:50.000
+So for the value,
+
+108
+00:06:50.000 --> 00:06:55.880
+call cfParams.defaultCacheBehavior and pass in the
+
+109
+00:06:55.880 --> 00:06:58.240
+bucket name function argument.
+
+110
+00:06:58.240 --> 00:07:03.220
+The next property is Origins, which is the other set of properties we worked on.
+
+111
+00:07:03.220 --> 00:07:10.490
+So set the value to a call to cfParams.origins and pass in the bucket name.
+
+112
+00:07:10.490 --> 00:07:14.920
+The next property is HttpVersion, which I like to set to
+
+113
+00:07:14.920 --> 00:07:20.330
+the string http2 to make sure it's future facing. Next,
+
+114
+00:07:20.330 --> 00:07:22.640
+add the property Price class.
+
+115
+00:07:22.640 --> 00:07:27.870
+Basically, the pricing is set according to how many edge locations you set.
+
+116
+00:07:27.870 --> 00:07:33.180
+Add the value PriceClass_100, which is the cheapest,
+
+117
+00:07:33.180 --> 00:07:36.270
+and only uses edged locations in the U.S.,
+
+118
+00:07:36.270 --> 00:07:37.870
+Canada, and Europe.
+
+119
+00:07:37.870 --> 00:07:43.020
+The next property is IsIPV6Enabled, which I also
+
+120
+00:07:43.020 --> 00:07:45.810
+set too true to be future facing.
+
+121
+00:07:45.810 --> 00:07:48.820
+And finally, the last property is the most important.
+
+122
+00:07:48.820 --> 00:07:53.400
+The key is Enabled and you want it to be set to true if you
+
+123
+00:07:53.400 --> 00:07:56.590
+want to use this distribution at all. Now,
+
+124
+00:07:56.590 --> 00:08:03.140
+inside our promise, we can call our SDK function as cf.createDistribution,
+
+125
+00:08:03.140 --> 00:08:06.980
+passing in the prams object as the first argument and a callback
+
+126
+00:08:06.980 --> 00:08:10.740
+function with err and data arguments as the second.
+
+127
+00:08:10.740 --> 00:08:13.940
+If there's an err object than call reject with it.
+
+128
+00:08:13.940 --> 00:08:17.540
+Otherwise, call resolve with the data argument.
+
+129
+00:08:17.540 --> 00:08:20.330
+Now we can run this file and create our distribution,
+
+130
+00:08:20.330 --> 00:08:23.520
+so switch over to your command line and navigate to the
+
+131
+00:08:23.520 --> 00:08:28.765
+script/module_07 folder. Execute the command node
+
+132
+00:08:28.765 --> 00:08:33.722
+create‑cloudfront‑distribution.js and wait for it to finish.
+
+133
+00:08:33.722 --> 00:08:38.700
+CloudFront distributions can take some time to actually set up, so
+
+134
+00:08:38.700 --> 00:08:42.780
+we can modify our demo project in the meantime. First,
+
+135
+00:08:42.780 --> 00:08:46.380
+we need to get the new domain name for our CloudFront distribution.
+
+136
+00:08:46.380 --> 00:08:51.440
+So open the AWS console and go to the CloudFront dashboard.
+
+137
+00:08:51.440 --> 00:08:56.760
+Find the distribution by either the comment or the origin and select it. In
+
+138
+00:08:56.760 --> 00:09:00.940
+this details screen, copy the domain name found here.
+
+139
+00:09:00.940 --> 00:09:03.050
+Now, just like with S3,
+
+140
+00:09:03.050 --> 00:09:07.790
+there are only a few places we need to update static references in our code.
+
+141
+00:09:07.790 --> 00:09:13.700
+The first is in util/assets.js. So go to that file in your code
+
+142
+00:09:13.700 --> 00:09:19.180
+editor. Copy the value into the base const on line 1. You will need
+
+143
+00:09:19.180 --> 00:09:25.610
+to add the https protocol to the domain also. Now one more place, go
+
+144
+00:09:25.610 --> 00:09:34.030
+to handlers/template/index.html. On line 5 update the URL omitting
+
+145
+00:09:34.030 --> 00:09:36.340
+any bucket on the path.
+
+146
+00:09:36.340 --> 00:09:41.540
+Do the same on line 11 with the JavaScript import.
+
+147
+00:09:41.540 --> 00:09:43.540
+Now, to fully test this out,
+
+148
+00:09:43.540 --> 00:09:48.040
+you need to follow these steps. Rebuild the project locally,
+
+149
+00:09:48.040 --> 00:09:51.640
+deploy the code out to your EC2 instance,
+
+150
+00:09:51.640 --> 00:09:57.730
+upload the files to S3 again, repopulate the Dynamo table, and finally
+
+151
+00:09:57.730 --> 00:10:01.440
+wait for the CloudFront distribution to get set up.
+
+152
+00:10:01.440 --> 00:10:04.230
+You can then test out the changes completely with the load
+
+153
+00:10:04.230 --> 00:10:09.050
+balance URL or the API Gateway URL. A lot of steps,
+
+154
+00:10:09.050 --> 00:10:19.000
+but our application is becoming really robust. For the rest of the module, we're going to take a look at how static websites work with S3
+

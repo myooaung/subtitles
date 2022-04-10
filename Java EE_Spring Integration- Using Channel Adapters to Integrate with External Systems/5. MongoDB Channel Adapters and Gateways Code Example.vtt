@@ -1,0 +1,605 @@
+WEBVTT
+1
+00:00:00.500 --> 00:00:03.550
+The OutboundChannelAdapterConfig is a Spring
+
+2
+00:00:03.550 --> 00:00:06.830
+configuration class that defines two channels.
+
+3
+00:00:06.830 --> 00:00:09.640
+The reservationToMongoChannel is the channel that
+
+4
+00:00:09.640 --> 00:00:12.030
+we'll use to write data to Mongo,
+
+5
+00:00:12.030 --> 00:00:15.450
+and the updateReservationChannel is the channel that we'll use
+
+6
+00:00:15.450 --> 00:00:18.910
+to update a reservation status to processed.
+
+7
+00:00:18.910 --> 00:00:20.070
+For the first case,
+
+8
+00:00:20.070 --> 00:00:23.820
+we define a message handler with a service activator that listens
+
+9
+00:00:23.820 --> 00:00:27.040
+for messages on the reservationToMongoChannel.
+
+10
+00:00:27.040 --> 00:00:30.660
+We create a new MongoDbStoringMessageHandler,
+
+11
+00:00:30.660 --> 00:00:34.950
+passing it a Mongo template that Spring creates for us when it sees the
+
+12
+00:00:34.950 --> 00:00:38.930
+Mongo libraries in our class path, and then we set the collection name
+
+13
+00:00:38.930 --> 00:00:42.160
+to reservations. It expects an expression,
+
+14
+00:00:42.160 --> 00:00:46.280
+so because we want to pass a literal value, we wrap reservations
+
+15
+00:00:46.280 --> 00:00:50.040
+with a literal expression. We create a messaging gateway that
+
+16
+00:00:50.040 --> 00:00:53.930
+publishes messages to the reservationToMongoChannel when its
+
+17
+00:00:53.930 --> 00:00:56.740
+publishReservation method is called.
+
+18
+00:00:56.740 --> 00:01:00.100
+This is all we need to do in order to write a reservation to
+
+19
+00:01:00.100 --> 00:01:03.190
+the MongoDB's reservations collection.
+
+20
+00:01:03.190 --> 00:01:06.510
+For the second case, we use a different strategy,
+
+21
+00:01:06.510 --> 00:01:10.270
+one that we'll look at further when building custom channel adapters later in
+
+22
+00:01:10.270 --> 00:01:15.080
+the course. We create a message handler with a service activator that listens
+
+23
+00:01:15.080 --> 00:01:18.140
+for messages on the update reservation channel.
+
+24
+00:01:18.140 --> 00:01:22.240
+Rather than use a pre‑built message handler, we implement our own.
+
+25
+00:01:22.240 --> 00:01:26.090
+A message handler is a functional interface that defines one
+
+26
+00:01:26.090 --> 00:01:30.410
+method, handleMessage. Because it's a functional interface, we can
+
+27
+00:01:30.410 --> 00:01:33.000
+implement it using a lambda expression.
+
+28
+00:01:33.000 --> 00:01:37.410
+The expression we write is as follows: when we receive a message, we
+
+29
+00:01:37.410 --> 00:01:42.560
+extract its payload as a reservation, query for the reservations that
+
+30
+00:01:42.560 --> 00:01:46.340
+matched the specified query and then execute an update.
+
+31
+00:01:46.340 --> 00:01:49.640
+The Mongo template has a pretty simple mechanism for
+
+32
+00:01:49.640 --> 00:01:52.720
+defining both the query as well as the update.
+
+33
+00:01:52.720 --> 00:01:56.790
+We create a new query instance and add a criteria to it.
+
+34
+00:01:56.790 --> 00:01:57.800
+In this case,
+
+35
+00:01:57.800 --> 00:02:02.340
+we add a criteria where the id property of the record is equal to the
+
+36
+00:02:02.340 --> 00:02:06.440
+reservation's id. This should match only one record.
+
+37
+00:02:06.440 --> 00:02:11.270
+Then we create an Update instance and set the fields that we want to change.
+
+38
+00:02:11.270 --> 00:02:12.280
+In this case,
+
+39
+00:02:12.280 --> 00:02:17.010
+we want to update the name and the status with the values and the reservation.
+
+40
+00:02:17.010 --> 00:02:22.610
+Finally, we use the Mongo template by executing its updateFirst method,
+
+41
+00:02:22.610 --> 00:02:27.290
+passing it the query, the update and the entity class that we're updating,
+
+42
+00:02:27.290 --> 00:02:31.400
+namely our reservation. Other than seeing how to update a record in
+
+43
+00:02:31.400 --> 00:02:35.820
+MongoDB, the bigger thing to observe in this example is that we can
+
+44
+00:02:35.820 --> 00:02:39.650
+create a message handler with a lambda expression and do whatever
+
+45
+00:02:39.650 --> 00:02:41.940
+we'd like to do with the message.
+
+46
+00:02:41.940 --> 00:02:42.720
+Finally,
+
+47
+00:02:42.720 --> 00:02:46.070
+we create a messaging gateway that publishes messages to the
+
+48
+00:02:46.070 --> 00:02:50.650
+updateReservationChannel when it's updateReservation method is called. A
+
+49
+00:02:50.650 --> 00:02:56.120
+reservation is a plain old Java object that manages three fields, an id, a
+
+50
+00:02:56.120 --> 00:03:01.780
+name and a status. Notice that the id is of type ObjectId, which is the
+
+51
+00:03:01.780 --> 00:03:05.480
+MongoDB type that represents keys in its documents.
+
+52
+00:03:05.480 --> 00:03:10.440
+The reservation class is annotated with MongoDB's document annotation,
+
+53
+00:03:10.440 --> 00:03:14.740
+which means that it represents a document or record in MongoDB,
+
+54
+00:03:14.740 --> 00:03:18.250
+and it specifies that the reservation class represents a
+
+55
+00:03:18.250 --> 00:03:21.100
+document in the reservations collection.
+
+56
+00:03:21.100 --> 00:03:24.330
+The reservation service is a Spring service with the
+
+57
+00:03:24.330 --> 00:03:29.360
+MongoReservationGateway wired into it that publishes a reservation
+
+58
+00:03:29.360 --> 00:03:33.440
+through the gateway when its publishReservation method is called.
+
+59
+00:03:33.440 --> 00:03:34.460
+At this point,
+
+60
+00:03:34.460 --> 00:03:38.210
+we're able to insert a reservation into MongoDB, so let's
+
+61
+00:03:38.210 --> 00:03:40.320
+review how we're going to retrieve it.
+
+62
+00:03:40.320 --> 00:03:43.350
+The InboundChannelAdapterConfig is a Spring
+
+63
+00:03:43.350 --> 00:03:46.350
+configuration file that defines two channels.
+
+64
+00:03:46.350 --> 00:03:49.660
+The reservationFromMongoChannel is the channel to which
+
+65
+00:03:49.660 --> 00:03:52.540
+individual reservations will be published,
+
+66
+00:03:52.540 --> 00:03:57.210
+and the reservationListFromMongoChannel is the channel to which a list of
+
+67
+00:03:57.210 --> 00:04:01.230
+reservations loaded by our query will be published.
+
+68
+00:04:01.230 --> 00:04:05.800
+The mongoMessageSource method creates a message source bean with an
+
+69
+00:04:05.800 --> 00:04:09.770
+InboundChannelAdapter annotation that publishes messages to the
+
+70
+00:04:09.770 --> 00:04:14.690
+reservationListFromMongoChannel and defines a poller that invokes the
+
+71
+00:04:14.690 --> 00:04:18.130
+bean to execute the query every three seconds.
+
+72
+00:04:18.130 --> 00:04:19.400
+Inside the method,
+
+73
+00:04:19.400 --> 00:04:24.320
+we create a MongoDbMessageSource instance, passing it the Mongo template that
+
+74
+00:04:24.320 --> 00:04:28.480
+Spring creates for us and the query as a literal expression.
+
+75
+00:04:28.480 --> 00:04:32.330
+The query itself is searching for all documents in the reservations
+
+76
+00:04:32.330 --> 00:04:36.700
+collection with a status property value of none. We define the
+
+77
+00:04:36.700 --> 00:04:40.440
+collection name on the next line as reservations,
+
+78
+00:04:40.440 --> 00:04:44.330
+and then we set the entity class to which to deserialize
+
+79
+00:04:44.330 --> 00:04:47.100
+the response to the reservation class.
+
+80
+00:04:47.100 --> 00:04:52.180
+Finally, we may receive multiple documents from MongoDB, so we publish
+
+81
+00:04:52.180 --> 00:04:56.260
+the list of reservation documents to a splitter that extracts the
+
+82
+00:04:56.260 --> 00:04:59.520
+payload and returns the list of reservations.
+
+83
+00:04:59.520 --> 00:05:02.200
+The splitter will then publish each individual
+
+84
+00:05:02.200 --> 00:05:05.340
+reservation to the reservationFromMongoChannel.
+
+85
+00:05:05.340 --> 00:05:09.720
+All of this is to say that every three seconds, we execute the status' none
+
+86
+00:05:09.720 --> 00:05:14.320
+query publish, the list of results to a splitter that then sends each
+
+87
+00:05:14.320 --> 00:05:18.190
+individual reservation to the reservationFromMongoChannel.
+
+88
+00:05:18.190 --> 00:05:21.530
+The reservation listener is a Spring service that defines a
+
+89
+00:05:21.530 --> 00:05:26.120
+handleReservation method annotated with the ServiceActivator annotation
+
+90
+00:05:26.120 --> 00:05:29.540
+that listens for messages on the reservationFromMongoChannel.
+
+91
+00:05:29.540 --> 00:05:34.820
+It has two gateways wired into it. The UpdateReservationGateway is used to
+
+92
+00:05:34.820 --> 00:05:39.150
+publish an updated reservation to the updateReservationChannel,
+
+93
+00:05:39.150 --> 00:05:42.330
+which will be handled by the message handler that we created to
+
+94
+00:05:42.330 --> 00:05:47.030
+update a document in MongoDB, and the QueryReservationGateway,
+
+95
+00:05:47.030 --> 00:05:50.980
+which is used to retrieve the final updated reservation using a
+
+96
+00:05:50.980 --> 00:05:52.760
+MongoDB outbound gateway,
+
+97
+00:05:52.760 --> 00:05:56.810
+which we'll see in a minute. The handleReservation method logs the
+
+98
+00:05:56.810 --> 00:06:01.480
+reservation, then sets its status to processed and updates the
+
+99
+00:06:01.480 --> 00:06:05.630
+status of the reservation in MongoDB by sending it to the
+
+100
+00:06:05.630 --> 00:06:08.800
+UpdateReservationGateway, and finally,
+
+101
+00:06:08.800 --> 00:06:12.580
+it uses the QueryReservationGateway to retrieve the final
+
+102
+00:06:12.580 --> 00:06:15.240
+processed version of the reservation.
+
+103
+00:06:15.240 --> 00:06:19.610
+The QueryReservationGateway defines a query method to which we
+
+104
+00:06:19.610 --> 00:06:23.490
+can pass a query, so we specify that we want the document with
+
+105
+00:06:23.490 --> 00:06:27.350
+the id that matches our reservation id. Let's look at how the
+
+106
+00:06:27.350 --> 00:06:29.910
+MongoDbOutboundGateway works.
+
+107
+00:06:29.910 --> 00:06:33.620
+The OutboundGatewayConfig is a Spring configuration class. It
+
+108
+00:06:33.620 --> 00:06:38.170
+defines two channels, the getReservationChannel is the channel to
+
+109
+00:06:38.170 --> 00:06:41.310
+which we'll publish a query for our query, and the
+
+110
+00:06:41.310 --> 00:06:44.520
+getRreservationReplyChannel is the channel to which the
+
+111
+00:06:44.520 --> 00:06:47.950
+MongoDbOutboundGateway will publish its reply.
+
+112
+00:06:47.950 --> 00:06:51.580
+The MongoDbOutboundGateway method creates a message handler
+
+113
+00:06:51.580 --> 00:06:55.370
+bean with a service activator that listens for messages
+
+114
+00:06:55.370 --> 00:06:57.440
+published to the getReservationChannel.
+
+115
+00:06:57.440 --> 00:07:00.680
+We create a MongoDbOutboundGateway instance,
+
+116
+00:07:00.680 --> 00:07:05.610
+passing it a Mongo template. We specify the collection name as reservations,
+
+117
+00:07:05.610 --> 00:07:08.120
+and then we set a query expression string.
+
+118
+00:07:08.120 --> 00:07:10.750
+This uses the Spring expression language,
+
+119
+00:07:10.750 --> 00:07:15.380
+which in this case, we specify that we want it to use the full payload for
+
+120
+00:07:15.380 --> 00:07:20.080
+the query. We specify that we expect a single result and that we want to
+
+121
+00:07:20.080 --> 00:07:23.620
+deserialize the document into a reservation class,
+
+122
+00:07:23.620 --> 00:07:27.620
+and finally, we specify that we want it to publish its result to
+
+123
+00:07:27.620 --> 00:07:31.230
+the outbound channel named getReservationReply.
+
+124
+00:07:31.230 --> 00:07:35.210
+We create a QueryReservationGateway that publishes messages
+
+125
+00:07:35.210 --> 00:07:39.270
+to the getReservationChannel and listens for a reply on the
+
+126
+00:07:39.270 --> 00:07:41.240
+getReservationReplyChannel.
+
+127
+00:07:41.240 --> 00:07:44.330
+The query method accepts a string that contains the
+
+128
+00:07:44.330 --> 00:07:47.540
+MongoDB query and returns a reservation.
+
+129
+00:07:47.540 --> 00:07:51.940
+The MongoDbExampleApplication class is a Spring Boot command line
+
+130
+00:07:51.940 --> 00:07:56.520
+application with a reservation service wired into it that creates six
+
+131
+00:07:56.520 --> 00:08:00.700
+reservations and publishes them to the reservation service.
+
+132
+00:08:00.700 --> 00:08:04.530
+So let's run the code and review the logs. We can see that the
+
+133
+00:08:04.530 --> 00:08:07.550
+reservation service publishes a reservation,
+
+134
+00:08:07.550 --> 00:08:09.400
+which has an id of null.
+
+135
+00:08:09.400 --> 00:08:13.420
+Then we see the reservation listener receives the reservation with a
+
+136
+00:08:13.420 --> 00:08:18.440
+populated id, and then we see that the reservation listener receives its
+
+137
+00:08:18.440 --> 00:08:22.140
+final reservation with a status of processed.
+
+138
+00:08:22.140 --> 00:08:23.280
+In this section,
+
+139
+00:08:23.280 --> 00:08:28.100
+we reviewed integrating MongoDB into a Spring Integration application.
+
+140
+00:08:28.100 --> 00:08:28.520
+First,
+
+141
+00:08:28.520 --> 00:08:32.720
+we saw how the MongoDbMessageSource served the role of an inbound channel
+
+142
+00:08:32.720 --> 00:08:37.650
+adapter. We configured it with an InboundChannelAdapter annotation and a
+
+143
+00:08:37.650 --> 00:08:40.340
+poller to invoke it every three seconds.
+
+144
+00:08:40.340 --> 00:08:45.170
+It executes a query and publishes the results to a splitter that ultimately
+
+145
+00:08:45.170 --> 00:08:49.140
+publishes individual reservations to the reservation listener.
+
+146
+00:08:49.140 --> 00:08:53.930
+Then we saw how the MongoDbStoringMessageHandler served the role of an
+
+147
+00:08:53.930 --> 00:08:58.200
+outbound channel adapter. We created it with a service activator that
+
+148
+00:08:58.200 --> 00:09:01.530
+receives a reservation and writes it to MongoDB.
+
+149
+00:09:01.530 --> 00:09:02.380
+Finally,
+
+150
+00:09:02.380 --> 00:09:07.620
+we saw how the MongoDbOutboundGateway served the role of an outbound gateway.
+
+151
+00:09:07.620 --> 00:09:16.000
+It executes a query and publishes the results to a reply channel. In the next section, we'll wrap up this module and review what we learned.
+

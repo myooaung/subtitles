@@ -1,0 +1,349 @@
+WEBVTT
+
+00:02.270 --> 00:04.700
+We're taking an image already, that's great,
+
+00:04.700 --> 00:07.960
+now we want to take that image and get it onto our server.
+
+00:08.090 --> 00:13.430
+Now first of all, the image we have right now only lives in the canvas,
+
+00:13.430 --> 00:15.010
+now we need a blob,
+
+00:15.020 --> 00:20.410
+we need a file basically, so we can upload that file. The image in the canvas
+
+00:20.410 --> 00:24.570
+happens to be a base 64 URL.
+
+00:24.650 --> 00:29.990
+Theoretically we could upload that and store it in the database but storing such long strings which are
+
+00:30.020 --> 00:34.220
+quite big in a size perspective too isn't really what you should do in a database,
+
+00:34.220 --> 00:40.090
+we want to store files and you do that on your favorite file server, on your own server or since we
+
+00:40.100 --> 00:43.610
+use Firebase, we can use their storage.
+
+00:43.610 --> 00:49.120
+So what I'll do is I convert the canvas base 64 URL to a blob,
+
+00:49.190 --> 00:56.480
+so to a file and for that attached to this video, you'll find a text file with a utility function which
+
+00:56.480 --> 01:03.150
+we'll therefore add to utility.js file at the bottom simply which is called dataURItoBlob
+
+01:03.290 --> 01:08.900
+and this will convert a given base 64 URL to a file.
+
+01:08.900 --> 01:11.680
+Now that is all I want to do here,
+
+01:11.690 --> 01:16.830
+so with that I'll go back to the feed.js file and I'll add a new variable at the top
+
+01:17.800 --> 01:22.620
+which I'll name picture and initially this is just null or simply undefined.
+
+01:22.960 --> 01:30.380
+However down there where we click that capture button after we stopped all streams, I'll set picture equal
+
+01:30.390 --> 01:42.810
+to dataURItoBlob and pass my canvas element to data URL method result in there. To data
+
+01:42.810 --> 01:49.200
+URL will simply give me this base 64 representation of the canvas image and with that, I'm converting
+
+01:49.200 --> 01:50.220
+it to a blob,
+
+01:50.250 --> 01:54.670
+so to a file I can use and I'll later use this to upload it.
+
+01:54.840 --> 01:57.670
+Well later actually is now.
+
+01:57.690 --> 02:01.910
+Now how do we upload an image now to our server though?
+
+02:02.710 --> 02:09.130
+Keep in mind that we're interacting with our server through the service worker mainly, through background
+
+02:09.130 --> 02:14.280
+synchronization. The very bottom, we're not at the very bottom but at the bottom of the file, we've got
+
+02:14.290 --> 02:20.950
+our code where we send JSON data to our own cloud function which will then in turn store it in the
+
+02:20.950 --> 02:22.480
+database.
+
+02:22.480 --> 02:29.800
+Now it's time to work on that cloud function to no longer accept JSON data but form data
+
+02:30.220 --> 02:37.180
+because form data allows us to mix normal key-value pairs with files and now I want to upload that.
+
+02:37.660 --> 02:40.350
+Image no longer will be just a string,
+
+02:40.390 --> 02:42.100
+it will now be a real file,
+
+02:42.100 --> 02:47.190
+so I need to be able to send a different format, form data as I just said.
+
+02:47.320 --> 02:53.540
+Of course we also should adjust this in our sent data fallback method in feed.js, here.
+
+02:53.800 --> 03:00.040
+So in both places, the goal is to no longer send application/json to that endpoint but to send form
+
+03:00.070 --> 03:04.140
+data and for that, we need then to adjust this endpoint to.
+
+03:04.350 --> 03:09.910
+Now let's start by adjusting our code here in the service worker and in feed.js though. I'll
+
+03:09.910 --> 03:11.850
+start in the service worker, there
+
+03:12.070 --> 03:19.000
+we have our sync listener where we have our code, where in the end, we send off a request for each piece of data
+
+03:19.030 --> 03:21.660
+we stored for synchronisation.
+
+03:21.670 --> 03:26.070
+Nothing wrong with that but now I want to change the format,
+
+03:26.190 --> 03:32.530
+it will no longer be content-type application/json and we no longer just accept that, we can actually
+
+03:32.530 --> 03:37.240
+just get rid of the header section because it will then automatically infer the correct one once we
+
+03:37.240 --> 03:39.210
+start sending form data,
+
+03:39.270 --> 03:40.730
+so let's send form data
+
+03:40.750 --> 03:45.430
+then. Inside this for loop, I'll create a variable and I'll name it
+
+03:45.430 --> 03:46.240
+post data,
+
+03:46.270 --> 03:48.260
+you can name it whatever you like
+
+03:48.340 --> 03:49.960
+and this is of type form data,
+
+03:49.960 --> 03:51.570
+so new form data.
+
+03:51.670 --> 03:54.160
+That's a built-in Javascript object,
+
+03:54.320 --> 03:59.640
+this of course is a constructor but it gives us an object which is built into Javascript which allows
+
+03:59.640 --> 04:07.320
+us to send form data to a back-end through Ajax or in this case actually through fetch. Now form data works
+
+04:07.330 --> 04:08.050
+like that,
+
+04:08.110 --> 04:12.470
+we simply append data to this object with the append method,
+
+04:12.760 --> 04:20.860
+so for example we append the ID. The ID of course didn't really change, it's still dt.id,
+
+04:21.100 --> 04:23.520
+that's the second argument to append.
+
+04:23.710 --> 04:24.340
+That's what I meant,
+
+04:24.340 --> 04:26.560
+you can still send key-value pairs,
+
+04:26.560 --> 04:28.240
+nothing wrong with that.
+
+04:28.340 --> 04:31.140
+Now another thing you want to send is the title,
+
+04:31.240 --> 04:35.620
+that still is dt.title and the same for the location,
+
+04:35.620 --> 04:37.070
+dt.location.
+
+04:37.240 --> 04:39.470
+So just what we passed with JSON before,
+
+04:39.490 --> 04:42.040
+now we append it to our post data.
+
+04:42.410 --> 04:44.440
+Now there is a difference though,
+
+04:44.710 --> 04:50.000
+we also want to send the image. So I'll call append one more time
+
+04:50.230 --> 04:59.080
+and here I want to pass a file, so let's pass file as a name here and then we can call dt.picture
+
+04:59.080 --> 04:59.680
+here
+
+05:00.380 --> 05:07.290
+to pass, well you guessed it, a picture and we can even override the name of that picture. So we can set this
+
+05:07.300 --> 05:13.560
+to dt.id plus .png because the image taken by the camera will be a png here.
+
+05:13.570 --> 05:17.780
+Now of course, you could fine tune this to get the mime type of the picture here
+
+05:17.830 --> 05:19.780
+and really set it super correctly
+
+05:19.930 --> 05:22.240
+but this should absolutely work fine here.
+
+05:22.450 --> 05:30.270
+Now with that all added or set up, we can replace our body here to no longer stringify any object here,
+
+05:30.280 --> 05:32.000
+just pass JSON data
+
+05:32.140 --> 05:34.350
+but we pass post data, just like that,
+
+05:34.360 --> 05:37.510
+that's a valid payload for a post request.
+
+05:37.600 --> 05:39.580
+The rest of this code can't stay as it is,
+
+05:39.580 --> 05:41.750
+we still expect to get back res data
+
+05:41.800 --> 05:45.160
+and you could let this accept header accepting application/json
+
+05:45.160 --> 05:50.850
+if you wanted to, it's just not mandatory and we're sending this to the back-end.
+
+05:50.970 --> 05:55.810
+Now let me copy that code and go to feed.js to update it here too. 
+
+05:55.810 --> 06:00.720
+Here send data where we send our object there,
+
+06:00.730 --> 06:03.760
+let's actually also initialize the form data here,
+
+06:03.820 --> 06:05.870
+of course we don't have dt.id here
+
+06:06.020 --> 06:11.190
+instead we copy the new date to ISO string here, for the title
+
+06:11.200 --> 06:17.590
+we take the title input.value, for the location, we do the same here location input.value
+
+06:18.160 --> 06:23.940
+and here for the picture, we just take the picture variable we stored.
+
+06:24.070 --> 06:31.360
+So this picture variable which we're setting when we're clicking the capture button, here, this is what I
+
+06:31.360 --> 06:35.110
+now pass to that send data fallback method
+
+06:35.350 --> 06:41.290
+and of course here therefore, we also use this ID and to make sure it's really always the same, it doesn't
+
+06:41.290 --> 06:43.380
+change in-between the two lines here,
+
+06:43.480 --> 06:52.840
+we can simply store it in an ID variable here, so that we use ID here and we use ID here for the file name
+
+06:52.840 --> 06:53.760
+as well.
+
+06:53.920 --> 06:59.560
+And then as before, we replace our body with post data and get rid of the headers, we don't need them
+
+06:59.560 --> 07:00.270
+here,
+
+07:00.280 --> 07:02.780
+this will now send it to the back-end.
+
+07:02.820 --> 07:10.570
+Now one crucial thing that's missing of course is that in the service worker, we expect to be able to get
+
+07:10.570 --> 07:12.730
+a picture out of the data.
+
+07:12.730 --> 07:18.580
+Now right now if we have a look at the code where we store data to be parsed by background synchronization,
+
+07:18.850 --> 07:25.900
+which is in the feed.js file, we don't set this up, right? Here we write data to indexedDB and we use
+
+07:25.900 --> 07:31.960
+that later to go through it and send it to the server and we only store ID, title and location
+
+07:31.960 --> 07:32.470
+there,
+
+07:32.470 --> 07:35.260
+now that of course will not work.
+
+07:35.260 --> 07:40.960
+Now the good thing is and I mentioned this earlier, you can simply store files in indexedDB too,
+
+07:41.110 --> 07:47.950
+so here I'll store a picture key and I'll assign the picture variable which we set in this feed.js file
+
+07:48.040 --> 07:51.100
+which is the data, the image we took with the canvas.
+
+07:51.100 --> 07:59.410
+So now we get a picture key stored too in the indexedDB and that of course means that we now can safely
+
+07:59.410 --> 08:03.170
+access picture when we go through all the dataset stored there
+
+08:03.220 --> 08:09.430
+here. Now the missing thing is the code on the back-end because we didn't adjust this yet,
+
+08:09.640 --> 08:15.900
+we would send the post data to the back-end and our back-end cloud function here is not ready to handle that.
+
+08:15.940 --> 08:21.670
+It still expects JSON and of course therefore right now, our code would fail. In the next lecture, we'll
+
+08:21.670 --> 08:28.540
+turn towards the back-end here and make sure that we can handle incoming post data, including an incoming
+
+08:28.540 --> 08:36.550
+file and actually store that incoming file on our Firebase storage which is part of our package.
+
+08:36.690 --> 08:38.400
+So let's do that in the next lecture.

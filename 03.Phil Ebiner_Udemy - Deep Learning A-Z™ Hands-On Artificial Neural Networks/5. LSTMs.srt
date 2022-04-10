@@ -1,0 +1,2789 @@
+1
+1
+
+00:00:00,240  -->  00:00:01,330
+<v Instructor>Hello, and welcome back</v>
+2
+
+2
+
+00:00:01,330  -->  00:00:02,880
+to the course on Deep Learning.
+3
+
+3
+
+00:00:02,880  -->  00:00:05,416
+Today we've got a very exciting tutorial ahead.
+4
+
+4
+
+00:00:05,416  -->  00:00:07,080
+We're talking about long short-term memory,
+5
+
+5
+
+00:00:07,080  -->  00:00:09,580
+or LSTMs for short.
+6
+
+6
+
+00:00:09,580  -->  00:00:10,920
+So let's get started.
+7
+
+7
+
+00:00:10,920  -->  00:00:12,830
+It's actually gonna be quite a saturated tutorial,
+8
+
+8
+
+00:00:12,830  -->  00:00:16,600
+so we've got our own little plan of attack for today.
+9
+
+9
+
+00:00:16,600  -->  00:00:19,380
+Today we're gonna first of all look at a bit of history,
+10
+
+10
+
+00:00:19,380  -->  00:00:22,120
+so where it came from, what was the main idea behind it,
+11
+
+11
+
+00:00:22,120  -->  00:00:24,210
+why people invented it.
+12
+
+12
+
+00:00:24,210  -->  00:00:27,300
+Then we're gonna be talking about the LSTM architecture.
+13
+
+13
+
+00:00:27,300  -->  00:00:29,170
+That's gonna be the bulk of our tutorial today,
+14
+
+14
+
+00:00:29,170  -->  00:00:30,630
+so be prepared for that.
+15
+
+15
+
+00:00:30,630  -->  00:00:33,390
+And then we're going to have an example walkthrough.
+16
+
+16
+
+00:00:33,390  -->  00:00:36,030
+Hopefully we'll have enough time for that as well.
+17
+
+17
+
+00:00:36,030  -->  00:00:38,090
+Alright, so let's get started.
+18
+
+18
+
+00:00:38,090  -->  00:00:41,930
+Here we've got a problem which we identified
+19
+
+19
+
+00:00:41,930  -->  00:00:43,490
+in the previous tutorials.
+20
+
+20
+
+00:00:43,490  -->  00:00:47,450
+We talked about the vanishing gradient problem.
+21
+
+21
+
+00:00:47,450  -->  00:00:49,000
+So in short, what happens is
+22
+
+22
+
+00:00:49,000  -->  00:00:51,940
+as we propagate the error through the network,
+23
+
+23
+
+00:00:51,940  -->  00:00:54,570
+it has to go through the unraveled temporal loop,
+24
+
+24
+
+00:00:54,570  -->  00:00:58,650
+and as it does that, it goes through these layers
+25
+
+25
+
+00:00:58,650  -->  00:01:01,260
+of neurons which are connected to themselves,
+26
+
+26
+
+00:01:01,260  -->  00:01:02,960
+these hidden layers which are connected to themselves,
+27
+
+27
+
+00:01:02,960  -->  00:01:06,010
+and they're connected by the means of a weight
+28
+
+28
+
+00:01:06,010  -->  00:01:10,341
+called a Wrec or the W recurrent weight,
+29
+
+29
+
+00:01:10,341  -->  00:01:11,570
+and because this weight is applied
+30
+
+30
+
+00:01:11,570  -->  00:01:13,430
+many, many times on top of itself,
+31
+
+31
+
+00:01:13,430  -->  00:01:15,760
+that causes the gradient to decline rapidly,
+32
+
+32
+
+00:01:15,760  -->  00:01:18,380
+meaning that the weights of the layers
+33
+
+33
+
+00:01:18,380  -->  00:01:20,960
+on the very far left are updated
+34
+
+34
+
+00:01:20,960  -->  00:01:23,860
+much slower than the weights of the layers on the far right,
+35
+
+35
+
+00:01:23,860  -->  00:01:25,940
+and this creates a domino effect,
+36
+
+36
+
+00:01:25,940  -->  00:01:29,340
+because the weights of the far left layers
+37
+
+37
+
+00:01:29,340  -->  00:01:31,290
+are very important, because they
+38
+
+38
+
+00:01:31,290  -->  00:01:32,910
+dictate the outputs of those layers,
+39
+
+39
+
+00:01:32,910  -->  00:01:35,150
+which are the inputs to the far right layers,
+40
+
+40
+
+00:01:35,150  -->  00:01:37,840
+and therefore the whole training of the network suffers,
+41
+
+41
+
+00:01:37,840  -->  00:01:40,390
+and that is called the problem of the vanishing gradient.
+42
+
+42
+
+00:01:40,390  -->  00:01:43,460
+And as a rule of thumb, we can see here that
+43
+
+43
+
+00:01:43,460  -->  00:01:46,150
+if Wrec is small, then we have vanishing gradient,
+44
+
+44
+
+00:01:46,150  -->  00:01:49,303
+if Wrec is large, then we have exploding gradient.
+45
+
+45
+
+00:01:50,350  -->  00:01:52,460
+Now, how do you solve this problem?
+46
+
+46
+
+00:01:52,460  -->  00:01:54,820
+We talked about a couple of possible solutions.
+47
+
+47
+
+00:01:54,820  -->  00:01:57,840
+We talked about clipping the gradient,
+48
+
+48
+
+00:01:57,840  -->  00:02:00,500
+or penalizing the gradient for exploding gradients,
+49
+
+49
+
+00:02:00,500  -->  00:02:04,080
+we talked about smartly selecting the weights
+50
+
+50
+
+00:02:04,080  -->  00:02:07,670
+or the echo state networks, which we didn't go into detail
+51
+
+51
+
+00:02:07,670  -->  00:02:10,100
+on for the vanishing gradient,
+52
+
+52
+
+00:02:10,100  -->  00:02:11,430
+and also we talked about the LSTMs
+53
+
+53
+
+00:02:11,430  -->  00:02:13,030
+for the vanishing gradient.
+54
+
+54
+
+00:02:13,030  -->  00:02:15,670
+Just if you separate yourself from all of this
+55
+
+55
+
+00:02:15,670  -->  00:02:18,370
+information on all this theory and knowledge,
+56
+
+56
+
+00:02:18,370  -->  00:02:20,150
+how would you solve a problem like this?
+57
+
+57
+
+00:02:20,150  -->  00:02:23,315
+What's the easiest and fastest solution to this?
+58
+
+58
+
+00:02:23,315  -->  00:02:27,163
+So if we have Wrec is, in simple terms, less than one,
+59
+
+59
+
+00:02:27,163  -->  00:02:28,530
+then we have vanishing gradient,
+60
+
+60
+
+00:02:28,530  -->  00:02:30,760
+if we have Wrec greater than one,
+61
+
+61
+
+00:02:30,760  -->  00:02:31,940
+we've got exploding gradient.
+62
+
+62
+
+00:02:31,940  -->  00:02:35,060
+What's the first thing that comes to mind
+63
+
+63
+
+00:02:35,060  -->  00:02:36,310
+to solve this problem?
+64
+
+64
+
+00:02:36,310  -->  00:02:37,500
+Well, the first thing that comes to mind
+65
+
+65
+
+00:02:37,500  -->  00:02:39,503
+is to make Wrec equal one,
+66
+
+66
+
+00:02:40,992  -->  00:02:43,700
+and that's exactly what was done in the LSTMs.
+67
+
+67
+
+00:02:43,700  -->  00:02:46,140
+This is a very simplified explanation,
+68
+
+68
+
+00:02:46,140  -->  00:02:49,810
+and there's definitely more to it than just Wrec equals one,
+69
+
+69
+
+00:02:49,810  -->  00:02:53,470
+but in general, that's the idea,
+70
+
+70
+
+00:02:53,470  -->  00:02:55,710
+and that's all it took,
+71
+
+71
+
+00:02:55,710  -->  00:02:57,000
+and when I saw this for the first time,
+72
+
+72
+
+00:02:57,000  -->  00:03:00,700
+I was so excited that the solution is so simple.
+73
+
+73
+
+00:03:00,700  -->  00:03:01,990
+It's really a genius solution,
+74
+
+74
+
+00:03:01,990  -->  00:03:04,070
+and that completely gets rid of
+75
+
+75
+
+00:03:04,070  -->  00:03:05,773
+the vanishing gradient problem.
+76
+
+76
+
+00:03:08,740  -->  00:03:09,860
+Who are the people behind this?
+77
+
+77
+
+00:03:09,860  -->  00:03:11,820
+Here are two gentlemen.
+78
+
+78
+
+00:03:11,820  -->  00:03:14,540
+We've already talked about Sepp Hochreiter,
+79
+
+79
+
+00:03:14,540  -->  00:03:18,170
+and the second person is Juergen Schmidhuber
+80
+
+80
+
+00:03:18,170  -->  00:03:23,170
+who was his supervisor during Sepp's research or PhD.
+81
+
+81
+
+00:03:27,660  -->  00:03:30,510
+So basically they wrote a paper in 1997
+82
+
+82
+
+00:03:30,510  -->  00:03:33,070
+about LSTMs and that's when LSTMs
+83
+
+83
+
+00:03:33,070  -->  00:03:35,610
+were introduced to the world for the first time.
+84
+
+84
+
+00:03:35,610  -->  00:03:36,870
+Very exciting topic.
+85
+
+85
+
+00:03:36,870  -->  00:03:39,980
+So let's have a look at what they actually are.
+86
+
+86
+
+00:03:39,980  -->  00:03:43,650
+So we've got a recurrent neural network right here.
+87
+
+87
+
+00:03:43,650  -->  00:03:45,560
+Unraveled temporal loop.
+88
+
+88
+
+00:03:45,560  -->  00:03:48,940
+This is what it looks like if you dig in
+89
+
+89
+
+00:03:48,940  -->  00:03:50,940
+inside the recurrent neural network.
+90
+
+90
+
+00:03:50,940  -->  00:03:54,890
+And right here I wanted to do a quick shout out to
+91
+
+91
+
+00:03:55,740  -->  00:03:57,550
+Christopher Olah.
+92
+
+92
+
+00:03:57,550  -->  00:04:00,780
+So here is his blog right here.
+93
+
+93
+
+00:04:00,780  -->  00:04:02,920
+Very well-written blog.
+94
+
+94
+
+00:04:02,920  -->  00:04:05,400
+Amazing images, as you can see,
+95
+
+95
+
+00:04:05,400  -->  00:04:08,200
+and we're going to be using images from this blog
+96
+
+96
+
+00:04:08,200  -->  00:04:09,480
+in our explanation here,
+97
+
+97
+
+00:04:09,480  -->  00:04:11,930
+so thank you very much to Christopher
+98
+
+98
+
+00:04:11,930  -->  00:04:14,620
+for making this publicly available
+99
+
+99
+
+00:04:14,620  -->  00:04:19,620
+and allowing the use of his images in other works.
+100
+
+100
+
+00:04:20,330  -->  00:04:22,330
+So we'll definitely reference this
+101
+
+101
+
+00:04:22,330  -->  00:04:23,883
+at the end of today's tutorial.
+102
+
+102
+
+00:04:25,170  -->  00:04:27,050
+Going back to our presentation,
+103
+
+103
+
+00:04:27,050  -->  00:04:30,833
+so here we've got the recurrent neural network.
+104
+
+104
+
+00:04:31,842  -->  00:04:32,970
+This is what it looks like inside
+105
+
+105
+
+00:04:32,970  -->  00:04:34,720
+and this is where the problem lies.
+106
+
+106
+
+00:04:35,971  -->  00:04:37,340
+This operation that happens here
+107
+
+107
+
+00:04:37,340  -->  00:04:40,350
+is actually a neural network layer operation
+108
+
+108
+
+00:04:40,350  -->  00:04:41,940
+as we'll see further down.
+109
+
+109
+
+00:04:41,940  -->  00:04:46,060
+But simply put, as you have outputs coming
+110
+
+110
+
+00:04:46,060  -->  00:04:49,530
+into your module, into this module,
+111
+
+111
+
+00:04:49,530  -->  00:04:51,280
+this operation's applied and then goes into
+112
+
+112
+
+00:04:51,280  -->  00:04:52,950
+the next module operation's applied, and so on.
+113
+
+113
+
+00:04:52,950  -->  00:04:54,650
+So as you apply this operation,
+114
+
+114
+
+00:04:54,650  -->  00:04:57,180
+when you back propagate, it goes through all of this,
+115
+
+115
+
+00:04:57,180  -->  00:04:59,115
+and that's where the weights are applied,
+116
+
+116
+
+00:04:59,115  -->  00:05:00,390
+that's where the Wrec is sitting.
+117
+
+117
+
+00:05:00,390  -->  00:05:03,100
+As that weight is applied, as it's applied, it's applied,
+118
+
+118
+
+00:05:03,100  -->  00:05:04,970
+the gradient vanishes, vanishes, and vanishes
+119
+
+119
+
+00:05:04,970  -->  00:05:07,380
+and that means that the weights
+120
+
+120
+
+00:05:07,380  -->  00:05:11,370
+cannot be updated properly or fast enough
+121
+
+121
+
+00:05:11,370  -->  00:05:12,790
+to train the network properly
+122
+
+122
+
+00:05:12,790  -->  00:05:14,790
+and so the further away you try to look,
+123
+
+123
+
+00:05:15,750  -->  00:05:16,927
+the more problems you have
+124
+
+124
+
+00:05:16,927  -->  00:05:19,660
+and the more of the vanishing gradient you have.
+125
+
+125
+
+00:05:19,660  -->  00:05:22,090
+This is the standard RNN,
+126
+
+126
+
+00:05:22,090  -->  00:05:26,260
+and this is what the LSTM version looks like.
+127
+
+127
+
+00:05:26,260  -->  00:05:27,900
+And I know you might be thinking
+128
+
+128
+
+00:05:27,900  -->  00:05:29,923
+that whoa, this is super complex.
+129
+
+129
+
+00:05:30,880  -->  00:05:32,010
+There's so much going on here.
+130
+
+130
+
+00:05:32,010  -->  00:05:34,220
+And indeed, it is a bit more complex
+131
+
+131
+
+00:05:34,220  -->  00:05:37,290
+than the standard RNN, but check this out.
+132
+
+132
+
+00:05:37,290  -->  00:05:40,470
+This is how LSTMs are normally displayed
+133
+
+133
+
+00:05:40,470  -->  00:05:45,417
+in literature and in papers and so on.
+134
+
+134
+
+00:05:45,417  -->  00:05:47,673
+So, this is the same thing as you saw before,
+135
+
+135
+
+00:05:50,020  -->  00:05:53,810
+but it's just a much more convoluted explanation
+136
+
+136
+
+00:05:53,810  -->  00:05:56,680
+or representation, so definitely this option is better
+137
+
+137
+
+00:05:56,680  -->  00:05:59,031
+and we're gonna stick with this one.
+138
+
+138
+
+00:05:59,031  -->  00:06:03,000
+And more so, it looks difficult now
+139
+
+139
+
+00:06:03,000  -->  00:06:05,740
+but the goal is that by the end of this tutorial
+140
+
+140
+
+00:06:05,740  -->  00:06:08,050
+you are completely comfortable what's going on here
+141
+
+141
+
+00:06:08,050  -->  00:06:09,800
+and I think that's pretty exciting.
+142
+
+142
+
+00:06:10,847  -->  00:06:13,840
+Even though this may seem a bit complex now,
+143
+
+143
+
+00:06:13,840  -->  00:06:14,720
+towards the end of the tutorial,
+144
+
+144
+
+00:06:14,720  -->  00:06:18,223
+hopefully you'll be able to navigate LSTMs quite well.
+145
+
+145
+
+00:06:19,600  -->  00:06:22,860
+Before we go deep into what's going on here,
+146
+
+146
+
+00:06:22,860  -->  00:06:24,880
+I wanted to highlight the main point.
+147
+
+147
+
+00:06:24,880  -->  00:06:27,170
+Remember we said Wrec equals one.
+148
+
+148
+
+00:06:27,170  -->  00:06:28,730
+Well that's this line over here,
+149
+
+149
+
+00:06:28,730  -->  00:06:30,670
+that pipeline at the top.
+150
+
+150
+
+00:06:30,670  -->  00:06:33,810
+As you can see, there's not much going on here.
+151
+
+151
+
+00:06:33,810  -->  00:06:36,380
+There's only like two pointwise operations
+152
+
+152
+
+00:06:36,380  -->  00:06:38,810
+as we all understand for the down,
+153
+
+153
+
+00:06:38,810  -->  00:06:43,810
+and there's no complex neural network layered operations.
+154
+
+154
+
+00:06:43,870  -->  00:06:46,410
+They're all brought out to this part.
+155
+
+155
+
+00:06:46,410  -->  00:06:47,610
+This is the essence.
+156
+
+156
+
+00:06:47,610  -->  00:06:49,060
+If you're going to take away one thing
+157
+
+157
+
+00:06:49,060  -->  00:06:51,430
+from today's tutorial, then this is that.
+158
+
+158
+
+00:06:51,430  -->  00:06:56,430
+That LSTMs have a memory cell, what's called a memory cell,
+159
+
+159
+
+00:06:56,900  -->  00:06:59,380
+I call it memory pipeline,
+160
+
+160
+
+00:06:59,380  -->  00:07:02,150
+which just goes through time,
+161
+
+161
+
+00:07:02,150  -->  00:07:04,000
+and this is as going through time,
+162
+
+162
+
+00:07:04,000  -->  00:07:07,500
+and it can very freely flow through time.
+163
+
+163
+
+00:07:07,500  -->  00:07:11,220
+Sometimes it might be removed and erased.
+164
+
+164
+
+00:07:11,220  -->  00:07:13,530
+Sometimes things might be added into it,
+165
+
+165
+
+00:07:13,530  -->  00:07:14,570
+but that's pretty much it.
+166
+
+166
+
+00:07:14,570  -->  00:07:16,280
+Otherwise it flows through times freely
+167
+
+167
+
+00:07:16,280  -->  00:07:18,270
+and therefore when you back propagate
+168
+
+168
+
+00:07:18,270  -->  00:07:19,630
+through these LSTMs,
+169
+
+169
+
+00:07:19,630  -->  00:07:24,430
+you don't have that problem of your vanishing gradient.
+170
+
+170
+
+00:07:24,430  -->  00:07:28,923
+That's the essence of LSTMs.
+171
+
+171
+
+00:07:30,440  -->  00:07:32,320
+Now let's dig in in a bit more detail.
+172
+
+172
+
+00:07:32,320  -->  00:07:35,060
+So we're gonna replace these modules on the left,
+173
+
+173
+
+00:07:35,060  -->  00:07:37,333
+on the right with something more simple.
+174
+
+174
+
+00:07:38,463  -->  00:07:42,280
+Just gonna replace them with our,
+175
+
+175
+
+00:07:42,280  -->  00:07:43,140
+these representations.
+176
+
+176
+
+00:07:43,140  -->  00:07:45,773
+So Ct stands for memory.
+177
+
+177
+
+00:07:47,190  -->  00:07:48,990
+A memory cell, I guess.
+178
+
+178
+
+00:07:48,990  -->  00:07:51,790
+H is your output, so you can see there's your output
+179
+
+179
+
+00:07:51,790  -->  00:07:53,600
+going out into the world,
+180
+
+180
+
+00:07:53,600  -->  00:07:57,190
+and here you've got your output going into the next module.
+181
+
+181
+
+00:07:57,190  -->  00:07:58,690
+Into the next block.
+182
+
+182
+
+00:07:58,690  -->  00:08:00,690
+And then here you've got your input, Xt.
+183
+
+183
+
+00:08:00,690  -->  00:08:03,760
+So basically this is the output from the previous module,
+184
+
+184
+
+00:08:03,760  -->  00:08:04,880
+which also went into the world
+185
+
+185
+
+00:08:04,880  -->  00:08:06,690
+but also is coming here.
+186
+
+186
+
+00:08:06,690  -->  00:08:08,055
+So there we go.
+187
+
+187
+
+00:08:08,055  -->  00:08:12,520
+So in LSTM a module takes in three inputs,
+188
+
+188
+
+00:08:12,520  -->  00:08:14,340
+and has two outputs,
+189
+
+189
+
+00:08:14,340  -->  00:08:16,523
+so Ct and Ht because these are the same.
+190
+
+190
+
+00:08:18,430  -->  00:08:20,350
+The important thing to understand and remember
+191
+
+191
+
+00:08:20,350  -->  00:08:24,090
+is that everything here is a vector.
+192
+
+192
+
+00:08:24,090  -->  00:08:26,890
+So all of these are, this is not just one neuron,
+193
+
+193
+
+00:08:26,890  -->  00:08:28,120
+not just one value.
+194
+
+194
+
+00:08:28,120  -->  00:08:31,510
+There are lots and lots and lots of values here
+195
+
+195
+
+00:08:31,510  -->  00:08:34,110
+hiding behind this letter, Xt.
+196
+
+196
+
+00:08:34,110  -->  00:08:35,940
+And here as well, and here as well.
+197
+
+197
+
+00:08:35,940  -->  00:08:37,920
+And everywhere, these are all
+198
+
+198
+
+00:08:40,460  -->  00:08:42,430
+layers, so just remember that,
+199
+
+199
+
+00:08:42,430  -->  00:08:44,370
+and we're gonna reference them as vectors
+200
+
+200
+
+00:08:44,370  -->  00:08:46,684
+because that's pretty much the same thing,
+201
+
+201
+
+00:08:46,684  -->  00:08:49,360
+just lots of different values in one vector.
+202
+
+202
+
+00:08:49,360  -->  00:08:51,730
+Remember that and that'll make,
+203
+
+203
+
+00:08:51,730  -->  00:08:54,790
+it will allow you not to go down the wrong path
+204
+
+204
+
+00:08:54,790  -->  00:08:56,590
+in the intuitive understanding of this.
+205
+
+205
+
+00:08:56,590  -->  00:08:58,640
+Just remember that these are all vectors.
+206
+
+206
+
+00:08:59,777  -->  00:09:01,110
+And let's go through the legend.
+207
+
+207
+
+00:09:01,110  -->  00:09:02,410
+We've got vector transfers,
+208
+
+208
+
+00:09:02,410  -->  00:09:06,590
+so any line here is a vector being transferred
+209
+
+209
+
+00:09:06,590  -->  00:09:10,867
+or kind of moving around in this architecture.
+210
+
+210
+
+00:09:13,460  -->  00:09:16,400
+So that's just kind of to reiterate that it is a vector.
+211
+
+211
+
+00:09:16,400  -->  00:09:18,260
+Then we've got a concatenation here.
+212
+
+212
+
+00:09:18,260  -->  00:09:20,280
+So here you can see that there's two lines
+213
+
+213
+
+00:09:20,280  -->  00:09:22,113
+combining into one.
+214
+
+214
+
+00:09:23,880  -->  00:09:26,870
+Important to understand that this is done here
+215
+
+215
+
+00:09:26,870  -->  00:09:30,730
+just to save space and make it less convoluted
+216
+
+216
+
+00:09:30,730  -->  00:09:34,740
+than it possibly could be, but the best way to imagine it
+217
+
+217
+
+00:09:34,740  -->  00:09:37,790
+is that these two lines are running in parallel.
+218
+
+218
+
+00:09:37,790  -->  00:09:39,350
+You're not actually combining,
+219
+
+219
+
+00:09:39,350  -->  00:09:41,200
+concatenation means that you're combing
+220
+
+220
+
+00:09:41,200  -->  00:09:42,230
+these two X's on top of each other
+221
+
+221
+
+00:09:42,230  -->  00:09:44,320
+but I think it's even easier to understand
+222
+
+222
+
+00:09:44,320  -->  00:09:46,440
+if you just think of it as
+223
+
+223
+
+00:09:46,440  -->  00:09:47,650
+there are two pipes running here
+224
+
+224
+
+00:09:47,650  -->  00:09:48,960
+but they're running parallel to each other,
+225
+
+225
+
+00:09:48,960  -->  00:09:50,660
+so you've got one pipe and then it goes here,
+226
+
+226
+
+00:09:50,660  -->  00:09:51,950
+and the second pipe goes here.
+227
+
+227
+
+00:09:51,950  -->  00:09:53,190
+Then these same pipes go here
+228
+
+228
+
+00:09:53,190  -->  00:09:54,700
+and then they attach to that.
+229
+
+229
+
+00:09:54,700  -->  00:09:56,990
+Basically you have two pipes running in parallel
+230
+
+230
+
+00:09:56,990  -->  00:10:01,990
+feeding into these neural network layer operations.
+231
+
+231
+
+00:10:03,200  -->  00:10:04,343
+Then you've got copy.
+232
+
+232
+
+00:10:05,354  -->  00:10:06,275
+So where do we have copy?
+233
+
+233
+
+00:10:06,275  -->  00:10:07,613
+We have copy here.
+234
+
+234
+
+00:10:07,613  -->  00:10:09,282
+The memories go straight ahead
+235
+
+235
+
+00:10:09,282  -->  00:10:10,850
+and just copy it over here.
+236
+
+236
+
+00:10:10,850  -->  00:10:12,750
+Then this output is copied over here.
+237
+
+237
+
+00:10:12,750  -->  00:10:14,170
+Then you've got pointwise operations.
+238
+
+238
+
+00:10:14,170  -->  00:10:16,130
+Now we get to the interesting stuff.
+239
+
+239
+
+00:10:16,130  -->  00:10:19,554
+You've got a couple of pointwise operations here,
+240
+
+240
+
+00:10:19,554  -->  00:10:23,598
+that's five of them, and the first thing
+241
+
+241
+
+00:10:23,598  -->  00:10:25,110
+we're going to talk about these ones, the X's.
+242
+
+242
+
+00:10:25,110  -->  00:10:27,480
+The X's are valves and they all have names.
+243
+
+243
+
+00:10:27,480  -->  00:10:29,020
+This is the forget valve,
+244
+
+244
+
+00:10:29,020  -->  00:10:31,499
+the memory valve, and the output valve.
+245
+
+245
+
+00:10:31,499  -->  00:10:35,960
+And in literature you will see letters F, V, and O
+246
+
+246
+
+00:10:35,960  -->  00:10:39,010
+in the actual formulas representing these valves.
+247
+
+247
+
+00:10:39,010  -->  00:10:41,040
+And so a valve looks like this
+248
+
+248
+
+00:10:42,056  -->  00:10:45,730
+in plumbing, a valve looks like this
+249
+
+249
+
+00:10:45,730  -->  00:10:48,000
+and we're going to kind of think of it that way as well.
+250
+
+250
+
+00:10:48,000  -->  00:10:52,540
+So you've got water or basically something flowing through,
+251
+
+251
+
+00:10:52,540  -->  00:10:53,890
+and then you can either close it
+252
+
+252
+
+00:10:53,890  -->  00:10:56,920
+or you can open it, or you can close it to some extent.
+253
+
+253
+
+00:10:56,920  -->  00:10:57,753
+Same thing here.
+254
+
+254
+
+00:10:57,753  -->  00:10:59,510
+So you've got the forget valve
+255
+
+255
+
+00:10:59,510  -->  00:11:04,510
+is basically controlled by this layer operation,
+256
+
+256
+
+00:11:04,830  -->  00:11:06,740
+and we'll talk about that in a second.
+257
+
+257
+
+00:11:06,740  -->  00:11:08,670
+And based on the output of that,
+258
+
+258
+
+00:11:08,670  -->  00:11:10,110
+based on the decision made here,
+259
+
+259
+
+00:11:10,110  -->  00:11:11,700
+this valve is either closed or open,
+260
+
+260
+
+00:11:11,700  -->  00:11:15,070
+so if it's open, memory flows through freely.
+261
+
+261
+
+00:11:15,070  -->  00:11:17,030
+If it's closed then memory is cut off
+262
+
+262
+
+00:11:17,030  -->  00:11:20,560
+and therefore it's not transferred further
+263
+
+263
+
+00:11:20,560  -->  00:11:24,460
+and then new memory just will be added here probably,
+264
+
+264
+
+00:11:24,460  -->  00:11:25,650
+based on the results here.
+265
+
+265
+
+00:11:25,650  -->  00:11:26,820
+Then you've got the memory valve,
+266
+
+266
+
+00:11:26,820  -->  00:11:29,210
+which again is controlled by a sigma.
+267
+
+267
+
+00:11:29,210  -->  00:11:32,260
+Sigma stands for the sigmoid activation function.
+268
+
+268
+
+00:11:32,260  -->  00:11:34,150
+That means that that's the activation function
+269
+
+269
+
+00:11:34,150  -->  00:11:37,660
+used in these layer operations.
+270
+
+270
+
+00:11:37,660  -->  00:11:41,650
+And as the decision is made here,
+271
+
+271
+
+00:11:41,650  -->  00:11:45,620
+this value, which is another layer operation,
+272
+
+272
+
+00:11:45,620  -->  00:11:46,840
+which we'll get to in a second,
+273
+
+273
+
+00:11:46,840  -->  00:11:50,100
+is either added to the memory
+274
+
+274
+
+00:11:50,100  -->  00:11:51,480
+or is somewhat added to the memory,
+275
+
+275
+
+00:11:51,480  -->  00:11:52,920
+or is not added to the memory,
+276
+
+276
+
+00:11:52,920  -->  00:11:56,450
+depending on the value that is decided in this valve.
+277
+
+277
+
+00:11:56,450  -->  00:11:58,770
+And then again another valve controlled by a sigmoid.
+278
+
+278
+
+00:11:58,770  -->  00:12:00,770
+As you remember, why we're using sigmoid
+279
+
+279
+
+00:12:00,770  -->  00:12:03,120
+is because they are from zero to one,
+280
+
+280
+
+00:12:03,120  -->  00:12:05,950
+and therefore zero stands for nothing goes through,
+281
+
+281
+
+00:12:05,950  -->  00:12:07,150
+one stands for something goes through,
+282
+
+282
+
+00:12:07,150  -->  00:12:09,480
+and then here you've got the valve,
+283
+
+283
+
+00:12:09,480  -->  00:12:11,063
+which is the forget valve.
+284
+
+284
+
+00:12:12,470  -->  00:12:14,410
+Or not forget valve, this is the output valve.
+285
+
+285
+
+00:12:14,410  -->  00:12:15,520
+And we'll get to that in a second.
+286
+
+286
+
+00:12:15,520  -->  00:12:16,870
+We're pretty much already going through
+287
+
+287
+
+00:12:16,870  -->  00:12:18,170
+the whole network already.
+288
+
+288
+
+00:12:20,026  -->  00:12:21,910
+And then we've got the T-shaped
+289
+
+289
+
+00:12:23,240  -->  00:12:24,273
+kind of like pipe,
+290
+
+290
+
+00:12:25,260  -->  00:12:27,490
+or T-shaped joint,
+291
+
+291
+
+00:12:27,490  -->  00:12:28,860
+and I'll show you where that is.
+292
+
+292
+
+00:12:28,860  -->  00:12:30,100
+That is over here.
+293
+
+293
+
+00:12:30,100  -->  00:12:31,880
+So where you have memory going through
+294
+
+294
+
+00:12:31,880  -->  00:12:34,290
+and then you can add additional memories, so if we go back,
+295
+
+295
+
+00:12:34,290  -->  00:12:36,020
+you've got memory flowing through this joint,
+296
+
+296
+
+00:12:36,020  -->  00:12:38,820
+and maybe some additional memory will be added into it.
+297
+
+297
+
+00:12:38,820  -->  00:12:40,520
+Maybe not, depending on the valve.
+298
+
+298
+
+00:12:41,750  -->  00:12:43,050
+And that's pretty much it.
+299
+
+299
+
+00:12:43,050  -->  00:12:44,330
+You've got the tangent operation here.
+300
+
+300
+
+00:12:44,330  -->  00:12:47,580
+That's more mathematical behind it,
+301
+
+301
+
+00:12:47,580  -->  00:12:50,070
+why you want to be between minus one and one.
+302
+
+302
+
+00:12:50,070  -->  00:12:51,400
+We won't get into details on that
+303
+
+303
+
+00:12:51,400  -->  00:12:54,050
+but that's another pointwise operation here you have.
+304
+
+304
+
+00:12:55,233  -->  00:12:58,850
+And you've got the neural network layer operations
+305
+
+305
+
+00:12:58,850  -->  00:12:59,683
+over here.
+306
+
+306
+
+00:12:59,683  -->  00:13:01,380
+That's their representation.
+307
+
+307
+
+00:13:01,380  -->  00:13:03,620
+So basically just think of them as
+308
+
+308
+
+00:13:03,620  -->  00:13:05,910
+you've got, instead of pointwise,
+309
+
+309
+
+00:13:05,910  -->  00:13:09,140
+pointwise is like element by element over vector,
+310
+
+310
+
+00:13:09,140  -->  00:13:11,310
+if you wanna multiply a vector by zero,
+311
+
+311
+
+00:13:11,310  -->  00:13:13,560
+you multiply every element by zero or by one
+312
+
+312
+
+00:13:13,560  -->  00:13:14,530
+or by a certain amount.
+313
+
+313
+
+00:13:14,530  -->  00:13:15,590
+Kind of think of it in that way.
+314
+
+314
+
+00:13:15,590  -->  00:13:19,080
+It's very simplistic way to think about these
+315
+
+315
+
+00:13:19,975  -->  00:13:22,090
+pointwise operations, whereas these ones
+316
+
+316
+
+00:13:22,090  -->  00:13:22,923
+are a bit more complex.
+317
+
+317
+
+00:13:22,923  -->  00:13:24,920
+You've got a layer coming in
+318
+
+318
+
+00:13:24,920  -->  00:13:26,835
+and then you've got a layer coming out.
+319
+
+319
+
+00:13:26,835  -->  00:13:29,680
+Because again, everything here is a vector
+320
+
+320
+
+00:13:29,680  -->  00:13:32,740
+so you've got a layer of these sigmoids coming out,
+321
+
+321
+
+00:13:32,740  -->  00:13:36,460
+controlling the valve for each one of these
+322
+
+322
+
+00:13:36,460  -->  00:13:38,500
+elements in the vector of memory.
+323
+
+323
+
+00:13:38,500  -->  00:13:40,520
+So it's not just one sigmoid.
+324
+
+324
+
+00:13:40,520  -->  00:13:42,250
+There's many different and that's why
+325
+
+325
+
+00:13:42,250  -->  00:13:44,150
+you've got a whole layer coming in
+326
+
+326
+
+00:13:44,150  -->  00:13:46,450
+and then you've got a layer coming out.
+327
+
+327
+
+00:13:46,450  -->  00:13:48,390
+These are layer operations.
+328
+
+328
+
+00:13:48,390  -->  00:13:49,763
+So just remember that.
+329
+
+329
+
+00:13:51,530  -->  00:13:55,270
+So we're ready to look into this in step by step,
+330
+
+330
+
+00:13:55,270  -->  00:13:56,220
+and it's gonna be pretty simple
+331
+
+331
+
+00:13:56,220  -->  00:13:58,240
+because we've discussed everything already
+332
+
+332
+
+00:13:59,190  -->  00:14:01,000
+in terms of how it works.
+333
+
+333
+
+00:14:01,000  -->  00:14:04,180
+We've got a new value coming in.
+334
+
+334
+
+00:14:04,180  -->  00:14:09,180
+You've got a value coming from a previous node,
+335
+
+335
+
+00:14:11,408  -->  00:14:14,938
+and together they are combined
+336
+
+336
+
+00:14:14,938  -->  00:14:19,720
+to decide whether this valve should go ahead
+337
+
+337
+
+00:14:19,720  -->  00:14:20,780
+or should be closed or should be open,
+338
+
+338
+
+00:14:20,780  -->  00:14:22,930
+or somewhat closed or open.
+339
+
+339
+
+00:14:22,930  -->  00:14:25,810
+Then you've got these two again combine together,
+340
+
+340
+
+00:14:25,810  -->  00:14:28,250
+or not combine, again, they flow in parallel
+341
+
+341
+
+00:14:28,250  -->  00:14:30,210
+and then they combined in here
+342
+
+342
+
+00:14:30,210  -->  00:14:31,503
+or in this operation.
+343
+
+343
+
+00:14:32,490  -->  00:14:34,740
+And basically, it's not just them combing.
+344
+
+344
+
+00:14:34,740  -->  00:14:36,270
+It's like there's lots of layers here,
+345
+
+345
+
+00:14:36,270  -->  00:14:37,270
+lots of layers here.
+346
+
+346
+
+00:14:38,280  -->  00:14:40,117
+Lots of neurons here, lots of neurons here,
+347
+
+347
+
+00:14:40,117  -->  00:14:43,000
+and then all of that is basically in one
+348
+
+348
+
+00:14:44,620  -->  00:14:47,750
+layer operation is used to decide
+349
+
+349
+
+00:14:47,750  -->  00:14:50,285
+what value we're going to pass through,
+350
+
+350
+
+00:14:50,285  -->  00:14:52,640
+and then also if that value is gonna pass through or not,
+351
+
+351
+
+00:14:52,640  -->  00:14:53,593
+and to what extent.
+352
+
+352
+
+00:14:54,490  -->  00:14:56,600
+Then here we've got the memory flowing through.
+353
+
+353
+
+00:14:56,600  -->  00:14:59,600
+We've got the forget valve, if it's closed or open,
+354
+
+354
+
+00:14:59,600  -->  00:15:02,489
+we've got memory valve, closed or open,
+355
+
+355
+
+00:15:02,489  -->  00:15:03,850
+and we're adding in some memory possibly
+356
+
+356
+
+00:15:03,850  -->  00:15:05,540
+if we want to update.
+357
+
+357
+
+00:15:05,540  -->  00:15:07,940
+So basically we can let this whole memory flow through,
+358
+
+358
+
+00:15:07,940  -->  00:15:09,447
+then keep this one closed, keep this one open,
+359
+
+359
+
+00:15:09,447  -->  00:15:11,478
+the memory won't change.
+360
+
+360
+
+00:15:11,478  -->  00:15:15,450
+Or we can keep this one closed and keep this one open,
+361
+
+361
+
+00:15:15,450  -->  00:15:17,500
+then we can update the memory completely.
+362
+
+362
+
+00:15:18,390  -->  00:15:22,560
+And here, finally we've got these two values combined
+363
+
+363
+
+00:15:22,560  -->  00:15:27,560
+to decide what part of the memory pipeline
+364
+
+364
+
+00:15:28,070  -->  00:15:33,040
+is going to become output of this module.
+365
+
+365
+
+00:15:33,040  -->  00:15:36,469
+Is it going to go to fully as the output
+366
+
+366
+
+00:15:36,469  -->  00:15:38,490
+or to some extent, and so on.
+367
+
+367
+
+00:15:38,490  -->  00:15:40,760
+So again, these decide that.
+368
+
+368
+
+00:15:40,760  -->  00:15:42,190
+So that's how it all works.
+369
+
+369
+
+00:15:42,190  -->  00:15:45,000
+Pretty straightforward architecture.
+370
+
+370
+
+00:15:45,000  -->  00:15:48,040
+Let's have a look at a specific example
+371
+
+371
+
+00:15:48,040  -->  00:15:50,100
+to understand this a bit better.
+372
+
+372
+
+00:15:50,100  -->  00:15:51,120
+The example we talked about,
+373
+
+373
+
+00:15:51,120  -->  00:15:52,936
+I am a boy who likes to learn.
+374
+
+374
+
+00:15:52,936  -->  00:15:54,860
+(speaking in foreign language)
+375
+
+375
+
+00:15:54,860  -->  00:15:55,693
+In translation to Czech.
+376
+
+376
+
+00:15:55,693  -->  00:15:57,410
+If this were girl,
+377
+
+377
+
+00:15:57,410  -->  00:15:59,067
+then here would be (speaking in foreign language),
+378
+
+378
+
+00:16:01,840  -->  00:16:03,730
+meaning that these two words,
+379
+
+379
+
+00:16:03,730  -->  00:16:05,170
+not just this word would change,
+380
+
+380
+
+00:16:05,170  -->  00:16:06,880
+but also it would affect these two words.
+381
+
+381
+
+00:16:06,880  -->  00:16:10,520
+So different in Czech rather than in English.
+382
+
+382
+
+00:16:10,520  -->  00:16:13,510
+So these words are affected by the gender of the subject.
+383
+
+383
+
+00:16:13,510  -->  00:16:16,150
+And therefore, in our LSTM we might want
+384
+
+384
+
+00:16:16,150  -->  00:16:19,780
+to store the subject, boy in this case, in memory.
+385
+
+385
+
+00:16:19,780  -->  00:16:22,350
+So for instance, let's say boy is stored here,
+386
+
+386
+
+00:16:22,350  -->  00:16:25,590
+and then is just flowing through freely,
+387
+
+387
+
+00:16:25,590  -->  00:16:27,646
+and nothing is changing.
+388
+
+388
+
+00:16:27,646  -->  00:16:30,300
+If our new information doesn't tell us
+389
+
+389
+
+00:16:30,300  -->  00:16:31,550
+that there's a new subject,
+390
+
+390
+
+00:16:31,550  -->  00:16:33,970
+we'd just having boy flowing through freely
+391
+
+391
+
+00:16:33,970  -->  00:16:35,230
+and it keeps flowing like that.
+392
+
+392
+
+00:16:35,230  -->  00:16:36,810
+If, for instance we have a new subject,
+393
+
+393
+
+00:16:36,810  -->  00:16:41,470
+we have girl or we have a name, like Amanda,
+394
+
+394
+
+00:16:41,470  -->  00:16:44,290
+or something else and we understand that
+395
+
+395
+
+00:16:44,290  -->  00:16:45,790
+we've got a new subject there,
+396
+
+396
+
+00:16:49,573  -->  00:16:50,406
+we'll close this valve.
+397
+
+397
+
+00:16:50,406  -->  00:16:52,700
+We'll say, destroy the memory that we had,
+398
+
+398
+
+00:16:52,700  -->  00:16:55,030
+then open this valve, put in new memory,
+399
+
+399
+
+00:16:55,030  -->  00:16:56,930
+and then put the name here, put the subject.
+400
+
+400
+
+00:16:56,930  -->  00:16:59,097
+We won't just put in the gender.
+401
+
+401
+
+00:16:59,097  -->  00:17:01,178
+We won't just put in like female.
+402
+
+402
+
+00:17:01,178  -->  00:17:03,150
+We'll actually put as much information as we can.
+403
+
+403
+
+00:17:03,150  -->  00:17:04,690
+For instance, this could be the,
+404
+
+404
+
+00:17:04,690  -->  00:17:06,597
+it doesn't have to be like this
+405
+
+405
+
+00:17:06,597  -->  00:17:09,360
+but as an example we could put in for instance, girl now
+406
+
+406
+
+00:17:09,360  -->  00:17:13,760
+into this pipeline.
+407
+
+407
+
+00:17:13,760  -->  00:17:15,240
+And why would we do that?
+408
+
+408
+
+00:17:15,240  -->  00:17:16,800
+Well because then from that
+409
+
+409
+
+00:17:16,800  -->  00:17:18,740
+we can extract different elements of information.
+410
+
+410
+
+00:17:18,740  -->  00:17:20,460
+We can extract that it's female.
+411
+
+411
+
+00:17:20,460  -->  00:17:23,140
+We can extract that it's singular.
+412
+
+412
+
+00:17:23,140  -->  00:17:24,550
+So not just that it's,
+413
+
+413
+
+00:17:24,550  -->  00:17:26,480
+there's additional information in the word girl,
+414
+
+414
+
+00:17:26,480  -->  00:17:27,313
+that it's singular.
+415
+
+415
+
+00:17:27,313  -->  00:17:28,146
+We can extract more information.
+416
+
+416
+
+00:17:28,146  -->  00:17:30,470
+We can extract that the word girl, for instance,
+417
+
+417
+
+00:17:30,470  -->  00:17:32,180
+has four letters.
+418
+
+418
+
+00:17:32,180  -->  00:17:34,830
+Or that it was capitalized or it wasn't capitalized.
+419
+
+419
+
+00:17:34,830  -->  00:17:39,790
+Just as these are all very intuitive examples,
+420
+
+420
+
+00:17:39,790  -->  00:17:41,030
+it doesn't have to work this way
+421
+
+421
+
+00:17:41,030  -->  00:17:43,340
+but this is how it could work.
+422
+
+422
+
+00:17:43,340  -->  00:17:45,580
+So then we have the word girl in here,
+423
+
+423
+
+00:17:45,580  -->  00:17:48,800
+and so that's how this valve works, and this valve works.
+424
+
+424
+
+00:17:48,800  -->  00:17:51,650
+And so what this valve does is it extracts
+425
+
+425
+
+00:17:51,650  -->  00:17:53,670
+certain information from what you have in the memory.
+426
+
+426
+
+00:17:53,670  -->  00:17:56,210
+So for instance, if we have now girl in here,
+427
+
+427
+
+00:17:56,210  -->  00:18:00,240
+and for the purposes of the next word or next sentence
+428
+
+428
+
+00:18:00,240  -->  00:18:02,450
+that's coming up, you might need to know,
+429
+
+429
+
+00:18:02,450  -->  00:18:04,210
+like we saw, you need to know the gender.
+430
+
+430
+
+00:18:04,210  -->  00:18:08,560
+So then this valve will facilitate the extraction
+431
+
+431
+
+00:18:08,560  -->  00:18:13,340
+of the gender, and that will go as an input
+432
+
+432
+
+00:18:13,340  -->  00:18:16,590
+into your next module, and it'll help the next module,
+433
+
+433
+
+00:18:16,590  -->  00:18:20,097
+like it'll be here, decide how to deal
+434
+
+434
+
+00:18:21,950  -->  00:18:23,580
+with the information that's coming its way.
+435
+
+435
+
+00:18:23,580  -->  00:18:28,160
+How to put it into the correct form
+436
+
+436
+
+00:18:28,160  -->  00:18:30,610
+for the female gender, for example.
+437
+
+437
+
+00:18:30,610  -->  00:18:33,410
+So that's how the output valve works
+438
+
+438
+
+00:18:33,410  -->  00:18:35,630
+and what it does.
+439
+
+439
+
+00:18:35,630  -->  00:18:36,533
+So there we go.
+440
+
+440
+
+00:18:37,406  -->  00:18:40,100
+That's how the long short-term memory works
+441
+
+441
+
+00:18:40,100  -->  00:18:44,500
+and I hope this was quite an intuitive explanation,
+442
+
+442
+
+00:18:44,500  -->  00:18:48,250
+and now you have a bit of a better understanding
+443
+
+443
+
+00:18:48,250  -->  00:18:50,160
+what LSTMs are like.
+444
+
+444
+
+00:18:50,160  -->  00:18:51,750
+In terms of additional reading,
+445
+
+445
+
+00:18:51,750  -->  00:18:53,760
+you could definitely reference the original paper
+446
+
+446
+
+00:18:53,760  -->  00:18:57,900
+by our two authors who created LSTMs.
+447
+
+447
+
+00:18:57,900  -->  00:18:59,890
+Alternatively if you don't wanna get that deep
+448
+
+448
+
+00:18:59,890  -->  00:19:02,300
+into mathematics and into the technical stuff
+449
+
+449
+
+00:19:02,300  -->  00:19:05,090
+there's the great blog by Christopher Olah,
+450
+
+450
+
+00:19:05,090  -->  00:19:06,860
+which we've already mentioned.
+451
+
+451
+
+00:19:06,860  -->  00:19:09,520
+Great explanation of LSTMs.
+452
+
+452
+
+00:19:09,520  -->  00:19:10,890
+Highly recommend to check it out.
+453
+
+453
+
+00:19:10,890  -->  00:19:13,170
+There is a bit of mathematics, not too heavy.
+454
+
+454
+
+00:19:13,170  -->  00:19:16,370
+And there's another blog by Shi Yan.
+455
+
+455
+
+00:19:16,370  -->  00:19:19,240
+Understanding LSTM and its diagrams.
+456
+
+456
+
+00:19:19,240  -->  00:19:22,589
+Diagrams are a bit more in-depth,
+457
+
+457
+
+00:19:22,589  -->  00:19:27,030
+so there's a bit less space saving,
+458
+
+458
+
+00:19:27,030  -->  00:19:30,470
+but diagrams might be easier to understand in some cases.
+459
+
+459
+
+00:19:30,470  -->  00:19:33,400
+No mathematics whatsoever, just plain intuition.
+460
+
+460
+
+00:19:33,400  -->  00:19:37,290
+So also highly recommend this blog, to check it out
+461
+
+461
+
+00:19:37,290  -->  00:19:38,490
+if you would like to get
+462
+
+462
+
+00:19:39,567  -->  00:19:41,720
+a bit of additional information on LSTMs.
+463
+
+463
+
+00:19:41,720  -->  00:19:44,290
+And on that note, I hope you enjoyed today's tutorial
+464
+
+464
+
+00:19:44,290  -->  00:19:45,620
+and I look forward to seeing you next time.
+465
+
+465
+
+00:19:45,620  -->  00:19:47,483
+Until then, enjoy Deep Learning.

@@ -1,0 +1,514 @@
+WEBVTT
+
+00:02.090 --> 00:08.210
+So in the last lecture, we added our own middleware to protect certain routes against unauthenticated
+
+00:08.300 --> 00:09.530
+access,
+
+00:09.560 --> 00:17.570
+now we want to use that token on the front-end and actually store it when we do login to then attach
+
+00:17.570 --> 00:20.970
+it to our requests we send on the back-end.
+
+00:21.170 --> 00:31.270
+So for that, I will go to my user or to my auth service here where we do login, so where we do get that
+
+00:31.300 --> 00:34.080
+token here in the response and there,
+
+00:34.180 --> 00:40.240
+well I want to use that token, I want to store it somehow so that we can attach it to future requests.
+
+00:40.240 --> 00:48.310
+And for that, I'll add a new field here in my auth service, a new property and I will name it token,
+
+00:49.030 --> 00:55.360
+maybe turn this into a private property token and this will be a string and initially, it's undefined
+
+00:55.570 --> 01:02.110
+but here in login where I get my response, I know that this response will hold the token or at least it
+
+01:02.110 --> 01:02.490
+should,
+
+01:02.530 --> 01:06.400
+so there I should be able to extract the token from the response,
+
+01:06.400 --> 01:13.030
+there should be a token property and I can configure this post request, this static method here to be
+
+01:13.030 --> 01:13.980
+aware of this,
+
+01:14.110 --> 01:19.480
+so we will actually get back a response object which has a token field which is of type string and we
+
+01:19.480 --> 01:26.410
+know that this is the case because we created the API and there in the user route, we do send back a response
+
+01:26.410 --> 01:31.340
+with a token field. So we can extract this in the auth service,
+
+01:31.360 --> 01:37.850
+now we can get that token here and we can then say this token equals, well the token here,
+
+01:37.870 --> 01:42.490
+so this constant, now we're storing the token in the service.
+
+01:42.490 --> 01:49.240
+We want to use that token in other parts of the app of course, we want to use it in the post service
+
+01:49.390 --> 01:55.870
+for certain requests, to be precise, adding, updating and deleting posts. For that I'll
+
+01:55.900 --> 01:59.680
+first of all add a new method here because the token field is private,
+
+01:59.680 --> 02:01.850
+we could of course turn it into a public one
+
+02:02.020 --> 02:04.360
+but I will simply add a new method here,
+
+02:04.540 --> 02:06.150
+getToken
+
+02:06.610 --> 02:09.520
+and there, I will return this token.
+
+02:09.790 --> 02:15.520
+So now we can get get that token and in the posts service, we want to use it.
+
+02:15.670 --> 02:21.310
+Now for that, we need to inject the auth service into the posts service.
+
+02:21.400 --> 02:29.350
+We could inject our auth service here and then call get token on the injected object and then simply
+
+02:29.410 --> 02:34.080
+add a header to all our outgoing HTTP requests here.
+
+02:34.160 --> 02:36.290
+I will use a different way of doing that,
+
+02:36.500 --> 02:41.330
+I will create a so-called interceptor for my HTTP client.
+
+02:41.330 --> 02:44.600
+That's a feature offered by the Angular HTTP client,
+
+02:44.600 --> 02:51.650
+we can add interceptors which are simply functions that will run on any outgoing HTTP request and we
+
+02:51.650 --> 02:56.830
+can then manipulate these outgoing requests, for example to attach our token
+
+02:56.900 --> 02:58.700
+and that's exactly what I want to do.
+
+02:58.980 --> 03:03.800
+For that, I will create that interceptor and I will add it here
+
+03:03.950 --> 03:13.670
+in my auth region, I'll name the file auth-interceptor.ts to indicate that we have an interceptor
+
+03:13.670 --> 03:14.430
+in there.
+
+03:14.450 --> 03:18.320
+Now this is an official feature provided by the Angular HTTP client
+
+03:18.440 --> 03:25.170
+and we create such an interceptor by first of all creating a normal class here which we export, so I export
+
+03:25.170 --> 03:29.100
+a class which I'll name AuthInterceptor.
+
+03:29.240 --> 03:39.050
+Now this has to implement an interface provided by Angular, by the Angular framework, the HTTP interceptor
+
+03:39.260 --> 03:50.140
+interface, you import it from @angular/common/http. This interface forces you to add an intercept method
+
+03:50.150 --> 03:51.830
+to this class here,
+
+03:51.950 --> 03:58.430
+so this is the contract you're signing by implementing this interface, your class has to have this intercept
+
+03:58.430 --> 04:07.100
+method because Angular will call this method for requests leaving your app. So we add that intercept method
+
+04:07.100 --> 04:14.130
+here and the intercept method actually has to receive an argument, two arguments to be precise.
+
+04:14.240 --> 04:19.580
+The first one is the request you're intercepting because I mentioned, this runs for outgoing requests
+
+04:20.060 --> 04:27.540
+and this is of type HTTP request, another type you import from @angular/common/http
+
+04:27.650 --> 04:33.440
+and this actually is a static type which could wrap all kinds of information and data and I will write
+
+04:33.500 --> 04:38.860
+any because I want to, well intercept any outgoing requests, not a specific one,
+
+04:38.900 --> 04:44.420
+so I know that this interceptor will not be attached to one specific source but that I have all kinds
+
+04:44.420 --> 04:47.030
+of requests leaving my app.
+
+04:47.160 --> 04:53.700
+We also have a second argument and this is something you might know from the middleware on NodeJS
+
+04:53.790 --> 04:54.560
+side,
+
+04:54.720 --> 04:56.800
+we have a next argument here too
+
+04:57.030 --> 05:04.150
+and actually, this interceptor works a lot like middleware, just for outgoing instead of incoming requests.
+
+05:04.170 --> 05:09.240
+Therefore here we also have no response object because we can't configure a response here,
+
+05:09.240 --> 05:11.870
+we're just involved in sending the request
+
+05:11.970 --> 05:19.740
+but we do get that request and we get next which allows us to leave that interceptor and allow other
+
+05:19.740 --> 05:25.190
+parts of our app, like for example the parts where we subscribe to the response,
+
+05:25.320 --> 05:30.270
+we allow these parts to also to take that request and its response.
+
+05:30.270 --> 05:36.120
+So that is why we need next here to allow the interceptor or the request in that interceptor to continue
+
+05:36.120 --> 05:41.410
+its journey through our app and that next argument is of type HTTP handler,
+
+05:41.580 --> 05:49.470
+also a type provided by the @angular/common/http package. This is the intercept method and this method has
+
+05:49.470 --> 05:50.680
+to return something,
+
+05:50.790 --> 05:57.970
+it should return a call to next handle. The handle method is provided on next
+
+05:58.020 --> 06:04.020
+and here we actually allow the request to continue its journey. So we could just pass request here and
+
+06:04.020 --> 06:07.760
+this would be a valid interceptor that doesn't do anything,
+
+06:07.770 --> 06:12.810
+this will just take a request and allow it to continue without being changed.
+
+06:12.810 --> 06:15.520
+Now we will change it though, here
+
+06:15.660 --> 06:22.770
+I will create a new constant which should hold my token and for that, I need to inject my auth service
+
+06:22.890 --> 06:29.900
+into this interceptor because I can get the token from there. To inject services into other services
+
+06:29.970 --> 06:37.050
+and this is just a service in the end, the service which receives that injected service has to have
+
+06:37.290 --> 06:45.480
+the @injectable annotation. We added that to all our other services anyways because of the way we provided
+
+06:45.480 --> 06:46.340
+them,
+
+06:46.350 --> 06:53.020
+we will provide the interceptor differently because the Angular HTTP client requires us to provide it differently
+
+06:53.190 --> 07:01.200
+but we still need to add an empty injectable annotation here so that we can actually inject services into
+
+07:01.220 --> 07:04.480
+this service, that's a requirement by Angular.
+
+07:05.160 --> 07:13.950
+And then I want to inject my auth service, so private auth service of type auth service, make sure to add
+
+07:14.070 --> 07:17.470
+the import path to that auth service file at the top
+
+07:18.410 --> 07:23.710
+and now we can use the auth service here in this interceptor class and I will use it here to create
+
+07:23.710 --> 07:33.130
+a new constant, authToken where I use my auth service and there, I can call getToken to get that token
+
+07:33.130 --> 07:41.580
+we stored there. Now this retrieves the token from our service, the next step is to manipulate the request
+
+07:41.590 --> 07:43.190
+to hold this token
+
+07:43.420 --> 07:46.400
+and we should clone that request before we manipulate it,
+
+07:46.460 --> 07:52.930
+that is something you have to do because if you directly edit that outgoing request, you will cause unwanted
+
+07:53.020 --> 07:59.290
+side effects and problems due to the way requests work internally and are handled internally.
+
+07:59.290 --> 08:05.890
+So let's create a new constant, authRequest and there I will call request clone,
+
+08:05.890 --> 08:10.330
+there is a clone method which will create a copy of that request.
+
+08:10.330 --> 08:17.410
+Now the cool thing is we can pass configuration to clone, to not only clone the request but already edit
+
+08:17.500 --> 08:24.010
+the clone and I wants to edit it, I want to edit its headers to be precise.
+
+08:24.010 --> 08:31.060
+The headers should be my original request headers but I also want to set an extra header which I can
+
+08:31.060 --> 08:37.410
+do with set. Now set sounds like it would override all old headers,
+
+08:37.420 --> 08:38.620
+it actually doesn't,
+
+08:38.650 --> 08:43.410
+it only adds a new header to the headers and it sets the value for it
+
+08:43.420 --> 08:46.870
+but if that header already existed, it will override it.
+
+08:46.900 --> 08:50.480
+So here I will set the authorization header
+
+08:51.690 --> 08:58.260
+and now that's important, authorization because we're extracting our token from authorization on the
+
+08:58.260 --> 08:59.190
+back-end.
+
+08:59.220 --> 09:01.080
+Here it's written with a lowercase a,
+
+09:01.140 --> 09:02.050
+this doesn't matter,
+
+09:02.070 --> 09:04.910
+it's case insensitive but it should be the same name.
+
+09:04.950 --> 09:06.500
+We have authorization here,
+
+09:06.540 --> 09:08.430
+what we're looking for on the back-end,
+
+09:08.550 --> 09:13.760
+we need to set that header on the front-end too then. So this is the name of the header,
+
+09:13.770 --> 09:17.620
+now the value will be our authToken.
+
+09:17.640 --> 09:21.510
+This will create a request which will hold
+
+09:21.590 --> 09:29.030
+this authorization header with our token and it's now the authRequest which I want to forward, which
+
+09:29.030 --> 09:30.580
+now should leave our app.
+
+09:30.740 --> 09:37.380
+So now we're taking or we're manipulating an incoming request and we're adding our token on the authorization
+
+09:37.400 --> 09:41.090
+header. And to be very precise, this wouldn't work,
+
+09:41.090 --> 09:50.230
+remember that thing about the bearer word I mentioned, our value actually should be bearer, then whitespace
+
+09:50.380 --> 09:53.720
+and then the authToken, this is how we extract data on the back-end,
+
+09:53.770 --> 09:55.190
+you could omit this,
+
+09:55.240 --> 09:57.850
+it's just a convention you often see.
+
+09:58.420 --> 10:02.010
+So now we get that added but our middleware is ignored,
+
+10:02.050 --> 10:04.620
+we don't add it to our Angular app.
+
+10:04.900 --> 10:11.500
+So to add it, we have to inject this as a service or provide this as a service,
+
+10:11.500 --> 10:14.960
+however not with provided root but a bit differently.
+
+10:15.250 --> 10:19.500
+We go to app module and there, we add a new object,
+
+10:19.500 --> 10:22.900
+a javascript object to the provider's array.
+
+10:23.220 --> 10:25.960
+This object has to have a couple of properties,
+
+10:25.990 --> 10:34.200
+the first one is the provide property. There we provide a token, HTTP interceptors which is imported
+
+10:34.390 --> 10:36.670
+from the @angular/common/http,
+
+10:36.820 --> 10:41.350
+so that's a token, an identifier provided by this package.
+
+10:41.350 --> 10:47.980
+Because now we're basically telling Angular, hey for this identifier which Angular will look for, the
+
+10:47.980 --> 10:49.360
+Angular HTTP client
+
+10:49.360 --> 10:51.510
+will look for that, for this token
+
+10:51.610 --> 10:54.560
+we want to provide a new value.
+
+10:54.910 --> 10:59.180
+That value is then provided with the use class property
+
+10:59.410 --> 11:02.590
+and here, we now have to point at our interceptor.
+
+11:02.740 --> 11:09.670
+So our auth interceptor for which you also need to add the import of course, here leading to that auth interceptor
+ 
+11:09.700 --> 11:10.300
+file
+
+11:10.300 --> 11:18.640
+we added in the auth folder. This is then imported, the auth interceptor class is imported and we then pass this as
+
+11:18.640 --> 11:20.470
+a value that should be added.
+
+11:20.470 --> 11:27.220
+Now the thing is, we can have multiple interceptors in an app, so we set a third value, multi is set to
+
+11:27.220 --> 11:33.760
+true and this simply tells Angular don't overwrite existing interceptors, add it as an additional one
+
+11:33.760 --> 11:34.420
+instead
+
+11:34.630 --> 11:39.130
+and the internals will be handled by the Angular HTTP client.
+
+11:39.130 --> 11:45.590
+Now our interceptor is registered and every outgoing request will receive that token.
+
+11:45.610 --> 11:51.370
+Now of course this also means that requests which don't need that token will receive it but there, that
+
+11:51.460 --> 11:54.370
+will simply be undefined and shouldn't be a problem
+
+11:54.580 --> 11:56.530
+but why don't we give that a try?
+
+11:56.920 --> 12:01.190
+Let's reload our app, after saving everything of course,
+
+12:02.410 --> 12:05.030
+let's go to the login page and there,
+
+12:05.290 --> 12:15.920
+let's login and now we get an error that we don't allow this header due to our cors policy basically.
+
+12:16.160 --> 12:21.980
+So we need to allow this header on the back-end, here in app.js, we indeed don't allow this
+
+12:21.980 --> 12:23.290
+authorization header.
+
+12:23.280 --> 12:25.080
+So let's add it here,
+
+12:25.100 --> 12:27.950
+authorization, this of course is required
+
+12:27.980 --> 12:29.840
+otherwise our app will not work,
+
+12:29.900 --> 12:34.390
+save that file and then try this again, reload this page
+
+12:36.790 --> 12:39.270
+and send that request again
+
+12:39.370 --> 12:42.110
+and now this looks better I guess, we got no error.
+
+12:42.280 --> 12:47.560
+Now let's try creating a new post, simply by typing in anything here,
+
+12:47.560 --> 12:49.280
+any values here picking an image
+
+12:50.810 --> 12:53.070
+and this looks much better to me.
+
+12:53.090 --> 12:57.000
+This is the post we just create it, we create it successfully,
+
+12:57.020 --> 12:59.100
+let's give this another try
+
+13:01.790 --> 13:05.590
+with that very meaningful post title.
+
+13:05.650 --> 13:06.610
+So that's looking good,
+
+13:06.610 --> 13:13.150
+we now can create our posts because now, we set that header for outgoing requests and we can see that
+
+13:13.150 --> 13:15.570
+in the network tab by the way. Here
+
+13:15.580 --> 13:21.130
+these are the requests leaving our application and if we have a look at this request here for example,
+
+13:21.670 --> 13:28.590
+we see that here we got that post added successfully response and in the headers of our request,
+
+13:28.760 --> 13:31.800
+we see that this is our authorization header we added
+
+13:31.810 --> 13:34.010
+and this includes our token.
+
+13:34.040 --> 13:40.640
+So now we're taking that JWToken, that Json Web Token to send it back to the back-end where we then
+
+13:40.640 --> 13:42.840
+use it to authenticate requests.

@@ -1,0 +1,277 @@
+WEBVTT
+1
+00:00:01.340 --> 00:00:05.170
+Welcome to my AWS Developer course, An Introduction to Lambda.
+
+2
+00:00:05.170 --> 00:00:07.770
+My name is Fernando Medina Corey, and in this module,
+
+3
+00:00:07.770 --> 00:00:11.390
+I'm excited to teach you about integrating third‑party APIs with AWS
+
+4
+00:00:11.390 --> 00:00:15.440
+Lambda. In this module, we'll be building out automated tweet
+
+5
+00:00:15.440 --> 00:00:19.540
+functionality for our imaginary client Globomantics Pet Care.
+
+6
+00:00:19.540 --> 00:00:20.220
+First,
+
+7
+00:00:20.220 --> 00:00:23.410
+we'll prepare this project by determining what functionality our
+
+8
+00:00:23.410 --> 00:00:27.570
+application will have. Then, we'll gather the credentials and libraries
+
+9
+00:00:27.570 --> 00:00:31.040
+that we need for this application and set our credentials in the Simple
+
+10
+00:00:31.040 --> 00:00:33.300
+Systems Manager Parameter Store.
+
+11
+00:00:33.300 --> 00:00:34.200
+After that,
+
+12
+00:00:34.200 --> 00:00:36.595
+we'll jump into a demo to write and test our function.
+
+13
+00:00:36.595 --> 00:00:39.550
+We'll modify a code skeleton for this project called
+
+14
+00:00:39.550 --> 00:00:41.410
+Sparrow that I've put together for you,
+
+15
+00:00:41.410 --> 00:00:44.590
+and we'll test it locally to make sure we're set up properly.
+
+16
+00:00:44.590 --> 00:00:45.240
+Next,
+
+17
+00:00:45.240 --> 00:00:48.740
+we'll deploy our project to AWS. Because we'll be using external
+
+18
+00:00:48.740 --> 00:00:52.080
+dependencies for this project, we'll need to create a function package
+
+19
+00:00:52.080 --> 00:00:55.950
+for our code and dependencies and then create and configure a Lambda
+
+20
+00:00:55.950 --> 00:00:59.430
+function inside of the AWS console.
+
+21
+00:00:59.430 --> 00:01:02.620
+So let's take a look at how this project will work. Similar to
+
+22
+00:01:02.620 --> 00:01:05.500
+our previous function, we'll be using a CloudWatch scheduled
+
+23
+00:01:05.500 --> 00:01:07.240
+event to trigger our function.
+
+24
+00:01:07.240 --> 00:01:10.920
+This will run our function code, which will do a few different things.
+
+25
+00:01:10.920 --> 00:01:11.660
+First,
+
+26
+00:01:11.660 --> 00:01:14.980
+it will get access to the Twitter API keys that'll be stored inside
+
+27
+00:01:14.980 --> 00:01:17.600
+of the Simple Systems Manager Parameter Store.
+
+28
+00:01:17.600 --> 00:01:20.190
+Now we'll be setting those API keys up in that service
+
+29
+00:01:20.190 --> 00:01:23.090
+before we deploy anything. After this,
+
+30
+00:01:23.090 --> 00:01:26.140
+we'll send some test tweets out locally to make sure our credentials are
+
+31
+00:01:26.140 --> 00:01:29.640
+working properly and also to play with the functionality of the library
+
+32
+00:01:29.640 --> 00:01:34.050
+Twython that we'll be using to interact with the Twitter API. From there,
+
+33
+00:01:34.050 --> 00:01:37.400
+we'll bake in some randomization to our app to avoid having our tweets
+
+34
+00:01:37.400 --> 00:01:41.180
+marked as spam by Twitter. And at that point, we'll send out one final
+
+35
+00:01:41.180 --> 00:01:45.190
+randomized test tweet before we deploy our project and test it in the AWS
+
+36
+00:01:45.190 --> 00:01:46.190
+console.
+
+37
+00:01:46.190 --> 00:01:48.750
+So now let's take a look at what prerequisites we need to gather
+
+38
+00:01:48.750 --> 00:01:52.400
+together before we can put together our function.
+
+39
+00:01:52.400 --> 00:01:55.210
+For most projects that interact with a third‑party API, you're
+
+40
+00:01:55.210 --> 00:01:58.840
+going to need some dependencies. For us, we'll start with a code
+
+41
+00:01:58.840 --> 00:02:00.890
+scaffold from a project called Sparrow,
+
+42
+00:02:00.890 --> 00:02:03.760
+which will allow us to interact with Twitter more easily and have
+
+43
+00:02:03.760 --> 00:02:06.760
+some prewritten code to help us get started with our own Twitter
+
+44
+00:02:06.760 --> 00:02:09.400
+bots. As a dependency of Sparrow,
+
+45
+00:02:09.400 --> 00:02:12.555
+we'll be using a Python wrapper for the Twitter API called Twython.
+
+46
+00:02:12.555 --> 00:02:16.930
+This will allow us to take different actions using the Twitter API,
+
+47
+00:02:16.930 --> 00:02:20.220
+like following users, liking posts, or, in this case,
+
+48
+00:02:20.220 --> 00:02:23.770
+posting to Twitter any of the tweets that we're randomly sending out.
+
+49
+00:02:23.770 --> 00:02:26.360
+We'll also need to gather Twitter API keys for our demo
+
+50
+00:02:26.360 --> 00:02:29.310
+account so we can tweet as a particular user.
+
+51
+00:02:29.310 --> 00:02:32.640
+So let's look at how we can store API keys and other secrets
+
+52
+00:02:32.640 --> 00:02:35.970
+that we want to use inside of Lambda functions.
+
+53
+00:02:35.970 --> 00:02:39.400
+There's a few different options that we'll be looking at for API key management.
+
+54
+00:02:39.400 --> 00:02:41.990
+This isn't an exhaustive list of what you might use,
+
+55
+00:02:41.990 --> 00:02:44.350
+but it's some of the services that you might take advantage of
+
+56
+00:02:44.350 --> 00:02:48.510
+inside of AWS for this purpose. In this project, we'll be working
+
+57
+00:02:48.510 --> 00:02:51.530
+with the AWS Systems Manager Parameter Store.
+
+58
+00:02:51.530 --> 00:02:55.890
+This will allow us to send parameter values into the Parameter Store and have
+
+59
+00:02:55.890 --> 00:02:59.800
+it encrypt them for us. And then, when we want to decrypt them and retrieve
+
+60
+00:02:59.800 --> 00:03:04.350
+them at runtime, we'll be able to make a call using the AWS SDKs to go get
+
+61
+00:03:04.350 --> 00:03:08.980
+those secret values Now, we could also use something called KMS, or the AWS Key
+
+62
+00:03:08.980 --> 00:03:12.800
+Management Service, but this would cost a little bit of money for us to create
+
+63
+00:03:12.800 --> 00:03:16.670
+our own custom keys in here. And by default, when we use the Systems Manager
+
+64
+00:03:16.670 --> 00:03:17.660
+Parameter Store,
+
+65
+00:03:17.660 --> 00:03:21.050
+we're going to be using KMS in the background as long as we're actually
+
+66
+00:03:21.050 --> 00:03:24.030
+encrypting the values that we're sending into the Parameter Store.
+
+67
+00:03:24.030 --> 00:03:26.730
+So we get the best of both worlds here without having to have a
+
+68
+00:03:26.730 --> 00:03:29.900
+lot of overhead managing the keys ourselves.
+
+69
+00:03:29.900 --> 00:03:35.000
+Don't worry. I'll explain how this works in more detail in the next video.
+

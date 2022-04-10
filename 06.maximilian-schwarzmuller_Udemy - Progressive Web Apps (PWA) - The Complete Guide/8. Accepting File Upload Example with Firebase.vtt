@@ -1,0 +1,571 @@
+WEBVTT
+
+00:02.090 --> 00:04.860
+Let's turn towards our back-end code.
+
+00:05.210 --> 00:11.720
+Now we get post data which also includes a file and our cloud function here, so our Node code here
+
+00:11.930 --> 00:13.960
+isn't prepared to handle that.
+
+00:13.970 --> 00:16.240
+Now we can adjust it to do so though.
+
+00:16.320 --> 00:23.570
+Now right now, we as I just said get JSON data,	we'll need a package basically which automatically
+
+00:23.570 --> 00:27.140
+extracts incoming form data for us.
+
+00:27.170 --> 00:33.440
+Thankfully there is a package we can easily install by navigating into the functions folder in our project
+
+00:33.440 --> 00:39.120
+folder and there running npm install --save to store an entry in package.json,
+
+00:39.130 --> 00:42.800
+the name is formidable.
+
+00:42.800 --> 00:48.830
+Now formidable is a nice package which makes it easy for us to access the data enclosed in form data
+
+00:48.830 --> 00:54.500
+reaching our server and you can use that on your Node Express server of course as well because cloud
+
+00:54.500 --> 00:57.260
+functions use just that behind the scenes.
+
+00:57.500 --> 01:05.070
+We'll also need a way of storing incoming files on the cloud storage of Firebase, here.
+
+01:05.300 --> 01:09.560
+Now we can't use that admin package we already use to access the database,
+
+01:09.650 --> 01:12.530
+that just doesn't give us access to storage.
+
+01:12.530 --> 01:18.650
+The Firebase storage behind the scenes just uses the Google Cloud storage, so we can use the cloud storage
+
+01:18.650 --> 01:19.580
+helper here,
+
+01:19.670 --> 01:20.680
+so let's install it,
+
+01:20.720 --> 01:22.430
+it's
+
+01:22.500 --> 01:26.260
+@google-cloud/storage and no worries,
+
+01:26.270 --> 01:28.820
+this may now looks super complicated,
+
+01:28.850 --> 01:30.670
+it isn't, it's really doable,
+
+01:30.680 --> 01:31.960
+we can get there,
+
+01:32.210 --> 01:34.720
+so let's install that too.
+
+01:34.740 --> 01:37.420
+These are two packages I need for now,
+
+01:37.550 --> 01:42.050
+so let's hit enter and let's install them and we won't need to write much code to get there,
+
+01:42.050 --> 01:43.800
+no worries.
+
+01:43.960 --> 01:50.680
+And just to repeat this, of course if you have your own server with your own Node Express application, you
+
+01:50.680 --> 01:56.950
+can use any approach and any storage you like, store it wherever you like on your server, on AWS S3,
+
+01:57.190 --> 01:59.350
+wherever you want to store your stuff.
+
+02:00.240 --> 02:05.760
+So with these packages installed, let's go into the index.js file in the functions folder and let's pull
+
+02:05.760 --> 02:06.420
+them in.
+
+02:06.660 --> 02:16.320
+I'll start with formidable which I import by requiring formidable and setting up the Google cloud actually requires
+
+02:16.380 --> 02:23.440
+a little config variable, we can quickly generate though. So I'll place it here, config,
+
+02:23.700 --> 02:27.590
+maybe gcconfig to make clear what we're using it for.
+
+02:28.410 --> 02:34.140
+This will be a Javascript object where I need to have the project ID for which I want to set up
+
+02:34.280 --> 02:34.900
+Google cloud,
+
+02:34.950 --> 02:41.550
+so the Google cloud package for which I want to use it and project ID simply is a string being your Firebase
+
+02:41.550 --> 02:45.160
+project ID, which you can find for example here,
+
+02:45.210 --> 02:47.420
+this part, that's your project ID.
+
+02:47.490 --> 02:52.290
+You also find it under project settings, here Project ID.
+
+02:52.410 --> 03:00.900
+So we take that and enter it here as a project ID, it should just be a string of course and then you also
+
+03:00.900 --> 03:06.820
+need to specify the key file name which holds your access to your account basically
+
+03:07.110 --> 03:09.740
+and with that, I mean this file.
+
+03:09.820 --> 03:15.690
+So the convenient thing is we just copy the file name without ./ at the beginning, just the file name, it will
+
+03:15.690 --> 03:20.820
+find it automatically and we enter that here as
+
+03:20.820 --> 03:24.130
+second value. This is actually all,
+
+03:24.180 --> 03:33.450
+now with that, I'll implement or import Google Cloud storage, I'll name the variable gcs and I import it by requiring
+
+03:33.540 --> 03:40.200
+@google-cloud/storage, this exports a function we immediately execute and we pass config to that
+
+03:40.200 --> 03:41.080
+function.
+
+03:41.100 --> 03:46.820
+So now gcs is an initialized Google Cloud Storage package which allows us to conveniently access it
+
+03:47.010 --> 03:49.460
+and since Firebase just uses Google Cloud storage
+
+03:49.460 --> 03:52.880
+behind the scenes, this accesses our Firebase storage
+
+03:52.880 --> 03:56.550
+in the end. So now we get access to everything we need,
+
+03:56.550 --> 04:01.790
+the next step is inside our function to get access to the data we're receiving.
+
+04:02.130 --> 04:10.440
+So inside this course wrapper here, I want to extract my incoming form data. I'll name it form data here
+
+04:10.980 --> 04:14.510
+and we extract it by calling new formidable,
+
+04:14.550 --> 04:22.660
+keep in mind formidable refers to that variable which imports that package. So new formidable.incomingForm
+
+04:22.660 --> 04:24.940
+is a method we execute,
+
+04:24.950 --> 04:28.840
+this is a helper which allows us to automatically fetch it from the incoming request,
+
+04:28.870 --> 04:30.850
+that's very convenient.
+
+04:30.850 --> 04:32.290
+We can then use this form data
+
+04:32.290 --> 04:39.840
+we just set up to call parse and pass that request in there so that it can get that form from the request.
+
+04:39.850 --> 04:43.530
+The second argument is a callback it will execute once it's done.
+
+04:43.600 --> 04:50.080
+Here we get a potential error and then all the fields and files it could extract and fields are
+
+04:50.080 --> 04:52.890
+just everything but files.
+
+04:52.930 --> 04:55.110
+So now we can use that data,
+
+04:55.270 --> 05:00.880
+so inside this callback we can now start reaching out to our database and so on.
+
+05:01.060 --> 05:08.290
+First of all, I want to move that incoming file from the temporary storage to another temporary storage,
+
+05:08.850 --> 05:15.910
+for that I'll import the fs package by simply requiring fs, that's a default Node package,
+
+05:15.910 --> 05:17.570
+that's why we don't have to install it,
+
+05:17.620 --> 05:20.970
+it's already installed since we have Node on our machine
+
+05:21.370 --> 05:30.850
+and then we can access fs rename and pass the old path which we can get from the files we got. There
+
+05:30.850 --> 05:40.090
+the file is the only file we get, file here by the way refers to the name we set up on the front-end
+
+05:40.480 --> 05:41.220
+here,
+
+05:41.440 --> 05:47.480
+so if you have file here as a name for the file you attached to the post data, you need to use file here
+
+05:47.490 --> 05:48.360
+too
+
+05:48.970 --> 05:55.150
+and then the path. That's the path where it is stored automatically once it's uploaded and I'll use it
+
+05:55.150 --> 05:56.500
+to /tmp,
+
+05:56.650 --> 06:02.710
+so tmp, that's a path available on Google cloud functions or Firebase cloud functions to be precise
+
+06:03.210 --> 06:10.910
+plus files, file name to keep the file name. So that just moves it temporarily, we'll permanently move it
+
+06:10.910 --> 06:15.290
+into a bucket, into a bucket of that cloud storage.
+
+06:15.290 --> 06:20.960
+So for that, I'll set up a bucket here, get access to it through gcs bucket
+
+06:21.100 --> 06:24.940
+and this simply takes the bucket name as an input.
+
+06:24.940 --> 06:26.900
+Now we use Firebase,
+
+06:27.010 --> 06:28.830
+so we already have a default bucket,
+
+06:28.900 --> 06:34.270
+if you click on storage, that's the bucket name after gcs//,
+
+06:34.330 --> 06:36.070
+that's your bucket name
+
+06:36.070 --> 06:39.820
+and there already is something in the bucket I uploaded earlier,
+
+06:39.900 --> 06:41.740
+you can delete that of course.
+
+06:42.280 --> 06:43.950
+So that's the bucket name,
+
+06:44.080 --> 06:51.130
+let's now add this here to that bucket or to that bucket command as a string and this will give us access
+
+06:51.130 --> 06:54.850
+to that bucket through the cloud storage package.
+
+06:54.850 --> 07:00.670
+Now we can use that initialized bucket and call upload and there we simply pass the path to the file,
+
+07:00.670 --> 07:07.150
+so tmp plus files, file name and yes you could of course used that default path,
+
+07:07.170 --> 07:11.490
+this was just the security mechanism to make sure it doesn't clean it up in-between or something like
+
+07:11.490 --> 07:12.100
+that.
+
+07:12.420 --> 07:20.460
+So now I'm uploading this onto cloud storage as a second argument to the upload function here,
+
+07:20.760 --> 07:27.680
+we pass some configuration. So this conflagration is a Javascript object where we can for example
+
+07:27.680 --> 07:32.760
+define the upload type and here it's media because it's an image file.
+
+07:32.960 --> 07:35.040
+We can also set up some metadata
+
+07:35.270 --> 07:40.330
+and that interestingly enough takes another metadata property with some file metadata,
+
+07:40.340 --> 07:42.600
+so here you could say it's metadata for the upload
+
+07:42.770 --> 07:46.070
+and one of the metadata fields is the metadata for the file
+
+07:46.340 --> 07:53.390
+and here we can set up the content type which is files, and then the file and then type, all provided by formidable,
+
+07:53.420 --> 07:58.300
+all these utility functions here and I want to pass
+
+07:58.310 --> 08:05.400
+one other thing here. I want to make sure that I get a download URL by which I can easily access
+
+08:05.400 --> 08:11.990
+this even if I'm not a Google Cloud user which of course probably none of our users are going to be
+
+08:11.990 --> 08:13.630
+or very little.
+
+08:13.790 --> 08:20.360
+So therefore, we need to generate a public download URL, Firebase does this by default if we use
+
+08:20.360 --> 08:21.860
+the Firebase SDK
+
+08:21.890 --> 08:24.490
+but we can't use that on the server unfortunately.
+
+08:24.800 --> 08:31.910
+So we'll have to generate this on our own and thankfully, the algorithm used by Firebase is really easy
+
+08:31.910 --> 08:32.580
+to do.
+
+08:32.750 --> 08:40.220
+All we have to do here is, we can pass some extra metadata, the Firebase storage download tokens and that
+
+08:40.220 --> 08:47.110
+has to be a unique ID string. To generate it, we can simply install a package.
+
+08:47.150 --> 08:48.690
+We do this with npm, so
+
+08:48.710 --> 08:56.770
+let me clear this, npm install --save in the packages uuid-v4.
+
+08:57.140 --> 09:04.850
+Now install that and once it is installed in your index.js file, you can import it here at the top, I'll
+
+09:04.850 --> 09:05.560
+name it
+
+09:05.650 --> 09:06.260
+UUID,
+
+09:06.280 --> 09:11.560
+all capital case but it's optional, import that package
+
+09:11.630 --> 09:15.160
+and before we use it, we need to initialize it.
+
+09:15.200 --> 09:17.100
+Now I'll do this here right
+
+09:17.120 --> 09:19.670
+inside cors, I'll set up
+
+09:19.670 --> 09:20.420
+uuid,
+
+09:20.510 --> 09:21.370
+lowercase
+
+09:21.450 --> 09:26.860
+equals UUID, executed like that.
+
+09:26.870 --> 09:33.350
+Now UUID is a unique ID which we can simply pass here,
+
+09:33.410 --> 09:39.680
+we can use it anywhere inside our function now and by passing this metadata, Firebase will automatically
+
+09:39.680 --> 09:45.530
+generate such a download URL for us, that's the convenient thing, just needs that unique ID.
+
+09:45.530 --> 09:49.710
+So now we're uploading this and this request will already do the upload,
+
+09:50.090 --> 09:57.340
+one other argument we now have to pass to this function is a callback function which will be executed
+
+09:57.500 --> 09:59.680
+once this either fail or succeed,
+
+09:59.900 --> 10:05.480
+so here we either get an error or the uploaded file. If we don't have an error
+
+10:05.690 --> 10:12.920
+and of course you probably want to handle a potential error, here I'll only log it but if you don't have
+
+10:12.920 --> 10:19.230
+an error, I want to reach out to my database and basically execute all that code I had there before.
+
+10:19.520 --> 10:25.120
+Unfortunately we're a bit entering callback hell here but it's still OK,
+
+10:25.370 --> 10:32.480
+unfortunately not a lot of packages are using promises here. I'll now cut all that code where we add something
+
+10:32.480 --> 10:40.250
+to the database and add it inside this do we have or hopefully we don't have an error if check because
+
+10:40.250 --> 10:45.770
+this will be executed whenever we uploaded a file and I need information about that file upload when
+
+10:45.770 --> 10:47.930
+I reach out to the database.
+
+10:48.140 --> 10:50.530
+There, we also need to adjust our code.
+
+10:50.630 --> 10:53.100
+We no longer use request body,
+
+10:53.180 --> 10:54.970
+we use fields instead.
+
+10:54.980 --> 10:58.640
+Keep in mind, formidable gives us access to the fields here
+
+10:58.850 --> 11:00.860
+and that simply is everything but the files
+
+11:01.010 --> 11:05.930
+and then the field names are the names we defined in our service worker when we sent the fetch request
+
+11:05.930 --> 11:07.330
+with the post data.
+
+11:07.700 --> 11:14.020
+So I'm basically referring to the names we set up here, ID, title, location and so on.
+
+11:14.570 --> 11:23.660
+So we get this set up, we're pushing this new element here where we get the data from the incoming request.
+
+11:23.750 --> 11:30.910
+The image is not correct though, this now needs to be the URL to this newly created image
+
+11:31.010 --> 11:34.650
+and as I said, Firebase creates a link for us automatically.
+
+11:34.700 --> 11:37.630
+This link follows the following pattern,
+
+11:37.700 --> 11:51.520
+it's always https://firebasestorage.googleapis one word, .com/v0/b,
+
+11:51.530 --> 11:55.340
+for bucket probably, slash
+
+11:55.340 --> 11:59.840
+then we enter something, the bucket name, so bucket
+
+11:59.840 --> 12:04.990
+here again is referring to that bucket object we set up with Google Cloud storage and it has the name since
+
+12:04.990 --> 12:06.450
+we passed it here.
+
+12:06.920 --> 12:17.870
+So the bucket name +/o, for object and then encode URI component, a default function
+
+12:17.870 --> 12:23.450
+we can use here in Javascript, file name.
+
+12:23.470 --> 12:29.420
+Keep in mind, file is the file returned in this function by the upload helper method,
+
+12:29.560 --> 12:34.710
+so this is the file which was uploaded. Now by using this,
+
+12:34.720 --> 12:36.340
+we're almost there,
+
+12:36.340 --> 12:41.590
+we need to chain more though, we need to chain a query parameter,
+
+12:42.100 --> 12:49.460
+so questionmark at the end of the URL, alt equals media to indicate that it's a media type and now this is
+
+12:49.530 --> 12:54.090
+important, token equals and now UID.
+
+12:54.130 --> 12:59.840
+So this unique ID we also passed here, we add it here with the token key.
+
+13:00.310 --> 13:08.620
+So this cryptic looking URL is what Firebase will generate as a publicly accessible URL automatically
+
+13:08.950 --> 13:14.980
+since we passed this metadata and here I'm just making sure that this URL gets stored in the database
+
+13:14.980 --> 13:15.640
+too.
+
+13:15.640 --> 13:22.830
+Now with that, all the rest of our code should still work fine, here where we continue working,
+
+13:22.840 --> 13:27.510
+the only thing we need to adjust the down there where I returned the ID, that's now
+
+13:27.510 --> 13:29.300
+fields ID of course,
+
+13:29.350 --> 13:34.140
+I no longer request body. But with that, that should all works fine,
+
+13:34.300 --> 13:36.490
+well I guess we'll see if it works fine
+
+13:36.490 --> 13:39.190
+if we now deploy it and then test it.
+
+13:39.220 --> 13:46.180
+Now let's do this and fix any potential errors of which we hopefully have none in the next lecture.
+
+13:46.270 --> 13:53.380
+I'll start deploying it by simply going back to my main project and then running Firebase deploy and
+
+13:53.380 --> 13:57.610
+it will upload the updated cloud function to Firebase
+
+13:57.760 --> 14:02.600
+and of course do the same with your own server implementation if you work it out right now,
+
+14:02.830 --> 14:10.690
+definitely upload it and whilst I'm saying that, this is failing because config is not defined, makes
+
+14:10.690 --> 14:11.710
+a lot of sense,
+
+14:11.710 --> 14:14.320
+I named this config for google cloud
+
+14:14.350 --> 14:15.610
+gcconfig,
+
+14:16.000 --> 14:22.660
+so let's pass it to this initialization of the Google Cloud storage too, gcconfig. So little mistake,
+
+14:23.110 --> 14:24.380
+now let's try this again,
+
+14:24.390 --> 14:26.820
+Firebase deploy hopefully will work.
+
+14:26.920 --> 14:30.370
+You saw it checks your code before it uploads it which isn't too bad
+
+14:30.670 --> 14:34.390
+and once it is done, I'll see you in the next lecture to test this.

@@ -1,0 +1,773 @@
+WEBVTT
+﻿1
+00:00:05.450 --> 00:00:10.290
+Welcome back everyone to part three of our Cuban report with python as a quick note.
+
+2
+00:00:10.290 --> 00:00:13.470
+Make sure to read the paper before continuing onto this lecture.
+
+3
+00:00:13.470 --> 00:00:17.430
+If you still haven't read the paper that we're working off of it's really important that this point
+
+4
+00:00:17.430 --> 00:00:22.110
+in time you read it since going to be fundamental to understanding how the network and the encoders
+
+5
+00:00:22.110 --> 00:00:28.440
+work so in this lecture we're going to be building out the neural network including input encoder M
+
+6
+00:00:28.860 --> 00:00:33.000
+input encoder C the question encoder and then we'll complete the network.
+
+7
+00:00:33.150 --> 00:00:35.440
+Let's jump to the notebook and get started.
+
+8
+00:00:35.460 --> 00:00:40.230
+All right here we are at the notebook we left off last time and again just to reiterate by now you should
+
+9
+00:00:40.230 --> 00:00:43.530
+have read the paper to understand the encoders in the full network.
+
+10
+00:00:43.560 --> 00:00:48.900
+So here's the paper Here's essentially the diagram of the network that we're producing along the encoders
+
+11
+00:00:48.960 --> 00:00:53.760
+and the long short term memory unit or the recurrent neural network that sees from the paper.
+
+12
+00:00:53.760 --> 00:00:58.800
+So we're gonna be working on the encoders for the questions and the stories those encoders see an M
+
+13
+00:00:58.800 --> 00:00:59.580
+from here.
+
+14
+00:00:59.730 --> 00:01:01.530
+And we're gonna be building this out with Python.
+
+15
+00:01:01.560 --> 00:01:03.900
+So make sure you read this paper before continuing on.
+
+16
+00:01:03.900 --> 00:01:06.250
+Otherwise I don't really make sense what we're doing.
+
+17
+00:01:06.240 --> 00:01:11.030
+It's really come back here and start off with a lot of imports in order to build out these networks
+
+18
+00:01:11.040 --> 00:01:20.220
+we'll say from Kerry's models import sequential and model and then from Carrier start layers that embedding
+
+19
+00:01:20.220 --> 00:01:33.890
+is import embedding and then from Carrier stock layers we're going to import input activation dense
+
+20
+00:01:35.230 --> 00:01:47.280
+per mute and drop out and then we'll also import the operations add dots and concatenate and we actually
+
+21
+00:01:47.380 --> 00:01:52.030
+import one more thing from layers which is the Ellis team the long short term memory unit that we're
+
+22
+00:01:52.030 --> 00:01:58.800
+gonna be using OK so we have our sequential and model imported from carrier not models we have our embedding
+
+23
+00:01:58.800 --> 00:02:04.100
+is imported specifically from layers that embedding so that we can just call embedding and then we have
+
+24
+00:02:04.250 --> 00:02:06.600
+all these various imports from carriers that layers.
+
+25
+00:02:06.680 --> 00:02:10.700
+So the first we need to do is hold up in place holder.
+
+26
+00:02:10.850 --> 00:02:15.010
+So recall that we technically actually have two inputs which we haven't really dealt with before.
+
+27
+00:02:15.110 --> 00:02:20.000
+We have not just these stories but we also have the questions so have the story that the encoder needs
+
+28
+00:02:20.000 --> 00:02:24.530
+to understand then a separate question and then we have to link them together in order to provide a
+
+29
+00:02:24.530 --> 00:02:26.000
+label yes or no.
+
+30
+00:02:26.060 --> 00:02:32.420
+So we want to do is we're going to create place holders using input so this input function of Kerry's
+
+31
+00:02:32.450 --> 00:02:32.990
+right here.
+
+32
+00:02:32.990 --> 00:02:36.710
+This one input is used to instantiate a scarce tensor.
+
+33
+00:02:36.860 --> 00:02:44.470
+So we're going to do is say a variable called input sequence is equal to input and then the formatting
+
+34
+00:02:44.480 --> 00:02:45.690
+we're going to use here.
+
+35
+00:02:45.810 --> 00:02:50.240
+You do shift tab here and check out that we need to pass in a shape so the shape we're gonna pass in
+
+36
+00:02:50.270 --> 00:02:57.290
+is based on the Mac story length and next question length so we'll do here is just say Max underscore
+
+37
+00:02:57.650 --> 00:03:04.430
+story underscore alien pops and then we're going to say comma.
+
+38
+00:03:04.470 --> 00:03:10.120
+So the reason that we add an a comma there is because essentially since this is what's known as a place
+
+39
+00:03:10.120 --> 00:03:18.690
+holder this is going to be able to take in the inputs of the stories with a shape of the max story length
+
+40
+00:03:18.720 --> 00:03:24.330
+because remember going to be padding and then the batch size and the way Care's works for this batch
+
+41
+00:03:24.330 --> 00:03:28.870
+size since we technically want to be able to edit our batch size and we don't know it yet.
+
+42
+00:03:28.980 --> 00:03:31.370
+We're just going to leave it blank by adding in a comma.
+
+43
+00:03:31.410 --> 00:03:37.190
+So the shape right now is a tuple with just one defined Max story length and then a comma essentially
+
+44
+00:03:37.330 --> 00:03:43.340
+a nun there for the batch size since we technically haven't really defined it yet then we will say question
+
+45
+00:03:44.670 --> 00:03:51.030
+input and really similarly we're going to say Max question length comma.
+
+46
+00:03:52.010 --> 00:03:57.920
+OK so those are place holders ready to receive input later on of batches of stories and questions.
+
+47
+00:03:57.950 --> 00:04:00.360
+Now it's time to create the input encoders.
+
+48
+00:04:00.470 --> 00:04:06.440
+So the first thing we need to actually do is define our vocabulary size and if you remember previously
+
+49
+00:04:06.440 --> 00:04:09.080
+we defined a vocab set.
+
+50
+00:04:09.080 --> 00:04:12.080
+So that's basically essentially what this word index is.
+
+51
+00:04:12.080 --> 00:04:19.010
+But if you keep going up we actually define a vocab length so in order to keep everything consistent
+
+52
+00:04:19.010 --> 00:04:23.660
+with the notebook that we provide for you we're essentially going to create a new variable called vocab
+
+53
+00:04:23.660 --> 00:04:28.470
+size which is the same as vocab like it's just how many words you have in your vocabulary.
+
+54
+00:04:28.490 --> 00:04:35.480
+Remember that's this set right here plus one for padding because the zero index should be reserved due
+
+55
+00:04:35.480 --> 00:04:42.160
+to the fact that we're using pad sequences later on over here from Charisse so scroll down here and
+
+56
+00:04:42.160 --> 00:04:49.650
+just create one more variable called vocab size and set it equal to the length of our vocab plus one.
+
+57
+00:04:50.340 --> 00:04:53.670
+And again just to reiterate previously we were calling this vocab length.
+
+58
+00:04:53.670 --> 00:04:57.990
+But I want to keep the variable names the same from the vocab or from the notebook that we provided
+
+59
+00:04:57.990 --> 00:04:58.860
+for you.
+
+60
+00:04:58.860 --> 00:05:04.530
+So the first thing to do here is then continue on for input encoder M and then we'll create input encoder
+
+61
+00:05:04.530 --> 00:05:05.400
+c.
+
+62
+00:05:05.580 --> 00:05:09.130
+So this input gets embedded to a sequence of vectors.
+
+63
+00:05:09.510 --> 00:05:15.630
+So we're gonna create a variable called input encoder M and then set it equal to sequential
+
+64
+00:05:18.530 --> 00:05:23.790
+and then we'll say input encoder M and we're gonna add two layers to it.
+
+65
+00:05:23.810 --> 00:05:29.860
+One is the embedding layer with an input dimension of vocab size.
+
+66
+00:05:29.930 --> 00:05:34.490
+And if you want can technically put in vocab length here as well but we're just gonna put vocab size
+
+67
+00:05:34.490 --> 00:05:36.500
+to keep the variable names consistent.
+
+68
+00:05:36.500 --> 00:05:44.340
+And then from the paper we'll go ahead and use the output dimensions of sixty for and then we'll say
+
+69
+00:05:44.370 --> 00:05:51.900
+input encoder M and we'll finally add in a dropout layer recall that a dropout layer all it does is
+
+70
+00:05:51.900 --> 00:05:57.330
+it turns off a percentage randomly of neurons as you're training.
+
+71
+00:05:57.360 --> 00:06:03.780
+So that means if we set dropout to zero point five that means in this layer 50 percent of the neurons
+
+72
+00:06:03.810 --> 00:06:08.520
+are gonna be randomly turned off during the training and that helps with over fitting.
+
+73
+00:06:08.520 --> 00:06:10.950
+So it's really up to you what value you want to choose here.
+
+74
+00:06:10.980 --> 00:06:13.830
+You can experiment with values as well as training times.
+
+75
+00:06:13.890 --> 00:06:18.360
+We're gonna go ahead and go off a value of zero point three but if you want you can make that a little
+
+76
+00:06:18.360 --> 00:06:23.370
+higher and train for a little longer and see if that helps if over fitting but the way I ran this model
+
+77
+00:06:23.400 --> 00:06:26.170
+zero point three was getting me results that were pretty darn good.
+
+78
+00:06:26.190 --> 00:06:27.720
+So we'll go ahead use that.
+
+79
+00:06:27.840 --> 00:06:35.100
+And so what this encoder is going to output is essentially something in the form of the samples the
+
+80
+00:06:35.100 --> 00:06:42.400
+stories max length and then the embedding dimension.
+
+81
+00:06:42.550 --> 00:06:51.310
+So that's input encoder M and we're gonna essentially copy and paste this for input encoder C except
+
+82
+00:06:51.310 --> 00:06:56.500
+we'll change the variables here so input and courtesy input and courtesy input and courtesy.
+
+83
+00:06:56.740 --> 00:07:02.950
+It's still going to be sequential except this time the output dimension isn't going to be 64 but it's
+
+84
+00:07:02.950 --> 00:07:08.660
+going to be the max question length and then the drop out.
+
+85
+00:07:08.710 --> 00:07:12.760
+Again you can experiment if these values of zero point three and if anything between zero and zero point
+
+86
+00:07:12.760 --> 00:07:18.790
+five should be fine to play around with but again we'll just choose zero point three and then this will
+
+87
+00:07:18.790 --> 00:07:24.160
+output samples story max length and then instead of the embedding dimension of the output I mentioned
+
+88
+00:07:24.160 --> 00:07:29.260
+is this Max question length so we'll go and copy that is going to produce something that looks like
+
+89
+00:07:29.260 --> 00:07:29.410
+that.
+
+90
+00:07:29.410 --> 00:07:36.850
+So these are essentially what the outputs look like for these two input encoders so have an input encoder
+
+91
+00:07:36.880 --> 00:07:38.590
+m an input encoder.
+
+92
+00:07:38.590 --> 00:07:45.220
+See now we have one final encoder which is the question encoder again it's super similar so I'm just
+
+93
+00:07:45.220 --> 00:07:47.090
+going to copy and paste again.
+
+94
+00:07:47.100 --> 00:07:56.110
+What's these three layers essentially except I'll rename this to be our question encoder so have our
+
+95
+00:07:56.110 --> 00:08:01.930
+question in Question encoder it's gonna be a sequential question encoder we'll also take in an embedding
+
+96
+00:08:01.930 --> 00:08:07.360
+layer so I'll remove this underscore C and it's gonna take an embedding layer of the input I mentioned
+
+97
+00:08:07.420 --> 00:08:12.250
+again it's gonna be the vocabulary size the output that I mentioned we want to match it to input encoder
+
+98
+00:08:12.250 --> 00:08:19.810
+m just as they do in the paper so we'll say 64 and then we'll define the input length since this is
+
+99
+00:08:19.810 --> 00:08:24.970
+specifically for questions as the max question length because remember the output I mentioned for input
+
+100
+00:08:25.000 --> 00:08:34.010
+could see was the max question length so we're going to copy this and then say input length is equal
+
+101
+00:08:34.010 --> 00:08:40.170
+to Max question length and then finally we'll add in this dropout layer so take that question encoder
+
+102
+00:08:40.190 --> 00:08:43.730
+variable add that in all right.
+
+103
+00:08:44.300 --> 00:08:50.120
+So we'll go ahead and run that and a quick note the output of what this question encoder is going to
+
+104
+00:08:50.120 --> 00:08:59.170
+look like it's going to be samples the query max length for the question max length and then the embedding
+
+105
+00:08:59.170 --> 00:09:00.670
+dimension.
+
+106
+00:09:00.750 --> 00:09:00.960
+Okay.
+
+107
+00:09:01.000 --> 00:09:05.140
+So let's synch with the output of that question and could it looks like now that we have the input encoder
+
+108
+00:09:05.140 --> 00:09:10.930
+M input encoder C and the question encoder it's time to actually encode the sequences recall that we
+
+109
+00:09:10.930 --> 00:09:16.660
+already have our place holders for the inputs if we scroll back up here remember we created this input
+
+110
+00:09:16.660 --> 00:09:22.780
+sequence for an input as well as this question for an input so we want to pass in these inputs into
+
+111
+00:09:22.840 --> 00:09:28.030
+our encoders the input encoder M input encoder C and then the question encoder just as they did in the
+
+112
+00:09:28.030 --> 00:09:28.840
+paper.
+
+113
+00:09:29.020 --> 00:09:37.950
+So all we need to do is say input encode Ed so make sure I spell this right in code Ed underscore M
+
+114
+00:09:38.310 --> 00:09:43.740
+No I'm not saying encoder I'm saying this is the result of passing this in through the encoder.
+
+115
+00:09:43.740 --> 00:09:54.560
+So essentially the form is encoded is equal to the encoder with whatever input you're passing in so
+
+116
+00:09:54.990 --> 00:09:56.350
+I should really draw this area the other way.
+
+117
+00:09:57.780 --> 00:10:02.970
+So we've taken our input placeholder pass it in through the encoder and we'll get our encoded result
+
+118
+00:10:03.440 --> 00:10:12.510
+so input encoded M that's going to be equal to input encoder M and the pass in the input sequence there.
+
+119
+00:10:13.750 --> 00:10:18.910
+And in a very similar fashion we're going to copy and paste this and we'll do the same thing for C so
+
+120
+00:10:18.910 --> 00:10:27.380
+input encoded c is equal to the input sequence percent input encoder C and then finally we'll say question
+
+121
+00:10:28.250 --> 00:10:36.680
+encoded is equal to the question encoder with that question placeholder pass then and now we're almost
+
+122
+00:10:36.680 --> 00:10:37.040
+done.
+
+123
+00:10:37.250 --> 00:10:42.590
+We just need to use a dot product to compute the match between the first input vector sequence and the
+
+124
+00:10:42.590 --> 00:10:45.530
+query just like that in the paper to do this.
+
+125
+00:10:45.560 --> 00:10:51.880
+I will create a variable called Match and use that dot function that we imported and then as a list
+
+126
+00:10:51.910 --> 00:10:56.320
+you pass and the two things that you want to compute the match for or take the product up.
+
+127
+00:10:56.410 --> 00:11:05.290
+In this case it's going to be input encoded M comma and then the actual question encoding so same question
+
+128
+00:11:06.100 --> 00:11:11.310
+encoded and then will specify axis is two by two
+
+129
+00:11:14.110 --> 00:11:24.170
+and then we'll call an activation function on this Max or match object by simply saying soft Max for
+
+130
+00:11:24.170 --> 00:11:26.290
+that match object.
+
+131
+00:11:26.520 --> 00:11:27.230
+Okay.
+
+132
+00:11:27.440 --> 00:11:32.060
+So there we have our DOT PRODUCT compute the match between the first input vector sequence and the query
+
+133
+00:11:32.510 --> 00:11:37.860
+and then we want to do is want to add this match matrix with the second input vector sequence.
+
+134
+00:11:38.090 --> 00:11:46.770
+So the response is an equal to add we take that current match and then we just like that in the papers
+
+135
+00:11:46.770 --> 00:11:58.970
+they add it to input encoded C and then the response we call that mute layer and you can check out essentially
+
+136
+00:11:58.970 --> 00:12:02.450
+is going to permit the dimensions the input according to the given pattern.
+
+137
+00:12:02.450 --> 00:12:09.540
+So the dimensions we're in passing is 2 by 1 and then we're going to pass in response they're essentially
+
+138
+00:12:09.540 --> 00:12:16.050
+just converting it to have an output of samples by query max length by story max length so once we have
+
+139
+00:12:16.050 --> 00:12:22.200
+our response we can concatenate the match matrix with the question vector sequence so we'll say our
+
+140
+00:12:22.200 --> 00:12:32.970
+answer is equal to concatenate that response with the question encoded and to check this you should
+
+141
+00:12:32.970 --> 00:12:39.510
+see an answer which is in the background they tensor full of tensor and you should see it.
+
+142
+00:12:39.510 --> 00:12:43.310
+Here have a shape of question mark question mark because they don't know the batch size yet.
+
+143
+00:12:43.500 --> 00:12:45.400
+And then six by 220.
+
+144
+00:12:45.480 --> 00:12:48.510
+So if you're getting a result that looks like this you did everything correctly.
+
+145
+00:12:48.540 --> 00:12:52.360
+If you get something that looks slightly different specifically differ on the shape.
+
+146
+00:12:52.360 --> 00:12:53.680
+That's probably most important part.
+
+147
+00:12:53.850 --> 00:12:58.530
+Then you possibly made a typo somewhere and I would highly encourage you to run through our notebook
+
+148
+00:12:58.620 --> 00:13:00.850
+download our notebook file directly and just run that.
+
+149
+00:13:00.960 --> 00:13:05.210
+There's lots of opportunity here to make simple typos especially with some of these variables that are
+
+150
+00:13:05.220 --> 00:13:08.070
+look quite similar like encoder versus encoded.
+
+151
+00:13:08.190 --> 00:13:12.810
+So if you ever get any typo or warnings along the way make sure you run our notebook in the provided
+
+152
+00:13:12.810 --> 00:13:13.470
+environment.
+
+153
+00:13:14.430 --> 00:13:20.130
+OK so now we have our answer tensor and then we're just going to reduce it with a recurrent neural network
+
+154
+00:13:20.160 --> 00:13:23.480
+and we're specifically going to choose an Alice tablet for this.
+
+155
+00:13:23.580 --> 00:13:32.880
+So you'll say answer is equal to Elysium 30 to pass in the answer and we're going to perform one more
+
+156
+00:13:32.880 --> 00:13:35.720
+series of regularization with drop out.
+
+157
+00:13:35.820 --> 00:13:42.860
+So answer taking a dropout layer you can choose any value here between zero and zero point five on the
+
+158
+00:13:42.900 --> 00:13:44.940
+train a little slower so I'll choose zero point five.
+
+159
+00:13:44.970 --> 00:13:47.570
+Try to regularize a little harder on this.
+
+160
+00:13:47.580 --> 00:13:51.040
+Make sure to over fit.
+
+161
+00:13:51.160 --> 00:13:59.950
+And then finally we have our dense output layer for the vocab size and we pass on our answer.
+
+162
+00:14:00.020 --> 00:14:04.760
+So this is essentially output something that's in the form of samples by the vocab size where we should
+
+163
+00:14:04.760 --> 00:14:09.860
+only see a marking for yes or no where everything else is just going to be a bunch of zeros just as
+
+164
+00:14:09.860 --> 00:14:14.120
+we did we victimized the answers.
+
+165
+00:14:14.190 --> 00:14:14.450
+All right.
+
+166
+00:14:15.350 --> 00:14:21.170
+So what we need to do is then output a probability distribution over the vocabulary because we'll essentially
+
+167
+00:14:21.170 --> 00:14:25.430
+see a bunch of zeros except some probability on yes and some probability I know we'll pass it in through
+
+168
+00:14:25.430 --> 00:14:37.780
+a soft Max in order to turn it into a 0 or 1 so say answer is equal to activation soft Max passing the
+
+169
+00:14:37.780 --> 00:14:40.640
+answer and then finally we can build the final model.
+
+170
+00:14:40.690 --> 00:14:46.820
+So same model is equal to model it's going to take in that input sequence.
+
+171
+00:14:46.850 --> 00:14:51.790
+Remember these are the inputs placeholders that we defined before that it's going to take in that question.
+
+172
+00:14:51.800 --> 00:14:57.010
+And then finally it's going to take the answer and this answer is what links together all the encoders
+
+173
+00:14:57.020 --> 00:15:03.060
+the encoder C encoder M and the question encoder and that's how we link our model to those and coatings.
+
+174
+00:15:03.080 --> 00:15:06.740
+So we have our model here and now it's time to compile our model.
+
+175
+00:15:07.040 --> 00:15:15.680
+We will say a model that compile the optimizer we will use optimizer is going to be Armas prop
+
+176
+00:15:18.690 --> 00:15:27.400
+the loss we're going to use is categorical cross entropy since technically we're we're doing this across
+
+177
+00:15:27.400 --> 00:15:33.100
+the entire vocabulary we should expect only yes as it knows across the answer but instead of doing a
+
+178
+00:15:33.460 --> 00:15:39.670
+binary category across entropy we technically have a larger vocab size in that but the answer is we
+
+179
+00:15:39.670 --> 00:15:42.430
+should expect to only see high probabilities on yes or no.
+
+180
+00:15:42.880 --> 00:15:48.460
+Technically the way we're treating this it is possible for the network to output the answer as like
+
+181
+00:15:48.520 --> 00:15:56.370
+Sandra or journey but since there are no training results with that other vocab words as the answers
+
+182
+00:15:56.380 --> 00:16:00.490
+we shouldn't expect to see that we should really only expect see probabilities on yes or no.
+
+183
+00:16:00.490 --> 00:16:05.620
+If you are getting results of expected probabilities of another word in the vocabulary then I would
+
+184
+00:16:05.620 --> 00:16:09.200
+definitely look back and make sure you train the network correctly like we did.
+
+185
+00:16:09.610 --> 00:16:15.090
+All right so we have model compile and lessening what to do is choose our metrics and the metrics reduced
+
+186
+00:16:15.080 --> 00:16:22.990
+and shoes here is accuracy so run that and then you should be able to call a summary of your model and
+
+187
+00:16:23.020 --> 00:16:24.220
+it's definitely complicated.
+
+188
+00:16:24.220 --> 00:16:28.660
+Just like it wasn't a paper they should see something that looks like this with the same number of total
+
+189
+00:16:28.660 --> 00:16:34.290
+parameters and training parameters and then all you need to do is train and fit our model.
+
+190
+00:16:34.660 --> 00:16:39.820
+So coming up in part 4 we're going to train the model evaluate the model evaluate it on the given test
+
+191
+00:16:39.820 --> 00:16:43.570
+set as well as write our own stories and questions and see how it can perform.
+
+192
+00:16:43.600 --> 00:16:47.650
+So pretty exciting stuff coming up next we'll go ahead and continue on in the next lecture.
+
+193
+00:16:47.650 --> 00:16:48.540
+I'll see you there.
+

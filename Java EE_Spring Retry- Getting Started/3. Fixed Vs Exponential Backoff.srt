@@ -1,0 +1,184 @@
+1
+00:00:00,968 --> 00:00:06,323
+A fixed back off policy can be problematic in large microservice environments.
+
+2
+00:00:06,323 --> 00:00:09,749
+Let's look at an example to illustrate the problem.
+
+3
+00:00:09,749 --> 00:00:12,439
+Let's assume we have a large number of Bass Tracker Services,
+
+4
+00:00:12,439 --> 00:00:18,410
+and each is configured with a 1000 ms fixed back off policy.
+
+5
+00:00:18,410 --> 00:00:21,439
+They all make a create request to the Lake Profile
+
+6
+00:00:21,439 --> 00:00:24,437
+Service at exactly the same time.
+
+7
+00:00:24,437 --> 00:00:27,832
+The Lake Profile Service is already struggling under heavy load,
+
+8
+00:00:27,832 --> 00:00:32,148
+so this causes it to reject requests temporarily.
+
+9
+00:00:32,148 --> 00:00:35,220
+The Bass Tracker Services all back off for 1000 ms,
+
+10
+00:00:35,220 --> 00:00:40,009
+then they attempt the request again at the same time,
+
+11
+00:00:40,009 --> 00:00:42,524
+which again overwhelms the Lake Profile Service,
+
+12
+00:00:42,524 --> 00:00:45,556
+causing it to reject requests.
+
+13
+00:00:45,556 --> 00:00:49,124
+The Bass Tracker Services all back off for another 1000 ms,
+
+14
+00:00:49,124 --> 00:00:53,339
+then they attempt the request again at the same time,
+
+15
+00:00:53,339 --> 00:00:56,111
+which again overwhelms the Lake Profile Service,
+
+16
+00:00:56,111 --> 00:00:58,273
+causing it to reject requests.
+
+17
+00:00:58,273 --> 00:01:01,308
+Can you see the pattern in the problem here?
+
+18
+00:01:01,308 --> 00:01:04,504
+Now let's look at the exponential back off approach.
+
+19
+00:01:04,504 --> 00:01:07,598
+There are two properties that control exponential back off called
+
+20
+00:01:07,598 --> 00:01:11,029
+initial backoff interval and backoff multiplier.
+
+21
+00:01:11,029 --> 00:01:13,822
+Initial backoff interval is the baseline back off period.
+
+22
+00:01:13,822 --> 00:01:17,644
+Spring Retry will back off the first time for this period.
+
+23
+00:01:17,644 --> 00:01:21,758
+Backoff multiplier is the multiplier value that will be used to calculate the
+
+24
+00:01:21,758 --> 00:01:24,910
+next back off period from the initial back off interval.
+
+25
+00:01:24,910 --> 00:01:30,377
+We can set these properties any number of ways to achieve exponential back off.
+
+26
+00:01:30,377 --> 00:01:31,698
+However, for simplicity's sake,
+
+27
+00:01:31,698 --> 00:01:34,412
+we're going to keep initial backoff interval constant at
+
+28
+00:01:34,412 --> 00:01:37,310
+500 ms across all Bass Tracker Services.
+
+29
+00:01:37,310 --> 00:01:42,888
+Then we will set the backoff multiplier uniquely for each service.
+
+30
+00:01:42,888 --> 00:01:44,186
+Let's see how it works.
+
+31
+00:01:44,186 --> 00:01:46,567
+They all make a create request to the Lake Profile
+
+32
+00:01:46,567 --> 00:01:48,958
+Service at exactly the same time.
+
+33
+00:01:48,958 --> 00:01:52,079
+The Lake Profile Service is already struggling under heavy load,
+
+34
+00:01:52,079 --> 00:01:56,691
+so this causes it to reject requests temporarily.
+
+35
+00:01:56,691 --> 00:02:01,378
+The Bass Tracker Services all back off for 500 ms the first time.
+
+36
+00:02:01,378 --> 00:02:04,222
+Then they attempt the request again at the same time,
+
+37
+00:02:04,222 --> 00:02:07,069
+which again overwhelms the Lake Profile Service,
+
+38
+00:02:07,069 --> 00:02:09,598
+causing it to reject requests.
+
+39
+00:02:09,598 --> 00:02:13,158
+Now we see the magic of exponential back off.
+
+40
+00:02:13,158 --> 00:02:16,296
+The back off periods are calculated by multiplying the initial
+
+41
+00:02:16,296 --> 00:02:18,635
+backoff interval and the backoff multiplier,
+
+42
+00:02:18,635 --> 00:02:23,201
+which gives a unique back off period to each service.
+
+43
+00:02:23,201 --> 00:02:25,498
+When it comes time to retry the request,
+
+44
+00:02:25,498 --> 00:02:28,931
+rather than clobbering the Lake Profile Service at the same time,
+
+45
+00:02:28,931 --> 00:02:30,412
+the requests are interleaved,
+
+46
+00:02:30,412 --> 00:02:39,000
+which preserves the Lake Profile Service's bandwidth and allows each request to complete successfully.
+

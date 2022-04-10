@@ -1,0 +1,516 @@
+1
+00:00:08,252 --> 00:00:11,500
+That was a spin through the data model,
+
+2
+00:00:11,500 --> 00:00:15,635
+but now we're going to get into one of the parts that I think
+
+3
+00:00:15,635 --> 00:00:17,893
+might be new to more folks in the room.
+
+4
+00:00:17,893 --> 00:00:24,336
+Who here today deploys code like on AWS?
+
+5
+00:00:24,336 --> 00:00:24,978
+I try.
+
+6
+00:00:24,978 --> 00:00:28,849
+You tried a little bit.
+
+7
+00:00:28,849 --> 00:00:31,945
+That's okay, totally fine.
+
+8
+00:00:31,945 --> 00:00:37,550
+So the --- so what we're going to go over here is a stack that we can
+
+9
+00:00:37,550 --> 00:00:44,293
+use in AWS using a few of their more popular product offerings to
+
+10
+00:00:44,293 --> 00:00:47,303
+stand up this application in production.
+
+11
+00:00:47,303 --> 00:00:50,814
+Now this is definitely a piddly process.
+
+12
+00:00:50,814 --> 00:00:55,669
+The reason why I think not too many people have deployed code into
+
+13
+00:00:55,669 --> 00:00:58,730
+production on Amazon is because it's kind of a pain in the butt.
+
+14
+00:00:58,730 --> 00:01:01,255
+There are a lot of different things you have to learn.
+
+15
+00:01:01,255 --> 00:01:03,644
+There's a lot of steps that you can screw up.
+
+16
+00:01:03,644 --> 00:01:07,553
+There's security groups and IM users and
+
+17
+00:01:07,553 --> 00:01:10,032
+configurations and command line interfaces,
+
+18
+00:01:10,032 --> 00:01:14,456
+and there's a hundred different ways you could screw it up.
+
+19
+00:01:14,456 --> 00:01:20,174
+So what we're going to do is go through one pipeline to get a Node.
+
+20
+00:01:20,174 --> 00:01:26,498
+js app deployed on AWS using a combination of Elastic Beanstalk,
+
+21
+00:01:26,498 --> 00:01:32,125
+which is essentially managed Amazon EC2 instances,
+
+22
+00:01:32,125 --> 00:01:37,300
+and they're talking to an RDS database on the backend and that
+
+23
+00:01:37,300 --> 00:01:42,550
+are part of an Auto Scaling group that we can configure to add
+
+24
+00:01:42,550 --> 00:01:45,875
+more instances to our application, if necessary,
+
+25
+00:01:45,875 --> 00:01:49,878
+to handle bursts in traffic and can scale down
+
+26
+00:01:49,878 --> 00:01:51,851
+based on our requirements as well.
+
+27
+00:01:51,851 --> 00:01:54,557
+So we'll talk a little bit about the production environment
+
+28
+00:01:54,557 --> 00:01:56,991
+that we're going to create at a high level,
+
+29
+00:01:56,991 --> 00:01:58,806
+talk about some AWS terms,
+
+30
+00:01:58,806 --> 00:02:02,909
+and then what we're actually going to do is step through
+
+31
+00:02:02,909 --> 00:02:08,533
+the provisioning of a new environment, which is going to take a while,
+
+32
+00:02:08,533 --> 00:02:14,328
+so we'll kind of do it together over the course the exercise.
+
+33
+00:02:14,328 --> 00:02:16,879
+Hopefully with the magic of television we can cut this up a little bit
+
+34
+00:02:16,879 --> 00:02:21,073
+later because each step does tend to take a little while.
+
+35
+00:02:21,073 --> 00:02:25,642
+But we --- the goal is for everybody to get the current running version of
+
+36
+00:02:25,642 --> 00:02:30,482
+their application deployed onto their own personal AWS account.
+
+37
+00:02:30,482 --> 00:02:35,960
+That is the desired end state for today, okay.
+
+38
+00:02:35,960 --> 00:02:37,984
+Alright, let's do this thing.
+
+39
+00:02:37,984 --> 00:02:38,389
+So,
+
+40
+00:02:38,389 --> 00:02:42,165
+first we'll kind of talk about the stack that we're
+
+41
+00:02:42,165 --> 00:02:44,364
+choosing and kind of where it sits.
+
+42
+00:02:44,364 --> 00:02:48,734
+Like on the spectrum of possible production deployment
+
+43
+00:02:48,734 --> 00:02:50,954
+environments for your web application code,
+
+44
+00:02:50,954 --> 00:02:55,159
+there's kind of two ends of the spectrum that you might be familiar with.
+
+45
+00:02:55,159 --> 00:02:57,947
+Like there's stuff that is completely 100% managed,
+
+46
+00:02:57,947 --> 00:03:02,322
+and you're really only interacting with it via API,
+
+47
+00:03:02,322 --> 00:03:08,637
+things like Firebase, which you see on the far right of the screen.
+
+48
+00:03:08,637 --> 00:03:14,928
+Firebase is you use an SDK to sync data to their backend,
+
+49
+00:03:14,928 --> 00:03:17,327
+and you don't actually manage any infrastructure at all.
+
+50
+00:03:17,327 --> 00:03:22,111
+You're just using their backend as a service.
+
+51
+00:03:22,111 --> 00:03:25,260
+There have been other things like Parse and Kinvay and lots of other
+
+52
+00:03:25,260 --> 00:03:29,609
+vendors in this space that have tried to like remove the need for a
+
+53
+00:03:29,609 --> 00:03:31,803
+backend in your application at all.
+
+54
+00:03:31,803 --> 00:03:37,520
+On the other extreme, there is virtual hardware that you manage yourself,
+
+55
+00:03:37,520 --> 00:03:40,728
+like DigitalOcean, virtual private servers,
+
+56
+00:03:40,728 --> 00:03:43,588
+or Amazon EC2 instances,
+
+57
+00:03:43,588 --> 00:03:48,761
+which are servers that you configure and deploy code to and SSH into
+
+58
+00:03:48,761 --> 00:03:52,885
+as if you are managing a fleet of physical servers.
+
+59
+00:03:52,885 --> 00:03:57,255
+Sort of more towards the middle is something like Heroku where
+
+60
+00:03:57,255 --> 00:03:59,440
+you are running an actual web application,
+
+61
+00:03:59,440 --> 00:04:02,496
+but it's on a fully managed stack,
+
+62
+00:04:02,496 --> 00:04:07,554
+like you can't SSH into the server which is running your code.
+
+63
+00:04:07,554 --> 00:04:11,298
+And the way that your code is run is actually completely abstracted to you.
+
+64
+00:04:11,298 --> 00:04:16,576
+You say Heroku, here's my application, run it for me,
+
+65
+00:04:16,576 --> 00:04:19,412
+and that works out really well.
+
+66
+00:04:19,412 --> 00:04:23,169
+And then kind of in between is this guy,
+
+67
+00:04:23,169 --> 00:04:26,488
+this weirdo called Amazon Elastic Beanstalk,
+
+68
+00:04:26,488 --> 00:04:31,475
+and this sort of the Amazon answer to Heroku,
+
+69
+00:04:31,475 --> 00:04:36,675
+but it's much closer to like managed infrastructure on your
+
+70
+00:04:36,675 --> 00:04:42,416
+end than it is to Heroku where there's sort of a veil of
+
+71
+00:04:42,416 --> 00:04:45,141
+secrecy which you can never penetrate.
+
+72
+00:04:45,141 --> 00:04:45,422
+So,
+
+73
+00:04:45,422 --> 00:04:47,388
+the environment for this application that we're
+
+74
+00:04:47,388 --> 00:04:49,813
+going to try out is a combination,
+
+75
+00:04:49,813 --> 00:04:54,991
+or the two key technologies are Elastic Beanstalk and Amazon RDS,
+
+76
+00:04:54,991 --> 00:04:57,266
+or Relational Database Service.
+
+77
+00:04:57,266 --> 00:04:57,725
+So,
+
+78
+00:04:57,725 --> 00:05:01,401
+Elastic Beanstalk is interesting in that it's more
+
+79
+00:05:01,401 --> 00:05:04,068
+configurable than most other platforms as a service.
+
+80
+00:05:04,068 --> 00:05:06,275
+Like at the end of the day,
+
+81
+00:05:06,275 --> 00:05:09,287
+even though you're using Elastic Beanstalk to configure it,
+
+82
+00:05:09,287 --> 00:05:16,402
+you're just running EC2 instances that you can SSH into that are just like
+
+83
+00:05:16,402 --> 00:05:19,912
+Linux servers that are ultimately under your control.
+
+84
+00:05:19,912 --> 00:05:22,482
+There's some management software that is running on them,
+
+85
+00:05:22,482 --> 00:05:28,858
+and the way that you interact with them can be a little wonky sometimes.
+
+86
+00:05:28,858 --> 00:05:32,998
+But ultimately you have a lot more control over the actual hardware that your
+
+87
+00:05:32,998 --> 00:05:37,066
+code is running on than you would in something like Heroku.
+
+88
+00:05:37,066 --> 00:05:37,305
+Also,
+
+89
+00:05:37,305 --> 00:05:39,928
+because it's part of like the Amazon ecosystem and you can
+
+90
+00:05:39,928 --> 00:05:43,455
+manage it through the administrative interface,
+
+91
+00:05:43,455 --> 00:05:49,595
+it's easier to make Elastic Beanstalk play with other Amazon resources.
+
+92
+00:05:49,595 --> 00:05:53,578
+And I finger quote easy because if you've ever been in the
+
+93
+00:05:53,578 --> 00:05:55,274
+Amazon administrative interface before,
+
+94
+00:05:55,274 --> 00:05:59,367
+you will realize that nothing is eve easy ever.
+
+95
+00:05:59,367 --> 00:06:05,566
+But if once you do figure it out, like it is actually pretty cool sometimes,
+
+96
+00:06:05,566 --> 00:06:11,846
+like the way that you can set up DNS with Route 53 and use S3
+
+97
+00:06:11,846 --> 00:06:13,956
+buckets and CloudFront for your static assets,
+
+98
+00:06:13,956 --> 00:06:17,023
+like there's lots of cool stuff that you can do,
+
+99
+00:06:17,023 --> 00:06:19,195
+but the learning curve is incredibly high.
+
+100
+00:06:19,195 --> 00:06:21,831
+And RDS is a pretty good service.
+
+101
+00:06:21,831 --> 00:06:24,844
+It's a performant way to run your database.
+
+102
+00:06:24,844 --> 00:06:26,662
+It's obviously highly available,
+
+103
+00:06:26,662 --> 00:06:30,168
+and it has managed software updates and snapshots,
+
+104
+00:06:30,168 --> 00:06:34,472
+so a lot of the questions about reliability of your database
+
+105
+00:06:34,472 --> 00:06:38,076
+kind of go away by using this managed service,
+
+106
+00:06:38,076 --> 00:06:41,034
+which has been working out pretty well.
+
+107
+00:06:41,034 --> 00:06:41,473
+So,
+
+108
+00:06:41,473 --> 00:06:48,244
+this is kind of the topology of the solution that we're going to create today.
+
+109
+00:06:48,244 --> 00:06:48,574
+So,
+
+110
+00:06:48,574 --> 00:06:52,204
+the key technologies in the Amazon world that we're going to
+
+111
+00:06:52,204 --> 00:06:56,465
+be employing are an Elastic Load Balancer,
+
+112
+00:06:56,465 --> 00:06:59,377
+an Elastic Beanstalk environment,
+
+113
+00:06:59,377 --> 00:07:06,009
+which provisions Amazon EC2 instances within what's
+
+114
+00:07:06,009 --> 00:07:08,342
+called an Auto Scaling group.
+
+115
+00:07:08,342 --> 00:07:12,441
+So, we can define rules that say like alright,
+
+116
+00:07:12,441 --> 00:07:17,870
+once our --- the instances in our application are at like 60% usage of CPU,
+
+117
+00:07:17,870 --> 00:07:21,707
+that's the time to spin up another instance of the application.
+
+118
+00:07:21,707 --> 00:07:22,207
+So,
+
+119
+00:07:22,207 --> 00:07:26,704
+the Elastic Load Balancer is what will accept incoming
+
+120
+00:07:26,704 --> 00:07:29,764
+HTTP traffic from the outside world,
+
+121
+00:07:29,764 --> 00:07:34,746
+and then the Elastic Load Balancer will delegate those HTTP
+
+122
+00:07:34,746 --> 00:07:38,681
+requests to instances within our Auto Scaling group,
+
+123
+00:07:38,681 --> 00:07:42,841
+which again is managed by Elastic Beanstalk.
+
+124
+00:07:42,841 --> 00:07:48,508
+And then all of our EC2 instances are talking to an RDS instance
+
+125
+00:07:48,508 --> 00:07:51,960
+that we also create within our Amazon account.
+
+126
+00:07:51,960 --> 00:07:54,545
+So again, at a high level,
+
+127
+00:07:54,545 --> 00:08:00,753
+Elastic Load Balancer is shunting off HTTP traffic to all the
+
+128
+00:08:00,753 --> 00:08:04,195
+different EC2 instances within our Auto Scaling group,
+
+129
+00:08:04,195 --> 00:08:13,000
+all of which are communicating with an RDS instance on the backend. So, that's what we're trying to create, at least at a very high level.
+

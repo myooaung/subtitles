@@ -1,0 +1,296 @@
+1
+00:00:01,040 --> 00:00:04,690
+Throughput capacity in DynamoDB is the key measure
+
+2
+00:00:04,690 --> 00:00:07,040
+for how your tables will perform.
+
+3
+00:00:07,040 --> 00:00:09,570
+There aren't really any other attributes in the
+
+4
+00:00:09,570 --> 00:00:14,390
+table that you need to configure, but throughput isn't exactly that simple.
+
+5
+00:00:14,390 --> 00:00:15,550
+At its most basic,
+
+6
+00:00:15,550 --> 00:00:18,360
+it can be defined as the number of records you're
+
+7
+00:00:18,360 --> 00:00:21,240
+allowed to read or write per second,
+
+8
+00:00:21,240 --> 00:00:25,500
+up to 4 kilobytes for reading and 1 kilobyte for writing.
+
+9
+00:00:25,500 --> 00:00:29,870
+But there are so many caveats and details to that description
+
+10
+00:00:29,870 --> 00:00:32,960
+that it sometimes needs a full video to explain,
+
+11
+00:00:32,960 --> 00:00:34,780
+which is why we're here.
+
+12
+00:00:34,780 --> 00:00:38,700
+So let's talk through some scenarios to better understand how
+
+13
+00:00:38,700 --> 00:00:41,840
+this provisioned throughput thing works.
+
+14
+00:00:41,840 --> 00:00:45,790
+We'll start with a simple table of hamsters, like the one will set up
+
+15
+00:00:45,790 --> 00:00:50,620
+later in this module. We'll configure this table with 5 units of
+
+16
+00:00:50,620 --> 00:00:53,340
+provisioned throughput for reading and writing.
+
+17
+00:00:53,340 --> 00:00:57,500
+Now let's say we have six hamster records locally that
+
+18
+00:00:57,500 --> 00:00:59,720
+we're going to populate the table with.
+
+19
+00:00:59,720 --> 00:01:01,930
+If we do a batch write call,
+
+20
+00:01:01,930 --> 00:01:05,940
+it will essentially try and write all six records at once.
+
+21
+00:01:05,940 --> 00:01:08,670
+There are a couple of considerations here, how
+
+22
+00:01:08,670 --> 00:01:10,900
+large are the records? In our case,
+
+23
+00:01:10,900 --> 00:01:14,890
+they are only a few properties with not much text and come in at
+
+24
+00:01:14,890 --> 00:01:19,310
+under 100 bytes each. Dynamo will round up each,
+
+25
+00:01:19,310 --> 00:01:22,280
+write to 1 kilobyte if it's under,
+
+26
+00:01:22,280 --> 00:01:27,040
+so each write will consume 1 unit of provisioned throughput.
+
+27
+00:01:27,040 --> 00:01:30,660
+But wait, that means we'll be writing 6 units at once,
+
+28
+00:01:30,660 --> 00:01:35,240
+which exceeds our 5 provisioned units for writing.
+
+29
+00:01:35,240 --> 00:01:35,340
+Well.
+
+30
+00:01:35,340 --> 00:01:38,110
+In this case, you will have one of two things happen,
+
+31
+00:01:38,110 --> 00:01:42,930
+and you won't be able to really guarantee which will happen. Either the sixth
+
+32
+00:01:42,930 --> 00:01:49,300
+write will return a provisioned throughput exceeded exception or burst capacity
+
+33
+00:01:49,300 --> 00:01:52,170
+will be consumed and the write will go through.
+
+34
+00:01:52,170 --> 00:01:57,260
+AWS documentation says that burst capacity will be used when it can,
+
+35
+00:01:57,260 --> 00:02:02,450
+but there's no guarantee. This basically means if you occasionally exceed your
+
+36
+00:02:02,450 --> 00:02:07,610
+provisioned throughput, AWS may let the requests go through. Because we're
+
+37
+00:02:07,610 --> 00:02:14,550
+using the SDK, it actually already has built in code that retries if it gets a
+
+38
+00:02:14,550 --> 00:02:18,980
+provisioned throughput exceeded exception. So you'll likely rarely see that
+
+39
+00:02:18,980 --> 00:02:21,740
+error unless it's an extreme case.
+
+40
+00:02:21,740 --> 00:02:25,130
+Now let's look at reading the records once they've been populated.
+
+41
+00:02:25,130 --> 00:02:29,270
+Let's say you want to get all six records at once doing a scan.
+
+42
+00:02:29,270 --> 00:02:33,500
+There will be 6 reads that will happen within a second, and even though the
+
+43
+00:02:33,500 --> 00:02:37,940
+records are well below the 4 kilobytes reserved for each unit,
+
+44
+00:02:37,940 --> 00:02:40,470
+each will consume a full unit.
+
+45
+00:02:40,470 --> 00:02:43,930
+It'll round up. Except they won't,
+
+46
+00:02:43,930 --> 00:02:48,470
+because by default the SDK does an eventually consistent read.
+
+47
+00:02:48,470 --> 00:02:53,740
+If you're doing eventually consistent reads, you get double the reads per unit.
+
+48
+00:02:53,740 --> 00:02:57,650
+So each unit will give you two reads instead of one read, which
+
+49
+00:02:57,650 --> 00:02:59,920
+if you were doing a strongly consistent read,
+
+50
+00:02:59,920 --> 00:03:03,180
+you would only get one read out of that unit.
+
+51
+00:03:03,180 --> 00:03:07,290
+The consistency here relates to AWS replicating your data
+
+52
+00:03:07,290 --> 00:03:10,040
+across availability zones in a region.
+
+53
+00:03:10,040 --> 00:03:12,690
+Eventual consistency will get you the record,
+
+54
+00:03:12,690 --> 00:03:16,340
+but it may not have very recent changes to it.
+
+55
+00:03:16,340 --> 00:03:19,610
+Strong consistency ensures that you get the newest
+
+56
+00:03:19,610 --> 00:03:21,710
+version of a record with any changes,
+
+57
+00:03:21,710 --> 00:03:26,580
+no matter how recent. So, back to our hamsters, our scan of 6 items with
+
+58
+00:03:26,580 --> 00:03:31,830
+eventual consistency will actually only consume 3 read units,
+
+59
+00:03:31,830 --> 00:03:35,760
+which is quite convenient. Now we'll just run through another quick example.
+
+60
+00:03:35,760 --> 00:03:38,970
+Let's assume we've got a table with some binary items.
+
+61
+00:03:38,970 --> 00:03:41,000
+They're about 20 KB each.
+
+62
+00:03:41,000 --> 00:03:44,030
+How many units would it consume to read one item?
+
+63
+00:03:44,030 --> 00:03:49,750
+Well, if we're doing eventually consistent reads, it would take 3 read units.
+
+64
+00:03:49,750 --> 00:03:54,340
+Each unit in this consistency will hold up to 8 KB.
+
+65
+00:03:54,340 --> 00:04:01,940
+A 20 KB item will technically use 2.5 units, but AWS rounds up, so we've got 3.
+
+66
+00:04:01,940 --> 00:04:06,660
+What about if we wanted to read it with strong consistency? Now it would take
+
+67
+00:04:06,660 --> 00:04:11,940
+exactly 5 because each unit would only account for 4 KB.
+
+68
+00:04:11,940 --> 00:04:15,540
+Let's look at writing then, how many write units would it consume?
+
+69
+00:04:15,540 --> 00:04:18,540
+Unfortunately, there's no consistency discount for writing,
+
+70
+00:04:18,540 --> 00:04:23,410
+so a 20 KB item would consume 20 write units.
+
+71
+00:04:23,410 --> 00:04:26,140
+That's a lot more than reading for sure.
+
+72
+00:04:26,140 --> 00:04:26,560
+Hopefully,
+
+73
+00:04:26,560 --> 00:04:29,170
+those two examples have given you an idea of how
+
+74
+00:04:29,170 --> 00:04:37,000
+throughput is calculated in DynamoDB. In the next clip, we're going to talk about Dynamo keys and indexes.
+

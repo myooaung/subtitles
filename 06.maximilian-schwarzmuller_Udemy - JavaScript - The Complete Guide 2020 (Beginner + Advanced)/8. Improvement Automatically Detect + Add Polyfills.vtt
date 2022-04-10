@@ -1,0 +1,572 @@
+WEBVTT
+1
+00:00:02.280 --> 00:00:08.670
+We have this great tool, Babel loader combined with Babel preset-env which takes our browser instructions
+
+2
+00:00:08.670 --> 00:00:15.840
+here and then gives us code that just the works in these old browsers or almost, together with feature
+
+3
+00:00:15.840 --> 00:00:21.180
+detection it might work there because we're not even trying to get the clipboard API and therefore execute
+
+4
+00:00:21.180 --> 00:00:22.080
+this promise
+
+5
+00:00:22.230 --> 00:00:28.650
+if the browser doesn't support it but if we had other code that also relies on promises that can't
+
+6
+00:00:28.650 --> 00:00:34.830
+be compiled to older code by Babel, we would have code that works in older browsers from the core syntax
+
+7
+00:00:34.830 --> 00:00:41.220
+perspective but doesn't really work because we still use other features like promises that aren't supported
+
+8
+00:00:41.220 --> 00:00:47.460
+in the older browsers, so we might need to add a polyfill here into our code so that we have the best
+
+9
+00:00:47.460 --> 00:00:54.750
+of both worlds, feature detection, transpiled code and polyfills for features that we need.
+
+10
+00:00:54.960 --> 00:01:01.440
+Now of course if we know we worked with promises, we can search for promise polyfill, follow the installation
+
+11
+00:01:01.440 --> 00:01:05.970
+instructions here and add it to our project and that would be absolutely fine
+
+12
+00:01:05.970 --> 00:01:11.400
+but if we have a project that's getting bigger and bigger, it can be cumbersome to manually manage all
+
+13
+00:01:11.400 --> 00:01:15.420
+these polyfills, to find out which polyfills we need,
+
+14
+00:01:15.420 --> 00:01:16.730
+you have to check everything,
+
+15
+00:01:16.770 --> 00:01:21.870
+that's annoying because after all the advantage with Babel is that we don't have to think about modern
+
+16
+00:01:21.870 --> 00:01:22.950
+Javascript syntax,
+
+17
+00:01:22.950 --> 00:01:28.800
+we can just write it and rely on Babel to compile it, would be nice if the same would happen for
+
+18
+00:01:28.800 --> 00:01:29.870
+polyfills.
+
+19
+00:01:30.000 --> 00:01:36.720
+If Babel sees that we use a promise, it would be nice if it would just include a polyfill for that
+
+20
+00:01:36.870 --> 00:01:38.720
+so that we don't have to do it
+
+21
+00:01:38.940 --> 00:01:43.440
+and the good thing is Babel is capable of doing that. Under the hood,
+
+22
+00:01:43.440 --> 00:01:48.650
+it relies on a package named core-js, if you google for that, you will find that github library and
+
+23
+00:01:48.660 --> 00:01:54.810
+in the end core-js is like a collection of polyfills you could say, it's a huge package with a bunch of
+
+24
+00:01:54.870 --> 00:01:56.940
+built-in polyfills.
+
+25
+00:01:57.150 --> 00:02:03.390
+If you dive into the repository there, you see you've got a bunch of subpackages there, bunch of code
+
+26
+00:02:03.390 --> 00:02:04.210
+in there.
+
+27
+00:02:04.510 --> 00:02:05.490
+Now that's nice,
+
+28
+00:02:05.490 --> 00:02:11.640
+you can import core-js and suddenly you have access to all the Javascript features of the world in
+
+29
+00:02:11.700 --> 00:02:12.720
+all browsers
+
+30
+00:02:12.720 --> 00:02:20.970
+so to say. The problem is you could do that, you could import or install core-js with npm for example
+
+31
+00:02:20.970 --> 00:02:27.690
+and just import it at the top of your file but then you would really add everything, even features you
+
+32
+00:02:27.690 --> 00:02:28.770
+don't need.
+
+33
+00:02:28.770 --> 00:02:31.440
+So let's do that first and see how we can then improve that,
+
+34
+00:02:31.470 --> 00:02:38.070
+let's install it with npm install --save, now not save-dev but save because it will be a third
+
+35
+00:02:38.070 --> 00:02:38.880
+party library
+
+36
+00:02:38.880 --> 00:02:43.320
+that's part of our final code and not just some development tool,
+
+37
+00:02:43.470 --> 00:02:45.820
+core-js, that's the name of the library.
+
+38
+00:02:46.020 --> 00:02:47.160
+Let's install that
+
+39
+00:02:51.730 --> 00:02:57.640
+and now let's add it at top of our app.js file simply by writing import core-js
+
+40
+00:02:57.740 --> 00:03:00.640
+like this.
+
+41
+00:03:02.310 --> 00:03:02.990
+This will work,
+
+42
+00:03:03.060 --> 00:03:06.440
+webpack will be able to handle this but we'll have a problem there.
+
+43
+00:03:06.450 --> 00:03:16.570
+Let's run npm run build: dev to start our development server again. If we do that and we reload our
+
+44
+00:03:16.570 --> 00:03:17.060
+page,
+
+45
+00:03:17.080 --> 00:03:18.070
+it works
+
+46
+00:03:18.070 --> 00:03:24.000
+but if we go to the network tab, we will see that we have a huge app.js file,
+
+47
+00:03:24.160 --> 00:03:26.560
+it has 2.4mb.
+
+48
+00:03:26.590 --> 00:03:31.530
+Now it's also that big because it's not optimized at all and it has a lot of debugging instructions
+
+49
+00:03:31.540 --> 00:03:33.880
+but still that is huge.
+
+50
+00:03:33.880 --> 00:03:34.950
+Let's see how big it is
+
+51
+00:03:34.950 --> 00:03:36.320
+if we remove this import,
+
+52
+00:03:36.370 --> 00:03:37.640
+so let's come in and out,
+
+53
+00:03:37.650 --> 00:03:38.230
+save that,
+
+54
+00:03:38.230 --> 00:03:39.490
+it automatically rebuilds
+
+55
+00:03:39.760 --> 00:03:44.310
+and now you see it's just 900kb. It is still pretty big for this small of an app
+
+56
+00:03:44.320 --> 00:03:50.440
+but again that is because of all the development mode overhead code, in production it will be way smaller.
+
+57
+00:03:50.440 --> 00:03:56.610
+So already here we see it's only a third of the size as it is when we add core-js,
+
+58
+00:03:56.680 --> 00:04:02.440
+so simply throwing in core-js like this might not be that nice because we bloat our application just
+
+59
+00:04:02.440 --> 00:04:07.400
+to make promises work because it adds so many other features which we aren't even using here,
+
+60
+00:04:07.420 --> 00:04:09.900
+so we want to be a bit more careful.
+
+61
+00:04:09.910 --> 00:04:15.640
+Well we can use core-js also in a different way and import just what we need, for example core-js
+
+62
+00:04:15.640 --> 00:04:22.150
+features promise. If we tweak our import to just use the features part and there the promise part
+
+63
+00:04:22.150 --> 00:04:23.920
+of the package and we save that,
+
+64
+00:04:24.160 --> 00:04:28.870
+we see if we go back to our application, now it's still bigger than before,
+
+65
+00:04:28.870 --> 00:04:32.990
+bigger than the 900kb without the import but only a bit.
+
+66
+00:04:33.010 --> 00:04:37.930
+So really not that much and far away from the 2.4mb we saw before,
+
+67
+00:04:37.930 --> 00:04:42.120
+so this is better but we still have to manually manage what we use
+
+68
+00:04:42.390 --> 00:04:44.990
+and that's ultimately not what I want to do,
+
+69
+00:04:45.040 --> 00:04:49.030
+Babel should do that for me and therefore, I'll actually comment this out
+
+70
+00:04:49.150 --> 00:04:52.510
+and with core-js installed and you need to install it manually,
+
+71
+00:04:52.540 --> 00:04:53.250
+that's important
+
+72
+00:04:53.260 --> 00:05:00.760
+but with it installed, we can now go back to the webpack config here and tell Babel to actually use
+
+73
+00:05:00.850 --> 00:05:08.080
+that polyfill or do that auto polyfilling for us. For that here in presets, we need to tweak this and
+
+74
+00:05:08.080 --> 00:05:10.980
+actually wrap this preset in a nested array here,
+
+75
+00:05:11.020 --> 00:05:17.170
+so an array in an array because that allows us to add a second element to that inner array which is
+
+76
+00:05:17.170 --> 00:05:20.080
+a configuration object for this preset.
+
+77
+00:05:20.170 --> 00:05:28.900
+Now in this object here, we can configure this preset-env there, there is a use built-ins option.
+
+78
+00:05:28.900 --> 00:05:34.550
+Now this option is the option that allows us to control polyfilling behavior,
+
+79
+00:05:34.630 --> 00:05:39.780
+the default is false here which means no polyfills are added automatically.
+
+80
+00:05:39.820 --> 00:05:47.440
+Now we can set that to usage or to entry, with entry you manually need to add polyfill imports, very
+
+81
+00:05:47.440 --> 00:05:55.360
+generic imports like this general core-js import we had there earlier and Babel will then replace
+
+82
+00:05:55.360 --> 00:06:02.830
+it with the actual polyfills you need or you just use usage here and then Babel will add polyfill
+
+83
+00:06:02.830 --> 00:06:04.450
+entries as it detects it,
+
+84
+00:06:04.470 --> 00:06:09.640
+so it basically checks which features your code is using and then it will add imports for these feature
+
+85
+00:06:09.640 --> 00:06:11.620
+polyfills automatically.
+
+86
+00:06:11.620 --> 00:06:13.350
+So let's try usage here.
+
+87
+00:06:13.360 --> 00:06:18.640
+Now one note, you need one other package which you can install with npm install --save and that's
+
+88
+00:06:18.640 --> 00:06:27.310
+the regenerator runtime package here. So you can simply copy that name and then here, install this as
+
+89
+00:06:27.310 --> 00:06:27.600
+well.
+
+90
+00:06:27.610 --> 00:06:32.200
+This is simply another polyfill package handling some other features which core-js does not
+
+91
+00:06:32.200 --> 00:06:38.590
+handle which Babel also will try to utilize if it sees that it needs it. Now with that, we're not entirely
+
+92
+00:06:38.590 --> 00:06:43.780
+there though, at the moment you also need to add a core-js option here, might not be required in the
+
+93
+00:06:43.780 --> 00:06:49.660
+future but right now it is and that in turn takes an object as well where you set the version to three.
+
+94
+00:06:49.660 --> 00:06:54.670
+This basically tells Babel loader which version or Babel preset-env I should say, which version of
+
+95
+00:06:54.670 --> 00:06:59.820
+core-js you're using because there was a bigger change between version two and three and we're using version
+
+96
+00:06:59.830 --> 00:07:04.630
+three here, the latest version which is better and we need to tell Babel preset-env that we're doing
+
+97
+00:07:04.630 --> 00:07:08.180
+that so that it uses this package correctly.
+
+98
+00:07:08.200 --> 00:07:14.350
+Now with that, let's run npm run build: dev and see what we get. This now starts the webpack dev server,
+
+99
+00:07:14.710 --> 00:07:19.880
+seems to compile without errors and on my page I get this app.js file.
+
+100
+00:07:19.890 --> 00:07:22.340
+Now as you see, the size hasn't changed,
+
+101
+00:07:22.410 --> 00:07:27.840
+the reason for that is that Babel checks my app.js file and it doesn't really see that I use a promise
+
+102
+00:07:27.840 --> 00:07:35.820
+here or to be precise, it sees no need to add a polyfill for this promise here and correctly so because
+
+103
+00:07:35.820 --> 00:07:42.500
+the clipboard API won't be available in browsers that don't support promises anyways, so we don't really
+
+104
+00:07:42.500 --> 00:07:44.880
+need to polyfill for promises
+
+105
+00:07:44.880 --> 00:07:50.290
+if the only place where we need a promise is an API that won't work in these old browsers anyways.
+
+106
+00:07:50.430 --> 00:07:53.880
+So having a promise polyfill would not help us.
+
+107
+00:07:53.910 --> 00:07:58.670
+So to still show you that it works however, let's create our new own promise here,
+
+108
+00:07:58.800 --> 00:08:02.680
+simply a dummy promise with which I do nothing else but output it
+
+109
+00:08:02.820 --> 00:08:08.590
+but that it's enough to show Babel and Babel preset-env that I do have a promise
+
+110
+00:08:08.640 --> 00:08:13.920
+it should polyfill. If I now save, indeed you see app.js grows to 1.1mb.
+
+111
+00:08:13.950 --> 00:08:20.520
+So it's bigger because this now includes some core-js polyfill, we can also check this response here and
+
+112
+00:08:20.520 --> 00:08:26.320
+search for core, core-js and you will see there is some core-js content in there.
+
+113
+00:08:26.610 --> 00:08:32.160
+So now this is getting included here and we therefore take advantage of Babel and its auto polyfilling
+
+114
+00:08:32.160 --> 00:08:38.910
+feature. Now an alternative configuration you can set here is that you change this to entry, if
+
+115
+00:08:38.910 --> 00:08:45.510
+you change this to entry here, then you need to add imports and app.js at the top of the file, you need
+
+116
+00:08:45.510 --> 00:08:56.560
+to import core-js/stable and import regenerator runtime/runtime.
+
+117
+00:08:56.660 --> 00:09:02.960
+Now these imports will now actually be replaced by Babel with polyfill imports that make more sense for
+
+118
+00:09:02.960 --> 00:09:03.930
+your project.
+
+119
+00:09:03.980 --> 00:09:10.070
+If I now save this here and restart the build process to take the new config into account, you'll see
+
+120
+00:09:10.070 --> 00:09:10.870
+if I reload,
+
+121
+00:09:10.910 --> 00:09:16.150
+we now have a far bigger file because now we include almost all polyfills.
+
+122
+00:09:16.160 --> 00:09:23.340
+The reason for that is that in the end, Babel of course analyzes your code but it does not load polyfills
+
+123
+00:09:23.360 --> 00:09:29.540
+based on the features you're using but actually based on the browsers list you specified. So it loads
+
+124
+00:09:29.630 --> 00:09:35.240
+all polyfills you would need to support browsers that meet this specification.
+
+125
+00:09:35.240 --> 00:09:37.250
+Now why would you do that?
+
+126
+00:09:37.280 --> 00:09:43.340
+Well this is a good option if you don't know which exact features you want to use and if your code is
+
+127
+00:09:43.340 --> 00:09:46.100
+not all the code that should be taken into account.
+
+128
+00:09:46.220 --> 00:09:51.980
+If you're using a bunch of third-party packages which might be using features older browsers don't support,
+
+129
+00:09:52.400 --> 00:09:58.490
+Babel does not check these third-party packages, so then your browser list might be the best indicator
+
+130
+00:09:58.700 --> 00:10:04.580
+to show which browsers you want to support so that you are better safe than sorry and load all polyfills
+
+131
+00:10:04.580 --> 00:10:11.060
+these third-party packages might need and that's why you might want to go for this entry configuration
+
+132
+00:10:11.150 --> 00:10:12.520
+instead of usage.
+
+133
+00:10:12.520 --> 00:10:17.690
+Here however I want to use usage because for our project where we use no third-party packages, this
+
+134
+00:10:17.690 --> 00:10:21.820
+makes more sense. With that of course we can comment out these imports,
+
+135
+00:10:23.170 --> 00:10:29.710
+save that and restart our build process so we're back to the smaller package here.
+
+136
+00:10:29.710 --> 00:10:34.850
+So now to conclude this, let's now also copy this setup for the presets here that utilizes our core-js
+
+137
+00:10:34.860 --> 00:10:40.780
+polyfilling into our production code and let's replace this preset here in the array, not the
+
+138
+00:10:40.780 --> 00:10:46.240
+entire array, just the preset with that array so that we have an array in an array to make sure that we
+
+139
+00:10:46.240 --> 00:10:49.840
+now also apply this automatic polyfilling to our production code.
+
+140
+00:10:49.840 --> 00:10:52.220
+So now if you run npm run build: prod,
+
+141
+00:10:52.270 --> 00:10:57.250
+we basically do the same as in development mode but now we get our production ready code which also
+
+142
+00:10:57.250 --> 00:10:58.330
+uses polyfills
+
+143
+00:10:58.330 --> 00:10:59.530
+our code might require.

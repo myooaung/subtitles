@@ -1,0 +1,401 @@
+WEBVTT
+1
+00:00:00.000 --> 00:00:00.425
+In this section,
+
+2
+00:00:00.425 --> 00:00:03.142
+we're going to test a repository that connects to a
+
+3
+00:00:03.142 --> 00:00:05.404
+SQL database with hand-written SQL.
+
+4
+00:00:05.404 --> 00:00:08.690
+Spring Boot provides a lot of functionality out of the box for us
+
+5
+00:00:08.690 --> 00:00:11.581
+to support our database and JDBC connections.
+
+6
+00:00:11.581 --> 00:00:15.279
+First, when Spring Boot finds the H2 library in our class path,
+
+7
+00:00:15.279 --> 00:00:19.206
+it automatically creates an instance of H2 and a data source object
+
+8
+00:00:19.206 --> 00:00:22.210
+that allows us to persist data to and from H2.
+
+9
+00:00:22.210 --> 00:00:26.135
+Next, because we define a schema SQL file in our project,
+
+10
+00:00:26.135 --> 00:00:30.112
+Spring Boot will automatically execute it for us to create our tables.
+
+11
+00:00:30.112 --> 00:00:33.453
+Then, because our repository requires a JdbcTemplate,
+
+12
+00:00:33.453 --> 00:00:38.561
+Spring Boot will create a JdbcTemplate for us and wire it into our repository.
+
+13
+00:00:38.561 --> 00:00:41.044
+Finally, when we create our repository,
+
+14
+00:00:41.044 --> 00:00:45.707
+we specify that we want both a data source and a JdbcTemplate so they will
+
+15
+00:00:45.707 --> 00:00:49.249
+both be autowired directly into the repository for us.
+
+16
+00:00:49.249 --> 00:00:52.347
+The product repository provides the following set of
+
+17
+00:00:52.347 --> 00:00:55.719
+functionality: It provides two methods to find products,
+
+18
+00:00:55.719 --> 00:00:57.888
+findAll, which returns all products in the database,
+
+19
+00:00:57.888 --> 00:01:02.177
+and findById, which returns the product with the specified ID.
+
+20
+00:01:02.177 --> 00:01:05.402
+It provides a save method that persists new products to the database,
+
+21
+00:01:05.402 --> 00:01:08.673
+it provides an update method that updates an existing product,
+
+22
+00:01:08.673 --> 00:01:13.326
+and finally, it defines a delete method that deletes a product from the database.
+
+23
+00:01:13.326 --> 00:01:15.494
+Let's take a look at the source code for the product
+
+24
+00:01:15.494 --> 00:01:17.730
+repository and see how it works.
+
+25
+00:01:17.730 --> 00:01:19.977
+First we're going to look at the project's POM file to see
+
+26
+00:01:19.977 --> 00:01:21.840
+how we added support for the H2 database,
+
+27
+00:01:21.840 --> 00:01:25.040
+then we're going to look at the schema SQL file that Spring
+
+28
+00:01:25.040 --> 00:01:27.695
+Boot will discover in our class path and subsequently create
+
+29
+00:01:27.695 --> 00:01:31.088
+the schema for us in the H2 database, and finally,
+
+30
+00:01:31.088 --> 00:01:33.958
+we're going to review the product repository source code.
+
+31
+00:01:33.958 --> 00:01:37.643
+The first thing we want to look at is our project's Maven POM file.
+
+32
+00:01:37.643 --> 00:01:40.073
+When I set up the project on start.spring .io,
+
+33
+00:01:40.073 --> 00:01:44.689
+I chose both JDBC and H2 in the list of dependencies.
+
+34
+00:01:44.689 --> 00:01:48.631
+So we can see that the Spring Initializr included the
+
+35
+00:01:48.631 --> 00:01:52.018
+spring-boot-starter-jdbc and the h2 dependencies in the POM file.
+
+36
+00:01:52.018 --> 00:01:55.081
+By default, the h2 dependency is included with a test scope,
+
+37
+00:01:55.081 --> 00:01:58.263
+so I changed it to runtime so that we can run the
+
+38
+00:01:58.263 --> 00:02:01.039
+microservice against the h2 database at runtime.
+
+39
+00:02:01.039 --> 00:02:03.882
+If you intend to run against a production SQL database,
+
+40
+00:02:03.882 --> 00:02:07.879
+such as MySQL or Oracle, then you can leave that set to test.
+
+41
+00:02:07.879 --> 00:02:09.962
+Now let's look at the schema SQL file.
+
+42
+00:02:09.962 --> 00:02:14.834
+The schema.sql file if located in the src/main/resources folder.
+
+43
+00:02:14.834 --> 00:02:17.871
+When Spring Boot scans the class path, it'll find this file,
+
+44
+00:02:17.871 --> 00:02:21.063
+see that we have an H2 database in our class path,
+
+45
+00:02:21.063 --> 00:02:23.516
+and execute the script against an H2 instance.
+
+46
+00:02:23.516 --> 00:02:26.187
+In this case, we create a single table, products,
+
+47
+00:02:26.187 --> 00:02:29.597
+with an id, name, quantity, and version number.
+
+48
+00:02:29.597 --> 00:02:32.498
+In previous versions of Spring, without Spring Boot,
+
+49
+00:02:32.498 --> 00:02:34.975
+you would need to explicitly point to this SQL script
+
+50
+00:02:34.975 --> 00:02:38.612
+when defining your data source, but Spring Boot will handle this for us.
+
+51
+00:02:38.612 --> 00:02:39.855
+As with most Spring resources,
+
+52
+00:02:39.855 --> 00:02:44.356
+we build our repository using both an interface and an implementation class.
+
+53
+00:02:44.356 --> 00:02:49.088
+The ProductRepository interface defines five methods: findById returns an
+
+54
+00:02:49.088 --> 00:02:52.278
+optional product for the product instance with the specified ID,
+
+55
+00:02:52.278 --> 00:02:55.498
+or Optional empty if a product cannot be found.
+
+56
+00:02:55.498 --> 00:02:59.348
+FindAll returns a list containing all products in the database.
+
+57
+00:02:59.348 --> 00:03:02.715
+Update updates a product in the database and returns true if the
+
+58
+00:03:02.715 --> 00:03:05.287
+update was successful or false if it was not.
+
+59
+00:03:05.287 --> 00:03:08.929
+Save saves a new product to the database and returns
+
+60
+00:03:08.929 --> 00:03:10.422
+the product instance that was saved,
+
+61
+00:03:10.422 --> 00:03:12.768
+which includes the automatically generated ID.
+
+62
+00:03:12.768 --> 00:03:13.292
+Finally,
+
+63
+00:03:13.292 --> 00:03:18.324
+the delete method deletes the product with the specified ID from the database,
+
+64
+00:03:18.324 --> 00:03:21.304
+and returns true if the delete operation was successful.
+
+65
+00:03:21.304 --> 00:03:25.316
+The ProductRepositoryImpl class implements the ProductRepository interface
+
+66
+00:03:25.316 --> 00:03:29.287
+and is annotated with Spring's Repository annotation.
+
+67
+00:03:29.287 --> 00:03:32.592
+Spring uses this annotation to identify this class as a
+
+68
+00:03:32.592 --> 00:03:35.822
+Spring-managed bean and adds it to the application context.
+
+69
+00:03:35.822 --> 00:03:38.772
+The ProductRepositoryImpl defines a constructor that accepts
+
+70
+00:03:38.772 --> 00:03:41.680
+both a JdbcTemplate and a data source.
+
+71
+00:03:41.680 --> 00:03:46.095
+The JdbcTemplate is used to execute our queries, our update, and our delete.
+
+72
+00:03:46.095 --> 00:03:48.861
+The dataSource is used to build a SimpleJdbcInsert object,
+
+73
+00:03:48.861 --> 00:03:52.897
+which will be used when inserting a new product to the database,
+
+74
+00:03:52.897 --> 00:03:57.291
+primarily because it can be used to return the automatically generated key.
+
+75
+00:03:57.291 --> 00:04:00.374
+The constructor saves the JdbcTemplate and the
+
+76
+00:04:00.374 --> 00:04:03.185
+SimpleJdbcInsert object to member variables.
+
+77
+00:04:03.185 --> 00:04:08.096
+The findById method executes the JdbcTemplate's queryForObject method,
+
+78
+00:04:08.096 --> 00:04:12.161
+passing it the sql: SELECT * FROM products WHERE id =?,
+
+79
+00:04:12.161 --> 00:04:14.867
+binding the ID to its ID argument.
+
+80
+00:04:14.867 --> 00:04:18.497
+It then provides a lambda implementation of a row mapper that
+
+81
+00:04:18.497 --> 00:04:21.704
+constructs a new product from the provided result set.
+
+82
+00:04:21.704 --> 00:04:23.246
+If everything works out correctly,
+
+83
+00:04:23.246 --> 00:04:25.549
+then it returns an optional product; otherwise,
+
+84
+00:04:25.549 --> 00:04:27.255
+it returns an Optional.empty.
+
+85
+00:04:27.255 --> 00:04:30.626
+The findAll method executes the jdbcTemplate's query method,
+
+86
+00:04:30.626 --> 00:04:34.073
+passing it the sql: SELECT * FROM products,
+
+87
+00:04:34.073 --> 00:04:36.234
+providing a similar lambda row mapper.
+
+88
+00:04:36.234 --> 00:04:40.172
+The update method executes the jdbcTemplate's update method,
+
+89
+00:04:40.172 --> 00:04:44.653
+providing an update SQL and binding its parameters to the provided object.
+
+90
+00:04:44.653 --> 00:04:48.288
+The jdbcTemplate update method returns the number of rows updated,
+
+91
+00:04:48.288 --> 00:04:51.770
+so the product repository's update method returns true if
+
+92
+00:04:51.770 --> 00:04:54.387
+the number of updated rows is equal to 1.
+
+93
+00:04:54.387 --> 00:04:59.933
+The save method leverages the simpleJdbcInsert's executeAndReturnKey method,
+
+94
+00:04:59.933 --> 00:05:04.373
+passing it a map of field properties that's built from the provided product.
+
+95
+00:05:04.373 --> 00:05:09.394
+The executeAndReturnKey method returns the automatically generated primary key,
+
+96
+00:05:09.394 --> 00:05:11.709
+so we set that as the ID on our product,
+
+97
+00:05:11.709 --> 00:05:13.672
+and then return the newly created product.
+
+98
+00:05:13.672 --> 00:05:18.146
+Finally, the delete method executes the jdbcTemplate's update method,
+
+99
+00:05:18.146 --> 00:05:22.429
+providing delete SQL and binding its ID parameter to the ID argument.
+
+100
+00:05:22.429 --> 00:05:29.000
+Again, the ID method returns the number of rows affected, so we return true if one row is deleted.
+

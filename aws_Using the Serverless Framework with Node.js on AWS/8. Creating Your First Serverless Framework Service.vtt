@@ -1,0 +1,749 @@
+WEBVTT
+1
+00:00:02.272 --> 00:00:02.997
+In this demo,
+
+2
+00:00:02.997 --> 00:00:04.931
+we'll be creating an email reminder system that's
+
+3
+00:00:04.931 --> 00:00:06.158
+triggered by two scheduled events.
+
+4
+00:00:06.158 --> 00:00:09.469
+One will be a RAID event and the other will be a Cron event.
+
+5
+00:00:09.469 --> 00:00:11.811
+Now, both of those triggers will invoke a handler function.
+
+6
+00:00:11.811 --> 00:00:14.882
+That function will determine which of the two triggers is invoking it
+
+7
+00:00:14.882 --> 00:00:16.660
+from the information provided through the event.
+
+8
+00:00:16.660 --> 00:00:19.023
+It will create one type of email when the Cron event
+
+9
+00:00:19.023 --> 00:00:20.553
+triggers it and send out that email,
+
+10
+00:00:20.553 --> 00:00:24.015
+and then another type of email when the RAID event triggers it,
+
+11
+00:00:24.015 --> 00:00:27.442
+and send that second type of email.
+
+12
+00:00:27.442 --> 00:00:31.133
+So let's look at the steps to create our first serverless service.
+
+13
+00:00:31.133 --> 00:00:31.473
+First,
+
+14
+00:00:31.473 --> 00:00:34.529
+we'll create the service from scratch using the boilerplate
+
+15
+00:00:34.529 --> 00:00:36.165
+templates that the framework provides.
+
+16
+00:00:36.165 --> 00:00:37.807
+Then, we'll update our serverless.
+
+17
+00:00:37.807 --> 00:00:41.143
+yml file to scaffold out the details of our service.
+
+18
+00:00:41.143 --> 00:00:43.537
+After that, we'll update the contents of our handler.
+
+19
+00:00:43.537 --> 00:00:45.440
+js file with our own function code,
+
+20
+00:00:45.440 --> 00:00:48.610
+and then set up AWS's simple email service in the AWS
+
+21
+00:00:48.610 --> 00:00:51.218
+console in order to send ourselves emails.
+
+22
+00:00:51.218 --> 00:00:51.499
+Finally,
+
+23
+00:00:51.499 --> 00:00:55.359
+we'll make sure we have all of the dependencies squared away before we
+
+24
+00:00:55.359 --> 00:00:58.443
+deploy our service and invoke a sample function.
+
+25
+00:00:58.443 --> 00:01:01.701
+The first thing we'll need to do will be to create a template for our service.
+
+26
+00:01:01.701 --> 00:01:05.230
+We'll do this with the serverless create --template
+
+27
+00:01:05.230 --> 00:01:07.449
+and used the aws-nodejs parameter,
+
+28
+00:01:07.449 --> 00:01:12.513
+as well as the --path to specify where the service will
+
+29
+00:01:12.513 --> 00:01:14.582
+be installed in serverless-reminders.
+
+30
+00:01:14.582 --> 00:01:17.409
+As you can see, we now have a serverless-reminders folder.
+
+31
+00:01:17.409 --> 00:01:19.832
+In that directory, we start out with a handler.
+
+32
+00:01:19.832 --> 00:01:21.412
+js file, and a serverless.
+
+33
+00:01:21.412 --> 00:01:22.106
+yml file.
+
+34
+00:01:22.106 --> 00:01:24.537
+Let's take a look at the serverless.
+
+35
+00:01:24.537 --> 00:01:25.579
+yml file now.
+
+36
+00:01:25.579 --> 00:01:27.812
+The only thing you'll be keeping in the serverless.
+
+37
+00:01:27.812 --> 00:01:29.640
+yml file is the service specific portion,
+
+38
+00:01:29.640 --> 00:01:32.426
+as well as the provider section that you see here.
+
+39
+00:01:32.426 --> 00:01:34.930
+Go ahead and remove everything else from the serverless.
+
+40
+00:01:34.930 --> 00:01:35.486
+yml file.
+
+41
+00:01:35.486 --> 00:01:38.949
+When you're done, you should have something that looks like this.
+
+42
+00:01:38.949 --> 00:01:40.093
+At any point, if you get stuck,
+
+43
+00:01:40.093 --> 00:01:43.123
+you can reference the demos for this module in order to copy and
+
+44
+00:01:43.123 --> 00:01:45.553
+paste over the correct code for this serverless.
+
+45
+00:01:45.553 --> 00:01:48.309
+yml file, or any other file that we're using in this module.
+
+46
+00:01:48.309 --> 00:01:52.812
+Next, we'll add in some IAM statements that we'll need for this demo to function.
+
+47
+00:01:52.812 --> 00:01:56.339
+This essentially will allow the functions to access AWS' simple email service,
+
+48
+00:01:56.339 --> 00:01:57.156
+or SES.
+
+49
+00:01:57.156 --> 00:02:02.475
+After that, we'll add in the functions that we'll be using in this demo.
+
+50
+00:02:02.475 --> 00:02:04.327
+We'll start with the dailyReminder function,
+
+51
+00:02:04.327 --> 00:02:07.696
+which has a handler, and the handler file is called handler.
+
+52
+00:02:07.696 --> 00:02:09.679
+js, so in this case, it'll start with handler.
+
+53
+00:02:09.679 --> 00:02:11.669
+The function within that handler is sendReminderDaily,
+
+54
+00:02:11.669 --> 00:02:15.558
+which we'll be using as the second part of that handler.
+
+55
+00:02:15.558 --> 00:02:16.924
+Once we're done with that,
+
+56
+00:02:16.924 --> 00:02:21.324
+we'll go ahead and add the event that will trigger the function itself.
+
+57
+00:02:21.324 --> 00:02:25.799
+That event will be a scheduled event, which will use the rate option in AWS,
+
+58
+00:02:25.799 --> 00:02:28.539
+and in the case of this function, we'll be using it every day,
+
+59
+00:02:28.539 --> 00:02:29.936
+so we'll put 1 day.
+
+60
+00:02:29.936 --> 00:02:33.369
+We'll also add a second function, which will be our weekendReminder.
+
+61
+00:02:33.369 --> 00:02:35.202
+We'll call this weekendReminder.
+
+62
+00:02:35.202 --> 00:02:38.224
+We'll add a handler, which also exists in the hanlder.
+
+63
+00:02:38.224 --> 00:02:40.231
+js file, in this case being sendReminderWeekend.
+
+64
+00:02:40.231 --> 00:02:42.412
+We'll add a Cron event for this function,
+
+65
+00:02:42.412 --> 00:02:45.989
+so that it runs on Sunday and Saturday at a specific time on the weekend.
+
+66
+00:02:45.989 --> 00:02:47.975
+Keep in mind that when you're setting these times,
+
+67
+00:02:47.975 --> 00:02:51.130
+it'll be in UTC, not near a specific time zone.
+
+68
+00:02:51.130 --> 00:02:53.631
+Now let's take a look at our handler.
+
+69
+00:02:53.631 --> 00:02:54.256
+js file.
+
+70
+00:02:54.256 --> 00:02:55.068
+To expedite this process,
+
+71
+00:02:55.068 --> 00:02:57.605
+I won't have you write all the code for the handler from scratch.
+
+72
+00:02:57.605 --> 00:03:00.127
+You can open up the demos file that you have for this module,
+
+73
+00:03:00.127 --> 00:03:03.437
+and inside it you should see a folder with three files that
+
+74
+00:03:03.437 --> 00:03:05.554
+we'll need to copy into our new service.
+
+75
+00:03:05.554 --> 00:03:06.957
+The first one is the handler.
+
+76
+00:03:06.957 --> 00:03:10.141
+js file, and the other two files just to speed things up for later,
+
+77
+00:03:10.141 --> 00:03:12.890
+are two dependencies we'll be using to create email templates.
+
+78
+00:03:12.890 --> 00:03:14.540
+The first is dailyReminder.
+
+79
+00:03:14.540 --> 00:03:16.553
+html, and the second is weekendReminder.
+
+80
+00:03:16.553 --> 00:03:16.872
+html.
+
+81
+00:03:16.872 --> 00:03:20.624
+You're welcome to reference any of the other files as you see fit.
+
+82
+00:03:20.624 --> 00:03:22.920
+However, we'll primarily be working with the ones I've mentioned.
+
+83
+00:03:22.920 --> 00:03:25.614
+The rest are used by npm to install the entire project.
+
+84
+00:03:25.614 --> 00:03:28.326
+But because we'll be creating this more from scratch,
+
+85
+00:03:28.326 --> 00:03:30.538
+we'll be going through this bit by bit instead of
+
+86
+00:03:30.538 --> 00:03:32.956
+actually installing it with npm install.
+
+87
+00:03:32.956 --> 00:03:35.016
+Now let's take a look at handler.
+
+88
+00:03:35.016 --> 00:03:35.310
+js.
+
+89
+00:03:35.310 --> 00:03:38.468
+In this file, we export two functions that are almost identical.
+
+90
+00:03:38.468 --> 00:03:40.286
+The first is the sendReminderDaily function,
+
+91
+00:03:40.286 --> 00:03:44.123
+which we've configured to run on a daily basis within serverless.
+
+92
+00:03:44.123 --> 00:03:44.463
+yml.
+
+93
+00:03:44.463 --> 00:03:48.780
+As you can see, it has several requirements that it needs to work.
+
+94
+00:03:48.780 --> 00:03:50.395
+The first is the aws-sdk,
+
+95
+00:03:50.395 --> 00:03:55.011
+which is used to create an ses client for sending emails via this function.
+
+96
+00:03:55.011 --> 00:03:55.282
+Fortunately,
+
+97
+00:03:55.282 --> 00:03:59.001
+we don't actually need to include this dependency when building our function.
+
+98
+00:03:59.001 --> 00:04:02.962
+Within the execution environment in AWS, we get it by default.
+
+99
+00:04:02.962 --> 00:04:04.078
+We'll also need fs,
+
+100
+00:04:04.078 --> 00:04:06.612
+which we'll be using to access the local filesystem
+
+101
+00:04:06.612 --> 00:04:08.323
+and load in our email templates.
+
+102
+00:04:08.323 --> 00:04:08.693
+After that,
+
+103
+00:04:08.693 --> 00:04:12.035
+we set the email address that we'll be sending and receiving email to and from,
+
+104
+00:04:12.035 --> 00:04:15.326
+and then create the parameters we'll be passing in to AWS.
+
+105
+00:04:15.326 --> 00:04:15.627
+SES.
+
+106
+00:04:15.627 --> 00:04:19.164
+The main things to notice in these parameters are that we send
+
+107
+00:04:19.164 --> 00:04:21.998
+both the option of an HTML and plain text email,
+
+108
+00:04:21.998 --> 00:04:25.006
+and that we're using the same email to send and receive mail.
+
+109
+00:04:25.006 --> 00:04:27.715
+This repeated email is because while we're starting out with SES,
+
+110
+00:04:27.715 --> 00:04:32.714
+we have to verify all to and from addresses as an AWS precaution to avoid spam.
+
+111
+00:04:32.714 --> 00:04:35.244
+You can remove this barrier for full-blown applications,
+
+112
+00:04:35.244 --> 00:04:38.437
+but in this course we won't be getting into those details.
+
+113
+00:04:38.437 --> 00:04:40.594
+Farther down on the code, we'll use the ses.
+
+114
+00:04:40.594 --> 00:04:42.661
+sendEmail method with the parameters that we've
+
+115
+00:04:42.661 --> 00:04:45.245
+created to send an email via AWS.
+
+116
+00:04:45.245 --> 00:04:46.755
+And finally, in typical node fashion,
+
+117
+00:04:46.755 --> 00:04:50.154
+we'll write out what we'd like to happen in the case of errors and successes.
+
+118
+00:04:50.154 --> 00:04:53.984
+You'll see almost identical code below in the second function,
+
+119
+00:04:53.984 --> 00:04:55.785
+with the key exceptions of the function's name and the filesystem
+
+120
+00:04:55.785 --> 00:04:58.902
+location that it loads its email template from.
+
+121
+00:04:58.902 --> 00:05:02.403
+Now let's verify an email on the ses portion of the AWS console.
+
+122
+00:05:02.403 --> 00:05:05.950
+Scroll through the AWS services and look for the Simple Email Service.
+
+123
+00:05:05.950 --> 00:05:09.237
+Open that up and click on the email address section.
+
+124
+00:05:09.237 --> 00:05:10.861
+My console will look slightly different than yours,
+
+125
+00:05:10.861 --> 00:05:12.361
+because I've already verified emails.
+
+126
+00:05:12.361 --> 00:05:15.850
+But you should also see the button to verify a new email address.
+
+127
+00:05:15.850 --> 00:05:18.399
+Click that and enter the email you'd like to use.
+
+128
+00:05:18.399 --> 00:05:21.907
+Then check that email and follow the verification instructions provided by AWS.
+
+129
+00:05:21.907 --> 00:05:27.863
+After that, you should be able to refresh the page and see the verified address.
+
+130
+00:05:27.863 --> 00:05:30.397
+At this point, we're ready to deploy our first service.
+
+131
+00:05:30.397 --> 00:05:32.454
+You can open up the terminal again and get back to the
+
+132
+00:05:32.454 --> 00:05:33.812
+top level of our service directory.
+
+133
+00:05:33.812 --> 00:05:38.968
+You should be able to list out the files and see our HTML templates, a handler.
+
+134
+00:05:38.968 --> 00:05:40.920
+js file, and our serverless.
+
+135
+00:05:40.920 --> 00:05:41.701
+yml file.
+
+136
+00:05:41.701 --> 00:05:43.712
+Now we can run serverless deploy.
+
+137
+00:05:43.712 --> 00:05:47.164
+This will package up our service, create a CloudFormation stack,
+
+138
+00:05:47.164 --> 00:05:49.325
+upload a deployment artifact to S3,
+
+139
+00:05:49.325 --> 00:05:54.380
+and generally manage the entire AWS deployment process for our new service.
+
+140
+00:05:54.380 --> 00:05:54.972
+When it's finished,
+
+141
+00:05:54.972 --> 00:05:57.150
+you should see an overview of the deployment status that
+
+142
+00:05:57.150 --> 00:05:59.255
+includes the new functions we've just deployed.
+
+143
+00:05:59.255 --> 00:06:01.797
+Let's try testing them now.
+
+144
+00:06:01.797 --> 00:06:04.339
+We'll run serverless invoke --function,
+
+145
+00:06:04.339 --> 00:06:06.958
+and we'll use the dailyReminder function to run that.
+
+146
+00:06:06.958 --> 00:06:10.374
+We'll also include the --log flag in order to make sure that any
+
+147
+00:06:10.374 --> 00:06:13.075
+logging information is printed to the console.
+
+148
+00:06:13.075 --> 00:06:16.323
+This should run a test of the function and display the runtime information.
+
+149
+00:06:16.323 --> 00:06:19.057
+And here's a great example of how logging out the runtime
+
+150
+00:06:19.057 --> 00:06:21.152
+information when invoking a function can be useful.
+
+151
+00:06:21.152 --> 00:06:25.513
+If we review this error, we can see that we neglected to update our handler.
+
+152
+00:06:25.513 --> 00:06:29.279
+js file with a proper verified email, so let's update that and try again.
+
+153
+00:06:29.279 --> 00:06:32.596
+Here's the verified email we need to update.
+
+154
+00:06:32.596 --> 00:06:34.606
+Now that we've updated and saved our handler file,
+
+155
+00:06:34.606 --> 00:06:36.714
+let's update the specific function we'll be using.
+
+156
+00:06:36.714 --> 00:06:41.141
+We can save ourselves some time by deploying that specific function
+
+157
+00:06:41.141 --> 00:06:44.763
+with serverless deploy --function daily reminder.
+
+158
+00:06:44.763 --> 00:06:47.452
+This will update and deploy all the dependencies for this particular
+
+159
+00:06:47.452 --> 00:06:49.987
+function without doing the entire deployment process.
+
+160
+00:06:49.987 --> 00:06:53.645
+Especially in larger services, this saves us a lot of time.
+
+161
+00:06:53.645 --> 00:06:56.885
+Now if we retest the function, we see it works correctly.
+
+162
+00:06:56.885 --> 00:07:00.595
+If we load up our email, we can see this successfully send to email.
+
+163
+00:07:00.595 --> 00:07:03.492
+Now let's take a look at the AWS Lambda console.
+
+164
+00:07:03.492 --> 00:07:06.058
+You can load up the homepage and find the section for lambda.
+
+165
+00:07:06.058 --> 00:07:08.720
+On this page, we can see the functions that the framework has created for us.
+
+166
+00:07:08.720 --> 00:07:09.586
+If we click into those,
+
+167
+00:07:09.586 --> 00:07:11.406
+we can also see the CloudWatch events these
+
+168
+00:07:11.406 --> 00:07:13.632
+functions now have to be triggered by.
+
+169
+00:07:13.632 --> 00:07:16.957
+But what happens if we want to tear down the service completely?
+
+170
+00:07:16.957 --> 00:07:19.860
+Well, we can do this with the serverless remove command.
+
+171
+00:07:19.860 --> 00:07:21.378
+If we check the console again,
+
+172
+00:07:21.378 --> 00:07:23.405
+all of our functions and infrastructure should have disappeared.
+
+173
+00:07:23.405 --> 00:07:26.114
+But of course you might want the occasional reminder to work with the
+
+174
+00:07:26.114 --> 00:07:28.759
+serverless framework and see cute puppies while you're doing so.
+
+175
+00:07:28.759 --> 00:07:33.269
+So feel free to go back and edit the schedule and the re-deploy the
+
+176
+00:07:33.269 --> 00:07:35.913
+entire application again with serverless deploy.
+
+177
+00:07:35.913 --> 00:07:38.840
+Wow, so we covered a lot in that last module.
+
+178
+00:07:38.840 --> 00:07:42.880
+We learned all about the core serverless framework concepts of functions,
+
+179
+00:07:42.880 --> 00:07:44.885
+events, resources, and services.
+
+180
+00:07:44.885 --> 00:07:48.161
+We also learned a variety of serverless framework skills,
+
+181
+00:07:48.161 --> 00:07:51.711
+including the processes and best practices that we can use to develop,
+
+182
+00:07:51.711 --> 00:07:53.418
+configure, deploy, and test our services.
+
+183
+00:07:53.418 --> 00:07:56.582
+And we did all that while deploying our first serverless service.
+
+184
+00:07:56.582 --> 00:07:59.141
+With that heavy learning load out of the way,
+
+185
+00:07:59.141 --> 00:08:01.346
+let's take a look at what's coming up.
+
+186
+00:08:01.346 --> 00:08:04.304
+In the next module, we'll be looking at serverless APIs and applications,
+
+187
+00:08:04.304 --> 00:08:11.000
+and how we can build those using the serverless framework. So see you there.
+

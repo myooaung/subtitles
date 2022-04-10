@@ -1,0 +1,496 @@
+1
+00:00:01,140 --> 00:00:04,000
+<v Instructor>In this lecture let's implement rate limiting</v>
+
+2
+00:00:04,000 --> 00:00:06,120
+in order to prevent the same IP
+
+3
+00:00:06,120 --> 00:00:09,130
+from making too many requests to our API
+
+4
+00:00:09,130 --> 00:00:11,730
+and that will then help us preventing attacks
+
+5
+00:00:11,730 --> 00:00:14,893
+like denial of service, or brute force attacks.
+
+6
+00:00:16,470 --> 00:00:19,230
+So, that rate limiter will be implemented
+
+7
+00:00:19,230 --> 00:00:21,920
+as a global middleware function.
+
+8
+00:00:21,920 --> 00:00:24,830
+So, basically, what the rate limiter is gonna do,
+
+9
+00:00:24,830 --> 00:00:28,490
+is to count the number of requests coming from one IP
+
+10
+00:00:28,490 --> 00:00:30,249
+and then, when there are too many requests,
+
+11
+00:00:30,249 --> 00:00:32,970
+block these requests, okay?
+
+12
+00:00:32,970 --> 00:00:35,400
+And so it makes sense to implement that
+
+13
+00:00:35,400 --> 00:00:39,901
+in a global middleware, so, we do that in app.js.
+
+14
+00:00:39,901 --> 00:00:43,410
+So, we haven't used this one in a long time,
+
+15
+00:00:43,410 --> 00:00:45,550
+and the rate limiter that we're going to use
+
+16
+00:00:45,550 --> 00:00:49,430
+is an npm package called Express Rate Limit.
+
+17
+00:00:49,430 --> 00:00:50,803
+So lets install that.
+
+18
+00:00:52,800 --> 00:00:57,800
+npm i express-rate-limit, alright.
+
+19
+00:01:01,770 --> 00:01:04,853
+And then, here at the top of our application,
+
+20
+00:01:08,440 --> 00:01:12,430
+let's call it rateLimit and then require
+
+21
+00:01:13,329 --> 00:01:17,400
+the express and actually it's already here
+
+22
+00:01:17,400 --> 00:01:21,440
+So VS code grabs this name from our package.json file.
+
+23
+00:01:21,440 --> 00:01:23,660
+Okay, and this name that I gave it here
+
+24
+00:01:23,660 --> 00:01:26,320
+usually comes from the documentation.
+
+25
+00:01:26,320 --> 00:01:28,760
+So if they do it like this in the documentation,
+
+26
+00:01:28,760 --> 00:01:32,340
+well, then that's the way that I follow as well.
+
+27
+00:01:32,340 --> 00:01:34,503
+Okay, so let's now use this middleware
+
+28
+00:01:34,503 --> 00:01:37,990
+right here at the top of our global middlewares,
+
+29
+00:01:37,990 --> 00:01:39,940
+let's actually write that here, global.
+
+30
+00:01:41,190 --> 00:01:44,693
+And we start by creating a limiter.
+
+31
+00:01:48,520 --> 00:01:51,410
+So limiter, and we do that by calling
+
+32
+00:01:51,410 --> 00:01:55,260
+the rateLimit function that we just defined up there.
+
+33
+00:01:55,260 --> 00:01:58,000
+So rateLimit is a function which receives
+
+34
+00:01:58,000 --> 00:02:01,090
+an object of options, okay?
+
+35
+00:02:01,090 --> 00:02:03,080
+And in here, we can basically define
+
+36
+00:02:03,080 --> 00:02:06,230
+how many requests per IP we are going to allow
+
+37
+00:02:06,230 --> 00:02:08,250
+in a certain amount of time.
+
+38
+00:02:08,250 --> 00:02:11,900
+So we can specify the max property,
+
+39
+00:02:11,900 --> 00:02:16,200
+which I'm gonna set to 100, and then also the window,
+
+40
+00:02:16,200 --> 00:02:19,070
+so the time window, okay?
+
+41
+00:02:19,070 --> 00:02:21,260
+So what I want to allow here is basically,
+
+42
+00:02:21,260 --> 00:02:23,380
+100 requests per hour.
+
+43
+00:02:23,380 --> 00:02:27,360
+And this here actually called window milliseconds.
+
+44
+00:02:27,360 --> 00:02:31,323
+Okay, and so we want one hour so 60 minutes,
+
+45
+00:02:32,750 --> 00:02:37,720
+times 60 for seconds, times 1,000 for milliseconds.
+
+46
+00:02:37,720 --> 00:02:40,520
+Alright, so again, what this will do
+
+47
+00:02:40,520 --> 00:02:45,033
+is to allow 100 requests from the same IP in one hour.
+
+48
+00:02:45,890 --> 00:02:48,210
+Okay, and if that limit is then crossed
+
+49
+00:02:48,210 --> 00:02:51,860
+by a certain IP, they will get back an error message.
+
+50
+00:02:51,860 --> 00:02:54,603
+And here we can now specify that message.
+
+51
+00:02:58,550 --> 00:03:02,543
+Too many requests from this IP,
+
+52
+00:03:05,160 --> 00:03:10,160
+please try again in an hour, alright,
+
+53
+00:03:10,320 --> 00:03:12,540
+so we kind of need to find a balance
+
+54
+00:03:12,540 --> 00:03:14,980
+which works best for our application.
+
+55
+00:03:14,980 --> 00:03:16,900
+For example, if you're building an API,
+
+56
+00:03:16,900 --> 00:03:20,250
+which really needs a lot of requests for one IP,
+
+57
+00:03:20,250 --> 00:03:22,780
+then of course, this number here should be greater.
+
+58
+00:03:22,780 --> 00:03:25,770
+So don't just follow blindly what I just put here,
+
+59
+00:03:25,770 --> 00:03:28,410
+but really adapt it to your own application
+
+60
+00:03:28,410 --> 00:03:30,100
+so that you don't make it unusable
+
+61
+00:03:30,100 --> 00:03:32,173
+because of this limiter, all right?
+
+62
+00:03:33,660 --> 00:03:37,480
+Anyway, this limiter now here that we just created
+
+63
+00:03:37,480 --> 00:03:40,653
+is basically a middleware function okay?
+
+64
+00:03:41,630 --> 00:03:44,320
+So, rateLimit is a function which will,
+
+65
+00:03:44,320 --> 00:03:47,470
+based on our objects, create a middleware function,
+
+66
+00:03:47,470 --> 00:03:52,223
+which we now can use using app.use just like we did before.
+
+67
+00:03:53,990 --> 00:03:56,490
+And we can do it simply like this.
+
+68
+00:03:56,490 --> 00:03:58,450
+But what we actually want is to basically
+
+69
+00:03:58,450 --> 00:04:00,713
+limit access to our API route.
+
+70
+00:04:01,810 --> 00:04:04,050
+So, we can specify that here,
+
+71
+00:04:04,050 --> 00:04:07,300
+remember that we can do that with middleware.
+
+72
+00:04:07,300 --> 00:04:10,720
+And so, we basically want to apply this limiter
+
+73
+00:04:10,720 --> 00:04:13,370
+only to a slash API, okay?
+
+74
+00:04:13,370 --> 00:04:15,700
+And so that will then affect all of the routes
+
+75
+00:04:15,700 --> 00:04:18,960
+that basically start with this, your app
+
+76
+00:04:18,960 --> 00:04:21,615
+so forward slash API, great.
+
+77
+00:04:21,615 --> 00:04:25,140
+So let's go back to our main tab here.
+
+78
+00:04:25,140 --> 00:04:29,140
+Give it a save, and now let's actually try this
+
+79
+00:04:29,140 --> 00:04:31,330
+and let's do it here with the simplest one,
+
+80
+00:04:31,330 --> 00:04:35,850
+so get all tours, then here is our result
+
+81
+00:04:35,850 --> 00:04:39,600
+and now what I want to show you is these headers here.
+
+82
+00:04:39,600 --> 00:04:42,720
+So our rate limiter creates these two headers
+
+83
+00:04:42,720 --> 00:04:47,720
+so the RateLimit-Limit, and the RateLimit-Remaining, okay?
+
+84
+00:04:47,910 --> 00:04:50,870
+So we start with 100 just as we defined,
+
+85
+00:04:50,870 --> 00:04:53,130
+and now we have remaining, 99,
+
+86
+00:04:53,130 --> 00:04:56,666
+because we already did one request, right?
+
+87
+00:04:56,666 --> 00:05:00,000
+So what happens if we do one other one?
+
+88
+00:05:00,000 --> 00:05:02,853
+Let's do it with Get Tour, for example,
+
+89
+00:05:04,520 --> 00:05:06,550
+and there's no tour with that ID,
+
+90
+00:05:06,550 --> 00:05:08,890
+but that doesn't matter, what matters here
+
+91
+00:05:08,890 --> 00:05:12,660
+is that the remaining is now down to 98.
+
+92
+00:05:12,660 --> 00:05:15,010
+And if we try it again, then you'll see
+
+93
+00:05:15,010 --> 00:05:19,210
+it's even down further to 97 okay?
+
+94
+00:05:19,210 --> 00:05:21,620
+And actually down here, we also have the reset.
+
+95
+00:05:21,620 --> 00:05:25,990
+So basically the timestamp where it is resetted okay?
+
+96
+00:05:25,990 --> 00:05:28,833
+So that one hour window that we specified before.
+
+97
+00:05:29,760 --> 00:05:34,069
+Okay, now if in between this our app is restarted,
+
+98
+00:05:34,069 --> 00:05:37,410
+so in order to do that I will simply save.
+
+99
+00:05:37,410 --> 00:05:40,920
+Let's see what happens then, okay,
+
+100
+00:05:40,920 --> 00:05:43,200
+so I'm sending it again, and so now
+
+101
+00:05:43,200 --> 00:05:45,910
+we're back starting from the beginning basically.
+
+102
+00:05:45,910 --> 00:05:49,440
+Okay, so our app cannot crash during this time
+
+103
+00:05:49,440 --> 00:05:51,350
+because otherwise, that will basically then
+
+104
+00:05:51,350 --> 00:05:54,093
+reset the limit as well okay?
+
+105
+00:05:55,260 --> 00:05:59,670
+Now, let's actually try to see the error message,
+
+106
+00:05:59,670 --> 00:06:04,670
+and so I will take down this maximum to just three okay?
+
+107
+00:06:04,870 --> 00:06:09,370
+And save it here, send this request,
+
+108
+00:06:09,370 --> 00:06:10,790
+and in our headers we now see
+
+109
+00:06:10,790 --> 00:06:14,610
+we have only two remaining, let's try another one
+
+110
+00:06:14,610 --> 00:06:18,190
+and so now zero remaining, so this
+
+111
+00:06:18,190 --> 00:06:21,180
+probably was our last one, let's see the body,
+
+112
+00:06:21,180 --> 00:06:23,350
+so this time, we still got data,
+
+113
+00:06:23,350 --> 00:06:27,087
+but if we now try it again, we got an error.
+
+114
+00:06:27,087 --> 00:06:29,113
+Roo many requests from this IP.
+
+115
+00:06:29,113 --> 00:06:31,190
+And then it will automatically set
+
+116
+00:06:31,190 --> 00:06:36,190
+the status code to 429 which means too many requests.
+
+117
+00:06:36,190 --> 00:06:39,560
+Okay, and so again, this will help us try
+
+118
+00:06:39,560 --> 00:06:43,810
+to prevent denial of service and also brute force attacks
+
+119
+00:06:43,810 --> 00:06:46,270
+where an attacker tries to guess
+
+120
+00:06:46,270 --> 00:06:48,877
+the password of some user, basically by using
+
+121
+00:06:48,877 --> 00:06:51,900
+as the name says, brute force.
+
+122
+00:06:51,900 --> 00:06:54,644
+Okay, so that is API limiting,
+
+123
+00:06:54,644 --> 00:06:57,030
+quite straightforward to implement
+
+124
+00:06:57,030 --> 00:06:59,363
+with this Express Rate Limit package.
+

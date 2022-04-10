@@ -1,0 +1,208 @@
+WEBVTT
+
+00:02.410 --> 00:09.640
+Let's start working on our auto-logout functionality so that if we have a token that expired because
+
+00:09.640 --> 00:12.610
+the user stayed in the app for more than one hour,
+
+00:12.640 --> 00:14.870
+he's automatically logged out.
+
+00:14.890 --> 00:21.790
+Now one important word, firebase also gives you this refresh token which we saw earlier in the console
+
+00:21.790 --> 00:22.350
+log,
+
+00:22.450 --> 00:27.330
+we can still see it if we quickly do login, here on the response data,
+
+00:27.460 --> 00:35.400
+we got this refresh token, unlike the ID token, this never expires and you can always use that to send
+
+00:35.400 --> 00:42.130
+it to a specific API endpoint, one which you can find in the documentation, exchange a refresh token
+
+00:42.130 --> 00:46.720
+for an ID token to get a new ID token.
+
+00:46.750 --> 00:51.610
+Now this allows you to theoretically create an infinite session,
+
+00:51.610 --> 00:58.440
+this approach of course obviously is a bit less secure than when not using this refresh token because
+
+00:58.440 --> 01:01.170
+since the refresh token is valid forever,
+
+01:01.330 --> 01:05.380
+anyone with the refresh token can generate new ID tokens.
+
+01:05.800 --> 01:09.220
+One important word here though, of course it's not that easy to get
+
+01:09.230 --> 01:12.980
+the refresh token though, you store it in local storage,
+
+01:13.000 --> 01:14.740
+we'll do this in a second
+
+01:14.740 --> 01:20.500
+and there you can only access it with cross-site scripting attacks which vue prevents by default,
+
+01:20.680 --> 01:24.880
+so it's less secure but not insecure per say.
+
+01:24.920 --> 01:29.160
+Still I won't use that refresh token thing here,
+
+01:29.200 --> 01:35.350
+you could of course implement it with the help of the documentation by sending it to this endpoint here
+
+01:35.350 --> 01:41.830
+and getting a new ID token but for our needs here, the relevant thing is that the ID token alone if we're
+
+01:41.830 --> 01:47.100
+not using the refresh token will expire after one hour and can't be used anymore.
+
+01:47.350 --> 01:54.640
+So I want to implement some functionality which automatically logs the user out once the ID token became invalid
+
+01:55.210 --> 02:01.360
+and we actually get the expiration time here as an argument in the response too. Right now it's always
+
+02:01.450 --> 02:03.280
+3600 seconds
+
+02:03.310 --> 02:07.930
+but if that should ever change in the future, we could still work with it because we can extract it
+
+02:07.930 --> 02:09.670
+from the response.
+
+02:09.670 --> 02:14.070
+Now this is the thing, the information we have,
+
+02:14.170 --> 02:18.400
+how can we now automatically log the user out?
+
+02:19.000 --> 02:22.320
+Let's move to our store, there
+
+02:22.360 --> 02:29.440
+we got our action where we log the user in or when we sign the user up, where we get the token and we
+
+02:29.440 --> 02:35.400
+need to set some timer here which automatically dispatches an action once,
+
+02:35.410 --> 02:39.480
+well once the time is over, once the data is invalid.
+
+02:39.850 --> 02:46.750
+So for that I'll add a new action, maybe at the top which I'll name set logout timer,
+
+02:49.330 --> 02:57.130
+now in set logout timer, I will still pull out the commit method from this context object and I will receive
+
+02:57.130 --> 03:03.630
+a payload, the expiration time, so the time until the token is invalid.
+
+03:03.700 --> 03:06.100
+Then in here, I'll call set timeout
+
+03:07.560 --> 03:11.220
+and I will pass expiration time as a second value,
+
+03:11.220 --> 03:16.760
+however that would be in seconds but we need to measure this in milliseconds for set timeout,
+
+03:16.950 --> 03:19.470
+so I will multiply it with 1000,
+
+03:19.470 --> 03:24.000
+this will also automatically convert this string number to a real number
+
+03:24.270 --> 03:28.920
+and then I want to execute this arrow function after this time period. In there.
+
+03:28.920 --> 03:32.160
+I simply want to commit logout,
+
+03:32.160 --> 03:36.890
+I want to logout once this time is over.
+
+03:37.020 --> 03:42.760
+Now to be able to check this, I'll temporarily leave out the times thousand,
+
+03:42.930 --> 03:47.600
+so the 3600 will be used which is 3.6 seconds,
+
+03:47.610 --> 03:50.550
+so we should quickly see if logout works.
+
+03:50.580 --> 03:53.580
+Now of course I need to dispatch set logout timer,
+
+03:53.760 --> 03:56.670
+so I'll do this from the login method,
+
+03:56.760 --> 04:00.630
+we can also pull out the dispatch method from this context object
+
+04:00.630 --> 04:07.050
+as you already learned and I will dispatch this here in the then block, I'll dispatch set logout timer
+
+04:07.400 --> 04:15.600
+and I of course need to pass on response data expiresIn was the name of the property which holds this
+
+04:15.720 --> 04:23.310
+time and the same in the sign up method, there I already have the dispatch method available,
+
+04:23.340 --> 04:31.590
+I need to call set logout timer here too and pass on res data expiresIn here too. With all that
+
+04:31.710 --> 04:35.670
+saved, let's go back and let's sign in in our application,
+
+04:35.670 --> 04:43.280
+we should instantly be logged out or not instantly but after 3.6 seconds, so let's wait,
+
+04:46.620 --> 04:49.010
+unknown mutation type logout.
+
+04:49.290 --> 04:52.740
+Well there is a tiny problem,
+
+04:52.950 --> 04:56.990
+the mutation I want to execute is of course called clear auth data but
+
+04:57.060 --> 04:59.250
+we could see that something will happen there
+
+04:59.270 --> 05:01.660
+so chances are high it'll work now.
+
+05:01.770 --> 05:07.020
+So let's login again, let's wait for this short time period again
+
+05:08.940 --> 05:11.170
+and you see, we were logged out.
+
+05:12.070 --> 05:14.470
+So with this, we added auto-logout,
+
+05:14.470 --> 05:21.240
+now let me go back and multiply this expiration time with 1000 again to turn this into milliseconds
+
+05:21.250 --> 05:23.210
+and therefore into the right value.
+
+05:23.410 --> 05:25.640
+And with that, we add auto-logout,
+
+05:25.690 --> 05:32.410
+now in the next lecture, let's have a look at auto-login so that we also can persist a valid token across
+
+05:32.440 --> 05:33.670
+page reloads.

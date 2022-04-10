@@ -1,0 +1,228 @@
+WEBVTT
+1
+00:00:00.600 --> 00:00:04.660
+In the next coming lectures I'll be talking about Kubernetes basics.
+
+2
+00:00:05.400 --> 00:00:08.420
+So, all the previous lectures were just an introduction.
+
+3
+00:00:08.680 --> 00:00:13.210
+I just showed you how to set up a cluster and how to run a simple application.
+
+4
+00:00:13.210 --> 00:00:21.530
+Now, we're going to go a little bit deeper into detail how to run different kinds of workloads on Kubernetes.
+
+5
+00:00:21.550 --> 00:00:24.930
+I am first going to start with an architecture diagram.
+
+6
+00:00:25.180 --> 00:00:30.200
+I'm going to give you a 10000 foot overview of how the nodes in Kubernetes work.
+
+7
+00:00:32.200 --> 00:00:35.990
+This is the architectural diagram and it has a lot of information.
+
+8
+00:00:36.050 --> 00:00:38.850
+So, let's start here with something that you already know.
+
+9
+00:00:39.790 --> 00:00:42.100
+In green we can see the pods.
+
+10
+00:00:42.150 --> 00:00:47.060
+So, we have Pod 1, 2, and 3 on Node 1 and Pod 4, 5, and N on Node 2.
+
+11
+00:00:47.410 --> 00:00:56.200
+These are pods like we started in the introduction, within those Pods you have the containers.
+
+12
+00:00:56.250 --> 00:01:02.190
+So, we had just one container, just like pod two and five only have one container.
+
+13
+00:01:02.190 --> 00:01:05.350
+So, the containers here are denoted in red.
+
+14
+00:01:05.430 --> 00:01:10.620
+You can have multiple containers, if you take a look at Pod 3, that pod has 2 containers
+
+15
+00:01:10.620 --> 00:01:14.120
+and Pod 1 has 3 containers.
+
+16
+00:01:14.190 --> 00:01:17.910
+Those containers can communicate easily to each other.
+
+17
+00:01:17.970 --> 00:01:20.570
+They can just use the port number.
+
+18
+00:01:20.820 --> 00:01:27.870
+So a localhost and a port number to communicate with each other if you have two small services.
+
+19
+00:01:28.250 --> 00:01:31.340
+Let's say one is the backend and one is now authentication service.
+
+20
+00:01:31.430 --> 00:01:37.140
+They can easily communicate with each other. Pods within a cluster can also communicate with children
+
+21
+00:01:37.520 --> 00:01:40.980
+but that needs to go over the network.
+
+22
+00:01:41.020 --> 00:01:46.350
+I will show you later on how service discovery works so that pods can easily communicate with each other.
+
+23
+00:01:47.630 --> 00:01:50.930
+Those containers in those pods are running using Docker.
+
+24
+00:01:51.200 --> 00:01:54.290
+So, on our nodes we all have Docker installed.
+
+25
+00:01:54.290 --> 00:01:56.500
+You can also use an alternative container engine.
+
+26
+00:01:56.510 --> 00:02:03.590
+But, in our examples I'm always using Docker. 
+
+27
+00:02:03.690 --> 00:02:04.640
+On those nodes also have kubelets and a kube-proxy servers running.
+
+28
+00:02:04.750 --> 00:02:08.340
+So, the kubelets are responsible to launch the pods.
+
+29
+00:02:08.420 --> 00:02:14.360
+So, it's going to connect to the Master Node to get this information. 
+
+30
+00:02:14.360 --> 00:02:15.270
+The Master Node is not shown on this diagram,
+
+31
+00:02:15.350 --> 00:02:17.580
+it's only the nodes that are shown here.
+
+32
+00:02:17.930 --> 00:02:24.950
+The kube-proxy is going to feed its information about what pods are on these nodes to "iptables". 
+
+33
+00:02:24.950 --> 00:02:28.830
+"Iptables" is the firewall in Linux and it can also route traffic.
+
+34
+00:02:28.880 --> 00:02:35.150
+So, whenever a new pod is launched then kube-proxy is going to change the "iptables" rules to make sure
+
+35
+00:02:35.210 --> 00:02:39.870
+that the pod is routable within the cluster.
+
+36
+00:02:39.980 --> 00:02:42.150
+That brings us to the service.
+
+37
+00:02:42.380 --> 00:02:47.770
+And the easiest way to remember how a service works is just to imagine yourself a load balancer.
+
+38
+00:02:47.960 --> 00:02:55.590
+So, this can be for instance the ELB, the Elastic Load Balancer AWS. 
+
+39
+00:02:55.600 --> 00:02:57.680
+This Elastic Load Balancer on AWS it's going to be publicly available. 
+
+40
+00:02:57.790 --> 00:03:03.100
+So, clients from the internet can connect to this load balancer and this load balancer is going to forward the
+
+41
+00:03:03.100 --> 00:03:05.880
+traffic to our Kubernetes cluster.
+
+42
+00:03:06.090 --> 00:03:12.430
+It's going to have all the nodes listed and the traffic is all going to arrive at "iptables".
+
+43
+00:03:13.310 --> 00:03:18.530
+"iptables" has then the rules to forward traffic to another node,
+
+44
+00:03:18.560 --> 00:03:22.970
+for instance, if the pod is running on another node then it needs to go to these destination.
+
+45
+00:03:23.300 --> 00:03:30.140
+If the pod is on that node, then it will just forward traffic to the pod and 
+
+46
+00:03:30.230 --> 00:03:31.170
+to the specific container in this pod.
+
+47
+00:03:33.540 --> 00:03:39.390
+You have seen it in the AWS example, we have exposed a node port like a static port.
+
+48
+00:03:39.420 --> 00:03:47.480
+The communication between the service and the nodes is going over this one port. In AWS's case the ELB
+
+49
+00:03:47.490 --> 00:03:54.060
+just has one port configured all the nodes listen to that port and "iptables" will route the
+
+50
+00:03:54.060 --> 00:04:03.430
+traffic that comes from that port to the correct pod. To translate this to our YAML file,
+
+51
+00:04:03.620 --> 00:04:05.270
+let's have a look how this looks.
+
+52
+00:04:05.270 --> 00:04:10.800
+So, we have here a container and we have to put the definition.
+
+53
+00:04:10.930 --> 00:04:19.450
+So, when we started our Kubernetes demo, this specification the spec here refers to a container 
+
+54
+00:04:19.450 --> 00:04:24.610
+and this container refers to this red block within this pod.
+
+55
+00:04:24.970 --> 00:04:29.560
+The whole green pod is actually the full definition that you see here on the right.
+
+56
+00:04:29.560 --> 00:04:34.990
+The container is just everything you see on the spec if you would have two containers
+
+57
+00:04:34.990 --> 00:04:36.520
+you would just have a spec with two containers.

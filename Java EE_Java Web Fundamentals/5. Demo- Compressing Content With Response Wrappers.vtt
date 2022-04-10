@@ -1,0 +1,157 @@
+WEBVTT
+1
+00:00:00.000 --> 00:00:02.752
+So here we're going to create another demo,
+
+2
+00:00:02.752 --> 00:00:05.742
+but now we're going to add an example of a real-world filter,
+
+3
+00:00:05.742 --> 00:00:07.742
+one that does compression.
+
+4
+00:00:07.742 --> 00:00:09.769
+If you're running your app on Tomcat and a reverse
+
+5
+00:00:09.769 --> 00:00:13.732
+proxy such as Apache or NGINX, then you may not need this,
+
+6
+00:00:13.732 --> 00:00:16.702
+but in other circumstances you might.
+
+7
+00:00:16.702 --> 00:00:18.732
+This example has a number of moving parts.
+
+8
+00:00:18.732 --> 00:00:20.722
+The first is the filter.
+
+9
+00:00:20.722 --> 00:00:22.782
+There's a class called CompressionFilter,
+
+10
+00:00:22.782 --> 00:00:29.702
+and this has a WebFilter annotation that it only runs against * .do endpoints.
+
+11
+00:00:29.702 --> 00:00:33.400
+There's no real reason for this other than it shows
+
+12
+00:00:33.400 --> 00:00:36.722
+you can apply filters selectively.
+
+13
+00:00:36.722 --> 00:00:40.550
+This filter checks to see if the browser accepts gzip responses,
+
+14
+00:00:40.550 --> 00:00:44.762
+and if it does, it creates a wrapper, gzip response wrapper.
+
+15
+00:00:44.762 --> 00:00:47.792
+And it passes that wrapper down the chain.
+
+16
+00:00:47.792 --> 00:00:52.782
+When the chain is finished, we call finishResponse on the wrapper.
+
+17
+00:00:52.782 --> 00:00:55.792
+This does tidy up as we'll see in a moment.
+
+18
+00:00:55.792 --> 00:00:57.792
+This wrapper is a response wrapper,
+
+19
+00:00:57.792 --> 00:01:02.722
+and it is more complex than a request wrapper.
+
+20
+00:01:02.722 --> 00:01:05.962
+This response wrapper extends
+
+21
+00:01:05.962 --> 00:01:09.732
+HttpServletResponseWrapper and overrides three methods,
+
+22
+00:01:09.732 --> 00:01:15.752
+getOutputStream, getWriter, and flushBuffer.
+
+23
+00:01:15.752 --> 00:01:19.722
+GetWriter and getOutputStream do essentially the same thing.
+
+24
+00:01:19.722 --> 00:01:24.732
+They create a gzip response stream that will actually compress the content.
+
+25
+00:01:24.732 --> 00:01:29.742
+The flushBuffer method flushes the stream when asked and finishResponse closes
+
+26
+00:01:29.742 --> 00:01:33.792
+either the writer or the output stream when it is called.
+
+27
+00:01:33.792 --> 00:01:37.702
+It's the GZIPResponseStream that does the work.
+
+28
+00:01:37.702 --> 00:01:43.772
+It creates a GZIPOutputStream around the stream that's in the current response.
+
+29
+00:01:43.772 --> 00:01:49.782
+It overrides the write methods to write data to this stream,
+
+30
+00:01:49.782 --> 00:01:52.752
+sets the headers when the stream is closed,
+
+31
+00:01:52.752 --> 00:01:55.732
+making sure the correct content length is set,
+
+32
+00:01:55.732 --> 00:01:59.702
+and flushes the output to the client.
+
+33
+00:01:59.702 --> 00:02:05.702
+So first, we'll turn off the filter by commenting out the WebFilter attribute.
+
+34
+00:02:05.702 --> 00:02:09.742
+If we now deploy this code, when we look at this in the browser,
+
+35
+00:02:09.742 --> 00:02:14.762
+we can use the browser tools to look at the network trace.
+
+36
+00:02:14.762 --> 00:02:20.762
+And if we look at the request * .do, we see that it has no compression.
+
+37
+00:02:20.762 --> 00:02:24.712
+And the size is about 5K.
+
+38
+00:02:24.712 --> 00:02:28.211
+If we go back to the code and turn on the filter and redeploy,
+
+39
+00:02:28.211 --> 00:02:40.000
+if we refresh the browser, you'll now see the compression is on and the size of the download is about 1K.
+

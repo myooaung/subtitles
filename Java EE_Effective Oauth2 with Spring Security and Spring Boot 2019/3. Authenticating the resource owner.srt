@@ -1,0 +1,440 @@
+1
+00:00:01,025 --> 00:00:06,111
+If you recall back to the OAuth2 authorization code grant flow,
+
+2
+00:00:06,111 --> 00:00:10,227
+the client sends the function or authorization request to the
+
+3
+00:00:10,227 --> 00:00:15,289
+authorization server via our redirect from the user's browser.
+
+4
+00:00:15,289 --> 00:00:19,621
+Our authorization server needs to authenticate the user and then
+
+5
+00:00:19,621 --> 00:00:24,116
+ask them if they consent to this client request.
+
+6
+00:00:24,116 --> 00:00:25,379
+Now to authenticate the user,
+
+7
+00:00:25,379 --> 00:00:29,916
+it can ask them to provide a username and a password.
+
+8
+00:00:29,916 --> 00:00:31,838
+So let's set this up.
+
+9
+00:00:31,838 --> 00:00:35,401
+You can create a configuration class that extends
+
+10
+00:00:35,401 --> 00:00:38,248
+the WebSecurityConfigurerAdapter.
+
+11
+00:00:38,248 --> 00:00:42,179
+By now you're probably already very familiar with this class.
+
+12
+00:00:42,179 --> 00:00:48,790
+Now when an instance of a configuration adapter is added to the Spring context,
+
+13
+00:00:48,790 --> 00:00:51,826
+you're essentially creating a filter chain.
+
+14
+00:00:51,826 --> 00:00:58,832
+Override the configure method that gives you access to the HttpSecurity builder.
+
+15
+00:00:58,832 --> 00:01:02,573
+Because you can have multiple filter chains configured in Spring,
+
+16
+00:01:02,573 --> 00:01:09,679
+in fact, by adding the AuthorizationServerConfigurerAdapter in the previous clip,
+
+17
+00:01:09,679 --> 00:01:12,985
+that created a filter chain.
+
+18
+00:01:12,985 --> 00:01:14,819
+So now by adding the WebSecurityConfigurerAdapter,
+
+19
+00:01:14,819 --> 00:01:18,424
+we will have two filter chains.
+
+20
+00:01:18,424 --> 00:01:20,583
+We'll see these later.
+
+21
+00:01:20,583 --> 00:01:22,648
+Now by using the requestMatcher,
+
+22
+00:01:22,648 --> 00:01:25,622
+we can configure this filter chain to handle requests to the
+
+23
+00:01:25,622 --> 00:01:31,248
+login page and to the oauth/authorize URI.
+
+24
+00:01:31,248 --> 00:01:38,687
+Next, we need to configure how we want to authorize these requests.
+
+25
+00:01:38,687 --> 00:01:40,499
+Now in this case,
+
+26
+00:01:40,499 --> 00:01:47,318
+any request to this URI requires the user to be authenticated via form login.
+
+27
+00:01:47,318 --> 00:01:53,458
+So what this means now is this filter chain will intercept
+
+28
+00:01:53,458 --> 00:01:57,853
+authorization URI requests from the user's browser.
+
+29
+00:01:57,853 --> 00:02:01,723
+It will then require the user to be authenticated.
+
+30
+00:02:01,723 --> 00:02:07,351
+If they are not, it will prompt them to authenticate via form login.
+
+31
+00:02:07,351 --> 00:02:09,366
+If the user is authenticated,
+
+32
+00:02:09,366 --> 00:02:13,799
+the request will be allowed to proceed to the authorization endpoint.
+
+33
+00:02:13,799 --> 00:02:16,191
+In order to authenticate the user,
+
+34
+00:02:16,191 --> 00:02:18,765
+the authorization server needs to know about them,
+
+35
+00:02:18,765 --> 00:02:22,898
+like the username, their password hash.
+
+36
+00:02:22,898 --> 00:02:25,419
+And authentication in Spring, if you recall,
+
+37
+00:02:25,419 --> 00:02:28,690
+is done by the AuthenticationManager.
+
+38
+00:02:28,690 --> 00:02:29,020
+Hence,
+
+39
+00:02:29,020 --> 00:02:32,497
+we can override the configure method that gives us access
+
+40
+00:02:32,497 --> 00:02:36,022
+to an AuthenticationManager builder, which,
+
+41
+00:02:36,022 --> 00:02:41,762
+as the name suggests, allows you to build an AuthenticationManager.
+
+42
+00:02:41,762 --> 00:02:45,406
+The builder allows you to either create a JDBC version where it can
+
+43
+00:02:45,406 --> 00:02:49,434
+retrieve the user's credentials from the database.
+
+44
+00:02:49,434 --> 00:02:50,289
+However for now,
+
+45
+00:02:50,289 --> 00:02:53,309
+we will create an in- memory authentication version
+
+46
+00:02:53,309 --> 00:02:57,986
+and add a user Joe with a password.
+
+47
+00:02:57,986 --> 00:03:00,447
+We'll give them one role, user.
+
+48
+00:03:00,447 --> 00:03:03,761
+Now passwords in Spring Security need to be encoded.
+
+49
+00:03:03,761 --> 00:03:06,965
+So let's return an instance of a BCrypt PasswordEncoder
+
+50
+00:03:06,965 --> 00:03:11,593
+and use it to encode our password.
+
+51
+00:03:11,593 --> 00:03:15,799
+Let's expose it as a bean as we also want to use this encoder
+
+52
+00:03:15,799 --> 00:03:21,925
+in our authorization server configuration.
+
+53
+00:03:21,925 --> 00:03:25,431
+This configures the AuthenticationManager in the adapter.
+
+54
+00:03:25,431 --> 00:03:28,577
+We now need to expose it as a bean.
+
+55
+00:03:28,577 --> 00:03:33,723
+We can do that by overriding the AuthenticationManagerBean method,
+
+56
+00:03:33,723 --> 00:03:36,789
+which will return the configured version of the manager,
+
+57
+00:03:36,789 --> 00:03:43,012
+which will then be used in the application throughout.
+
+58
+00:03:43,012 --> 00:03:46,150
+Now once the user is authenticated and they consent,
+
+59
+00:03:46,150 --> 00:03:48,720
+the request will hit the authorization endpoint,
+
+60
+00:03:48,720 --> 00:03:54,413
+which will return an authorization code to the client.
+
+61
+00:03:54,413 --> 00:03:59,051
+The client will then exchange it for an access token via the token endpoint.
+
+62
+00:03:59,051 --> 00:04:04,066
+Then the client will want to use the access token against a userinfo
+
+63
+00:04:04,066 --> 00:04:08,489
+endpoint to get the user-approved claims back.
+
+64
+00:04:08,489 --> 00:04:12,160
+Now we need to create a rest endpoint for this.
+
+65
+00:04:12,160 --> 00:04:17,292
+Create a rest controller, annotate the class with the RestController annotation,
+
+66
+00:04:17,292 --> 00:04:25,887
+and let's create a UserInfo method and expose it via a Get method.
+
+67
+00:04:25,887 --> 00:04:29,834
+For now we will just return a user object with the name,
+
+68
+00:04:29,834 --> 00:04:34,073
+first and last name, and email all hardcoded.
+
+69
+00:04:34,073 --> 00:04:38,051
+Now in your implementation, you can customize this any way you want.
+
+70
+00:04:38,051 --> 00:04:42,937
+You can interrogate the authentication object to retrieve any approved scopes
+
+71
+00:04:42,937 --> 00:04:47,455
+and selectively populate the response back to the client.
+
+72
+00:04:47,455 --> 00:04:53,663
+Access to the userinfo endpoint requires a valid access token.
+
+73
+00:04:53,663 --> 00:05:00,197
+So the authorization server also needs to play the role of a resource server.
+
+74
+00:05:00,197 --> 00:05:04,785
+To do this, we add the resource server annotation.
+
+75
+00:05:04,785 --> 00:05:10,509
+This will add a third filter chain that will look out for the access token in
+
+76
+00:05:10,509 --> 00:05:14,668
+the header before allowing access to the userinfo endpoint.
+
+77
+00:05:14,668 --> 00:05:20,698
+We will go over resource servers in more detail in later modules.
+
+78
+00:05:20,698 --> 00:05:22,775
+Now because we're going to have free filter chains,
+
+79
+00:05:22,775 --> 00:05:26,882
+we need to make sure that they're in the correct order.
+
+80
+00:05:26,882 --> 00:05:31,007
+Now if we drill into the EnableAuthorizationServer annotation,
+
+81
+00:05:31,007 --> 00:05:33,947
+you can see it has an order of 0.
+
+82
+00:05:33,947 --> 00:05:39,723
+If we do the same for the resource server, it has an order of 3.
+
+83
+00:05:39,723 --> 00:05:45,745
+And in the UserConfigurationAdapter, that has an order of 100,
+
+84
+00:05:45,745 --> 00:05:48,686
+which would mean that the filter chain created by the
+
+85
+00:05:48,686 --> 00:05:52,829
+AuthorizationServerConfiguration would be evaluated first,
+
+86
+00:05:52,829 --> 00:05:58,379
+followed by the resource server and then the user configuration.
+
+87
+00:05:58,379 --> 00:06:00,148
+Now in the OAuth flow,
+
+88
+00:06:00,148 --> 00:06:03,605
+you wouldn't have an access token until the user is
+
+89
+00:06:03,605 --> 00:06:06,731
+authenticated and they consent.
+
+90
+00:06:06,731 --> 00:06:12,021
+So we need to allow requests to the authorize endpoint through.
+
+91
+00:06:12,021 --> 00:06:12,957
+Now to address this,
+
+92
+00:06:12,957 --> 00:06:16,465
+we could create a third configuration class that extends the
+
+93
+00:06:16,465 --> 00:06:20,816
+ResourceServerConfigurerAdapter and configure the request matcher to
+
+94
+00:06:20,816 --> 00:06:24,246
+either ignore requests to the authorize endpoint.
+
+95
+00:06:24,246 --> 00:06:27,837
+However, changing the order is simpler.
+
+96
+00:06:27,837 --> 00:06:33,518
+In the UserConfiguration class, set the order to 1 using the annotation.
+
+97
+00:06:33,518 --> 00:06:37,493
+So it's before the resource server, which has an order of 3.
+
+98
+00:06:37,493 --> 00:06:42,589
+This way the resource server filter chain is only evaluated if the OAuth2
+
+99
+00:06:42,589 --> 00:06:47,497
+flow was successful and the client has an access token.
+
+100
+00:06:47,497 --> 00:06:49,858
+Now back to our application.yml config file,
+
+101
+00:06:49,858 --> 00:06:56,004
+let's set the port number to 8081 so that it doesn't clash with our web app.
+
+102
+00:06:56,004 --> 00:06:59,357
+Also, we need to provide a context-path.
+
+103
+00:06:59,357 --> 00:07:02,844
+This is because we are running the demo on a localhost domain.
+
+104
+00:07:02,844 --> 00:07:08,547
+Now a browser doesn't consider the port as part of a domain.
+
+105
+00:07:08,547 --> 00:07:13,187
+So if you started the client web app and the authorization server together,
+
+106
+00:07:13,187 --> 00:07:16,730
+the browser would store their cookies under the same domain,
+
+107
+00:07:16,730 --> 00:07:20,046
+localhost, and that would cause a clash.
+
+108
+00:07:20,046 --> 00:07:23,140
+The context root will ensure that the client web app
+
+109
+00:07:23,140 --> 00:07:26,949
+cookies will be stored under localhost and the
+
+110
+00:07:26,949 --> 00:07:36,000
+authorization server under localhost/auth. Next, let's configure our crypto web app to use this authorization server.
+

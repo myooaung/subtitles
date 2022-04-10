@@ -1,0 +1,1088 @@
+WEBVTT
+1
+00:00:04.440 --> 00:00:05.510
+Hello and welcome.
+
+2
+00:00:05.520 --> 00:00:13.830
+In this lecture we are going to be looking at how we can replace all the arpey SEE and property replication
+
+3
+00:00:13.830 --> 00:00:17.640
+that was currently in our code with these two strikes of the move.
+
+4
+00:00:17.700 --> 00:00:18.840
+And the state.
+
+5
+00:00:18.840 --> 00:00:23.760
+So we're going to be stripping out everything pretty much that's there and replacing it with these two
+
+6
+00:00:23.760 --> 00:00:24.480
+things.
+
+7
+00:00:24.480 --> 00:00:25.710
+That's what we're gonna do.
+
+8
+00:00:25.740 --> 00:00:28.340
+Let's dive in and find out how.
+
+9
+00:00:29.130 --> 00:00:33.430
+So we haven't currently changed anything about how our code work we've just introduced two new struct
+
+10
+00:00:33.430 --> 00:00:36.240
+which we're going to need in our pseudocode.
+
+11
+00:00:36.330 --> 00:00:42.660
+But let's take a little look at what we already have essentially what we're implementing but not by
+
+12
+00:00:42.660 --> 00:00:47.670
+using these strikes and we're going to be looking in this lecture at how we can implement it using those
+
+13
+00:00:47.670 --> 00:00:53.400
+structures like a refactored to get the same functionality so we can do a quick read Green refactor
+
+14
+00:00:53.400 --> 00:00:57.920
+a few Remember the red green refactored loop that's been mentioned in other courses.
+
+15
+00:00:58.960 --> 00:01:05.260
+So let's overview that pseudocode again what we've got is on our client side we tick.
+
+16
+00:01:05.410 --> 00:01:13.030
+Then we create a new move save to a list of unacknowledged moves send the move to the server and simulate
+
+17
+00:01:13.030 --> 00:01:14.370
+the move locally.
+
+18
+00:01:14.620 --> 00:01:20.500
+Then we send sending this move over to the server which is going to trigger an on receive move on the
+
+19
+00:01:20.500 --> 00:01:23.650
+server then it's going to check the validity of the move.
+
+20
+00:01:23.710 --> 00:01:29.900
+It's going to simulate the move it's going to send the canonicals state down to the clients.
+
+21
+00:01:30.040 --> 00:01:35.230
+So that's this arrow here sending the carcase stake down the client so the clients will receive a conical
+
+22
+00:01:35.230 --> 00:01:41.480
+state from the server remove all moves included in the state all ready.
+
+23
+00:01:41.560 --> 00:01:44.690
+So they're going to remove their unacknowledged moves.
+
+24
+00:01:44.830 --> 00:01:51.730
+The ones that have been acknowledged reset to the server state and then replay their unacknowledged
+
+25
+00:01:51.730 --> 00:01:52.260
+moves.
+
+26
+00:01:52.420 --> 00:01:55.190
+That little Delta they get to replay it on top.
+
+27
+00:01:55.330 --> 00:01:59.000
+Okay so what do we actually have this all ready.
+
+28
+00:01:59.230 --> 00:02:04.660
+Well I've just you can just see the ones that are in italics in red are the ones we don't have everything
+
+29
+00:02:04.660 --> 00:02:06.520
+else we kind of already got.
+
+30
+00:02:06.550 --> 00:02:13.120
+We do create a new me we don't do this on Tich we just send our inputs up to the server via two different
+
+31
+00:02:13.150 --> 00:02:21.880
+IP see calls and we so we don't have a move per say but we've got some variables on our object on an
+
+32
+00:02:21.900 --> 00:02:26.530
+actor that act as a move and we simulate locally on tick.
+
+33
+00:02:26.920 --> 00:02:32.260
+We receive moves Well actually we don't receive moves but we receive inputs from the client and we simulate
+
+34
+00:02:32.260 --> 00:02:34.950
+the move on the tick on the server.
+
+35
+00:02:34.960 --> 00:02:39.550
+So we're not doing it on received move but were doing it on the tick and then we send the canonical
+
+36
+00:02:39.560 --> 00:02:44.350
+state to the clients via a bundle of different replicated properties currently.
+
+37
+00:02:44.470 --> 00:02:51.340
+And when those replicated properties come down we just use them to reset to the server state on the
+
+38
+00:02:51.340 --> 00:02:55.170
+clients and we're simulating locally as we've already said.
+
+39
+00:02:55.450 --> 00:03:01.240
+So with actually got quite a lot of this aeroplane everything basically apart from saving these moves
+
+40
+00:03:01.270 --> 00:03:03.310
+and replaying these moves.
+
+41
+00:03:03.370 --> 00:03:10.720
+So what we want to do is refactor towards this and then we can implement these red bits separately.
+
+42
+00:03:10.870 --> 00:03:13.510
+We can just try and use our struct.
+
+43
+00:03:13.510 --> 00:03:17.170
+First of all which were going to need and refactor towards it.
+
+44
+00:03:17.170 --> 00:03:21.370
+So what are we going to do first we're going to start off with that state.
+
+45
+00:03:21.520 --> 00:03:26.310
+So I'm going to replicate state via a struct because at the moment if we go over to our go cart dot
+
+46
+00:03:26.320 --> 00:03:32.450
+age and you can follow along with me and have a look for everything that is currently replicated in
+
+47
+00:03:32.510 --> 00:03:38.440
+the search for replicated you'll see that we've got a velocity we've got a transform and we've got this
+
+48
+00:03:38.440 --> 00:03:44.650
+throttle and steering through it and we've bundled all of this up in the last lecture into a struct
+
+49
+00:03:44.740 --> 00:03:50.050
+called F go karts state which has the transform has the velocity in has last move and the last move
+
+50
+00:03:50.050 --> 00:03:55.240
+will conclude the throttle and steering throw as well as a few other bits of information which is going
+
+51
+00:03:55.240 --> 00:03:58.210
+to be vital for the rest of the algorithm.
+
+52
+00:03:58.240 --> 00:04:00.900
+So this is what we're going to want to replicate.
+
+53
+00:04:00.940 --> 00:04:07.120
+So let's go ahead and start ripping out those other replicated properties so I'm going to copy the go
+
+54
+00:04:07.120 --> 00:04:11.350
+cart state and create a new property of that type.
+
+55
+00:04:11.530 --> 00:04:17.710
+And I'm going to stick this somewhere at the bottom like so go carts state and I'm going to just call
+
+56
+00:04:17.740 --> 00:04:24.610
+this the server state as we've been calling it in our pseudo code doesn't need a default property default
+
+57
+00:04:24.640 --> 00:04:25.910
+is of all going to be zero.
+
+58
+00:04:26.050 --> 00:04:30.030
+Now it's going to be you property and it's going to be replicated.
+
+59
+00:04:30.190 --> 00:04:37.000
+First of all and in fact we probably want it to be replicated using So let's copy a replicated using
+
+60
+00:04:37.480 --> 00:04:38.400
+example.
+
+61
+00:04:38.710 --> 00:04:44.370
+Because remember that we want to honour receive service state reset to server state so we're going to
+
+62
+00:04:44.370 --> 00:04:46.850
+need to do something in this case.
+
+63
+00:04:46.870 --> 00:04:49.630
+We don't want to do on rep replicate it transform.
+
+64
+00:04:49.630 --> 00:04:56.290
+We want to do on rep server state but we are actually going to be getting rid of the velocity and the
+
+65
+00:04:56.290 --> 00:05:05.540
+replicator transform so we can repurpose our replicator transform to on rep Service state and do.
+
+66
+00:05:06.380 --> 00:05:13.550
+And for now I'm going to leave at the throttle and steering throw a loan that's going to change very
+
+67
+00:05:13.550 --> 00:05:13.940
+soon.
+
+68
+00:05:13.940 --> 00:05:17.100
+But for now let's just leave it as it is.
+
+69
+00:05:17.270 --> 00:05:19.720
+So we're going to take this you function.
+
+70
+00:05:19.730 --> 00:05:26.530
+We're going to make sure it is renamed in the C++ or go to the C++ changer on rep transform to.
+
+71
+00:05:26.540 --> 00:05:33.800
+The other thing and service state is going to need to be replaced every where it was being used incorrectly.
+
+72
+00:05:33.830 --> 00:05:41.300
+Oh I've also forgotten to replace the replicated using on rep replicate transform to actually be on
+
+73
+00:05:41.300 --> 00:05:43.440
+rep service data as well.
+
+74
+00:05:44.000 --> 00:05:44.560
+Okay.
+
+75
+00:05:44.720 --> 00:05:50.210
+So now we're going to have to go look for all our redd's quigley's that are going on in the C++ file
+
+76
+00:05:50.210 --> 00:05:55.460
+you can also compile if you don't have read quigley's from your I.D. can compile and figure out what
+
+77
+00:05:55.520 --> 00:05:57.600
+you should be changing.
+
+78
+00:05:57.920 --> 00:06:00.590
+So you notice we removed replicate a transform and velocity.
+
+79
+00:06:00.590 --> 00:06:06.260
+So the first regs were really for me is in the get lifetime replicated properties where we're going
+
+80
+00:06:06.260 --> 00:06:13.670
+to need to remove the do rep lifetime for the two properties velocity and transform and replace them
+
+81
+00:06:14.060 --> 00:06:20.450
+with server state is going to need to be replicated Instead we're leaving thropp honester in for just
+
+82
+00:06:20.450 --> 00:06:21.820
+for now.
+
+83
+00:06:22.010 --> 00:06:26.610
+So where are the next quickly that score on down so Avelox team.
+
+84
+00:06:26.720 --> 00:06:30.540
+That's one thing that is currently not being updated.
+
+85
+00:06:30.620 --> 00:06:33.070
+So what do we want to do with velocity.
+
+86
+00:06:33.510 --> 00:06:36.920
+Well actually perhaps I was a little hasty to remove our velocity.
+
+87
+00:06:36.920 --> 00:06:42.230
+We do still want velocity we just don't want it to be replicated and go go and add back an F vector
+
+88
+00:06:42.650 --> 00:06:44.140
+called Velocity.
+
+89
+00:06:44.390 --> 00:06:49.340
+Because what we're going to do is keep this velocity in sync with the server so when we get the state
+
+90
+00:06:49.400 --> 00:06:53.300
+come down we're going to replace that as part of that service state.
+
+91
+00:06:53.300 --> 00:06:59.810
+So let's go back to the C++ so that reads wigley has gone a way replicated transform should now be an
+
+92
+00:06:59.810 --> 00:07:01.910
+issue that's wafer's will race come back.
+
+93
+00:07:01.910 --> 00:07:02.180
+Yes.
+
+94
+00:07:02.180 --> 00:07:03.260
+Here they are.
+
+95
+00:07:03.290 --> 00:07:08.570
+So that is where we're going to need to do this bit of the algorithm I'm going to need to send the Canticle
+
+96
+00:07:08.570 --> 00:07:10.760
+state to the clients at the moment.
+
+97
+00:07:10.760 --> 00:07:15.680
+We were just overwriting the replicator transform but it gets a little bit more complicated than that
+
+98
+00:07:15.700 --> 00:07:25.190
+because what we've got to do is go to our server state DOT transform and set that equal to the get Act
+
+99
+00:07:25.190 --> 00:07:26.390
+to transform.
+
+100
+00:07:26.390 --> 00:07:30.070
+And furthermore we've got to go to our server state.
+
+101
+00:07:31.280 --> 00:07:36.880
+Velocity and set that equal to our local velocity variable from the actor.
+
+102
+00:07:36.950 --> 00:07:42.770
+So that is doing a simulation on the server as per the pseudo code and then sending that canakkale staked
+
+103
+00:07:42.800 --> 00:07:48.470
+to clients this these two lines are sending canonical States quite there are some other things that
+
+104
+00:07:48.470 --> 00:07:54.670
+we should send in as surplus state for example we should send what the last move was.
+
+105
+00:07:54.800 --> 00:07:57.140
+Now we don't have that information just yet.
+
+106
+00:07:57.170 --> 00:08:00.540
+So I'm going to put in a little to do for us.
+
+107
+00:08:01.440 --> 00:08:07.170
+To do update the last move so it will come back to that when we've got some more information.
+
+108
+00:08:07.230 --> 00:08:14.320
+But in the meantime we are going to carry on looking for those reds quigley's Due to our Red refactor.
+
+109
+00:08:14.490 --> 00:08:20.070
+So we're going to find a replicator transform in on a rep surber state and that is one that we're going
+
+110
+00:08:20.070 --> 00:08:21.120
+to have to replace.
+
+111
+00:08:21.120 --> 00:08:25.980
+That is going to be this part of the pseudo code that says Reset to serve state at the moment we're
+
+112
+00:08:25.980 --> 00:08:31.800
+not worrying about doing the remove or moves included in the state and replaying the unacknowledged
+
+113
+00:08:31.800 --> 00:08:32.360
+moves.
+
+114
+00:08:32.400 --> 00:08:33.600
+We're not doing that just yet.
+
+115
+00:08:33.600 --> 00:08:35.790
+We're going to be looking at that in future lectures.
+
+116
+00:08:35.790 --> 00:08:42.870
+So one thing is the set act transform we're now going to be setting it from the server state transform
+
+117
+00:08:42.960 --> 00:08:43.750
+the structure.
+
+118
+00:08:44.040 --> 00:08:45.820
+Now notice how this is working.
+
+119
+00:08:45.840 --> 00:08:50.680
+You can just have a struct as long as it has all the you properties.
+
+120
+00:08:50.880 --> 00:08:56.620
+You can just have a struct be replicated and all the properties inside it will automatically be replicated.
+
+121
+00:08:56.790 --> 00:08:59.490
+If you change anything in the strikes it gets replicated.
+
+122
+00:08:59.490 --> 00:09:01.170
+It's fantastic it's very easy.
+
+123
+00:09:01.200 --> 00:09:07.980
+So we can just go ahead and use it like this and really simplify the transfer of the server state because
+
+124
+00:09:08.070 --> 00:09:12.220
+when we change one bit of the service state the whole package gets updated.
+
+125
+00:09:12.240 --> 00:09:19.590
+And we know that this bundle of server stay is consistent and that is what we've got.
+
+126
+00:09:19.590 --> 00:09:24.960
+So we know that the move produced this transform and produced this velocity which is exactly what we
+
+127
+00:09:24.960 --> 00:09:27.070
+want the kind of semantics that we want.
+
+128
+00:09:27.360 --> 00:09:33.810
+So then we're going to also have to set our velocity or reset our velocity to whatever the server said
+
+129
+00:09:33.810 --> 00:09:37.920
+so it's going to be server state DOT velocity.
+
+130
+00:09:39.110 --> 00:09:42.380
+And that seems like an effective reset to me.
+
+131
+00:09:42.410 --> 00:09:45.770
+Let's go ahead and build and see whether it is okay.
+
+132
+00:09:45.770 --> 00:09:51.110
+So that built successfully and we haven't made a change here to the actual functionality.
+
+133
+00:09:51.110 --> 00:09:55.430
+So if you play the game it should behave in exactly the same way we're just replicating the state via
+
+134
+00:09:55.430 --> 00:10:00.550
+a different mechanism via the struct you can play the game and try it out for yourself.
+
+135
+00:10:00.560 --> 00:10:03.440
+But I am not going to do that on screen.
+
+136
+00:10:03.800 --> 00:10:10.130
+So what I am going to do is set you a challenge lets go ahead and consolidate all the P C weve created
+
+137
+00:10:10.130 --> 00:10:15.860
+that move struct weve created for a reason we want to be able to send an entire move in one arpey we
+
+138
+00:10:15.860 --> 00:10:21.710
+call so use only the moves drugs and replace all your rpe see all that sending of input with just the
+
+139
+00:10:21.710 --> 00:10:23.200
+sending of the moots struct.
+
+140
+00:10:23.240 --> 00:10:27.530
+Where should that Strutt be created and therefore also sent out to look at the pseudocode if you're
+
+141
+00:10:27.540 --> 00:10:34.220
+unsure which client should be the one creating it and how are you going to check that you are that client
+
+142
+00:10:34.820 --> 00:10:38.740
+and then what should the server do with the data that it receives.
+
+143
+00:10:38.750 --> 00:10:43.220
+Pause a video and have a go at answering any questions and implementing it.
+
+144
+00:10:43.220 --> 00:10:47.140
+Dont worry if you get it wrong the first time and dont worry if your solution is a little bit different
+
+145
+00:10:47.390 --> 00:10:53.390
+but still works because in the future lectures we can converge on the same solution or you might have
+
+146
+00:10:53.450 --> 00:10:54.440
+a better way of doing things.
+
+147
+00:10:54.440 --> 00:10:57.180
+Dont be afraid to have a better way of doing things than the instructor.
+
+148
+00:10:57.320 --> 00:11:00.800
+It is good if the student can become the teacher.
+
+149
+00:11:00.860 --> 00:11:03.130
+So pause the video and have a go at the challenge.
+
+150
+00:11:04.530 --> 00:11:05.430
+Okay welcome back.
+
+151
+00:11:05.460 --> 00:11:08.440
+So we are going to be sending the moves struct Vinod.
+
+152
+00:11:08.460 --> 00:11:09.800
+These are Peacey.
+
+153
+00:11:09.960 --> 00:11:12.810
+Lets go in to the head a file for starters.
+
+154
+00:11:12.930 --> 00:11:17.630
+And I'm going to copy the name of obstruct just for simplicity.
+
+155
+00:11:17.730 --> 00:11:24.540
+And we're going to go down to find where we have our current rpe see which is this server move forward
+
+156
+00:11:24.600 --> 00:11:30.240
+and I'm going to change server move forward into server send move.
+
+157
+00:11:30.600 --> 00:11:38.220
+And it's going to take an F go cart move called move and I can remove the other rpe see which is called
+
+158
+00:11:38.220 --> 00:11:39.440
+Move right.
+
+159
+00:11:39.450 --> 00:11:46.950
+So now we have just one arpey c which is server send move.
+
+160
+00:11:46.950 --> 00:11:51.250
+Now I'm going to copy that service and move and I'm going to go in to our.
+
+161
+00:11:52.220 --> 00:11:53.150
+C++.
+
+162
+00:11:53.570 --> 00:12:00.380
+And we're going to go down to where we've got some reds quigley's and we are going to skip over these
+
+163
+00:12:00.380 --> 00:12:07.700
+ones which are about sending the move forward and the move right to the server and we're going to look
+
+164
+00:12:07.700 --> 00:12:12.790
+instead at these ones that are now being replaced.
+
+165
+00:12:12.800 --> 00:12:18.590
+We're going to replace For example the server move forward implementation with the server send move
+
+166
+00:12:18.650 --> 00:12:19.640
+implementation.
+
+167
+00:12:19.640 --> 00:12:23.420
+And similarly the server send move.
+
+168
+00:12:23.420 --> 00:12:29.570
+Validation is also going need to be replaced and we are going to need to change the type of both those
+
+169
+00:12:29.670 --> 00:12:36.560
+to take and F go cart move move an ego move move in both these cases.
+
+170
+00:12:36.560 --> 00:12:44.440
+Now the validation for now I'm just going to return true and I'm going to leave our selves a to do.
+
+171
+00:12:46.300 --> 00:12:48.240
+To make better validation.
+
+172
+00:12:48.240 --> 00:12:50.890
+And we're going to do this in a future lecture or so.
+
+173
+00:12:51.220 --> 00:12:55.240
+And I can now remove our server move right implementation and validate.
+
+174
+00:12:55.240 --> 00:12:59.920
+Now notice the Reds quigley's are very confused at the moment as they do get with this b c because there's
+
+175
+00:12:59.930 --> 00:13:05.380
+a lot of auto generated code and auto generated headers for this implementation and validate.
+
+176
+00:13:05.380 --> 00:13:10.330
+Now what I'm going to do to clear out the Reds quigley's and make sure they are all correct is go ahead
+
+177
+00:13:10.330 --> 00:13:11.200
+and build.
+
+178
+00:13:11.230 --> 00:13:13.590
+And we may need to refresh the project as well.
+
+179
+00:13:14.020 --> 00:13:19.690
+Okay so it hasn't built successfully but which is what we expected and the reds quigley's are still
+
+180
+00:13:19.690 --> 00:13:24.940
+there as we also expect it so we've got to go into the real adatto go to file and refresh visual studio
+
+181
+00:13:24.940 --> 00:13:28.620
+project when that's done updating the project code.
+
+182
+00:13:28.620 --> 00:13:33.460
+We head back to visual studio and reload and hopefully now our redd's quigley's with a little bit of
+
+183
+00:13:33.460 --> 00:13:40.320
+waiting for Intellisense will have updated and we won't get the ones that are wrong about send move.
+
+184
+00:13:40.350 --> 00:13:42.040
+Validate an implementation.
+
+185
+00:13:42.250 --> 00:13:49.060
+However I do expect to see some errors and I expect them to be around our server move forward which
+
+186
+00:13:49.060 --> 00:13:50.460
+no longer exists.
+
+187
+00:13:50.590 --> 00:13:55.870
+And around this value that we're using in our Send move implementation so these are two things that
+
+188
+00:13:55.870 --> 00:13:58.150
+were going to have to fix.
+
+189
+00:13:58.150 --> 00:14:03.380
+Let's have a look at at Challenge definition and see what we need to be fixing here.
+
+190
+00:14:03.400 --> 00:14:05.130
+So where should the Struck be created.
+
+191
+00:14:05.140 --> 00:14:10.560
+That's going to help us with these first two Squiggy leaks and which client should create it.
+
+192
+00:14:10.600 --> 00:14:12.360
+Okay I'm going to answer that question as well.
+
+193
+00:14:12.640 --> 00:14:15.120
+But what should the server do with the data.
+
+194
+00:14:16.040 --> 00:14:20.330
+That's going to be answering the value question so let's start with number one what should the struct
+
+195
+00:14:20.670 --> 00:14:22.050
+that be created.
+
+196
+00:14:22.080 --> 00:14:23.050
+Look at the pseudocode.
+
+197
+00:14:23.240 --> 00:14:28.580
+We're actually doing that in tic because we're setting our throttle and steering throw value when the
+
+198
+00:14:28.580 --> 00:14:34.510
+input comes in but we are going to know what those values are for simulation only in tic.
+
+199
+00:14:34.520 --> 00:14:38.570
+So let's go over to tick and we can create and move struct.
+
+200
+00:14:38.720 --> 00:14:42.140
+So I am going to do this right at the beginning of taken it's going a bit long.
+
+201
+00:14:42.140 --> 00:14:45.690
+We are going to factor this out soon but not just yet.
+
+202
+00:14:45.710 --> 00:14:51.500
+So I'm going to create a new structure and it's actually copy a struct name because I don't like typing
+
+203
+00:14:51.500 --> 00:14:52.910
+things and getting them wrong.
+
+204
+00:14:52.910 --> 00:14:57.580
+That happens far too often with me so I'm going to create the move.
+
+205
+00:14:57.830 --> 00:15:02.030
+Then we're going to set the properties of the move so got Delta time.
+
+206
+00:15:02.090 --> 00:15:04.400
+Actually we can set the delta time right away.
+
+207
+00:15:04.400 --> 00:15:06.490
+We can set it to the delta time on tick.
+
+208
+00:15:06.490 --> 00:15:08.740
+That's another good reason why doing it.
+
+209
+00:15:08.810 --> 00:15:11.990
+We're doing it on tick because that is where delf time is available to us.
+
+210
+00:15:11.990 --> 00:15:16.020
+Sure we can get it in other places but it's really nice and neat that it comes in on Delta time.
+
+211
+00:15:16.040 --> 00:15:19.260
+It really does tell you that you're doing it the right place.
+
+212
+00:15:19.550 --> 00:15:20.950
+Then were going to do this steering throw.
+
+213
+00:15:20.960 --> 00:15:26.790
+It's going to be equal to weld just the steering throw on this act because it has been set by the input.
+
+214
+00:15:26.990 --> 00:15:34.670
+We're going to do move and we're going to set the throttle to again the throttle that is on this actor
+
+215
+00:15:35.300 --> 00:15:39.250
+and then we're going to move dot and we've got time loops.
+
+216
+00:15:39.440 --> 00:15:42.290
+Not quite sure what to do with time yet so let's put a.
+
+217
+00:15:42.350 --> 00:15:44.060
+To do for time.
+
+218
+00:15:46.840 --> 00:15:49.760
+To think about how we're going to set time at a later date.
+
+219
+00:15:49.760 --> 00:15:53.770
+So remember one refactoring is always perfectly fine to put some to dos in there.
+
+220
+00:15:53.770 --> 00:15:59.740
+If you're not sure and generally with challenges do as much as you can and if you're not sure just leave
+
+221
+00:15:59.740 --> 00:16:00.090
+it.
+
+222
+00:16:00.370 --> 00:16:03.660
+So the next part of our challenge is which client should create it.
+
+223
+00:16:03.670 --> 00:16:08.390
+Well clearly should be the autonomous proxy or the person in charge.
+
+224
+00:16:08.620 --> 00:16:15.040
+So we don't want to just send it from the autonomous proxy though because then the server wouldn't be
+
+225
+00:16:15.040 --> 00:16:18.760
+creating these moves and the server does need to be creating these moves.
+
+226
+00:16:18.790 --> 00:16:21.480
+So what were going to do instead is we're going to do it.
+
+227
+00:16:21.520 --> 00:16:26.800
+If we are locally controlled if it's here that we're creating the steering for it so it's going to be
+
+228
+00:16:26.800 --> 00:16:32.400
+if and I think it is locally controlled Yes it is.
+
+229
+00:16:33.040 --> 00:16:35.430
+Which is a function on the actor.
+
+230
+00:16:35.710 --> 00:16:41.320
+Basically just saying whether it has the controller here on this client which is exactly the thing that
+
+231
+00:16:41.320 --> 00:16:42.210
+we want to know.
+
+232
+00:16:42.280 --> 00:16:47.350
+You could find that in the documentation if you were unsure and if you'd gone down the autonomous proxy
+
+233
+00:16:47.350 --> 00:16:50.990
+route checking that the role was the autonomous proxy that would be fine.
+
+234
+00:16:51.220 --> 00:16:53.650
+Just wouldn't really work very well on the server.
+
+235
+00:16:53.800 --> 00:16:54.620
+Later Ron.
+
+236
+00:16:54.640 --> 00:16:56.600
+So you'd see that later on.
+
+237
+00:16:56.650 --> 00:17:00.920
+I'm just not taking it dragging you through that particular bit of dirt at this point.
+
+238
+00:17:01.210 --> 00:17:06.010
+Okay so next up what should the server do with the data that is answering the question.
+
+239
+00:17:06.010 --> 00:17:14.100
+Further down here which is at first of all we can remove Now our Send server move forward and server
+
+240
+00:17:14.110 --> 00:17:17.890
+move right because those are getting handled in Tick instead.
+
+241
+00:17:17.890 --> 00:17:22.070
+And what we can do is our server send move implementation.
+
+242
+00:17:22.130 --> 00:17:24.660
+Now what does its post do.
+
+243
+00:17:25.530 --> 00:17:26.190
+What should it do.
+
+244
+00:17:26.190 --> 00:17:28.270
+Well let's have a look at the.
+
+245
+00:17:29.820 --> 00:17:30.730
+Pseudo coat.
+
+246
+00:17:31.700 --> 00:17:32.800
+Well the answer is here.
+
+247
+00:17:32.810 --> 00:17:37.190
+We need to be chechnia move which is the validate step on which we put a to do in.
+
+248
+00:17:37.180 --> 00:17:42.770
+For now we need to simulate the move and then send the canonical state to the clients where we're sending
+
+249
+00:17:42.770 --> 00:17:44.920
+the canonical state to the clients in tick.
+
+250
+00:17:44.960 --> 00:17:46.910
+And we're also simulating it tick.
+
+251
+00:17:46.910 --> 00:17:52.910
+So the simplest thing to do would be to extract the throttle information and the steering throw information
+
+252
+00:17:52.910 --> 00:17:55.730
+from move and just send it over to tech.
+
+253
+00:17:55.730 --> 00:17:57.810
+And for now that will be enough.
+
+254
+00:17:57.880 --> 00:18:02.390
+It will basically implement what we have already got employed so it's not going to the same doctor time
+
+255
+00:18:03.050 --> 00:18:03.800
+but oh well.
+
+256
+00:18:04.100 --> 00:18:09.680
+So we're going to use move and get the throttle from the move and we're going to get the steering throw
+
+257
+00:18:09.740 --> 00:18:13.200
+and set the steering throw again from the move.
+
+258
+00:18:15.360 --> 00:18:21.930
+Dot steering throw and I'd like to point out here that again when we're using our p see if we've got
+
+259
+00:18:21.930 --> 00:18:27.840
+all our new properties set up correctly you can just send struts like that just like we can replicate
+
+260
+00:18:27.840 --> 00:18:28.590
+them down.
+
+261
+00:18:28.590 --> 00:18:33.140
+We can send them back up and it's a very nice way of bundling things all together.
+
+262
+00:18:33.210 --> 00:18:37.850
+So let's go ahead and build this and see if it's actually still working.
+
+263
+00:18:38.260 --> 00:18:43.290
+But actually I just thought that there is a step that we aren't doing and that is that we aren't sending
+
+264
+00:18:43.290 --> 00:18:43.920
+that move.
+
+265
+00:18:43.920 --> 00:18:48.860
+Now we've removed the code that sends the move it more sent the old RBC.
+
+266
+00:18:48.900 --> 00:18:53.010
+We haven't added it in after we've created an move to create a move we should be sending it should be
+
+267
+00:18:53.370 --> 00:18:59.570
+server send move and then we can just send that moves struck but the other part of the equation that's
+
+268
+00:18:59.680 --> 00:19:00.200
+built.
+
+269
+00:19:01.710 --> 00:19:06.720
+So the build was successful now and I will leave it up to you to do the testing.
+
+270
+00:19:06.720 --> 00:19:09.320
+I'm fairly sure that it's going to work.
+
+271
+00:19:09.480 --> 00:19:15.420
+So I will see you in the next lecture or I will be working on those bits of code that were in red and
+
+272
+00:19:15.450 --> 00:19:17.190
+that we haven't yet employed.

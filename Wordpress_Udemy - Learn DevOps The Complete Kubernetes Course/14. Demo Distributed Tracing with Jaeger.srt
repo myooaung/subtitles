@@ -1,0 +1,1007 @@
+1
+1
+
+00:00:00,210  -->  00:00:01,043
+<v Edward>In this lecture,</v>
+2
+
+2
+
+00:00:01,043  -->  00:00:03,343
+I want to talk about distributed tracing.
+3
+
+3
+
+00:00:04,880  -->  00:00:07,733
+This is our hello world application again,
+4
+
+4
+
+00:00:08,600  -->  00:00:12,840
+and what you want to do now is to trace the requests.
+5
+
+5
+
+00:00:12,840  -->  00:00:14,920
+You see that we have requests from
+6
+
+6
+
+00:00:14,920  -->  00:00:17,490
+istio-ingress to the hello app,
+7
+
+7
+
+00:00:17,490  -->  00:00:19,160
+from the hello app to the world app,
+8
+
+8
+
+00:00:19,160  -->  00:00:21,790
+and from the world app to the world-2 app.
+9
+
+9
+
+00:00:21,790  -->  00:00:25,730
+Those requests you can trace to use for debugging purposes
+10
+
+10
+
+00:00:25,730  -->  00:00:27,230
+when something goes wrong,
+11
+
+11
+
+00:00:27,230  -->  00:00:30,930
+and you can see the requests and how they were handled.
+12
+
+12
+
+00:00:30,930  -->  00:00:33,540
+So let's launch our hello world app again,
+13
+
+13
+
+00:00:33,540  -->  00:00:34,900
+and then I will use jaeger
+14
+
+14
+
+00:00:34,900  -->  00:00:36,783
+to show you the distributed tracing.
+15
+
+15
+
+00:00:37,750  -->  00:00:39,883
+Let's first start jaeger.
+16
+
+16
+
+00:00:41,040  -->  00:00:44,920
+Jaeger is automatically installed in
+17
+
+17
+
+00:00:44,920  -->  00:00:45,933
+istio-system.
+18
+
+18
+
+00:00:47,490  -->  00:00:52,260
+So here we have the istio-tracing bot which is running,
+19
+
+19
+
+00:00:52,260  -->  00:00:54,420
+and is actually jaeger.
+20
+
+20
+
+00:00:54,420  -->  00:00:55,510
+It also has service,
+21
+
+21
+
+00:00:55,510  -->  00:00:57,603
+so if you do kubectl get svc
+22
+
+22
+
+00:00:58,810  -->  00:00:59,723
+istio-system,
+23
+
+23
+
+00:01:02,270  -->  00:01:06,320
+you here see the jaeger-agent, the collector, and the query.
+24
+
+24
+
+00:01:06,320  -->  00:01:08,060
+And it's the query that we can use
+25
+
+25
+
+00:01:08,060  -->  00:01:12,130
+that has a graphical interface to see the traces.
+26
+
+26
+
+00:01:12,130  -->  00:01:14,700
+Right now, this only has a ClusterIP,
+27
+
+27
+
+00:01:14,700  -->  00:01:17,200
+so you would have to use port forwarding,
+28
+
+28
+
+00:01:17,200  -->  00:01:18,910
+kubectl port forwarding for example,
+29
+
+29
+
+00:01:18,910  -->  00:01:20,363
+to access this port.
+30
+
+30
+
+00:01:21,340  -->  00:01:24,170
+What you also can do is
+31
+
+31
+
+00:01:24,170  -->  00:01:26,580
+you can export this one using a loan balancer.
+32
+
+32
+
+00:01:26,580  -->  00:01:29,290
+So I'm going to do kubectl edit of this
+33
+
+33
+
+00:01:30,384  -->  00:01:32,180
+svc jaeger-query
+34
+
+34
+
+00:01:32,180  -->  00:01:33,020
+in the namespace
+35
+
+35
+
+00:01:34,710  -->  00:01:35,653
+istio-system,
+36
+
+36
+
+00:01:37,860  -->  00:01:40,150
+and then I'm going to change the type
+37
+
+37
+
+00:01:40,150  -->  00:01:44,250
+from ClusterIP into LoadBalancer,
+38
+
+38
+
+00:01:44,250  -->  00:01:47,203
+and then this will spin up a load balancer for us.
+39
+
+39
+
+00:01:48,630  -->  00:01:49,860
+This might take some time.
+40
+
+40
+
+00:01:49,860  -->  00:01:52,760
+In the meantime I'm going to redeploy the hello world app.
+41
+
+41
+
+00:01:53,930  -->  00:01:58,053
+Kubectl apply with kube-inject of our helloworld.yaml
+42
+
+42
+
+00:01:59,050  -->  00:02:02,333
+and we're going to apply the helloworld gateway.
+43
+
+43
+
+00:02:03,320  -->  00:02:05,870
+This is going to create an endpoint
+44
+
+44
+
+00:02:05,870  -->  00:02:08,853
+on slash hello on the load balancer.
+45
+
+45
+
+00:02:10,160  -->  00:02:12,410
+Let's have a look where the load balancer is.
+46
+
+46
+
+00:02:17,140  -->  00:02:17,973
+Istio-ingress.
+47
+
+47
+
+00:02:19,430  -->  00:02:20,370
+Let's do curl
+48
+
+48
+
+00:02:22,860  -->  00:02:24,483
+on the hello endpoint,
+49
+
+49
+
+00:02:25,910  -->  00:02:27,942
+and now it is hello world.
+50
+
+50
+
+00:02:27,942  -->  00:02:29,642
+So we'll just do these a few times
+51
+
+51
+
+00:02:31,450  -->  00:02:35,130
+and then here, if I scroll up, you can see that
+52
+
+52
+
+00:02:35,130  -->  00:02:37,960
+the jaeger-query also has a load balancer now,
+53
+
+53
+
+00:02:37,960  -->  00:02:40,653
+and this is the url to reach it.
+54
+
+54
+
+00:02:41,860  -->  00:02:45,030
+Can take a few minutes before you can reach this one.
+55
+
+55
+
+00:02:45,030  -->  00:02:46,770
+Same as the other load balancers,
+56
+
+56
+
+00:02:46,770  -->  00:02:48,600
+so you might have to wait some time.
+57
+
+57
+
+00:02:48,600  -->  00:02:50,640
+You can just execute some more curls
+58
+
+58
+
+00:02:50,640  -->  00:02:54,300
+so that we have some data in our jaeger interface
+59
+
+59
+
+00:02:54,300  -->  00:02:55,493
+to drill down on.
+60
+
+60
+
+00:02:56,620  -->  00:02:58,820
+I also had to make a change to the app
+61
+
+61
+
+00:02:58,820  -->  00:03:02,140
+to make sure that I forward the headers supplied by
+62
+
+62
+
+00:03:02,140  -->  00:03:03,263
+the instio-ingress.
+63
+
+63
+
+00:03:04,690  -->  00:03:06,830
+Those headers are pretty default.
+64
+
+64
+
+00:03:06,830  -->  00:03:08,373
+Those are open-trace headers.
+65
+
+65
+
+00:03:09,540  -->  00:03:12,590
+So if you have a look at the http-echo service,
+66
+
+66
+
+00:03:12,590  -->  00:03:16,350
+you'll find tracing.go that defines the headers
+67
+
+67
+
+00:03:16,350  -->  00:03:19,590
+that I am forwarding to the other service
+68
+
+68
+
+00:03:19,590  -->  00:03:20,843
+when making a request.
+69
+
+69
+
+00:03:21,930  -->  00:03:24,050
+So when I have an incoming request
+70
+
+70
+
+00:03:24,050  -->  00:03:26,000
+on the hello app, for example,
+71
+
+71
+
+00:03:26,000  -->  00:03:29,233
+then the hello app will read these headers.
+72
+
+72
+
+00:03:30,210  -->  00:03:31,850
+These headers come with values,
+73
+
+73
+
+00:03:31,850  -->  00:03:33,840
+like, for example, the request ID,
+74
+
+74
+
+00:03:33,840  -->  00:03:36,190
+and it will reuse these headers
+75
+
+75
+
+00:03:36,190  -->  00:03:38,120
+when contacting the next service.
+76
+
+76
+
+00:03:38,120  -->  00:03:39,980
+The next service is the hello service,
+77
+
+77
+
+00:03:39,980  -->  00:03:41,710
+so when contacting the hello service
+78
+
+78
+
+00:03:41,710  -->  00:03:43,230
+it will forward these headers
+79
+
+79
+
+00:03:43,230  -->  00:03:45,500
+so that we don't lose this information.
+80
+
+80
+
+00:03:45,500  -->  00:03:46,340
+And so in a trace,
+81
+
+81
+
+00:03:46,340  -->  00:03:51,340
+we have one nice trace of our hello world and world-2,
+82
+
+82
+
+00:03:51,480  -->  00:03:54,060
+because they have the same request ID.
+83
+
+83
+
+00:03:54,060  -->  00:03:55,460
+Let's have a look at jaeger.
+84
+
+84
+
+00:03:56,680  -->  00:03:58,260
+This is the load balancer host
+85
+
+85
+
+00:03:59,790  -->  00:04:01,310
+and this is the port.
+86
+
+86
+
+00:04:01,310  -->  00:04:05,223
+So the port is 16686 that jaeger is using.
+87
+
+87
+
+00:04:06,330  -->  00:04:10,733
+You can do a lookup by trace ID or you can just find traces.
+88
+
+88
+
+00:04:12,200  -->  00:04:13,800
+Let's select a service,
+89
+
+89
+
+00:04:13,800  -->  00:04:16,150
+for example the hello service,
+90
+
+90
+
+00:04:16,150  -->  00:04:18,173
+and then just click Find Traces.
+91
+
+91
+
+00:04:22,960  -->  00:04:27,300
+Here then I have a diagram of when the traces happened.
+92
+
+92
+
+00:04:27,300  -->  00:04:29,430
+I did some traces before I did this demo
+93
+
+93
+
+00:04:30,800  -->  00:04:32,513
+and I did some traces right now.
+94
+
+94
+
+00:04:33,600  -->  00:04:36,163
+Let's have a look when we drill down to a trace.
+95
+
+95
+
+00:04:37,573  -->  00:04:41,680
+We have istio-ingress gateway to our hello service,
+96
+
+96
+
+00:04:41,680  -->  00:04:42,973
+14 spans,
+97
+
+97
+
+00:04:44,490  -->  00:04:47,820
+and then we see that there was lots of traffic.
+98
+
+98
+
+00:04:47,820  -->  00:04:50,900
+I'm just going to collapse some of them
+99
+
+99
+
+00:04:50,900  -->  00:04:53,173
+so that it's a little bit easier to read.
+100
+
+100
+
+00:04:54,100  -->  00:04:57,250
+We also have policy checks that are happening
+101
+
+101
+
+00:04:57,250  -->  00:04:59,540
+in the tracing that you can collapse
+102
+
+102
+
+00:04:59,540  -->  00:05:01,110
+to make it more readable.
+103
+
+103
+
+00:05:01,110  -->  00:05:03,580
+So we start from the istio-ingressgateway.
+104
+
+104
+
+00:05:03,580  -->  00:05:05,080
+We go to the hello app.
+105
+
+105
+
+00:05:05,080  -->  00:05:07,220
+The hello app is right here.
+106
+
+106
+
+00:05:07,220  -->  00:05:10,260
+Then we go to the world app.
+107
+
+107
+
+00:05:10,260  -->  00:05:13,260
+In the world app, we contact the
+108
+
+108
+
+00:05:13,260  -->  00:05:14,460
+world-2 app,
+109
+
+109
+
+00:05:14,460  -->  00:05:16,170
+and then we end up at the world-2 app,
+110
+
+110
+
+00:05:16,170  -->  00:05:19,200
+and the world-2 app just responds with some text
+111
+
+111
+
+00:05:19,200  -->  00:05:20,800
+and doesn't contact any service.
+112
+
+112
+
+00:05:21,960  -->  00:05:24,050
+Here we have the istio-policies,
+113
+
+113
+
+00:05:24,050  -->  00:05:26,030
+so these are the policy checks
+114
+
+114
+
+00:05:26,030  -->  00:05:28,530
+that are being done at the service level as well,
+115
+
+115
+
+00:05:28,530  -->  00:05:30,210
+so you can see those as well.
+116
+
+116
+
+00:05:30,210  -->  00:05:32,240
+So if you drill down, for example,
+117
+
+117
+
+00:05:32,240  -->  00:05:33,820
+here to hello
+118
+
+118
+
+00:05:33,820  -->  00:05:35,970
+you can actually see some more information.
+119
+
+119
+
+00:05:37,610  -->  00:05:39,873
+For example, the url that had been used,
+120
+
+120
+
+00:05:41,060  -->  00:05:44,350
+the tags, the IP address, the request ID.
+121
+
+121
+
+00:05:44,350  -->  00:05:47,510
+Here's the request ID that you can use.
+122
+
+122
+
+00:05:47,510  -->  00:05:50,140
+If you open this, then you can see better.
+123
+
+123
+
+00:05:50,140  -->  00:05:52,720
+So here for example you have the request ID
+124
+
+124
+
+00:05:52,720  -->  00:05:53,710
+that you can use.
+125
+
+125
+
+00:05:53,710  -->  00:05:57,440
+And this request ID here that ends with 33
+126
+
+126
+
+00:05:57,440  -->  00:05:59,503
+should be the same when we, for example,
+127
+
+127
+
+00:06:01,100  -->  00:06:03,220
+have a look here in the world-2 app.
+128
+
+128
+
+00:06:03,220  -->  00:06:05,580
+We have the same ID here.
+129
+
+129
+
+00:06:05,580  -->  00:06:06,430
+So this ends with
+130
+
+130
+
+00:06:07,377  -->  00:06:08,770
+ae33,
+131
+
+131
+
+00:06:08,770  -->  00:06:10,140
+ae33.
+132
+
+132
+
+00:06:10,140  -->  00:06:13,460
+So this is a unique ID that you can use for that request.
+133
+
+133
+
+00:06:13,460  -->  00:06:14,830
+If something goes wrong with that request,
+134
+
+134
+
+00:06:14,830  -->  00:06:17,220
+you can drill down
+135
+
+135
+
+00:06:17,220  -->  00:06:19,620
+and you will find even on the service itself
+136
+
+136
+
+00:06:19,620  -->  00:06:21,550
+that the header of the response
+137
+
+137
+
+00:06:21,550  -->  00:06:23,900
+contains this x-request-id
+138
+
+138
+
+00:06:23,900  -->  00:06:26,543
+so that you can use it for debugging purposes.
+139
+
+139
+
+00:06:28,370  -->  00:06:32,140
+So this is a very useful tool to do distribute tracing
+140
+
+140
+
+00:06:32,140  -->  00:06:34,150
+to see if there goes something wrong,
+141
+
+141
+
+00:06:34,150  -->  00:06:37,890
+it takes a long time for a service to respond, for example,
+142
+
+142
+
+00:06:37,890  -->  00:06:40,720
+and know how your services communicate.
+143
+
+143
+
+00:06:40,720  -->  00:06:42,770
+For that you can also use dependencies.
+144
+
+144
+
+00:06:42,770  -->  00:06:45,800
+So if you click on Dependencies, you can click on DAC
+145
+
+145
+
+00:06:45,800  -->  00:06:48,350
+and here you have a very nice diagram.
+146
+
+146
+
+00:06:48,350  -->  00:06:51,300
+You might have to move the services a bit,
+147
+
+147
+
+00:06:51,300  -->  00:06:53,020
+and then you see nicely.
+148
+
+148
+
+00:06:53,020  -->  00:06:56,710
+We have incoming requests from the istio-ingressgateway.
+149
+
+149
+
+00:06:56,710  -->  00:06:58,950
+All these services use istio-policy
+150
+
+150
+
+00:06:58,950  -->  00:07:00,640
+to check the access control.
+151
+
+151
+
+00:07:00,640  -->  00:07:02,270
+If you have access to regess service,
+152
+
+152
+
+00:07:02,270  -->  00:07:03,790
+then we go to the hello app,
+153
+
+153
+
+00:07:03,790  -->  00:07:05,460
+hello app will go to the world app,
+154
+
+154
+
+00:07:05,460  -->  00:07:07,310
+and world app will go to world-2 app.
+155
+
+155
+
+00:07:08,590  -->  00:07:10,420
+Istio-policy communicates with istio-mixer,
+156
+
+156
+
+00:07:10,420  -->  00:07:13,590
+and istio-telemetry gets its telemetry
+157
+
+157
+
+00:07:13,590  -->  00:07:15,780
+from the istio-mixer as well.
+158
+
+158
+
+00:07:15,780  -->  00:07:17,020
+If you have a lot more services,
+159
+
+159
+
+00:07:17,020  -->  00:07:19,830
+then this DAC will become bigger.
+160
+
+160
+
+00:07:19,830  -->  00:07:22,580
+Then you will see nicely how your services communicate.
+161
+
+161
+
+00:07:23,690  -->  00:07:25,960
+So that is it for distribute tracing.
+162
+
+162
+
+00:07:25,960  -->  00:07:27,310
+If you are deploying your own app,
+163
+
+163
+
+00:07:27,310  -->  00:07:28,510
+you can have a look here
+164
+
+164
+
+00:07:29,480  -->  00:07:31,890
+at the tracing.go and the main go,
+165
+
+165
+
+00:07:31,890  -->  00:07:35,400
+how to implement the forwarding of the headers,
+166
+
+166
+
+00:07:35,400  -->  00:07:37,370
+or you can have a look in the Istio documentation
+167
+
+167
+
+00:07:37,370  -->  00:07:39,930
+has also examples of bitem and java.
+168
+
+168
+
+00:07:39,930  -->  00:07:42,683
+It's fairly easy to implement this in your services.

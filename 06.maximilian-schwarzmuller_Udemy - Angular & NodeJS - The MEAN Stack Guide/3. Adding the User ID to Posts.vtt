@@ -1,0 +1,253 @@
+WEBVTT
+
+00:02.890 --> 00:09.340
+With the updated Mongoose schema, let's go to our posts route and there to the route where we actually
+
+00:09.340 --> 00:14.270
+create a new post. There we store the title content and image path,
+
+00:14.440 --> 00:18.880
+now we want to populate that new creator field here too.
+
+00:19.330 --> 00:26.470
+Now for that, I'll add it here and now the big question of course is where are we going to get the user
+
+00:26.470 --> 00:28.100
+ID from?
+
+00:28.120 --> 00:36.820
+We're not passing it as part of the request but it will actually be part of our token. If we go to the
+
+00:36.820 --> 00:44.470
+user.js file in the routes folder, in the login route where we create that token, we actually encode
+
+00:44.560 --> 00:47.350
+the user ID into that token 
+
+00:47.590 --> 00:55.330
+and if you remember what I said about that token in the last module, I said that this token can be decoded,
+
+00:55.390 --> 00:57.020
+it's not encrypted,
+
+00:57.160 --> 01:00.650
+so we can fetch that user ID from the token
+
+01:00.700 --> 01:03.030
+and that's exactly what I want to do.
+
+01:03.580 --> 01:10.480
+I can go back to my post route here and I can decode the token here to get the information which is
+
+01:10.480 --> 01:11.890
+inside of it
+
+01:12.160 --> 01:14.550
+but now that I say decode,
+
+01:14.850 --> 01:23.470
+if we have a look at our middleware, check-auth, we actually do already verify the token here and the verification
+
+01:23.470 --> 01:28.910
+method, this verify method actually retrieves the token for us,
+
+01:29.170 --> 01:36.460
+it gives us a decoded token. That means that we actually get back a result which we're not using yet
+
+01:36.910 --> 01:40.150
+but this result will be the decoded token,
+
+01:40.180 --> 01:45.010
+so decodedToken, let me store that in a new constant
+
+01:45.700 --> 01:49.240
+and now that means we can access the data which is inside of that token.
+
+01:49.270 --> 01:56.740
+So to be precise, the data which we are encoding into the token, the e-mail and the user ID and some standard
+
+01:56.740 --> 01:58.950
+fields which are always encoded into the token
+
+01:58.950 --> 02:02.800
+but that is our custom data which we added. Now the problem
+
+02:02.800 --> 02:09.160
+just is I don't need that data in the checkAuth method, I need it in my posts routes
+
+02:09.160 --> 02:13.870
+for example, here in that route where we create a new post.
+
+02:13.900 --> 02:21.220
+Now the cool thing is ExpressJS, the NodeJS framework we're using here gives us the ability of
+
+02:21.310 --> 02:27.940
+easily adding new pieces of data, new fields to that request object
+
+02:27.940 --> 02:34.330
+and if our middleware then calls next, the request is going to move on to the next middleware and it's
+
+02:34.330 --> 02:38.090
+going to keep any fields we added to it.
+
+02:38.110 --> 02:43.650
+So what we can do here is we can simply access request and then add a new field,
+
+02:43.720 --> 02:47.100
+just make sure to not override one which already exists.
+
+02:47.140 --> 02:49.920
+For example, we could add user data here,
+
+02:50.020 --> 02:52.250
+that's a field which does not exist
+
+02:52.390 --> 03:01.290
+but now I'm setting it equal to a new Javascript object where I want to have my e-mail which I can get
+
+03:01.290 --> 03:07.950
+from the decoded token, there we're going to have an e-mail property because in the user.js route file,
+
+03:08.250 --> 03:14.940
+we're going to add one here and I can get my user ID field which we're also passing into the token. So
+
+03:14.940 --> 03:23.230
+I can also add a second field here which is going to be the user ID which is decoded token user ID.
+
+03:23.880 --> 03:29.670
+And now with that, we're adding this to the request which means every method, every middleware running
+
+03:29.730 --> 03:34.680
+after the check-auth middleware will get that extra piece of information
+
+03:35.070 --> 03:42.060
+and if we now have a look at our posts.js file, we see that our middleware here where we try to create
+
+03:42.060 --> 03:46.230
+a new post does run after the check-auth middleware,
+
+03:46.230 --> 03:52.350
+so we will have that extra piece, that extra user data field available there.
+
+03:52.380 --> 03:55.930
+Now with that information, we get everything we need of course.
+
+03:56.250 --> 03:59.560
+Let's first of all verify that this really is the case,
+
+03:59.610 --> 04:07.470
+so I'll temporarily remove that creator field here and I will actually return a new response here with status
+
+04:08.020 --> 04:16.560
+200, JSON, an empty object just so that the save method doesn't get executed and we don't store that
+
+04:16.560 --> 04:23.610
+post to the server because now I really just want to console log request user data to prove that this
+
+04:23.610 --> 04:27.010
+is available and I don't want to save anything to the database.
+
+04:27.120 --> 04:31.220
+So with that, let's save all the code and let's go back and create a new post
+
+04:31.230 --> 04:36.720
+and again keep in mind, the image is going to get uploaded but the post is not going to get saved.
+
+04:36.840 --> 04:38.430
+So here correctly, we don't
+
+04:38.430 --> 04:44.730
+add the post but if we now look into our server side terminal, we see that this is that user data object
+
+04:44.730 --> 04:45.780
+I was talking about,
+
+04:45.840 --> 04:47.830
+so it is available.
+
+04:47.940 --> 04:51.720
+With that, let's remove that return statement and the console log statement
+
+04:51.840 --> 04:54.300
+and now let's add that creator field
+
+04:54.390 --> 05:01.200
+to our post object we're going to create here and that creator will actually get the value we have
+
+05:01.240 --> 05:05.510
+here, request user data user ID,
+
+05:05.610 --> 05:08.630
+so this value. And this is a string
+
+05:08.670 --> 05:14.450
+but keep in mind this will be taken by Mongoose and turned into this object ID object.
+
+05:15.250 --> 05:20.710
+So with that, we should be able to store the user ID as part of our post.
+
+05:20.830 --> 05:28.180
+We can prove this by saving this but also editing another route here where we actually get all the
+
+05:28.180 --> 05:30.580
+posts, we do return all the posts,
+
+05:30.580 --> 05:31.590
+keep that in mind
+
+05:31.690 --> 05:35.130
+and these posts should of course contain the user ID then.
+
+05:35.350 --> 05:42.250
+So if I go to the Angular code, into the posts service where we do fetch all the posts, then I can
+
+05:42.250 --> 05:47.920
+go into my subscribe method and simply console log the transformed post data and
+
+05:47.920 --> 05:51.540
+this means that we should see the creator ID there too
+
+05:51.820 --> 05:55.180
+and now with that, we're trying to log the post that we get.
+
+05:55.180 --> 06:01.780
+Now one important thing to keep in mind, we're mapping the post data here and we're actually mapping it
+
+06:01.780 --> 06:05.380
+into a new object where we don't use that creator ID anymore.
+
+06:05.530 --> 06:08.590
+So let's add a field here and we will need this later too,
+
+06:08.590 --> 06:11.730
+so this is really important too, not just for debugging now.
+
+06:12.010 --> 06:17.890
+So I'll add my creator field there and access post creator because we should be getting that information
+
+06:17.890 --> 06:19.420
+from the server.
+
+06:19.660 --> 06:22.880
+And with that, we can go back to our Angular app,
+
+06:22.960 --> 06:30.630
+create a new post, test with some dummy content and pick an image here, spring.
+
+06:30.910 --> 06:37.660
+If we now save this, we rendered a post and if we have a look at the posts here into this array, we see that
+
+06:37.670 --> 06:43.840
+here we got a creator ID which actually is the ID of the user who created this post.
+
+06:43.840 --> 06:46.480
+Now this of course is one important step,
+
+06:46.480 --> 06:48.540
+now we got that ID here,
+
+06:48.820 --> 06:55.960
+the next step which we'll take in the next lectures is to use that ID on the back-end to deny any delete
+
+06:55.990 --> 07:00.450
+or update requests made by another user for a given post.

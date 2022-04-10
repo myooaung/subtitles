@@ -1,0 +1,492 @@
+1
+00:00:02,051 --> 00:00:04,726
+Besides simple marshalling and unmarshalling to
+
+2
+00:00:04,726 --> 00:00:07,563
+convert between Java objects in XML,
+
+3
+00:00:07,563 --> 00:00:11,562
+you can do more sophisticated things with JAXB.
+
+4
+00:00:11,562 --> 00:00:13,860
+To show you an example of what's possible,
+
+5
+00:00:13,860 --> 00:00:17,956
+we are going to see what you can do using class binder.
+
+6
+00:00:17,956 --> 00:00:20,330
+Before we get to the code,
+
+7
+00:00:20,330 --> 00:00:24,378
+I'll explain what exactly the purpose is of class binder.
+
+8
+00:00:24,378 --> 00:00:25,458
+As you know,
+
+9
+00:00:25,458 --> 00:00:29,058
+you can parse an XML document in different ways using
+
+10
+00:00:29,058 --> 00:00:31,746
+the different Java XML parsing APIs.
+
+11
+00:00:31,746 --> 00:00:38,695
+For example, you can parse it into a tree of DOM nodes using the DOM API,
+
+12
+00:00:38,695 --> 00:00:43,984
+or into a set of JAXB objects by unmarshalling it using JAXB.
+
+13
+00:00:43,984 --> 00:00:48,729
+When you've parsed an XML document using the DOM API,
+
+14
+00:00:48,729 --> 00:00:53,715
+what you can do with a binder is translate the DOM tree into
+
+15
+00:00:53,715 --> 00:00:58,317
+JAXB objects while maintaining a link back from the JAXB
+
+16
+00:00:58,317 --> 00:01:01,322
+objects to the nodes in the DOM tree.
+
+17
+00:01:01,322 --> 00:01:02,049
+This way,
+
+18
+00:01:02,049 --> 00:01:07,263
+you can work with the JAXB objects and then update the DOM tree with
+
+19
+00:01:07,263 --> 00:01:10,849
+the modifications that you made in the JAXB objects.
+
+20
+00:01:10,849 --> 00:01:17,062
+In other words, it enables you to create a JAXB view of a DOM tree,
+
+21
+00:01:17,062 --> 00:01:21,622
+which is easier to work with than the DOM tree itself.
+
+22
+00:01:21,622 --> 00:01:21,927
+Also,
+
+23
+00:01:21,927 --> 00:01:25,587
+you do not have to translate the whole DOM tree into JAXB
+
+24
+00:01:25,587 --> 00:01:28,719
+objects; you can also convert only a part of it,
+
+25
+00:01:28,719 --> 00:01:34,955
+as we'll see in the example that we're going to work with.
+
+26
+00:01:34,955 --> 00:01:39,375
+In example ps-jaxb-28-binder, we're going to do the following.
+
+27
+00:01:39,375 --> 00:01:41,864
+First we'll parse a file purchaseOrder.
+
+28
+00:01:41,864 --> 00:01:44,231
+xml using the DOM API.
+
+29
+00:01:44,231 --> 00:01:49,213
+Then we'll look up the customer element in the DOM tree.
+
+30
+00:01:49,213 --> 00:01:54,949
+We'll use a binder to unmarshal the customer element into a customer object.
+
+31
+00:01:54,949 --> 00:01:59,510
+Then we'll modify some of the fields in the customer object,
+
+32
+00:01:59,510 --> 00:02:05,330
+and then use the binder to write those modifications back to the DOM tree.
+
+33
+00:02:05,330 --> 00:02:09,025
+Let's have a look at the example.
+
+34
+00:02:09,025 --> 00:02:11,758
+We'll start with class BinderExample.
+
+35
+00:02:11,758 --> 00:02:20,471
+In lines 31 to 34, we use the DOM API to parse the file purchaseOrder.
+
+36
+00:02:20,471 --> 00:02:21,091
+xml.
+
+37
+00:02:21,091 --> 00:02:25,513
+One thing that's important is that we need to enable support for namespaces
+
+38
+00:02:25,513 --> 00:02:30,723
+because this is disabled by default in the DOM parser.
+
+39
+00:02:30,723 --> 00:02:32,136
+If we don't do this,
+
+40
+00:02:32,136 --> 00:02:35,551
+then the namespaces in the document will be ignored during parsing,
+
+41
+00:02:35,551 --> 00:02:41,371
+and we'll get problems when we use the binder to translate this to JAXB.
+
+42
+00:02:41,371 --> 00:02:43,259
+In our domain model,
+
+43
+00:02:43,259 --> 00:02:48,056
+there's an XmlSchema annotation on the package which says that the
+
+44
+00:02:48,056 --> 00:02:51,750
+domain model classes map to our example namespace.
+
+45
+00:02:51,750 --> 00:02:56,392
+If there's no information about the namespace in the DOM tree,
+
+46
+00:02:56,392 --> 00:02:59,984
+then there would be a mismatch between the DOM tree
+
+47
+00:02:59,984 --> 00:03:02,418
+and our domain model classes.
+
+48
+00:03:02,418 --> 00:03:04,365
+After parsing the XML,
+
+49
+00:03:04,365 --> 00:03:11,075
+we find the customer element in the DOM tree by using getElementsByTagName.
+
+50
+00:03:11,075 --> 00:03:17,526
+Next, we create a binder object using the createBinder method of the JAXBContext.
+
+51
+00:03:17,526 --> 00:03:23,104
+And then we can use the binder to get a JAXB view of the customer element.
+
+52
+00:03:23,104 --> 00:03:27,114
+We do this by unmarshalling the DOM node for the
+
+53
+00:03:27,114 --> 00:03:29,255
+customer element using the binder.
+
+54
+00:03:29,255 --> 00:03:34,864
+You've seen before in the previous modules that if you want to unmarshal XML
+
+55
+00:03:34,864 --> 00:03:39,072
+into a class that does not have an XmlRootElement annotation,
+
+56
+00:03:39,072 --> 00:03:43,225
+you have to use JAXBElement.
+
+57
+00:03:43,225 --> 00:03:47,927
+Since class Customer does indeed not have an XmlRootElement annotation,
+
+58
+00:03:47,927 --> 00:03:51,279
+that's what we have to do here.
+
+59
+00:03:51,279 --> 00:03:57,225
+Now we have a JAXB customer object in which we can modify some of the fields.
+
+60
+00:03:57,225 --> 00:04:01,448
+The main purpose of class Binder is that it keeps track of the links
+
+61
+00:04:01,448 --> 00:04:06,153
+between JAXB objects and the nodes in the DOM tree.
+
+62
+00:04:06,153 --> 00:04:10,832
+We can now call the updateXML method on the binder,
+
+63
+00:04:10,832 --> 00:04:13,172
+passing it the customer object.
+
+64
+00:04:13,172 --> 00:04:16,258
+Because the binder knows which JAXB object
+
+65
+00:04:16,258 --> 00:04:19,373
+corresponds to which node in the DOM tree,
+
+66
+00:04:19,373 --> 00:04:23,014
+it can update the DOM tree with the modifications we've
+
+67
+00:04:23,014 --> 00:04:26,605
+made to the JAXB customer object.
+
+68
+00:04:26,605 --> 00:04:28,961
+This also works the other way around,
+
+69
+00:04:28,961 --> 00:04:32,003
+so class binder also has a method updateJAXB,
+
+70
+00:04:32,003 --> 00:04:36,600
+which allows you to update the JAXB objects if
+
+71
+00:04:36,600 --> 00:04:39,692
+you've made changes in the DOM tree.
+
+72
+00:04:39,692 --> 00:04:43,226
+I haven't included that in the code here.
+
+73
+00:04:43,226 --> 00:04:47,895
+The last few lines here use the XML transformation API to
+
+74
+00:04:47,895 --> 00:04:51,872
+output the DOM tree as XML to the console.
+
+75
+00:04:51,872 --> 00:04:55,001
+I'll not explain these lines in detail,
+
+76
+00:04:55,001 --> 00:05:00,194
+but I've set some properties to get the XML formatted in a readable way.
+
+77
+00:05:00,194 --> 00:05:02,942
+Let's run this and look at the output.
+
+78
+00:05:02,942 --> 00:05:07,873
+As you see, the name of the customer is now Susan Jones,
+
+79
+00:05:07,873 --> 00:05:12,926
+and the loyalty is now GOLD, exactly as we expect.
+
+80
+00:05:12,926 --> 00:05:17,534
+There are a few more things I want to say about class binder.
+
+81
+00:05:17,534 --> 00:05:24,741
+The API documentation of class binder talks about an infoset preserving view.
+
+82
+00:05:24,741 --> 00:05:27,763
+What is meant by this is the DOM tree.
+
+83
+00:05:27,763 --> 00:05:31,855
+The DOM tree is more or less a 1 to 1 representation
+
+84
+00:05:31,855 --> 00:05:34,316
+of the content of an XML document,
+
+85
+00:05:34,316 --> 00:05:39,787
+so there is a node in the DOM tree for each of the items in the XML,
+
+86
+00:05:39,787 --> 00:05:42,585
+including elements, attributes, text,
+
+87
+00:05:42,585 --> 00:05:46,783
+and also comments and processing instructions.
+
+88
+00:05:46,783 --> 00:05:47,848
+In other words,
+
+89
+00:05:47,848 --> 00:05:52,614
+the DOM tree preserves the content and structure of the XML document,
+
+90
+00:05:52,614 --> 00:05:58,376
+including items that do not contain real data such as comments.
+
+91
+00:05:58,376 --> 00:06:05,285
+On the other hand, a set of JAXB objects is not an infoset preserving view.
+
+92
+00:06:05,285 --> 00:06:11,523
+When you unmarshal XML using JAXB, then things such as comments are discarded.
+
+93
+00:06:11,523 --> 00:06:13,919
+So from the resulting JAXB object,
+
+94
+00:06:13,919 --> 00:06:21,130
+you cannot get back the exact content and structure of the original XML anymore.
+
+95
+00:06:21,130 --> 00:06:26,305
+The API documentation of class binder explains that you can make modifications
+
+96
+00:06:26,305 --> 00:06:32,815
+to the JAXB view of the XML that you get from the binder and that if you then
+
+97
+00:06:32,815 --> 00:06:35,783
+update the DOM tree using the updateXML method,
+
+98
+00:06:35,783 --> 00:06:39,927
+it should leave other parts of the DOM tree alone.
+
+99
+00:06:39,927 --> 00:06:45,236
+For example, if the DOM tree contains nodes for comments in the XML,
+
+100
+00:06:45,236 --> 00:06:50,135
+then the updateXML method is supposed to not touch these nodes,
+
+101
+00:06:50,135 --> 00:06:53,986
+and if you write out the updated DOM tree to XML again,
+
+102
+00:06:53,986 --> 00:06:57,575
+you should see that the comments are still there.
+
+103
+00:06:57,575 --> 00:07:00,661
+Unfortunately, this does not work in practice,
+
+104
+00:07:00,661 --> 00:07:06,179
+at least not with the JAXB reference implementation that's included with Java.
+
+105
+00:07:06,179 --> 00:07:09,561
+If you look at the file purchaseOrder.
+
+106
+00:07:09,561 --> 00:07:15,559
+xml, you'll see that I've added a comment there inside the customer element.
+
+107
+00:07:15,559 --> 00:07:20,651
+But when I run the example and look at the output, the comment is gone.
+
+108
+00:07:20,651 --> 00:07:24,133
+This looks like a bug in the JAXB reference implementation
+
+109
+00:07:24,133 --> 00:07:27,969
+because it's clearly not doing what is explicitly mentioned in
+
+110
+00:07:27,969 --> 00:07:31,171
+the API documentation of class binder.
+
+111
+00:07:31,171 --> 00:07:35,417
+There are other implementations of JAXB available.
+
+112
+00:07:35,417 --> 00:07:38,654
+The most well-known one is EclipseLink MOXy,
+
+113
+00:07:38,654 --> 00:07:44,851
+and if you use that, comments are indeed preserved as they should be.
+
+114
+00:07:44,851 --> 00:07:48,568
+To show you that and also to quickly show you how you can use
+
+115
+00:07:48,568 --> 00:07:53,301
+EclipseLink MOXy instead of the JAXB reference implementation,
+
+116
+00:07:53,301 --> 00:07:56,744
+I've added example ps-jaxb-29-bindermoxy.
+
+117
+00:07:56,744 --> 00:08:04,797
+The code in that example is exactly the same as in example 28,
+
+118
+00:08:04,797 --> 00:08:08,886
+except that I've added a dependency in the Maven pom.
+
+119
+00:08:08,886 --> 00:08:12,517
+xml to include MOXy, and I've added a jaxb.
+
+120
+00:08:12,517 --> 00:08:16,253
+properties file in the src\main\resources directory
+
+121
+00:08:16,253 --> 00:08:20,252
+to make JAXB work using MOXy.
+
+122
+00:08:20,252 --> 00:08:23,774
+If you run example 29 and look at the output,
+
+123
+00:08:23,774 --> 00:08:35,000
+you'll see that the comment is indeed preserved. You can find more information on EclipseLink MOXy at the following URL.
+

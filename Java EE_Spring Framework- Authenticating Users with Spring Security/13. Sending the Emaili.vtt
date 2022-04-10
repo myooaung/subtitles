@@ -1,0 +1,369 @@
+WEBVTT
+1
+00:00:01.040 --> 00:00:05.260
+Now that we have all the functionality to store the account to the database,
+
+2
+00:00:05.260 --> 00:00:09.520
+we will need to send an email to the user to confirm their account.
+
+3
+00:00:09.520 --> 00:00:13.620
+And you might be tempted to do this in a synchronous method,
+
+4
+00:00:13.620 --> 00:00:14.790
+and it can work,
+
+5
+00:00:14.790 --> 00:00:17.740
+but it has the option to block your user and also
+
+6
+00:00:17.740 --> 00:00:20.140
+make for a slow user experience.
+
+7
+00:00:20.140 --> 00:00:20.720
+Instead,
+
+8
+00:00:20.720 --> 00:00:23.610
+it's better to use an event model that has listeners
+
+9
+00:00:23.610 --> 00:00:27.580
+disconnecting our app. By firing off an event, it can happen in
+
+10
+00:00:27.580 --> 00:00:30.440
+an asynchronous way and not block the app,
+
+11
+00:00:30.440 --> 00:00:35.340
+while also enabling it to eventually deliver the email in a guaranteed fashion.
+
+12
+00:00:35.340 --> 00:00:38.710
+Spring actually has an event mechanism set up that we can
+
+13
+00:00:38.710 --> 00:00:41.170
+easily take advantage of in our app.
+
+14
+00:00:41.170 --> 00:00:44.520
+Let's add this right after where we saved our account in our
+
+15
+00:00:44.520 --> 00:00:48.540
+controller and encrypted our password.
+
+16
+00:00:48.540 --> 00:00:52.860
+The first thing we need to do is to add something to our pom file,
+
+17
+00:00:52.860 --> 00:00:56.910
+but I'm going to stop our server and minimize that for a bit so
+
+18
+00:00:56.910 --> 00:00:59.670
+that I have more workspace to deal with here.
+
+19
+00:00:59.670 --> 00:01:03.340
+Now open up our pom.xml,
+
+20
+00:01:03.340 --> 00:01:10.160
+and towards the bottom of our dependencies after our unboundid‑ldap server,
+
+21
+00:01:10.160 --> 00:01:16.840
+I'm going to add a dependency in here for spring‑boot‑starter‑mail.
+
+22
+00:01:16.840 --> 00:01:20.470
+And what this does is it brings in all the dependencies that we need
+
+23
+00:01:20.470 --> 00:01:25.140
+inside of our application to send emails from it.
+
+24
+00:01:25.140 --> 00:01:29.800
+The next step that we need to do is open up our application properties.
+
+25
+00:01:29.800 --> 00:01:35.270
+So if we go to our src, main, resources, application properties,
+
+26
+00:01:35.270 --> 00:01:39.350
+this is where we can set up the configuration for our
+
+27
+00:01:39.350 --> 00:01:44.540
+mail server to send out those emails.
+
+28
+00:01:44.540 --> 00:01:50.450
+Alright, the properties we need are the spring.mail.host,
+
+29
+00:01:50.450 --> 00:01:55.740
+and I am using a Gmail account so it's smtp.gmail.com; the
+
+30
+00:01:55.740 --> 00:02:01.000
+spring.mail.port of 587; spring.mail.username,
+
+31
+00:02:01.000 --> 00:02:05.390
+which is pluralsightbryanserver for my instance, you're not
+
+32
+00:02:05.390 --> 00:02:06.620
+going to be able to use that instance,
+
+33
+00:02:06.620 --> 00:02:09.150
+but that's what I'm using for this sample account I set
+
+34
+00:02:09.150 --> 00:02:12.870
+up; and a password of fizzbuzz1234.
+
+35
+00:02:12.870 --> 00:02:16.770
+That email address and password will be disabled by the time
+
+36
+00:02:16.770 --> 00:02:18.870
+you're viewing this course unfortunately.
+
+37
+00:02:18.870 --> 00:02:27.800
+And then the smtp.auth set to true and the ttls.enable also as true.
+
+38
+00:02:27.800 --> 00:02:30.530
+I also want to show you one other thing as well.
+
+39
+00:02:30.530 --> 00:02:34.940
+If you are getting an error message inside of your console,
+
+40
+00:02:34.940 --> 00:02:40.740
+depending on which version of the driver that you're using,
+
+41
+00:02:40.740 --> 00:02:48.340
+you can switch that over to our com.mysql.cj.jdbc.Driver.
+
+42
+00:02:48.340 --> 00:02:51.400
+Depending on the version of the database that you've used,
+
+43
+00:02:51.400 --> 00:02:53.240
+that message is popping up,
+
+44
+00:02:53.240 --> 00:02:58.140
+and all you have to do is replace your jdbc.Driver up here with that.
+
+45
+00:02:58.140 --> 00:03:00.740
+So, now that we have those two pieces in here,
+
+46
+00:03:00.740 --> 00:03:08.040
+let's move on to changing our controller to now fire off an event.
+
+47
+00:03:08.040 --> 00:03:10.440
+Before we modify our controller, though,
+
+48
+00:03:10.440 --> 00:03:12.870
+let's go ahead and create the event that we're going to
+
+49
+00:03:12.870 --> 00:03:15.080
+fire off inside of our application.
+
+50
+00:03:15.080 --> 00:03:17.110
+We're going to do that by right‑clicking on
+
+51
+00:03:17.110 --> 00:03:23.740
+com.pluralsight.conference, and say New, Java Class,
+
+52
+00:03:23.740 --> 00:03:28.020
+and we're going to place this underneath the util package, and
+
+53
+00:03:28.020 --> 00:03:34.870
+call it .OnCreateAccountEvent. When I hit Enter here, that will
+
+54
+00:03:34.870 --> 00:03:38.740
+place that underneath the util package.
+
+55
+00:03:38.740 --> 00:03:47.240
+We want to make this extend the ApplicationEvent from Spring,
+
+56
+00:03:47.240 --> 00:03:50.940
+and select that, and it will import it.
+
+57
+00:03:50.940 --> 00:03:57.690
+And the last piece we need to do is to create a constructor that corresponds
+
+58
+00:03:57.690 --> 00:04:02.420
+with the ApplicationEvent super constructor. And so we're going to call the
+
+59
+00:04:02.420 --> 00:04:06.970
+parent constructor in this one that we have defined here.
+
+60
+00:04:06.970 --> 00:04:10.260
+And it just takes an account object in, and we're going to pass in a string,
+
+61
+00:04:10.260 --> 00:04:14.020
+which is the appUrl, as well. And we pass the
+
+62
+00:04:14.020 --> 00:04:16.590
+account object into the super call,
+
+63
+00:04:16.590 --> 00:04:21.540
+which is the event for which this object is being called upon.
+
+64
+00:04:21.540 --> 00:04:22.960
+Before we exit out of this, though,
+
+65
+00:04:22.960 --> 00:04:27.640
+let's make it so we can grab the two variables that we passed in here.
+
+66
+00:04:27.640 --> 00:04:29.310
+We'll generate those.
+
+67
+00:04:29.310 --> 00:04:31.140
+We're going to do Getters.
+
+68
+00:04:31.140 --> 00:04:34.910
+We'll select both of them, and click OK. And now this
+
+69
+00:04:34.910 --> 00:04:36.980
+event is set up and ready to go.
+
+70
+00:04:36.980 --> 00:04:38.350
+So I'm going to save this.
+
+71
+00:04:38.350 --> 00:04:41.420
+Let's go back over to our controller now,
+
+72
+00:04:41.420 --> 00:04:47.540
+and we can start defining the event to be thrown inside of it
+
+73
+00:04:47.540 --> 00:04:50.940
+down below here where we have already got that pseudo code in
+
+74
+00:04:50.940 --> 00:04:54.540
+here showing what we want to do.
+
+75
+00:04:54.540 --> 00:05:00.540
+We need to wire in one more object inside of here, so we're going to say
+
+76
+00:05:00.540 --> 00:05:14.060
+@Autowired, and it is a private ApplicationEventPublisher. And this is
+
+77
+00:05:14.060 --> 00:05:23.740
+also supplied by Spring as well, so it's the EventPublisher. And this
+
+78
+00:05:23.740 --> 00:05:30.860
+EventPublisher is what is supplied to you by Spring to fire off events
+
+79
+00:05:30.860 --> 00:05:36.110
+that you can tie into a publish/subscribe or event/event listener model
+
+80
+00:05:36.110 --> 00:05:37.420
+inside of our app.
+
+81
+00:05:37.420 --> 00:05:39.060
+So now that we have that there,
+
+82
+00:05:39.060 --> 00:05:46.570
+we can literally come down here and create a new event, so we take that
+
+83
+00:05:46.570 --> 00:05:53.300
+eventPublisher and say .publishEvent. I want to import our
+
+84
+00:05:53.300 --> 00:05:59.640
+OnCreateAccountEvent and pass in the account object. And for the appUrl,
+
+85
+00:05:59.640 --> 00:06:05.600
+we're going to pass in our war name, or the URL that we have in the context
+
+86
+00:06:05.600 --> 00:06:09.080
+of our app, which in my case is conference_war.
+
+87
+00:06:09.080 --> 00:06:12.040
+If you have changed yours to be something different,
+
+88
+00:06:12.040 --> 00:06:14.930
+you'll want to mirror that here as well. It does matter,
+
+89
+00:06:14.930 --> 00:06:17.810
+because we're going to build the URL off of this.
+
+90
+00:06:17.810 --> 00:06:19.620
+Now we have the first half of this done.
+
+91
+00:06:19.620 --> 00:06:24.260
+You could run your application right now and it will fire off the event,
+
+92
+00:06:24.260 --> 00:06:36.000
+but it is not going to listen for that event yet, so before we try and run that, let's set up the listener as well, that will capture this event being fired.
+

@@ -1,0 +1,309 @@
+WEBVTT
+1
+00:00:00.940 --> 00:00:03.470
+When AWS launched the X‑Ray service,
+
+2
+00:00:03.470 --> 00:00:07.420
+they made it very easy to get it running for serverless applications.
+
+3
+00:00:07.420 --> 00:00:11.540
+There are two sides to configuring X‑Ray for your application.
+
+4
+00:00:11.540 --> 00:00:15.170
+The first is the service configuration done in AWS,
+
+5
+00:00:15.170 --> 00:00:19.240
+enabling X‑Ray tracing for services that you use.
+
+6
+00:00:19.240 --> 00:00:22.650
+The second is instrumenting in your application code
+
+7
+00:00:22.650 --> 00:00:25.740
+with the X‑Ray‑enabled AWS SDK.
+
+8
+00:00:25.740 --> 00:00:30.440
+We'll start with the first part, configuring our application services.
+
+9
+00:00:30.440 --> 00:00:34.990
+API Gateway is the easiest as you can enable it for an entire API.
+
+10
+00:00:34.990 --> 00:00:37.090
+In your AWS console,
+
+11
+00:00:37.090 --> 00:00:42.620
+go to the API Gateway dashboard and select our dev‑trash‑panda‑buffet API.
+
+12
+00:00:42.620 --> 00:00:46.360
+Now select Stages and then the dev stage.
+
+13
+00:00:46.360 --> 00:00:51.050
+Here are all the configuration options for this particular deployed API.
+
+14
+00:00:51.050 --> 00:00:53.100
+On the Logs/Tracing tab,
+
+15
+00:00:53.100 --> 00:00:56.390
+you'll see a specific section for X‑Ray with one
+
+16
+00:00:56.390 --> 00:00:58.750
+checkbox for enabling X‑Ray tracing.
+
+17
+00:00:58.750 --> 00:01:03.140
+Check the checkbox and then click Save changes.
+
+18
+00:01:03.140 --> 00:01:05.120
+If we only did this step,
+
+19
+00:01:05.120 --> 00:01:09.640
+we would already have added a lot of monitoring to our application.
+
+20
+00:01:09.640 --> 00:01:13.300
+Now you'll be able to see metrics on what lambda functions your API
+
+21
+00:01:13.300 --> 00:01:16.390
+is invoking and how long they took to complete.
+
+22
+00:01:16.390 --> 00:01:18.470
+Once the request hits your lambda,
+
+23
+00:01:18.470 --> 00:01:22.080
+the functions aren't set up to pass on that tracing ID and
+
+24
+00:01:22.080 --> 00:01:24.270
+gather more data on what happens after.
+
+25
+00:01:24.270 --> 00:01:26.260
+So, we'll configure that next.
+
+26
+00:01:26.260 --> 00:01:29.060
+I've set up one of our functions to give us more data.
+
+27
+00:01:29.060 --> 00:01:31.440
+So, let me show you that in the code.
+
+28
+00:01:31.440 --> 00:01:34.410
+Open your code editor and look for the actions.js
+
+29
+00:01:34.410 --> 00:01:37.040
+file and the src/lambda directory.
+
+30
+00:01:37.040 --> 00:01:38.340
+On line 6,
+
+31
+00:01:38.340 --> 00:01:43.160
+we have the save handler function that is invoked by an API
+
+32
+00:01:43.160 --> 00:01:46.240
+Gateway POST call to the action endpoint.
+
+33
+00:01:46.240 --> 00:01:47.500
+Inside the function,
+
+34
+00:01:47.500 --> 00:01:54.870
+I import the AWS X‑Ray SDK first and then import the regular AWS SDK
+
+35
+00:01:54.870 --> 00:02:00.150
+inside a captureAWS function call from the X‑Ray SDK.
+
+36
+00:02:00.150 --> 00:02:04.510
+This is going to allow me to use the AWS SDK as I normally would,
+
+37
+00:02:04.510 --> 00:02:10.080
+but any relevant calls to other AWS services would send along the X‑Ray
+
+38
+00:02:10.080 --> 00:02:15.220
+header information and create and close segments for better tracing.
+
+39
+00:02:15.220 --> 00:02:18.610
+Beyond these two lines, I write my code as usual.
+
+40
+00:02:18.610 --> 00:02:23.940
+It's really quite trivial to get X‑Ray working in your application.
+
+41
+00:02:23.940 --> 00:02:27.550
+Now you may notice that in this particular function, I'm using the
+
+42
+00:02:27.550 --> 00:02:32.110
+callback pattern, which is different from the async/await pattern used in
+
+43
+00:02:32.110 --> 00:02:35.140
+all the other handler functions in the application.
+
+44
+00:02:35.140 --> 00:02:39.260
+There is currently an open issue with the X‑Ray SDK where it doesn't work
+
+45
+00:02:39.260 --> 00:02:44.300
+with promises. And since async/await uses promises under the hood, that
+
+46
+00:02:44.300 --> 00:02:46.980
+means it also doesn't work with async/await.
+
+47
+00:02:46.980 --> 00:02:48.100
+Unfortunately,
+
+48
+00:02:48.100 --> 00:02:51.940
+this means if you use promises on any of your code or any of your
+
+49
+00:02:51.940 --> 00:02:55.370
+dependencies use promises, it can cause issues with the current
+
+50
+00:02:55.370 --> 00:02:59.890
+implementation of the X‑Ray SDK. For this reason, this function is the
+
+51
+00:02:59.890 --> 00:03:02.890
+only place I'll show you how to use the X‑Ray SDK.
+
+52
+00:03:02.890 --> 00:03:05.080
+Hopefully, once this video is published,
+
+53
+00:03:05.080 --> 00:03:09.070
+the issue will be resolved. With our code instrumented to send trace
+
+54
+00:03:09.070 --> 00:03:12.890
+data to X‑Ray, we just need to configure the lambda in the AWS
+
+55
+00:03:12.890 --> 00:03:17.530
+console. So, switch over to your browser and go to the saveAction
+
+56
+00:03:17.530 --> 00:03:20.930
+lambda function. In the Configuration tab,
+
+57
+00:03:20.930 --> 00:03:25.110
+select the Monitoring and operations tools option. Then
+
+58
+00:03:25.110 --> 00:03:28.340
+click the Edit button. In the AWS X‑Ray box,
+
+59
+00:03:28.340 --> 00:03:30.830
+click the Active tracing selector.
+
+60
+00:03:30.830 --> 00:03:34.830
+There will be an info alert that appears because we haven't added the right
+
+61
+00:03:34.830 --> 00:03:40.300
+permissions to the lambda function's role yet, but AWS will try to add them
+
+62
+00:03:40.300 --> 00:03:43.790
+automatically for us. And that's all there is to it.
+
+63
+00:03:43.790 --> 00:03:47.120
+So go ahead and click the Save button. Now that this function
+
+64
+00:03:47.120 --> 00:03:50.670
+is saved, you can go into the demo application and play around
+
+65
+00:03:50.670 --> 00:03:52.600
+with it to generate some traces.
+
+66
+00:03:52.600 --> 00:03:57.020
+Once you've clicked through several actions, pull up the X‑Ray dashboard.
+
+67
+00:03:57.020 --> 00:03:58.700
+If it isn't already active,
+
+68
+00:03:58.700 --> 00:04:01.890
+click on the Service map menu option, and you should see a
+
+69
+00:04:01.890 --> 00:04:05.240
+visualization similar to what I'm showing here.
+
+70
+00:04:05.240 --> 00:04:08.640
+This is the service map for your serverless application.
+
+71
+00:04:08.640 --> 00:04:13.650
+Each node is for a specific segment, whether it's the Lambda service running a
+
+72
+00:04:13.650 --> 00:04:17.450
+lambda function being invoked, or a Kinesis record being put.
+
+73
+00:04:17.450 --> 00:04:22.250
+You can click on any of them to get more information. With X‑Ray enabled,
+
+74
+00:04:22.250 --> 00:04:25.710
+you can now use it to monitor the progress of requests in
+
+75
+00:04:25.710 --> 00:04:28.940
+your application, look for bottlenecks that may be causing
+
+76
+00:04:28.940 --> 00:04:31.640
+latency, and troubleshoot issues.
+
+77
+00:04:31.640 --> 00:04:38.000
+In the next clip, we're going to see how CloudWatch can add to our ability to monitor our application.
+

@@ -1,0 +1,333 @@
+WEBVTT
+1
+00:00:01.345 --> 00:00:06.511
+So, again, we'll look at a more fully-fledged demo example for Jersey.
+
+2
+00:00:06.511 --> 00:00:12.718
+This will flush out and make concrete the ideas on how to use Jersey with JSON.
+
+3
+00:00:12.718 --> 00:00:13.152
+Again,
+
+4
+00:00:13.152 --> 00:00:17.851
+we will be using the bank application approval and denial service
+
+5
+00:00:17.851 --> 00:00:22.300
+for this problem so you can consistently see how it works in
+
+6
+00:00:22.300 --> 00:00:25.460
+different scenarios and with the Jersey API.
+
+7
+00:00:25.460 --> 00:00:30.287
+So let's take a moment just to explain how you would set up Jersey in a project.
+
+8
+00:00:30.287 --> 00:00:30.710
+Firstly,
+
+9
+00:00:30.710 --> 00:00:37.017
+you need to ensure that you have the right dependencies for Jersey in place,
+
+10
+00:00:37.017 --> 00:00:40.874
+so, grizzly, which is an HTTP container,
+
+11
+00:00:40.874 --> 00:00:44.711
+jersey-hk, which is an injection framework that binds Jersey together.
+
+12
+00:00:44.711 --> 00:00:49.306
+Now the jersey-media-json-binding dependency is the thing that says to JSON hey,
+
+13
+00:00:49.306 --> 00:00:53.386
+here's how you bind Java classes, POJOs,
+
+14
+00:00:53.386 --> 00:01:00.068
+into HTTP-based requests and responses, streams of stream-based data.
+
+15
+00:01:00.068 --> 00:01:02.729
+So, this actually uses Jackson under the hood.
+
+16
+00:01:02.729 --> 00:01:05.076
+So now we've seen the dependencies that you need.
+
+17
+00:01:05.076 --> 00:01:08.868
+You'd have to have these in your Maven and Gradle project to get started.
+
+18
+00:01:08.868 --> 00:01:13.251
+Here is just a little bit of boilerplate to get our
+
+19
+00:01:13.251 --> 00:01:14.845
+Jersey application booted up.
+
+20
+00:01:14.845 --> 00:01:18.445
+So firstly, you'll notice the ResourceConfig class.
+
+21
+00:01:18.445 --> 00:01:21.063
+So that's just a thing that tells Jersey hey,
+
+22
+00:01:21.063 --> 00:01:24.318
+when you're looking for HTTP resources to bind methods and
+
+23
+00:01:24.318 --> 00:01:26.794
+classes to look for which are annotated,
+
+24
+00:01:26.794 --> 00:01:29.487
+where do I actually find that stuff?
+
+25
+00:01:29.487 --> 00:01:32.672
+And the answer is you look in this package,
+
+26
+00:01:32.672 --> 00:01:34.442
+which is our integrating_json package.
+
+27
+00:01:34.442 --> 00:01:38.867
+We need to create an HTTP server, of course, in order to actually run the thing.
+
+28
+00:01:38.867 --> 00:01:41.493
+So that's where our factory method here goes.
+
+29
+00:01:41.493 --> 00:01:43.488
+It takes the ResourceConfig to say look,
+
+30
+00:01:43.488 --> 00:01:46.833
+this is the stuff we want to bind to that HttpServer,
+
+31
+00:01:46.833 --> 00:01:51.650
+and it takes a URI to bind to on the network side as well,
+
+32
+00:01:51.650 --> 00:01:54.742
+so localhost and our port, which is 8000.
+
+33
+00:01:54.742 --> 00:01:55.530
+Inside this main method,
+
+34
+00:01:55.530 --> 00:01:58.316
+I just want to keep the main method running until I hit
+
+35
+00:01:58.316 --> 00:02:01.014
+press any key and then it'll shut down.
+
+36
+00:02:01.014 --> 00:02:05.617
+We get the read in, which is just a way of waiting for any key to be pressed.
+
+37
+00:02:05.617 --> 00:02:07.172
+Where's the any key?
+
+38
+00:02:07.172 --> 00:02:08.339
+When we run.
+
+39
+00:02:08.339 --> 00:02:12.377
+shutdownNow at the end, it'll just shut the server down when we're done with it.
+
+40
+00:02:12.377 --> 00:02:13.818
+Well that's just kind of Jersey background.
+
+41
+00:02:13.818 --> 00:02:16.480
+Let's get to the actual JSON binding bit.
+
+42
+00:02:16.480 --> 00:02:20.053
+So in order to implement that, we need to build our class,
+
+43
+00:02:20.053 --> 00:02:21.506
+our BankApplicationController,
+
+44
+00:02:21.506 --> 00:02:26.988
+the path for the application controller that says hey,
+
+45
+00:02:26.988 --> 00:02:30.359
+what URL do you want to expose this on?
+
+46
+00:02:30.359 --> 00:02:33.099
+Again, we're just going to say put it on the root path for now.
+
+47
+00:02:33.099 --> 00:02:36.268
+It's a POST request so we need to provide the POST annotation,
+
+48
+00:02:36.268 --> 00:02:40.567
+and we also need to say look, what are you going to consume in that JSON body?
+
+49
+00:02:40.567 --> 00:02:46.132
+And that is the MediaType of APPLICATION_JSON.
+
+50
+00:02:46.132 --> 00:02:48.372
+Then we need to create a method.
+
+51
+00:02:48.372 --> 00:02:51.091
+So Jersey or JAX-RS has this Response class,
+
+52
+00:02:51.091 --> 00:02:55.487
+and that is what will be returned from our controller method.
+
+53
+00:02:55.487 --> 00:02:57.034
+Just like in Spring,
+
+54
+00:02:57.034 --> 00:03:02.179
+the parameter for the method needs to be the POJO that we're going to
+
+55
+00:03:02.179 --> 00:03:05.054
+bind to that's going to be deserialized from JSON.
+
+56
+00:03:05.054 --> 00:03:06.560
+Then we need to implement the body.
+
+57
+00:03:06.560 --> 00:03:09.810
+So just like before, we need a little bit of business logic.
+
+58
+00:03:09.810 --> 00:03:12.861
+Take the loanApplication, get its jobs, stream them,
+
+59
+00:03:12.861 --> 00:03:17.657
+mapToDouble on the AnnualIncome, and then sum up the incomes.
+
+60
+00:03:17.657 --> 00:03:20.532
+So that's our totalIncome, just like before.
+
+61
+00:03:20.532 --> 00:03:25.911
+Then we also need the amount of money to borrow, so that is loanApplication.
+
+62
+00:03:25.911 --> 00:03:26.457
+getLoanDetails.
+
+63
+00:03:26.457 --> 00:03:27.004
+getAmount.
+
+64
+00:03:27.004 --> 00:03:32.920
+And if the amount is less than or equal to three times the totalIncome,
+
+65
+00:03:32.920 --> 00:03:36.268
+we want to say look, we're going to approve your loan.
+
+66
+00:03:36.268 --> 00:03:37.684
+We'll lend you the money.
+
+67
+00:03:37.684 --> 00:03:41.829
+Take our Response, we return OK, saying approved,
+
+68
+00:03:41.829 --> 00:03:45.671
+and then we build that response up.
+
+69
+00:03:45.671 --> 00:03:52.502
+Otherwise, we return a Response with a status code that says SC_FORBIDDEN.
+
+70
+00:03:52.502 --> 00:03:55.549
+And I'm going to import that,
+
+71
+00:03:55.549 --> 00:03:59.161
+return the body of denied because that's where we're going to deny
+
+72
+00:03:59.161 --> 00:04:01.318
+the application just like before and build it up.
+
+73
+00:04:01.318 --> 00:04:05.365
+So different objects here to represent the response of the application.
+
+74
+00:04:05.365 --> 00:04:08.660
+And just to see it in action.
+
+75
+00:04:08.660 --> 00:04:14.757
+If I run the application main method, here that binds up nice and fast.
+
+76
+00:04:14.757 --> 00:04:16.359
+Much faster than Spring.
+
+77
+00:04:16.359 --> 00:04:20.715
+And if we send it a normal bank loan application, it's approved.
+
+78
+00:04:20.715 --> 00:04:22.090
+Lovely stuff.
+
+79
+00:04:22.090 --> 00:04:24.841
+And otherwise, it's denied.
+
+80
+00:04:24.841 --> 00:04:25.190
+Okay.
+
+81
+00:04:25.190 --> 00:04:27.280
+So it worked just like before.
+
+82
+00:04:27.280 --> 00:04:33.311
+And the key ideas here, just to recap, were annotation-based binding.
+
+83
+00:04:33.311 --> 00:04:43.000
+When you POST bind it to a method, say that you consume the APPLICATION_JSON, just put a POJO in as a parameter and the binding will take care of the rest.
+

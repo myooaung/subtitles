@@ -1,0 +1,300 @@
+1
+00:00:00,840 --> 00:00:01,410
+In this clip,
+
+2
+00:00:01,410 --> 00:00:04,000
+we're going to take a look at two of the main ways to
+
+3
+00:00:04,000 --> 00:00:06,970
+get data out of a DynamoDB table.
+
+4
+00:00:06,970 --> 00:00:10,110
+The easiest way to get data out of a table is to reference
+
+5
+00:00:10,110 --> 00:00:12,830
+the primary key of the item you want.
+
+6
+00:00:12,830 --> 00:00:17,180
+But that's way too easy, and real‑world usage of Dynamo often
+
+7
+00:00:17,180 --> 00:00:21,862
+requires using the other two data retrieval methods, scanning and
+
+8
+00:00:21,862 --> 00:00:26,440
+querying. We'll get a chance to use both as we get the hamster and
+
+9
+00:00:26,440 --> 00:00:31,080
+race data our demo project needs. For this, we'll be modifying the
+
+10
+00:00:31,080 --> 00:00:32,840
+code in our demo project.
+
+11
+00:00:32,840 --> 00:00:35,820
+Specifically, go into the lib folder,
+
+12
+00:00:35,820 --> 00:00:42,460
+then data, and then lib again. We'll be modifying the dynamo.js file here.
+
+13
+00:00:42,460 --> 00:00:45,860
+This file abstracts some common Dynamo operations,
+
+14
+00:00:45,860 --> 00:00:49,400
+and it's table and query agnostic.
+
+15
+00:00:49,400 --> 00:00:52,740
+Let's start by updating our region on line 3.
+
+16
+00:00:52,740 --> 00:00:55,980
+Then we can implement the getAll function.
+
+17
+00:00:55,980 --> 00:00:59,250
+This function will use one of the first Dynamo data retrieval
+
+18
+00:00:59,250 --> 00:01:03,565
+methods, scanning. A scan will take a table and an optional start
+
+19
+00:01:03,565 --> 00:01:06,840
+key, and try to get all the data in the table.
+
+20
+00:01:06,840 --> 00:01:11,760
+It might not return all the items because it will only return a 1 MB chunk of
+
+21
+00:01:11,760 --> 00:01:16,240
+records at a time. This means if your table has a lot of data,
+
+22
+00:01:16,240 --> 00:01:20,560
+you'll need to do multiple scans to get all of that data. For our
+
+23
+00:01:20,560 --> 00:01:25,140
+purposes, we can just perform one scan since our dataset is small.
+
+24
+00:01:25,140 --> 00:01:30,110
+Start by creating a params const object on line 8. For the scan, we
+
+25
+00:01:30,110 --> 00:01:33,040
+only need one property, tableName.
+
+26
+00:01:33,040 --> 00:01:37,560
+Give it the value of the tableName function argument. Now inside the
+
+27
+00:01:37,560 --> 00:01:41,370
+next promise, we'll call the client.scan function,
+
+28
+00:01:41,370 --> 00:01:45,900
+passing in prams as the first argument, and a callback function with err
+
+29
+00:01:45,900 --> 00:01:51,060
+and data arguments as the second. Now don't type too fast, this callback
+
+30
+00:01:51,060 --> 00:01:53,330
+is a little different than the others.
+
+31
+00:01:53,330 --> 00:01:58,327
+Go ahead and reject with an err if there is one. After an else
+
+32
+00:01:58,327 --> 00:02:03,020
+statement, call resolve, but we won't directly return the data argument.
+
+33
+00:02:03,020 --> 00:02:06,400
+On the data argument, there is an items property,
+
+34
+00:02:06,400 --> 00:02:09,240
+and this is where the actual data lives.
+
+35
+00:02:09,240 --> 00:02:13,400
+So we'll return this directly by passing in data.Items.
+
+36
+00:02:13,400 --> 00:02:18,240
+And that's all our getAll function needs, just that simple scan call.
+
+37
+00:02:18,240 --> 00:02:21,680
+Now the get function will be a little more complicated.
+
+38
+00:02:21,680 --> 00:02:23,850
+You can see by the function signature that we are
+
+39
+00:02:23,850 --> 00:02:27,040
+getting the tableName and id past in.
+
+40
+00:02:27,040 --> 00:02:28,570
+It's true, with these arguments,
+
+41
+00:02:28,570 --> 00:02:32,270
+we could just do a call to get and immediately get the
+
+42
+00:02:32,270 --> 00:02:35,700
+relevant item, but this is a place where Query will also
+
+43
+00:02:35,700 --> 00:02:40,040
+work, so let's do that and query by id.
+
+44
+00:02:40,040 --> 00:02:43,400
+Let's start by declaring our params const object.
+
+45
+00:02:43,400 --> 00:02:47,135
+We can add the TableName property first, and give it the TableName
+
+46
+00:02:47,135 --> 00:02:51,810
+function argument. The next property actually defines the query we're
+
+47
+00:02:51,810 --> 00:02:56,690
+using. Create a property called KeyConditionExpression.
+
+48
+00:02:56,690 --> 00:02:59,140
+The value will be a query on the key,
+
+49
+00:02:59,140 --> 00:03:07,320
+so enter a string with the value id = :hkey. This query means to
+
+50
+00:03:07,320 --> 00:03:12,880
+find any records where the id equals hkey. The colon before hkey
+
+51
+00:03:12,880 --> 00:03:15,110
+indicates that it is a variable.
+
+52
+00:03:15,110 --> 00:03:20,940
+We add the variable with our next property, ExpressionAttributeValues.
+
+53
+00:03:20,940 --> 00:03:23,090
+This will have the value of an object,
+
+54
+00:03:23,090 --> 00:03:29,090
+and the property will be :hkey in quotes. The value will be id,
+
+55
+00:03:29,090 --> 00:03:34,440
+but add a plus in front of it so that it is coerced into a number.
+
+56
+00:03:34,440 --> 00:03:35,190
+And with this,
+
+57
+00:03:35,190 --> 00:03:40,170
+the id argument is added to the params and configured correctly to work with
+
+58
+00:03:40,170 --> 00:03:46,530
+the key query. Now inside the promise, we'll call client.query, passing in
+
+59
+00:03:46,530 --> 00:03:50,990
+prams as the first argument, and the callback function with err and data
+
+60
+00:03:50,990 --> 00:03:54,570
+arguments as the second. If there's an err object,
+
+61
+00:03:54,570 --> 00:04:00,660
+then reject with the err argument; otherwise, call resolve, and it's a
+
+62
+00:04:00,660 --> 00:04:04,840
+little different here as well. Since data.items is an array,
+
+63
+00:04:04,840 --> 00:04:08,160
+we just want to return the first item in the array.
+
+64
+00:04:08,160 --> 00:04:12,210
+So reference the first item with bracket notation and the index of
+
+65
+00:04:12,210 --> 00:04:16,570
+0. Great, our Dynamo functions are complete,
+
+66
+00:04:16,570 --> 00:04:18,340
+so let's use them.
+
+67
+00:04:18,340 --> 00:04:21,920
+Move up one directory and open up hamsters.js.
+
+68
+00:04:21,920 --> 00:04:23,460
+On line 2,
+
+69
+00:04:23,460 --> 00:04:27,300
+we'll change the value of the data source variable by removing the
+
+70
+00:04:27,300 --> 00:04:31,800
+right‑hand side of the assignment and replacing it with a require
+
+71
+00:04:31,800 --> 00:04:37,540
+function call, passing in the string ./lib/dynamo.
+
+72
+00:04:37,540 --> 00:04:42,030
+Now save that file and open up races.js, and make the same
+
+73
+00:04:42,030 --> 00:04:47,490
+change on line 1 to import the Dynamo file that we edited. And
+
+74
+00:04:47,490 --> 00:04:49,360
+that's it for our Dynamo changes.
+
+75
+00:04:49,360 --> 00:04:57,000
+In the next clip, we're going to move back to relational SQL land and create a database in RDS.
+

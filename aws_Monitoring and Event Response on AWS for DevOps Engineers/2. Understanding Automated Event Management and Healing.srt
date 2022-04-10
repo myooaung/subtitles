@@ -1,0 +1,396 @@
+1
+00:00:01,840 --> 00:00:04,070
+We've had a look at some of the tools used in automated event
+
+2
+00:00:04,070 --> 00:00:08,140
+management, so now let's look at some specific scenarios around
+
+3
+00:00:08,140 --> 00:00:10,740
+automated event management and healing.
+
+4
+00:00:10,740 --> 00:00:12,160
+So our goal here, then,
+
+5
+00:00:12,160 --> 00:00:16,150
+is where possible, let the system heal itself and report the
+
+6
+00:00:16,150 --> 00:00:18,830
+results to you. In this first scenario,
+
+7
+00:00:18,830 --> 00:00:22,070
+then, we want to automate the deployment of new infrastructure if
+
+8
+00:00:22,070 --> 00:00:26,280
+there is a failure, and we've got a couple of possible solutions to
+
+9
+00:00:26,280 --> 00:00:31,350
+this scenario. Here you can see we've got an auto scale group, and
+
+10
+00:00:31,350 --> 00:00:35,020
+right now that auto scale group contains two instances, probably
+
+11
+00:00:35,020 --> 00:00:38,560
+deployed across multiple availability zones in the same region. Here,
+
+12
+00:00:38,560 --> 00:00:40,410
+if an instance fails,
+
+13
+00:00:40,410 --> 00:00:44,670
+then we'd expect the auto scale group itself to launch a replacement,
+
+14
+00:00:44,670 --> 00:00:49,840
+bringing us back the two instances and healing itself. At the same time, this
+
+15
+00:00:49,840 --> 00:00:54,980
+auto scale group can log an event to a log in an S3 bucket. We could then use
+
+16
+00:00:54,980 --> 00:01:00,830
+S3 events to start a reporting process that will cause a failure and inform
+
+17
+00:01:00,830 --> 00:01:03,940
+you that this event has occurred.
+
+18
+00:01:03,940 --> 00:01:06,240
+But what if the failure is more severe?
+
+19
+00:01:06,240 --> 00:01:09,830
+So same scenario here, we want to automate a response in the event of
+
+20
+00:01:09,830 --> 00:01:13,480
+failure, but this time let's say we lose all our instances.
+
+21
+00:01:13,480 --> 00:01:16,720
+Perhaps an AWS region has failed, or it could be that something's
+
+22
+00:01:16,720 --> 00:01:19,520
+gone horribly wrong with the applications deployed to those
+
+23
+00:01:19,520 --> 00:01:21,840
+instances, and that's caused a failure.
+
+24
+00:01:21,840 --> 00:01:25,240
+Either way, we're losing our auto scale group.
+
+25
+00:01:25,240 --> 00:01:29,300
+This infrastructure failure could be detected by CloudWatch event rule.
+
+26
+00:01:29,300 --> 00:01:32,640
+Once seen by the event rule, the event rule could trigger a step
+
+27
+00:01:32,640 --> 00:01:36,070
+function, and the first thing this step function does is trigger
+
+28
+00:01:36,070 --> 00:01:39,350
+a lambda function. The job of this lambda function is to deploy
+
+29
+00:01:39,350 --> 00:01:40,570
+our infrastructure.
+
+30
+00:01:40,570 --> 00:01:44,440
+It'll probably do this by working with CloudFormation to create a
+
+31
+00:01:44,440 --> 00:01:47,830
+CloudFormation stack that can deploy our replacement infrastructure
+
+32
+00:01:47,830 --> 00:01:51,760
+in a different region. Our step function could also instigate an SMS
+
+33
+00:01:51,760 --> 00:01:54,530
+step that sends you a text message so that you know about the
+
+34
+00:01:54,530 --> 00:01:57,540
+failure, and that the lambda function has successfully invoked the
+
+35
+00:01:57,540 --> 00:01:59,040
+CloudFormation stack.
+
+36
+00:01:59,040 --> 00:02:01,970
+So if it's a minor failure that can be resolved by the
+
+37
+00:02:01,970 --> 00:02:05,700
+auto scale group or a major failure which needs event
+
+38
+00:02:05,700 --> 00:02:10,440
+rule to trigger a step function, AWS has got us covered.
+
+39
+00:02:10,440 --> 00:02:15,240
+In the second scenario, some of our IAM access keys have been publicly exposed.
+
+40
+00:02:15,240 --> 00:02:18,510
+If detected, then, these access keys could be used to gain access to
+
+41
+00:02:18,510 --> 00:02:22,040
+your AWS account and cause all sorts of havoc.
+
+42
+00:02:22,040 --> 00:02:27,110
+One common place where we see IAM access keys all the time is GitHub, usually
+
+43
+00:02:27,110 --> 00:02:31,250
+embedded in some application code because the developer has forgotten to take
+
+44
+00:02:31,250 --> 00:02:34,540
+out the keys before making that code public.
+
+45
+00:02:34,540 --> 00:02:38,410
+Now it turns out that AWS routinely monitor public services
+
+46
+00:02:38,410 --> 00:02:40,970
+like GitHub looking for IAM access keys.
+
+47
+00:02:40,970 --> 00:02:42,020
+Once detected,
+
+48
+00:02:42,020 --> 00:02:46,040
+they can inform the relevant AWS account using an AWS Health event.
+
+49
+00:02:46,040 --> 00:02:48,570
+So what we need to do is configure a CloudWatch event that
+
+50
+00:02:48,570 --> 00:02:51,090
+will monitor for these AWS Health messages,
+
+51
+00:02:51,090 --> 00:02:53,840
+letting us know when our access keys have being exposed.
+
+52
+00:02:53,840 --> 00:02:56,870
+The CloudWatch event then will trigger a step function.
+
+53
+00:02:56,870 --> 00:03:00,040
+This step function will trigger a lambda function
+
+54
+00:03:00,040 --> 00:03:02,140
+to delete the relevant IAM keys.
+
+55
+00:03:02,140 --> 00:03:04,600
+It will also work with a second lambda function to
+
+56
+00:03:04,600 --> 00:03:07,540
+generate a report of recent key activity.
+
+57
+00:03:07,540 --> 00:03:09,640
+If these keys have been used,
+
+58
+00:03:09,640 --> 00:03:12,130
+then the information about that will appear in CloudTrail.
+
+59
+00:03:12,130 --> 00:03:15,440
+So the job of this second lambda function is to look for the CloudTrail
+
+60
+00:03:15,440 --> 00:03:19,470
+logs and build a key activity report based on the information found in
+
+61
+00:03:19,470 --> 00:03:23,250
+there. Our step function will also trigger a lambda function that informs
+
+62
+00:03:23,250 --> 00:03:27,380
+security that this event has occurred, and provides security with the key
+
+63
+00:03:27,380 --> 00:03:31,400
+activity report, so an example here of security event response and
+
+64
+00:03:31,400 --> 00:03:33,740
+automated healing.
+
+65
+00:03:33,740 --> 00:03:37,240
+How could your organization benefit from automated healing?
+
+66
+00:03:37,240 --> 00:03:40,640
+I guess a lot of the benefits will come down to quicker response times,
+
+67
+00:03:40,640 --> 00:03:45,610
+more consistent response to events, and freeing up your time to work on tasks
+
+68
+00:03:45,610 --> 00:03:49,610
+that add benefit to the business rather than responding to events that could
+
+69
+00:03:49,610 --> 00:03:54,980
+be easily automated. Whenever we talk about automation at AWS, we must include
+
+70
+00:03:54,980 --> 00:03:57,440
+a conversation about CloudFormation.
+
+71
+00:03:57,440 --> 00:04:02,050
+CloudFormation is our infrastructure's code tool in AWS that allows us to create
+
+72
+00:04:02,050 --> 00:04:07,850
+CloudFormation stacks that can do everything from deploying VPCs through to the
+
+73
+00:04:07,850 --> 00:04:11,840
+deployment and configuration of compute services.
+
+74
+00:04:11,840 --> 00:04:13,940
+If you're not familiar with CloudFormation,
+
+75
+00:04:13,940 --> 00:04:15,950
+then I would advise looking at one of the several
+
+76
+00:04:15,950 --> 00:04:19,280
+Pluralsight courses that covers CloudFormation.
+
+77
+00:04:19,280 --> 00:04:22,240
+Although there's lots of other infrastructure code tools out there,
+
+78
+00:04:22,240 --> 00:04:25,810
+because CloudFormation is fully integrated with AWS, it's a really good
+
+79
+00:04:25,810 --> 00:04:28,540
+starting off point for our infrastructure's code.
+
+80
+00:04:28,540 --> 00:04:29,120
+Also,
+
+81
+00:04:29,120 --> 00:04:31,970
+if you're in a developer‑led environment, consider
+
+82
+00:04:31,970 --> 00:04:34,740
+using tools like Elastic Beanstalk.
+
+83
+00:04:34,740 --> 00:04:37,440
+Beanstalk will automate almost everything for you, from the
+
+84
+00:04:37,440 --> 00:04:41,030
+deployment of EC2 instances through to their patching, and
+
+85
+00:04:41,030 --> 00:04:43,870
+deployment of your application code. As developers,
+
+86
+00:04:43,870 --> 00:04:47,780
+you just keep track of your application code, providing Beanstalk with new
+
+87
+00:04:47,780 --> 00:04:50,860
+versions of the code to roll out when necessary. Also,
+
+88
+00:04:50,860 --> 00:04:52,090
+consider containers.
+
+89
+00:04:52,090 --> 00:04:55,690
+If you're not using containers right now, then you probably will in the future.
+
+90
+00:04:55,690 --> 00:04:59,700
+Using containers for compute offers rapid deployment and rapid
+
+91
+00:04:59,700 --> 00:05:03,140
+scalability that we need in today's cloud world.
+
+92
+00:05:03,140 --> 00:05:07,140
+If we use the Elastic Kubernetes Service to host our containers,
+
+93
+00:05:07,140 --> 00:05:11,390
+then we can let Kubernetes manage the availability of our containers and
+
+94
+00:05:11,390 --> 00:05:14,640
+recovery of our containers in the event of a disaster.
+
+95
+00:05:14,640 --> 00:05:15,220
+Finally,
+
+96
+00:05:15,220 --> 00:05:19,470
+if we haven't already, start getting familiar with Systems Manager. Systems
+
+97
+00:05:19,470 --> 00:05:22,610
+Manager will give us operational insights and control of our compute
+
+98
+00:05:22,610 --> 00:05:26,640
+infrastructure that we don't get with any other tool inside AWS.
+
+99
+00:05:26,640 --> 00:05:34,000
+So now we've discussed a couple of event response scenarios with self‑healing, let's jump into a demonstration.
+

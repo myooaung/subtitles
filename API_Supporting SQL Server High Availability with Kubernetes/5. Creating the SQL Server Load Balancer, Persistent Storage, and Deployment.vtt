@@ -1,0 +1,593 @@
+WEBVTT
+1
+00:00:02.040 --> 00:00:04.510
+So now let's dig into the details of creating our
+
+2
+00:00:04.510 --> 00:00:06.870
+SQL Server Kubernetes deployment.
+
+3
+00:00:06.870 --> 00:00:07.560
+First,
+
+4
+00:00:07.560 --> 00:00:10.790
+let's look at creating the load balancing service that will provide
+
+5
+00:00:10.790 --> 00:00:15.440
+persistent external networking for our SQL Server deployment.
+
+6
+00:00:15.440 --> 00:00:18.930
+The kubectl command that you see at the top shows how you can
+
+7
+00:00:18.930 --> 00:00:23.200
+create the service by using the apply operator and passing it a
+
+8
+00:00:23.200 --> 00:00:26.670
+.yaml file that contains the declarations you can see here at the
+
+9
+00:00:26.670 --> 00:00:28.440
+bottom portion of the screen.
+
+10
+00:00:28.440 --> 00:00:31.240
+The bottom portion of screen shows the contents of
+
+11
+00:00:31.240 --> 00:00:33.740
+the sqlloadbalancer.yaml file.
+
+12
+00:00:33.740 --> 00:00:37.980
+It contains the declarations that Kubernetes needs to create the service.
+
+13
+00:00:37.980 --> 00:00:41.860
+Here, the kind statement tells us what kind of object this is,
+
+14
+00:00:41.860 --> 00:00:44.740
+and here you can see this is going to be a Service.
+
+15
+00:00:44.740 --> 00:00:50.120
+The metadata, it gives the service a name, and here it's called mssql‑service.
+
+16
+00:00:50.120 --> 00:00:54.010
+This name isn't fixed, and you can use other values if you want to.
+
+17
+00:00:54.010 --> 00:00:58.100
+The selector identifies the name of the app that's going to use the service.
+
+18
+00:00:58.100 --> 00:01:01.670
+This is going to associate your pod with this load balancer.
+
+19
+00:01:01.670 --> 00:01:04.220
+In this case, you can see the app name is mssql.
+
+20
+00:01:04.220 --> 00:01:06.830
+Here again, this name is not fixed.
+
+21
+00:01:06.830 --> 00:01:08.810
+You can use other values.
+
+22
+00:01:08.810 --> 00:01:11.390
+You'll see the service name and the selector name used
+
+23
+00:01:11.390 --> 00:01:13.380
+again later in our pod deployment.
+
+24
+00:01:13.380 --> 00:01:16.050
+So they do need to match what you use here.
+
+25
+00:01:16.050 --> 00:01:19.080
+And while this service uses a single pod,
+
+26
+00:01:19.080 --> 00:01:20.970
+you should bear in mind that the load balancing
+
+27
+00:01:20.970 --> 00:01:23.300
+service can handle multiple pods.
+
+28
+00:01:23.300 --> 00:01:25.750
+It is a load balancer, after all.
+
+29
+00:01:25.750 --> 00:01:30.170
+The ports section that you can see at the bottom maps TCP
+
+30
+00:01:30.170 --> 00:01:34.010
+ports on the external load balancer to ports on the pod where
+
+31
+00:01:34.010 --> 00:01:36.110
+SQL Server is going to be running.
+
+32
+00:01:36.110 --> 00:01:39.970
+The first port value specifies the Kubernetes host port,
+
+33
+00:01:39.970 --> 00:01:44.140
+while the targetPort value specifies the port on the pod.
+
+34
+00:01:44.140 --> 00:01:50.490
+In this case, both are 1433, and 1433, that's the default port for SQL Server.
+
+35
+00:01:50.490 --> 00:01:54.630
+I kept them the same for simplicity, but they don't need to be the same.
+
+36
+00:01:54.630 --> 00:01:59.980
+In particular, the host port, the one that's identified by the word port,
+
+37
+00:01:59.980 --> 00:02:02.590
+it can be changed to other values.
+
+38
+00:02:02.590 --> 00:02:04.220
+But remember, if you do that,
+
+39
+00:02:04.220 --> 00:02:07.080
+you have to change your client that is connecting
+
+40
+00:02:07.080 --> 00:02:09.340
+into the pod to match those values.
+
+41
+00:02:09.340 --> 00:02:13.160
+When you deploy this, you'll get an external IP address,
+
+42
+00:02:13.160 --> 00:02:18.220
+and that IP address won't change, even if the SQL Server instance fails,
+
+43
+00:02:18.220 --> 00:02:21.140
+the pod fails or the node fails.
+
+44
+00:02:21.140 --> 00:02:24.540
+Now, let's take a look at creating external storage.
+
+45
+00:02:24.540 --> 00:02:26.860
+This slide shows the YAML that would create the
+
+46
+00:02:26.860 --> 00:02:29.540
+storage used by our SQL Server pod.
+
+47
+00:02:29.540 --> 00:02:31.540
+Here again, at the top of the slide,
+
+48
+00:02:31.540 --> 00:02:35.240
+you can see the kubectl command to create the storage.
+
+49
+00:02:35.240 --> 00:02:38.130
+Next, you can see the StorageClass,
+
+50
+00:02:38.130 --> 00:02:41.890
+which essentially describes the type of storage that's going to be used.
+
+51
+00:02:41.890 --> 00:02:45.830
+The metadata gives it a name, and here it's azure‑disk.
+
+52
+00:02:45.830 --> 00:02:49.900
+The storage account specifies Standard_LRS,
+
+53
+00:02:49.900 --> 00:02:52.910
+which is a general purpose type of storage on Azure.
+
+54
+00:02:52.910 --> 00:02:55.340
+If you are creating a production deployment,
+
+55
+00:02:55.340 --> 00:03:00.740
+you might want to use a faster, albeit more expensive premium storage.
+
+56
+00:03:00.740 --> 00:03:03.450
+You can run the kubectl command to list the
+
+57
+00:03:03.450 --> 00:03:05.370
+available storage options that you have,
+
+58
+00:03:05.370 --> 00:03:08.540
+and you'll see that in an upcoming demo.
+
+59
+00:03:08.540 --> 00:03:11.810
+The PersistentVolumeClaim, it's described on the bottom,
+
+60
+00:03:11.810 --> 00:03:13.970
+and it's named mssql‑data.
+
+61
+00:03:13.970 --> 00:03:17.870
+It points back to that Azure disk StorageClass that we just created.
+
+62
+00:03:17.870 --> 00:03:22.640
+You might notice the ReadWriteOnce access mode.
+
+63
+00:03:22.640 --> 00:03:25.460
+It indicates basically that storage can only be
+
+64
+00:03:25.460 --> 00:03:27.920
+accessed by one container at a time,
+
+65
+00:03:27.920 --> 00:03:33.720
+and you can see that the amount of storage that we allocated is 8 GB.
+
+66
+00:03:33.720 --> 00:03:37.530
+Now here's the slide that shows the YAML to actually
+
+67
+00:03:37.530 --> 00:03:39.930
+create the SQL Server deployment.
+
+68
+00:03:39.930 --> 00:03:41.680
+Again, at the top,
+
+69
+00:03:41.680 --> 00:03:45.240
+you can see that now familiar kubectl command where the
+
+70
+00:03:45.240 --> 00:03:48.920
+apply is used to create the deployment, passing it a .yaml file.
+
+71
+00:03:48.920 --> 00:03:56.120
+And if you look at the kind tag, you can see that this is a pod deployment,
+
+72
+00:03:56.120 --> 00:03:58.280
+so it's not a service like you saw before.
+
+73
+00:03:58.280 --> 00:04:00.340
+Instead, it's a deployment.
+
+74
+00:04:00.340 --> 00:04:05.000
+Next, you can see the replica set, and here it defines a single replica.
+
+75
+00:04:05.000 --> 00:04:07.510
+This is what tells Kubernetes to make sure there's
+
+76
+00:04:07.510 --> 00:04:10.010
+always one SQL Server pod running.
+
+77
+00:04:10.010 --> 00:04:13.640
+It doesn't matter if a node dies or a pod dies.
+
+78
+00:04:13.640 --> 00:04:15.520
+When you're using a replica set,
+
+79
+00:04:15.520 --> 00:04:19.170
+it will make sure there's always an instance of that pod running.
+
+80
+00:04:19.170 --> 00:04:23.610
+The label of mssql is the name of the SQL Server pod.
+
+81
+00:04:23.610 --> 00:04:27.690
+This selector tells the replica set that mssql is the
+
+82
+00:04:27.690 --> 00:04:29.490
+pod that's going to be replicated,
+
+83
+00:04:29.490 --> 00:04:33.110
+and you'll recall that the name of mssql was also associated
+
+84
+00:04:33.110 --> 00:04:35.480
+with that load balancer we created earlier.
+
+85
+00:04:35.480 --> 00:04:39.680
+You might notice at the bottom, the fsGroup: 1000.
+
+86
+00:04:39.680 --> 00:04:45.440
+With SQL Server 2019, Microsoft began running their containers as non‑root users.
+
+87
+00:04:45.440 --> 00:04:47.800
+This could result in a container not being able to
+
+88
+00:04:47.800 --> 00:04:50.240
+write to the persistent value.
+
+89
+00:04:50.240 --> 00:04:51.600
+The securityContext,
+
+90
+00:04:51.600 --> 00:04:56.650
+fsGroup: 1000, specifies the 1000 level security rights for
+
+91
+00:04:56.650 --> 00:04:58.950
+that SQL Server user in the container.
+
+92
+00:04:58.950 --> 00:05:02.840
+This allows the container to access those persistent volumes.
+
+93
+00:05:02.840 --> 00:05:09.140
+And again, this is something with SQL Server 2019 and higher.
+
+94
+00:05:09.140 --> 00:05:13.940
+This slide shows the second part of the SQL deployment .yaml file.
+
+95
+00:05:13.940 --> 00:05:17.140
+At the top, under the containers tag,
+
+96
+00:05:17.140 --> 00:05:20.650
+you can see the container image that's going to be used for this pod.
+
+97
+00:05:20.650 --> 00:05:24.670
+This container image is a Red Hat Enterprise Linux image with the
+
+98
+00:05:24.670 --> 00:05:27.550
+latest version of SQL Server 2019 installed.
+
+99
+00:05:27.550 --> 00:05:31.590
+You're not required to use that image or that version of SQL Server.
+
+100
+00:05:31.590 --> 00:05:37.450
+In fact, you can also install your own custom SQL Server images if you want to.
+
+101
+00:05:37.450 --> 00:05:41.920
+Microsoft SQL Server containers on Linux require that you supply several
+
+102
+00:05:41.920 --> 00:05:45.350
+environment variables in order to run the SQL Server containers.
+
+103
+00:05:45.350 --> 00:05:49.170
+All of these environment variables are exactly the same ones that
+
+104
+00:05:49.170 --> 00:05:53.100
+are either required or supported by SQL Server on Linux as if it
+
+105
+00:05:53.100 --> 00:05:55.940
+was running in a VM or bare metal.
+
+106
+00:05:55.940 --> 00:06:01.940
+MSSQL_PID is used to specify that we're using the free
+
+107
+00:06:01.940 --> 00:06:04.770
+SQL Server 2019 Developer edition.
+
+108
+00:06:04.770 --> 00:06:08.490
+ACCEPT_EULA is used to accept the license agreement.
+
+109
+00:06:08.490 --> 00:06:12.880
+MSSQL_SA_PASSWORD is used to set the SA password,
+
+110
+00:06:12.880 --> 00:06:14.740
+which is system administrator,
+
+111
+00:06:14.740 --> 00:06:19.140
+and this is required to initially log on and manage your SQL Server instance.
+
+112
+00:06:19.140 --> 00:06:26.580
+Note, this value is supplied from the Kubernetes secret named mssql‑secret.
+
+113
+00:06:26.580 --> 00:06:30.580
+You'll see more about setting that secret as we walk through the upcoming demo.
+
+114
+00:06:30.580 --> 00:06:33.420
+One thing I should be clear about is while this example is
+
+115
+00:06:33.420 --> 00:06:36.890
+deploying a standard SQL Server container image,
+
+116
+00:06:36.890 --> 00:06:39.440
+you're not limited to Microsoft images.
+
+117
+00:06:39.440 --> 00:06:43.140
+You can also deploy your own custom SQL Server images.
+
+118
+00:06:43.140 --> 00:06:47.350
+Your own images do not have the same environment variables passed to them,
+
+119
+00:06:47.350 --> 00:06:51.720
+and they can have other attributes as well such as customized server settings.
+
+120
+00:06:51.720 --> 00:06:54.090
+They can also have pre‑installed databases.
+
+121
+00:06:54.090 --> 00:06:55.700
+In this case,
+
+122
+00:06:55.700 --> 00:07:00.440
+the standard SQL Server instance will not have any databases installed.
+
+123
+00:07:00.440 --> 00:07:03.580
+The volumeMounts section that you can see near the end,
+
+124
+00:07:03.580 --> 00:07:08.340
+it maps the /var/opt/mssql directory in the container to
+
+125
+00:07:08.340 --> 00:07:11.350
+the external storage described by the persistent volume
+
+126
+00:07:11.350 --> 00:07:13.840
+claim that was previously created.
+
+127
+00:07:13.840 --> 00:07:18.300
+The persistent volume claim, it was named mssql‑data, if you recall.
+
+128
+00:07:18.300 --> 00:07:21.280
+And, you should know that /var/opt/mssql,
+
+129
+00:07:21.280 --> 00:07:25.840
+that's the directory that SQL Server uses on Linux for
+
+130
+00:07:25.840 --> 00:07:28.560
+the default database installations.
+
+131
+00:07:28.560 --> 00:07:32.340
+Remember, this storage, it's external from the pod.
+
+132
+00:07:32.340 --> 00:07:34.700
+If the SQL Server pod fails,
+
+133
+00:07:34.700 --> 00:07:36.950
+the new pod will reconnect to the load balancing
+
+134
+00:07:36.950 --> 00:07:39.140
+service with the same IP as before,
+
+135
+00:07:39.140 --> 00:07:42.440
+and it will also connect to the same external storage.
+
+136
+00:07:42.440 --> 00:07:45.340
+The external storage won't go away.
+
+137
+00:07:45.340 --> 00:07:49.220
+SQL Server would then run recovery for the storage and restart.
+
+138
+00:07:49.220 --> 00:07:51.020
+With SQL Server 2019,
+
+139
+00:07:51.020 --> 00:07:54.740
+it uses a feature called accelerated database recovery
+
+140
+00:07:54.740 --> 00:07:58.240
+that makes this recovery process faster.
+
+141
+00:07:58.240 --> 00:08:01.470
+I should point out that I broke this example up into three
+
+142
+00:08:01.470 --> 00:08:03.950
+separate .yaml files for the service, the storage,
+
+143
+00:08:03.950 --> 00:08:05.140
+and the deployment.
+
+144
+00:08:05.140 --> 00:08:07.810
+There's absolutely no requirement to do that.
+
+145
+00:08:07.810 --> 00:08:11.490
+I separated the different parts of the deployment to make it easier to
+
+146
+00:08:11.490 --> 00:08:15.320
+follow and so they were more logically separated.
+
+147
+00:08:15.320 --> 00:08:16.320
+If you wanted to,
+
+148
+00:08:16.320 --> 00:08:25.000
+you could combine all of these declarations into one big .yaml file and run a single kubectl apply command to create it all at once.
+

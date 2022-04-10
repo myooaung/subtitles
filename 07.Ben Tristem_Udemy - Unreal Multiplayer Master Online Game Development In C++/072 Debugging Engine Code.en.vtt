@@ -1,0 +1,1072 @@
+WEBVTT
+1
+00:00:04.380 --> 00:00:09.360
+Welcome to another lovely video of a real multiplayer and this lecture going to be looking at debugging
+
+2
+00:00:09.390 --> 00:00:15.600
+engine code because what I want us to be able to do is look at a session here in our find session dialogue
+
+3
+00:00:15.870 --> 00:00:20.670
+and be able to see that there are indeed one of two players and this is not using seen.
+
+4
+00:00:20.670 --> 00:00:22.160
+This is using the null subsystem.
+
+5
+00:00:22.160 --> 00:00:27.320
+So what we've done here is we've been able to find the bug in the subsystem by using the techniques
+
+6
+00:00:27.330 --> 00:00:31.370
+I'm going to show you in this video and we have been able to find a workaround.
+
+7
+00:00:31.560 --> 00:00:35.910
+And we have been able to then go to the cervalis and see that there is one player currently playing
+
+8
+00:00:35.910 --> 00:00:40.320
+and if I go and join that we'll see that there will be two players currently playing so this is great
+
+9
+00:00:40.320 --> 00:00:40.650
+stuff.
+
+10
+00:00:40.650 --> 00:00:43.210
+Let's dive in and see how it is done.
+
+11
+00:00:44.080 --> 00:00:49.360
+Now before we dive in I'd like to point out that the way we are doing this in this lecture the way we're
+
+12
+00:00:49.360 --> 00:00:54.940
+getting hold of the game session name by debugging the engine is valid but will break between engine
+
+13
+00:00:54.940 --> 00:01:00.050
+versions as zeo eury seventy eight has pointed out in the Q and A.
+
+14
+00:01:00.130 --> 00:01:07.590
+There is a better way of doing this by including the unreal names header and finding this the name underscore
+
+15
+00:01:07.600 --> 00:01:08.560
+game session.
+
+16
+00:01:08.800 --> 00:01:14.680
+As this will not change between engine versions which is very very helpful so do go ahead watch this
+
+17
+00:01:14.680 --> 00:01:16.770
+video to see how the debug bugging works.
+
+18
+00:01:16.810 --> 00:01:20.720
+But please use this if you are unsure.
+
+19
+00:01:20.760 --> 00:01:21.920
+Well basically use this.
+
+20
+00:01:21.940 --> 00:01:25.420
+It's not going to change between engine versions it'll be less fragile it's better.
+
+21
+00:01:25.430 --> 00:01:28.900
+Thank you for coming up with that.
+
+22
+00:01:29.560 --> 00:01:34.750
+So something is really irritating me with our game at the moment and that is that the number of open
+
+23
+00:01:34.750 --> 00:01:40.870
+connections being advertised on ad join screen is not getting updated so it always looks like we have
+
+24
+00:01:40.870 --> 00:01:44.700
+no players on the game even when it's almost about to start.
+
+25
+00:01:44.740 --> 00:01:50.110
+We want to be able to fix this even in the null subsystem I know it does work with steam but we want
+
+26
+00:01:50.110 --> 00:01:56.130
+to figure out and get to the bottom of why this is not working with the null subsystem and to do that
+
+27
+00:01:56.130 --> 00:02:01.650
+I'm going to take you through the process of debugging bugs in the editor to see why.
+
+28
+00:02:01.800 --> 00:02:07.450
+Whether you understand the API whether it's the way you're calling the API or whether it is the API
+
+29
+00:02:07.450 --> 00:02:11.250
+itself that has problems whether it's the editor itself that has problems.
+
+30
+00:02:11.290 --> 00:02:16.280
+So the first step of this process we're going to need to get hold of something called Ed symbols and
+
+31
+00:02:16.280 --> 00:02:23.710
+as a debug symbols these symbols basically allow us to attach a debugger to a processor processor game
+
+32
+00:02:24.010 --> 00:02:29.620
+using the unreel editor and it will allow us to jump into the Ed code and jump around the editor code
+
+33
+00:02:29.950 --> 00:02:38.770
+so that we can see what it's calling what the code is running a warit we are in the call stack and what
+
+34
+00:02:38.770 --> 00:02:44.220
+variables they are so we can really see the inner workings of the code in action not just statically
+
+35
+00:02:44.230 --> 00:02:48.950
+by trying to read the code that may often helps massively when trying to debug these issues.
+
+36
+00:02:49.090 --> 00:02:55.000
+So to get hold of those ed symbols is really easy just fire up your epic games launcher and go over
+
+37
+00:02:55.000 --> 00:03:00.810
+to your unreel tab to the library tab and then for your for your version of unreal.
+
+38
+00:03:00.880 --> 00:03:04.020
+Mine is four point seventeen point two.
+
+39
+00:03:04.030 --> 00:03:10.390
+You can go to the drop down menu go to options and in options you've got the various components of the
+
+40
+00:03:10.390 --> 00:03:13.050
+engine which can optionally be installed or not installed.
+
+41
+00:03:13.090 --> 00:03:16.300
+You're looking for the ED symbols for debugging option.
+
+42
+00:03:16.300 --> 00:03:21.870
+Go ahead make sure that's checked and go and hit apply for me nothing should have changed though.
+
+43
+00:03:21.880 --> 00:03:26.990
+That should be fine but for you if you need to get those ed symbols then it will go ahead and download
+
+44
+00:03:26.990 --> 00:03:33.310
+it fairly large download so if you need them go ahead and pause the video now to start the process while
+
+45
+00:03:33.340 --> 00:03:35.640
+I show you what we're going to be doing with the debugging.
+
+46
+00:03:36.620 --> 00:03:39.290
+Okay so hopefully you've gone ahead and done that.
+
+47
+00:03:39.290 --> 00:03:45.510
+Now we're going to go and have a look at how we can figure out or start looking at this bug.
+
+48
+00:03:45.530 --> 00:03:50.390
+The first step is going to be finding the null subsystem code we know this is going on somewhere in
+
+49
+00:03:50.390 --> 00:03:55.880
+the null subsystem and we know it has something to do with this variable of num public connections.
+
+50
+00:03:55.880 --> 00:03:59.350
+Those are the two pieces of information that we're going to use as our leads.
+
+51
+00:03:59.360 --> 00:04:05.300
+To start off with and we're going to go and find the implementation in the null subsystem where this
+
+52
+00:04:05.450 --> 00:04:07.940
+number should be altered.
+
+53
+00:04:07.940 --> 00:04:10.700
+So let's go and find that null subsystem.
+
+54
+00:04:10.700 --> 00:04:18.290
+The best way to do that is on both x code and Visual Studio will be just to do a project wide search
+
+55
+00:04:18.350 --> 00:04:24.310
+for something that should be defined in the null subsystem such as create session for example.
+
+56
+00:04:24.330 --> 00:04:30.020
+So copy the text create session go and do a project wide search though for visual view that's control
+
+57
+00:04:30.030 --> 00:04:34.280
+shift F and search for create session in the entire solution.
+
+58
+00:04:34.280 --> 00:04:39.170
+Go ahead and find all of those symbols there'll be a few of them but we're going to be looking for the
+
+59
+00:04:39.170 --> 00:04:44.210
+one in a file that clearly means that it's part of the noell subsystem.
+
+60
+00:04:44.270 --> 00:04:50.180
+So here already in the search results we are seeing things like online session interface online session
+
+61
+00:04:50.180 --> 00:04:50.560
+interface.
+
+62
+00:04:50.570 --> 00:04:55.420
+I o s and here there is an online session interface null dot copy.
+
+63
+00:04:55.430 --> 00:04:58.490
+So that seems like the implementation for an LOL subsystem.
+
+64
+00:04:58.670 --> 00:05:03.510
+Let's click it and open up our online session interface null dotsie Key.
+
+65
+00:05:03.560 --> 00:05:07.820
+Now this file is obviously rather large if I scroll on to the bottom we can see that there are about
+
+66
+00:05:08.540 --> 00:05:14.140
+twelve hundred lines of code in here and that's a lot of code going on in just this null subsystem and
+
+67
+00:05:14.140 --> 00:05:17.140
+the null subsystem as we know doesn't actually do very much.
+
+68
+00:05:17.150 --> 00:05:23.330
+It doesn't even do internet connection like unlike the steam subsystem so well where is the code that
+
+69
+00:05:23.390 --> 00:05:25.810
+is updating that variable we were talking about.
+
+70
+00:05:25.820 --> 00:05:29.870
+We go to the C++ Mort was a variable called it was called num public connections.
+
+71
+00:05:29.870 --> 00:05:37.400
+Let's copy that and go over to C++ and let's see if we can find some occurrences of this and see how
+
+72
+00:05:37.400 --> 00:05:42.720
+it should be used and then we can verify that with some debugging in just a minute.
+
+73
+00:05:42.980 --> 00:05:49.700
+So if I go searching through then we've got one instance of it being called here it's being used to
+
+74
+00:05:49.700 --> 00:05:55.010
+set a session that says number of open public connections.
+
+75
+00:05:55.190 --> 00:05:56.810
+So actually that's the variable we're looking for.
+
+76
+00:05:56.810 --> 00:06:02.810
+That's the one that we're reading off so none public collections is what we're setting in create session.
+
+77
+00:06:02.840 --> 00:06:06.200
+But when we are getting our find.
+
+78
+00:06:07.480 --> 00:06:08.160
+Where is it.
+
+79
+00:06:08.170 --> 00:06:09.330
+Somewhere down the bottom here.
+
+80
+00:06:09.340 --> 00:06:09.850
+No.
+
+81
+00:06:10.240 --> 00:06:15.880
+I'll do a search for find in our game instance or see BP find session complete.
+
+82
+00:06:15.880 --> 00:06:22.300
+In here we are getting our search result back and we're looking for the number of num open public connections.
+
+83
+00:06:22.450 --> 00:06:26.410
+So then copy that and actually look for that in the nul session interface because that's what we want
+
+84
+00:06:26.410 --> 00:06:28.090
+to see so we can see that.
+
+85
+00:06:28.120 --> 00:06:30.520
+First off when you do call create session.
+
+86
+00:06:30.610 --> 00:06:36.850
+So we got a call to create session here on line 180 and it is being the number of open public connections
+
+87
+00:06:36.850 --> 00:06:42.670
+is being set to the number of public connections so it starts off as the maximum that makes sense.
+
+88
+00:06:42.670 --> 00:06:45.440
+Lets go and look for the next occurrence.
+
+89
+00:06:45.700 --> 00:06:46.850
+This is somewhere in.
+
+90
+00:06:46.860 --> 00:06:52.630
+Needs to advertise and its being used as part of a boolean expression so its unlikely to be that.
+
+91
+00:06:53.450 --> 00:06:54.560
+Where else do we have it.
+
+92
+00:06:54.590 --> 00:07:00.590
+Is that session joinable again here it's saying that we need to have more than zero open public connections
+
+93
+00:07:00.710 --> 00:07:01.960
+for it to be joinable.
+
+94
+00:07:02.270 --> 00:07:02.580
+OK.
+
+95
+00:07:02.600 --> 00:07:03.940
+That's probably not it either.
+
+96
+00:07:04.070 --> 00:07:06.960
+Okay this looks interesting in register players.
+
+97
+00:07:06.980 --> 00:07:13.100
+We have got a check first that it's greater than zero but then subsequently we are subtracting from
+
+98
+00:07:13.100 --> 00:07:15.390
+that number of open public connections.
+
+99
+00:07:15.470 --> 00:07:20.490
+So that seems like the problem we probably aren't subtracting from that variable.
+
+100
+00:07:20.510 --> 00:07:25.050
+So the question is does register players ever get called at all.
+
+101
+00:07:25.070 --> 00:07:27.640
+And if so what are the arguments it gets called with.
+
+102
+00:07:27.650 --> 00:07:33.720
+And do we ever get to this line of code that subtracts from number of public connections.
+
+103
+00:07:34.160 --> 00:07:37.230
+Well we can try and find this out using the debugger.
+
+104
+00:07:37.430 --> 00:07:44.420
+What we're going to be doing with the debugger is attaching to the editor that means we are getting
+
+105
+00:07:44.420 --> 00:07:51.350
+the editor to run its code and we are listening to basically what code is being run with the debugger
+
+106
+00:07:51.890 --> 00:07:57.260
+and then we can reproduce the issue and we can see we can set breakpoints in our code a breakpoint is
+
+107
+00:07:57.260 --> 00:08:04.130
+very easy to set both in Visual Studio and ex code where you basically just click next to the line number
+
+108
+00:08:04.160 --> 00:08:06.240
+and you see this little red dot that shows up.
+
+109
+00:08:06.410 --> 00:08:11.480
+And that is a break point and this means that when execution in the thing that you are attached to reaches
+
+110
+00:08:11.480 --> 00:08:17.060
+this line its going to pause and throw you into visual studio and you will be able to have a look at
+
+111
+00:08:17.060 --> 00:08:19.390
+what the variables currently are.
+
+112
+00:08:19.400 --> 00:08:23.420
+It will be able to have a look at the call stack and all sorts of things like that.
+
+113
+00:08:23.420 --> 00:08:27.220
+So I would like to you to jump in and actually have a go with this yourself.
+
+114
+00:08:27.410 --> 00:08:34.220
+So I'm going to set a couple of break points and you can do the same going to set one on Lown 885 where
+
+115
+00:08:34.220 --> 00:08:37.850
+we call we decrement num open public connections.
+
+116
+00:08:38.000 --> 00:08:44.240
+I'm also going to set one on register players right near the top just to see whether we're even calling
+
+117
+00:08:44.510 --> 00:08:45.470
+register players.
+
+118
+00:08:45.470 --> 00:08:50.650
+So that's going to be online 866 for me just after Reg's the players has begun.
+
+119
+00:08:50.810 --> 00:08:51.770
+There's been no ifs.
+
+120
+00:08:51.800 --> 00:08:55.870
+So if it had called this method at all we would have got to this line.
+
+121
+00:08:56.330 --> 00:09:01.970
+And then we can go ahead and attach very simply and just a quick refresher if you've not done any attaching
+
+122
+00:09:01.970 --> 00:09:09.860
+in a while then the way you do this is you go to the debug menu attached to process and then you can
+
+123
+00:09:09.860 --> 00:09:17.180
+search for either the basic just look for unreel and you'll see there is a ewy for Ed but if you have
+
+124
+00:09:17.180 --> 00:09:21.920
+some games open then you will have some unreel games here to attach to as well.
+
+125
+00:09:21.920 --> 00:09:27.710
+And you can do this and you can see whether you can basically try attaching to the host attaching to
+
+126
+00:09:27.860 --> 00:09:31.760
+the clients and see what happens in all of these situations.
+
+127
+00:09:32.710 --> 00:09:35.590
+So let me structure this as a challenge for you.
+
+128
+00:09:35.590 --> 00:09:40.090
+You're going to be debugging the noell subsystem and these are the sorts of questions you are going
+
+129
+00:09:40.090 --> 00:09:44.200
+to be asking yourself now and throwing you in the deep end a little bit here just see how far we can
+
+130
+00:09:44.200 --> 00:09:45.190
+get with these questions.
+
+131
+00:09:45.190 --> 00:09:49.380
+Don't worry if you can't answer the more we'll go through in the change solution.
+
+132
+00:09:49.420 --> 00:09:56.410
+So the first question to answer is does the host or client call register player and do that doesn't
+
+133
+00:09:56.410 --> 00:09:57.270
+get called at all.
+
+134
+00:09:57.280 --> 00:09:58.490
+As it should be called.
+
+135
+00:09:59.440 --> 00:10:01.660
+Does the open no open public.
+
+136
+00:10:01.660 --> 00:10:06.310
+Connections decrements do we reach the line where the decremented happens.
+
+137
+00:10:06.460 --> 00:10:11.180
+And if so why is it then not showing up for us.
+
+138
+00:10:11.320 --> 00:10:13.110
+And if not why not.
+
+139
+00:10:13.120 --> 00:10:14.460
+Why are we not reaching that line.
+
+140
+00:10:14.470 --> 00:10:15.870
+What goes wrong in the IF statements.
+
+141
+00:10:15.880 --> 00:10:22.150
+Do we even get to register a player and have these questions and then come back and watch the video.
+
+142
+00:10:23.930 --> 00:10:24.950
+Okay welcome back.
+
+143
+00:10:24.950 --> 00:10:28.130
+Hopefully you've had a stab at doing this for yourself.
+
+144
+00:10:28.130 --> 00:10:32.790
+Now I'm going to go ahead and create the situation in which this problem will occur.
+
+145
+00:10:32.810 --> 00:10:37.570
+You're going to shut down the unreal editor just for simplicity and to save on a few resources.
+
+146
+00:10:37.880 --> 00:10:43.760
+And I'm going to launch up power shell and I am going to launch up two instances of the game one to
+
+147
+00:10:43.760 --> 00:10:47.060
+be the host and one to be the client.
+
+148
+00:10:48.360 --> 00:10:55.270
+I'll do that and I'm going to skip the step of attaching to the client because I happen to know that
+
+149
+00:10:55.270 --> 00:10:58.200
+Reg's the players only get called on the host.
+
+150
+00:10:58.210 --> 00:11:00.090
+I've done this by experimentation obviously.
+
+151
+00:11:00.100 --> 00:11:06.040
+You go ahead and experiment for yourselves and see that if you're attached to the client you won't get
+
+152
+00:11:06.040 --> 00:11:07.960
+registe the players called.
+
+153
+00:11:08.050 --> 00:11:10.510
+So I'm going to go ahead and attach it to the host.
+
+154
+00:11:10.510 --> 00:11:15.310
+First of all so actually I'm going to close down one of the instances to make sure that when I'm attaching
+
+155
+00:11:15.310 --> 00:11:20.020
+to the game in since there's only one around so that only I'm definitely attaching to the right one
+
+156
+00:11:20.020 --> 00:11:21.100
+which is going to be housed.
+
+157
+00:11:21.490 --> 00:11:26.470
+So I'm going to go ahead and go to let's have a look.
+
+158
+00:11:26.470 --> 00:11:27.180
+Project.
+
+159
+00:11:27.190 --> 00:11:27.820
+No debug.
+
+160
+00:11:27.820 --> 00:11:33.790
+That was the one attached to process and I'm going to look for unreel and sure enough I've got just
+
+161
+00:11:33.790 --> 00:11:35.710
+one process as I'm expecting.
+
+162
+00:11:35.710 --> 00:11:40.910
+I can go ahead and attached to that because I've got the debug symbols this is going to work out okay.
+
+163
+00:11:41.290 --> 00:11:47.410
+I've got my breakpoints in place that I put in place before the challenge and it has gone ahead and
+
+164
+00:11:47.440 --> 00:11:52.250
+attach the process and we can see that it's now running by looking at the diagnostic tools we can see
+
+165
+00:11:52.260 --> 00:11:56.090
+as a bar moving along there which is just tracking time basically.
+
+166
+00:11:57.230 --> 00:12:02.120
+And it's not stopped at any of the breakpoints so wrenched the players hasn't been called yet nor has
+
+167
+00:12:02.120 --> 00:12:06.410
+this line with decremented a number of public open connections.
+
+168
+00:12:06.410 --> 00:12:13.190
+So let's go back into the game and actually host a game or go ahead and create a game with our favourite
+
+169
+00:12:13.230 --> 00:12:13.920
+hostname.
+
+170
+00:12:14.120 --> 00:12:17.200
+Let's go ahead and host it and see if anything it's called.
+
+171
+00:12:17.990 --> 00:12:18.340
+Okay.
+
+172
+00:12:18.360 --> 00:12:23.240
+So I've got a breakpoint here which I must have said before I'm going to unset it by clicking on it
+
+173
+00:12:23.240 --> 00:12:30.160
+again and we can continue by going to the top bar where there is a green arrow that says continue and
+
+174
+00:12:30.160 --> 00:12:31.230
+continue through.
+
+175
+00:12:31.240 --> 00:12:37.480
+And I've got a few of these breakpoints that apparently have been remained set from previous debugging
+
+176
+00:12:37.480 --> 00:12:38.540
+sessions.
+
+177
+00:12:38.740 --> 00:12:45.700
+So I'm going to just play through them and eventually we reach the break point of Register players.
+
+178
+00:12:45.700 --> 00:12:51.850
+So Register players is getting called game called when we host our own game and it's getting called
+
+179
+00:12:51.910 --> 00:12:53.270
+on the host.
+
+180
+00:12:53.320 --> 00:12:56.420
+So that answers the first question for sure.
+
+181
+00:12:56.510 --> 00:13:02.310
+Now does number of open public connections get called let's go ahead and see if it does.
+
+182
+00:13:02.380 --> 00:13:08.380
+I'm going to continue playing and we should hit the next break point if we actually reach that line
+
+183
+00:13:08.380 --> 00:13:11.110
+of code that's hit continue.
+
+184
+00:13:11.110 --> 00:13:15.940
+Nope it does not reach that line of code it's stopped somewhere else and then continue playing.
+
+185
+00:13:16.060 --> 00:13:21.890
+So we've never got to actually decremental saying that that variable now.
+
+186
+00:13:22.030 --> 00:13:24.210
+Third question why.
+
+187
+00:13:24.340 --> 00:13:29.350
+Let's go ahead and launch up a new game so you can see the debug session has just finished and Visual
+
+188
+00:13:29.350 --> 00:13:31.150
+Studio has gone back to looking normal.
+
+189
+00:13:31.420 --> 00:13:36.970
+I'm going to launch up the power shell again and I'm going to go ahead and attach to it.
+
+190
+00:13:36.970 --> 00:13:40.150
+So I'll go to my debug attached to process.
+
+191
+00:13:40.150 --> 00:13:44.790
+I may have to wait for the game to launch first being a bit impatient.
+
+192
+00:13:46.170 --> 00:13:53.090
+So now it's up and running we can go into visual studio and debug go tos attach to process.
+
+193
+00:13:53.870 --> 00:14:00.750
+And we can search real again select the unreal editor with title puzzle platforms attach.
+
+194
+00:14:01.550 --> 00:14:08.000
+Wait for it to it's attaching we've got the bar moving along in the diagnostic tools and we can go ahead
+
+195
+00:14:08.060 --> 00:14:11.670
+and host a game and get the behaviour that we want to observe.
+
+196
+00:14:14.960 --> 00:14:17.990
+And here we are in Reg's the players.
+
+197
+00:14:17.990 --> 00:14:19.810
+Now let's have a look at our IF statements.
+
+198
+00:14:19.820 --> 00:14:24.060
+Where could we be going wrong in these if statements.
+
+199
+00:14:24.140 --> 00:14:28.040
+We can go actually and step through this one.
+
+200
+00:14:28.400 --> 00:14:29.840
+One line of code at a time.
+
+201
+00:14:29.840 --> 00:14:35.420
+So in the top bar we had continue there are also some other buttons one of which if you hover over it
+
+202
+00:14:35.420 --> 00:14:39.990
+will say step over and you'll have very similar controls on X code.
+
+203
+00:14:40.160 --> 00:14:45.500
+We can step over line by line and see whether we're going into all these if statements do we go into
+
+204
+00:14:45.500 --> 00:14:46.590
+the first IF statement.
+
+205
+00:14:46.820 --> 00:14:47.600
+No we don't.
+
+206
+00:14:47.600 --> 00:14:54.890
+We actually skip over that first statement that set tries to get hold of a session because the session
+
+207
+00:14:55.340 --> 00:14:56.410
+is not.
+
+208
+00:14:56.570 --> 00:15:02.240
+So this pointer to f named session is null and we can hover over it and we can see that the value is
+
+209
+00:15:02.240 --> 00:15:06.670
+now another place that we can see this is in the panes labelled locals.
+
+210
+00:15:06.840 --> 00:15:12.910
+Where you can see that Sessions it's sessions bearable which is a local variable is not.
+
+211
+00:15:13.330 --> 00:15:20.950
+So why is it now because it is set by get named sessions and of the session name coming in.
+
+212
+00:15:21.710 --> 00:15:22.840
+Is game.
+
+213
+00:15:22.850 --> 00:15:23.720
+That's interesting.
+
+214
+00:15:23.720 --> 00:15:28.130
+Why is the session name that comes into Reg's the player's game.
+
+215
+00:15:28.250 --> 00:15:30.790
+It's clearly not the session that name that we've given it.
+
+216
+00:15:30.800 --> 00:15:35.990
+If we go to our game instance or s.p. Scroll to the top of the file you can see that the session name
+
+217
+00:15:36.020 --> 00:15:41.690
+we are using as a session name constant is my session game.
+
+218
+00:15:41.750 --> 00:15:43.150
+So what is going on.
+
+219
+00:15:43.190 --> 00:15:47.420
+Why is it giving us this variable name coming in.
+
+220
+00:15:48.200 --> 00:15:52.880
+Well this is where we can have a look at the call stack remember the call stack is one function calling
+
+221
+00:15:52.880 --> 00:15:55.080
+another calling another queally another.
+
+222
+00:15:55.400 --> 00:15:58.970
+And they're actually written out kind of backwards here on the call stack.
+
+223
+00:15:58.970 --> 00:16:02.440
+The top item is the one the deepest most function.
+
+224
+00:16:02.450 --> 00:16:09.530
+The one that we're currently in and then the one above that E is basically the function that's calling
+
+225
+00:16:09.530 --> 00:16:16.290
+that and so on and so on so we can double click on these to navigate up to where they're being called.
+
+226
+00:16:16.460 --> 00:16:20.980
+And we can try and trace back to where this session name is actually coming from.
+
+227
+00:16:20.990 --> 00:16:31.300
+So here if I go up to levels we're in a file called Online engine interface import implementation shortfall.
+
+228
+00:16:31.520 --> 00:16:37.100
+And that itself has a Reg's to play a method but that Reg's the play method is taking session name in
+
+229
+00:16:37.160 --> 00:16:42.670
+and as we can see by hover over hovering over it you can see the session name is game in quotes.
+
+230
+00:16:42.680 --> 00:16:45.870
+So we've already got a problem here we've got to go up a little bit further.
+
+231
+00:16:46.340 --> 00:16:53.300
+We go up to a class called Play a state DOT cbp and here you can see that the session name is coming
+
+232
+00:16:53.300 --> 00:17:00.860
+from the player state itself and the play state if we look at that variable in this function you can
+
+233
+00:17:00.860 --> 00:17:05.750
+see that the player state is being created as a get default call.
+
+234
+00:17:05.750 --> 00:17:10.820
+We don't quite know what a default call is but I can pretty much assume that get default is getting
+
+235
+00:17:10.820 --> 00:17:15.200
+as a default instance of the class a player state.
+
+236
+00:17:15.200 --> 00:17:22.790
+So this seems to mean to me that player state is basically has got a default session name and that default
+
+237
+00:17:22.790 --> 00:17:25.070
+session name is game.
+
+238
+00:17:25.070 --> 00:17:29.330
+So there is a bug here whether it's at this level or down in the null subsystem.
+
+239
+00:17:29.330 --> 00:17:33.960
+But for some reason it is assuming that the session name will be game.
+
+240
+00:17:34.010 --> 00:17:35.630
+So that's a bit of a problem.
+
+241
+00:17:35.630 --> 00:17:41.540
+But seeing as we're just using a session name constant anyway we can go ahead and change our session
+
+242
+00:17:41.540 --> 00:17:45.110
+name constant to match game which should fix the problem.
+
+243
+00:17:45.110 --> 00:17:47.090
+So let's go ahead and give that a shot.
+
+244
+00:17:47.120 --> 00:17:50.820
+I'm going to stop debugging here by hitting the stop button.
+
+245
+00:17:50.960 --> 00:17:53.890
+Go into my game instance dot s.p..
+
+246
+00:17:54.780 --> 00:18:01.210
+And we can change this session name variable from my session game just to game with a capital G.
+
+247
+00:18:01.220 --> 00:18:07.520
+So I'm going to go ahead save that rebuild and then we can test this out in an instance of our game.
+
+248
+00:18:08.580 --> 00:18:13.650
+So I got a couple of weird compile errors here and they seem to be talking about the key word here to
+
+249
+00:18:13.650 --> 00:18:18.560
+look for is that it says access denied somewhere access to path.
+
+250
+00:18:18.570 --> 00:18:20.520
+Blah blah blah is denied.
+
+251
+00:18:20.520 --> 00:18:26.100
+That typically happens I think when a game is open and you try to compile because it doesn't do the
+
+252
+00:18:26.100 --> 00:18:28.830
+usual hot reload thing that the editor does.
+
+253
+00:18:28.890 --> 00:18:33.770
+So just close down the game and try to recompile if you ever get those sorts of errors.
+
+254
+00:18:34.020 --> 00:18:40.770
+And sure enough this time we had a successful build so lets go and launch up to instances of the game
+
+255
+00:18:40.830 --> 00:18:45.810
+and in one of them we will be the host and then the other one we will just go and observe the host list
+
+256
+00:18:46.140 --> 00:18:51.660
+and hopefully this time we will see that there is one player instead of zero players currently in the
+
+257
+00:18:51.660 --> 00:18:52.340
+game.
+
+258
+00:18:52.770 --> 00:18:55.460
+So the game is firing up.
+
+259
+00:18:55.980 --> 00:19:00.400
+And here it is so in the first one I am going to go ahead and host.
+
+260
+00:19:00.420 --> 00:19:02.800
+Give it any old name and there we are.
+
+261
+00:19:02.820 --> 00:19:09.150
+Im in the lobby as the host and in the second instance I'm going to go ahead and join wait for the menu
+
+262
+00:19:09.150 --> 00:19:15.690
+to populate from the north subsystem and when it has we can let out an exclamation of joy because our
+
+263
+00:19:15.690 --> 00:19:22.110
+player number is indeed 2 1 out of 2 which means that in all that debugging which was quite complicated
+
+264
+00:19:22.110 --> 00:19:24.760
+and difficult but well done for sticking through it.
+
+265
+00:19:25.020 --> 00:19:30.150
+We have been able to identify the by and find a workaround to it so hopefully you're feeling really
+
+266
+00:19:30.180 --> 00:19:35.850
+energized now and then the next video we are going to be looking at non bug related stuff how we can
+
+267
+00:19:35.850 --> 00:19:40.500
+actually shut down a session once the players have gone off from the lobby and make sure that it doesn't
+
+268
+00:19:40.500 --> 00:19:42.670
+show up in the server list anymore.

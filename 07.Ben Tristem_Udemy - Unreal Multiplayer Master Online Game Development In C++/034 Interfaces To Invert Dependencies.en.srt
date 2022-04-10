@@ -1,0 +1,835 @@
+1
+00:00:05,000 --> 00:00:05,630
+Welcome.
+
+2
+00:00:05,630 --> 00:00:09,930
+This lecture is all about getting our first to bottom to work the host button.
+
+3
+00:00:10,070 --> 00:00:15,560
+Now when I click on it you'll be able to see that I have been able to host my game and I'm now there
+
+4
+00:00:15,650 --> 00:00:18,010
+in my game having hosted it.
+
+5
+00:00:18,010 --> 00:00:22,460
+Now we're not just going to do this the simple way we're going to actually make it so that our menu
+
+6
+00:00:22,460 --> 00:00:27,920
+system stays as a completely separate plugin to do this we're going to learn about subjects such as
+
+7
+00:00:27,920 --> 00:00:31,990
+dependency injection dependency inversion and interfaces.
+
+8
+00:00:31,980 --> 00:00:35,510
+So stay tuned for that and let's find out how this works.
+
+9
+00:00:37,980 --> 00:00:44,460
+So we've got ourselves a lovely menu system but totally non functional at the moment the buttons don't
+
+10
+00:00:44,460 --> 00:00:49,770
+do the host unjoin functions that we have written into our command line in the game instance.
+
+11
+00:00:49,770 --> 00:00:55,860
+So to do this we would need to be able to make a call from our main menu to the game instance which
+
+12
+00:00:55,890 --> 00:01:01,620
+is simple enough except that we had said that we wanted our main menu to be a plugin that we could use
+
+13
+00:01:01,620 --> 00:01:07,050
+in later gettings if we made a call to that game instance and then we are going to ruin that because
+
+14
+00:01:07,230 --> 00:01:09,660
+the game instance in different games might be different.
+
+15
+00:01:09,810 --> 00:01:15,090
+It might be a different class entirely and so we would have to change our plug in the menu system every
+
+16
+00:01:15,090 --> 00:01:16,190
+single time.
+
+17
+00:01:16,400 --> 00:01:22,810
+Not ideal So let's have a little bit of talk about our dependencies in this setup.
+
+18
+00:01:22,830 --> 00:01:28,650
+So I want to be talking a little bit about something called inverting dependencies but let's do the
+
+19
+00:01:28,650 --> 00:01:32,500
+pre framing to that first so we've got our game on the left in yellow.
+
+20
+00:01:32,570 --> 00:01:40,590
+Our menu system on the right in green and at the moment what we want to achieve is to have all our dependencies
+
+21
+00:01:40,920 --> 00:01:45,570
+go in this direction from left to right from the game to the menu system.
+
+22
+00:01:45,570 --> 00:01:53,220
+This means that if we want to take our menu system and place it in a different game then all we've got
+
+23
+00:01:53,220 --> 00:01:57,300
+to do is change the game to integrate an new menu system.
+
+24
+00:01:57,300 --> 00:02:03,720
+We don't have to rewrite the menu system or change any code in that menu system it stands alone as a
+
+25
+00:02:03,730 --> 00:02:04,390
+plugin.
+
+26
+00:02:04,500 --> 00:02:11,800
+So it just slots in to the space pointed at by this arrow and the game has to integrate around it.
+
+27
+00:02:11,820 --> 00:02:14,950
+Now this is called a compile time dependency.
+
+28
+00:02:15,000 --> 00:02:23,070
+That's because without changing any code we can do a recompilation and it'll all work.
+
+29
+00:02:23,070 --> 00:02:28,950
+Now there is another type of dependency the runtime dependency and this does go both ways.
+
+30
+00:02:28,950 --> 00:02:34,830
+The reason for that is the menu system has got buttons that we want to activate some gameplay functionality
+
+31
+00:02:34,830 --> 00:02:41,250
+in the game and vice versa we want the game to be able to launch our menu system so at runtime the dependencies
+
+32
+00:02:41,310 --> 00:02:43,570
+and the calls go both ways.
+
+33
+00:02:43,740 --> 00:02:45,510
+And that is important to remember.
+
+34
+00:02:45,510 --> 00:02:51,330
+You can have a compile time dependency that goes one way and the runtime dependency goes the other.
+
+35
+00:02:51,460 --> 00:02:57,990
+And we're going to talk about how that's done through a method called in in inversion of dependencies.
+
+36
+00:02:57,990 --> 00:03:03,720
+So let's see how it currently stands or how we would naively think about implementing this dependency
+
+37
+00:03:03,750 --> 00:03:07,980
+between game instance and Main Menu for our bottom call-backs.
+
+38
+00:03:08,040 --> 00:03:14,730
+We would start off by saying okay well let's include the game instance that is a compile time dependency
+
+39
+00:03:14,760 --> 00:03:24,270
+because it then gets compiled in and then we've got a cause dependency which is at runtime so at runtime
+
+40
+00:03:24,570 --> 00:03:29,910
+the main menu needs the game is then so be there and at compile time the main menu needs the game instance
+
+41
+00:03:29,910 --> 00:03:30,640
+to be there.
+
+42
+00:03:30,780 --> 00:03:36,510
+We want to do is remove that second one where we're saying that the comp at compile time the game insys
+
+43
+00:03:36,560 --> 00:03:39,450
+needs to be there because it might not be if we move it into a different game.
+
+44
+00:03:39,540 --> 00:03:43,750
+It might be a different game instance and we don't want to have to change our code.
+
+45
+00:03:43,750 --> 00:03:49,560
+So let's do something that does make it so that we can invert that dependency so that it looks like
+
+46
+00:03:49,800 --> 00:03:55,400
+the dependency in the first diagram where the compile time dependency only goes from game to menu system.
+
+47
+00:03:55,710 --> 00:04:00,770
+To do that we are going to introduce a new concept called an interface.
+
+48
+00:04:00,870 --> 00:04:07,680
+Now the interface is very much like a class except that you dont actually make any objects out of that
+
+49
+00:04:07,680 --> 00:04:11,420
+interface you just use it for inheritance.
+
+50
+00:04:11,430 --> 00:04:14,100
+Now what you do is you say to the main menu okay.
+
+51
+00:04:14,130 --> 00:04:16,490
+Im going to include and use this interface.
+
+52
+00:04:16,500 --> 00:04:24,340
+The interface being part of the menu system not part of the game so it's all within that green block.
+
+53
+00:04:25,480 --> 00:04:31,180
+So it includes and uses methods on the interface the interface has various methods that we're allowed
+
+54
+00:04:31,180 --> 00:04:37,460
+to call and the game instance includes But implements rather than uses the interface.
+
+55
+00:04:37,480 --> 00:04:42,790
+So it inherits from it and says okay if there's a host method on the interface then I'm going to have
+
+56
+00:04:42,790 --> 00:04:46,090
+a host method too and I'm going to implement that host method.
+
+57
+00:04:46,090 --> 00:04:52,890
+Then what happens at run time is that the main menu is told that the thing implementing its interface
+
+58
+00:04:52,890 --> 00:04:58,960
+is the game instance and it can make its calls through the interface that was defined at compile time
+
+59
+00:04:59,290 --> 00:05:03,580
+to the thing that was defined at runtime which is the actual game instance.
+
+60
+00:05:03,670 --> 00:05:04,630
+So that's how it works.
+
+61
+00:05:04,630 --> 00:05:08,480
+That's the idea of in it dependency inversion that we've got.
+
+62
+00:05:08,490 --> 00:05:14,380
+Often a dotted line that is the implements line the solid white line which is the user's line and then
+
+63
+00:05:14,380 --> 00:05:20,250
+the call actually goes forward along the solid line backwards along the dotted line at inversion of
+
+64
+00:05:20,250 --> 00:05:20,960
+dependency.
+
+65
+00:05:20,980 --> 00:05:21,550
+Fair enough.
+
+66
+00:05:21,550 --> 00:05:25,030
+Let's see how that actually all hangs together in unreel.
+
+67
+00:05:25,030 --> 00:05:30,790
+The first concept we need to be able to use is an interface in unreel how do we create such an interface
+
+68
+00:05:30,790 --> 00:05:31,420
+that real.
+
+69
+00:05:31,650 --> 00:05:33,260
+Let's go to the content browser.
+
+70
+00:05:33,310 --> 00:05:39,370
+Go to add new new C++ class as that is what were going to be creating it as.
+
+71
+00:05:39,430 --> 00:05:46,370
+And were going to go and look for the C++ class down at the bottom of the list called Unreal interface.
+
+72
+00:05:46,370 --> 00:05:50,420
+That's a special type of interfaces you'll see from the generator code very soon.
+
+73
+00:05:50,630 --> 00:05:53,070
+Let's go ahead to next and we can cause anything we like.
+
+74
+00:05:53,080 --> 00:05:59,260
+But the important thing is I want to put it in our menu system subfolder so that it is part of that
+
+75
+00:05:59,260 --> 00:06:03,120
+green box and if we want to rip it out we can rip it out very easily.
+
+76
+00:06:03,130 --> 00:06:03,730
+So here we are.
+
+77
+00:06:03,730 --> 00:06:10,030
+It's the menu system some poulder and I'm going to call it the menu interface very straightforwardly
+
+78
+00:06:10,240 --> 00:06:13,760
+and go ahead and create that class and wait for it to compile.
+
+79
+00:06:14,820 --> 00:06:21,750
+Okay that's a compile complete and we can now see our menu interface is in the menu system subfolder
+
+80
+00:06:21,760 --> 00:06:28,860
+And if we go over to a visual studio we should be able to see our see Plus pass and head a file for
+
+81
+00:06:29,040 --> 00:06:30,970
+the menu interface.
+
+82
+00:06:31,170 --> 00:06:35,880
+So if we go to the menu interface dot H then you'll see something rather odd.
+
+83
+00:06:35,880 --> 00:06:41,820
+Let me make a bit of room on the screen so that you can see what Im see here we've actually got two
+
+84
+00:06:41,820 --> 00:06:42,700
+classes.
+
+85
+00:06:42,810 --> 00:06:46,940
+Okay so we've just gone and create it one place and it's given us two for the price of one.
+
+86
+00:06:47,070 --> 00:06:48,540
+What's actually going on here.
+
+87
+00:06:48,660 --> 00:06:55,230
+That first class is called You menu interface and it inherits from you interface.
+
+88
+00:06:55,230 --> 00:07:00,810
+Now the second class is not inheriting from anything and it's called menu interface.
+
+89
+00:07:00,810 --> 00:07:05,630
+Now if you read the comments you can see that it's saying that the first class does not need to be modified
+
+90
+00:07:05,630 --> 00:07:09,690
+then that the second one is where we add the interface functions.
+
+91
+00:07:09,690 --> 00:07:13,020
+Now why is there that first class of we're not meant to modify it.
+
+92
+00:07:13,050 --> 00:07:20,370
+The whole idea here is that um real cant know about an interface unless it inherits from something that
+
+93
+00:07:20,430 --> 00:07:22,340
+is a you object.
+
+94
+00:07:22,440 --> 00:07:28,860
+And unfortunately we dont want to inherit multiple multiple you object.
+
+95
+00:07:28,860 --> 00:07:36,330
+So what would happen is if we inherited from our game instance at the you menu interface then it would
+
+96
+00:07:36,330 --> 00:07:43,680
+both be a you game instance and a you menu interface which is just a bit weird in terms of an Real's
+
+97
+00:07:43,680 --> 00:07:44,850
+inheritance system.
+
+98
+00:07:45,030 --> 00:07:52,380
+So what we do instead is we would inherit the inherit from a menu interface and the menu interface has
+
+99
+00:07:52,380 --> 00:07:53,130
+no parents.
+
+100
+00:07:53,140 --> 00:07:58,920
+So we dont end up with this tricky so called Diamond inheritance problem where multiple things could
+
+101
+00:07:58,950 --> 00:08:04,560
+end up having the same parent class and that can end up with all sorts of tricky reasons if you want
+
+102
+00:08:04,560 --> 00:08:09,060
+to know more about it go and look up what Diamond inheritance is.
+
+103
+00:08:09,650 --> 00:08:12,620
+So how do we actually use this interface.
+
+104
+00:08:12,620 --> 00:08:19,550
+Well you go ahead and add virtual functions into the public section of the menu interface that you want
+
+105
+00:08:19,550 --> 00:08:25,790
+to be able to call from the menu and to have implemented on the game instance.
+
+106
+00:08:25,790 --> 00:08:26,840
+So its very straightforward.
+
+107
+00:08:26,900 --> 00:08:29,220
+We want a method like host.
+
+108
+00:08:29,330 --> 00:08:36,170
+So I would go for it host and then no arguments and semicolon at the end because I want it to be implemented
+
+109
+00:08:36,170 --> 00:08:36,930
+by the game instance.
+
+110
+00:08:36,940 --> 00:08:39,790
+Im going to make sure that it is virtual.
+
+111
+00:08:40,630 --> 00:08:44,890
+Like so let's go ahead and build and see how that looks.
+
+112
+00:08:47,190 --> 00:08:52,170
+Hopefully like me you have got some errors here lets go and have a look at the proper output log rather
+
+113
+00:08:52,170 --> 00:08:56,370
+than the error list to see what those errors are actually talking about.
+
+114
+00:08:56,400 --> 00:09:03,450
+So here among lots of gunfire you can see that there is some errors about unresolved external symbols
+
+115
+00:09:03,870 --> 00:09:06,000
+for the menu interface.
+
+116
+00:09:06,010 --> 00:09:08,910
+HOST Okay well that makes sense.
+
+117
+00:09:08,920 --> 00:09:14,560
+What were what its saying is that theres no implementation for this virtual host function.
+
+118
+00:09:14,820 --> 00:09:20,910
+Usually we go into the C++ file and we'd implement host but not here because we don't actually want
+
+119
+00:09:20,980 --> 00:09:26,070
+our interface to have the implementation the intimate implementation should be the implementation on
+
+120
+00:09:26,070 --> 00:09:27,440
+game instance.
+
+121
+00:09:27,450 --> 00:09:30,320
+So what's going wrong here why is it expecting one.
+
+122
+00:09:30,540 --> 00:09:37,800
+Well because by default C++ always expects to find an implementation for a function despite even a virtual
+
+123
+00:09:37,800 --> 00:09:40,350
+function it expects there to be an implementation.
+
+124
+00:09:40,350 --> 00:09:47,010
+Now if you don't want it to be having an intimate implementation then you need something called a pure
+
+125
+00:09:47,010 --> 00:09:48,300
+virtual function.
+
+126
+00:09:48,300 --> 00:09:52,610
+That means that it doesn't have an implementation and expect the class below it.
+
+127
+00:09:52,710 --> 00:09:55,940
+The class that inherits from it to implement that function.
+
+128
+00:09:56,100 --> 00:09:56,970
+That's what we want.
+
+129
+00:09:56,970 --> 00:10:01,280
+We want to expect our game instance to implement that function to do that.
+
+130
+00:10:01,290 --> 00:10:04,750
+We are going to have it equal 0.
+
+131
+00:10:04,800 --> 00:10:12,180
+So use a virtual void host equals zero and you can think of that as saying this has an empty implementation.
+
+132
+00:10:12,600 --> 00:10:15,460
+Okay so thats what were going to do on this side now.
+
+133
+00:10:15,510 --> 00:10:20,610
+How are we going to make use of our on a menu interface.
+
+134
+00:10:20,640 --> 00:10:26,330
+Well lets go on over to our menu C++.
+
+135
+00:10:26,350 --> 00:10:35,490
+Votes should be in here somewhere in a game puzzle platforms source and puzzle platforms again and the
+
+136
+00:10:35,550 --> 00:10:37,550
+menu system we've got our main menu.
+
+137
+00:10:37,570 --> 00:10:40,290
+Dot H and or c p p.
+
+138
+00:10:40,290 --> 00:10:47,340
+So what I want to do is have our main menu have a pointer to an interface and that can just be in the
+
+139
+00:10:47,340 --> 00:10:51,770
+private So I am going to include at the top.
+
+140
+00:10:51,780 --> 00:10:57,810
+But before generated because generated always wants to be the last thing we're going to do and include
+
+141
+00:10:58,290 --> 00:11:02,470
+for our menu interface.
+
+142
+00:11:04,410 --> 00:11:05,360
+H.
+
+143
+00:11:05,480 --> 00:11:11,000
+Which means that now we can use the eye menu interface.
+
+144
+00:11:12,460 --> 00:11:13,280
+Star.
+
+145
+00:11:14,520 --> 00:11:18,810
+For the Basically we call this the menu interface.
+
+146
+00:11:20,710 --> 00:11:21,760
+Early straightforward.
+
+147
+00:11:22,680 --> 00:11:29,190
+This is a point that we're going to fill in later that points to our menu interface something we don't
+
+148
+00:11:29,190 --> 00:11:30,290
+know what yet.
+
+149
+00:11:30,420 --> 00:11:36,390
+It could be a puzzle platform game instance it could be a testing ground game instance it could be any
+
+150
+00:11:36,390 --> 00:11:40,110
+game instance for the game of your choice.
+
+151
+00:11:40,110 --> 00:11:45,630
+And then we're going to go into it Main Menu dot s.p. and we're going to make use of that.
+
+152
+00:11:45,630 --> 00:11:50,880
+So currently we've got our host server function which is just returning a log message instead of that
+
+153
+00:11:50,940 --> 00:11:57,250
+we should check that it's not null first of all because we might not set up menu interface.
+
+154
+00:11:57,270 --> 00:12:01,150
+I'm going to check if menu interface.
+
+155
+00:12:02,030 --> 00:12:03,030
+Is not now.
+
+156
+00:12:05,450 --> 00:12:07,170
+Well not equal to null pointer.
+
+157
+00:12:08,740 --> 00:12:15,140
+Then that is when we are going to be able to use it and say that the menu interface.
+
+158
+00:12:15,970 --> 00:12:20,560
+Our show host so call host on that menu interface.
+
+159
+00:12:20,560 --> 00:12:25,660
+Now what are my errors about so many interfaces undefined.
+
+160
+00:12:25,660 --> 00:12:29,760
+Let's go back to the head of file doesn't seem undefined from here.
+
+161
+00:12:29,770 --> 00:12:33,190
+So let's just go ahead and build it might just not have caught up yet.
+
+162
+00:12:34,070 --> 00:12:41,240
+Sure enough it compiles successfully so we know that the issue is just an auto complete one for that
+
+163
+00:12:41,690 --> 00:12:46,330
+we know that a good solution is to go and regenerate the visual studio pretty fast.
+
+164
+00:12:46,330 --> 00:12:50,960
+I'm going to right click on the new project and generate visual studio project files that should help
+
+165
+00:12:50,960 --> 00:12:53,300
+me out with the autocomplete.
+
+166
+00:12:54,210 --> 00:12:54,630
+Okay.
+
+167
+00:12:54,640 --> 00:12:55,380
+Well let's head back in.
+
+168
+00:12:55,380 --> 00:12:58,700
+So that's how we use the interface now.
+
+169
+00:12:58,890 --> 00:12:59,310
+Oh yeah.
+
+170
+00:12:59,310 --> 00:13:02,720
+Let's reload the solution hopefully now it's going to give us less grief.
+
+171
+00:13:02,820 --> 00:13:03,630
+Yeah sure enough.
+
+172
+00:13:03,630 --> 00:13:07,220
+Now it's not giving us anything about our.
+
+173
+00:13:08,100 --> 00:13:11,870
+Giving us no errors and hopefully the auto complete would work as well as check that out.
+
+174
+00:13:11,870 --> 00:13:16,050
+Menu interface error host.
+
+175
+00:13:17,480 --> 00:13:18,780
+Maybe it's just not caught up yet.
+
+176
+00:13:18,780 --> 00:13:23,920
+It's not doing a little squiggles yet so that's what it should be anyway.
+
+177
+00:13:24,360 --> 00:13:28,380
+We don't need to do anything with the P file just yet so we're going to leave that closed.
+
+178
+00:13:29,810 --> 00:13:36,290
+The final piece of the puzzle is to make sure that the puzzle platforms game instance does indeed implement
+
+179
+00:13:36,350 --> 00:13:42,860
+our online menu interface so that we can set an instance of the puzzle platform game instance to the
+
+180
+00:13:42,860 --> 00:13:44,450
+pointer menu interface.
+
+181
+00:13:44,450 --> 00:13:50,360
+This point here in our main menu DCP the way we do this is really simple you just go over to puzzle
+
+182
+00:13:50,360 --> 00:13:57,200
+platform game instance and we include at the top of the head of file our menu system so it's going to
+
+183
+00:13:57,200 --> 00:13:59,670
+be in hash include.
+
+184
+00:14:01,620 --> 00:14:02,800
+Men use this term.
+
+185
+00:14:04,850 --> 00:14:08,040
+Forward slash menu interface.
+
+186
+00:14:09,190 --> 00:14:10,150
+H.
+
+187
+00:14:10,270 --> 00:14:16,960
+And then what we can do is where we are currently inheriting from you game instance so public you game
+
+188
+00:14:16,960 --> 00:14:19,230
+instance on public you game instance.
+
+189
+00:14:19,330 --> 00:14:26,240
+We can also inherit from that interface by putting a comma and then public again.
+
+190
+00:14:27,490 --> 00:14:32,490
+And then I menu interface should also complete for me.
+
+191
+00:14:33,240 --> 00:14:33,800
+Okay.
+
+192
+00:14:33,840 --> 00:14:41,730
+And what that's saying is I have all the methods in the menu interface and you can rely on me to implement
+
+193
+00:14:41,730 --> 00:14:48,080
+them which then means that we can use it as a pointer of type you platform game instance.
+
+194
+00:14:48,090 --> 00:14:53,280
+We could use it as a pointer of type you game instance but we can now also use that as a pointer of
+
+195
+00:14:53,470 --> 00:14:59,920
+a menu interface which means that we can use it in our main menu dotsie P P.
+
+196
+00:15:01,340 --> 00:15:04,230
+So it's time to try and inject the dependency.
+
+197
+00:15:04,250 --> 00:15:12,350
+By that I mean at run time making sure that our main menu DCP is getting an instance of the you puzzle
+
+198
+00:15:12,470 --> 00:15:15,410
+game you puzzle platform game instance.
+
+199
+00:15:15,410 --> 00:15:19,980
+Now that's going to be your challenge to inject the menu interface pointer.
+
+200
+00:15:20,630 --> 00:15:23,450
+You're going to set the menu interface.
+
+201
+00:15:23,450 --> 00:15:29,330
+Remember about best practices around setting and whether you should be setting pointers and properties
+
+202
+00:15:29,330 --> 00:15:31,250
+directly on classes.
+
+203
+00:15:31,250 --> 00:15:36,920
+Then ask yourself what happens if the interface isn't fully implemented.
+
+204
+00:15:37,070 --> 00:15:43,070
+And finally test that hosting works when you've got everything set up including the end dependency injection
+
+205
+00:15:43,460 --> 00:15:44,560
+pause video and have a go.
+
+206
+00:15:44,630 --> 00:15:49,490
+So because this video is already going on for 15 minutes long we're going to put the challenge into
+
+207
+00:15:49,490 --> 00:15:51,540
+the next video to give you a bit of a breather.
+
+208
+00:15:51,560 --> 00:15:56,850
+If you wanted to see the solution afterwards but no pausing required here.
+
+209
+00:15:56,870 --> 00:15:59,210
+Just go on to the next video when you're ready.

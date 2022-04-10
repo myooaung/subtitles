@@ -1,0 +1,1110 @@
+WEBVTT
+0
+1
+00:00:00.540 --> 00:00:00.840
+All right.
+1
+
+2
+00:00:00.840 --> 00:00:08.040
+So in the last lesson we looked at one way of getting our Node.js app to work with the MongoDB database.
+2
+
+3
+00:00:08.220 --> 00:00:13.330
+And that was through the use of the native MongoDB driver.
+3
+
+4
+00:00:13.770 --> 00:00:19.020
+You saw just how painful it was to do something very simple.
+4
+
+5
+00:00:19.050 --> 00:00:25.740
+I mean in the Mongo shell it was like three or four lines of commands and it turned into 20, 30 lines
+5
+
+6
+00:00:25.740 --> 00:00:28.460
+of code through using the native driver.
+6
+
+7
+00:00:28.650 --> 00:00:34.590
+And a lot of that was down to adding in validation code and writing a lot of the boilerplate or just
+7
+
+8
+00:00:34.590 --> 00:00:37.930
+the simple act of connecting to the MongoDB server.
+8
+
+9
+00:00:38.370 --> 00:00:45.450
+This is why most Node developers who are working with MonoDB who use a package called Mongoose and
+9
+
+10
+00:00:45.510 --> 00:00:49.640
+this is what's called an ODM or an Object Document
+10
+
+11
+00:00:49.640 --> 00:00:56.310
+Mapper. What it will do is it will allow your Node.js app which speaks the language of Javascript objects
+11
+
+12
+00:00:56.580 --> 00:01:03.120
+to be able to talk to your MongoDB database which speaks in the language of documents and collections
+12
+
+13
+00:01:03.240 --> 00:01:04.840
+and databases.
+13
+
+14
+00:01:05.040 --> 00:01:09.780
+And the main objective of this framework is to simplify the writing of validation code,
+14
+
+15
+00:01:09.960 --> 00:01:12.500
+the writing of your business logic boilerplate
+15
+
+16
+00:01:12.600 --> 00:01:18.780
+and just to make the code just shorter and easier to work with. And essentially everything that we did
+16
+
+17
+00:01:18.780 --> 00:01:25.470
+previously using the MongoDB driver, if we were to use Mongoose, all we have to write is pretty much
+17
+
+18
+00:01:25.470 --> 00:01:27.060
+just this right?
+18
+
+19
+00:01:27.060 --> 00:01:32.510
+We require the mongoose package, we connect to the database and we create a new database
+19
+
+20
+00:01:32.520 --> 00:01:39.260
+if it doesn't exist. And then we create a new model of how our data will be represented.
+20
+
+21
+00:01:39.300 --> 00:01:40.600
+This is the only new part
+21
+
+22
+00:01:40.620 --> 00:01:46.360
+and we're going to be going through it in detail. And then with that new model we will create a new document.
+22
+
+23
+00:01:47.340 --> 00:01:51.930
+And then we simply just save our model into the MongoDB database.
+23
+
+24
+00:01:51.990 --> 00:01:53.830
+So it's vastly shorter
+24
+
+25
+00:01:53.880 --> 00:01:57.900
+and I'm going to talk through it in detail and show you how we can use it.
+25
+
+26
+00:01:58.860 --> 00:02:02.760
+Way way back when we were working with the document object model,
+26
+
+27
+00:02:02.910 --> 00:02:07.790
+if you remember it was quite a pain to write all of the code for the DOM.
+27
+
+28
+00:02:07.920 --> 00:02:13.500
+But then when we started using JQuery and we started adding those dollar signs everywhere, everything
+28
+
+29
+00:02:13.500 --> 00:02:17.510
+got a lot shorter and a lot simpler and easier to work with.
+29
+
+30
+00:02:17.670 --> 00:02:20.660
+Well essentially Mongoose does the same job.
+30
+
+31
+00:02:20.820 --> 00:02:27.240
+So let's go ahead and see how we can use Mongoose to make our fruits database way way simpler.
+31
+
+32
+00:02:28.040 --> 00:02:32.780
+First things first, make sure that you've got a active MongoDB server that's running.
+32
+
+33
+00:02:33.260 --> 00:02:40.090
+And then if you open up a Mongo shell and you say, "show dbs", you can see that we've got our fruits
+33
+
+34
+00:02:40.090 --> 00:02:47.290
+DB already created and you can see that it's so small that it doesn't even really register a size.
+34
+
+35
+00:02:47.530 --> 00:02:51.350
+But this time we're going to create our fruitsDB and all of the data inside
+35
+
+36
+00:02:51.370 --> 00:02:53.440
+using just Mongoose.
+36
+
+37
+00:02:53.440 --> 00:02:56.240
+So I'm going to actually delete that database.
+37
+
+38
+00:02:56.240 --> 00:03:01.960
+And in the Mongo shell in order to delete an entire database, what you have to do is you first have to
+38
+
+39
+00:03:01.960 --> 00:03:03.460
+switch to that database.
+39
+
+40
+00:03:03.490 --> 00:03:05.930
+So you'll say use fruitsDB
+40
+
+41
+00:03:06.920 --> 00:03:09.400
+and we've switched to this particular database.
+41
+
+42
+00:03:09.460 --> 00:03:17.280
+And then we just say "db.dropDatabase" and then a set of parentheses to run that command
+42
+
+43
+00:03:17.440 --> 00:03:20.330
+and now we no longer have the fruitsDB.
+43
+
+44
+00:03:20.350 --> 00:03:26.220
+So if I say, "show dbs", you can see that it's been wiped from MongoDB server.
+44
+
+45
+00:03:27.490 --> 00:03:35.080
+Now we're ready to head back into our app.js and we're going to modify all of this code and instead
+45
+
+46
+00:03:35.110 --> 00:03:39.760
+of using the native MongoDB driver, we're going to use Mongoose.
+46
+
+47
+00:03:39.820 --> 00:03:45.430
+And I'm just going to show you just how much it cuts down on our code and how much simpler and easier
+47
+
+48
+00:03:45.430 --> 00:03:48.310
+to understand the code becomes.
+48
+
+49
+00:03:48.430 --> 00:03:51.720
+First things first, we have to require Mongoose.
+49
+
+50
+00:03:51.880 --> 00:03:57.310
+So I'm going to delete these two lines where we're requiring the native Mongo client and the assert
+50
+
+51
+00:03:57.310 --> 00:03:59.790
+testing package. In our app.
+51
+
+52
+00:03:59.790 --> 00:04:03.180
+js, we now want to use this package called Mongoose.
+52
+
+53
+00:04:03.310 --> 00:04:07.640
+But if you remember we haven't actually installed it using NPM yet.
+53
+
+54
+00:04:07.840 --> 00:04:15.130
+So if you head over to hyper and make sure that you are still inside your fruits project, then go ahead
+54
+
+55
+00:04:15.160 --> 00:04:19.930
+and use npm install to install the mongoose package.
+55
+
+56
+00:04:23.580 --> 00:04:30.840
+Once that's done then we can go ahead and move on to the next goal which is to connect to our Mongo
+56
+
+57
+00:04:30.840 --> 00:04:32.410
+DB database.
+57
+
+58
+00:04:32.430 --> 00:04:38.310
+Now you can see at the moment in order to do that we're taking up something like 20 lines of code and
+58
+
+59
+00:04:38.310 --> 00:04:44.160
+some of that will be validation code and some of it will just be the simple act of connecting to the
+59
+
+60
+00:04:44.160 --> 00:04:45.240
+database.
+60
+
+61
+00:04:45.240 --> 00:04:50.690
+Now I want to show you just how simple all of that becomes by using Mongoose instead.
+61
+
+62
+00:04:50.820 --> 00:04:57.000
+So we'll write mongoose.connect and then we're going to open up a set of parentheses
+62
+
+63
+00:04:57.270 --> 00:05:04.080
+and we're going to add the URL that we want to connect to. That connection URL will look very
+63
+
+64
+00:05:04.080 --> 00:05:05.960
+similar to what we've got here.
+64
+
+65
+00:05:06.210 --> 00:05:18.260
+It's going to be a string that is mongodb://localhost:27017.
+65
+
+66
+00:05:18.260 --> 00:05:25.250
+That will specify the port where we can access our MongoDB database server.
+66
+
+67
+00:05:25.460 --> 00:05:31.460
+And then all we have to do is put another forward slash at the end of there and then we can specify
+67
+
+68
+00:05:31.580 --> 00:05:36.950
+the name of the database that we want to create or connect to.
+68
+
+69
+00:05:36.950 --> 00:05:43.640
+So it's going to make a connection to our MongoDB server and then it's going to look for a database
+69
+
+70
+00:05:43.640 --> 00:05:52.310
+called fruitsDB, and if it doesn't exist, then it will create this brand new database. And that replaces
+70
+
+71
+00:05:52.760 --> 00:05:54.980
+all of this.
+71
+
+72
+00:05:55.190 --> 00:06:01.440
+So we can now go ahead and delete all of that.
+72
+
+73
+00:06:01.610 --> 00:06:12.200
+And now if I hit save and we go over to our hyper terminal and use node app.js to run our app, then
+73
+
+74
+00:06:12.260 --> 00:06:19.210
+you can see we've now started our server but we still get the same deprecation warning as we saw before.
+74
+
+75
+00:06:19.220 --> 00:06:24.340
+Now we have to again pass this useNewUrlParser.
+75
+
+76
+00:06:24.770 --> 00:06:31.840
+If we again copy this and paste it into Google to remind ourselves of what that solution was,
+76
+
+77
+00:06:35.370 --> 00:06:40.470
+you can see that this person who's answered is actually very kindly included what you should do if you're
+77
+
+78
+00:06:40.470 --> 00:06:43.270
+using Mongoose to connect to your database.
+78
+
+79
+00:06:43.500 --> 00:06:45.500
+And this is basically what we have to do.
+79
+
+80
+00:06:45.510 --> 00:06:48.900
+We have to add it right at the end of the connect method.
+80
+
+81
+00:06:48.930 --> 00:06:53.060
+So let's go ahead and add that in to change our code.
+81
+
+82
+00:06:53.250 --> 00:06:58.530
+So we've got mongoose.connect and then this is the URL you want to connect to and then we're going to
+82
+
+83
+00:06:58.530 --> 00:07:05.970
+add that new option at the end here which is to use the new url parser and this will resolve that deprecation
+83
+
+84
+00:07:05.970 --> 00:07:08.170
+warning.
+84
+
+85
+00:07:08.180 --> 00:07:13.110
+So now the next thing that we want to do is to insert some data.
+85
+
+86
+00:07:13.310 --> 00:07:19.580
+And you can see that we're doing that right now through these 20 lines. But this code is essentially
+86
+
+87
+00:07:19.580 --> 00:07:23.390
+very similar to what we saw when we were using the Mongo shell.
+87
+
+88
+00:07:23.390 --> 00:07:28.430
+Now I want to show you how you would do that with Mongoose because it's a little bit different from
+88
+
+89
+00:07:28.550 --> 00:07:30.450
+what we've done so far.
+89
+
+90
+00:07:30.890 --> 00:07:36.220
+The first thing we have to do is to create a new schema.
+90
+
+91
+00:07:36.500 --> 00:07:43.480
+And this is basically a blueprint or the structure of our data that we're going to save into our Mongo
+91
+
+92
+00:07:43.480 --> 00:07:50.910
+DB database. In order to do this we can create a new const that's called fruitsSchema.
+92
+
+93
+00:07:52.200 --> 00:07:57.990
+And this is going to be equal to a new mongoose schema.
+93
+
+94
+00:08:00.340 --> 00:08:07.390
+And then we open up a set of parentheses and inside that we add a new Javascript object,
+94
+
+95
+00:08:07.420 --> 00:08:09.970
+so we open up our curly braces.
+95
+
+96
+00:08:10.180 --> 00:08:18.120
+Now in this schema, we basically scaffold out how we want data in a particular collection to be structured.
+96
+
+97
+00:08:18.130 --> 00:08:24.640
+So for example if we were creating a new fruit document, what would the structure of that data look
+97
+
+98
+00:08:24.640 --> 00:08:25.130
+like?
+98
+
+99
+00:08:25.330 --> 00:08:34.000
+Well it might have a name which is going to be of data type string, and then it might have maybe a rating
+99
+
+100
+00:08:34.540 --> 00:08:44.390
+which will be a number, and then it might have just a review which will be a text review for that fruit.
+100
+
+101
+00:08:44.480 --> 00:08:48.820
+This is what our fruit schema would look like using Mongoose
+101
+
+102
+00:08:48.830 --> 00:08:56.110
+and this lays out the foundation for every new fruit document that will be added to our database. After
+102
+
+103
+00:08:56.110 --> 00:08:57.410
+we create the schema,
+103
+
+104
+00:08:57.550 --> 00:09:09.020
+we use the schema to create a Mongoose model. And we do that by saying const Fruit = mongoose
+104
+
+105
+00:09:09.440 --> 00:09:12.650
+.model.
+105
+
+106
+00:09:13.100 --> 00:09:16.540
+And then we specify two parameters.
+106
+
+107
+00:09:16.670 --> 00:09:22.970
+The first one is, what is going to be the name of the collection that is going to comply with this particular
+107
+
+108
+00:09:22.970 --> 00:09:23.750
+schema.
+108
+
+109
+00:09:23.990 --> 00:09:28.090
+Well in our case we want to create a collection of fruits right?
+109
+
+110
+00:09:28.220 --> 00:09:34.220
+So we'll have these fruits each as individual records or documents, they'll be saved into a collection
+110
+
+111
+00:09:34.490 --> 00:09:41.460
+called fruits and then that will be inside our database called fruitsDB.
+111
+
+112
+00:09:41.640 --> 00:09:45.180
+So the first parameter is always going to be a string here.
+112
+
+113
+00:09:45.420 --> 00:09:51.880
+Now the Mongoose way of doing things is to specify the singular name of your collection.
+113
+
+114
+00:09:51.900 --> 00:10:00.510
+So if you have a collection of fruits then inside here will be the word "Fruit" in a singular form. And
+114
+
+115
+00:10:00.600 --> 00:10:09.240
+Mongoose will very cleverly convert this string into a pluralize form to create your collection.
+115
+
+116
+00:10:09.240 --> 00:10:17.070
+By doing this you will have created a new collection called fruits and those fruits have to stick to
+116
+
+117
+00:10:17.070 --> 00:10:21.150
+the structure that we've specified in the fruit schema.
+117
+
+118
+00:10:22.210 --> 00:10:28.870
+And now and only now are we ready to create a new fruit document.
+118
+
+119
+00:10:29.100 --> 00:10:33.390
+I'm going to create something called "fruit" with a lowercase f.
+119
+
+120
+00:10:33.420 --> 00:10:42.270
+This is going to be a new Fruit with a capital F and this is to show that I'm creating this document
+120
+
+121
+00:10:42.630 --> 00:10:50.130
+from this model that we specified up here which means that it's going to have to stick to this schema
+121
+
+122
+00:10:50.250 --> 00:10:51.940
+that we laid out here as well.
+122
+
+123
+00:10:53.800 --> 00:11:00.270
+So now this new fruit is going to have a name, let's call it Apple.
+123
+
+124
+00:11:00.420 --> 00:11:04.720
+It's going to be an apple that we're going to save into our database. And then we're going to give it
+124
+
+125
+00:11:04.750 --> 00:11:05.710
+a rating.
+125
+
+126
+00:11:05.860 --> 00:11:07.780
+And I'm going to give a rating out of 10.
+126
+
+127
+00:11:07.780 --> 00:11:12.640
+So I think Apples are decent, let's give it a 7 and then
+127
+
+128
+00:11:12.760 --> 00:11:16.500
+let's give it a review
+128
+
+129
+00:11:17.080 --> 00:11:23.990
+"Pretty solid" as fruit. Can't really hate on apples right?
+129
+
+130
+00:11:24.160 --> 00:11:31.600
+And now that we've constructed our new document, all we have to do is say fruit.save.
+130
+
+131
+00:11:31.830 --> 00:11:40.590
+And this calls the save method in Mongoose  to save this fruit document into a fruit collection inside
+131
+
+132
+00:11:40.630 --> 00:11:51.530
+our fruitsDB. And that replaces our insertDocuments method from the Mongo client.
+132
+
+133
+00:11:51.560 --> 00:11:57.080
+So at the moment you can see that we don't have our prompt. And whenever you are in that position the
+133
+
+134
+00:11:57.080 --> 00:12:00.400
+first thing that will save is CONTROL + C.
+134
+
+135
+00:12:00.590 --> 00:12:07.410
+This should exit out of any process that the terminal or hyper is currently performing.
+135
+
+136
+00:12:07.700 --> 00:12:13.250
+And in our case, it was because we still had an active connection to our MongoDB server.
+136
+
+137
+00:12:14.460 --> 00:12:20.700
+Now let's run our app.js again to save that new fruit into our database.
+137
+
+138
+00:12:20.700 --> 00:12:29.640
+And if I switch over to our shell then we can go ahead and say "show dbs" to show that we've now updated
+138
+
+139
+00:12:29.700 --> 00:12:39.090
+our database with a new fruitsDB and let's say use fruitsDB and now let's see what collections
+139
+
+140
+00:12:39.090 --> 00:12:41.890
+we have in this database.
+140
+
+141
+00:12:42.120 --> 00:12:51.540
+So we'll say "show collections". And you can see that automatically Mongo has dropped the capsule on the
+141
+
+142
+00:12:51.540 --> 00:13:00.410
+earth and pluralized this fruit that we specified here into a collection of fruits.
+142
+
+143
+00:13:01.200 --> 00:13:07.160
+And it's pretty clever how it does that. Behind the scenes is actually using Lodash to achieve it.
+143
+
+144
+00:13:07.170 --> 00:13:13.770
+We saw that in an earlier module. But essentially it allows you to specify the singular form and work
+144
+
+145
+00:13:13.770 --> 00:13:15.060
+with the singular form.
+145
+
+146
+00:13:15.240 --> 00:13:21.390
+But behind the scenes it will create that collection of fruits for you to be able to work with.
+146
+
+147
+00:13:21.390 --> 00:13:30.290
+So if we say "db.fruits.find" so we show everything that's inside our fruits collection,
+147
+
+148
+00:13:30.300 --> 00:13:38.070
+then you can see we have a single document that has an id, a name, a rating and a review.
+148
+
+149
+00:13:39.400 --> 00:13:48.040
+Now, remember that every single time you run fruit.save it will save the same fruit into your fruits
+149
+
+150
+00:13:48.040 --> 00:13:50.070
+collection in your fruits database.
+150
+
+151
+00:13:50.260 --> 00:13:55.720
+So if you don't want that to happen, then you can just comment out this method call and you won't end
+151
+
+152
+00:13:55.720 --> 00:13:58.950
+up with a whole bunch of apples in your database.
+152
+
+153
+00:13:59.290 --> 00:14:02.730
+But it's now time for a challenge.
+153
+
+154
+00:14:02.770 --> 00:14:10.450
+I want you to create a new collection and this is going to be a collection of people. You need to create
+154
+
+155
+00:14:10.570 --> 00:14:18.380
+the schema for a new person and they need to have two fields: a name and an age.
+155
+
+156
+00:14:18.700 --> 00:14:26.710
+And then you're going to create a new model from that schema of a person and you're going to create a new
+156
+
+157
+00:14:26.710 --> 00:14:33.640
+person who's called John and he's 37. And then you're going to say that new person to our database and
+157
+
+158
+00:14:33.640 --> 00:14:39.680
+show it using the Mongo shell. Pause the video now and complete this challenge.
+158
+
+159
+00:14:42.440 --> 00:14:42.740
+All right.
+159
+
+160
+00:14:42.740 --> 00:14:45.290
+So right below our fruit.save
+160
+
+161
+00:14:45.320 --> 00:14:51.760
+we're going to use the same setup but we're going to apply it to a collection of people now.
+161
+
+162
+00:14:51.980 --> 00:14:56.750
+So we're still connected to the same fruits database which is exactly what we want, but we're going
+162
+
+163
+00:14:56.750 --> 00:14:59.970
+to create a new person schema.
+163
+
+164
+00:15:00.300 --> 00:15:07.220
+And this is going to be a new Mongoose schema and it's going to specify that every person we create
+164
+
+165
+00:15:07.550 --> 00:15:09.650
+has to have a name.
+165
+
+166
+00:15:10.040 --> 00:15:12.520
+And they also probably should have an age.
+166
+
+167
+00:15:12.980 --> 00:15:16.000
+So the name is going to be of data type string
+167
+
+168
+00:15:16.220 --> 00:15:23.780
+and the age will be data type number. And then we're going to create our model of a person from this
+168
+
+169
+00:15:23.780 --> 00:15:24.770
+schema.
+169
+
+170
+00:15:25.280 --> 00:15:34.220
+So it's going to equal mongoose.model and then the singular form of a person is person. But behind
+170
+
+171
+00:15:34.220 --> 00:15:41.960
+the scenes we will get a collection called people that will be created. And these people inside the collection
+171
+
+172
+00:15:42.260 --> 00:15:44.810
+will follow the person schema.
+172
+
+173
+00:15:46.260 --> 00:15:54.810
+Using that schema we're going to create a new person and this new person is going to have a couple of
+173
+
+174
+00:15:54.810 --> 00:15:55.720
+values.
+174
+
+175
+00:15:55.920 --> 00:16:07.180
+It's going to have a name of John and an age of 37. And now we can take this person that we created and
+175
+
+176
+00:16:07.180 --> 00:16:10.220
+we can save it to our database.
+176
+
+177
+00:16:10.240 --> 00:16:18.790
+So now if we go back to our terminal and we exit our previous database connection and we run on node
+177
+
+178
+00:16:19.080 --> 00:16:28.470
+app.js again, we can go to our Mongo shell and confirm that if we say "show collections" we now have
+178
+
+179
+00:16:28.470 --> 00:16:31.920
+a collection of fruits and a collection of people.
+179
+
+180
+00:16:31.980 --> 00:16:38.370
+And as I said it's pretty clever about converting your singular form into a pluralized collection.
+180
+
+181
+00:16:38.370 --> 00:16:49.530
+Now if we say "db.people.find" then we end up showing all the documents that we have inside our
+181
+
+182
+00:16:49.560 --> 00:16:52.990
+people collection which, is John who's 37.
+182
+
+183
+00:16:53.920 --> 00:17:01.150
+What if we wanted to add a bunch of fruits in bulk like we did previously using the native MongoDB
+183
+
+184
+00:17:01.150 --> 00:17:01.970
+driver?
+184
+
+185
+00:17:02.320 --> 00:17:08.950
+Well let's say that we create some new fruits. Let's say const we create a kiwi. And this is going to
+185
+
+186
+00:17:08.950 --> 00:17:17.690
+be a new Fruit with a capital F and the kiwi is of course called kiwi.
+186
+
+187
+00:17:17.700 --> 00:17:30.280
+It has a score of "10" because kiwis are awesome and has a review of "The best fruit". And then I'm just
+187
+
+188
+00:17:30.280 --> 00:17:37.510
+going to go in and add two more fruits, orange and banana. Oranges too sour for me and bananas have a
+188
+
+189
+00:17:37.510 --> 00:17:38.760
+really weird texture.
+189
+
+190
+00:17:39.010 --> 00:17:40.670
+So those are three fruits.
+190
+
+191
+00:17:40.670 --> 00:17:50.680
+And now in order to save it in bulk, we can tap into our fruit model and we can say "insertMany".
+191
+
+192
+00:17:50.920 --> 00:17:53.640
+Now how did I know that I could use fruit.
+192
+
+193
+00:17:53.680 --> 00:17:54.760
+insertMany?
+193
+
+194
+00:17:55.180 --> 00:17:57.140
+Well the documentation of course.
+194
+
+195
+00:17:57.310 --> 00:18:04.810
+So if you head over to Mongoose and click on "Read the docs" then inside the API section you can see that they've
+195
+
+196
+00:18:04.810 --> 00:18:09.140
+got all of the methods that you can do with the model listed in here.
+196
+
+197
+00:18:09.400 --> 00:18:14.440
+And very often when you're working with a new package you'll be reading through the documentation and
+197
+
+198
+00:18:14.440 --> 00:18:16.890
+digging through it to see what it can do.
+198
+
+199
+00:18:16.900 --> 00:18:25.000
+So here we have this method called Model.insertMany and it allows us to insert an array of documents
+199
+
+200
+00:18:25.360 --> 00:18:30.810
+into a particular model or basically our collection.
+200
+
+201
+00:18:31.000 --> 00:18:33.370
+The syntax basically looks like this.
+201
+
+202
+00:18:33.370 --> 00:18:39.130
+You specify the name of your Mongoose model which will allow it to connect to the relevant collection
+202
+
+203
+00:18:39.460 --> 00:18:41.560
+and also know what the schema is
+203
+
+204
+00:18:41.560 --> 00:18:43.780
+it should work with.
+204
+
+205
+00:18:44.090 --> 00:18:45.640
+And then we use that method
+205
+
+206
+00:18:45.650 --> 00:18:48.370
+insertMany and it takes two parameters.
+206
+
+207
+00:18:48.440 --> 00:18:53.180
+The first one is an array of objects that match that particular schema,
+207
+
+208
+00:18:53.240 --> 00:18:56.230
+so all fruits here. We've got kiwi, orange and bananas.
+208
+
+209
+00:18:56.240 --> 00:19:06.050
+So we'll add that kiwi, orange and banana. And then the second parameter will be a callback and it allows
+209
+
+210
+00:19:06.050 --> 00:19:14.010
+us to log any errors if there were any issues with inserting all of these objects into our  fruits collection.
+210
+
+211
+00:19:14.150 --> 00:19:27.150
+And so we can check say if there's an error then we'll log the error, but else then we'll log "Successfully
+211
+
+212
+00:19:27.480 --> 00:19:40.400
+saved all the fruits to fruitsDB". And let's close that off and let's hit save and exit out of our database
+212
+
+213
+00:19:40.490 --> 00:19:42.820
+and run our app.js again.
+213
+
+214
+00:19:42.950 --> 00:19:48.550
+You can see that we've got that callback, "Successfully saved all of the fruits to the fruitsDB".
+214
+
+215
+00:19:48.620 --> 00:19:49.850
+So there were no errors
+215
+
+216
+00:19:49.880 --> 00:19:57.900
+and if we go and check our db.fruits.find, then
+216
+
+217
+00:19:57.920 --> 00:20:00.950
+we now have a few more fruits.
+217
+
+218
+00:20:00.950 --> 00:20:04.740
+We've got apple, kiwi, orange and banana.
+218
+
+219
+00:20:05.600 --> 00:20:13.700
+We've now seen how you can create new documents and new collections using Mongoose and MongoDB. But how
+219
+
+220
+00:20:13.700 --> 00:20:19.320
+exactly do we access these items in our database through our app.js?
+220
+
+221
+00:20:19.370 --> 00:20:23.640
+How do we get access to living objects that our app can tap into?
+221
+
+222
+00:20:23.840 --> 00:20:26.210
+Well that's what we're going to look at in the next lesson.
