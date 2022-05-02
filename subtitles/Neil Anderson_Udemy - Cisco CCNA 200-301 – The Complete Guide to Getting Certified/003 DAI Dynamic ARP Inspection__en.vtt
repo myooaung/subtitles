@@ -1,0 +1,417 @@
+WEBVTT
+1
+00:00:06.830 --> 00:00:15.440
+The next security mechanism that we can implement on our access layer switches is DAI, Dynamic ARP
+
+2
+00:00:15.620 --> 00:00:16.670
+Inspection.
+
+3
+00:00:16.970 --> 00:00:22.220
+Before you see what that does, let's have a quick review of what ARP does. ARP is
+
+4
+00:00:22.220 --> 00:00:22.710
+the Address
+
+5
+00:00:22.730 --> 00:00:24.080
+Resolution Protocol.
+
+6
+00:00:24.440 --> 00:00:26.200
+We covered this in detail already.
+
+7
+00:00:26.210 --> 00:00:27.640
+You should know this already.
+
+8
+00:00:27.920 --> 00:00:35.240
+So in the example, we've got PC1 over on the left with IP address 10.10.10.10 and MAC address
+
+9
+00:00:35.240 --> 00:00:36.110
+1.1.1.
+
+10
+00:00:36.110 --> 00:00:41.510
+And it's wanting to communicate with its default gateway at 10.10.10.1.
+
+11
+00:00:41.900 --> 00:00:47.930
+So it needs to send out an ARP request to find out what its default gateway's MAC address is.
+
+12
+00:00:48.230 --> 00:00:53.750
+So it sends out an ARP request saying I'm 10.10.10.10, I'm looking for
+
+13
+00:00:53.790 --> 00:00:55.160
+10.10.10.1.
+
+14
+00:00:55.400 --> 00:00:58.490
+What's your MAC address? That comes into the switch.
+
+15
+00:00:58.490 --> 00:01:00.110
+It's broadcast traffic.
+
+16
+00:01:00.110 --> 00:01:01.610
+So it is flooded out
+
+17
+00:01:01.610 --> 00:01:04.640
+all ports. It reaches the router on the right and
+
+18
+00:01:04.690 --> 00:01:10.340
+also the PC on the bottom. The PC on the bottom is not IP address 10.10.10.1,
+
+19
+00:01:10.340 --> 00:01:18.870
+so it will just silently discard the packet, But the router is so it will send back an ARP reply saying I'm
+
+20
+00:01:18.870 --> 00:01:24.440
+10.10.10.1, and my MAC address is 2.2.2. PC1
+
+21
+00:01:24.440 --> 00:01:31.040
+will then update its ARP cache to say 10.10.10.1 is available at 2.2.2.
+
+22
+00:01:31.220 --> 00:01:35.090
+R1 will also learn that PC1
+
+23
+00:01:35.090 --> 00:01:35.790
+10.10.10.10
+
+24
+00:01:35.790 --> 00:01:39.080
+is available with the MAC address of 1.1.1.
+
+25
+00:01:40.670 --> 00:01:47.660
+And then when we have traffic between the PC and its router, it comes from 10.10.10.10
+
+26
+00:01:47.990 --> 00:01:55.030
+going to 10.10.10.1, source MAC is 1.1.1 on the PC going to a destination MAC
+
+27
+00:01:55.050 --> 00:02:01.220
+of 2.2.2 on the router. And when the router sends traffic back, we just flip that around.
+
+28
+00:02:01.220 --> 00:02:07.050
+So it comes from a source IP address of 10.10.10.1 going to a destination of 10.10.10.10,
+
+29
+00:02:07.370 --> 00:02:10.580
+source MAC is 2.2.2 and the destination
+
+30
+00:02:10.590 --> 00:02:12.290
+MAC is 1.1.1.
+
+31
+00:02:13.070 --> 00:02:15.980
+That's just the standard way that ARP works.
+
+32
+00:02:16.580 --> 00:02:25.100
+But we can have a problem here if that PC down at the bottom happens to be an attacker.
+
+33
+00:02:25.430 --> 00:02:29.800
+Now, this is different than the rogue DHCP server problem.
+
+34
+00:02:29.810 --> 00:02:33.640
+I rogue DHCP server more often than not is accidental.
+
+35
+00:02:33.650 --> 00:02:38.060
+It's not actually malicious. If you get man-in-the-middle ARP spoofing,
+
+36
+00:02:38.060 --> 00:02:43.400
+this is a malicious attack, almost always, by an attacker though.
+
+37
+00:02:43.740 --> 00:02:48.080
+So what's going to happen is, our attacker on the network here,
+
+38
+00:02:48.190 --> 00:02:50.000
+has to be in the same IP subnet.
+
+39
+00:02:50.000 --> 00:02:52.730
+So the IP address is 10.10.10.100.
+
+40
+00:02:52.730 --> 00:03:00.290
+And in our example, the attackers MAC address is 3.3.3. And the attacker sends out a Gratuitous
+
+41
+00:03:00.290 --> 00:03:00.750
+ARP.
+
+42
+00:03:01.010 --> 00:03:07.600
+A Gratuitous ARP is an ARP update which is not in response to an actual request.
+
+43
+00:03:07.640 --> 00:03:15.440
+So it's just the attacker saying, "Hey, I'm 10.10.10.1 and my MAC address is
+
+44
+00:03:15.800 --> 00:03:16.280
+3.3.3."
+
+45
+00:03:16.940 --> 00:03:26.330
+So it's spoofing the router's IP address of 10.10.10.1 and the PC will update its ARP cache saying,
+
+46
+00:03:26.330 --> 00:03:32.120
+"Oh, I got an update for my ARP entry 10.10.10.1 is not at 1.1.1,
+
+47
+00:03:32.120 --> 00:03:38.180
+it's actually at 3.3.3." And the attacker will also send out a Gratuitous ARP saying,
+
+48
+00:03:38.180 --> 00:03:47.060
+I'm 10.10.10.10 which is the PC and my MAC address again is 3.3.3. And the router will update its
+
+49
+00:03:47.060 --> 00:03:49.420
+ARP cache with a new entry for the PC.
+
+50
+00:03:50.060 --> 00:03:56.360
+So now what happens is when the PC sends traffic from IP address 10.10.10.10 to
+
+51
+00:03:56.360 --> 00:04:02.300
+10.10.10.1, it looks in its ARP cache and it sees to send that to
+
+52
+00:04:02.480 --> 00:04:02.870
+3.3.3.
+
+53
+00:04:02.990 --> 00:04:06.230
+So it goes to the attacker, not to the router.
+
+54
+00:04:06.530 --> 00:04:10.340
+The attacker can then send the traffic on to the router.
+
+55
+00:04:10.580 --> 00:04:16.790
+When the return traffic comes back, it's going to be coming from 10.10.10.1 at the router to
+
+56
+00:04:16.790 --> 00:04:18.079
+10.10.10.10
+
+57
+00:04:18.470 --> 00:04:26.420
+at he PC. Again, because the router's ARP cache was also poisoned, it sends the traffic to 3.3.3,
+
+58
+00:04:26.420 --> 00:04:30.530
+which is the attacker, and the attacker can then send it back to the PC.
+
+59
+00:04:30.890 --> 00:04:37.400
+So what happens now is, one of the benefits of a switch is that it only sends traffic on the relevant
+
+60
+00:04:37.400 --> 00:04:37.910
+port.
+
+61
+00:04:38.300 --> 00:04:43.490
+So if the attacker was trying to sniff that traffic, it never hits the attackers port.
+
+62
+00:04:43.490 --> 00:04:45.020
+So the attacker can't see it.
+
+63
+00:04:45.020 --> 00:04:46.460
+So it can't see the traffic.
+
+64
+00:04:46.850 --> 00:04:50.360
+But if the attacker does this man-in-the-middle ARP spoofing attack,
+
+65
+00:04:50.630 --> 00:04:56.060
+all the traffic goes through the attacker so they can sniff the traffic and see what that communication
+
+66
+00:04:56.060 --> 00:04:56.420
+says.
+
+67
+00:04:56.540 --> 00:04:58.400
+So it's a huge security issue.
+
+68
+00:04:58.670 --> 00:05:05.090
+Now, if the attacker isn't able to do man-in-the-middle like spoof to poison the ARP cache on both sides,
+
+69
+00:05:05.480 --> 00:05:10.730
+this can also be used for the denial of service attack. Rather than yet, say, the PC sending traffic to
+
+70
+00:05:10.730 --> 00:05:15.560
+the router rather than the attacker actually sending on to the router, the attacker could just drop
+
+71
+00:05:15.560 --> 00:05:15.710
+it.
+
+72
+00:05:15.890 --> 00:05:18.590
+So this can be used for man-in-the-middle sniffing.
+
+73
+00:05:18.590 --> 00:05:20.990
+It can also be used as denial of service.
+
+74
+00:05:21.620 --> 00:05:23.600
+Usually this will be a malicious attack.
+
+75
+00:05:23.840 --> 00:05:30.050
+The attacker can use a tool such as Cain and Abel, which is very easy to use to do this kind of attack.
+
+76
+00:05:31.420 --> 00:05:34.360
+So how do we stop that from happening?
+
+77
+00:05:34.390 --> 00:05:41.970
+The answer is DAI, Dynamic ARP Inspection. When you enable DHCP snooping,
+
+78
+00:05:41.980 --> 00:05:46.910
+so for DAI, you need to have enabled DHCP snooping already.
+
+79
+00:05:46.930 --> 00:05:50.950
+It can't just work on its own. When you have DHCP snooping,
+
+80
+00:05:51.190 --> 00:05:59.320
+the switch inspects the DHCP traffic and keeps track of which IP addresses were assigned to which MAC addresses.
+
+81
+00:05:59.650 --> 00:06:07.360
+The switch is in between the DHCP server and the PCs. So it can look at all that DHCP traffic.
+
+82
+00:06:07.570 --> 00:06:14.320
+When the client sends out a request, it can see what the client's MAC address and when the server
+
+83
+00:06:14.320 --> 00:06:19.680
+sends the response, it can see what IP address was assigned to that MAC address.
+
+84
+00:06:19.930 --> 00:06:25.180
+So the switch keeps track of the IP address to MAC address mappings.
+
+85
+00:06:25.510 --> 00:06:29.260
+For example, PC1 with MAC address 1.1.1,
+
+86
+00:06:29.470 --> 00:06:38.200
+it was assigned IP address 10.10.10.10 by the DHCP server. Then, if invalid ARP traffic
+
+87
+00:06:38.440 --> 00:06:40.120
+tries to pass through the switch,
+
+88
+00:06:40.240 --> 00:06:45.880
+for example, at attacker 3.3.3 saying that it is 10.10.10.10,
+
+89
+00:06:46.150 --> 00:06:51.340
+the switch can see that that MAC address does not map to that IP address.
+
+90
+00:06:51.340 --> 00:06:58.360
+It's invalid and it will drop the traffic. So it prevents attackers from spoofing ARP on your network.
+
+91
+00:07:00.240 --> 00:07:02.550
+For our configuration on this,
+
+92
+00:07:03.850 --> 00:07:13.120
+on Switch1, we say interface fa0/1, ip arp inspection trust
+
+93
+00:07:13.330 --> 00:07:15.870
+For host which do not get their IP address from DHCP,
+
+94
+00:07:15.970 --> 00:07:22.240
+obviously, the switch is not going to have a mapping of MAC address to IP address for them because
+
+95
+00:07:22.240 --> 00:07:24.310
+they didn't get it from the DHCP server.
+
+96
+00:07:24.520 --> 00:07:31.390
+So for those hosts such as your routers, firewalls, maybe servers, etc., you need to configure the switch to
+
+97
+00:07:31.390 --> 00:07:33.450
+trust them regardless.
+
+98
+00:07:33.460 --> 00:07:35.520
+So any non-DHCP clients,
+
+99
+00:07:35.680 --> 00:07:42.340
+configure those as trusted ports. For all of your other PCs which are getting their IP address from DHCP,
+
+100
+00:07:42.580 --> 00:07:43.980
+they're not going to be trusted.
+
+101
+00:07:44.080 --> 00:07:46.990
+The switch will do dynamic ARP inspection.
+
+102
+00:07:47.110 --> 00:07:53.590
+Where you enable that is global configuration, ip arp inspection vlan 10, for example.
+
+103
+00:07:53.620 --> 00:07:56.350
+So it's enabled at the VLAN level.
+
+104
+00:07:56.690 --> 00:08:00.970
+OK, so that was DAI, Dynamic ARP Inspection.
+

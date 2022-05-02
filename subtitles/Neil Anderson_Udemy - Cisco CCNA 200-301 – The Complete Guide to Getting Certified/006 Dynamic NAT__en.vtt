@@ -1,0 +1,481 @@
+WEBVTT
+1
+00:00:06.450 --> 00:00:14.670
+In this lecture, you'll learn about Dynamic NAT. Dynamic NAT uses a pool of what are usually public
+
+2
+00:00:14.670 --> 00:00:21.870
+IP addresses which are given out on an as needed, first come, first served basis. Dynamic NAT is usually
+
+3
+00:00:21.870 --> 00:00:28.790
+used for internal hosts which need to connect out to the Internet, but they do not accept incoming connections.
+
+4
+00:00:30.140 --> 00:00:39.580
+So looking at our lab again, in the last lecture, we configured a Static NAT rule to give INT-S1,
+
+5
+00:00:39.620 --> 00:00:46.970
+our internal server, up in the top left, a fixed permanent public IP address so it could be reached
+
+6
+00:00:46.970 --> 00:00:50.780
+by host sending incoming connections in from the Internet.
+
+7
+00:00:51.290 --> 00:00:58.970
+In this one, we're going to be doing NAT for our normal desktop PCs that you see down in the bottom
+
+8
+00:00:58.970 --> 00:00:59.360
+left.
+
+9
+00:00:59.360 --> 00:01:04.360
+So they are on the 10.0.2.0 network. They're just standard desktop PCs
+
+10
+00:01:04.360 --> 00:01:10.670
+so they never need to accept incoming connections coming in from the Internet. Whenever they're communicating
+
+11
+00:01:10.670 --> 00:01:11.400
+with the Internet,
+
+12
+00:01:11.600 --> 00:01:18.680
+the traffic is always initiated by them in the outbound direction. They need to except return traffic coming back
+
+13
+00:01:18.680 --> 00:01:19.670
+in from the outside,
+
+14
+00:01:19.820 --> 00:01:26.150
+but traffic is never initiated from the outside. So they don't need to have a permanent fix public
+
+15
+00:01:26.150 --> 00:01:26.840
+IP address.
+
+16
+00:01:27.080 --> 00:01:32.360
+They can just get the next available public IP address as in when they need it.
+
+17
+00:01:34.040 --> 00:01:39.440
+So in our scenario, we've bought the range of public IP addresses, 203.0.113.0/28
+
+18
+00:01:39.440 --> 00:01:41.820
+from the service provider.
+
+19
+00:01:41.960 --> 00:01:46.780
+It's the same scenario again that we used for Static NAT. 203.0.113.2
+
+20
+00:01:46.880 --> 00:01:52.220
+is on the outside interface on R1. 203.0.113.1
+
+21
+00:01:52.430 --> 00:01:56.690
+is being used by the service provider on the other side of that link.
+
+22
+00:01:57.020 --> 00:02:03.620
+And we're already using 203.0.113.3 for the Static NAT rule that we
+
+23
+00:02:03.620 --> 00:02:05.420
+configured in the last lecture.
+
+24
+00:02:05.630 --> 00:02:12.540
+So that leaves us with 203.0.113.4 to
+
+25
+00:02:12.950 --> 00:02:13.760
+203.0.113.14.
+
+26
+00:02:14.880 --> 00:02:21.930
+The hosts in the 10.0.2.0/24 network do not need to accept incoming connections, like I just
+
+27
+00:02:21.930 --> 00:02:26.490
+explained. But they do need to have the outbound connectivity to the Internet
+
+28
+00:02:26.640 --> 00:02:30.350
+so they do need to have a public IP address when they do that.
+
+29
+00:02:30.750 --> 00:02:37.320
+So we're going to use those remaining addresses, 203.0.113.4 - 14 for this.
+
+30
+00:02:37.530 --> 00:02:43.400
+And we're going to put them into a pool that are going to be allocated first come first served whenever
+
+31
+00:02:43.410 --> 00:02:46.620
+a host on the inside, sends traffic out to the outside.
+
+32
+00:02:47.250 --> 00:02:51.420
+The first host to send traffic out will be translated to the first address in the pool.
+
+33
+00:02:51.600 --> 00:02:54.330
+That's 203.0.113.4.
+
+34
+00:02:54.660 --> 00:03:00.780
+The second host will get the next address, 203.0.113.5, etc., all the
+
+35
+00:03:00.780 --> 00:03:06.420
+way up to 203.0.113.14 at the end of the pool.
+
+36
+00:03:07.650 --> 00:03:15.030
+Now, with Standard Dynamic NAT that we're discussing in this lecture, you need a public IP address
+
+37
+00:03:15.030 --> 00:03:19.390
+for every inside host that needs to communicate with the outside.
+
+38
+00:03:19.560 --> 00:03:26.400
+So, for example, if you had 30 hosts inside, you would need 30 public IP addresses. If you had 200
+
+39
+00:03:26.400 --> 00:03:32.820
+hosts, you would need 200 public IP addresses. When all the addresses in the pool have been used with just
+
+40
+00:03:32.820 --> 00:03:39.660
+Standard Dynamic NAT, new outbound connections from other inside hosts will fail because there's no public
+
+41
+00:03:39.660 --> 00:03:42.000
+IP addresses left to translate them to.
+
+42
+00:03:42.510 --> 00:03:48.060
+So in that case, a host that tried to send a traffic out when there was no addresses available, they're
+
+43
+00:03:48.060 --> 00:03:48.900
+all used up,
+
+44
+00:03:49.110 --> 00:03:54.390
+it would have to wait for an existing connection to be torn down and the translation to be released
+
+45
+00:03:54.390 --> 00:03:58.770
+back into the pool before it was able to send traffic out.
+
+46
+00:03:59.040 --> 00:04:06.600
+So it's Standard Dynamic NAT that we're discussing here, is not typically used in the real world.
+
+47
+00:04:06.930 --> 00:04:12.990
+What is used is PAT, Port Address Translation, and I'll cover that next.
+
+48
+00:04:13.140 --> 00:04:16.200
+But you need to understand Standard Dynamic NAT first.
+
+49
+00:04:16.200 --> 00:04:17.370
+So that's what we're doing here.
+
+50
+00:04:18.560 --> 00:04:25.970
+So our configuration, we need to specify our interfaces again. So we've got IP, we've got
+
+51
+00:04:25.970 --> 00:04:32.870
+interface fa0/0, we see IP NAT outside. We'd actually already done that in the previous lab for Static
+
+52
+00:04:32.870 --> 00:04:34.630
+NAT so we don't need to do it again.
+
+53
+00:04:34.640 --> 00:04:41.750
+The config was already there. But our inside hosts are on a different interface than our inside server
+
+54
+00:04:41.750 --> 00:04:42.050
+was.
+
+55
+00:04:42.050 --> 00:04:44.870
+Remember that inside server was on fa1/0.
+
+56
+00:04:45.170 --> 00:04:53.480
+Our desktop hosts are on fa2/0 so we need to say interface fa2/0, ip nat inside.
+
+57
+00:04:53.930 --> 00:04:55.240
+So for our scenario,
+
+58
+00:04:55.250 --> 00:05:02.510
+we're actually going to end up having 2 IP NAT inside interfaces, interface fa1/0 that
+
+59
+00:05:02.510 --> 00:05:09.860
+faces the server with the Static NAT entry and interface fa2/0 that is facing our desktop
+
+60
+00:05:09.860 --> 00:05:10.520
+PCs.
+
+61
+00:05:10.660 --> 00:05:12.770
+They're going to be used for the Dynamic NAT entry.
+
+62
+00:05:12.950 --> 00:05:13.610
+That's fine.
+
+63
+00:05:13.620 --> 00:05:16.010
+On all of your interfaces,
+
+64
+00:05:16.160 --> 00:05:23.360
+you can specify outside or inside on there and you can have different interfaces as outside and as inside.
+
+65
+00:05:23.690 --> 00:05:25.650
+So we configure our interfaces.
+
+66
+00:05:26.030 --> 00:05:32.120
+Next up, we need to configure the pool of global addresses that will be available for our hosts. So for that,
+
+67
+00:05:32.120 --> 00:05:36.070
+the command at global config is ip nat pool.
+
+68
+00:05:36.080 --> 00:05:38.300
+Give it a name, Flackbox.
+
+69
+00:05:38.540 --> 00:05:45.320
+And then the range of addresses. It is going from 203.0.113.4 to
+
+70
+00:05:45.770 --> 00:05:50.360
+203.0.113.14. And then netmask or the subnet mask.
+
+71
+00:05:50.570 --> 00:05:56.340
+Well the subnet mask on our outside interface is 255.255.255.248.
+
+72
+00:05:56.750 --> 00:05:58.360
+So that's what we use here.
+
+73
+00:05:58.940 --> 00:06:06.470
+Next, we create an access list which references the internal IP addresses that we want to translate.
+
+74
+00:06:06.860 --> 00:06:07.520
+Here,
+
+75
+00:06:07.520 --> 00:06:14.510
+we need to identify the hosts on the inside and it's going to be by the source address so we can just
+
+76
+00:06:14.510 --> 00:06:17.060
+use standard ACL here.
+
+77
+00:06:17.210 --> 00:06:23.270
+If you want to get more granular than this, you can also use an extended access control list with source
+
+78
+00:06:23.270 --> 00:06:24.640
+and destination addresses.
+
+79
+00:06:24.740 --> 00:06:26.690
+That's a valid configuration as well.
+
+80
+00:06:26.960 --> 00:06:30.260
+But for our configuration here, we'll keep things simple.
+
+81
+00:06:30.260 --> 00:06:38.030
+We can just do a standard ACL. So our command is access-list 1 permit 10.0.2.0 and the wildcard
+
+82
+00:06:38.030 --> 00:06:41.020
+is 0.0.0.255.
+
+83
+00:06:41.750 --> 00:06:47.840
+So we've specified the pool of addresses. We've specified the hosts that are going to get translated into
+
+84
+00:06:47.840 --> 00:06:48.710
+those addresses.
+
+85
+00:06:48.950 --> 00:06:53.240
+The last thing we need to do is tie them together. So the command to do that
+
+86
+00:06:53.240 --> 00:06:55.760
+is ip nat inside source.
+
+87
+00:06:55.880 --> 00:07:04.280
+It's a list this time and list 1 means use access list 1. And then the pool, we're going to translate them
+
+88
+00:07:04.280 --> 00:07:06.620
+to is pool Flackbox.
+
+89
+00:07:06.770 --> 00:07:07.430
+So that's it.
+
+90
+00:07:07.430 --> 00:07:10.970
+That's the complete config to do Dynamic
+
+91
+00:07:10.970 --> 00:07:13.490
+NAT when we're not using PAT yet.
+
+92
+00:07:14.980 --> 00:07:21.550
+If we want to verify it, it's the same command as before, show ip nat translation. In the example output
+
+93
+00:07:21.850 --> 00:07:25.360
+here, you can see that we've got an entry for Inside
+
+94
+00:07:25.360 --> 00:07:29.400
+Local, our inside desktop PC, is 10.0.2.10,
+
+95
+00:07:29.650 --> 00:07:35.560
+and it's been translated into 203.0.113.4, which was the first available
+
+96
+00:07:35.560 --> 00:07:36.670
+address in the pool.
+
+97
+00:07:36.940 --> 00:07:42.730
+And it's sending traffic out to 203.0.113.20. If another
+
+98
+00:07:42.730 --> 00:07:48.250
+host then sends traffic, it would be translated to 203.0.113.5.
+
+99
+00:07:48.370 --> 00:07:52.220
+And we would see an entry for that in the translation table as well.
+
+100
+00:07:52.570 --> 00:07:56.970
+Remember, you need to be quick with this command because entries time out quite quickly.
+
+101
+00:07:58.330 --> 00:08:04.570
+This is a good time to tell you about another couple of show commands for NAT as well, and the clear
+
+102
+00:08:04.570 --> 00:08:11.380
+command here. So clear ip nat translation can be used to remove translations from the translation
+
+103
+00:08:11.380 --> 00:08:14.290
+table. And that can be useful when troubleshooting.
+
+104
+00:08:14.590 --> 00:08:21.010
+So if you're seeing output that you weren't expecting, you can clear the translations in there and then send
+
+105
+00:08:21.010 --> 00:08:24.560
+the traffic back out again just to double check what's actually happening.
+
+106
+00:08:24.940 --> 00:08:32.679
+It's also often required, if you want to edit, your NAT configuration will not allow changes when
+
+107
+00:08:32.679 --> 00:08:34.710
+there are active translations.
+
+108
+00:08:34.720 --> 00:08:39.520
+So if you want to edit it, make sure that all the translations are cleared first or you're going to get
+
+109
+00:08:39.520 --> 00:08:40.299
+an error message
+
+110
+00:08:40.299 --> 00:08:47.530
+if you try to change a configuration. To remove all dynamic translations, it's clear ip nat translation
+
+111
+00:08:47.530 --> 00:08:48.610
+and then a star.
+
+112
+00:08:48.940 --> 00:08:54.610
+So you can you can remove just a single specific translation if you want, or you can remove all by
+
+113
+00:08:54.610 --> 00:08:57.070
+using that asterisk wildcard.
+
+114
+00:08:58.030 --> 00:09:02.500
+The other command that I wanted to show you, was show ip nat statistics.
+
+115
+00:09:02.710 --> 00:09:03.700
+So this command,
+
+116
+00:09:03.820 --> 00:09:09.520
+we don't use it as often as show ip nat translation, but this tells us how many addresses have actually
+
+117
+00:09:09.520 --> 00:09:10.750
+been translated.
+
+118
+00:09:11.200 --> 00:09:13.330
+OK, so that was Dynamic
+
+119
+00:09:13.330 --> 00:09:15.000
+NAT. In the next lecture,
+
+120
+00:09:15.010 --> 00:09:18.040
+I'll show you how to configure it with a lab demo.
+

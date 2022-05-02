@@ -1,0 +1,649 @@
+WEBVTT
+1
+00:00:06.210 --> 00:00:13.050
+In this lecture, we're going to take a look at how our IGP metrics work in the lab.
+
+2
+00:00:13.050 --> 00:00:21.300
+I've got the same usual setup for the section with my five routers R1 to R5, and the IP addresses
+
+3
+00:00:21.300 --> 00:00:23.100
+are already configured.
+
+4
+00:00:23.190 --> 00:00:31.230
+I've got no routing protocols and no static routes configured yet. Let's just verifying that, so at the command
+
+5
+00:00:31.230 --> 00:00:32.130
+line,
+
+6
+00:00:32.130 --> 00:00:41.150
+you can see I've done a 'show ip interface brief' and there's the IP addresses and from a 'show ip route'
+
+7
+00:00:41.160 --> 00:00:46.980
+I can see it's just connected routes there, so there's no routing configured.
+
+8
+00:00:46.980 --> 00:00:51.200
+First up, let's see what happens with RIP. So
+
+9
+00:00:51.210 --> 00:00:54.570
+I've got the config ready to go here.
+
+10
+00:00:54.690 --> 00:01:02.860
+So let's just copy this basic RIP configuration and I'll paste that in on every router.
+
+11
+00:01:03.000 --> 00:01:14.420
+So we've got it there on R1 on R2, R3, R4, and R5.
+
+12
+00:01:14.640 --> 00:01:19.250
+And if I look back at the topology again, what we're going to check for is on R1
+
+13
+00:01:19.260 --> 00:01:23.300
+it's route to 10.1.2.0/24.
+
+14
+00:01:23.460 --> 00:01:26.220
+So when we're using RIP, you know this already,
+
+15
+00:01:26.220 --> 00:01:31.050
+the path that it's going to take is going to go along the bottom path.
+
+16
+00:01:31.050 --> 00:01:39.810
+The reason is that RIP uses hop count as its metric, and it's only two hops to the 10.1.2.0/24 network
+
+17
+00:01:39.960 --> 00:01:42.310
+over the path through R5.
+
+18
+00:01:42.330 --> 00:01:45.050
+It would be three hops over the top path.
+
+19
+00:01:45.270 --> 00:01:54.240
+So RIP doesn't care that the top path has actually got higher bandwidth. Let's verify that at the command
+
+20
+00:01:54.240 --> 00:01:55.540
+line.
+
+21
+00:01:55.680 --> 00:02:01.560
+So I'll go to R1 and do a 'show ip route'.
+
+22
+00:02:01.560 --> 00:02:06.930
+We should see our RIP routes in the routing table now and we're looking for the path to the 10.1.2.0/24
+
+23
+00:02:06.990 --> 00:02:08.370
+network.
+
+24
+00:02:08.430 --> 00:02:20.610
+I can see it was learned by RIP and the next hop is 10.0.3.2 which is the bottom path on R5.
+
+25
+00:02:20.610 --> 00:02:25.930
+And it's going out fastEthernet3/0 on R1.
+
+26
+00:02:26.050 --> 00:02:30.390
+Okay, let's see what happens if we shutdown that interface. So I go
+
+27
+00:02:30.390 --> 00:02:37.260
+'config t', I go to interface fastEthernet3/0 and do a 'shutdown.'
+
+28
+00:02:37.350 --> 00:02:44.310
+When I do this, what's going to happen is the routing protocol is going to reconverge. Meaning, it's
+
+29
+00:02:44.310 --> 00:02:49.190
+going to see that the path is going down and recalculate the next best path.
+
+30
+00:02:49.230 --> 00:02:51.380
+This is going to take a little bit of time.
+
+31
+00:02:51.510 --> 00:02:53.540
+So I've just shutdown the interface,
+
+32
+00:02:54.210 --> 00:03:00.000
+and if I do a 'show ip route' again, you'll see, actually, what was really quick.
+
+33
+00:03:00.000 --> 00:03:00.980
+We were just lucky there,
+
+34
+00:03:00.990 --> 00:03:03.560
+it can often take a bit longer than that.
+
+35
+00:03:03.570 --> 00:03:07.600
+So it has recalculated the path for 10.1.2.0/24,
+
+36
+00:03:07.620 --> 00:03:17.880
+and it's now going to 10.0.0.2 which is on the top path to R2, out interface
+
+37
+00:03:17.880 --> 00:03:22.980
+fastEthernet0/0. To show you the effect of convergence, actually,
+
+38
+00:03:22.980 --> 00:03:31.520
+if I just do a 'config t' and interface fastEthernet3/0 and do a no 'shutdown' on here and
+
+39
+00:03:31.520 --> 00:03:42.750
+'end', and if I do a 'show ip route' again you'll see traffic is still going out to 10.0.0.2 interface
+
+40
+00:03:42.750 --> 00:03:49.560
+to R2. It will take a little bit of time before RIP sees that the better path is back up again and then
+
+41
+00:03:49.560 --> 00:03:52.240
+it will move back over to going through R5.
+
+42
+00:03:52.570 --> 00:03:56.360
+Okay, so that was our RIP hop count in action.
+
+43
+00:03:56.370 --> 00:04:03.120
+Next up, let's have a look at what happens with IS-IS.
+
+44
+00:04:03.360 --> 00:04:10.920
+So I'll copy a basic IS-IS config in here. Now, with the CCNA exam,
+
+45
+00:04:10.950 --> 00:04:17.070
+IS-IS is not really tested much on there because like I said before, it's not really used in enterprise
+
+46
+00:04:17.100 --> 00:04:21.209
+environments unless they're very large and they've got their own MPLS network.
+
+47
+00:04:21.209 --> 00:04:23.940
+It's more commonly used in service provider networks.
+
+48
+00:04:24.030 --> 00:04:30.390
+So if you do study for a service provider track later, you will get tested a lot more heavily in IS-IS.
+
+49
+00:04:30.980 --> 00:04:35.850
+Anyway, let's put that config in to save a bit of time.
+
+50
+00:04:35.850 --> 00:04:44.670
+I'll put a 'config t' in here at the top to save me typing that every time, and I'm going to need to change
+
+51
+00:04:44.670 --> 00:04:46.700
+the net address every time as well.
+
+52
+00:04:46.740 --> 00:04:48.380
+So, hopefully, I'll remember to do that.
+
+53
+00:04:48.570 --> 00:04:50.350
+It's fine for R1,
+
+54
+00:04:50.360 --> 00:04:53.160
+so there's my IS-IS config.
+
+55
+00:04:53.160 --> 00:05:01.440
+Then I need to go back to the text file and just edit this because every router needs to have a unique
+
+56
+00:05:01.500 --> 00:05:10.380
+net address. So I'll make R2 number 2, R3 will be number 3, and so on. So I'll paste this one into
+
+57
+00:05:10.440 --> 00:05:28.410
+R2. Go back and edit the text file for R3 and copy that, paste that one into R3. Back to the text
+
+58
+00:05:28.410 --> 00:05:37.540
+file again, and we need to do R4, copy this and paste that into R4 and then
+
+59
+00:05:37.540 --> 00:05:39.500
+just one more to do,
+
+60
+00:05:39.520 --> 00:05:40.480
+which is going to be
+
+61
+00:05:40.510 --> 00:05:42.460
+our R5 router
+
+62
+00:05:42.460 --> 00:05:45.990
+and that's going be number 5.
+
+63
+00:05:46.150 --> 00:05:55.120
+Okay, so I'm pasting in an IS-IS config in here, and what's going to happen is IS-IS routes are going to
+
+64
+00:05:55.120 --> 00:05:59.440
+replace our RIP routes in the routing table.
+
+65
+00:05:59.500 --> 00:06:06.130
+The reason for that is administrative distance which is going to be covered in another lecture coming
+
+66
+00:06:06.130 --> 00:06:09.030
+up really soon in this section.
+
+67
+00:06:09.370 --> 00:06:16.650
+So I'll do a 'show ip route' on R1 and you can see now that my RIP routes have been removed.
+
+68
+00:06:16.660 --> 00:06:20.380
+They've been replaced with IS-IS routes.
+
+69
+00:06:20.410 --> 00:06:27.790
+Again, we're looking for the route to the 10.1.2.0/24 network, which is behind R4.
+
+70
+00:06:28.660 --> 00:06:37.000
+And right now this is going via 10.0.0.2, which if we have a look at the topology table,
+
+71
+00:06:38.800 --> 00:06:41.260
+is going along the top path.
+
+72
+00:06:41.290 --> 00:06:44.390
+Okay, so that's not what we were expecting, right?
+
+73
+00:06:44.500 --> 00:06:48.960
+Because I didn't configure any costs on my links,
+
+74
+00:06:49.030 --> 00:06:56.350
+when you don't manually set costs in your links in IS-IS, it's going to act just like RIP because all links
+
+75
+00:06:56.350 --> 00:06:58.330
+have got the same cost by default.
+
+76
+00:06:58.330 --> 00:07:05.980
+So basically, it acts using hop count. But if we're using hop count, we'd expect the route to go via R5,
+
+77
+00:07:05.980 --> 00:07:06.570
+right?
+
+78
+00:07:06.820 --> 00:07:15.160
+Well, what's probably happening here is just convergence again, where the R1 router will have formed
+
+79
+00:07:15.160 --> 00:07:19.680
+an adjacency with R2 and learned the route via R2.
+
+80
+00:07:19.750 --> 00:07:25.420
+It hasn't learned the route via R5 yet. But when it does learn that route from R5, it will see
+
+81
+00:07:25.420 --> 00:07:31.180
+that it's a better cost and it's going to go out the fastEthernet 3/0 interface instead.
+
+82
+00:07:31.180 --> 00:07:36.160
+So let's just see if that's happened yet, again you can see before it's going out fastEthernet0/0,
+
+83
+00:07:36.160 --> 00:07:40.970
+with the next hop of 10.0.0.2.
+
+84
+00:07:41.100 --> 00:07:44.860
+Let's try this command again, and
+
+85
+00:07:44.890 --> 00:07:45.520
+there we go.
+
+86
+00:07:45.530 --> 00:07:53.010
+10.1.2.0 is now going out fastEthernet3/0 which is what we expect.
+
+87
+00:07:53.080 --> 00:07:59.710
+So that's a good lesson actually that just after you've configured a routing protocol, if you have a look
+
+88
+00:07:59.710 --> 00:08:03.460
+at the routing table and you're not seeing what you were expecting,
+
+89
+00:08:03.460 --> 00:08:09.160
+just give it another minute or so and you'll see it will probably reconverge and then you'll get what
+
+90
+00:08:09.160 --> 00:08:10.860
+you are expecting then.
+
+91
+00:08:10.910 --> 00:08:11.270
+Okay,
+
+92
+00:08:11.330 --> 00:08:19.480
+so that was the metric with IS-IS, Actually, let's just check it failing over with this routing protocol
+
+93
+00:08:19.480 --> 00:08:27.100
+as well. So I'll go 'config t', I'll go to interface fastEthernet3/0 and I will shut that down,
+
+94
+00:08:28.000 --> 00:08:39.200
+and then do a 'show ip route' and for 10.1.2.0 you can see it's still going via 10.0.3.2,
+
+95
+00:08:39.200 --> 00:08:42.710
+so it has not reconverged yet.
+
+96
+00:08:42.820 --> 00:08:49.690
+Again, we need to give it a little bit of time for the routing protocol to detect that the path is going down and
+
+97
+00:08:49.690 --> 00:08:58.440
+then recalculate the next best path. So I'll put the command in again, you can see it's now reconverged and now for
+
+98
+00:08:58.450 --> 00:09:05.980
+10.1.2.0, it is going via R2 at 10.0.0.2, the next best path.
+
+99
+00:09:06.090 --> 00:09:14.530
+Okay, let's remember to bring the interface back up again. So I'll go 'config t', 'interface fastEthernet3/0',
+
+100
+00:09:14.530 --> 00:09:17.440
+and do a 'no shutdown'. Okay,
+
+101
+00:09:17.470 --> 00:09:26.350
+so we've had a look at RIP and IS-IS, which are going to take the really the lowest hop count for both
+
+102
+00:09:26.680 --> 00:09:37.450
+unless you manually set a cost on your links in IS-IS. So RIP uses hop count as its metric. IS-IS uses cost
+
+103
+00:09:37.690 --> 00:09:40.070
+but all links default to the same cost.
+
+104
+00:09:40.960 --> 00:09:44.350
+So next up, we'll have a look at another routing protocol.
+
+105
+00:09:44.410 --> 00:09:46.950
+We'll have a look at OSPF next.
+
+106
+00:09:46.960 --> 00:09:52.120
+So this one, I can just copy and paste the same config in on every router.
+
+107
+00:09:52.240 --> 00:10:08.980
+So let's do that on R1 and R2, R3, R4, and R5. And again, because of the administrative
+
+108
+00:10:08.980 --> 00:10:15.570
+distance, which again we're going to cover later, the OSPF routes are going to replace the IS-IS routes.
+
+109
+00:10:15.640 --> 00:10:22.110
+So let's do a 'show ip route' and I can see that OSPF has not converged yet.
+
+110
+00:10:22.180 --> 00:10:27.160
+So let's just try this command again, might have to wait a second for this.
+
+111
+00:10:29.940 --> 00:10:30.430
+Okay
+
+112
+00:10:30.440 --> 00:10:38.340
+and there, I got the message in the log that OSPF adjacency has just come up now.
+
+113
+00:10:38.420 --> 00:10:45.030
+So I hit the up arrow again, and okay, that's just one of my routers.
+
+114
+00:10:45.140 --> 00:10:51.470
+So I can see I've got an OSPF route in the routing table going out interace fastEthernet0/0,
+
+115
+00:10:51.470 --> 00:10:58.400
+which is going to R2, so that adjacency has come up but the adjacency to R5
+
+116
+00:10:58.400 --> 00:10:59.320
+has not come up
+
+117
+00:10:59.320 --> 00:11:00.320
+yet. I can see that
+
+118
+00:11:00.350 --> 00:11:01.840
+because I don't have any OSPF routes
+
+119
+00:11:01.840 --> 00:11:04.730
+going to fastEthernet3/0 yet.
+
+120
+00:11:04.730 --> 00:11:08.710
+And if I hit the up arrow, I think I still won't see it because I can't see the adjacency coming up yet.
+
+121
+00:11:08.800 --> 00:11:10.190
+Oh, there is.
+
+122
+00:11:10.220 --> 00:11:10.570
+Okay,
+
+123
+00:11:10.580 --> 00:11:13.850
+I see what the problem is. Actually, that last route, that last
+
+124
+00:11:13.850 --> 00:11:21.030
+IS-IS route is for our Internet interface which I did not include in OSPF but I did include it in
+
+125
+00:11:21.030 --> 00:11:21.730
+IS-IS.
+
+126
+00:11:21.740 --> 00:11:22.990
+So, that's why it's showing up there.
+
+127
+00:11:23.010 --> 00:11:24.220
+So don't worry about that
+
+128
+00:11:24.230 --> 00:11:24.730
+bottom route.
+
+129
+00:11:25.370 --> 00:11:33.890
+Okay so OSPF uses cost as its metric and that does take bandwidth into account by default. If we have a
+
+130
+00:11:33.890 --> 00:11:43.340
+quick look on R5 and I do a 'show ip interface brief' just check the interfaces I'm using, okay,
+
+131
+00:11:43.340 --> 00:11:52.420
+fastEthernet2/0 and fastEthernet3/0. If I do 'show run fastEthernet2/0', I missed out the interface,
+
+132
+00:11:52.440 --> 00:12:00.290
+'show run interface fastEthernet2/0', I can see that they're set the bandwidth to 10 megabits per second.
+
+133
+00:12:00.620 --> 00:12:08.000
+The default bandwidth on fastEthernet is of course 100 megabits per second so I've set my interfaces on
+
+134
+00:12:08.150 --> 00:12:17.330
+R5 to be lower bandwidth links, and that's why OSPF is preferring to go along the top path rather
+
+135
+00:12:17.330 --> 00:12:21.170
+than going through R5. So let's just verify that,
+
+136
+00:12:21.620 --> 00:12:29.570
+and from the show ip route on R1, I can see the route for 10.1.2.0/24 is going through
+
+137
+00:12:29.570 --> 00:12:32.570
+the top path 10.0.0.2.
+
+138
+00:12:32.670 --> 00:12:41.660
+So that's different than what we got with RIP and IS-IS, and the reason is the OSPF does take bandwidth into account
+
+139
+00:12:41.720 --> 00:12:51.110
+by default. If I shutdown the interface fastEthernet0/0 down, which is the one it's currently being used,
+
+140
+00:12:51.860 --> 00:12:56.030
+then we will see it will fail over to going through R5.
+
+141
+00:12:56.030 --> 00:12:59.890
+So I saw that my adjacency with the R2 router went down.
+
+142
+00:13:00.230 --> 00:13:09.470
+If I now do a 'show ip route' and check the traffic for 10.1.2.0/24 network, I can see that it has fail
+
+143
+00:13:09.470 --> 00:13:17.690
+over to go via R5 at 10.0.3.2. Okay, let's bring the interface back up again, which was fastEhernet0/0
+
+144
+00:13:17.690 --> 00:13:26.090
+this time. I'll do a 'no shutdown', and the last routing protocol to look at is EIGRP. So let's
+
+145
+00:13:26.190 --> 00:13:35.390
+bring our text file back up again, I will copy our basic EIGRP configuration and paste that in on every
+
+146
+00:13:35.400 --> 00:13:43.010
+router. Again, EIGRP is going to be preferred to OSPF because it's got a better administrative distance
+
+147
+00:13:43.040 --> 00:13:49.190
+so it is going to replace those OSPF routes in the routing table.
+
+148
+00:13:51.890 --> 00:13:54.620
+And I just need to do a 'config t' on R5 and paste it in,
+
+149
+00:13:54.740 --> 00:13:54.990
+Okay,
+
+150
+00:13:55.000 --> 00:13:57.370
+and that should be EIGRP running. It might
+
+151
+00:13:57.370 --> 00:13:58.820
+just take a minute to converge.
+
+152
+00:13:58.820 --> 00:14:03.560
+I can see my adjacencies coming up at the command line here.
+
+153
+00:14:03.630 --> 00:14:14.540
+So if I do a 'show ip route' on R1, and EIGRP, like OSPF, does take bandwidth into account by default,
+
+154
+00:14:14.880 --> 00:14:24.560
+so I expect my EIGRP routes to go via R2. If we have a look for 10.1.2.0, it is going via R2 at
+
+155
+00:14:24.830 --> 00:14:27.360
+10.0.0.2.
+
+156
+00:14:27.410 --> 00:14:30.700
+Again, we can watch EIGRP fail over as well.
+
+157
+00:14:30.770 --> 00:14:39.830
+If I shutdown that fastEthernet0/0 interface and then just give it a second to converge, so I can see that
+
+158
+00:14:40.160 --> 00:14:49.490
+the EIGRP adjacency was updated. EIGRP does converge very quickly. If I now do a 'show ip route', for
+
+159
+00:14:49.520 --> 00:14:51.220
+10.1.2.0,
+
+160
+00:14:51.230 --> 00:14:56.010
+I can see that it has failed over to 10.0.3.2.
+
+161
+00:14:56.040 --> 00:14:59.860
+Okay, so that was a look at our routing protocol metrics.
+
+162
+00:14:59.910 --> 00:15:01.250
+See you in the next lecture.
+

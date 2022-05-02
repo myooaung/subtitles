@@ -1,0 +1,345 @@
+WEBVTT
+1
+00:00:06.300 --> 00:00:13.260
+In this lecture, you'll see how to configure that PAT, Port Address Translation with a lab demo.
+
+2
+00:00:13.260 --> 00:00:21.810
+The scenario here is that we've cleared out all of the old NAT config from the previous lectures.
+
+3
+00:00:21.960 --> 00:00:23.790
+Going with a new scenario here.
+
+4
+00:00:24.030 --> 00:00:26.480
+So this is a small office.
+
+5
+00:00:26.670 --> 00:00:31.680
+We don't have any internal servers that they need to configure static NAT for.
+
+6
+00:00:31.950 --> 00:00:36.060
+They don't have a pool of public IP addresses.
+
+7
+00:00:36.300 --> 00:00:44.270
+They're just getting their public IP address on their outside fa0/0 interface from DHCP.
+
+8
+00:00:44.460 --> 00:00:47.010
+And that's not guaranteed to stay the same.
+
+9
+00:00:47.220 --> 00:00:49.910
+The service provider could change it at any time.
+
+10
+00:00:50.190 --> 00:00:56.510
+So because of that, we want our hosts from the inside to be able to get out to the outside.
+
+11
+00:00:56.520 --> 00:00:58.860
+So we're going to need to configure NAT for that.
+
+12
+00:00:59.100 --> 00:01:06.180
+And we're going to NAT them to whatever happens to be the IP address on the outside interface right
+
+13
+00:01:06.180 --> 00:01:06.500
+now.
+
+14
+00:01:06.780 --> 00:01:12.180
+We also need to configure overload as well because we've got multiple hosts on the inside.
+
+15
+00:01:12.330 --> 00:01:17.010
+We want them all to be able to share that same outside IP address.
+
+16
+00:01:17.160 --> 00:01:18.550
+So let's configure this.
+
+17
+00:01:18.930 --> 00:01:24.870
+So I will go on to my router, which is R1.
+
+18
+00:01:25.530 --> 00:01:30.400
+And let's have a look and see what the IP address is right now.
+
+19
+00:01:30.840 --> 00:01:33.750
+So do a show ip interface brief.
+
+20
+00:01:34.080 --> 00:01:38.770
+And you can see on my outside interface, it is using DHCP.
+
+21
+00:01:38.880 --> 00:01:44.480
+And currently it's using IP address 203.0.113.13.
+
+22
+00:01:45.060 --> 00:01:51.870
+But like I said, we don't want to use the IP address in our configuration because it might change.
+
+23
+00:01:52.020 --> 00:01:56.400
+We're going to use the interface instead, which is fa0/0.
+
+24
+00:01:56.970 --> 00:02:01.800
+So first things to do are to configure our NAT interfaces as usual.
+
+25
+00:02:01.950 --> 00:02:06.590
+So I'll go to global config and interface fa0/0
+
+26
+00:02:06.630 --> 00:02:14.670
+is IP NAT outside and interface fa2/0
+
+27
+00:02:14.670 --> 00:02:16.820
+is where my inside hosts are.
+
+28
+00:02:16.980 --> 00:02:19.620
+So that's IP NAT inside.
+
+29
+00:02:20.640 --> 00:02:28.410
+Next thing I need to do is to configure my NAT rule and my access list. So specify the host on the
+
+30
+00:02:28.410 --> 00:02:39.390
+inside. I'll say access-list 1 permit, they're on subnet 10.0.2.0 with a wildcard of
+
+31
+00:02:39.560 --> 00:02:42.720
+0.0.0.255.
+
+32
+00:02:43.020 --> 00:02:51.190
+And then my NAT rule, I say ip nat inside source list 1 meaning I'm referencing access-list 1 that
+
+33
+00:02:51.210 --> 00:02:52.260
+I just configured.
+
+34
+00:02:52.590 --> 00:02:56.290
+And rather than mapping this through a pool, I can't do that.
+
+35
+00:02:56.290 --> 00:02:57.600
+I haven't configured a pool.
+
+36
+00:02:57.750 --> 00:03:06.300
+I'm going to map it to the interface, interface fa0/0. And I could hit enter here but then that
+
+37
+00:03:06.300 --> 00:03:14.520
+would be just my standard Dynamic NAT without overload. So that's only one host on the inside would be able
+
+38
+00:03:14.520 --> 00:03:15.080
+to get out.
+
+39
+00:03:15.240 --> 00:03:18.240
+So I need to also remember to put in the overload
+
+40
+00:03:18.240 --> 00:03:27.260
+keyword to enable PAT. The router is now going to map the NAT translation's by IP address and port
+
+41
+00:03:27.270 --> 00:03:28.200
+number as well.
+
+42
+00:03:28.200 --> 00:03:33.360
+And it's going to track those so that when traffic comes back, it knows which host to send it back
+
+43
+00:03:33.360 --> 00:03:33.560
+to.
+
+44
+00:03:34.350 --> 00:03:36.150
+So that's the whole configuration.
+
+45
+00:03:36.420 --> 00:03:39.320
+We just need to check it now.
+
+46
+00:03:39.570 --> 00:03:47.070
+So let's do a debug so we can watch what's happening. So I'll do a debug ip nat and then I'll go
+
+47
+00:03:47.070 --> 00:03:49.470
+on to a host on the inside. Check
+
+48
+00:03:49.470 --> 00:03:50.860
+that traffic can get out.
+
+49
+00:03:51.000 --> 00:03:56.370
+I'll telnet 203.0.113.20.
+
+50
+00:03:56.700 --> 00:04:00.300
+Let's have a look back at the network diagram again.
+
+51
+00:04:01.370 --> 00:04:05.720
+So that's the host on the outside. 203.0.113.20,
+
+52
+00:04:05.760 --> 00:04:08.400
+that's a web server on the outside.
+
+53
+00:04:08.400 --> 00:04:12.840
+I've already set that up and it's going to accept incoming connections on port 80.
+
+54
+00:04:13.320 --> 00:04:20.519
+I need to check that may NAT rule is actually working, so I'll go on to PC1 and I'll telnet to it
+
+55
+00:04:20.519 --> 00:04:22.290
+on port 80 and
+
+56
+00:04:22.290 --> 00:04:23.040
+that's open.
+
+57
+00:04:23.040 --> 00:04:24.030
+So that looks good.
+
+58
+00:04:24.240 --> 00:04:28.500
+And if I look know on R1 because I enabled my debug,
+
+59
+00:04:29.460 --> 00:04:40.230
+I can see that the traffic came from 10.0.2.10. That is PC1 and it was NAT'd to the IP address
+
+60
+00:04:40.230 --> 00:04:43.140
+of 203.0.113.13.
+
+61
+00:04:43.350 --> 00:04:48.660
+That's my public IP address on the outside that was learned through DHCP.
+
+62
+00:04:49.050 --> 00:04:53.790
+And I can see the source port that was used originally from the host
+
+63
+00:04:53.790 --> 00:04:55.920
+was 53386.
+
+64
+00:04:56.220 --> 00:05:01.200
+And that was NAT'd to a source port number of 4096.
+
+65
+00:05:01.380 --> 00:05:08.180
+And it's going out to 203.0.113.20 on destination port 80.
+
+66
+00:05:08.400 --> 00:05:10.260
+So that all looks good.
+
+67
+00:05:10.500 --> 00:05:18.170
+Let's also send traffic out from PC2. So I'll also telnet out from here to
+
+68
+00:05:18.210 --> 00:05:22.340
+203.0.113.20 on port 80.
+
+69
+00:05:22.680 --> 00:05:32.700
+And if I look back on my router again, I can see that it came from PC2 10.0.2.11 and it's going
+
+70
+00:05:32.700 --> 00:05:37.170
+out to 203.0.113.20.
+
+71
+00:05:37.560 --> 00:05:42.840
+The source IP address was NAT'd to 203.0.113.13.
+
+72
+00:05:42.990 --> 00:05:47.880
+So I'm reusing that same single public IP address that I've got.
+
+73
+00:05:48.300 --> 00:05:56.670
+And this one, the original source port from the host was 11561, and that was translated
+
+74
+00:05:56.670 --> 00:05:59.550
+to 4097.
+
+75
+00:06:00.000 --> 00:06:05.910
+So it's going to be able to track return traffic based on IP address on port number.
+
+76
+00:06:06.210 --> 00:06:11.280
+It's all going to be going back to the same IP address, but it's going to be going back to different
+
+77
+00:06:11.280 --> 00:06:12.090
+port numbers.
+
+78
+00:06:12.120 --> 00:06:22.800
+If I do a show ip nat translations, I can see that the return traffic is all going to be coming back
+
+79
+00:06:22.800 --> 00:06:25.320
+to 203.0.113.13.
+
+80
+00:06:25.590 --> 00:06:35.160
+But when it's going to port 4096, the router knows to send that to 10.0.2.10. When it's going to port 4097,
+
+81
+00:06:35.160 --> 00:06:41.820
+the router knows to send that to 10.0.2.11.
+
+82
+00:06:42.270 --> 00:06:44.030
+OK, so that was it.
+
+83
+00:06:44.040 --> 00:06:48.180
+That was the entire NAT configuration. You've seen how to
+
+84
+00:06:48.480 --> 00:06:53.490
+verify it as well for Static NAT, Dynamic NAT and PAT as well.
+
+85
+00:06:53.610 --> 00:06:55.020
+So that was done with NAT.
+
+86
+00:06:55.020 --> 00:06:56.910
+See you in the next section.
+

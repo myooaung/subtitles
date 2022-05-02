@@ -1,0 +1,557 @@
+WEBVTT
+1
+00:00:06.440 --> 00:00:14.390
+In this lecture, you'll learn about OSPF areas. As you learned already with our Link State routing
+
+2
+00:00:14.390 --> 00:00:18.160
+protocols, every router learns the full picture
+
+3
+00:00:18.170 --> 00:00:21.120
+of it's part of the network, including every router,
+
+4
+00:00:21.290 --> 00:00:30.580
+its interfaces, and what they connect to, and this can cause issues in large networks. Because every router knows
+
+5
+00:00:30.620 --> 00:00:36.890
+about every link, there is going to be a lot of routes in its routing table and that can take up too much
+
+6
+00:00:36.890 --> 00:00:38.000
+memory.
+
+7
+00:00:38.110 --> 00:00:45.020
+Also, if there's a change in the network, like a new link being added or a link going down, that causes
+
+8
+00:00:45.020 --> 00:00:51.400
+all routers to reconverge which takes time and CPU resources. And the larger the network is,
+
+9
+00:00:51.400 --> 00:01:01.360
+the bigger impact that this is going to have. So to mitigate against this, OSPF supports a hierarchical design,
+
+10
+00:01:01.490 --> 00:01:05.269
+which segments large networks into smaller areas.
+
+11
+00:01:05.450 --> 00:01:13.450
+Each router maintains full information about its own area, but only summary information about other areas.
+
+12
+00:01:13.470 --> 00:01:20.810
+So the routers are going to have less routes in their routing table and if a new link comes up or goes
+
+13
+00:01:20.810 --> 00:01:24.630
+down in another area, it's not going to affect that router.
+
+14
+00:01:24.740 --> 00:01:26.360
+You'll see how that works later,
+
+15
+00:01:26.360 --> 00:01:27.170
+when I show you an
+
+16
+00:01:27.170 --> 00:01:29.860
+example later in this lecture.
+
+17
+00:01:30.050 --> 00:01:34.880
+So with our areas, we have a two level hierarchy. At the top level,
+
+18
+00:01:34.880 --> 00:01:40.170
+We've got the transit area, also known as the backbone or Area 0.
+
+19
+00:01:40.280 --> 00:01:48.860
+It does not generally contain end users when we've got a multiarea network. And then we've got our regular areas,
+
+20
+00:01:48.860 --> 00:01:53.870
+also known as our nonbackbone areas, which hang below Area 0.
+
+21
+00:01:53.870 --> 00:01:58.460
+They're used to connect end users to the transit area. By default,
+
+22
+00:01:58.460 --> 00:02:02.170
+all transit traffic goes through the transit area.
+
+23
+00:02:02.210 --> 00:02:08.729
+So you see the example diagram here, we've got Area 0, and Area 1 and Area 2 are hanging off of there.
+
+24
+00:02:08.729 --> 00:02:15.530
+Any traffic between other areas, not Area 0, always has to go through Area 0. We can't
+
+25
+00:02:15.530 --> 00:02:19.840
+have traffic going directly between Area 1 and Area 2.
+
+26
+00:02:20.060 --> 00:02:26.740
+Now, multiple areas are really only required if you've got a larger network.
+
+27
+00:02:26.810 --> 00:02:33.520
+If you've got a small network, there's less destination networks in there, there's less routes.
+
+28
+00:02:33.530 --> 00:02:34.990
+So, it's not a problem
+
+29
+00:02:35.020 --> 00:02:41.300
+if our routers know about all of those different routes. In that case, we don't need the hierarchical
+
+30
+00:02:41.300 --> 00:02:45.060
+design, and all routers can be in Area 0.
+
+31
+00:02:45.080 --> 00:02:51.860
+When you do have a single area design, it's always going to be Area 0. Later on if your network grows
+
+32
+00:02:52.130 --> 00:02:54.350
+and you want to go to a multiarea design,
+
+33
+00:02:54.350 --> 00:03:02.400
+this makes it really easy to migrate. So our configuration for configuring our different areas,
+
+34
+00:03:02.400 --> 00:03:07.860
+the area is configured at the interface level with the network command.
+
+35
+00:03:07.860 --> 00:03:16.050
+You see the example here, we've got network 10.0.0.0, a wildcard mask 0.0.255.255
+
+36
+00:03:16.140 --> 00:03:17.440
+area 0.
+
+37
+00:03:17.490 --> 00:03:24.360
+So, any interfaces on this router which have got an IP address that falls within that range will be enabled
+
+38
+00:03:24.360 --> 00:03:30.820
+for OSPF and put in Area 0. For a router to form an adjacency,
+
+39
+00:03:31.080 --> 00:03:36.060
+its neighbor on the other side of the link must be configured to be in the same area.
+
+40
+00:03:36.060 --> 00:03:41.670
+If you've got an area mismatch, the adjacency isn't going to come up and the routers are not going to
+
+41
+00:03:41.670 --> 00:03:42.900
+share routes with each other.
+
+42
+00:03:44.760 --> 00:03:47.850
+Moving on to our different router types.
+
+43
+00:03:47.850 --> 00:03:56.050
+First off, we've got our backbone routers. A backbone router is a router where all its interfaces are in
+
+44
+00:03:56.130 --> 00:03:57.740
+Area 0,
+
+45
+00:03:57.780 --> 00:04:06.720
+so this forms part of the transit area. With OSPF, routers maintain a full Link State Database (LSDB) of other routers
+
+46
+00:04:06.720 --> 00:04:08.980
+and links in their own area.
+
+47
+00:04:09.030 --> 00:04:15.180
+So, your backbone routers will have the full Link State Database (LSDB) for all of the other links that are also in
+
+48
+00:04:15.180 --> 00:04:25.520
+Area 0. Whenever an OSPF route is received from a neighbor and that neighbor is in the same area,
+
+49
+00:04:25.520 --> 00:04:30.110
+it will show up in the routing table as an intra area
+
+50
+00:04:30.150 --> 00:04:31.070
+route.
+
+51
+00:04:31.080 --> 00:04:34.520
+You see in the example 'show ip route' output here,
+
+52
+00:04:34.550 --> 00:04:40.500
+all the different types that are shown in bold are different types of OSPF routes.
+
+53
+00:04:40.530 --> 00:04:47.040
+We can have intra area routes, which means the destination network is in the same area, an inter area route,
+
+54
+00:04:47.350 --> 00:04:50.340
+where it's in a different area, or an external route,
+
+55
+00:04:50.400 --> 00:04:56.280
+meaning it was redistributed into OSPF. So the example here, I can see we've got 3 routes,
+
+56
+00:04:56.350 --> 00:04:58.080
+the prefix for all of them is 'O',
+
+57
+00:04:58.110 --> 00:05:03.620
+so these are all intra area routes, received from the same area.
+
+58
+00:05:03.990 --> 00:05:12.750
+The next type of router we've got is the ABR, our Area Border Router. Routers which have interfaces and multiple
+
+59
+00:05:12.750 --> 00:05:18.120
+areas are ABRs. So you see the example here, I've highlighted the routers in red.
+
+60
+00:05:18.180 --> 00:05:24.660
+I've got a router on the left here, which has got one interface in Area 0 and another interface in Area 1.
+
+61
+00:05:24.700 --> 00:05:33.540
+And our other ABR has got an interface in Area 0 and another interface in Area 2. The characteristics
+
+62
+00:05:33.570 --> 00:05:39.680
+of the ABRs, they separate the flooding zones.
+
+63
+00:05:39.690 --> 00:05:47.600
+This is what really segregates our network into the different areas and compartmentalizes our network.
+
+64
+00:05:47.640 --> 00:05:55.740
+So if we have a link goes up or goes down in that area, it's going to keep the information just in
+
+65
+00:05:55.740 --> 00:06:01.020
+that one area. It doesn't impact our other areas. You'll see how that works in a second, when I show you
+
+66
+00:06:01.110 --> 00:06:09.250
+the example. The ABR is also where we always do our summarization in OSPF.
+
+67
+00:06:09.300 --> 00:06:16.980
+Say that again, in OSPF, summarization is always done on your ABRs. It functions regularly as the
+
+68
+00:06:16.980 --> 00:06:25.470
+source for default routes for other normal areas, normal routers in our normal areas, and it maintains the
+
+69
+00:06:25.470 --> 00:06:29.120
+Link State Database (LSDB) for each area with which it is connected.
+
+70
+00:06:29.130 --> 00:06:33.450
+So if I go back to the slide, you see the ABR on the left here, it's going to have the
+
+71
+00:06:33.460 --> 00:06:41.250
+full Link State Database (LSDB) for Area 0, so it knows about all the individual networks in Area 0, and it also has the full Link
+
+72
+00:06:41.250 --> 00:06:49.420
+State Database (LSDB) for Area 1. Our ABR on the right here, it will have the full LSDB for Area 0
+
+73
+00:06:49.450 --> 00:06:59.260
+and for Area 2, but it only has summary information for Area 1. Ideal design is to have each ABR connected
+
+74
+00:06:59.260 --> 00:07:08.990
+to two areas only, the backbone and another normal area. An important point is that your ABRs do
+
+75
+00:07:08.990 --> 00:07:18.170
+not automatically summarize. You need to do this manually, and if you don't manually configure summarization,
+
+76
+00:07:18.500 --> 00:07:25.330
+all routes will be flooded everywhere, so the network will basically behave like it was all in one big area.
+
+77
+00:07:25.330 --> 00:07:32.280
+So again, the point of doing our multiple areas is for larger networks, takes up less resources,
+
+78
+00:07:32.330 --> 00:07:38.660
+puts less load on the routers. But you don't need to just configure the different areas, you also need
+
+79
+00:07:38.660 --> 00:07:44.130
+to configure summarization on ABRs to really get any benefit from it.
+
+80
+00:07:44.560 --> 00:07:50.350
+So looking at how we're going to configure it here, R2 is our ABR. It's got an interface in
+
+81
+00:07:50.350 --> 00:07:58.860
+Area 0, which is FastEthernet1/0 two and FastEthernet0/0 is in Area 1. At global config,
+
+82
+00:07:58.860 --> 00:08:08.540
+we say 'router ospf 1', and then 'network 10.1.0.0 0.0.255.255 area 0', so that will put
+
+83
+00:08:08.810 --> 00:08:16.020
+interface FastEthernet1/0 into Area 0, and then 'network 10.0.0.0 0.0.255.255'
+
+84
+00:08:16.020 --> 00:08:24.410
+goes into Area 1, that is FastEthernet0/0. Then to get the benefit of our different areas, we need to
+
+85
+00:08:24.410 --> 00:08:31.980
+do so summarization on the ABR. So, you notice that we've got all of our networks over here on the left in
+
+86
+00:08:32.000 --> 00:08:39.270
+Area 0. I've got 10.1.1.0/24, 10.1.0.0/24,
+
+87
+00:08:39.289 --> 00:08:46.340
+so all the networks in the left begin with 10.1. They're all 10.1.X.X/24 networks,
+
+88
+00:08:46.730 --> 00:08:55.070
+so I can summarize those into 10.1.0.0/16. The command to do that, the routes are
+
+89
+00:08:55.090 --> 00:08:55.990
+in Area 0,
+
+90
+00:08:56.080 --> 00:09:04.820
+so I say, 'area 0 range 10.1.0.0 255.255.0.0'. And over in the right hand side
+
+91
+00:09:04.820 --> 00:09:12.210
+of the network in Area 1, my routes there are 10.0.0.0/24, 10.0.1.0/24,
+
+92
+00:09:12.220 --> 00:09:15.850
+and 10.0.2.0/24.
+
+93
+00:09:15.920 --> 00:09:21.080
+So all of the networks over in the right, they all begin with 10.0 and they're /24s.
+
+94
+00:09:21.240 --> 00:09:29.480
+Rather than advertising all of those individual /24 networks over to Area 0 on the left, I'm going
+
+95
+00:09:29.480 --> 00:09:33.310
+to summarize it to a single /16 route.
+
+96
+00:09:33.560 --> 00:09:43.180
+So that command I enter is 'area 1' because it's over in Area 1, 'range 10.0.0.0 255.255.0.0'.
+
+97
+00:09:43.330 --> 00:09:49.960
+The effect that you'll get from this now is R1 over in Area 0, rather than having routes
+
+98
+00:09:49.970 --> 00:09:56.130
+to 10.0.0.0/24, 10.0.1.0/24, and 10.0.2.0/24,
+
+99
+00:09:56.220 --> 00:10:02.240
+it just has a single summary route for 10.0.0.0/16.
+
+100
+00:10:02.450 --> 00:10:09.650
+So there's a less routes on R1, so that takes up less resources on the router. The other benefit
+
+101
+00:10:09.650 --> 00:10:17.300
+you get from this is let's say that the 10.0.0.0/24 link goes down. Well, all of
+
+102
+00:10:17.300 --> 00:10:25.250
+my other routers that are in Area 1 will have to reconverge to see if they can find a better path to get there.
+
+103
+00:10:25.250 --> 00:10:33.280
+So R3 and R4 will have to recalculate, they'll have to do work to update their routing table
+
+104
+00:10:33.280 --> 00:10:39.290
+about the 10.0.0.0/24 network going down. But if you look at it from
+
+105
+00:10:39.290 --> 00:10:45.560
+the point of view of R1, well its summary route still stays the same. If any of these individual
+
+106
+00:10:45.560 --> 00:10:53.260
+routes here go down, our 10.0.0.0/16 route is still good. So if we have an outage
+
+107
+00:10:53.280 --> 00:11:00.200
+in a different area, it doesn't affect the routers that are in this area. So less routes in your routers,
+
+108
+00:11:00.350 --> 00:11:07.400
+so it takes up less memory, and also outages, the impact is confined to just that one area, so it takes
+
+109
+00:11:07.400 --> 00:11:14.570
+up less CPU resources on your routers as well. So that's why we want to have multi areas when
+
+110
+00:11:14.570 --> 00:11:21.660
+we've got larger networks. When we look in the routing table, our inter area route,
+
+111
+00:11:21.720 --> 00:11:28.280
+so a route that was a learned from an ABR which is in another area, will show up as type 'O IA'
+
+112
+00:11:28.380 --> 00:11:30.410
+for inter area routes.
+
+113
+00:11:30.440 --> 00:11:32.250
+So you see the example output here,
+
+114
+00:11:32.340 --> 00:11:35.480
+I've got a couple of intra area routes.
+
+115
+00:11:35.580 --> 00:11:41.640
+The bottom two destinations are within the same area as this router, and I've got an inter area route
+
+116
+00:11:41.880 --> 00:11:47.910
+which is in another area, and inter area routes are always learned from an ABR. They're the border
+
+117
+00:11:47.910 --> 00:11:55.530
+between our areas and they're where we do our summarization. The next type of router is a normal area router.
+
+118
+00:11:55.530 --> 00:12:00.900
+This is a router where all of its interfaces are just in one normal area.
+
+119
+00:12:00.990 --> 00:12:02.990
+So you can see highlighted in red on the left,
+
+120
+00:12:03.000 --> 00:12:09.390
+I got 3 routers which are Area 1 routers. All of their interfaces in the Area 1 and I've got an
+
+121
+00:12:09.390 --> 00:12:14.330
+Area 2 router over here on the right.
+
+122
+00:12:14.340 --> 00:12:20.910
+Again, these routers will maintain the full Link State Database (LSDB) for the areas which they're a member of.
+
+123
+00:12:20.910 --> 00:12:28.880
+So all the Area 1 routers will have the full LSDB for Area 1. They will have summary routes for Area 0
+
+124
+00:12:28.880 --> 00:12:35.550
+and Area 2 that they learned from the ABR. Our Area 2 router will have the full LSDB for Area 2,
+
+125
+00:12:35.580 --> 00:12:47.940
+summary routes for Area 1 and Area 0. Our last type of router is an ASBR, an Autonomous System Boundary Router.
+
+126
+00:12:47.950 --> 00:12:56.810
+So ABR is an Area Border Router, ASBR is Autonomous System Boundary Router. What and ASBR is
+
+127
+00:12:56.810 --> 00:13:05.480
+it means that on that router, it's running OSPF and we're redistributing from another source into OSPF.
+
+128
+00:13:05.480 --> 00:13:13.340
+So maybe, we're also running EIGRP or RIP on that router. We're taking our EIGRP or RIP routes and we're
+
+129
+00:13:13.340 --> 00:13:19.910
+redistributing them into OSPF, so they'll also be advertised through our OSPF neighbors, or maybe it's
+
+130
+00:13:19.910 --> 00:13:27.200
+a static route that we're redistributing into OSPF. So again, an ASBR, it just means we're redistributing
+
+131
+00:13:27.200 --> 00:13:35.030
+into OSPF on that router. Our redistributed routes show up as external route. So an external route
+
+132
+00:13:35.030 --> 00:13:42.850
+does not mean it's outside this enterprise, outside this organization. It literally means it was redistributed
+
+133
+00:13:42.850 --> 00:13:51.510
+into OSPF and if you look at the routing table, this will show up as a type 'O*E' either E1 or E2 for an external route.
+
+134
+00:13:51.520 --> 00:13:57.620
+So where it says 'O', that means it was an intra area route, the destination is in the same area,
+
+135
+00:13:57.640 --> 00:14:07.250
+'O IA' is an inter area route, it's from another area learned by an ABR, and 'O*E2 means it was redistributed
+
+136
+00:14:07.250 --> 00:14:08.560
+into OSPF.
+
+137
+00:14:09.480 --> 00:14:10.070
+Okay.
+
+138
+00:14:10.130 --> 00:14:13.760
+So that is our OSPF areas.
+
+139
+00:14:13.820 --> 00:14:16.970
+I'll see you in the next lecture for lab demo.
+

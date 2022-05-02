@@ -1,0 +1,305 @@
+WEBVTT
+1
+00:00:06.230 --> 00:00:11.850
+In this lecture, you'll learn how to configure the OSPF router ID,
+
+2
+00:00:12.260 --> 00:00:15.270
+passive interfaces, and how to do default route
+
+3
+00:00:15.320 --> 00:00:18.270
+injection with a lab demo.
+
+4
+00:00:18.300 --> 00:00:26.510
+So in our lab topology, we've got the usual 5 routers, R1 to R5, and R4 is connected out
+
+5
+00:00:26.780 --> 00:00:36.170
+to the Internet on interface FastEthernet3/0, with IP Address 203.0.113.1.
+
+6
+00:00:36.190 --> 00:00:43.930
+So let's go onto R4, and check what the router ID is right now.
+
+7
+00:00:43.980 --> 00:00:47.850
+So I'll do a 'show ip protocols',
+
+8
+00:00:47.880 --> 00:00:54.130
+and I can see that the router ID is 203.0.113.1.
+
+9
+00:00:54.160 --> 00:01:01.970
+If I do a 'show ip interface brief', I see that I don't have any loopback interfaces configured on here.
+
+10
+00:01:02.040 --> 00:01:06.330
+So it's taken the highest IP address, which is
+
+11
+00:01:06.350 --> 00:01:08.830
+203.0.113.1.
+
+12
+00:01:08.830 --> 00:01:11.940
+So, it's bad practice to have that.
+
+13
+00:01:11.940 --> 00:01:17.260
+It's better to use a loopback or to manually set the router ID. So let's configure
+
+14
+00:01:17.290 --> 00:01:23.610
+a loopback first, so I'll go 'config t', then 'interface loopback 0',
+
+15
+00:01:23.790 --> 00:01:27.630
+and I'll give it an IP address 1.1.1.1,
+
+16
+00:01:27.640 --> 00:01:37.400
+255.255.255.255 as the subnet mask. It's a loopback, so I don't need to do a 'no shutdown'. It's 'no shutdown'
+
+17
+00:01:37.400 --> 00:01:38.640
+automatically.
+
+18
+00:01:39.090 --> 00:01:47.420
+If I do a 'show ip protocols', you're going to see that the router ID has not changed.
+
+19
+00:01:47.610 --> 00:01:54.700
+What happens is when the router boots up or when OSPF starts, it checks to see what is the highest loopback
+
+20
+00:01:54.720 --> 00:01:56.640
+or physical IP address
+
+21
+00:01:56.640 --> 00:01:59.250
+if the router ID is not being manually set.
+
+22
+00:01:59.330 --> 00:02:05.380
+But if you change this later by adding a loopback, it's not going to automatically update it.
+
+23
+00:02:05.490 --> 00:02:13.650
+So, we can force was to update by restarting OSPF. Let's do a 'show run | section ospf' just so I
+
+24
+00:02:13.650 --> 00:02:24.090
+can be able to copy and paste this back in, and I'm going to copy my current OSPF configuration. And then at global
+
+25
+00:02:24.090 --> 00:02:24.620
+config,
+
+26
+00:02:24.630 --> 00:02:33.090
+I'll do a 'no router ospf 1' and then paste the config back in. So, that will stop and start
+
+27
+00:02:33.090 --> 00:02:34.220
+OSPF on here.
+
+28
+00:02:34.260 --> 00:02:40.830
+Again, obviously, don't do this in a production environment because you would lose routes. I'll then 'end',
+
+29
+00:02:40.860 --> 00:02:44.190
+and if I do a 'show ip protocols' now, I'll see the router ID
+
+30
+00:02:44.240 --> 00:02:47.030
+has updated to the loopback
+
+31
+00:02:47.070 --> 00:02:52.400
+Other way that you can manipulate the router ID is by setting it manually.
+
+32
+00:02:52.410 --> 00:02:54.780
+So to do that, in global configuration,
+
+33
+00:02:54.790 --> 00:03:03.610
+I go 'router ospf 1' and then, 'router-id' and let's give it 2.2.2.2.
+
+34
+00:03:05.400 --> 00:03:07.320
+And with OSPF,
+
+35
+00:03:07.350 --> 00:03:14.370
+I'm going to have to restart OSPF again, so I can reload or I can do a 'clear ip ospf process' command.
+
+36
+00:03:14.390 --> 00:03:21.990
+That's similar to removing and then re-enabling the config. So you saw with EIGRP, when I set the router ID,
+
+37
+00:03:22.140 --> 00:03:29.850
+it took effect immediately, but with OSPF, if I now do a 'show ip protocols', it's still using the
+
+38
+00:03:29.850 --> 00:03:38.400
+loopback address. So I can restart OSPF, I'll just copy and paste this in. So I'll 'clear ip ospf process'.
+
+39
+00:03:38.510 --> 00:03:45.790
+At the enable prompt, it will ask me to verify because again, this would be disruptive, and I'll say yes.
+
+40
+00:03:45.830 --> 00:03:55.200
+And now, if I do a 'show ip protocols', I'll see that it has taken that new router ID. You can see
+
+41
+00:03:55.200 --> 00:03:59.930
+it was disruptive, because you see the adjacency went down and then came back up again.
+
+42
+00:03:59.980 --> 00:04:05.990
+Okay, so that's how you configure the router ID. The next thing,
+
+43
+00:04:05.990 --> 00:04:12.270
+if we have a look back at the topology diagram, you see on interface FastEthernet3/0,
+
+44
+00:04:12.390 --> 00:04:22.940
+we've got the 203.0.113.0/24 network, and that is not currently being advertised in OSPF.
+
+45
+00:04:23.130 --> 00:04:26.330
+I want to advertise that to my routers on the inside,
+
+46
+00:04:26.370 --> 00:04:32.760
+so routers R1, R2, R3, and R5, but I don't want to give out internal routing
+
+47
+00:04:32.760 --> 00:04:36.990
+information to the Internet Service Provider (ISP) router.
+
+48
+00:04:37.260 --> 00:04:42.310
+So, I'm going to make interface FastEthernet3/0 a passive interface.
+
+49
+00:04:42.480 --> 00:04:54.270
+So let's go back onto R4 again, and if I do a 'show run | section ospf', you'll see that I've just
+
+50
+00:04:54.270 --> 00:05:00.700
+got a network command right now for the 10.0.0.0 networks, so that is not being advertised in OSPF yet.
+
+51
+00:05:00.720 --> 00:05:06.830
+And if I go on to another router, and do a 'show ip route', you'll see there's no route there for the
+
+52
+00:05:07.830 --> 00:05:08.920
+203.0.113.0/24 network.
+
+53
+00:05:09.000 --> 00:05:15.090
+So. I want R1 and my other internal routers to learn this. So on R4,
+
+54
+00:05:15.090 --> 00:05:21.620
+I'll go to global configuration, 'router ospf 1', and I will say,
+
+55
+00:05:21.630 --> 00:05:26.380
+let me just do a 'do show ip interface brief' just to double check what the interface was.
+
+56
+00:05:26.410 --> 00:05:31.780
+Okay, it was on interface FastEthernet3/0. So still in the OSPF config,
+
+57
+00:05:31.800 --> 00:05:36.700
+I'll say 'passive-interface FastEthernet 3/0',
+
+58
+00:05:36.750 --> 00:05:42.360
+and then I need to put in the network command, so that it will be advertised
+
+59
+00:05:42.370 --> 00:05:51.220
+internally. So, it's 'network 203.0.113.0' the wildcard mask of 0.0.0.255,
+
+60
+00:05:51.470 --> 00:06:01.750
+and area 0. And if I now go back into another router and do a 'show ip route', if it's converged
+
+61
+00:06:01.810 --> 00:06:03.340
+yet, yes, there it is.
+
+62
+00:06:03.340 --> 00:06:09.790
+I can see that that is now being learned by my other internal routers, but it's not going to send any information
+
+63
+00:06:09.820 --> 00:06:11.060
+out. Okay,
+
+64
+00:06:11.080 --> 00:06:15.230
+last thing is I want to do static default route
+
+65
+00:06:15.240 --> 00:06:21.640
+injection into OSPF. So it's back on R4 again, it's connected out to that Service Provider.
+
+66
+00:06:22.180 --> 00:06:26.940
+So on R4, I will do an 'ip route',
+
+67
+00:06:26.940 --> 00:06:33.840
+so a static route, for everything that doesn't have a more specific route, so 0.0.0.0 0.0.0.0,
+
+68
+00:06:33.870 --> 00:06:40.190
+and the next hop address is 203.0.113.2.
+
+69
+00:06:40.380 --> 00:06:44.540
+And I don't want to have to configure a static route on all my other routers. I want them to learn
+
+70
+00:06:44.540 --> 00:06:49.250
+it dynamically, so under 'router ospf 1',
+
+71
+00:06:49.490 --> 00:06:59.400
+I'll say 'default-information originate', and that will inject that default static route into OSPF.
+
+72
+00:06:59.400 --> 00:07:04.540
+So then I go onto R1, and do a 'show ip route' here,
+
+73
+00:07:04.660 --> 00:07:06.450
+you see the routing table was updated.
+
+74
+00:07:06.770 --> 00:07:12.780
+It's got that default route, which was learned from OSPF.
+
+75
+00:07:13.340 --> 00:07:17.710
+Okay, so that was our OSPF advanced topics in the lab.
+
+76
+00:07:17.710 --> 00:07:18.620
+See you in the next lecture.
+

@@ -1,0 +1,345 @@
+WEBVTT
+1
+00:00:06.260 --> 00:00:15.020
+In this lecture, you'll see how to configure Dynamic NAT with a lab demo. So this lab's following on
+
+2
+00:00:15.020 --> 00:00:18.620
+from the previous one where we configured Static
+
+3
+00:00:18.620 --> 00:00:20.090
+NAT. When we did that,
+
+4
+00:00:20.090 --> 00:00:26.330
+we configured a Static NAT entry, for our host in the inside at 10.0.1.10.
+
+5
+00:00:26.570 --> 00:00:33.710
+And that was being NAT'd to the outside address of 203.0.113.3.
+
+6
+00:00:34.130 --> 00:00:42.920
+In this lab, we're going to configure another NAT rule to allow our PCs on the 10.0.2.0 subnet
+
+7
+00:00:42.920 --> 00:00:45.500
+to get out to the Internet.
+
+8
+00:00:45.830 --> 00:00:51.860
+And those PCs don't accept incoming connections so we don't need to configure static rules for
+
+9
+00:00:51.860 --> 00:00:52.190
+them.
+
+10
+00:00:52.340 --> 00:01:00.770
+We can configure a Dynamic NAT rule, which is going to give them public IP addresses on a first come,
+
+11
+00:01:00.770 --> 00:01:08.360
+first served basis. So, let's look at the existing configuration with this Static NAT rule first.
+
+12
+00:01:08.360 --> 00:01:10.220
+So I've got that configured on R1.
+
+13
+00:01:10.610 --> 00:01:19.640
+So if I do a show run on here and scroll down, you'll see that I've already got NAT interfaces configured
+
+14
+00:01:19.640 --> 00:01:22.760
+for that Static NAT rule. So fa0/0,
+
+15
+00:01:22.760 --> 00:01:30.610
+that's from the outside. It's got ip nat outside on there. And fa1/0,
+
+16
+00:01:30.680 --> 00:01:39.520
+that is the interface facing the internal server. That is configured as ip nat inside. Fa2/0,
+
+17
+00:01:39.710 --> 00:01:45.920
+that is the interface which faces the PCs on the 10.0.2.0 subnet.
+
+18
+00:01:46.100 --> 00:01:50.180
+So I need to configure that as ip nat inside as well.
+
+19
+00:01:50.450 --> 00:01:57.860
+You can have multiple interfaces configured as ip nat inside or ip nat outside, and whenever traffic
+
+20
+00:01:57.860 --> 00:02:00.140
+goes between them, it's going to get NAT'd.
+
+21
+00:02:00.320 --> 00:02:04.660
+You can also see a little bit further down there is that Static NAT real as well.
+
+22
+00:02:04.910 --> 00:02:13.040
+So the first thing I need to do is configure that interface facing the PCs for ip nat inside. So I'll go to
+
+23
+00:02:13.220 --> 00:02:14.780
+global configuration.
+
+24
+00:02:15.050 --> 00:02:21.470
+It was interface fa2/0 and I'll say ip nat inside.
+
+25
+00:02:21.470 --> 00:02:23.810
+So that is the interface configured.
+
+26
+00:02:24.310 --> 00:02:32.870
+The next thing that I need to do is configure my pool of addresses that the internal hosts can get NAT'd
+
+27
+00:02:32.970 --> 00:02:33.260
+to.
+
+28
+00:02:33.260 --> 00:02:39.830
+So the public IP address below. The command for that is ip nat pool.
+
+29
+00:02:40.340 --> 00:02:48.250
+I'll call this Flackbox for this example. And the range of addresses is 203.0.113.4
+
+30
+00:02:48.350 --> 00:02:56.720
+going up to 203.0.113.14 at the top of the range.
+
+31
+00:02:57.020 --> 00:03:05.930
+And I say that the netmask is 255.255.255.248. That's the subnet mask on
+
+32
+00:03:05.930 --> 00:03:08.340
+that public facing interface.
+
+33
+00:03:08.960 --> 00:03:18.260
+Next thing I do is I configure an access list where I'll specify the range of IP addresses of the host
+
+34
+00:03:18.260 --> 00:03:22.640
+on the inside that are going to get mapped to these public addresses.
+
+35
+00:03:23.060 --> 00:03:29.630
+So I'm just looking at them based on the source IP address. So I can use a standard access list here.
+
+36
+00:03:29.780 --> 00:03:39.040
+So I'll use access-list 1 and permit and the subnet that the hosts are on is 10.0.2.0
+
+37
+00:03:39.070 --> 00:03:44.240
+with a wildcard mask of 0.0.0.255.
+
+38
+00:03:44.690 --> 00:03:47.720
+So I've got my pool of addresses configured.
+
+39
+00:03:48.480 --> 00:03:52.400
+I've got my access list specifying my inside host configured.
+
+40
+00:03:52.730 --> 00:03:56.060
+The last thing that I need to do here is tie them together.
+
+41
+00:03:56.330 --> 00:04:01.130
+And the way I do that is I'd say ip nat inside source.
+
+42
+00:04:01.460 --> 00:04:05.600
+And rather than being static for a Static NAT entry, it is a list.
+
+43
+00:04:06.020 --> 00:04:13.100
+And I say 1, to say that it is access-list 1 and pool Flackbox.
+
+44
+00:04:13.100 --> 00:04:20.209
+So that ties the access list and the pool together. And that is it. Done.
+
+45
+00:04:20.209 --> 00:04:22.190
+So that is my configuration done.
+
+46
+00:04:22.370 --> 00:04:25.490
+All I need to do now really is check that it is working.
+
+47
+00:04:25.880 --> 00:04:35.540
+So I'll do a debug here to watch it working. So I'll just debug ip nat and I'll go on to my first PC,
+
+48
+00:04:35.720 --> 00:04:40.250
+which is PC1, and ping the host on the outside. Let's
+
+49
+00:04:40.250 --> 00:04:42.740
+just check what its IP address was.
+
+50
+00:04:43.040 --> 00:04:49.940
+So I'm on 10.0.2.10 and I'm going to ping 203.0.113.20 on the
+
+51
+00:04:49.940 --> 00:04:57.170
+outside and PC1 should be NAT'd to the first address in the pool, which is going to be
+
+52
+00:04:57.240 --> 00:05:00.500
+203.0.113.4.
+
+53
+00:05:00.500 --> 00:05:03.260
+So let's just verify that.
+
+54
+00:05:03.260 --> 00:05:04.490
+203.0.113.20.
+
+55
+00:05:06.070 --> 00:05:14.520
+So ping 203.0.113.20 and the ping works. So connectivity is good.
+
+56
+00:05:14.530 --> 00:05:20.860
+And if I jump back onto R1, I can see my debug output there that was happening in real time.
+
+57
+00:05:21.190 --> 00:05:29.980
+The source 10.0.2.10 and it was NAT'd to 203.0.113.4 as expected.
+
+58
+00:05:30.100 --> 00:05:36.430
+And the outside address 203.0.113.20. Let's put some lines in here
+
+59
+00:05:36.430 --> 00:05:41.330
+so we can see a gap and I'll ping from PC2 as well.
+
+60
+00:05:41.350 --> 00:05:49.390
+So ping 203.0.113.20 on the outside and then jump back on to R1.
+
+61
+00:05:49.720 --> 00:05:57.250
+And you can see there's a source 10.0.2.11 has been NAT'd to the next address in the pool, which is
+
+62
+00:05:57.250 --> 00:05:59.260
+203.0.113.5.
+
+63
+00:05:59.470 --> 00:06:06.790
+And the outside address 203.0.113.20. I can also do a show ip nat translations.
+
+64
+00:06:07.090 --> 00:06:13.750
+And if I've done this quick enough, I can see both entries in the NAT translation table as well.
+
+65
+00:06:14.180 --> 00:06:19.470
+OK, so that's how we can configure and verify Dynamic NAT.
+
+66
+00:06:19.480 --> 00:06:26.460
+If I want it to clear these translations, the ones we see in the table there.
+
+67
+00:06:26.460 --> 00:06:32.920
+Let's just ping again to make sure that it doesn't time out on its own. So I'll ping from PC1 and
+
+68
+00:06:32.920 --> 00:06:39.700
+PC2. And I'll do an undebug all to get rid of the debug
+
+69
+00:06:39.700 --> 00:06:43.450
+output, and a show ip nat translations again.
+
+70
+00:06:44.860 --> 00:06:51.730
+And if I wanted to clear these because I was doing troubleshooting, then I can do a
+
+71
+00:06:52.060 --> 00:06:55.420
+show ip nat translation and then a star for all.
+
+72
+00:06:55.840 --> 00:07:02.440
+And if I now do my show command again, I can see that they have been removed.
+
+73
+00:07:02.440 --> 00:07:07.330
+I've just got these static entries still in there. Now, the dynamic ones have been removed.
+
+74
+00:07:07.810 --> 00:07:09.880
+OK, so that was everything I needed to show you.
+
+75
+00:07:09.880 --> 00:07:10.690
+One last thing.
+
+76
+00:07:10.700 --> 00:07:12.700
+Let's look at the statistics command as well.
+
+77
+00:07:12.910 --> 00:07:15.880
+So show ip nat statistics.
+
+78
+00:07:16.210 --> 00:07:19.280
+And there you can see how many NAT hits
+
+79
+00:07:19.300 --> 00:07:21.850
+we've got. Not so many packets being sent through
+
+80
+00:07:21.850 --> 00:07:22.930
+our NAT rule.
+
+81
+00:07:23.290 --> 00:07:26.140
+We verified everything's working, so we're all good.
+
+82
+00:07:26.380 --> 00:07:32.080
+But a potential problem with this is that you've got a limited number of addresses in your pool.
+
+83
+00:07:32.350 --> 00:07:38.170
+And once you hit that limit, then other hosts won't be able to get to the outside because they won't
+
+84
+00:07:38.170 --> 00:07:40.210
+be NAT'd to an IP address.
+
+85
+00:07:40.450 --> 00:07:47.140
+So the way that we can expand that range is by using PAT, Port Address Translation.
+
+86
+00:07:47.350 --> 00:07:49.090
+We'll cover that in the next lecture.
+

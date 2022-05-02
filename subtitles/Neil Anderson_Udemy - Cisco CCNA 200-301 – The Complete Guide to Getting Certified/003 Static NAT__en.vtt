@@ -1,0 +1,305 @@
+WEBVTT
+1
+00:00:06.230 --> 00:00:13.790
+In this lecture, you'll learn about Static NAT which is the first of the available NAT types that
+
+2
+00:00:13.790 --> 00:00:20.780
+we're going to cover. With static NAT, it's a permanent one to one mapping, usually between a public
+
+3
+00:00:20.780 --> 00:00:22.470
+and private IP address.
+
+4
+00:00:22.850 --> 00:00:31.160
+This is used for servers which must accept incoming connections. For example, your mail server or
+
+5
+00:00:31.160 --> 00:00:32.830
+a public Web server
+
+6
+00:00:32.840 --> 00:00:40.100
+if you're hosting that yourself. The next type is dynamic NAT that uses a pool of public addresses
+
+7
+00:00:40.250 --> 00:00:44.860
+which are given out on an as needed, first come, first served basis.
+
+8
+00:00:45.140 --> 00:00:51.740
+These are usually used for internal hosts which need to connect out to the Internet that they don't accept
+
+9
+00:00:51.740 --> 00:00:53.150
+incoming connections.
+
+10
+00:00:53.480 --> 00:00:58.000
+And the last NAT type is PAT, Port Address Translation.
+
+11
+00:00:58.310 --> 00:01:05.150
+This allows the same public IP address to be reused and we're going to be covering the other two types,
+
+12
+00:01:05.150 --> 00:01:09.440
+dynamic NAT and PAT in detail later on in this section.
+
+13
+00:01:11.300 --> 00:01:19.520
+With the examples I'm going to be giving you, this is NAT lab that we're using. So you can see that
+
+14
+00:01:19.520 --> 00:01:27.020
+we are the organization over on the left and R1 is our Internet edge router.
+
+15
+00:01:27.320 --> 00:01:34.840
+We've got a server, which is INT-S1, Internal Server 1, which is at 10.0.1.10.
+
+16
+00:01:35.120 --> 00:01:41.720
+And then we've got our internal normal hosts, our normal desktops out on another IP subnet, as you
+
+17
+00:01:41.720 --> 00:01:47.720
+would see in the real world. They're on the 10.0.2.0/24 subnet.
+
+18
+00:01:48.200 --> 00:01:56.900
+So we need to configure a static NAT rule, to allow incoming connections to Internal Server 1, because
+
+19
+00:01:56.900 --> 00:02:03.610
+it's running public services like it's a Web server and it's supporting users out on the Internet.
+
+20
+00:02:03.740 --> 00:02:09.550
+Or maybe it's our mail server and we need to accept email coming into the organization. Down below,
+
+21
+00:02:09.560 --> 00:02:15.710
+you'll see the PCs. They're not running any services that people on the Internet need to connect into,
+
+22
+00:02:15.950 --> 00:02:22.610
+but they need to be able to connect out to the Internet. For example, for our users browsing webpages.
+
+23
+00:02:22.880 --> 00:02:27.290
+So that's what we're going to be configuring. For the examples,
+
+24
+00:02:27.500 --> 00:02:31.360
+we've got EXT-S1 over on the right.
+
+25
+00:02:31.370 --> 00:02:37.520
+That is an external server that I'm just going to use for testing and for checking that NAT is working.
+
+26
+00:02:38.880 --> 00:02:46.690
+So our static NAT scenario, we've bought the range of public IP addresses, 203.0.113.0/28
+
+27
+00:02:46.980 --> 00:02:54.660
+from our service provider. It's a /28, so that gives us 14 public IP addresses.
+
+28
+00:02:54.980 --> 00:03:01.950
+Of those addresses, 203.0.113.2 is used on the outside interface on our Internet
+
+29
+00:03:01.950 --> 00:03:03.570
+edge router, R1.
+
+30
+00:03:03.790 --> 00:03:05.700
+So let's just look at the diagram again.
+
+31
+00:03:05.700 --> 00:03:08.660
+You can see we've got 203.0.113.0/28,
+
+32
+00:03:09.090 --> 00:03:17.070
+is our range of public IP addresses on our outside interface fa0/0 on R1.
+
+33
+00:03:17.340 --> 00:03:24.510
+And we're using 203.0.113.2 on our outside interface and over on the service
+
+34
+00:03:24.510 --> 00:03:30.710
+provider side of that link, 203.0.113.1 is being used there.
+
+35
+00:03:31.170 --> 00:03:38.250
+So that leaves 203.0.113.3-203.0.113.14
+
+36
+00:03:38.370 --> 00:03:41.100
+available that we can assign.
+
+37
+00:03:43.230 --> 00:03:45.500
+INT-S1 at 10.0.1.10
+
+38
+00:03:45.660 --> 00:03:52.260
+is an internal Web server which needs to accept incoming connections from the Internet so that people
+
+39
+00:03:52.260 --> 00:03:54.500
+out on the Internet can browse our website.
+
+40
+00:03:54.900 --> 00:04:00.970
+So we need to assign a fixed public IP address to accept incoming connections.
+
+41
+00:04:01.320 --> 00:04:04.380
+We will use the first available address in our range.
+
+42
+00:04:04.390 --> 00:04:07.580
+That was 203.0.113.3.
+
+43
+00:04:07.860 --> 00:04:14.460
+So that gives us a permanent public IP address that external people can use to connect them to our Web
+
+44
+00:04:14.460 --> 00:04:14.910
+server.
+
+45
+00:04:15.720 --> 00:04:20.940
+We're using a private IP address in the inside of 10.0.1.10.
+
+46
+00:04:21.120 --> 00:04:27.330
+So we're going to need to configure a static permanent NAT translation to translate the public IP
+
+47
+00:04:27.330 --> 00:04:35.640
+address 203.0.113.3 on the outside fa0/0 interface to 10.0.1.10
+
+48
+00:04:35.640 --> 00:04:40.410
+on the inside fa1/0 interface for voice incoming connections.
+
+49
+00:04:41.130 --> 00:04:43.480
+Now, the translation is bidirectional.
+
+50
+00:04:43.500 --> 00:04:48.360
+So we're going to configure the static NAT translation for traffic coming from the outside to
+
+51
+00:04:48.360 --> 00:04:49.050
+the inside.
+
+52
+00:04:49.440 --> 00:04:55.860
+Our server also needs to send traffic back out to the Internet as well, but we don't need to configure
+
+53
+00:04:55.860 --> 00:04:57.690
+a separate NAT rule for that.
+
+54
+00:04:57.930 --> 00:05:00.890
+Our static NAT rules are bidirectional.
+
+55
+00:05:00.900 --> 00:05:03.420
+So it will also take care of the outgoing traffic.
+
+56
+00:05:04.800 --> 00:05:12.210
+So here is how we do the configuration. So on R1, first off, we need to specify which interface is
+
+57
+00:05:12.210 --> 00:05:14.230
+the outside and which is the inside.
+
+58
+00:05:14.430 --> 00:05:21.870
+So we say interface fa0/0, ip nat outside, and then interface fa1/0,
+
+59
+00:05:21.870 --> 00:05:22.620
+ip nat inside.
+
+60
+00:05:22.860 --> 00:05:29.550
+Then we configure the static NAT translation. For that, we say ip nat inside
+
+61
+00:05:29.550 --> 00:05:39.450
+source static 10.0.1.10 is the inside IP address, 203.0.113.3 is the outside
+
+62
+00:05:39.450 --> 00:05:41.130
+IP address and that's it.
+
+63
+00:05:41.130 --> 00:05:42.510
+That's the whole config.
+
+64
+00:05:42.750 --> 00:05:52.290
+Now whenever the host 10.0.1.10, since traffic coming in on interface fa1/0 and
+
+65
+00:05:52.290 --> 00:05:54.900
+it's going out to the outside, out fa0/0,
+
+66
+00:05:55.830 --> 00:06:01.680
+the router will change its source IP address on that outbound traffic from 10.0.1.10,
+
+67
+00:06:01.860 --> 00:06:04.930
+to 203.0.113.3.
+
+68
+00:06:05.040 --> 00:06:08.550
+So that's for the outgoing traffic. For the incoming traffic,
+
+69
+00:06:08.760 --> 00:06:14.340
+whenever traffic comes in with 203.0.113.3 as the destination address, coming
+
+70
+00:06:14.340 --> 00:06:17.520
+in on interface fa0/0 on the outside,
+
+71
+00:06:17.820 --> 00:06:24.180
+the router will change that destination address to 10.0.1.10 and send it through to interface
+
+72
+00:06:24.180 --> 00:06:25.610
+fa1/0.
+
+73
+00:06:25.770 --> 00:06:30.210
+So this is going to take care of our NAT translation for traffic in both directions.
+
+74
+00:06:31.840 --> 00:06:39.610
+To verify that is working, send some traffic to or from that host  with the outside and then do the
+
+75
+00:06:39.610 --> 00:06:45.940
+command show ip nat translation. And there's quite a lot to the output there.
+
+76
+00:06:46.060 --> 00:06:48.550
+So I'll explain that in the next lecture.
+

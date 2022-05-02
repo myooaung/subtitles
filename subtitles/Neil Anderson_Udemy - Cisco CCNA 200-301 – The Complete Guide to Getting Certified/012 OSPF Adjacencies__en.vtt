@@ -1,0 +1,817 @@
+WEBVTT
+1
+00:00:07.400 --> 00:00:13.640
+In this lecture, you'll learn how OSPF routers form adjacencies with each other and build their Link State
+
+2
+00:00:13.670 --> 00:00:15.140
+Databases.
+
+3
+00:00:15.140 --> 00:00:19.100
+Let's start with a recap of OSPF operations,
+
+4
+00:00:19.220 --> 00:00:22.270
+as you saw near the start of this section.
+
+5
+00:00:22.470 --> 00:00:29.110
+So when you enable OSPF on a router, first off it will discover its OSPF neighbors.
+
+6
+00:00:29.210 --> 00:00:36.170
+It will form adjacencies with them, and it will then build the Link State database, which contains all
+
+7
+00:00:36.170 --> 00:00:42.440
+of the networks that it's learned about from OSPF. It will compute the shortest path to each of those networks
+
+8
+00:00:42.710 --> 00:00:45.580
+and install the best route in its routing table.
+
+9
+00:00:45.680 --> 00:00:52.070
+And then, if anything changes on the network, for example, a link going down, then the router will respond to network
+
+10
+00:00:52.100 --> 00:00:55.480
+changes, and update its routing table accordingly.
+
+11
+00:00:56.570 --> 00:01:03.360
+We are going to focus on the first three in this lecture, that's discovering neighbors, forming adjacencies,
+
+12
+00:01:03.390 --> 00:01:05.820
+and building the Link State Database (LSDB).
+
+13
+00:01:05.820 --> 00:01:12.250
+So, let's look at the OSPF packet types again as well. The different types of packets can be sent in
+
+14
+00:01:12.260 --> 00:01:13.740
+the OSPF messages,
+
+15
+00:01:13.800 --> 00:01:19.070
+we have the Hello packet, a router will send out and listen for Hello packets
+
+16
+00:01:19.080 --> 00:01:25.770
+when OSPF is enabled on an interface. When you enable OSPF on the router globally, and then when
+
+17
+00:01:25.770 --> 00:01:31.930
+you enable OSPF on interfaces with the network statements, the the router is going to start sending out
+
+18
+00:01:32.100 --> 00:01:38.400
+and listening for Hello packets, and it will form adjacencies with other OSPF routers on those links.
+
+19
+00:01:38.940 --> 00:01:45.630
+DBD, Database Description packets, adjacent routers will tell each other the networks they know about with
+
+20
+00:01:45.630 --> 00:01:52.080
+the DBD packet, and LSR is the Link State Request. If a router is missing information about any of
+
+21
+00:01:52.080 --> 00:01:58.770
+the networks in the DBDs that it received from its neighbours, it will send that neighbor an LSR, a request
+
+22
+00:01:58.770 --> 00:02:00.820
+for more information about it.
+
+23
+00:02:01.380 --> 00:02:08.250
+LSA is the Link State Advertisement, that's a routing update, and LSU is a Link State Update that contains
+
+24
+00:02:08.280 --> 00:02:12.660
+a list of LSAs which should be updated, that is used during flooding,
+
+25
+00:02:12.660 --> 00:02:19.980
+for example, if a link has gone down. An LSAck, receiving routers acknowledge LSAs when they receive
+
+26
+00:02:19.980 --> 00:02:21.510
+a packet from OSPF
+
+27
+00:02:21.510 --> 00:02:26.440
+with information for them, they will send an acknowledgement back to the router that sent it.
+
+28
+00:02:26.760 --> 00:02:31.770
+Okay, so now, let's have a look at how that all works in more detail.
+
+29
+00:02:33.120 --> 00:02:39.660
+So, starting off with the Hello packets. OSPF routers discover each other and form adjacencies
+
+30
+00:02:39.660 --> 00:02:43.820
+with each other via the Hello packets. They send Hello packets out
+
+31
+00:02:43.920 --> 00:02:50.470
+each interface where where OSPF is enabled, except passive interfaces. You remember on passive interfaces,
+
+32
+00:02:50.550 --> 00:02:56.600
+we don't want to be sending information out there, sharing updates about our internal networks.
+
+33
+00:02:56.700 --> 00:03:02.990
+So on passive interfaces, whichever network is configured on those interfaces will be advertised internally,
+
+34
+00:03:03.000 --> 00:03:08.040
+so our internal routers know about that network, but we're not going to be giving any of our internal
+
+35
+00:03:08.040 --> 00:03:10.170
+information out on that link.
+
+36
+00:03:10.170 --> 00:03:15.960
+So, typically, you're going to have passive interfaces configured where you're connected to a third party
+
+37
+00:03:16.240 --> 00:03:19.140
+that you don't want to be sharing your routing information with.
+
+38
+00:03:19.140 --> 00:03:23.280
+We also enable passive interfaces on our loopback interfaces as well.
+
+39
+00:03:23.280 --> 00:03:30.900
+So the way that we enable OSPF on an interface is by enabling OSPF globally, and then we enter a network
+
+40
+00:03:30.900 --> 00:03:35.760
+statement, which includes the IP subnet that is on that particular link.
+
+41
+00:03:35.790 --> 00:03:41.340
+When we do that, it turns on OSPF in the interface. It's going to start sending and listening for Hellos.
+
+42
+00:03:41.700 --> 00:03:48.720
+When these Hello packets are sent out, they're multicast to the multicast address 224.0.0.5,
+
+43
+00:03:49.010 --> 00:03:56.220
+that is designated as the all OSPF routers' multicast address, and Hello packets are sent every 10 seconds
+
+44
+00:03:56.220 --> 00:03:56.910
+by default.
+
+45
+00:03:57.140 --> 00:04:03.480
+So even after a router has formed an adjacency with the router on the other side of the link, it will
+
+46
+00:04:03.480 --> 00:04:09.420
+still keep sending Hello packets every 10 seconds because as well as forming the adjacency and exchanging
+
+47
+00:04:09.420 --> 00:04:13.440
+routes with each other, the routers want to make sure that the other routers are still up.
+
+48
+00:04:13.440 --> 00:04:17.529
+If that router goes down, then obviously, we're not going to be able to send any traffic through it,
+
+49
+00:04:17.579 --> 00:04:19.579
+so the router's going to want to know about that.
+
+50
+00:04:19.630 --> 00:04:23.530
+The way it finds out is by they keep sending each other Hello packets.
+
+51
+00:04:23.580 --> 00:04:32.460
+If the router sees that the neighbor stopped sending Hello packets to it, it will realise that that router must have gone down. The contents
+
+52
+00:04:32.520 --> 00:04:33.910
+of the Hello packet,
+
+53
+00:04:33.990 --> 00:04:37.850
+we've got the router ID that's a 32-bit number,
+
+54
+00:04:37.850 --> 00:04:43.380
+looks just like an IPv4 address that uniquely identifies each OSPF router.
+
+55
+00:04:43.410 --> 00:04:50.190
+The Hello Interval is how often the router sends Hello packets, and this defaults to 10 seconds.
+
+56
+00:04:50.220 --> 00:04:55.850
+The Dead Interval is how long a router waits to hear from a neighbor before declaring it out of service.
+
+57
+00:04:55.860 --> 00:05:00.840
+So as I was just saying, another purpose of the Hello packets other than discovering neighbors, is to discover
+
+58
+00:05:00.840 --> 00:05:02.580
+if they're still there or not.
+
+59
+00:05:02.610 --> 00:05:08.670
+If a router has not received a Hello packet for the Dead Interval from a neighbor, it assumes that that
+
+60
+00:05:08.670 --> 00:05:14.520
+neighbor has gone down, and the default for the Dead Interval is 4 times the Hello Interval.
+
+61
+00:05:14.520 --> 00:05:19.560
+So if you don't change the timers, then the Hello Interval will be 10 seconds, and the Dead Interval
+
+62
+00:05:19.560 --> 00:05:21.210
+will be 40 seconds.
+
+63
+00:05:21.210 --> 00:05:28.410
+If you change the Hello Interval to 20 seconds, that will automatically update the Dead Interval to 80
+
+64
+00:05:28.410 --> 00:05:31.550
+seconds, because it's default 4 times the Hello Interval.
+
+65
+00:05:31.680 --> 00:05:36.140
+You can change these individually if you want to as well though.
+
+66
+00:05:36.830 --> 00:05:40.030
+Okay, let's talk for a second about these timers.
+
+67
+00:05:40.170 --> 00:05:47.590
+If you want your network to react more quickly to changes, then you can turn these down.
+
+68
+00:05:47.730 --> 00:05:52.450
+But be careful if you do that, because that can then cause instabilities.
+
+69
+00:05:52.530 --> 00:05:57.120
+If you have any kind of delay in the network, it can cause routers to think that links on the other routers
+
+70
+00:05:57.120 --> 00:06:00.360
+have gone down and that is obviously going to cause problems.
+
+71
+00:06:00.360 --> 00:06:06.500
+So very often, you will leave the timers at their defaults. If you do want to change them,
+
+72
+00:06:06.510 --> 00:06:10.270
+be careful that you know what you're doing before you do that.
+
+73
+00:06:10.380 --> 00:06:16.070
+Next thing in the Hello packet is a list of neighbours. So a list of adjacent OSPF neighbours
+
+74
+00:06:16.080 --> 00:06:18.460
+that this router has received a Hello packet from.
+
+75
+00:06:18.580 --> 00:06:19.810
+So this OSPF router,
+
+76
+00:06:19.860 --> 00:06:25.770
+maybe it's got multiple different interfaces. It's got OSPF neighbours on each of those different interfaces,
+
+77
+00:06:26.010 --> 00:06:31.840
+but when it sends Hello packet out each interface, it will include the list of all its neighbours in that
+
+78
+00:06:31.850 --> 00:06:32.680
+Hello packet.
+
+79
+00:06:33.900 --> 00:06:34.860
+Still got more.
+
+80
+00:06:34.920 --> 00:06:37.470
+We also have the Area ID.
+
+81
+00:06:37.830 --> 00:06:45.210
+You remember that OSPF routers, if it's an ABR, it can have interfaces which are in multiple different
+
+82
+00:06:45.210 --> 00:06:46.480
+areas. So the
+
+83
+00:06:46.560 --> 00:06:50.550
+area is configured on the link, on the interface level.
+
+84
+00:06:50.760 --> 00:06:56.340
+That information is sent in the Hello packet that is sent out that particular link.
+
+85
+00:06:56.350 --> 00:06:58.670
+Also, the Router Priority.
+
+86
+00:06:58.680 --> 00:07:05.190
+This is an 8-bit number used to select the DR, the Designated Router, and the BDR, the Backup Designated
+
+87
+00:07:05.190 --> 00:07:05.790
+Router.
+
+88
+00:07:05.790 --> 00:07:09.270
+I'll speak about those more a little bit later in this lecture.
+
+89
+00:07:09.510 --> 00:07:17.010
+If the DR and BDR exist and the router knows about them, then the IPv4 address is also going to be included
+
+90
+00:07:17.100 --> 00:07:20.400
+in the Hello packet. Authentication Flag,
+
+91
+00:07:20.430 --> 00:07:27.330
+if authentication is configured, so it's best practice that you do this. When you're configuring OSPF
+
+92
+00:07:27.610 --> 00:07:35.640
+in a real world enterprise environment, you want to include a password in your OSPF configuration.
+
+93
+00:07:35.640 --> 00:07:38.940
+So then, the routers on both sides need to have a matching password.
+
+94
+00:07:38.970 --> 00:07:46.260
+This stops somebody, either accidentally or maliciously, joining a router to your network and advertising
+
+95
+00:07:46.260 --> 00:07:51.150
+routes there. Because if you think about it, if you didn't have authentication in OSPF, it would be very
+
+96
+00:07:51.150 --> 00:07:57.960
+easy for an attacker if they had physical access to plug a router in, and then start advertising bogus routes
+
+97
+00:07:58.020 --> 00:08:01.880
+into your network, which could cause traffic to get blackholed.
+
+98
+00:08:01.950 --> 00:08:04.320
+So, you want to make sure that that doesn't happen.
+
+99
+00:08:04.320 --> 00:08:09.070
+More likely, it would happen accidentally by somebody taking an old router out of a cupboard and plugging
+
+100
+00:08:09.080 --> 00:08:12.390
+it in, something like that. To make sure that doesn't happen,
+
+101
+00:08:12.390 --> 00:08:17.230
+make sure that you do have authentication configured in OSPF for real world networks.
+
+102
+00:08:17.250 --> 00:08:19.840
+You don't need to know about it for the CCNA exam.
+
+103
+00:08:20.070 --> 00:08:24.370
+The last thing in the Hello packet contents is the Stub Area Flag.
+
+104
+00:08:24.420 --> 00:08:31.770
+This indicates if the area is a stub area. Stub areas have a default route to their ABR, rather
+
+105
+00:08:31.830 --> 00:08:34.809
+than learning routes outside of their area.
+
+106
+00:08:34.809 --> 00:08:40.679
+So with a stub area, there's just one way in and out of it, which is the ABR. It puts less load on the routers in
+
+107
+00:08:40.679 --> 00:08:44.760
+that stub area, rather than learning all the routes everywhere in the network.
+
+108
+00:08:44.760 --> 00:08:50.070
+They just know how to get to their ABR, so they know how to get to everywhere inside their own area, to get out of
+
+109
+00:08:50.340 --> 00:08:50.940
+their area.
+
+110
+00:08:50.940 --> 00:08:57.360
+They just send traffic to the ABR via a default route. It means that the routers got less information,
+
+111
+00:08:57.360 --> 00:08:58.250
+less load on that router.
+
+112
+00:09:00.710 --> 00:09:08.180
+These particular settings in the Hello packet must match for a pair of OSPF routers to form an adjacency
+
+113
+00:09:08.180 --> 00:09:11.920
+with each other. So, they must be in each other's neighbor list.
+
+114
+00:09:11.950 --> 00:09:14.820
+Now, when you first see this, you're probably going to think, "Well, wait.
+
+115
+00:09:14.960 --> 00:09:19.490
+When I first plug a router in, it's going to send the Hello packet out.
+
+116
+00:09:19.670 --> 00:09:24.530
+It doesn't have any neighbors yet. I've just plug it in, so how's it going to be able to form any adjacencies?"
+
+117
+00:09:24.740 --> 00:09:30.320
+Well, you'll see it in a second. It doesn't just happen after one packet. The routers go through a little bit
+
+118
+00:09:30.320 --> 00:09:33.800
+of a negotiation, discover each other, and then they'll form an adjacency.
+
+119
+00:09:33.800 --> 00:09:35.250
+I'll show you in a second.
+
+120
+00:09:35.270 --> 00:09:38.350
+The Hello and Dead Intervals have to be the same.
+
+121
+00:09:38.360 --> 00:09:44.390
+This is another reason why people will often leave the timers at the default, because if you do change the
+
+122
+00:09:44.400 --> 00:09:48.490
+timers, you have to make sure that you change them on every single router on your network.
+
+123
+00:09:48.500 --> 00:09:53.000
+They all have to match, or the routers are not going to form an adjacency with each other.
+
+124
+00:09:53.000 --> 00:09:54.360
+The Area ID has to be the same.
+
+125
+00:09:54.370 --> 00:09:57.100
+Again, this is at the link level.
+
+126
+00:09:57.130 --> 00:10:02.600
+So a router could have different links, different interfaces, in different areas, but when a router
+
+127
+00:10:02.630 --> 00:10:05.510
+sends a Hello packet out of a particular interface,
+
+128
+00:10:05.510 --> 00:10:10.060
+if it's going to peer, form an adjacency with another OSPF router on that same link,
+
+129
+00:10:10.100 --> 00:10:15.700
+they both need to be configured to be in the same area. The IP subnet has to be the same as well.
+
+130
+00:10:15.710 --> 00:10:19.430
+And if you think about it, well they definitely should be. If the IP subnets were different,
+
+131
+00:10:19.430 --> 00:10:21.150
+there's definitely something wrong there.
+
+132
+00:10:21.260 --> 00:10:26.510
+The Authentication Flag has to be the same. So if a password is configured on OSPF from one side, you have
+
+133
+00:10:26.510 --> 00:10:28.930
+to have a matching password on the other side as well.
+
+134
+00:10:29.040 --> 00:10:35.150
+And if the router on that particular interface is configured to be in a stub area, all other routers in that
+
+135
+00:10:35.150 --> 00:10:38.510
+area must also be configured that it's a stub area as well.
+
+136
+00:10:38.720 --> 00:10:43.100
+If anything mismatch is there, then the adjacency just will not come up.
+
+137
+00:10:44.890 --> 00:10:47.180
+Okay, so let's have a look at
+
+138
+00:10:47.260 --> 00:10:53.980
+the neighbor states as the routers go through the process of forming an adjacency with each other.
+
+139
+00:10:53.980 --> 00:10:58.380
+You can see I've got R1 on the left. On this interface here,
+
+140
+00:10:58.450 --> 00:11:06.990
+it's got IP address 172.16.1.1/24, and on this interface, it's got IP address 10.0.0.1/30.
+
+141
+00:11:07.020 --> 00:11:12.340
+Now, for this example, we have not configured a loopback interface on the router,
+
+142
+00:11:12.550 --> 00:11:18.550
+so it's going to use the highest physical address for its router ID. 172.16.1.1 is higher than 10.0.0.1,
+
+143
+00:11:18.550 --> 00:11:22.150
+so this is going to be the router ID here. In a real world environment,
+
+144
+00:11:22.150 --> 00:11:26.970
+you would configure a loopback address here. But just to save some space on the slide here,
+
+145
+00:11:27.010 --> 00:11:33.100
+I don't have a loopback. And over here on the right, the router is connected to R2, so this will have
+
+146
+00:11:33.100 --> 00:11:35.110
+to be in the same subnet. On this interface here,
+
+147
+00:11:35.130 --> 00:11:45.090
+it is 10.0.0.2/30, and this router also has got an interface on the 172.16.2.1/24 network.
+
+148
+00:11:45.140 --> 00:11:49.070
+So, we configure OSPF on our routers.
+
+149
+00:11:49.120 --> 00:11:55.840
+We want R1 to learn about the 172.16.2.0/24 network, and we want R2 to learn
+
+150
+00:11:55.840 --> 00:11:59.040
+about the 172.16.1.0/24 network.
+
+151
+00:11:59.100 --> 00:11:59.360
+Okay.
+
+152
+00:11:59.410 --> 00:12:06.670
+So we have enabled OSPF globally on our routers, and we've configured a network statement, which includes
+
+153
+00:12:06.670 --> 00:12:13.900
+the 10.0.0.0/30 network on both R1 and R2. So R1 and R2 will now start
+
+154
+00:12:13.900 --> 00:12:20.500
+sending out Hello packets on that interface, trying to discover OSPF routers and form an adjacency
+
+155
+00:12:20.530 --> 00:12:21.340
+with them.
+
+156
+00:12:21.340 --> 00:12:30.420
+So we've just done this on R1, so it sends out a Hello packet saying, "I am router ID 172.16.1.1,
+
+157
+00:12:30.480 --> 00:12:34.840
+I've just had OSPF enabled, so I have no neighbors." Again, notice
+
+158
+00:12:34.840 --> 00:12:43.310
+this packet is going out on the 10.0.0.1 interface, but the router ID is 172.16.1.1.
+
+159
+00:12:43.310 --> 00:12:45.150
+This don't have to match. The router ID is
+
+160
+00:12:45.190 --> 00:12:50.590
+basically a number, it could be anything. It's just an identifier, it's not the same as the IP address on
+
+161
+00:12:50.590 --> 00:12:56.920
+the interface. Okay, so it sends that out and it sends it with a source address of 10.0.0.1,
+
+162
+00:12:56.920 --> 00:13:02.930
+the address on the interface. The destination address is the multicast address, 224.0.0.5.
+
+163
+00:13:02.930 --> 00:13:08.410
+Any other OSPF routers on that link are listening for traffic that is going to that multicast
+
+164
+00:13:08.410 --> 00:13:16.240
+address, so R2 is going to be listening for it. So R2 sees the packet, and then it sees that it came from
+
+165
+00:13:16.300 --> 00:13:23.900
+the address, 10.0.0.1. So it sends a reply back, saying "I'm router ID 172.16.2.1,
+
+166
+00:13:23.900 --> 00:13:31.480
+and I see 172.16.1.1. So if it had any other OSPF neighbors right now, it would
+
+167
+00:13:31.480 --> 00:13:37.830
+include them in this information. So it tells R1 about all of its neighbors, including R1.
+
+168
+00:13:37.830 --> 00:13:44.410
+That is unicast to 10.0.0.1, where the first packet from R1 came from, and it is sent
+
+169
+00:13:44.410 --> 00:13:51.100
+from R2's address of 10.0.0.2. Then, R1 sees this and then it sends a reply,
+
+170
+00:13:51.430 --> 00:13:56.040
+"I am router ID 172.16.1.1, and I see 172.16.2.1,"
+
+171
+00:13:56.040 --> 00:14:02.130
+because it just learned about 172.16.2.1. Again, that is unicast to
+
+172
+00:14:02.130 --> 00:14:03.890
+10.0.0.2.
+
+173
+00:14:04.040 --> 00:14:09.190
+So now, we've fulfilled that requirement that the routers have to see each other in their neighbor list,
+
+174
+00:14:09.430 --> 00:14:11.770
+because you can see that that has been done here.
+
+175
+00:14:11.850 --> 00:14:12.300
+Okay,
+
+176
+00:14:12.320 --> 00:14:18.550
+and once that has been done, the routers are in a two-way state. So they've established two-way  communication
+
+177
+00:14:18.550 --> 00:14:25.620
+with each other for OSPF. They haven't started exchanging any routes yet though. Next up, they move into
+
+178
+00:14:25.620 --> 00:14:33.030
+the exchange state. So at this point, R1 sends a Database Descriptor (DBD) packet, saying "I will start exchange
+
+179
+00:14:33.030 --> 00:14:38.460
+with my router ID 172.16.1.1." So this will come from one of the other routers, and then
+
+180
+00:14:38.470 --> 00:14:43.290
+R2 replies back with a Database Descriptor (DBD), saying "No. I'm going to start exchange because
+
+181
+00:14:43.290 --> 00:14:47.150
+I have the higher router ID. I'm 172.16.2.1."
+
+182
+00:14:47.160 --> 00:14:52.620
+So this is just a negotiation about who is going to start the exchange, it doesn't really matter which one it is
+
+183
+00:14:52.620 --> 00:14:54.900
+anyway, but it's going to be the one with the highest router ID.
+
+184
+00:14:55.530 --> 00:15:02.040
+Okay, then they're going to start exchanging routing information with each other. So R2 sends a Database
+
+185
+00:15:02.040 --> 00:15:09.390
+Descriptor (DBD). This is a summary of its Link State database, so it doesn't send full information because
+
+186
+00:15:09.390 --> 00:15:15.120
+R1 maybe already has it information. It would be inefficient to send everything. So it just sends a summary
+
+187
+00:15:15.130 --> 00:15:22.440
+about the networks that it knows about, that includes 172.16.2.0/24. That comes into R1,
+
+188
+00:15:22.440 --> 00:15:28.180
+and then R1 will send an acknowledgment back. This traffic is by the way, of course, all unicasts.
+
+189
+00:15:28.200 --> 00:15:35.130
+Being unicasts from R2 to R1 there, R1 then sends a unicast back, saying it acknowledges that that packet
+
+190
+00:15:35.160 --> 00:15:43.140
+was received. Then, R1 will also send its LSDB summary to R2, again with a Database Descriptor,
+
+191
+00:15:43.390 --> 00:15:50.570
+and R2 will send an acknowledgment back to R1, so R1 knows that it did get there. Next up,
+
+192
+00:15:50.570 --> 00:15:57.630
+we move into the loading state or the loading stage. So R2, it saw the summary from R1, saying
+
+193
+00:15:57.650 --> 00:16:03.620
+that R1 knows about 172.16.1.0/24. R2 doesn't know anything about that,
+
+194
+00:16:03.800 --> 00:16:11.100
+so it will send a Link State Request (LSR) back, saying "Please, send me fill info about the 172.16.1.0/24 network,
+
+195
+00:16:11.100 --> 00:16:15.990
+and then R1 will send an LSU, a Link State Update reply,
+
+196
+00:16:15.990 --> 00:16:22.520
+with the full information about that link, and how to get there. R1 also sends a Link State Request (LSR)
+
+197
+00:16:22.530 --> 00:16:29.780
+to R2, asking for information about 176.16.2.0, and R2 will send a Link State Update back to
+
+198
+00:16:29.780 --> 00:16:37.070
+R1 with the full information. They've now exchanged information with each other, R1 will send
+
+199
+00:16:37.070 --> 00:16:42.830
+an acknowledgment back to R2, saying it got the information. R2 will send ackknowledge back to R1,
+
+200
+00:16:42.830 --> 00:16:50.780
+saying that it got its information, and at that stage, they're in the full state, because they've got an adjacency
+
+201
+00:16:50.780 --> 00:16:59.700
+with each other, and they've exchanged the routing information with each other as well. Okay, so that is how
+
+202
+00:17:00.090 --> 00:17:06.089
+adjacencies are formed. That's how it works on a point-to-point link, there's a little bit of a difference
+
+203
+00:17:06.210 --> 00:17:12.319
+on multiaccess segments, such as Ethernet, they use DRs and BDRs, the designated routers.
+
+204
+00:17:12.319 --> 00:17:15.480
+I'll explain about that in the next lecture.
+

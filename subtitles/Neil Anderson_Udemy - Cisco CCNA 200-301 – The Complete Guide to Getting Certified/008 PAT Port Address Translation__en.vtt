@@ -1,0 +1,745 @@
+WEBVTT
+1
+00:00:06.300 --> 00:00:14.670
+In this lecture, you'll learn about the last of our NAT types, which is PAT, Port Address Translation.
+
+2
+00:00:15.000 --> 00:00:21.270
+This allows the same IP address to be reused multiple times for translations.
+
+3
+00:00:22.230 --> 00:00:28.650
+So with Standard Dynamic NAT that you saw in the last lecture, the inside host are translated to public
+
+4
+00:00:28.650 --> 00:00:31.860
+IP addresses on a first come, first served basis
+
+5
+00:00:31.860 --> 00:00:38.820
+when we send the traffic out. That requires a public IP address for every inside host which communicates
+
+6
+00:00:38.820 --> 00:00:40.260
+with the outside network.
+
+7
+00:00:40.530 --> 00:00:46.290
+When all the addresses in the pool have been used, new outbound connections from other inside hosts
+
+8
+00:00:46.290 --> 00:00:50.160
+are going to fail because there's no address left to translate them to.
+
+9
+00:00:50.160 --> 00:00:53.010
+We've already used up all of the addresses in our pool.
+
+10
+00:00:53.820 --> 00:01:01.050
+Port Address Translation or PAT is an extension to NAT that permits multiple devices to be mapped
+
+11
+00:01:01.050 --> 00:01:03.570
+to a single public IP address.
+
+12
+00:01:03.810 --> 00:01:06.960
+So this is the solution to that problem. With PAT,
+
+13
+00:01:06.960 --> 00:01:11.370
+you don't need a public IP address for every inside host.
+
+14
+00:01:11.650 --> 00:01:17.220
+The router tracks translations by IP address and layer 4 port number as well.
+
+15
+00:01:17.850 --> 00:01:22.890
+So typically for real world deployments, we're going to need this because we're going to have a lot
+
+16
+00:01:22.890 --> 00:01:26.370
+more hosts on the inside with private IP addresses
+
+17
+00:01:26.610 --> 00:01:32.670
+than we're going to have public IP addresses on the outside available because most public IP addresses
+
+18
+00:01:32.670 --> 00:01:33.480
+cost money.
+
+19
+00:01:33.640 --> 00:01:40.050
+So we're going to use PAT so that we can reuse them for multiple hosts on the inside. Because different
+
+20
+00:01:40.050 --> 00:01:46.800
+inside hosts are assigned different port numbers when we use PAT, the router knows which host to send the return
+
+21
+00:01:46.800 --> 00:01:50.840
+traffic to, even when the public IP address is the same.
+
+22
+00:01:52.110 --> 00:01:55.920
+So let's have a look at how this works in the lab.
+
+23
+00:01:55.920 --> 00:01:58.920
+We're using the same lab topology again.
+
+24
+00:01:59.250 --> 00:02:06.660
+I've got my host on the inside on the 10.0.2.0/24 subnet.
+
+25
+00:02:06.780 --> 00:02:13.620
+I don't need to use this for my internal server because I've got a permanent fixed Static NAT translation
+
+26
+00:02:13.620 --> 00:02:22.080
+for that. But on my normal PCs, I've got probably a load of PCs on the inside there and I don't have
+
+27
+00:02:22.080 --> 00:02:25.460
+enough public IP addresses to give them all of their own one.
+
+28
+00:02:25.470 --> 00:02:28.800
+So I'm going to use PAT so they can all get Internet access
+
+29
+00:02:28.800 --> 00:02:37.140
+at the same time. The Dynamic NAT with overload uses PAT to allow more clients to be translated
+
+30
+00:02:37.320 --> 00:02:41.070
+than IP addresses are available in the NAT pool. Dynamic NAT
+
+31
+00:02:41.070 --> 00:02:43.860
+with overload is really just a type of PAT.
+
+32
+00:02:43.860 --> 00:02:51.630
+It's not a different thing. If the NAT pool is, for example, 203.0.113.4 to
+
+33
+00:02:51.630 --> 00:02:55.110
+203.0.113.6,
+
+34
+00:02:55.440 --> 00:03:03.090
+the first two hosts which initiate outbound connections will be translated to 203.0.113.4,
+
+35
+00:03:03.090 --> 00:03:08.700
+for the first one, and 203.0.113.5 for the second one.
+
+36
+00:03:08.700 --> 00:03:11.250
+So exactly the same as Standard Dynamic.
+
+37
+00:03:11.250 --> 00:03:19.950
+NAT. Where it changes is when we get to the end of the NAT pool, the third host will be translated to
+
+38
+00:03:19.950 --> 00:03:26.850
+203.0.113.6 and the router will track which source port number was used
+
+39
+00:03:27.000 --> 00:03:31.080
+in its translation table before fifth, sixth, etc..
+
+40
+00:03:31.080 --> 00:03:38.160
+Hosts will also be translated to 203.0.113.6 because that's the highest address
+
+41
+00:03:38.160 --> 00:03:38.850
+in the pool.
+
+42
+00:03:39.090 --> 00:03:46.680
+But they will use different source port numbers. When the return traffic is sent back, the router checks
+
+43
+00:03:46.680 --> 00:03:50.810
+the destination port number to see which host to forward it to.
+
+44
+00:03:50.910 --> 00:03:56.940
+So it's tracking based on IP address and port number because we've also got the port number that allows
+
+45
+00:03:56.940 --> 00:03:59.460
+us to differentiate between the different hosts.
+
+46
+00:03:59.700 --> 00:04:01.500
+They're using the same IP address.
+
+47
+00:04:02.370 --> 00:04:06.270
+So let's walk through this with an example. So here,
+
+48
+00:04:06.270 --> 00:04:14.070
+we do have the pool of the three addresses, 203.0.113.4 to
+
+49
+00:04:14.070 --> 00:04:16.260
+203.0.113.6.
+
+50
+00:04:16.260 --> 00:04:17.850
+And we've done our configuration.
+
+51
+00:04:17.850 --> 00:04:22.710
+You'll see how you do the configuration coming up in a minute. So our first host on the inside,
+
+52
+00:04:22.710 --> 00:04:25.140
+10.10.10.10,
+
+53
+00:04:25.380 --> 00:04:31.170
+it sends traffic out to a Web server at 203.0.113.10.
+
+54
+00:04:31.170 --> 00:04:32.220
+So it's going to a Web server.
+
+55
+00:04:32.250 --> 00:04:34.830
+So that's going to be the destination IP address.
+
+56
+00:04:34.830 --> 00:04:37.230
+And the destination port will be port 80.
+
+57
+00:04:37.500 --> 00:04:44.730
+In that example, 10.10.10.10 uses the source port number 49165.
+
+58
+00:04:45.000 --> 00:04:50.010
+Whichever operating system is running on that host is going to choose a random source port number.
+
+59
+00:04:50.010 --> 00:04:52.050
+So that's what it came up with in our example.
+
+60
+00:04:52.410 --> 00:04:56.130
+When it goes through the router, it's going to match the NAT rule.
+
+61
+00:04:56.280 --> 00:05:03.210
+So the router will NAT that traffic and it's going to change the source IP address from
+
+62
+00:05:03.420 --> 00:05:05.420
+10.10.10.10 to
+
+63
+00:05:05.630 --> 00:05:08.020
+203.0.113.4.
+
+64
+00:05:08.630 --> 00:05:15.920
+It's also changing the source port number here from 49165 to 4096. That traffic
+
+65
+00:05:15.920 --> 00:05:17.750
+gets sent out to the Web server.
+
+66
+00:05:17.900 --> 00:05:23.360
+And the Web server sees it as coming from the NAT'd source of 203.0.113.4 and
+
+67
+00:05:23.360 --> 00:05:29.180
+port number 4096. So the Web server will send traffic back.
+
+68
+00:05:29.180 --> 00:05:36.360
+It sends it to a destination IP address and port number of 203.0.113.4
+
+69
+00:05:36.400 --> 00:05:38.510
+port 4096, the same place it came from.
+
+70
+00:05:38.690 --> 00:05:41.110
+When that return traffic reaches the router,
+
+71
+00:05:41.270 --> 00:05:44.990
+it's got a matching entry in the NAT translation table.
+
+72
+00:05:44.990 --> 00:05:52.820
+So it knows to send that to 10.10.10.10 port 49165. Then another host
+
+73
+00:05:52.880 --> 00:05:59.930
+sends some traffic out to the Web server. That comes from 10.10.10.11 port 49158
+
+74
+00:05:59.930 --> 00:06:07.370
+on the inside. The router NATs it to 203.0.113.5 and source port number
+
+75
+00:06:07.370 --> 00:06:09.020
+4097.
+
+76
+00:06:09.260 --> 00:06:12.410
+When the return traffic comes back from the Web server,
+
+77
+00:06:12.560 --> 00:06:18.110
+it's sent to a destination of 203.0.113.5 port 4097.
+
+78
+00:06:18.410 --> 00:06:22.250
+The router sees it's got a matching translation in its NAT table.
+
+79
+00:06:22.400 --> 00:06:29.030
+So it sends that out to 10.10.10.11 port 49158 where it originally
+
+80
+00:06:29.030 --> 00:06:29.630
+came from.
+
+81
+00:06:30.260 --> 00:06:33.710
+Then a third PC sends traffic out to the Internet.
+
+82
+00:06:33.740 --> 00:06:38.660
+That's 10.10.10.12 port number 49152.
+
+83
+00:06:39.290 --> 00:06:45.350
+Notice that the first two hosts were translated to IP addresses 203.0.113.4 and
+
+84
+00:06:45.350 --> 00:06:47.570
+203.0.113.5,
+
+85
+00:06:47.690 --> 00:06:49.880
+the first two addresses in our pool.
+
+86
+00:06:50.270 --> 00:06:56.480
+This third host gets translated to the last IP address in our pool, which is
+
+87
+00:06:56.480 --> 00:06:57.530
+203.0.113.6.
+
+88
+00:06:57.710 --> 00:07:01.250
+And it's port number gets changed to 4098.
+
+89
+00:07:01.400 --> 00:07:02.690
+You know the drill already.
+
+90
+00:07:02.690 --> 00:07:05.150
+When the return traffic comes back from the server,
+
+91
+00:07:05.330 --> 00:07:10.190
+it's sent to our destination of 203.0.113.6 port 4098.
+
+92
+00:07:10.400 --> 00:07:16.520
+And the router knows to send that to 10.10.10.12 port 49152.
+
+93
+00:07:17.390 --> 00:07:21.740
+Finally another host sends traffic out to a Web server.
+
+94
+00:07:21.740 --> 00:07:29.000
+It's 10.10.10.13. This time using source port 49152. The router NATs
+
+95
+00:07:29.000 --> 00:07:33.500
+it to 203.0.113.6 port 4099.
+
+96
+00:07:33.710 --> 00:07:40.190
+We've already used up all the addresses in our NAT pool and if we were using just standard NAT, this
+
+97
+00:07:40.190 --> 00:07:46.550
+traffic would fail. But because we're using Dynamic NAT with overload, which is a form of PAT,
+
+98
+00:07:46.700 --> 00:07:50.450
+we can reuse that last IP address in the pool.
+
+99
+00:07:50.660 --> 00:07:57.050
+So this host also gets translated to 203.0.113.6 but the router makes sure
+
+100
+00:07:57.050 --> 00:07:59.660
+that it uses a different source port number this time.
+
+101
+00:07:59.690 --> 00:08:01.490
+It uses 4099.
+
+102
+00:08:01.820 --> 00:08:05.390
+So when the return traffic comes back from the server on the outside,
+
+103
+00:08:05.510 --> 00:08:11.000
+it's going to a destination of 203.0.113.6 port 4099.
+
+104
+00:08:11.300 --> 00:08:18.800
+The router knows that traffic for that IP address and port number pair needs to go to
+
+105
+00:08:18.830 --> 00:08:24.890
+10.10.10.13 port 49152 because it's got that matching entry in its NAT
+
+106
+00:08:24.890 --> 00:08:26.030
+translation table.
+
+107
+00:08:26.240 --> 00:08:28.940
+OK, so that is how PAT works.
+
+108
+00:08:30.260 --> 00:08:38.360
+How to actually configure it is a super similar configuration to what we did for our standard Dynamic NAT.
+
+109
+00:08:38.360 --> 00:08:42.350
+But this right here is showing the standard dynamic NAT configuration.
+
+110
+00:08:42.890 --> 00:08:47.120
+So interface fa0/0, that was facing towards the Internet.
+
+111
+00:08:47.360 --> 00:08:50.810
+We configure that with ip nat outside. Interface
+
+112
+00:08:50.810 --> 00:08:51.730
+fa2/0
+
+113
+00:08:51.750 --> 00:08:53.750
+was facing our host on the inside.
+
+114
+00:08:53.750 --> 00:09:01.310
+We configure that with ip nat inside. We configure a pool of global addresses, ip nat pool Flackbox
+
+115
+00:09:01.310 --> 00:09:07.960
+203.0.113.4 to 203.0.113.6 with a netmask
+
+116
+00:09:07.960 --> 00:09:09.140
+255.255.255.240
+
+117
+00:09:09.290 --> 00:09:13.070
+in our example because that's a subnet mask on the outside interface.
+
+118
+00:09:13.430 --> 00:09:19.580
+Then we create our access list to reference the inside hosts. Access list 1 permit 10.0.2.0
+
+119
+00:09:20.210 --> 00:09:23.360
+0.0.0.255.
+
+120
+00:09:23.420 --> 00:09:31.190
+And finally we tie the NAT pool and the access-list together with ip nat inside source list 1 pool
+
+121
+00:09:31.190 --> 00:09:31.850
+Flackbox.
+
+122
+00:09:32.090 --> 00:09:37.880
+So that's the same configuration that you saw in the last lab demo when we did the standard Dynamic
+
+123
+00:09:37.880 --> 00:09:38.900
+NAT configuration.
+
+124
+00:09:39.080 --> 00:09:45.320
+This is the one with the problem where we're we can only use however many IP addresses are in the pool.
+
+125
+00:09:45.500 --> 00:09:50.720
+So the example here for .4 to .6, that's three addresses. Only three hosts are going to be able to get
+
+126
+00:09:50.900 --> 00:09:57.800
+out at the same time before host is going to fail. How we can change this to being a PAT configuration,
+
+127
+00:09:58.040 --> 00:10:01.880
+which will allow multiple hosts to reuse that top address
+
+128
+00:10:01.880 --> 00:10:05.000
+in the pool is, drum roll. Exactly
+
+129
+00:10:05.370 --> 00:10:12.900
+the same configuration. We just put the keyword overlord at the end of  ip nat inside source list 1 pool
+
+130
+00:10:12.910 --> 00:10:18.910
+Flackbox config. So that command you see down at the bottom there, ip nat inside source list 1 pool
+
+131
+00:10:18.960 --> 00:10:20.700
+Flackbox.
+
+132
+00:10:20.700 --> 00:10:22.310
+We just say overload at the end.
+
+133
+00:10:22.320 --> 00:10:26.020
+Everything else, the configuration is exactly the same.
+
+134
+00:10:26.730 --> 00:10:32.340
+So like I said before, for real world deployments, you're pretty much always going to be using the
+
+135
+00:10:32.340 --> 00:10:33.060
+overload
+
+136
+00:10:33.060 --> 00:10:33.840
+keyword.
+
+137
+00:10:34.140 --> 00:10:37.560
+You're almost always going to have more hosts in the inside
+
+138
+00:10:37.560 --> 00:10:42.930
+than you've got IP addresses on the outside. You don't want to run out of addresses in your pool,
+
+139
+00:10:42.930 --> 00:10:44.430
+so you will configure it with the
+
+140
+00:10:44.430 --> 00:10:46.710
+overload keyword just like this.
+
+141
+00:10:48.070 --> 00:10:52.650
+OK, so that was how we do overload.
+
+142
+00:10:52.950 --> 00:10:56.790
+The last thing to show you is the last NAT scenario
+
+143
+00:10:56.790 --> 00:11:03.500
+to cover, is a small office which has not purchased a range of public IP addresses.
+
+144
+00:11:03.960 --> 00:11:10.890
+In this case, the outside interface facing the Internet will most likely get its IP address via DHCP
+
+145
+00:11:10.890 --> 00:11:12.240
+from the service provider.
+
+146
+00:11:12.330 --> 00:11:13.620
+So it's a small office.
+
+147
+00:11:13.890 --> 00:11:19.020
+They do have Internet connectivity, but they've only got a single IP address on the outside.
+
+148
+00:11:19.020 --> 00:11:25.020
+They haven't bought a range of IP addresses. Usually in that case, you're not going to have a single fixed
+
+149
+00:11:25.020 --> 00:11:25.860
+IP address.
+
+150
+00:11:26.010 --> 00:11:29.190
+You're going to get your IP address from DHCP.
+
+151
+00:11:29.460 --> 00:11:36.660
+And this gives us an issue for NAT because that DHCP address might change over time. The service provider
+
+152
+00:11:36.660 --> 00:11:40.140
+won't guarantee that the IP address stays the same.
+
+153
+00:11:41.370 --> 00:11:47.100
+So we can't specify a pool with a fixed IP address because it might work at first, but it will stop
+
+154
+00:11:47.100 --> 00:11:50.910
+working when the IP address changes that we get from a service provider.
+
+155
+00:11:51.390 --> 00:11:57.450
+But it's OK. There's is a solution for this. PAT can be used for multiple hosts to share a single
+
+156
+00:11:57.450 --> 00:12:01.380
+outside public IP address even when it's using DHCP.
+
+157
+00:12:02.660 --> 00:12:08.630
+The configuration is very similar to Dynamic NAT with overload, but it translates to the outside
+
+158
+00:12:08.630 --> 00:12:12.980
+interface rather than a pool of addresses.
+
+159
+00:12:13.230 --> 00:12:17.630
+So you must translate to the actual the interface rather than a specific IP address, because like I said,
+
+160
+00:12:17.630 --> 00:12:21.230
+the DHCP address that you get from the provider might change.
+
+161
+00:12:21.560 --> 00:12:24.950
+So our configuration for this, actually before I walked through
+
+162
+00:12:24.950 --> 00:12:27.250
+this, let's look back at the previous one again.
+
+163
+00:12:28.010 --> 00:12:35.950
+So when we had a pool, we specified the pool of addresses. Then we specified the access list, the host
+
+164
+00:12:35.960 --> 00:12:44.540
+on the inside, and then we mapped them together. When we're using the outside interface rather than
+
+165
+00:12:44.540 --> 00:12:45.090
+a pool,
+
+166
+00:12:45.110 --> 00:12:47.870
+obviously, we're not going to have the first of those 3 commands.
+
+167
+00:12:47.870 --> 00:12:49.970
+We're not going to have the pool configured.
+
+168
+00:12:50.270 --> 00:12:57.350
+So let's look at this configuration now. So on interface fa0/0 facing the interface,
+
+169
+00:12:57.560 --> 00:13:00.030
+I've got ip address dhcp there.
+
+170
+00:13:00.170 --> 00:13:06.770
+I say ip nat outside. Interface fa1/0 which is facing the inside hosts for this example, 
+
+171
+00:13:06.920 --> 00:13:11.960
+is ip nat inside. The access-list is configured exactly the same.
+
+172
+00:13:11.960 --> 00:13:20.690
+access-list 1 permit 10.0.2.0 0.0.0.255 and then I say ip nat inside source list 1
+
+173
+00:13:20.960 --> 00:13:24.370
+interface fa0/0 overload.
+
+174
+00:13:24.500 --> 00:13:31.670
+So I'm not mapping the access list to a pool of addresses. I'm mapping it to the interface and it will
+
+175
+00:13:31.670 --> 00:13:38.630
+automatically use the IP address that is configured on that interface. And if I configured the overload keyword
+
+176
+00:13:38.630 --> 00:13:39.470
+at the end,
+
+177
+00:13:39.590 --> 00:13:46.160
+so all of my host in the inside will be able to use that one public IP address on the outside.
+
+178
+00:13:46.370 --> 00:13:51.680
+The router will be able to differentiate between them for returning traffic because it's going to have different
+
+179
+00:13:51.680 --> 00:13:53.090
+port numbers being used.
+
+180
+00:13:54.500 --> 00:14:02.270
+OK, and how we actually verify this is the same command as usual - show ip nat translations.
+
+181
+00:14:02.390 --> 00:14:09.050
+And when I do this, you can see we've got the same output here, but we can see all of the port numbers that
+
+182
+00:14:09.050 --> 00:14:10.550
+are being used there as well.
+
+183
+00:14:10.560 --> 00:14:12.080
+So that's how we get the router knows
+
+184
+00:14:12.260 --> 00:14:13.790
+which traffic is for what.
+
+185
+00:14:14.080 --> 00:14:17.030
+OK, that was it for PAT.
+
+186
+00:14:17.280 --> 00:14:20.690
+See you in the next lecture where we'll do our lab demo.
+

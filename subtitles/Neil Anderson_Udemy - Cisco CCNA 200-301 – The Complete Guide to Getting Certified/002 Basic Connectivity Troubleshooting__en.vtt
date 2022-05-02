@@ -1,0 +1,609 @@
+WEBVTT
+1
+00:00:06.360 --> 00:00:13.170
+In this lecture, you'll learn about Basic Connectivity Troubleshooting. So we'll take a look at the
+
+2
+00:00:13.200 --> 00:00:22.170
+ping and traceroute tools in a bit of depth, and then I'll summarize the Layer 1 and Layer 2 troubleshooting
+
+3
+00:00:22.170 --> 00:00:34.680
+tools that we covered in earlier lectures. So ping first, ping uses ICMP which like TCP, UDP, IP, etc., makes
+
+4
+00:00:34.680 --> 00:00:43.230
+up part of the TCP/IP suite. ICMP stands for the Internet Control Message Protocol, and it's used for testing
+
+5
+00:00:43.230 --> 00:00:44.070
+connectivity.
+
+6
+00:00:44.490 --> 00:00:49.860
+So when we do a ping, the example you see here on this slide, I'm going to do a ping from R1 to
+
+7
+00:00:49.860 --> 00:00:58.860
+the 10.1.0.1 IP address on R3. R1 will send out an ICMP echo request
+
+8
+00:00:58.950 --> 00:01:06.210
+using the exit interface as a source IP and wherever I configured it to send to as the destination IP.
+
+9
+00:01:06.520 --> 00:01:14.040
+That will get to R3, all being good on the network, and R3 will then send an ICMP echo reply
+
+10
+00:01:14.280 --> 00:01:22.950
+back to R1. So ping tests two-way connectivity. It tests that the source can get to the destination and also that
+
+11
+00:01:22.960 --> 00:01:30.570
+the reply can get back from the destination, back to the source again. If the ping is successful on a
+
+12
+00:01:30.570 --> 00:01:34.050
+a Cisco router, you will see exclamation marks.
+
+13
+00:01:34.050 --> 00:01:40.740
+So in the example here, we've got one dot indicating the first ping failed and then four exclamation marks,
+
+14
+00:01:40.740 --> 00:01:42.780
+which says that it succeeded.
+
+15
+00:01:42.780 --> 00:01:44.120
+This is quite normal.
+
+16
+00:01:44.160 --> 00:01:49.190
+It's quite normal for the first ping to fail if the router is updating its ARP cache at the time.
+
+17
+00:01:49.200 --> 00:01:53.780
+So if we've got a success rate of 80%, 4 out of 5 pings are good, that would mean that we do have
+
+18
+00:01:53.780 --> 00:01:55.930
+connectivity.
+
+19
+00:01:56.010 --> 00:02:02.400
+If you see 5 dots though, that is bad. That indicates the ping has failed.
+
+20
+00:02:02.460 --> 00:02:08.430
+So this could be because the router does not have a corresponding route or the destination IP address is
+
+21
+00:02:08.430 --> 00:02:16.940
+not responding. Less common is, you can see U's, which means that it is unreachable. That happens if
+
+22
+00:02:16.940 --> 00:02:19.010
+the router discards the packet.
+
+23
+00:02:19.020 --> 00:02:25.410
+For example, if it's being blocked by an Access Control List (ACL). We'll talk about our Access Control Lists (ACLs),
+
+24
+00:02:25.440 --> 00:02:33.140
+which are security feature later on. Next thing to tell you about is the 'extended ping' command.
+
+25
+00:02:33.290 --> 00:02:40.300
+So if you look at the scenario here, and I've put the diagram on the same slide as the text, because I
+
+26
+00:02:40.300 --> 00:02:44.580
+wanted you to be able to see everything and follow along in the one slide here.
+
+27
+00:02:44.590 --> 00:02:47.110
+So, hopefully, the diagram is big enough that you can see it.
+
+28
+00:02:47.650 --> 00:02:56.170
+So our scenario is that a user on PC1 over in the top right here, complains that they can't access
+
+29
+00:02:56.200 --> 00:03:06.710
+PC3, and you go onto R1 to test this, and you ping PC3 at 10.1.2.10
+
+30
+00:03:06.820 --> 00:03:16.010
+But what's causing the actual issue is that R4 does not have a route back to PC1 at 10.0.1.10.
+
+31
+00:03:16.010 --> 00:03:22.560
+But in our scenario, it does have a route back to R1 at 10.0.0.1.
+
+32
+00:03:22.780 --> 00:03:29.140
+Whenever you do a ping from a router, whenever you send any traffic that originates on the router itself,
+
+33
+00:03:29.430 --> 00:03:34.600
+it uses the outgoing interface as the source IP address.
+
+34
+00:03:34.600 --> 00:03:41.740
+So if we go into R1 and ping 10.1.2.10, it will use 10.0.0.1
+
+35
+00:03:42.090 --> 00:03:46.630
+as the source IP address because that's the IP address on the interface it went out of.
+
+36
+00:03:46.960 --> 00:03:52.810
+So as long as we've got connectivity from right to left, that will reach PC3. PC3 will send
+
+37
+00:03:52.810 --> 00:03:54.090
+a reply back,
+
+38
+00:03:54.100 --> 00:03:59.950
+and because R4 does have a route to the 10.0.0.0 network, the ping will succeed,
+
+39
+00:04:00.280 --> 00:04:06.690
+and that's going to really confuse you because the user is saying that connectivity isn't working.
+
+40
+00:04:06.790 --> 00:04:13.990
+So what you need to do is actually send the ping from the same subnet as PC1. So, you can do it from
+
+41
+00:04:13.990 --> 00:04:20.440
+PC1 itself. But if it's not possible for you to get on PC1, what you need to do is send it
+
+42
+00:04:20.440 --> 00:04:28.170
+from R1, but from a source address of 10.0.1.1, the same subnet that the user is in.
+
+43
+00:04:28.170 --> 00:04:31.300
+And the way you do that is with an extended ping.
+
+44
+00:04:31.300 --> 00:04:36.790
+So the next slide, you'll see when we've got the problem. So the PC1, we do a ping from there and
+
+45
+00:04:36.790 --> 00:04:39.660
+we can see it's failing because we're getting a timeout.
+
+46
+00:04:39.730 --> 00:04:46.360
+But then, when we do just a normal ping from R1, it is succeeding because it's coming from the IP
+
+47
+00:04:46.360 --> 00:04:51.320
+address of the exit interface, which R4 does have a path back to.
+
+48
+00:04:51.330 --> 00:04:55.810
+So the way that we need to test it and do this in the real world as well, if you're ever doing a ping
+
+49
+00:04:55.810 --> 00:05:02.380
+from a router because our users complained of connectivity issues, do the ping with the source address
+
+50
+00:05:02.470 --> 00:05:04.060
+on the same subnet.
+
+51
+00:05:04.060 --> 00:05:09.940
+So the way that you invoke an extended ping is just enter 'ping' and then hit enter. 
+
+52
+00:05:09.940 --> 00:05:15.760
+It will then go through a wizard that will ask you the options you want to set for the ping.
+
+53
+00:05:15.760 --> 00:05:21.550
+So, the first thing it asks is, "Do you want to use IP as the protocol?" That's always going to be a yes, so you can
+
+54
+00:05:21.550 --> 00:05:28.300
+just hit enter to accept the default of IP. You then enter the target IP address. It will then ask you
+
+55
+00:05:28.350 --> 00:05:33.370
+the repeat count, so you can send more than the default of 5 pings if you want.
+
+56
+00:05:33.370 --> 00:05:39.550
+This can be useful if you've got, say, an intermittent issue, and you want to just keep sending pings to see
+
+57
+00:05:39.550 --> 00:05:41.470
+if it's sometimes going up and down.
+
+58
+00:05:41.500 --> 00:05:48.760
+So in that case, you could set for example, a repeat count of 1000 and it would keep sending 1000 pings before
+
+59
+00:05:48.760 --> 00:05:49.970
+it stopped.
+
+60
+00:05:50.010 --> 00:05:55.750
+Datagram size, this is useful to troubleshoot a suspected MTU issue.
+
+61
+00:05:55.750 --> 00:06:02.080
+If the MTU, the Maximum Transmission Unit, is causing a problem, then you can set the packet to be
+
+62
+00:06:02.080 --> 00:06:04.390
+different sizes to check that.
+
+63
+00:06:04.690 --> 00:06:10.180
+You can also set a timeout. We'll normally just leave that at the default of two. And then the one we're interested in here
+
+64
+00:06:10.180 --> 00:06:15.280
+is we want to set the source address. To get there, you have to say yes, when it asks you, "Do you want to
+
+65
+00:06:15.310 --> 00:06:17.580
+go into the extended commands?"
+
+66
+00:06:17.590 --> 00:06:22.690
+So we say, "Yes" there. The first thing that it'll ask is, "What do you want to use as a source address?"
+
+67
+00:06:23.020 --> 00:06:28.360
+Then we can say the IP address that the actual client is having the problems is in, and then just keep hitting
+
+68
+00:06:28.360 --> 00:06:33.460
+enter to accept the defaults for everything else. And now, we can see that the ping is failing from
+
+69
+00:06:33.460 --> 00:06:42.130
+R1 now because the destination does not have a path back to the 10.0.1.1 IP address.
+
+70
+00:06:42.130 --> 00:06:46.300
+Okay, so that's extended ping. Very useful command as well.
+
+71
+00:06:46.330 --> 00:06:54.550
+Next up, we have traceroute. Traceroute is very similar to ping, and it's also used for checking connectivity
+
+72
+00:06:54.580 --> 00:07:02.950
+what traceroute does is it traces the path the traffic is taking when it's going across the network,
+
+73
+00:07:04.000 --> 00:07:11.770
+and you see here, we've done a traceroute from R1 to R3. It uses ICMP echo request as well.
+
+74
+00:07:11.960 --> 00:07:18.640
+But the difference between a traceroute and a normal ping is that the traceroute also takes advantage
+
+75
+00:07:18.640 --> 00:07:30.260
+of the TTL field, which is in the IP header. TTL is Time To Live. The TTL is used as a route loop prevention
+
+76
+00:07:30.260 --> 00:07:31.020
+mechanism.
+
+77
+00:07:31.820 --> 00:07:39.830
+Every time that a router passes a packet on from one interface to another, it decrements the TTL by one.
+
+78
+00:07:40.120 --> 00:07:47.210
+So, say we had a loop between R1 and R2, where R1 was sending traffic to R2, and we had
+
+79
+00:07:47.210 --> 00:07:52.400
+an issue where R2 thought it sends out traffic back to R1 again.
+
+80
+00:07:52.400 --> 00:07:57.310
+But what would happen would be the traffic would go from R1 to R2, to R1 to R2, and so on.
+
+81
+00:07:57.380 --> 00:07:59.870
+It would just keep bouncing back and forth.
+
+82
+00:08:00.050 --> 00:08:04.940
+And if we were generating more traffic, that would eventually cause so much traffic on the link, it would
+
+83
+00:08:04.940 --> 00:08:11.480
+congest it, and it would really bring our network down. TTL stops that from happening. Because let's say
+
+84
+00:08:11.480 --> 00:08:18.860
+that we sent the packet with a TTL of 15, it would get to R2 it would decrement it by 1 to 14 and send
+
+85
+00:08:18.860 --> 00:08:23.450
+it back to R1. R1 would reduce it to 13 and send it on again.
+
+86
+00:08:23.450 --> 00:08:29.380
+Eventually, we would get down to 0 and R2 or R1, whichever one it ended up on, would drop
+
+87
+00:08:29.390 --> 00:08:30.490
+the packet.
+
+88
+00:08:30.830 --> 00:08:37.960
+When it does drop the packet, it sends and back a time exceeded message to the sender to let it know that
+
+89
+00:08:37.970 --> 00:08:40.820
+it was dropped because the TTL was exceeded.
+
+90
+00:08:41.059 --> 00:08:43.360
+So it traced route takes advantage of this.
+
+91
+00:08:43.370 --> 00:08:49.820
+What traceroute does is it works like a normal ping, but when we send the first ping, it gets sent with
+
+92
+00:08:49.820 --> 00:08:56.450
+a TTL of 1. So that will reach the first hop, which will then drop it, and then send a time exceeded
+
+93
+00:08:56.450 --> 00:08:56.960
+reply.
+
+94
+00:08:56.980 --> 00:09:03.320
+So you see that happening here, we are doing a traceroute from R1 to the 10.1.0.1 interface,
+
+95
+00:09:03.470 --> 00:09:06.890
+which is on R3, but we send it as a traceroute.
+
+96
+00:09:06.890 --> 00:09:13.760
+So, it goes out with a TTL of 1. The packet will reach R2 because it's the first hop. R2 will
+
+97
+00:09:13.760 --> 00:09:20.270
+decrement the TTL by 1, it gets to 0, so it drops it, and it will send a time exceeded message back
+
+98
+00:09:20.270 --> 00:09:21.160
+to R1.
+
+99
+00:09:21.350 --> 00:09:29.690
+So R1 learns that R2, its IP address 10.0.0.2, was the first hop. R1 will
+
+100
+00:09:29.690 --> 00:09:35.440
+then send another packet. This time, with a TTL of 2. So, that will get as far as the second hop.
+
+101
+00:09:35.440 --> 00:09:39.400
+Our traffic is only going 2 hops in this example,
+
+102
+00:09:39.410 --> 00:09:41.330
+so that is the final destination.
+
+103
+00:09:41.450 --> 00:09:46.640
+So R3 will send back an echo reply, and then the traceroute has been completed.
+
+104
+00:09:46.640 --> 00:09:53.390
+If we were sending something, maybe 10 hops away, then R1 would send the first packet with a TTL
+
+105
+00:09:53.390 --> 00:09:57.680
+of 1, then a TTL of 2, then a TTL of 3, and so on.
+
+106
+00:09:57.680 --> 00:10:04.400
+And by doing that, it's able to map out the path that the traffic is taking, hop by hop, all the way across
+
+107
+00:10:04.400 --> 00:10:12.280
+to the destination. If we have a successful traceroute, the output will look like this.
+
+108
+00:10:12.280 --> 00:10:15.390
+So here, we did a traceroute to 10.1.2.1.
+
+109
+00:10:15.400 --> 00:10:20.770
+We see the first hop is 10.0.0.2, the second hop is 10.1.0.1, and then
+
+110
+00:10:20.770 --> 00:10:24.090
+it got to the destination 10.1.1.1.
+
+111
+00:10:24.110 --> 00:10:27.280
+Now, if a ping succeeds and a traceroute fails,
+
+112
+00:10:27.280 --> 00:10:28.190
+don't worry about it.
+
+113
+00:10:28.300 --> 00:10:32.010
+The traffic is working. Sometimes, the last hop will fail in a traceroute.
+
+114
+00:10:32.170 --> 00:10:35.680
+Also, sometimes, firewalls will drop traceroute traffic as well.
+
+115
+00:10:35.680 --> 00:10:36.790
+They will normally do that.
+
+116
+00:10:38.590 --> 00:10:39.100
+Okay,
+
+117
+00:10:39.130 --> 00:10:40.810
+this example,
+
+118
+00:10:40.870 --> 00:10:45.870
+I can see that the packet is getting as far as 10.1.0.1.
+
+119
+00:10:45.970 --> 00:10:48.700
+It hit the first hop at 10.0.0.2,
+
+120
+00:10:48.790 --> 00:10:53.400
+then it hit the second hop at 10.1.0.1, and it's failing at that point.
+
+121
+00:10:53.410 --> 00:11:00.760
+It's not getting to the final destination of 10.1.2.1. So a scenario where this would
+
+122
+00:11:00.760 --> 00:11:01.120
+happen,
+
+123
+00:11:01.120 --> 00:11:07.000
+let's say that we ping 10.1.2.1 and the ping fails. The next thing to do is to do a
+
+124
+00:11:07.000 --> 00:11:13.090
+traceroute to 10.1.2.1 to see how far the packet is getting. If the packet is getting
+
+125
+00:11:13.090 --> 00:11:19.690
+as far as the router at 10.1.0.1, and then it's failing there, then it's highly likely that the issue
+
+126
+00:11:19.690 --> 00:11:22.840
+is on that router 10.1.0.1.
+
+127
+00:11:22.930 --> 00:11:28.750
+So we would then go into the command line on that router, do a 'show ip route' and it's probably missing
+
+128
+00:11:28.750 --> 00:11:29.220
+the route.
+
+129
+00:11:29.290 --> 00:11:33.880
+If it's not missing the route in the routing table, it's going to be another issue on that router.
+
+130
+00:11:34.030 --> 00:11:39.370
+This saves us a a lot of time of going hop by hop, all the way from the source to the destination.
+
+131
+00:11:39.640 --> 00:11:42.200
+It quickly shows us the most likely place where
+
+132
+00:11:42.220 --> 00:11:49.690
+the problem is. So, it's a time saving technique. Now, when the traceroute does fail, you can save time, because
+
+133
+00:11:49.690 --> 00:11:54.250
+what will happen is you'll have to sit there for ages waiting for it to time out. A way that you can
+
+134
+00:11:54.250 --> 00:11:55.380
+abort and break out of the
+
+135
+00:11:55.420 --> 00:12:02.440
+the command, is by pressing Ctrl-Shift-6. So hold down the keys, Ctrl-Shift-6, all at the same
+
+136
+00:12:02.440 --> 00:12:06.210
+time, and that will break you out to the traceroute command.
+
+137
+00:12:06.290 --> 00:12:09.170
+Okay so that was ping and traceroute.
+
+138
+00:12:09.310 --> 00:12:15.700
+Some other tools we can use for basic connectivity troubleshooting are tools that we covered earlier
+
+139
+00:12:15.700 --> 00:12:18.940
+in the Layer 1 and the Layer 2 lectures.
+
+140
+00:12:19.000 --> 00:12:21.240
+So, I'm just going to recap them for you here.
+
+141
+00:12:21.250 --> 00:12:27.100
+This is a reminder if you come back to watch this lecture because you do have a troubleshooting connectivity
+
+142
+00:12:27.100 --> 00:12:30.260
+issue, to list them all in one place.
+
+143
+00:12:30.310 --> 00:12:35.820
+So, our Layer 1 troubleshooting tools are 'show ip interface brief' and 'show interface'.
+
+144
+00:12:35.830 --> 00:12:40.630
+I'm not going to cover them again here because you saw them already earlier. Other commands
+
+145
+00:12:40.630 --> 00:12:47.320
+we can use to troubleshoot Layer 2 issues are 'show arp' and 'show mac address-table' on our switches.
+
+146
+00:12:48.580 --> 00:12:56.270
+To troubleshoot at Layer 4, we can 'telnet' to the destination IP address and the port number, and that
+
+147
+00:12:56.280 --> 00:13:00.220
+will tell us if it's answering on that port or not.
+
+148
+00:13:00.250 --> 00:13:05.090
+And finally, for troubleshooting DNS, we can do an 'nslookup'.
+
+149
+00:13:05.230 --> 00:13:11.800
+We can also ping by the FQDN to see if a DNS server is able to resolve that name.
+
+150
+00:13:11.870 --> 00:13:12.230
+Okay,
+
+151
+00:13:12.310 --> 00:13:15.610
+so that was basic connectivity troubleshooting.
+
+152
+00:13:15.700 --> 00:13:17.160
+See you in the next lecture.
+

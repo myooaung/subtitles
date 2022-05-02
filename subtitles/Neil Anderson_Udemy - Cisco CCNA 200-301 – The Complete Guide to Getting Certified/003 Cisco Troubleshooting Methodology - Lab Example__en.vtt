@@ -1,0 +1,289 @@
+WEBVTT
+1
+00:00:06.400 --> 00:00:14.050
+This lecture follows on from the Cisco troubleshooting methodology, and here, we're going to have a look
+
+2
+00:00:14.170 --> 00:00:19.820
+at how to do some connectivity troubleshooting using the commands
+
+3
+00:00:19.810 --> 00:00:28.180
+ping, traceroute, and telnet. So, the scenario we have here is we've got the network topology over
+
+4
+00:00:28.180 --> 00:00:39.910
+on the right, and there is a user on a PC which is behind the R1 router, and he's complained that
+
+5
+00:00:39.970 --> 00:00:41.860
+DNS isn't working.
+
+6
+00:00:41.860 --> 00:00:49.100
+And in the example, the DNS server is our R3 router.
+
+7
+00:00:49.240 --> 00:00:56.330
+Okay, so first thing to do, real world, whenever a user reports a problem is don't believe them.
+
+8
+00:00:56.350 --> 00:00:57.250
+Check it first.
+
+9
+00:00:57.250 --> 00:01:03.460
+I have spent hours troubleshooting problems that turned out not even to be a problem at all.
+
+10
+00:01:03.460 --> 00:01:10.630
+The thing was actually working. It was just that the user was making a mistake, maybe a typo or something
+
+11
+00:01:10.630 --> 00:01:15.400
+like that. So, let's verify if DNS is working or not.
+
+12
+00:01:15.430 --> 00:01:23.920
+On R1, I'm going to ping R3 by its hostname, so I'll enter the command 'ping R3',
+
+13
+00:01:25.810 --> 00:01:32.370
+and I can see that my domain server is 10.10.30.1, which is R3,
+
+14
+00:01:32.380 --> 00:01:33.660
+so that's good.
+
+15
+00:01:33.760 --> 00:01:39.130
+But it says unrecognized host or address, or protocol not running,
+
+16
+00:01:39.130 --> 00:01:40.830
+so we do have an issue here.
+
+17
+00:01:40.870 --> 00:01:43.650
+DNS is not working.
+
+18
+00:01:43.720 --> 00:01:48.030
+So if we suspected this was an IP connectivity issue,
+
+19
+00:01:48.130 --> 00:01:52.950
+the next thing that we would do is do a ping from the source to the destination.
+
+20
+00:01:52.960 --> 00:02:01.120
+So on R1, I'm going to ping 10.10.30.1. I'll ping it by its IP address.
+
+21
+00:02:01.120 --> 00:02:10.210
+This takes DNS out of the equation. And I can see that the ping is failing, it is unreachable.
+
+22
+00:02:10.310 --> 00:02:16.340
+So, I've got some kind of connectivity issue between R1 and R3.
+
+23
+00:02:16.430 --> 00:02:23.600
+Now, what I could do now is I could go hop by hop, checking to see where the problem is. So I could check
+
+24
+00:02:23.600 --> 00:02:28.640
+that R1 has got connectivity to R2, then R2 has got connectivity to R3,
+
+25
+00:02:28.760 --> 00:02:36.910
+and so on. But a command I can use that will save a bit of time sometimes is traceroute.
+
+26
+00:02:36.950 --> 00:02:45.080
+So, I'm going to traceroute to 10.10.30.1. Now, what the traceroute command does
+
+27
+00:02:45.380 --> 00:02:54.320
+is it does a ping, but it sends the ping with a Time To Live (TTL) value of 1, and then 2, and then 3,
+
+28
+00:02:54.410 --> 00:03:02.090
+and then so on. So because the Time To Live is set to a low value, if a router sees a packet
+
+29
+00:03:02.450 --> 00:03:09.440
+and the Time To Live gets down to zero, then the router will drop that packet. It's a loop prevention mechanism.
+
+30
+00:03:09.740 --> 00:03:16.220
+And we can leverage that with traceroute by sending the first ping with a Time To Live of 1, so it
+
+31
+00:03:16.220 --> 00:03:21.740
+will get to the first router. Then, it will send a Time To Live of 2, it will get to the second router.
+
+32
+00:03:22.040 --> 00:03:24.260
+Then, TTL of 3, and so on.
+
+33
+00:03:24.260 --> 00:03:32.360
+So what this does is it maps out the path from the source to the destination from end to end, and if there
+
+34
+00:03:32.360 --> 00:03:38.780
+is a break in the connectivity somewhere along that path, then the traceroute should get as far as that
+
+35
+00:03:38.810 --> 00:03:46.640
+router. So, it helps us identify which router the problem is on. Let's try to traceroute, and we can
+
+36
+00:03:46.640 --> 00:03:54.650
+see that the first hop, it's getting to R2 on 10.10.10.2, and then that's as far as
+
+37
+00:03:54.650 --> 00:03:59.030
+it got. The final router it got to is R2,
+
+38
+00:03:59.150 --> 00:04:02.590
+so the problem is most likely there.
+
+39
+00:04:02.690 --> 00:04:08.890
+Let's just jump straight on to R2 and see what we can see on there.
+
+40
+00:04:10.000 --> 00:04:20.320
+Okay, so here I am on R2. On R2, I'm going to ping R3 on 10.10.30.1,
+
+41
+00:04:20.589 --> 00:04:24.640
+and this ping, I can see, is failing.
+
+42
+00:04:24.690 --> 00:04:31.180
+So the next thing I'm going to do is R2 does not have an interface directly connected to the
+
+43
+00:04:31.180 --> 00:04:32.940
+10.10.30.0 network,
+
+44
+00:04:32.980 --> 00:04:35.310
+so it would need a route to get there.
+
+45
+00:04:35.350 --> 00:04:38.640
+Don't worry about routing too much now because we're going to cover that
+
+46
+00:04:38.650 --> 00:04:40.010
+in a later section.
+
+47
+00:04:40.060 --> 00:04:46.460
+But for now, I can check the routing table with the 'show ip route' command.
+
+48
+00:04:46.680 --> 00:04:52.320
+So I do this, and I can see that, yes, there is no route to 10.10.30.0,
+
+49
+00:04:52.660 --> 00:04:54.320
+so I'm going to fix that.
+
+50
+00:04:54.370 --> 00:05:01.870
+I'll enter the command 'config t' to get to global configuration, and the command to enter a static
+
+51
+00:05:01.870 --> 00:05:05.190
+route is 'ip route', then the network
+
+52
+00:05:05.200 --> 00:05:14.370
+I want to get to, which is 10.10.30.0, the subnet mask is 255.255.255.0,
+
+53
+00:05:14.860 --> 00:05:21.250
+and the next hop address to get there, which I need to have an interface is on the same subnet, is
+
+54
+00:05:21.370 --> 00:05:25.890
+10.10.20.1 on R3.
+
+55
+00:05:26.230 --> 00:05:35.500
+So I'll try that and then 'end' to get back to the enable prompt, and I'll ping 10.10.30.1
+
+56
+00:05:35.520 --> 00:05:40.270
+again, and I can see that the ping is successful.
+
+57
+00:05:40.270 --> 00:05:45.650
+If I now go back on to R1, then hopefully, the ping will work
+
+58
+00:05:45.660 --> 00:05:55.780
+okay from here too. So, here's me back on R1. I'll ping 10.10.30.1, and the ping is
+
+59
+00:05:55.780 --> 00:05:56.580
+successful now,
+
+60
+00:05:56.610 --> 00:06:03.490
+so I fixed my connectivity problem. Okay, so that was a demonstration of how to use ping and traceroute.
+
+61
+00:06:03.940 --> 00:06:12.070
+The other command we can use here is telnet. So ping and traceroute will troubleshoot Layer 3 problems.
+
+62
+00:06:12.400 --> 00:06:19.210
+You can use telnet to help with Layer 4 and above problems. What telnet you can do with it is, you can
+
+63
+00:06:19.210 --> 00:06:21.420
+telnet to a particular port.
+
+64
+00:06:21.460 --> 00:06:30.280
+So from R1, I'm going to telnet to 10.10.30.1, and I'm going to telnet to
+
+65
+00:06:30.280 --> 00:06:37.540
+port 53, which is the DNS port, and this should tell me if DNS is running on R3 or not.
+
+66
+00:06:39.270 --> 00:06:49.810
+And there, I can see that port 53 is open, so R3 is running DNS. So that looks good, just
+
+67
+00:06:49.810 --> 00:06:57.100
+to double check this, I'll check DNS is working. I will ping R3 by its hostname, and I can see that
+
+68
+00:06:57.100 --> 00:07:04.450
+it resolved 10.10.30.1, and the ping worked. When I did the telnet, if it did not see the
+
+69
+00:07:04.450 --> 00:07:11.440
+port is being open, then that would indicate that the service is not running on that particular destination.
+
+70
+00:07:11.780 --> 00:07:12.160
+Okay,
+
+71
+00:07:12.250 --> 00:07:20.440
+that was the basics of IP connectivity troubleshooting, and that wraps up this section. See you in the
+
+72
+00:07:20.440 --> 00:07:20.920
+next one.
+
