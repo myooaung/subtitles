@@ -1,0 +1,415 @@
+WEBVTT
+0
+1
+00:00:04.220 --> 00:00:08.940
+Alright, so we're going to take a look
+at a couple of gotchas with the project
+1
+
+2
+00:00:08.940 --> 00:00:13.860
+Lombok here. And so far we've looked at
+all the great stuff about project Lombok
+2
+
+3
+00:00:13.860 --> 00:00:17.190
+and if you've gone and run the
+application, you're going to see an error.
+3
+
+4
+00:00:17.190 --> 00:00:20.430
+So let me show you that right. Now I'm
+going to bring up the application in
+4
+
+5
+00:00:20.430 --> 00:00:24.660
+Spring Boot and stepping through this
+because you're likely to see this
+5
+
+6
+00:00:24.660 --> 00:00:30.599
+at some point. This is a fairly easy
+error. So you see we're again this long
+6
+
+7
+00:00:30.599 --> 00:00:36.809
+long stack trace here scrolling back up
+to the top and right here, we're getting
+7
+
+8
+00:00:36.809 --> 00:00:43.739
+a stack overflow error. And it's with the
+hash code and what's happening is it's
+8
+
+9
+00:00:43.739 --> 00:00:47.370
+really not a fault of project Lombok. It's just how things are working when it
+9
+
+10
+00:00:47.370 --> 00:00:51.059
+goes in and creates that hash code
+because we have those bi-directional
+10
+
+11
+00:00:51.059 --> 00:00:56.699
+references. Project Lombok isn't happy
+about that. It's not Lombok, it's the hash
+11
+
+12
+00:00:56.699 --> 00:01:01.710
+code implementation. It creates
+essentially a circular reference when we
+12
+
+13
+00:01:01.710 --> 00:01:05.369
+have those bi-directional references and
+it gets in an endless loop. So what we
+13
+
+14
+00:01:05.369 --> 00:01:09.900
+need to do is we need to exclude those
+properties from the hash code. And I'll
+14
+
+15
+00:01:09.900 --> 00:01:13.920
+show you exactly how to do that right
+now. So the first one we want to take
+15
+
+16
+00:01:13.920 --> 00:01:20.460
+take a look at is Category and we have
+the Data annotation there and we can
+16
+
+17
+00:01:20.460 --> 00:01:26.090
+come in and what we want to do is
+override the EqualsAndHashcode
+17
+
+18
+00:01:26.090 --> 00:01:30.990
+annotation. And we're doing that because
+when we do that, even though Data
+18
+
+19
+00:01:30.990 --> 00:01:35.759
+includes that, this allows us
+to set some properties on it. So what we
+19
+
+20
+00:01:35.759 --> 00:01:42.630
+want to do is use exclude and this is
+going to take an array and we're going
+20
+
+21
+00:01:42.630 --> 00:01:52.079
+to say, tell it to exclude recipes. Spell that right. So this will tell it to
+21
+
+22
+00:01:52.079 --> 00:01:56.219
+exclude from EqualsAndHashcode the
+recipes property and we need to do this
+22
+
+23
+00:01:56.219 --> 00:01:59.850
+on the other entities as well. So I got some notes that I'm
+23
+
+24
+00:01:59.850 --> 00:02:12.790
+looking at. And on
+this we want to do recipe. Then on Notes we
+24
+
+25
+00:02:12.790 --> 00:02:22.930
+need to do it as well. Okay I think we
+can just do the one side of the
+25
+
+26
+00:02:22.930 --> 00:02:26.950
+relationship here. I'm going to go ahead
+and try to run Spring Boot now and see
+26
+
+27
+00:02:26.950 --> 00:02:33.420
+if this comes up normally. So starting up
+Spring Boot, we can see it's starting, going for the
+27
+
+28
+00:02:33.420 --> 00:02:40.330
+get through. So yeah we're on port 8080
+listening. Let's come over to Chrome, see
+28
+
+29
+00:02:40.330 --> 00:02:45.190
+if we can refresh the page okay and we
+can see that it is in fact refreshing
+29
+
+30
+00:02:45.190 --> 00:02:51.160
+okay. So we are working again. So just
+just to recap what's happening there,
+30
+
+31
+00:02:51.160 --> 00:02:56.140
+we're seeing effectively a circular
+reference get created because of the
+31
+
+32
+00:02:56.140 --> 00:03:02.080
+bi-directional relationship and I'm
+excluding out notes in category so we
+32
+
+33
+00:03:02.080 --> 00:03:06.640
+can exclude out recipe. So it doesn't
+switch back on itself in that hashcode
+33
+
+34
+00:03:06.640 --> 00:03:11.470
+function and cause the the stack
+overflow here. So kind of an interesting
+34
+
+35
+00:03:11.470 --> 00:03:16.540
+little problem that we encounter but it
+is how project Lombok is working to
+35
+
+36
+00:03:16.540 --> 00:03:20.920
+generate that hashcode function. If we
+are going to depend on the hashcode and
+36
+
+37
+00:03:20.920 --> 00:03:25.209
+equals, we want to probably inspect the
+Lombok code to see exactly what it's
+37
+
+38
+00:03:25.209 --> 00:03:29.320
+doing, make sure that it's working for
+our entities the way we'd expect it
+38
+
+39
+00:03:29.320 --> 00:03:34.690
+to. So having a code generator for you
+doesn't always know everything. So
+39
+
+40
+00:03:34.690 --> 00:03:41.799
+just be aware of that. Okay I'm one other
+problem and it's kind of a strange one
+40
+
+41
+00:03:41.799 --> 00:03:45.519
+because it's a intermittent and I'm not
+seeing it all the time but I got the
+41
+
+42
+00:03:45.519 --> 00:03:49.750
+exception up here. You may encounter this
+as well. That's why I'm appending to this
+42
+
+43
+00:03:49.750 --> 00:03:55.180
+video this problem here. You can see here
+we have a lazy initialization exception
+43
+
+44
+00:03:55.180 --> 00:04:01.690
+and what's happening is in our bootstrap
+class, we are doing this getRecipes()
+44
+
+45
+00:04:01.690 --> 00:04:07.390
+method and what's going to happen in
+that, each time we go in and out of the
+45
+
+46
+00:04:07.390 --> 00:04:11.320
+Spring Data JPA
+repositories, we are going in and out of
+46
+
+47
+00:04:11.320 --> 00:04:17.079
+a Hibernate transaction. So the lazy
+collections need to get initialized within
+47
+
+48
+00:04:17.079 --> 00:04:21.190
+a transaction and within
+the same Hibernate session. And that the
+48
+
+49
+00:04:21.190 --> 00:04:26.020
+problem is we're getting this thrown
+because we are getting it outside of
+49
+
+50
+00:04:26.020 --> 00:04:30.520
+that and I find it kind of curious that
+it's happening this way because I do run
+50
+
+51
+00:04:30.520 --> 00:04:35.020
+sometimes and sometimes not. So I prefer
+to see things that are binary and their
+51
+
+52
+00:04:35.020 --> 00:04:39.430
+failure not kind of random. But I
+think it's just a timing issue with the
+52
+
+53
+00:04:39.430 --> 00:04:44.490
+threads and how it's working in the
+transactional context. Now a very easy
+53
+
+54
+00:04:44.490 --> 00:04:51.840
+way around this, is we are going to utilize
+a new annotation called transactional.
+54
+
+55
+00:04:51.840 --> 00:04:56.440
+And this is part of the Spring Framework
+we really haven't gotten into
+55
+
+56
+00:04:56.440 --> 00:05:01.690
+transactions, but by doing this on the
+application event, now we're going to
+56
+
+57
+00:05:01.690 --> 00:05:07.750
+direct the Spring Framework to create a
+transaction around this method. So now
+57
+
+58
+00:05:07.750 --> 00:05:11.350
+everything is going to happen in the
+same transactional context and we won't
+58
+
+59
+00:05:11.350 --> 00:05:16.570
+see this lazy initialization exception. So remember any properties and the
+59
+
+60
+00:05:16.570 --> 00:05:21.070
+many relationships are going to be
+initialized lazily and that's what's
+60
+
+61
+00:05:21.070 --> 00:05:24.670
+happening with Hibernators. It's going to
+go out there and when we call that
+61
+
+62
+00:05:24.670 --> 00:05:29.470
+getter on that, you can see that's
+happening with inside the hash code
+62
+
+63
+00:05:29.470 --> 00:05:34.180
+function which part of the stuff from
+project Lombok and it gets
+63
+
+64
+00:05:34.180 --> 00:05:42.040
+thrown right here. So kind of strange how
+it is in fact happening but by adding in
+64
+
+65
+00:05:42.040 --> 00:05:45.190
+that transactional, we'll get everything
+running within the same transactional.
+65
+
+66
+00:05:45.190 --> 00:05:50.800
+Context transactional boundaries, we're
+going to expand them out to the top of
+66
+
+67
+00:05:50.800 --> 00:05:56.800
+this method here and that will clear up
+that error. So like I said you may or may
+67
+
+68
+00:05:56.800 --> 00:06:01.480
+not encounter this in development
+and testing. It was kind of intermittent,
+68
+
+69
+00:06:01.480 --> 00:06:05.860
+so kind of a strange one. But easy enough
+to get around. All we got to do is add
+69
+
+70
+00:06:05.860 --> 00:06:08.910
+that transactional scope.

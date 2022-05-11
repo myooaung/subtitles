@@ -1,0 +1,783 @@
+WEBVTT
+0
+1
+00:00:03.279 --> 00:00:10.030
+Okay we got a very simple example using
+Spring Boot with a RabbitMQ here and
+1
+
+2
+00:00:10.030 --> 00:00:15.019
+what I have is a simple application. It's a
+web application we're going to back it
+2
+
+3
+00:00:15.019 --> 00:00:20.509
+up with MySQL. So you can see the
+examples running. I'm actually running in
+3
+
+4
+00:00:20.509 --> 00:00:26.110
+the background here. I am running MySQL
+in a Docker container also running
+4
+
+5
+00:00:26.110 --> 00:00:30.469
+RabbitMQ in a Docker container. If you're
+not familiar with Docker I do have a
+5
+
+6
+00:00:30.469 --> 00:00:34.430
+whole course on Docker. So definitely
+worth checking out but you don't need to
+6
+
+7
+00:00:34.430 --> 00:00:38.000
+be running that in a container, you just need
+to have those services available on
+7
+
+8
+00:00:38.000 --> 00:00:45.199
+localhost and for MySQL, these by default
+it's going to be looking for a Spring
+8
+
+9
+00:00:45.199 --> 00:00:51.649
+Boot schema or a schema specifically to
+this, the database schema of springboot
+9
+
+10
+00:00:51.649 --> 00:00:56.499
+_rabbitmq-example you can see
+here on the screen this is a
+10
+
+11
+00:00:56.499 --> 00:01:01.809
+prerequisite to run this and then you're
+also going to need to have RabbitMQ
+11
+
+12
+00:01:01.809 --> 00:01:07.340
+running on localhost at port 5671. Now of course the source code
+12
+
+13
+00:01:07.340 --> 00:01:12.380
+for this example is available up on
+GitHub in my little area of GitHub and
+13
+
+14
+00:01:12.380 --> 00:01:18.800
+you can go to github/springframeworkguru and this repository is
+14
+
+15
+00:01:18.800 --> 00:01:25.640
+/spring-boot-rabbitmq-example. So scroll down here in the
+15
+
+16
+00:01:25.640 --> 00:01:29.660
+README a little bit more, the application
+flow so what we're going to see here in
+16
+
+17
+00:01:29.660 --> 00:01:34.190
+the application we'll bring up the web
+application, pretty simple application
+17
+
+18
+00:01:34.190 --> 00:01:36.200
+I actually have other examples of this out
+there
+18
+
+19
+00:01:36.200 --> 00:01:41.270
+CRUD style application for a product, we
+can create a product and on that I've
+19
+
+20
+00:01:41.270 --> 00:01:46.490
+added a link to increment a message and
+what that link is going to do is hit a
+20
+
+21
+00:01:46.490 --> 00:01:53.600
+controller action send a message to the
+queue and then Rabbit will pick up that
+21
+
+22
+00:01:53.600 --> 00:01:59.870
+message and update the database for us.
+So I am going to toggle over to IntelliJ
+22
+
+23
+00:01:59.870 --> 00:02:04.970
+and we'll step through the source code
+example now the first thing I got up
+23
+
+24
+00:02:04.970 --> 00:02:11.120
+here is a Spring Boot POM and we can see
+that I am using at the time of recording
+24
+
+25
+00:02:11.120 --> 00:02:16.080
+the latest release of Spring Boot that
+is 1.5.2
+25
+
+26
+00:02:16.080 --> 00:02:21.360
+You can see that up on line 17 there now the
+dependencies that we need to bring on
+26
+
+27
+00:02:21.360 --> 00:02:27.990
+the big one for RabbitMQ is going to be
+right there on line 28 to 31 the
+27
+
+28
+00:02:27.990 --> 00:02:33.750
+dependency for spring-boot-starter-amqp. Now that dependency as a curated
+28
+
+29
+00:02:33.750 --> 00:02:37.530
+dependency from the Spring guys in which
+will bring in everything that we need to
+29
+
+30
+00:02:37.530 --> 00:02:46.710
+talk to RabbitMQ. Now the next thing down
+on 33 to 36 is the MySQL connector so
+30
+
+31
+00:02:46.710 --> 00:02:50.700
+that is going to give us the drivers
+that we need to talk to the MySQL
+31
+
+32
+00:02:50.700 --> 00:02:58.080
+database and then finally on 38 to 41 I
+am doing in the Spring Boot or the
+32
+
+33
+00:02:58.080 --> 00:03:04.530
+Spring Boot Starter for Spring Data JPA
+and this is what's going to bring in both Spring
+33
+
+34
+00:03:04.530 --> 00:03:10.410
+Data JPA and Hibernate which is the
+dependency of the Spring Data JPA so
+34
+
+35
+00:03:10.410 --> 00:03:14.610
+we're using Hibernate and Spring Data
+for all our persistence operations and
+35
+
+36
+00:03:14.610 --> 00:03:22.500
+then 43 there, 43 to 46 we're bringing in
+the starter for Thymeleaf then below
+36
+
+37
+00:03:22.500 --> 00:03:27.840
+that 48 to 50, we are bringing in the
+Spring Boot Starter for web and then
+37
+
+38
+00:03:27.840 --> 00:03:32.340
+finally tests and I am being a bad
+developer here I don't really have any
+38
+
+39
+00:03:32.340 --> 00:03:38.489
+tests written for this. So let's a take a
+little step through this flow wise I am
+39
+
+40
+00:03:38.489 --> 00:03:43.320
+not focused on the MySQL persistence
+layer here so I'm not going to cover
+40
+
+41
+00:03:43.320 --> 00:03:47.519
+that. I do cover that in other videos so
+if you need some help with persistence
+41
+
+42
+00:03:47.519 --> 00:03:52.830
+go ahead and check those out but here I
+am focused on the message flow so what we
+42
+
+43
+00:03:52.830 --> 00:04:00.300
+are going to do is on the show page, we
+are going to provide a link to click on
+43
+
+44
+00:04:00.300 --> 00:04:04.350
+and on that link we'll click on and that
+that link is going to render by the
+44
+
+45
+00:04:04.350 --> 00:04:09.750
+product ID so this here sets up a link
+using a Thymeleaf tag which will be able
+45
+
+46
+00:04:09.750 --> 00:04:12.900
+to click on if you're not familiar with
+Thymeleaf, I having a whole course on
+46
+
+47
+00:04:12.900 --> 00:04:17.940
+Thymeleaf. So you can really deep dive on that
+if you want but here we'll get a link to
+47
+
+48
+00:04:17.940 --> 00:04:23.700
+click that will go to our ProductController and
+48
+
+49
+00:04:23.700 --> 00:04:28.710
+we have this indexProduct/{id}, so
+that's what's going to get executed by
+49
+
+50
+00:04:28.710 --> 00:04:35.250
+that way and I've set up the ProductService, kind of standard template I try
+50
+
+51
+00:04:35.250 --> 00:04:39.240
+to keep all business logic out of the
+controller so we'll do all the heavy
+51
+
+52
+00:04:39.240 --> 00:04:42.420
+lifting,
+"heavy lifting" inside of
+52
+
+53
+00:04:42.420 --> 00:04:48.720
+the ProductService and we see that, I'll
+just click through this, this is
+53
+
+54
+00:04:48.720 --> 00:04:54.350
+implemented in an interface and I can
+click right here to the implementation
+54
+
+55
+00:04:54.350 --> 00:05:00.720
+now what this does is it takes in the ID to
+get a simple map that we're going to put
+55
+
+56
+00:05:00.720 --> 00:05:07.770
+on the queue, we can get an ID so right
+there in line 75 we're just mapping to a
+56
+
+57
+00:05:07.770 --> 00:05:11.160
+String of ID and the ID value that was
+passed in from the controllers or
+57
+
+58
+00:05:11.160 --> 00:05:15.000
+whatever that is, doing a little log
+statement there so we can see it and
+58
+
+59
+00:05:15.000 --> 00:05:21.210
+then we are using the RabbitTemplate to convert and send and if you're familiar with
+59
+
+60
+00:05:21.210 --> 00:05:25.920
+the JMS stuff for Spring just like JmsTemplate but RabbitTemplate and we're
+60
+
+61
+00:05:25.920 --> 00:05:31.650
+going to shoot it down to a queue and
+that action map. So next thing that's
+61
+
+62
+00:05:31.650 --> 00:05:37.530
+going to come into play is our ProductMessageListener. This is set up to
+62
+
+63
+00:05:37.530 --> 00:05:44.520
+listen on that queue and what he's going
+to do is log a message, we're going to
+63
+
+64
+00:05:44.520 --> 00:05:48.990
+see that on line 32, we're converting
+that String to a Long because it's what
+64
+
+65
+00:05:48.990 --> 00:05:53.930
+how we're storing the ID in the database
+we are going to fetch, that we have a
+65
+
+66
+00:05:53.930 --> 00:05:59.190
+boolean value on the product to see if a
+message has been received so we'll flip
+66
+
+67
+00:05:59.190 --> 00:06:04.920
+that to true and then we will increment
+the message count by one. So every time
+67
+
+68
+00:06:04.920 --> 00:06:10.260
+we get a message we'll set it true,
+implement by one so we can see that go
+68
+
+69
+00:06:10.260 --> 00:06:15.750
+up and then finally on 37 we are going
+to save that message so that's kind of
+69
+
+70
+00:06:15.750 --> 00:06:19.440
+how everything flows through the system
+we got a couple minor configuration
+70
+
+71
+00:06:19.440 --> 00:06:24.600
+things to look at so we are doing that
+in the SpringBootApplication class now
+71
+
+72
+00:06:24.600 --> 00:06:29.010
+in this main class for Spring Boot is
+also treated as a configuration class
+72
+
+73
+00:06:29.010 --> 00:06:35.520
+first Spring so we can wire up beans in
+that and now one thing that we want to
+73
+
+74
+00:06:35.520 --> 00:06:40.139
+do is set up a public final
+static String for our message queue
+74
+
+75
+00:06:40.139 --> 00:06:44.490
+because we need to use that value in
+several places. You saw me using that in
+75
+
+76
+00:06:44.490 --> 00:06:50.850
+the service, that consumes and produces
+the messages so we don't want to
+76
+
+77
+00:06:50.850 --> 00:06:54.330
+repeat ourselves, just good programming, don't repeat yourself. If this was a
+77
+
+78
+00:06:54.330 --> 00:06:58.950
+larger Enterprise class application I'd
+probably make that property externalized
+78
+
+79
+00:06:58.950 --> 00:07:04.889
+so we're not hard coding it here but
+it's just an example so on line 18 we do
+79
+
+80
+00:07:04.889 --> 00:07:11.340
+have a hard-coded queue value so if this is
+a large Enterprise type application
+80
+
+81
+00:07:11.340 --> 00:07:14.250
+you'd probably want to externalize that
+to property so you could change that
+81
+
+82
+00:07:14.250 --> 00:07:17.669
+without doing a code change should you
+need to.
+82
+
+83
+00:07:17.669 --> 00:07:25.979
+So on line 20 to 21 there we are creating a
+queue using the queue name that we
+83
+
+84
+00:07:25.979 --> 00:07:32.760
+defined on 18 or create a topic and then
+we are creating a Binding
+84
+
+85
+00:07:32.760 --> 00:07:38.100
+Builder there. So this is all the RabbitMQ type stuff and the next thing
+85
+
+86
+00:07:38.100 --> 00:07:42.360
+so this sets up kind of the plumbing in
+and out of Rabbit we want to set up a
+86
+
+87
+00:07:42.360 --> 00:07:48.440
+Listener Container. So what we are going
+to do is set up a listenerAdapter and
+87
+
+88
+00:07:48.440 --> 00:07:54.479
+this type of style for RabbitMQ, it can
+accept any POJO that will take in the
+88
+
+89
+00:07:54.479 --> 00:08:00.000
+value coming in off that queue. So this
+is our ProductMessageListener which I
+89
+
+90
+00:08:00.000 --> 00:08:04.320
+just showed you here, so this is what's
+going to receive it and you can see that
+90
+
+91
+00:08:04.320 --> 00:08:09.450
+it has a receiveMessage and we are
+setting this up as a Spring component so
+91
+
+92
+00:08:09.450 --> 00:08:12.530
+this is going to be a Spring bean I
+don't get configured by Spring and
+92
+
+93
+00:08:12.530 --> 00:08:16.800
+ProductRepository will get autowired
+in for us so all this will get set up by
+93
+
+94
+00:08:16.800 --> 00:08:22.020
+Spring so we are saying is this bean
+it's going to take in an instance of
+94
+
+95
+00:08:22.020 --> 00:08:26.340
+that so Spring managed bean, it's going
+to get injected into this and we are
+95
+
+96
+00:08:26.340 --> 00:08:30.330
+creating an Aadapter kind of a wrapper
+around the simple POJO that's going to
+96
+
+97
+00:08:30.330 --> 00:08:35.370
+do whatever we need it to do and then
+we're telling it the default listener
+97
+
+98
+00:08:35.370 --> 00:08:40.430
+method so we are specifying that so we
+have a custom bean so this kind of
+98
+
+99
+00:08:40.430 --> 00:08:47.040
+decouples  that implementation from RabbitMQ. So I'm going to start this up
+99
+
+100
+00:08:47.040 --> 00:08:52.090
+and run it now
+and again while this is starting and as
+100
+
+101
+00:08:52.090 --> 00:08:58.630
+a reminder you do need to have RabbitMQ
+running as well as MySQL and we can see
+101
+
+102
+00:08:58.630 --> 00:09:04.900
+down here that this is started you can
+see that's all up. I'm just going to move
+102
+
+103
+00:09:04.900 --> 00:09:12.310
+that up and let's come on over to Chrome
+and I want to pull this up so we can see
+103
+
+104
+00:09:12.310 --> 00:09:16.780
+log messages going across so down the
+bottom screen I have the Spring Boot
+104
+
+105
+00:09:16.780 --> 00:09:21.940
+console outputting so I'm going to hit
+refresh there we can see that it came
+105
+
+106
+00:09:21.940 --> 00:09:26.260
+back with a list of products. I don't
+have any products so I am going to go
+106
+
+107
+00:09:26.260 --> 00:09:36.660
+ahead and create a new product. Test
+product, we'll give them a price of 23
+107
+
+108
+00:09:36.660 --> 00:09:41.320
+some URL. I don't have my brains on this
+on that validating for a valid URL and
+108
+
+109
+00:09:41.320 --> 00:09:46.770
+I'm going to go ahead and submit that
+now we can see that I am logging to the
+109
+
+110
+00:09:46.770 --> 00:09:52.570
+SQL for Hibernate and we can see that
+that activity has occurred down there on
+110
+
+111
+00:09:52.570 --> 00:09:56.860
+the bottom of the screen where we didn't
+go ahead and insert a new Product ID and
+111
+
+112
+00:09:56.860 --> 00:10:00.750
+I can refresh this.
+112
+
+113
+00:10:01.010 --> 00:10:06.440
+Now here's my action, I'm going to go
+ahead and click on this and we see that
+113
+
+114
+00:10:06.440 --> 00:10:12.160
+I came back right away now what's going
+on here is some messages sent false
+114
+
+115
+00:10:12.160 --> 00:10:19.220
+zero, so what happened is, this
+came into the controller method, we sent
+115
+
+116
+00:10:19.220 --> 00:10:25.459
+the message to RabbitMQ and the browser
+returned right away but that message was
+116
+
+117
+00:10:25.459 --> 00:10:30.050
+off on the RabbitMQ, gone down
+asynchronous to the message broker we
+117
+
+118
+00:10:30.050 --> 00:10:34.940
+had a different thread listening on that
+and he got picked up so we can
+118
+
+119
+00:10:34.940 --> 00:10:40.130
+see that we did get an update here of
+the product. So let's go ahead and
+119
+
+120
+00:10:40.130 --> 00:10:45.949
+refresh this. Now we can see that message
+is sent is true and we have a message
+120
+
+121
+00:10:45.949 --> 00:10:51.920
+count that has been incremented so if I
+click on this again, we can see that the
+121
+
+122
+00:10:51.920 --> 00:10:58.550
+messages are getting processed almost
+right away and as I increment this, it's
+122
+
+123
+00:10:58.550 --> 00:11:01.730
+always going to be like a step behind
+it's almost a race to see who gets
+123
+
+124
+00:11:01.730 --> 00:11:05.690
+finished first if the web requests can
+do that sometimes it actually wins but
+124
+
+125
+00:11:05.690 --> 00:11:10.190
+typically you're going to get the old
+value returned and that update is going
+125
+
+126
+00:11:10.190 --> 00:11:16.010
+to occur after the page renders. So it
+does happen pretty darn fast
+126
+
+127
+00:11:16.010 --> 00:11:20.750
+sometimes it is a race and it doesn't catch
+up but so now we can see that we've gone
+127
+
+128
+00:11:20.750 --> 00:11:25.399
+through and then we are sending a
+message for that Product ID and that
+128
+
+129
+00:11:25.399 --> 00:11:30.019
+specific Product ID is getting updated
+by a message listener after the message
+129
+
+130
+00:11:30.019 --> 00:11:35.510
+has gone across the brailles of RabbitMQ
+and again if you want a complete source
+130
+
+131
+00:11:35.510 --> 00:11:39.900
+code for this example I do have it up on
+GitHub at
+131
+
+132
+00:11:39.900 --> 00:11:45.900
+springframeworkguru/spring-boot-rabbitmq-example
+132
+
+133
+00:11:45.900 --> 00:11:49.029
+so hope this helps you.

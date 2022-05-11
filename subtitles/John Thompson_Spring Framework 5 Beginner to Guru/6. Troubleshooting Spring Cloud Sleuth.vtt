@@ -1,0 +1,508 @@
+WEBVTT
+0
+1
+00:00:04.130 --> 00:00:07.799
+Okay, I want to share a little example here.
+This is actually from a client of mine
+1
+
+2
+00:00:07.799 --> 00:00:13.259
+and what we have is a problem. We're
+using a Spring Integration and Spring
+2
+
+3
+00:00:13.259 --> 00:00:18.600
+Sleuth. Now Spring integration obviously
+is for messaging and does a lot of
+3
+
+4
+00:00:18.600 --> 00:00:21.630
+messaging stuff through different
+channels. It's really cool
+4
+
+5
+00:00:21.630 --> 00:00:26.490
+application. I'm big fan of Spring
+Integration and Spring Cloud Sleuth is a
+5
+
+6
+00:00:26.490 --> 00:00:31.040
+way to do distributed tracing. And what
+it does is it will create a trace ID and
+6
+
+7
+00:00:31.040 --> 00:00:35.670
+that will follow your message as it goes
+across multiple hops. So it kind of sets
+7
+
+8
+00:00:35.670 --> 00:00:39.329
+up like message headers. So when you're
+going from one micro service to another
+8
+
+9
+00:00:39.329 --> 00:00:43.710
+micro service to another micro service
+you can get set up these trace IDs, so
+9
+
+10
+00:00:43.710 --> 00:00:47.610
+you can see a go through the
+whole flow, through the system. So really
+10
+
+11
+00:00:47.610 --> 00:00:51.329
+cool very handy thing to use when you're
+dealing with distributed systems.
+11
+
+12
+00:00:51.329 --> 00:00:56.550
+Now the problem that we were running
+into is when we got an exception, what
+12
+
+13
+00:00:56.550 --> 00:01:02.940
+would happen is the trace ID would get
+changed. We get a new trace ID and then
+13
+
+14
+00:01:02.940 --> 00:01:06.540
+we wouldn't be able to trace back to the
+original message flow that caused the
+14
+
+15
+00:01:06.540 --> 00:01:11.460
+error. Now it was logged in the payload
+of that but for rolling up consolidated
+15
+
+16
+00:01:11.460 --> 00:01:15.060
+logging. We didn't have that visibility
+because the trace ID was changing. So let
+16
+
+17
+00:01:15.060 --> 00:01:19.799
+me show you exactly what's going on here.
+But we created a very
+17
+
+18
+00:01:19.799 --> 00:01:24.420
+simple Spring Boot project to
+demonstrate the error to the Spring guys
+18
+
+19
+00:01:24.420 --> 00:01:29.820
+because that we thought it was and it
+could be a bug. And what we had. We'll show you
+19
+
+20
+00:01:29.820 --> 00:01:34.500
+exactly what we have here. So we have a
+Spring Boot application. So no big
+20
+
+21
+00:01:34.500 --> 00:01:38.820
+mystery there. Just runs the application.
+We have a flow configuration. So this is
+21
+
+22
+00:01:38.820 --> 00:01:45.509
+a configuration class for Spring and
+sets up a inbound channel, a task
+22
+
+23
+00:01:45.509 --> 00:01:50.909
+executor and so that's just going to set
+up a small task bull to process messages
+23
+
+24
+00:01:50.909 --> 00:01:57.090
+off of that. And now we have an
+integration channel. And basically he
+24
+
+25
+00:01:57.090 --> 00:02:01.770
+pulls in the message from the channel.
+And now we handle it. And our little
+25
+
+26
+00:02:01.770 --> 00:02:06.479
+logger here are our handler just
+throws a RuntimeException. And what this
+26
+
+27
+00:02:06.479 --> 00:02:10.800
+is going to do, it's going to cause
+Spring Integration to send that message
+27
+
+28
+00:02:10.800 --> 00:02:13.400
+and down the error Channel. So then down
+28
+
+29
+00:02:13.400 --> 00:02:19.670
+the default error channel. So this all baseline
+Spring or Spring Integration. Now what
+29
+
+30
+00:02:19.670 --> 00:02:24.950
+we also have as a scheduler. And
+basically, this is going to put a
+30
+
+31
+00:02:24.950 --> 00:02:28.579
+schedule
+message on the queue every three seconds.
+31
+
+32
+00:02:28.579 --> 00:02:33.890
+So it takes that so we got to set up to
+every three seconds. So that's going to
+32
+
+33
+00:02:33.890 --> 00:02:37.519
+go through it and then we set the
+logging level on Spring Cloud Sleuth to
+33
+
+34
+00:02:37.519 --> 00:02:43.700
+trace. So let me run this and I'll show
+you what's happening. So now, we're up and
+34
+
+35
+00:02:43.700 --> 00:02:51.440
+running. Expand that up. So now that
+there's our error, I'm going to stop this so
+35
+
+36
+00:02:51.440 --> 00:03:00.109
+we can go ahead and stop this. And now
+here's our trace ID. If I can do a
+36
+
+37
+00:03:00.109 --> 00:03:04.040
+control F on that, you can see it
+getting highlighted inside of IntelliJ.
+37
+
+38
+00:03:04.040 --> 00:03:10.519
+And over here, we see it's got a
+different trace ID and now it changes
+38
+
+39
+00:03:10.519 --> 00:03:16.670
+once we get into the error handler. So
+this is a Spring Sleuth class that's
+39
+
+40
+00:03:16.670 --> 00:03:21.379
+doing that and it spits, ignoring this
+trace ID. It should be carrying it
+40
+
+41
+00:03:21.379 --> 00:03:26.060
+through and creating a new trace ID. So
+you can see what my client was doing
+41
+
+42
+00:03:26.060 --> 00:03:30.129
+it's wrong. They're rolling this up into
+consolidated logging inside a Cabana. And
+42
+
+43
+00:03:30.129 --> 00:03:35.150
+when you search on this trace ID, you
+have no way of getting back to that
+43
+
+44
+00:03:35.150 --> 00:03:39.709
+trace ID. So what we want is that trace
+ID to be consistent now throughout the
+44
+
+45
+00:03:39.709 --> 00:03:46.310
+application. So we contacted Spring team
+on this. I'm going to show you this.
+45
+
+46
+00:03:46.310 --> 00:03:51.620
+So here's a chain. So we put together
+this application up in GitHub to show
+46
+
+47
+00:03:51.620 --> 00:03:57.640
+the problem with the trace.
+And Marcin is a great guy.
+47
+
+48
+00:03:57.640 --> 00:04:02.629
+First he suggested changing some of the
+dependencies that we had. We updated all
+48
+
+49
+00:04:02.629 --> 00:04:09.169
+that and got up to the latest and
+greatest. And you can see here 11:28, he
+49
+
+50
+00:04:09.169 --> 00:04:14.000
+says it's a bug. He sees the error. Sees
+it. Sees it's the bug. And now if we
+50
+
+51
+00:04:14.000 --> 00:04:22.130
+continue through here. So he says he'll
+try to fix it as soon as possible. And he
+51
+
+52
+00:04:22.130 --> 00:04:27.230
+comes in and has it done 11:55 to what I
+say 11:38 to 11:55
+52
+
+53
+00:04:27.230 --> 00:04:32.720
+so or 11:30
+something. So yeah not even a half hour
+53
+
+54
+00:04:32.720 --> 00:04:38.570
+there to get this turn around. So now, let
+me show you the build snapshot. Come back
+54
+
+55
+00:04:38.570 --> 00:04:46.370
+over here to IntelliJ. And let me just
+close this. And come over here to the
+55
+
+56
+00:04:46.370 --> 00:04:53.840
+POM. I actually commented it out. Now
+we're going to the snapshot. You also
+56
+
+57
+00:04:53.840 --> 00:05:00.650
+have to get the snapshot. You have to put
+in the Spring Snapshot library.
+57
+
+58
+00:05:00.650 --> 00:05:04.940
+You'll go ahead and import the changes. And
+now let's go ahead and run the
+58
+
+59
+00:05:04.940 --> 00:05:16.460
+application again. So it takes a second
+for it to start up. And there's our
+59
+
+60
+00:05:16.460 --> 00:05:23.930
+exceptions. So it might go ahead and stop
+this. So now, you can see the error thrown
+60
+
+61
+00:05:23.930 --> 00:05:31.040
+here. So now if I copy that. Do a Ctrl F
+on that. As you can see, in here is where
+61
+
+62
+00:05:31.040 --> 00:05:36.350
+a section right and here is where it was
+changing before but now we can see that
+62
+
+63
+00:05:36.350 --> 00:05:39.620
+we have the trace ID from the beginning
+all the way through. So what this means
+63
+
+64
+00:05:39.620 --> 00:05:45.110
+now if this is a distributed across
+multiple nodes, on multiple microservices,
+64
+
+65
+00:05:45.110 --> 00:05:49.190
+we do this client in mind does have
+Cabana going. So they're doing log
+65
+
+66
+00:05:49.190 --> 00:05:52.610
+scraping and rolling it up to Cabana, so
+it's searchable. So now, they'll be able
+66
+
+67
+00:05:52.610 --> 00:05:57.440
+to go into Cabana and trace through that
+entire thing. So special kudos to the
+67
+
+68
+00:05:57.440 --> 00:06:02.210
+Spring team. We did a good job here. What
+was important for the Spring guys is
+68
+
+69
+00:06:02.210 --> 00:06:06.230
+that we gave them a project inside of
+GitHub and said here's an example of
+69
+
+70
+00:06:06.230 --> 00:06:09.590
+what we think is wrong. And going into it,
+we didn't know if we were doing
+70
+
+71
+00:06:09.590 --> 00:06:12.710
+something wrong. There's something
+that we had to set because we expected
+71
+
+72
+00:06:12.710 --> 00:06:17.960
+this to work. Turns out that we were
+right. And within a half-hour, we had a
+72
+
+73
+00:06:17.960 --> 00:06:22.460
+patch that we're able to use and move
+forward with. So really great turnaround
+73
+
+74
+00:06:22.460 --> 00:06:26.060
+by the Spring guys really really love
+that. So this is just a really good
+74
+
+75
+00:06:26.060 --> 00:06:31.820
+example here, where you do run into a
+problem, to go and properly document them.
+75
+
+76
+00:06:31.820 --> 00:06:37.190
+Give a good working example of that
+problem and then you can get the
+76
+
+77
+00:06:37.190 --> 00:06:39.969
+Spring guys involved. They're very
+responsive. They're very
+77
+
+78
+00:06:39.969 --> 00:06:44.499
+helpful. We went through a couple initial
+troubleshooting. So yeah first up always
+78
+
+79
+00:06:44.499 --> 00:06:49.689
+is to upgrade to the latest current
+releases, which we did. Still experiencing
+79
+
+80
+00:06:49.689 --> 00:06:54.849
+the problem. We dug a little deeper and
+found out yeah there was a problem and
+80
+
+81
+00:06:54.849 --> 00:06:58.539
+how that was handling. So we should have
+been carrying out that trace ID all the
+81
+
+82
+00:06:58.539 --> 00:07:01.899
+way through. So you have a really great
+job from the Spring team. Great support
+82
+
+83
+00:07:01.899 --> 00:07:06.669
+for the product. So hope you've got a lot
+of benefit about this. Spring Integration
+83
+
+84
+00:07:06.669 --> 00:07:10.209
+is a great product. Spring is 
+a great product, especially when you're
+84
+
+85
+00:07:10.209 --> 00:07:13.110
+building distribute apps.

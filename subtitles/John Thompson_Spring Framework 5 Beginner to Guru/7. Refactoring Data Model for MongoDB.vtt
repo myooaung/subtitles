@@ -1,0 +1,835 @@
+WEBVTT
+0
+1
+00:00:05.170 --> 00:00:06.227
+Alright, we're gonna take a look
+1
+
+2
+00:00:06.227 --> 00:00:07.656
+at the refactoring that I've done
+2
+
+3
+00:00:07.656 --> 00:00:10.377
+for getting our data model over to MongoDB.
+3
+
+4
+00:00:10.377 --> 00:00:12.716
+The biggest problem that we were seeing
+4
+
+5
+00:00:12.716 --> 00:00:15.270
+is how we set up bidirectional mapping.
+5
+
+6
+00:00:15.270 --> 00:00:17.620
+And what I wanna do here,
+6
+
+7
+00:00:17.620 --> 00:00:20.120
+let's take a very simple look.
+7
+
+8
+00:00:21.628 --> 00:00:24.834
+Our UnitOfMeasure is a very simple example
+8
+
+9
+00:00:24.834 --> 00:00:27.278
+and what I've done there is on line 15
+9
+
+10
+00:00:27.278 --> 00:00:31.445
+I've put an id value on that and we also need a@Document.
+10
+
+11
+00:00:35.423 --> 00:00:38.466
+We're gonna explicitly call this a MongoDB document.
+11
+
+12
+00:00:38.466 --> 00:00:40.804
+In my testing, hardly enough, this is working
+12
+
+13
+00:00:40.804 --> 00:00:42.163
+without these annotations,
+13
+
+14
+00:00:42.163 --> 00:00:45.000
+but this is the proper way to do it.
+14
+
+15
+00:00:45.000 --> 00:00:46.115
+I was actually kind of surprised
+15
+
+16
+00:00:46.115 --> 00:00:48.107
+that it did come up and save okay
+16
+
+17
+00:00:48.107 --> 00:00:50.795
+inside of Mongo without these annotations.
+17
+
+18
+00:00:50.795 --> 00:00:54.937
+But we do wanna call this a Mongo document explicitly,
+18
+
+19
+00:00:54.937 --> 00:00:57.273
+because I think this is gonna help our application.
+19
+
+20
+00:00:57.273 --> 00:00:59.500
+We're changing the model a little bit differently,
+20
+
+21
+00:00:59.500 --> 00:01:03.148
+because before our Recipe, Notes, Ingredient,
+21
+
+22
+00:01:03.148 --> 00:01:04.837
+they were in three different tables
+22
+
+23
+00:01:04.837 --> 00:01:06.843
+in types of relational mapping.
+23
+
+24
+00:01:06.843 --> 00:01:10.421
+Now what I wanna do is create three different documents.
+24
+
+25
+00:01:10.421 --> 00:01:12.103
+We'll have a UnitOfMeasure document,
+25
+
+26
+00:01:12.103 --> 00:01:14.013
+we'll have a Category document,
+26
+
+27
+00:01:14.013 --> 00:01:16.005
+and then we'll have a Recipe document.
+27
+
+28
+00:01:16.005 --> 00:01:20.090
+But that Recipe is gonna be roughly the same data model,
+28
+
+29
+00:01:20.090 --> 00:01:21.978
+but now it's gonna be all together,
+29
+
+30
+00:01:21.978 --> 00:01:25.759
+so we'll be storing it in a complex Mongo document.
+30
+
+31
+00:01:25.759 --> 00:01:26.992
+So a little bit different.
+31
+
+32
+00:01:26.992 --> 00:01:29.653
+And the big change here in the relationships
+32
+
+33
+00:01:29.653 --> 00:01:32.841
+are, as of now, the Recipe is a single document,
+33
+
+34
+00:01:32.841 --> 00:01:36.244
+but even though Mongo does not have a relationships,
+34
+
+35
+00:01:36.244 --> 00:01:37.556
+like a relational database,
+35
+
+36
+00:01:37.556 --> 00:01:40.284
+we still wanna use our UnitOfMeasure
+36
+
+37
+00:01:40.284 --> 00:01:42.378
+from our Ingredients.
+37
+
+38
+00:01:42.378 --> 00:01:46.441
+In this case here, taking a look at Ingredient,
+38
+
+39
+00:01:46.441 --> 00:01:49.595
+so like UnitOfMeasure there.
+39
+
+40
+00:01:49.595 --> 00:01:50.931
+I'll do @Document in,
+40
+
+41
+00:01:50.931 --> 00:01:53.451
+oh, we don't want document here, my bad.
+41
+
+42
+00:01:53.451 --> 00:01:55.308
+Not that's a database reference,
+42
+
+43
+00:01:55.308 --> 00:01:57.614
+so the Ingredient is gonna get a pointer
+43
+
+44
+00:01:57.614 --> 00:02:00.534
+over to the UnitOfMeasure document
+44
+
+45
+00:02:00.534 --> 00:02:02.034
+inside of MongoDB.
+45
+
+46
+00:02:03.448 --> 00:02:07.615
+Our Recipe, we do wanna mark that as a @Document.
+46
+
+47
+00:02:11.869 --> 00:02:15.458
+And again, I've annotated it using the Spring Data
+47
+
+48
+00:02:15.458 --> 00:02:17.708
+annotation for an @Id value.
+48
+
+49
+00:02:21.426 --> 00:02:25.593
+And technically that should be a @DBRef too, I believe.
+49
+
+50
+00:02:27.388 --> 00:02:29.719
+Now we have these DBRef's and you can see
+50
+
+51
+00:02:29.719 --> 00:02:33.886
+I've removed the references here on line 40 and 45.
+51
+
+52
+00:02:34.009 --> 00:02:36.599
+That was what was causing that circular dependency,
+52
+
+53
+00:02:36.599 --> 00:02:39.636
+before that was causing our application to blow up.
+53
+
+54
+00:02:39.636 --> 00:02:42.565
+Now let's go ahead and, double check Category,
+54
+
+55
+00:02:42.565 --> 00:02:45.565
+we do want @Document on this as well.
+55
+
+56
+00:02:48.040 --> 00:02:51.123
+Now let's go ahead and start this up.
+56
+
+57
+00:02:58.630 --> 00:03:02.797
+And we can see that it did start up normally.
+57
+
+58
+00:03:02.815 --> 00:03:06.732
+Let's go ahead over to Chrome and take a look at this.
+58
+
+59
+00:03:06.732 --> 00:03:08.468
+You can see that I was doing a little testing there,
+59
+
+60
+00:03:08.468 --> 00:03:10.468
+so let's come back here.
+60
+
+61
+00:03:12.071 --> 00:03:15.571
+And we are now, completely clear that URL.
+61
+
+62
+00:03:16.733 --> 00:03:19.571
+Now, and I don't know why Chrome
+62
+
+63
+00:03:19.571 --> 00:03:20.702
+thinks this is Italian,
+63
+
+64
+00:03:20.702 --> 00:03:23.826
+doesn't look like it's Italian to me.
+64
+
+65
+00:03:23.826 --> 00:03:27.083
+So now I have my Spicy Grilled Chicken Taco again.
+65
+
+66
+00:03:27.083 --> 00:03:28.841
+I can go in and do a View.
+66
+
+67
+00:03:28.841 --> 00:03:31.471
+And this is coming up properly for us.
+67
+
+68
+00:03:31.471 --> 00:03:35.064
+Now if I come back over here to IntelliJ
+68
+
+69
+00:03:35.064 --> 00:03:37.102
+and see when we set that to zero,
+69
+
+70
+00:03:37.102 --> 00:03:38.670
+we get a random port there.
+70
+
+71
+00:03:38.670 --> 00:03:41.870
+So that's 63154, that is the port
+71
+
+72
+00:03:41.870 --> 00:03:44.198
+that MongoDB is running on.
+72
+
+73
+00:03:44.198 --> 00:03:47.615
+Our embedded instance of MongoDB copied that.
+73
+
+74
+00:03:47.615 --> 00:03:49.651
+And let's take a look at what's going inside of Mongo,
+74
+
+75
+00:03:49.651 --> 00:03:53.818
+so this Robo 3T, this is a very popular Mongo client.
+75
+
+76
+00:03:55.168 --> 00:03:57.515
+And it's pretty easy to use.
+76
+
+77
+00:03:57.515 --> 00:04:00.824
+And it is available for all the popular operating systems.
+77
+
+78
+00:04:00.824 --> 00:04:03.477
+I am running OSX, but if you're running Windows,
+78
+
+79
+00:04:03.477 --> 00:04:05.909
+I know there's flavors of it available for Windows.
+79
+
+80
+00:04:05.909 --> 00:04:07.508
+So if you want to be downloading that
+80
+
+81
+00:04:07.508 --> 00:04:08.995
+you can do so.
+81
+
+82
+00:04:08.995 --> 00:04:10.710
+And it is also available for Linux
+82
+
+83
+00:04:10.710 --> 00:04:12.279
+for you hard-core Linux guys.
+83
+
+84
+00:04:12.279 --> 00:04:13.758
+And you can see in my testing
+84
+
+85
+00:04:13.758 --> 00:04:16.147
+that port changed, so I actually wanna come in here,
+85
+
+86
+00:04:16.147 --> 00:04:20.314
+right-click, Edit that, 'cause I have set to port zero
+86
+
+87
+00:04:21.241 --> 00:04:23.681
+that embedded Mongo database is gonna come up
+87
+
+88
+00:04:23.681 --> 00:04:26.997
+in a random and available port each time.
+88
+
+89
+00:04:26.997 --> 00:04:29.011
+So now I'm gonna say Connect.
+89
+
+90
+00:04:29.011 --> 00:04:29.850
+And this will help you visualize
+90
+
+91
+00:04:29.850 --> 00:04:32.050
+what's going on inside of Mongo.
+91
+
+92
+00:04:32.050 --> 00:04:33.962
+So I'm gonna take a look at the Mongo Collections.
+92
+
+93
+00:04:33.962 --> 00:04:38.129
+These are, again, different from what we have here.
+93
+
+94
+00:04:38.644 --> 00:04:40.704
+Let's take a look at the unitOfMeasure
+94
+
+95
+00:04:40.704 --> 00:04:44.337
+and you can see that now I have documents.
+95
+
+96
+00:04:44.337 --> 00:04:47.016
+I have my Teaspoon, and also the class
+96
+
+97
+00:04:47.016 --> 00:04:50.703
+that it's related to in the ObjectId.
+97
+
+98
+00:04:50.703 --> 00:04:54.870
+So _id that is getting translated.
+98
+
+99
+00:04:54.995 --> 00:04:56.133
+Let's take a look at this
+99
+
+100
+00:04:56.133 --> 00:04:57.716
+inside of IntelliJ.
+100
+
+101
+00:05:01.200 --> 00:05:04.269
+So that id field is getting translated
+101
+
+102
+00:05:04.269 --> 00:05:07.852
+to the _id field inside of Mongo.
+102
+
+103
+00:05:10.005 --> 00:05:11.440
+Go back and take a look at the recipe,
+103
+
+104
+00:05:11.440 --> 00:05:14.190
+that's a little more interesting.
+104
+
+105
+00:05:15.359 --> 00:05:18.530
+Now we can see, we have the id field again,
+105
+
+106
+00:05:18.530 --> 00:05:22.153
+but now we have the description, prepTime, and all that.
+106
+
+107
+00:05:22.153 --> 00:05:24.330
+You can see that we do have data types here,
+107
+
+108
+00:05:24.330 --> 00:05:26.687
+associated with it.
+108
+
+109
+00:05:26.687 --> 00:05:29.104
+We have an Ingredients array.
+109
+
+110
+00:05:30.132 --> 00:05:32.791
+And these are objects.
+110
+
+111
+00:05:32.791 --> 00:05:34.732
+And now we can see the unitOfMeasure,
+111
+
+112
+00:05:34.732 --> 00:05:36.078
+so that is a reference.
+112
+
+113
+00:05:36.078 --> 00:05:38.203
+You can see this is set up as a DBRef
+113
+
+114
+00:05:38.203 --> 00:05:41.482
+back to the unitOfMeasure collection.
+114
+
+115
+00:05:41.482 --> 00:05:42.804
+You can see how that's working.
+115
+
+116
+00:05:42.804 --> 00:05:45.010
+So this is actually working quite nicely for us.
+116
+
+117
+00:05:45.010 --> 00:05:47.395
+Let's come back to Chrome and see.
+117
+
+118
+00:05:47.395 --> 00:05:48.978
+Let's go back here.
+118
+
+119
+00:05:50.176 --> 00:05:53.409
+And let's go ahead and update this.
+119
+
+120
+00:05:53.409 --> 00:05:55.685
+And we'll set a Cooktime to 12
+120
+
+121
+00:05:55.685 --> 00:05:58.102
+and make it Servings of 5.
+121
+
+122
+00:05:59.406 --> 00:06:01.239
+And we'll do a Submit.
+122
+
+123
+00:06:02.661 --> 00:06:06.248
+And we see that the data did update properly.
+123
+
+124
+00:06:06.248 --> 00:06:08.978
+I'm looking at the last four, 8e79.
+124
+
+125
+00:06:08.978 --> 00:06:12.145
+So let's take a look at that in Mongo.
+125
+
+126
+00:06:13.564 --> 00:06:15.327
+I'm really not sure how to refresh this tool,
+126
+
+127
+00:06:15.327 --> 00:06:16.577
+so close these.
+127
+
+128
+00:06:21.787 --> 00:06:25.823
+8e79, so let's take a look at this guy.
+128
+
+129
+00:06:25.823 --> 00:06:28.085
+And now we can see that this is changed
+129
+
+130
+00:06:28.085 --> 00:06:30.120
+in the database for us.
+130
+
+131
+00:06:30.120 --> 00:06:32.953
+We can see that inside of Robo 3T.
+131
+
+132
+00:06:36.470 --> 00:06:38.862
+Now I do wanna point out right now,
+132
+
+133
+00:06:38.862 --> 00:06:41.025
+that there's probably additional bugs in here.
+133
+
+134
+00:06:41.025 --> 00:06:43.377
+We need to set up some additional testing.
+134
+
+135
+00:06:43.377 --> 00:06:46.112
+And we'll take a look at that in the next couple videos,
+135
+
+136
+00:06:46.112 --> 00:06:48.740
+but right now, you can see how easy it was.
+136
+
+137
+00:06:48.740 --> 00:06:51.439
+It was a fairly painless for us to transition
+137
+
+138
+00:06:51.439 --> 00:06:55.606
+from an SQL database to a NoSQL database like MongoDB.
+138
+
+139
+00:06:56.071 --> 00:06:57.816
+Not a lot of things that we had to change.
+139
+
+140
+00:06:57.816 --> 00:07:00.383
+We had to make a couple minor adjustments to our data model
+140
+
+141
+00:07:00.383 --> 00:07:02.799
+to remove those bidirectional references.
+141
+
+142
+00:07:02.799 --> 00:07:06.717
+So now we have, our Recipe is more of a natural POJO,
+142
+
+143
+00:07:06.717 --> 00:07:09.252
+so to speak, because it doesn't have that bidirectional.
+143
+
+144
+00:07:09.252 --> 00:07:11.731
+We're not setting the Recipe IDs back and forth
+144
+
+145
+00:07:11.731 --> 00:07:12.991
+and that's what was causing Mongo
+145
+
+146
+00:07:12.991 --> 00:07:14.638
+that initial confusion.
+146
+
+147
+00:07:14.638 --> 00:07:16.785
+But now, if you look at this,
+147
+
+148
+00:07:16.785 --> 00:07:18.992
+inspect this model a little bit more,
+148
+
+149
+00:07:18.992 --> 00:07:20.640
+it's more of a natural POJO model
+149
+
+150
+00:07:20.640 --> 00:07:22.313
+that we are saving to Mongo.
+150
+
+151
+00:07:22.313 --> 00:07:24.426
+So that's one of the really nice things
+151
+
+152
+00:07:24.426 --> 00:07:28.593
+about Mongo and having that natural object model.
+152
+
+153
+00:07:29.317 --> 00:07:31.249
+You saw how we were working with JPA,
+153
+
+154
+00:07:31.249 --> 00:07:32.421
+that's called leakage,
+154
+
+155
+00:07:32.421 --> 00:07:35.534
+so the persistence layer is influencing
+155
+
+156
+00:07:35.534 --> 00:07:37.194
+your object design.
+156
+
+157
+00:07:37.194 --> 00:07:39.566
+Here we have a more natural object design
+157
+
+158
+00:07:39.566 --> 00:07:41.703
+and we're able to have a lot more flexibility,
+158
+
+159
+00:07:41.703 --> 00:07:45.204
+because we are dealing with a NoSQL database.
+159
+
+160
+00:07:45.204 --> 00:07:46.537
+And like I said,
+160
+
+161
+00:07:47.778 --> 00:07:50.411
+I expect there's probably a couple more bugs in here.
+161
+
+162
+00:07:50.411 --> 00:07:52.075
+We're gonna be looking at this a little closer
+162
+
+163
+00:07:52.075 --> 00:07:53.944
+and we'll address those in upcoming videos.
+163
+
+164
+00:07:53.944 --> 00:07:57.515
+But right now, we do have basic CRUD operations
+164
+
+165
+00:07:57.515 --> 00:07:59.220
+up and going with MongoDB.
+165
+
+166
+00:07:59.220 --> 00:08:00.053
+So I'm pretty happy with
+166
+
+167
+00:08:00.053 --> 00:08:03.803
+how easy it was to convert this project over.

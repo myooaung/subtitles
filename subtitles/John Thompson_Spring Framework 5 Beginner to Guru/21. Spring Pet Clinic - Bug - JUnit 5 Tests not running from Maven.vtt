@@ -1,0 +1,705 @@
+WEBVTT
+0
+1
+00:00:04.250 --> 00:00:08.880
+Alright! In this video, we are gonna go
+through a bug I noticed and this
+1
+
+2
+00:00:08.880 --> 00:00:11.910
+commit is gonna be a little bit out
+of sequence because I did get several
+2
+
+3
+00:00:11.910 --> 00:00:17.130
+commits ahead. But I wanna show you
+what's going on here. I kind of found
+3
+
+4
+00:00:17.130 --> 00:00:23.160
+it by mistake. It was really easy
+to overlook because we set up CircleCI
+4
+
+5
+00:00:23.160 --> 00:00:27.779
+and we're doing continuing integration
+build which is good, but let's take a
+5
+
+6
+00:00:27.779 --> 00:00:33.149
+look at CircleCI here. I have it up on
+the screen and we are getting a green
+6
+
+7
+00:00:33.149 --> 00:00:40.590
+build. Everything is looking great except
+right here. You notice Tests run zero,
+7
+
+8
+00:00:40.590 --> 00:00:45.750
+Failures is zero, Errors zero and Skipped zero. Our tests are not actually running.
+8
+
+9
+00:00:45.750 --> 00:00:49.770
+We are building, we're compiling.
+Everything's going happy but our
+9
+
+10
+00:00:49.770 --> 00:00:54.570
+tests are not actually running. It's
+due to it kind of a simple but very
+10
+
+11
+00:00:54.570 --> 00:00:59.609
+important issue. What I've done is
+we'll step through what's happening.
+11
+
+12
+00:00:59.609 --> 00:01:03.690
+It's a real easy fix but I wanted to
+point this out and also let you know
+12
+
+13
+00:01:03.690 --> 00:01:07.350
+that I'm putting this video a little bit
+out of sequence but I am following
+13
+
+14
+00:01:07.350 --> 00:01:13.560
+what's going on here. When I get to this
+one, I did create an issue inside of the
+14
+
+15
+00:01:13.560 --> 00:01:19.530
+sfg-pet-clinic application saying that
+the JUnit 5 tests are not running. What
+15
+
+16
+00:01:19.530 --> 00:01:25.979
+happened was the JUnit team actually
+has gone through and submitted their
+16
+
+17
+00:01:25.979 --> 00:01:32.369
+Surefire provider to Maven, to the Maven team.
+It is now part of the Surefire
+17
+
+18
+00:01:32.369 --> 00:01:37.409
+plugin so that has actually been
+migrated in. For whatever reason,
+18
+
+19
+00:01:37.409 --> 00:01:41.970
+these two are not happily playing
+together. If you explicitly call them in.
+19
+
+20
+00:01:41.970 --> 00:01:47.070
+I'm not gonna dig in and figure out
+why. But the what happened is the 
+20
+
+21
+00:01:47.070 --> 00:01:53.850
+Surefire by default now picks up the 
+JUnit Surefire Provider. Let's come
+21
+
+22
+00:01:53.850 --> 00:02:02.399
+over to the project. This
+previously was how JUnit recommended
+22
+
+23
+00:02:02.399 --> 00:02:06.180
+configuring Maven. When I went through
+and developed the course, this was it.
+23
+
+24
+00:02:06.180 --> 00:02:13.500
+I think I went in and upgraded to the
+maven-surefire-plugin version 2.22.0
+24
+
+25
+00:02:13.500 --> 00:02:17.370
+which was released I think in
+June if, I remember right,
+25
+
+26
+00:02:17.370 --> 00:02:22.320
+in the research as I was doing for this. So
+ it's like barely a month
+26
+
+27
+00:02:22.320 --> 00:02:29.010
+month and a half old since it was
+released. In that, the JUnit team
+27
+
+28
+00:02:29.010 --> 00:02:35.730
+actually provided this so by default the
+Surefire plugin is going to support it.
+28
+
+29
+00:02:35.730 --> 00:02:42.480
+I'm gonna show you what's happening
+here. If I come in and run the build.
+29
+
+30
+00:02:42.480 --> 00:02:48.870
+I'm just doing verify which will compile
+and run the test. We can see that runs
+30
+
+31
+00:02:48.870 --> 00:02:52.590
+really quick because no tests are
+actually running so it does buzz right
+31
+
+32
+00:02:52.590 --> 00:02:58.050
+through the tests. At first glance, if
+you're not really paying attention, you
+32
+
+33
+00:02:58.050 --> 00:03:03.630
+can see BUILD SUCCESS. Everything went
+great. But the problem here again you can
+33
+
+34
+00:03:03.630 --> 00:03:09.240
+see zero zero zero. So not what we want.
+It's because of this dependency. If I
+34
+
+35
+00:03:09.240 --> 00:03:14.880
+come in and remove this explicit
+dependency on the 
+35
+
+36
+00:03:14.880 --> 00:03:21.750
+junit-platform-surefire-provider because this is now in
+that version of the Surefire plugin. If
+36
+
+37
+00:03:21.750 --> 00:03:28.709
+I get rid of that, and now if I run it,
+we're gonna see that the tests take a
+37
+
+38
+00:03:28.709 --> 00:03:34.340
+little bit longer to run because we're
+actually gonna be running the tests.
+38
+
+39
+00:03:34.340 --> 00:03:39.000
+We're gonna get a little more log
+chatter. Again this was really easy
+39
+
+40
+00:03:39.000 --> 00:03:44.280
+to overlook. It was an accident on my
+part because the JUnit tests are running
+40
+
+41
+00:03:44.280 --> 00:03:51.000
+fine from the IDE and then now we can
+see more chatter in the log, which means
+41
+
+42
+00:03:51.000 --> 00:03:53.880
+that the tests are actually running
+because we are actually bringing up the
+42
+
+43
+00:03:53.880 --> 00:04:00.180
+Spring Context doing more stuff. It's
+taking a little bit longer. And now, we
+43
+
+44
+00:04:00.180 --> 00:04:03.330
+can see that the build finished. We can
+see that the tests are actually running
+44
+
+45
+00:04:03.330 --> 00:04:09.780
+so now I have 16 tests actually ran
+and thankfully zero failures and zero
+45
+
+46
+00:04:09.780 --> 00:04:14.100
+errors and zero skipped, which is exactly
+what I would wanted to see. So it was an
+46
+
+47
+00:04:14.100 --> 00:04:19.169
+oversight on my part but that's kind of
+how things are evolving. As I grab the
+47
+
+48
+00:04:19.169 --> 00:04:24.510
+latest plugin of Surefire, just a recent
+change. So sometimes you need to be aware
+48
+
+49
+00:04:24.510 --> 00:04:26.870
+of that. What I'm gonna do is go
+ahead and
+49
+
+50
+00:04:26.870 --> 00:04:29.949
+commit this.
+50
+
+51
+00:04:41.970 --> 00:04:53.970
+I'm gonna grab that commit
+message that is number 71 so let's go and close
+51
+
+52
+00:04:55.050 --> 00:05:01.210
+Closes #71. I'm gonna go ahead
+and commit and push that up. Again
+52
+
+53
+00:05:01.210 --> 00:05:06.940
+there's something to be aware of. The
+Maven itself is very stable so not a lot
+53
+
+54
+00:05:06.940 --> 00:05:11.020
+of changes happen. JUnit 5 has been
+out for some time and the build tools are
+54
+
+55
+00:05:11.020 --> 00:05:15.760
+starting to catch up so the Maven team, I
+mean that Maven is out there. It's
+55
+
+56
+00:05:15.760 --> 00:05:20.800
+extremely stable so not a lot of
+enhancements are being done to it. So
+56
+
+57
+00:05:20.800 --> 00:05:24.880
+actually it's almost been nine months
+since JUnit was released and now
+57
+
+58
+00:05:24.880 --> 00:05:29.080
+we're seeing formal support for it
+inside that Maven Surefire plugin.
+58
+
+59
+00:05:29.080 --> 00:05:35.680
+Now I wanna point out here on line 133,
+you still need to explicitly declare
+59
+
+60
+00:05:35.680 --> 00:05:41.470
+that the maven-surefire-plugin is in
+Maven by default. You do get that for
+60
+
+61
+00:05:41.470 --> 00:05:46.090
+free when you just bring in Maven. But
+you are gonna be getting an older
+61
+
+62
+00:05:46.090 --> 00:05:51.250
+version of that. I don't think it's
+officially in. So you do need to declare
+62
+
+63
+00:05:51.250 --> 00:05:57.850
+that explicitly so you do get the JUnit
+5 support. So the configuration just
+63
+
+64
+00:05:57.850 --> 00:06:01.990
+changed. We're not doing that JUnit
+provider dependency within the plugin
+64
+
+65
+00:06:01.990 --> 00:06:06.250
+definition, All we need to do is declare
+it so that we do get that proper version.
+65
+
+66
+00:06:06.250 --> 00:06:12.490
+At the time of recording this, 2.22.0
+is the latest release of the Surefire
+66
+
+67
+00:06:12.490 --> 00:06:16.900
+plugin. I'm sure there will be a future
+one so just be sure that you're running
+67
+
+68
+00:06:16.900 --> 00:06:23.200
+on 2.22.0 or higher. At some point in
+time, Maven is gonna come out with
+68
+
+69
+00:06:23.200 --> 00:06:26.560
+another release and this plugin will get
+provided and you won't need to do that.
+69
+
+70
+00:06:26.560 --> 00:06:30.040
+But I expect that's gonna happen
+further down the road with the Maven
+70
+
+71
+00:06:30.040 --> 00:06:36.780
+guys. Finally, let's jump over to
+CircleCI and come over back to Chrome.
+71
+
+72
+00:06:36.780 --> 00:06:44.290
+Now let's take a look at my Jobs. So
+we can see here's my commit. You can see
+72
+
+73
+00:06:44.290 --> 00:06:48.400
+the commit message there so let's take a
+look at that. We'll come down here
+73
+
+74
+00:06:48.400 --> 00:06:54.790
+and remember there's a couple of
+dependencies here. Just a recap. Maven now
+74
+
+75
+00:06:54.790 --> 00:06:58.570
+we need to do the install
+skip test for the dependent projects.
+75
+
+76
+00:06:58.570 --> 00:07:03.430
+This is gonna be the dependency to go
+offline. Probably could combine those and
+76
+
+77
+00:07:03.430 --> 00:07:07.030
+then finally let's take a look at the
+integration test which is actually
+77
+
+78
+00:07:07.030 --> 00:07:11.080
+running our tests. Let's just scroll
+down to the bottom of this. We can see
+78
+
+79
+00:07:11.080 --> 00:07:16.180
+there's more log chatter there. This
+is what we wanted to see. Now our
+79
+
+80
+00:07:16.180 --> 00:07:21.190
+tests are actually running. We can see
+that 16 tests ran, zero failures, zero
+80
+
+81
+00:07:21.190 --> 00:07:24.880
+errors and zero skips. So exactly what we
+wanted and again we're getting
+81
+
+82
+00:07:24.880 --> 00:07:29.440
+BUILD SUCCESS. So our build is in the
+green. As a bonus, our tests are
+82
+
+83
+00:07:29.440 --> 00:07:34.330
+actually running now. Okay, in the video, I
+said I wasn't sure if that made it into
+83
+
+84
+00:07:34.330 --> 00:07:39.040
+an actual Maven release as far
+as a Surefire plugin. I wanna bring
+84
+
+85
+00:07:39.040 --> 00:07:46.150
+up, we have Maven 3.5.4 that was released
+on June 21st in 2018. That was just a
+85
+
+86
+00:07:46.150 --> 00:07:49.360
+couple of months ago from the time
+recording. About three months ago I guess.
+86
+
+87
+00:07:49.360 --> 00:08:00.100
+Looking up at that, I did trace down.
+Let's see here. Find that Surefire plugin. Here we
+87
+
+88
+00:08:00.100 --> 00:08:07.539
+can see the Surefire plug in and that is
+the 2.20.1. So I actually want one
+88
+
+89
+00:08:07.539 --> 00:08:14.169
+release further than we've specified in
+our POM. Again, that is in Maven 3.5.4.
+89
+
+90
+00:08:14.169 --> 00:08:21.190
+You can see here, they've only had
+one other release in 2018 and then just
+90
+
+91
+00:08:21.190 --> 00:08:25.660
+a handful of releases in 2017. So Maven
+is pretty stable. There's not a lot of
+91
+
+92
+00:08:25.660 --> 00:08:30.940
+releases that come out. Now what this
+means for us is if you've installed
+92
+
+93
+00:08:30.940 --> 00:08:38.380
+Maven 3.5.4 coming back over here, you
+would be able to omit this. Specifically
+93
+
+94
+00:08:38.380 --> 00:08:41.200
+calling for that, that version of the
+Surefire plugin so you'd be able to
+94
+
+95
+00:08:41.200 --> 00:08:46.300
+omit that and JUnit tests would run.
+But I do wanna point out a couple of things
+95
+
+96
+00:08:46.300 --> 00:08:52.420
+here. We do have a Maven Wrapper
+implemented in our project so you can
+96
+
+97
+00:08:52.420 --> 00:08:57.100
+call that when you're doing build
+operations but that is on previous
+97
+
+98
+00:08:57.100 --> 00:09:03.580
+release. That is on 3.5.3, not 3.5.4 which
+we need for that plugin to be included.
+98
+
+99
+00:09:03.580 --> 00:09:08.020
+And so that it would be one thing. But
+then another concern that I wanna
+99
+
+100
+00:09:08.020 --> 00:09:13.710
+point out is
+CircleCI. We are using Maven from an
+100
+
+101
+00:09:13.710 --> 00:09:16.950
+image that they are providing and I'm
+not not really sure what that is.  I
+101
+
+102
+00:09:16.950 --> 00:09:21.330
+know it's a version of three. But if
+we're right now, in the immediate future
+102
+
+103
+00:09:21.330 --> 00:09:27.750
+it's best to just include that
+dependency because if you do not, bring
+103
+
+104
+00:09:27.750 --> 00:09:36.090
+back the POM here.
+Bring back the right POM. I edit. If
+104
+
+105
+00:09:36.090 --> 00:09:41.610
+you do not include this, you will be on a
+previous release of the maven-surefire-plugin.
+105
+
+106
+00:09:41.610 --> 00:09:45.870
+That does not have the JUnit
+support built-in and you would need to
+106
+
+107
+00:09:45.870 --> 00:09:50.940
+extend that out. But just be aware
+because I have an older version of Maven
+107
+
+108
+00:09:50.940 --> 00:09:55.830
+installed on my local machine. I'm not quite sure
+how old it is but probably time for me
+108
+
+109
+00:09:55.830 --> 00:10:02.820
+to upgrade for my command-line version.
+And then IntelliJ typically default
+109
+
+110
+00:10:02.820 --> 00:10:06.630
+behavior is probably gonna be using
+the Maven Wrapper if that's found in the
+110
+
+111
+00:10:06.630 --> 00:10:10.800
+project or you can specify a specific
+Maven installation that you wanna use.
+111
+
+112
+00:10:10.800 --> 00:10:16.380
+But just be aware of the different Maven
+versions that could be in play in
+112
+
+113
+00:10:16.380 --> 00:10:19.140
+something like this so you could have
+one installed, you could have a Maven
+113
+
+114
+00:10:19.140 --> 00:10:24.240
+Wrapper and then on your CI server, you
+could have a third version involved.
+114
+
+115
+00:10:24.240 --> 00:10:30.540
+So the JUnit 5 support inside of Maven
+is very very fresh. So be aware of that.
+115
+
+116
+00:10:30.540 --> 00:10:35.850
+The official most recent release of
+Maven, it does have it included so you
+116
+
+117
+00:10:35.850 --> 00:10:40.800
+could admit it. But if you decide to do
+that on your own project be careful as
+117
+
+118
+00:10:40.800 --> 00:10:44.450
+far as what Maven version you're running.

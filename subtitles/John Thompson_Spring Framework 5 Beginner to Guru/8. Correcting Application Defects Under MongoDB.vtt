@@ -1,0 +1,695 @@
+WEBVTT
+0
+1
+00:00:00.416 --> 00:00:03.666
+(acoustic music sting)
+1
+
+2
+00:00:05.222 --> 00:00:06.822
+Alright, in the last video, I mentioned
+2
+
+3
+00:00:06.822 --> 00:00:09.324
+that there's probably a couple bugs in our application,
+3
+
+4
+00:00:09.324 --> 00:00:11.437
+that I hadn't tested it and gone through it
+4
+
+5
+00:00:11.437 --> 00:00:13.901
+under MongoDB, and sure enough, there's a couple
+5
+
+6
+00:00:13.901 --> 00:00:15.929
+interesting features.
+6
+
+7
+00:00:15.929 --> 00:00:17.735
+So, here's a problem.
+7
+
+8
+00:00:17.735 --> 00:00:20.582
+Let me show you this, I'm gonna go in and do an update.
+8
+
+9
+00:00:20.582 --> 00:00:23.915
+And let's just change Servings to 8,
+9
+
+10
+00:00:25.540 --> 00:00:27.630
+just a really simple change.
+10
+
+11
+00:00:27.630 --> 00:00:31.797
+And I'm gonna do a Submit, and notice that the Ingredients
+11
+
+12
+00:00:33.169 --> 00:00:35.559
+completely go away and the Categories go away,
+12
+
+13
+00:00:35.559 --> 00:00:39.859
+so this is a bug, and I traced it back and what's happening
+13
+
+14
+00:00:39.859 --> 00:00:44.686
+is under JPA, we were doing a merge and not having
+14
+
+15
+00:00:44.686 --> 00:00:46.932
+the complete data there.
+15
+
+16
+00:00:46.932 --> 00:00:49.939
+So, let me go in and show you the solution there.
+16
+
+17
+00:00:49.939 --> 00:00:53.350
+What we need to do is come into the recipeform
+17
+
+18
+00:00:53.350 --> 00:00:55.408
+and actually comment this out, so you don't have
+18
+
+19
+00:00:55.408 --> 00:00:57.787
+to watch me code all of this.
+19
+
+20
+00:00:57.787 --> 00:01:01.002
+But what we're gonna do is pass in the ingredients
+20
+
+21
+00:01:01.002 --> 00:01:04.644
+in a hidden list, and we need to pass in those properties,
+21
+
+22
+00:01:04.644 --> 00:01:07.379
+and what's important here, I wanna point this out,
+22
+
+23
+00:01:07.379 --> 00:01:09.722
+this is an important little trick here.
+23
+
+24
+00:01:09.722 --> 00:01:12.520
+With the Thymeleaf tag on the field,
+24
+
+25
+00:01:12.520 --> 00:01:15.504
+what this is going to do is give us an array
+25
+
+26
+00:01:15.504 --> 00:01:19.559
+that Spring'll bind to, so it'll regenerate that list.
+26
+
+27
+00:01:19.559 --> 00:01:20.643
+So this is a very important part
+27
+
+28
+00:01:20.643 --> 00:01:23.764
+of how Spring MVC does binding.
+28
+
+29
+00:01:23.764 --> 00:01:25.694
+So let me go ahead and build this,
+29
+
+30
+00:01:25.694 --> 00:01:28.194
+and we should see the changes.
+30
+
+31
+00:01:29.128 --> 00:01:30.378
+Back over here.
+31
+
+32
+00:01:31.759 --> 00:01:33.176
+Back up a couple.
+32
+
+33
+00:01:34.110 --> 00:01:37.408
+And let's go ahead and update the Guacamole.
+33
+
+34
+00:01:37.408 --> 00:01:40.000
+So now, let's take a look at this form.
+34
+
+35
+00:01:40.000 --> 00:01:42.583
+I'm gonna do view source on it.
+35
+
+36
+00:01:43.742 --> 00:01:45.327
+(mumbling)
+36
+
+37
+00:01:45.327 --> 00:01:47.170
+Yeah, here we are.
+37
+
+38
+00:01:47.170 --> 00:01:49.943
+So, now we're setting up hidden properties,
+38
+
+39
+00:01:49.943 --> 00:01:52.702
+and that's what that Thymeleaf tag is doing.
+39
+
+40
+00:01:52.702 --> 00:01:55.493
+So, that's going to give you ingredients and then put
+40
+
+41
+00:01:55.493 --> 00:01:58.116
+an array index on it and then the dot property,
+41
+
+42
+00:01:58.116 --> 00:02:01.119
+and Spring MVC is gonna bind this into an array.
+42
+
+43
+00:02:01.119 --> 00:02:03.937
+Because what was happening with Mongo, Mongo doesn't quite
+43
+
+44
+00:02:03.937 --> 00:02:07.386
+do the merge the same way that JPA does, so when we
+44
+
+45
+00:02:07.386 --> 00:02:10.160
+did the post, it had an empty list, so Mongo was deleting
+45
+
+46
+00:02:10.160 --> 00:02:13.315
+that list from it and it wasn't doing a merge operation.
+46
+
+47
+00:02:13.315 --> 00:02:16.375
+Now, our command object is gonna have that list
+47
+
+48
+00:02:16.375 --> 00:02:19.972
+of ingredients rebound to it, so we'll get the ingredients
+48
+
+49
+00:02:19.972 --> 00:02:23.913
+and then also the category id's, so this is another
+49
+
+50
+00:02:23.913 --> 00:02:25.757
+important part of it.
+50
+
+51
+00:02:25.757 --> 00:02:28.279
+And also, the uom id, and that's gonna preserve
+51
+
+52
+00:02:28.279 --> 00:02:30.772
+all that mapping that we have now.
+52
+
+53
+00:02:30.772 --> 00:02:32.022
+So, close this.
+53
+
+54
+00:02:32.925 --> 00:02:35.847
+And let me do an update here.
+54
+
+55
+00:02:35.847 --> 00:02:40.203
+Update the Cooktime to 5, come down here, and save this.
+55
+
+56
+00:02:40.203 --> 00:02:43.496
+Now you can see that our Categories remain
+56
+
+57
+00:02:43.496 --> 00:02:46.068
+and the Ingredients remain.
+57
+
+58
+00:02:46.068 --> 00:02:49.831
+On the next one, that's coming in here to the Ingredients,
+58
+
+59
+00:02:49.831 --> 00:02:53.998
+and in the previous version, we were dropping out the ID.
+59
+
+60
+00:02:55.501 --> 00:02:58.807
+So what's happening here is I had to modify our data model
+60
+
+61
+00:02:58.807 --> 00:03:02.974
+a little bit, because the Ingredient, come back over here,
+61
+
+62
+00:03:04.030 --> 00:03:07.016
+is actually a nested list property.
+62
+
+63
+00:03:07.016 --> 00:03:10.613
+But, because, there's actually a couple different ways
+63
+
+64
+00:03:10.613 --> 00:03:14.953
+that we could solve for this, and I created an id value,
+64
+
+65
+00:03:14.953 --> 00:03:19.473
+and we don't have a reliable, distinct property on this,
+65
+
+66
+00:03:19.473 --> 00:03:21.449
+so we need some way to get back to it, and because
+66
+
+67
+00:03:21.449 --> 00:03:24.849
+this is nested in a list of that MongoDB document,
+67
+
+68
+00:03:24.849 --> 00:03:28.344
+it doesn't get an id value, even if you go in
+68
+
+69
+00:03:28.344 --> 00:03:30.344
+and annotate it with @ID.
+69
+
+70
+00:03:31.834 --> 00:03:34.948
+So, if you do that annotation, you might think that Spring
+70
+
+71
+00:03:34.948 --> 00:03:37.488
+or Mongo is gonna give it an ID, but it's not,
+71
+
+72
+00:03:37.488 --> 00:03:39.717
+because it's a list property.
+72
+
+73
+00:03:39.717 --> 00:03:41.408
+I'm gonna restart this real quick,
+73
+
+74
+00:03:41.408 --> 00:03:44.741
+I wanna show you this inside of MongoDB.
+74
+
+75
+00:03:45.889 --> 00:03:49.357
+So, the key part here is, I went in and created
+75
+
+76
+00:03:49.357 --> 00:03:51.852
+an id property and I'm assigning it a random unit,
+76
+
+77
+00:03:51.852 --> 00:03:55.603
+and that's a, I think, I forget UUID stands for.
+77
+
+78
+00:03:55.603 --> 00:03:57.693
+I think it's universally unique ID, so.
+78
+
+79
+00:03:57.693 --> 00:04:01.140
+The UUID unique to something like, grains of sands
+79
+
+80
+00:04:01.140 --> 00:04:04.420
+on a beach, so it does have a significant uniqueness factor
+80
+
+81
+00:04:04.420 --> 00:04:06.556
+of using a random unit.
+81
+
+82
+00:04:06.556 --> 00:04:09.947
+I'm gonna restart this real quick so I can get that port
+82
+
+83
+00:04:09.947 --> 00:04:11.780
+in the Mongo database.
+83
+
+84
+00:04:14.080 --> 00:04:17.435
+And we are back up and running.
+84
+
+85
+00:04:17.435 --> 00:04:21.602
+Here's the connection, the port ID of the embedded Mongo.
+85
+
+86
+00:04:24.376 --> 00:04:28.543
+So, over here, to Robo 3T, and I got to kill this connection.
+86
+
+87
+00:04:33.277 --> 00:04:37.100
+I just need to update that port value, because,
+87
+
+88
+00:04:37.100 --> 00:04:39.162
+just as a reminder, we have port zero there,
+88
+
+89
+00:04:39.162 --> 00:04:42.324
+and it's going to reconnect every time.
+89
+
+90
+00:04:42.324 --> 00:04:46.669
+So I wanna show you this mapping inside of Mongo.
+90
+
+91
+00:04:46.669 --> 00:04:48.236
+Wrong one.
+91
+
+92
+00:04:48.236 --> 00:04:51.131
+Probably be better if I go to the test database.
+92
+
+93
+00:04:51.131 --> 00:04:52.846
+There's a recipe.
+93
+
+94
+00:04:52.846 --> 00:04:57.701
+And let's explode this out, and what was happening
+94
+
+95
+00:04:57.701 --> 00:05:00.481
+was we weren't getting an id value until I set it to U,
+95
+
+96
+00:05:00.481 --> 00:05:03.064
+so this is a unique identifier.
+96
+
+97
+00:05:04.802 --> 00:05:08.052
+So, without setting this property here,
+97
+
+98
+00:05:09.533 --> 00:05:13.263
+we're not getting an id value, or an id set.
+98
+
+99
+00:05:13.263 --> 00:05:15.806
+So, even using the @ID annotation, and that's because
+99
+
+100
+00:05:15.806 --> 00:05:18.301
+Mongo's a document database, so it does behave
+100
+
+101
+00:05:18.301 --> 00:05:20.976
+a little bit differently, so.
+101
+
+102
+00:05:20.976 --> 00:05:24.718
+Mongo doesn't need this array, and one way I could have
+102
+
+103
+00:05:24.718 --> 00:05:28.042
+solved for it was to do the array index, like we did
+103
+
+104
+00:05:28.042 --> 00:05:31.897
+for the binding, with the properties in the hidden field,
+104
+
+105
+00:05:31.897 --> 00:05:35.160
+but, bouncing it back and fourth, I wasn't quite comfortable
+105
+
+106
+00:05:35.160 --> 00:05:38.274
+that the array index would be reliable and we might
+106
+
+107
+00:05:38.274 --> 00:05:40.526
+accidentally update the wrong ingredients,
+107
+
+108
+00:05:40.526 --> 00:05:42.668
+so I wanted to put a unique identifier on it.
+108
+
+109
+00:05:42.668 --> 00:05:45.162
+And plus, the way we designed the application
+109
+
+110
+00:05:45.162 --> 00:05:48.459
+was to work off a unique ID for the ingredients,
+110
+
+111
+00:05:48.459 --> 00:05:51.790
+so that was, like, the real trick to this.
+111
+
+112
+00:05:51.790 --> 00:05:54.227
+Now, there's a couple other spots in here,
+112
+
+113
+00:05:54.227 --> 00:05:58.506
+where I did have to curate through the IDs.
+113
+
+114
+00:05:58.506 --> 00:06:01.171
+The other thing was here, on line 50,
+114
+
+115
+00:06:01.171 --> 00:06:04.571
+for those hidden properties bind properly.
+115
+
+116
+00:06:04.571 --> 00:06:07.461
+I didn't know this myself, but I had to refactor
+116
+
+117
+00:06:07.461 --> 00:06:10.072
+from a Set to ArrayList.
+117
+
+118
+00:06:10.072 --> 00:06:14.131
+So, you can see the refactoring that I did there on line 50.
+118
+
+119
+00:06:14.131 --> 00:06:16.991
+So, I actually learned something in debugging this,
+119
+
+120
+00:06:16.991 --> 00:06:21.041
+because the index array that was set up in the form
+120
+
+121
+00:06:21.041 --> 00:06:24.647
+in Thymeleaf, as it turns out, Spring MVC does not
+121
+
+122
+00:06:24.647 --> 00:06:28.196
+bind to a Set, but it will bind to a List.
+122
+
+123
+00:06:28.196 --> 00:06:30.162
+So, minor thing that we had to change there,
+123
+
+124
+00:06:30.162 --> 00:06:32.111
+but that is fixed now.
+124
+
+125
+00:06:32.111 --> 00:06:36.278
+Couple other spots that I had to go in and carry it through.
+125
+
+126
+00:06:37.357 --> 00:06:41.226
+Let's see, the certain changes here, though.
+126
+
+127
+00:06:41.226 --> 00:06:45.290
+Couple spots here, I had to set the RecipeId.
+127
+
+128
+00:06:45.290 --> 00:06:47.573
+So, we weren't setting that before and that was getting
+128
+
+129
+00:06:47.573 --> 00:06:50.339
+carried through in the converter, but the converter
+129
+
+130
+00:06:50.339 --> 00:06:52.766
+doesn't have access to that recipeId.
+130
+
+131
+00:06:52.766 --> 00:06:55.116
+So, a couple minor changes there, I'll let you go through
+131
+
+132
+00:06:55.116 --> 00:06:59.107
+and check it, but now we have a fully functional
+132
+
+133
+00:06:59.107 --> 00:07:01.465
+web application now running with MongoDB.
+133
+
+134
+00:07:01.465 --> 00:07:03.991
+So, a couple minor changes that we needed to do there
+134
+
+135
+00:07:03.991 --> 00:07:05.606
+importing it over to Mongo,
+135
+
+136
+00:07:05.606 --> 00:07:07.151
+but I'm pretty happy with the app.
+136
+
+137
+00:07:07.151 --> 00:07:09.047
+I'd like to increase the test coverage a little bit,
+137
+
+138
+00:07:09.047 --> 00:07:12.383
+but overall, I think we have a solid working example
+138
+
+139
+00:07:12.383 --> 00:07:14.633
+of MongoDB and Spring Boot.

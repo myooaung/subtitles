@@ -1,0 +1,1116 @@
+WEBVTT
+0
+1
+00:00:04.670 --> 00:00:08.880
+Alright in this video we are going to
+look at setting up command objects using
+1
+
+2
+00:00:08.880 --> 00:00:13.200
+Spring. Right now in this video we're
+going to be focusing on just setting up
+2
+
+3
+00:00:13.200 --> 00:00:17.760
+the back end code. So my goal here is to
+get the command object set up. We do need
+3
+
+4
+00:00:17.760 --> 00:00:20.699
+to do some type conversions. I'm going to
+show you exactly how we like to do that
+4
+
+5
+00:00:20.699 --> 00:00:24.869
+inside the Spring framework and we'll
+get the command objects going into
+5
+
+6
+00:00:24.869 --> 00:00:29.460
+Spring, persisting to the database, doing
+a type conversion to our any objects,
+6
+
+7
+00:00:29.460 --> 00:00:34.079
+coming back out of the database, doing
+another type conversion to our command
+7
+
+8
+00:00:34.079 --> 00:00:38.309
+objects. So this is going to leave us all
+set to handle the web front-end but
+8
+
+9
+00:00:38.309 --> 00:00:41.460
+we're not going to touch that in this
+video. We're going to focus on just
+9
+
+10
+00:00:41.460 --> 00:00:45.570
+taking in these command objects, getting
+them persisted to the database after a
+10
+
+11
+00:00:45.570 --> 00:00:50.149
+type conversion which is very important
+stuff. I am going to follow through
+11
+
+12
+00:00:50.149 --> 00:00:53.730
+test-driven development so we'll have a
+complete suite of tests for those. I
+12
+
+13
+00:00:53.730 --> 00:00:57.420
+think there's about 30 different objects
+that have been added or created in this
+13
+
+14
+00:00:57.420 --> 00:01:00.960
+video. So I'm not going to be able to go
+through every single line of code. I am
+14
+
+15
+00:01:00.960 --> 00:01:05.640
+going to go through the very important
+stuff of creating command objects amd
+15
+
+16
+00:01:05.640 --> 00:01:10.770
+creating standard converters as Spring
+bean components getting those wired into
+16
+
+17
+00:01:10.770 --> 00:01:16.979
+context, creating a service that is
+going to accept a command object. Convert
+17
+
+18
+00:01:16.979 --> 00:01:23.280
+it, save it to the database
+and then return an entity, convert that
+18
+
+19
+00:01:23.280 --> 00:01:28.560
+to the command object on the other way
+out. So we do have a pretty interesting
+19
+
+20
+00:01:28.560 --> 00:01:32.939
+domain model here as far as the object
+model that we're working with. So
+20
+
+21
+00:01:32.939 --> 00:01:36.479
+everything is working now. I'm going to
+step you through this we're going to get
+21
+
+22
+00:01:36.479 --> 00:01:42.479
+into more testing because I coded this
+up strictly by test-driven development.
+22
+
+23
+00:01:42.479 --> 00:01:47.549
+So we do have a full set of tests to go
+through and you're going to learn a
+23
+
+24
+00:01:47.549 --> 00:01:50.970
+little bit more about testing Spring
+applications and different annotations
+24
+
+25
+00:01:50.970 --> 00:01:55.890
+that we need to use to bring up a larger
+part of the Spring context so we can do
+25
+
+26
+00:01:55.890 --> 00:02:00.210
+all this. So a lot of great content in
+this video. Like I said, I'm not going to cover
+26
+
+27
+00:02:00.210 --> 00:02:05.790
+every single line of code but you are
+going to have a complete check at links
+27
+
+28
+00:02:05.790 --> 00:02:09.899
+before and after inside of GitHub. So you
+can go in and compare every single line of
+28
+
+29
+00:02:09.899 --> 00:02:13.620
+code that I changed in this video. Alight we are going to
+29
+
+30
+00:02:13.620 --> 00:02:19.110
+take a look at setting up command
+objects. Now I've gone in and we've got a
+30
+
+31
+00:02:19.110 --> 00:02:24.540
+lot of ground to cover here. First off I
+created a set of command objects for our
+31
+
+32
+00:02:24.540 --> 00:02:30.390
+data model. Now that you could
+in theory and often done those ways to
+32
+
+33
+00:02:30.390 --> 00:02:35.099
+actually expose your domain objects. This
+is something I don't like and this is
+33
+
+34
+00:02:35.099 --> 00:02:39.209
+more from experience because as your
+project grows and becomes more complex,
+34
+
+35
+00:02:39.209 --> 00:02:43.079
+your requirements of your domain objects
+are going to be different than what you
+35
+
+36
+00:02:43.079 --> 00:02:47.069
+are exposing to your web tier. So you are
+going to have a different set of objects
+36
+
+37
+00:02:47.069 --> 00:02:52.349
+and different set of needs there. So it's
+very very common to see smaller projects
+37
+
+38
+00:02:52.349 --> 00:02:56.430
+start off, exposing the domain objects
+and using those to bind to web forms and
+38
+
+39
+00:02:56.430 --> 00:03:00.900
+then evolve to where they're using
+command objects. Because you don't want
+39
+
+40
+00:03:00.900 --> 00:03:05.670
+to be exposing that particular type to
+and from the web tier. So this is a
+40
+
+41
+00:03:05.670 --> 00:03:10.590
+pretty common thing thing to do and I've
+gone in and created a set of command
+41
+
+42
+00:03:10.590 --> 00:03:17.040
+objects that model our data model. So here's a RecipeCommand and in
+42
+
+43
+00:03:17.040 --> 00:03:22.470
+this case, I'm changing it up a little
+bit with the project Lombok and using
+43
+
+44
+00:03:22.470 --> 00:03:27.239
+getter and setter and no args constructor. So
+this gives us just a simple POJO for our
+44
+
+45
+00:03:27.239 --> 00:03:33.180
+use. Now to get this in and out of the
+system, we want me to do a type
+45
+
+46
+00:03:33.180 --> 00:03:38.879
+conversion. So we need to convert from
+the type of the domain object back or
+46
+
+47
+00:03:38.879 --> 00:03:44.879
+over to the command object and
+vice-versa. So what I've done is let's
+47
+
+48
+00:03:44.879 --> 00:03:49.199
+grab a really really simple one right
+now. The Spring framework has an
+48
+
+49
+00:03:49.199 --> 00:03:54.480
+interface for converter. It takes in
+two types and this is going to implement
+49
+
+50
+00:03:54.480 --> 00:04:00.569
+the convert method and so take in one of
+the types and convert it to the other, it
+50
+
+51
+00:04:00.569 --> 00:04:06.870
+is null safe or nullable. So it is able
+to return null so that's very important
+51
+
+52
+00:04:06.870 --> 00:04:13.379
+and then it will return back an instance
+of the converted type. And on these, it's
+52
+
+53
+00:04:13.379 --> 00:04:18.660
+very important that Spring does not
+guarantee thread safety. So I am using
+53
+
+54
+00:04:18.660 --> 00:04:25.010
+Project Lombok's synchronized method
+there on line 16. So that makes us
+54
+
+55
+00:04:25.010 --> 00:04:28.780
+synchronized and thread safe
+so we can run this in a multi-threaded
+55
+
+56
+00:04:28.780 --> 00:04:35.980
+environment and I am declaring all
+my variables final. So that they are in
+56
+
+57
+00:04:35.980 --> 00:04:40.750
+theory immutable. So that gives us a
+little more code security. Now I did go
+57
+
+58
+00:04:40.750 --> 00:04:45.340
+through and did test-driven development
+on this so you're going to see a
+58
+
+59
+00:04:45.340 --> 00:04:56.290
+complete set of tests for this. Simply
+find the tests for that. So here's a test
+59
+
+60
+00:04:56.290 --> 00:05:00.670
+and on most of the tests, I'm not going
+to go through every test. I go through
+60
+
+61
+00:05:00.670 --> 00:05:05.920
+have a setUp sub where I create the new
+converter. I make sure that it takes in
+61
+
+62
+00:05:05.920 --> 00:05:11.800
+nulls and this is pretty common. It's a
+very easy thing to do. It is to miss a null
+62
+
+63
+00:05:11.800 --> 00:05:16.900
+value or a null pointer so in every
+example I am doing one where I just pass
+63
+
+64
+00:05:16.900 --> 00:05:22.090
+in null. Make sure it returns
+null as expected and then I expected to
+64
+
+65
+00:05:22.090 --> 00:05:26.950
+return back at least an empty object and
+not toss a null pointer exception. And
+65
+
+66
+00:05:26.950 --> 00:05:32.890
+then I go through and test and make sure
+that the values are actually being set
+66
+
+67
+00:05:32.890 --> 00:05:38.850
+properly. Now you can see that we do get
+more complex things. So like our
+67
+
+68
+00:05:38.850 --> 00:05:43.960
+ingredient test actually has a
+dependency upon the unit of measures.
+68
+
+69
+00:05:43.960 --> 00:05:50.500
+So our ingredient converter is going to
+take in a constructor parameter of a
+69
+
+70
+00:05:50.500 --> 00:05:54.790
+unit of measure converter and this is
+going to happen both ways. And then the
+70
+
+71
+00:05:54.790 --> 00:06:03.370
+most complex model that we have is our
+recipe converter. Let's take a look at that. So
+71
+
+72
+00:06:03.370 --> 00:06:06.850
+this guy is going to have actually
+three different converters. A total of
+72
+
+73
+00:06:06.850 --> 00:06:11.410
+four because well I'm just going to be
+nested down and all these
+73
+
+74
+00:06:11.410 --> 00:06:15.340
+converters are Spring components. So
+Spring is going to manage it at runtime
+74
+
+75
+00:06:15.340 --> 00:06:22.420
+and wire these up properly
+as Spring beans but in our test, we are
+75
+
+76
+00:06:22.420 --> 00:06:27.670
+going to have to do that. So here you can
+see in the test I am managing this in
+76
+
+77
+00:06:27.670 --> 00:06:32.260
+the Spring configuration and notice that
+there's no Spring configuration being
+77
+
+78
+00:06:32.260 --> 00:06:34.510
+brought in. So these are still as unit
+tests.
+78
+
+79
+00:06:34.510 --> 00:06:43.000
+So I come over here you can see how fast
+it runs so at 32 test I spend a bit of
+79
+
+80
+00:06:43.000 --> 00:06:48.940
+time coding this up for you guys. So 32 tests
+passing roughly a tenth of a second. So
+80
+
+81
+00:06:48.940 --> 00:06:52.750
+I'll take that any day as far as getting
+good test coverage and notice that in
+81
+
+82
+00:06:52.750 --> 00:07:04.630
+these tests, I'm also doing very granular
+testing. Now we did want to test this
+82
+
+83
+00:07:04.630 --> 00:07:10.510
+so now I do have a complete test of
+coverage. So a good test coverage on all
+83
+
+84
+00:07:10.510 --> 00:07:14.620
+the converters, I am doing a type
+conversion properly. Now think about how
+84
+
+85
+00:07:14.620 --> 00:07:18.760
+this is going to utilized. We are going to
+take from the web tier. We want to save
+85
+
+86
+00:07:18.760 --> 00:07:25.330
+save this entity coming back from the
+web tier. So in this, we are going to
+86
+
+87
+00:07:25.330 --> 00:07:31.030
+expand out our service. So in our ReceipeService, we are going to accept in a
+87
+
+88
+00:07:31.030 --> 00:07:35.260
+RecipeCommand. We'll take in the command
+object and we wanted to persist to the
+88
+
+89
+00:07:35.260 --> 00:07:42.580
+database. So now we've added in the
+converters, they're Spring managed
+89
+
+90
+00:07:42.580 --> 00:07:47.260
+components and so I added that into the
+constructor. So we have two new
+90
+
+91
+00:07:47.260 --> 00:07:51.970
+properties. Again, they're being
+marked as final so these injected beans
+91
+
+92
+00:07:51.970 --> 00:07:57.010
+can now be manipulated within the class and then on line
+92
+
+93
+00:07:57.010 --> 00:08:04.060
+54 there is my new implementation. And the way this is going to work is the
+93
+
+94
+00:08:04.060 --> 00:08:09.160
+RecipeCommand comes in and we convert
+it using converter. Now it's still just a
+94
+
+95
+00:08:09.160 --> 00:08:13.810
+POJO. It's not a Hibernate object. That's
+why I called it a detachedRecipe so it
+95
+
+96
+00:08:13.810 --> 00:08:21.670
+is detached from the Hibernate context. And now within the repository, we are
+96
+
+97
+00:08:21.670 --> 00:08:26.410
+going to go in and save that
+detachedRecipe and underneath the
+97
+
+98
+00:08:26.410 --> 00:08:31.030
+covers, what's going to happen with
+Spring Data JPA, if it's new it's going
+98
+
+99
+00:08:31.030 --> 00:08:35.500
+to create a new entity. If it is existing
+it's going to do actually a merge
+99
+
+100
+00:08:35.500 --> 00:08:40.090
+operation. So if you haven't set a
+property it's probably going to leave
+100
+
+101
+00:08:40.090 --> 00:08:44.890
+whatever's there. So if something is there
+and you have a null value, it's going to
+101
+
+102
+00:08:44.890 --> 00:08:47.520
+not null it out it will keep that remaining
+102
+
+103
+00:08:47.520 --> 00:08:53.460
+property. So it's going to merge in those
+two entities and it generally works
+103
+
+104
+00:08:53.460 --> 00:08:57.860
+pretty good. But sometimes you do have to
+watch how these merge operations of work.
+104
+
+105
+00:08:57.860 --> 00:09:04.890
+Now the RecipeRepository is going to
+return back a new instance of the saved
+105
+
+106
+00:09:04.890 --> 00:09:13.080
+recipe and in this, we are going to
+convert it back. And actually because of
+106
+
+107
+00:09:13.080 --> 00:09:22.440
+this, I am going to make this
+transactional too. So because we are going
+107
+
+108
+00:09:22.440 --> 00:09:25.770
+to go through the converters outside of
+the Spring context. So remember the way
+108
+
+109
+00:09:25.770 --> 00:09:30.570
+to Spring Data JPA, repositories work
+that they will implicitly start and
+109
+
+110
+00:09:30.570 --> 00:09:36.260
+transaction. And then here we are going
+to return it and I did write a
+110
+
+111
+00:09:36.260 --> 00:09:41.250
+integration test for this. So let's take
+a quick look at that. So previously we
+111
+
+112
+00:09:41.250 --> 00:09:45.900
+used the data JPA test and I want to
+show you something here that's very
+112
+
+113
+00:09:45.900 --> 00:09:51.290
+important. You can see that I got a little failure. This is a nice new feature in IntelliJ
+113
+
+114
+00:09:51.290 --> 00:09:59.670
+2017.2 coming out this July of 2017
+and where you can run the test right
+114
+
+115
+00:09:59.670 --> 00:10:04.110
+from the the gutter of the code. Now
+what's going to happen here is we get a
+115
+
+116
+00:10:04.110 --> 00:10:08.490
+failure and that's because we're using
+the Data JPA test and this is a test
+116
+
+117
+00:10:08.490 --> 00:10:13.620
+place. So it brings up a light and
+Spring context which is in this case,
+117
+
+118
+00:10:13.620 --> 00:10:19.590
+what's happening is it cannot find our
+RecipeService implementation. That's
+118
+
+119
+00:10:19.590 --> 00:10:24.360
+because we're using a lighter-weight
+slice. So what we want to do is use the
+119
+
+120
+00:10:24.360 --> 00:10:29.220
+SpringBootTest annotation and this is
+going to bring up the whole context for us
+120
+
+121
+00:10:29.220 --> 00:10:35.490
+based on our Spring Boot configuration. Now when I run it, you can see that it
+121
+
+122
+00:10:35.490 --> 00:10:39.680
+it's going to run properly.
+122
+
+123
+00:10:40.540 --> 00:10:44.600
+It does take a little longer because we
+are bringing up the entire context but
+123
+
+124
+00:10:44.600 --> 00:10:49.280
+you do see that it comes up and when I
+hide this test, I'll step through what
+124
+
+125
+00:10:49.280 --> 00:10:56.540
+we're doing there. So now I do like to
+use public static final strings. It could be
+125
+
+126
+00:10:56.540 --> 00:11:03.080
+private technically for any values that
+I'm going to be testing against. And here
+126
+
+127
+00:11:03.080 --> 00:11:06.710
+I'm bringing up the Spring context. I'm
+going to ask it for a RecipeService
+127
+
+128
+00:11:06.710 --> 00:11:13.670
+from Spring as well as a RecipeRepository and then the converters. And if
+128
+
+129
+00:11:13.670 --> 00:11:17.990
+you notice on line 42, it is my actual test
+and I didn't mark that as Transactional
+129
+
+130
+00:11:17.990 --> 00:11:25.130
+because I am working with these entities
+outside the Spring. No sorry, the
+130
+
+131
+00:11:25.130 --> 00:11:30.740
+transactional context. I am accessing
+lazily loaded property. So I need to
+131
+
+132
+00:11:30.740 --> 00:11:34.760
+have that as transactional keep that
+inside of the context. Now if you
+132
+
+133
+00:11:34.760 --> 00:11:38.270
+remember we were talking about
+behavior driven development. They have given
+133
+
+134
+00:11:38.270 --> 00:11:41.960
+them when. You'll be looking at a lot of
+my tests, you're going to see me
+134
+
+135
+00:11:41.960 --> 00:11:47.890
+following that pattern. So given when then
+on line 42 to 46, I'm setting up the data.
+135
+
+136
+00:11:47.890 --> 00:11:52.880
+So I am going out the repository and I'm
+asking it for a findAll that's going to
+136
+
+137
+00:11:52.880 --> 00:11:57.230
+get all the data that's coming out that's getting initialized by our
+137
+
+138
+00:11:57.230 --> 00:12:02.480
+bootstrap class. So that gets initialized
+and I'm asking it for iterable of the
+138
+
+139
+00:12:02.480 --> 00:12:05.420
+recipe. So I'm just going to grab the
+first one. I really don't care which one.
+139
+
+140
+00:12:05.420 --> 00:12:08.600
+I'm just grabbing the first one that
+comes out of there. So this test
+140
+
+141
+00:12:08.600 --> 00:12:13.640
+will survive any changes that we do in
+the future if we add more data. If we
+141
+
+142
+00:12:13.640 --> 00:12:18.650
+take way that it will obviously fail but if we
+add more data and evolve this, this will
+142
+
+143
+00:12:18.650 --> 00:12:24.290
+continue to run. So this is not dependent on a
+specific one. Now I get ahold of that and
+143
+
+144
+00:12:24.290 --> 00:12:29.930
+then I convert it over to a command
+object. So to emulate with the front-end
+144
+
+145
+00:12:29.930 --> 00:12:35.930
+is going to do to create a command POJO,
+just a plain old java object and then on
+145
+
+146
+00:12:35.930 --> 00:12:42.560
+line 49, is where I said for when clause. So I'm going to set the description to
+146
+
+147
+00:12:42.560 --> 00:12:48.950
+new description and this is changing the
+description from what was there
+147
+
+148
+00:12:48.950 --> 00:12:53.420
+and then I'm going to call our RecipeService and save that command object.
+148
+
+149
+00:12:53.420 --> 00:12:57.200
+That's going to go into the
+implementation that we just looked at to
+149
+
+150
+00:12:57.200 --> 00:13:03.200
+go in and save it using Spring Data JPA. Now I want to serve that I didn't have
+150
+
+151
+00:13:03.200 --> 00:13:10.370
+anything unexpected. So when I save it,
+remember that service take a quick look
+151
+
+152
+00:13:10.370 --> 00:13:17.060
+at that. So when we save it, we get back a
+new recipe object from Spring Data JPA
+152
+
+153
+00:13:17.060 --> 00:13:22.130
+and then we are going to return back
+a new command object. So it's a brand new
+153
+
+154
+00:13:22.130 --> 00:13:27.050
+object that we're turning back in the
+test. So we want to make sure that I get
+154
+
+155
+00:13:27.050 --> 00:13:31.340
+the proper ID. So actually the first
+thing we want to do is on line 53 is
+155
+
+156
+00:13:31.340 --> 00:13:35.270
+that make sure that the returned object
+has the proper description. So we've
+156
+
+157
+00:13:35.270 --> 00:13:40.190
+changed the description and now we're
+getting back the proper description and
+157
+
+158
+00:13:40.190 --> 00:13:48.140
+then we do the same assertions here on
+54, 55 and 56. Those lines there are making
+158
+
+159
+00:13:48.140 --> 00:13:51.970
+sure that sets been change and any
+unintentional
+159
+
+160
+00:13:51.970 --> 00:13:57.050
+actions, we want to make sure
+that there was nothing on unattended
+160
+
+161
+00:13:57.050 --> 00:14:01.670
+happen. So our sets are the same, our ideas
+are the same, the description has changed.
+161
+
+162
+00:14:01.670 --> 00:14:06.620
+If you notice, this is a higher level. I'm not
+going to test every single property here.
+162
+
+163
+00:14:06.620 --> 00:14:13.550
+I'm just going to get a relative guess
+and make sure that it is functioning
+163
+
+164
+00:14:13.550 --> 00:14:18.500
+as I expected it to. Be more detailed
+testing that's going to be safe for the
+164
+
+165
+00:14:18.500 --> 00:14:23.600
+unit tests. Now I'm not going to step
+through every single test that I wrote
+165
+
+166
+00:14:23.600 --> 00:14:27.890
+but it will all be in GitHub. So we have
+a lot of new tests out of here so you
+166
+
+167
+00:14:27.890 --> 00:14:31.280
+can see a lot more advanced testing
+Spring and we're getting into different
+167
+
+168
+00:14:31.280 --> 00:14:36.020
+more challenging scenarios. So you saw
+that the combination of very fast unit
+168
+
+169
+00:14:36.020 --> 00:14:40.640
+tests and then I added in another
+integration test that is going to test
+169
+
+170
+00:14:40.640 --> 00:14:44.240
+the interaction with the database as we
+want. So this is a pretty typical
+170
+
+171
+00:14:44.240 --> 00:14:48.470
+scenario when we're using the Spring
+framework to bring up two unit tests
+171
+
+172
+00:14:48.470 --> 00:14:53.240
+like that and try to avoid as much as
+possible running the Spring context. But
+172
+
+173
+00:14:53.240 --> 00:14:57.470
+when we need the Spring context as we
+have in our integration test here, we
+173
+
+174
+00:14:57.470 --> 00:15:02.460
+absolutely do use it and we do a Spring
+to give us all configured components.
+174
+
+175
+00:15:02.460 --> 00:15:09.170
+So I'm going to check this into GitHub. You'll have complete access to it.
+175
+
+176
+00:15:09.170 --> 00:15:13.740
+Just by giving you an idea of the scope of the
+changes. So there's actually over 30
+176
+
+177
+00:15:13.740 --> 00:15:18.330
+files that have changed for all the
+converters file the name of class name
+177
+
+178
+00:15:18.330 --> 00:15:24.030
+to target name. So sometimes you want to
+break these out into a little bit more
+178
+
+179
+00:15:24.030 --> 00:15:28.950
+organization but I will use packages to
+help out with organization if I have a
+179
+
+180
+00:15:28.950 --> 00:15:32.700
+lot of converter objects. But in this
+case it's not too bad. It's pretty
+180
+
+181
+00:15:32.700 --> 00:15:38.130
+apparent with what each one is doing. So I'm going to go ahead and check this
+181
+
+182
+00:15:38.130 --> 00:15:41.970
+into GitHub. I strongly encourage you to
+go through the unit tests and the
+182
+
+183
+00:15:41.970 --> 00:15:46.530
+integration tests and see what's going
+on in there. Now in the next video we are
+183
+
+184
+00:15:46.530 --> 00:15:51.870
+going to look at hooking this up to the
+front end and get a form to actually go
+184
+
+185
+00:15:51.870 --> 00:15:58.650
+in and create a new recipe. And because
+we are using a new recipe inside what's
+185
+
+186
+00:15:58.650 --> 00:16:03.300
+going to happen is we don't have that ID
+value set. So Spring and Hibernate are
+186
+
+187
+00:16:03.300 --> 00:16:06.660
+going to know that we need to create a
+new one and not update an existing one.
+187
+
+188
+00:16:06.660 --> 00:16:11.910
+But we'll be using the same exact
+pattern for both save and update of
+188
+
+189
+00:16:11.910 --> 00:16:14.660
+those entities.
