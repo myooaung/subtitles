@@ -1,0 +1,385 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:01.005
+- [Instructor] As we have learned,
+
+2
+00:00:01.005 --> 00:00:03.005
+filters decide whether a message
+
+3
+00:00:03.005 --> 00:00:05.008
+should be passed along or dropped,
+
+4
+00:00:05.008 --> 00:00:08.007
+based on some injected selection criteria.
+
+5
+00:00:08.007 --> 00:00:11.004
+Now let's build a filtering endpoint together.
+
+6
+00:00:11.004 --> 00:00:14.007
+We will initialize our project files for this lesson
+
+7
+00:00:14.007 --> 00:00:20.006
+with git checkout 03_02b.
+
+8
+00:00:20.006 --> 00:00:24.002
+Now in a previous lesson, we built a notification queue
+
+9
+00:00:24.002 --> 00:00:25.007
+so that our tech support service
+
+10
+00:00:25.007 --> 00:00:30.000
+can notify our user interface of required software updates.
+
+11
+00:00:30.000 --> 00:00:32.002
+What we want to do here is provide a way
+
+12
+00:00:32.002 --> 00:00:35.009
+for our tech support service to send a variety of messages
+
+13
+00:00:35.009 --> 00:00:39.003
+over the same channel, the TechSupportChannel,
+
+14
+00:00:39.003 --> 00:00:42.002
+with only software update messages
+
+15
+00:00:42.002 --> 00:00:44.005
+ending up in our notification queue,
+
+16
+00:00:44.005 --> 00:00:48.007
+there on line 17, updateNotificationQueueChannel.
+
+17
+00:00:48.007 --> 00:00:51.009
+And so the way to do that is to use Spring Integration
+
+18
+00:00:51.009 --> 00:00:54.009
+to configure a filter.
+
+19
+00:00:54.009 --> 00:00:59.001
+We will use the Integration namespace, the filter element,
+
+20
+00:00:59.001 --> 00:01:02.002
+and there are three attributes that are essential
+
+21
+00:01:02.002 --> 00:01:03.007
+that we configure here.
+
+22
+00:01:03.007 --> 00:01:06.006
+The first is the input channel.
+
+23
+00:01:06.006 --> 00:01:08.004
+We're going to set our input channel
+
+24
+00:01:08.004 --> 00:01:12.008
+to be TechSupportChannel, which was originally configured
+
+25
+00:01:12.008 --> 00:01:18.008
+on line 14 above in this configuration file.
+
+26
+00:01:18.008 --> 00:01:21.003
+We're also going to configure an output channel.
+
+27
+00:01:21.003 --> 00:01:25.001
+The output channel is going to be our queue.
+
+28
+00:01:25.001 --> 00:01:28.002
+So if a message gets sent on the TechSupportChannel
+
+29
+00:01:28.002 --> 00:01:30.002
+and it meets a certain criteria,
+
+30
+00:01:30.002 --> 00:01:31.006
+the filter will pass it along
+
+31
+00:01:31.006 --> 00:01:34.003
+to the updateNotificationQueue.
+
+32
+00:01:34.003 --> 00:01:36.005
+And we need to provide a reference
+
+33
+00:01:36.005 --> 00:01:40.007
+to our filter selection logic.
+
+34
+00:01:40.007 --> 00:01:43.000
+Let's just call that selector.
+
+35
+00:01:43.000 --> 00:01:47.000
+Close this element,
+
+36
+00:01:47.000 --> 00:01:52.006
+and now let's configure our selector.
+
+37
+00:01:52.006 --> 00:01:54.009
+We're going to give it our class implementation,
+
+38
+00:01:54.009 --> 00:01:56.009
+to be a custom class that we have built,
+
+39
+00:01:56.009 --> 00:01:58.006
+which I will show you in just a moment.
+
+40
+00:01:58.006 --> 00:02:02.007
+It's an inner class inside the StatusMonitorService,
+
+41
+00:02:02.007 --> 00:02:10.003
+and it is called ServiceMessageFilter.
+
+42
+00:02:10.003 --> 00:02:12.004
+Close this element, and that should do the trick
+
+43
+00:02:12.004 --> 00:02:14.000
+for our configuration.
+
+44
+00:02:14.000 --> 00:02:17.000
+Now I want to take a quick look at this class,
+
+45
+00:02:17.000 --> 00:02:20.001
+this ServiceMessageFilter.
+
+46
+00:02:20.001 --> 00:02:23.007
+ServiceMessageFilter extends TechSupportMessageFilter.
+
+47
+00:02:23.007 --> 00:02:27.003
+The TechSupportMessageFilter is the interesting part here.
+
+48
+00:02:27.003 --> 00:02:30.008
+The TechSupportMessageFilter implements a message selector.
+
+49
+00:02:30.008 --> 00:02:34.001
+There in line 12, you will notice the method accept.
+
+50
+00:02:34.001 --> 00:02:36.006
+That is the magic method.
+
+51
+00:02:36.006 --> 00:02:39.007
+Return from that value tells Spring Integration
+
+52
+00:02:39.007 --> 00:02:42.001
+whether or not to pass this message along.
+
+53
+00:02:42.001 --> 00:02:43.007
+It's a Boolean true/false,
+
+54
+00:02:43.007 --> 00:02:47.004
+and what we're doing here is we're delegating the answer
+
+55
+00:02:47.004 --> 00:02:48.009
+to the accept method
+
+56
+00:02:48.009 --> 00:02:53.001
+to be this abstract filterMessage method.
+
+57
+00:02:53.001 --> 00:02:55.006
+This filterMessage method is what we have implemented
+
+58
+00:02:55.006 --> 00:02:59.002
+over here in our inner class, ServiceMessageFilter,
+
+59
+00:02:59.002 --> 00:03:01.007
+and that's going to return a Boolean
+
+60
+00:03:01.007 --> 00:03:05.008
+and tell us whether the status on our message
+
+61
+00:03:05.008 --> 00:03:08.004
+tells us that an update is required or not.
+
+62
+00:03:08.004 --> 00:03:12.006
+That right there is the guts of how to construct a filter.
+
+63
+00:03:12.006 --> 00:03:16.009
+Let's finish this off by going to our ViewService.
+
+64
+00:03:16.009 --> 00:03:19.004
+We're not going to change a thing in our ViewService.
+
+65
+00:03:19.004 --> 00:03:20.009
+Our ViewService, if you recall,
+
+66
+00:03:20.009 --> 00:03:23.001
+is polling our notification queue
+
+67
+00:03:23.001 --> 00:03:26.005
+for notifications that it may need to act on,
+
+68
+00:03:26.005 --> 00:03:29.000
+and then here in our StatusMonitorService,
+
+69
+00:03:29.000 --> 00:03:30.005
+what we're going to do is instead
+
+70
+00:03:30.005 --> 00:03:34.005
+of sending a message to the updateNotificationQueue,
+
+71
+00:03:34.005 --> 00:03:41.005
+we're going to send our message to the TechSupportChannel.
+
+72
+00:03:41.005 --> 00:03:46.005
+We're going to send the very same message that we sent before.
+
+73
+00:03:46.005 --> 00:03:49.001
+We can simply cut and paste,
+
+74
+00:03:49.001 --> 00:03:51.004
+same message, different channel.
+
+75
+00:03:51.004 --> 00:03:54.001
+And if we got this right,
+
+76
+00:03:54.001 --> 00:03:59.006
+whenever our mock API tells us that we need an update,
+
+77
+00:03:59.006 --> 00:04:02.003
+that update is going to end up on our notification queue.
+
+78
+00:04:02.003 --> 00:04:04.000
+Let's start this and see what we see.
+
+79
+00:04:04.000 --> 00:04:06.006
+We're going to check the success of our work here
+
+80
+00:04:06.006 --> 00:04:09.000
+in the console, rather than in the user interface.
+
+81
+00:04:09.000 --> 00:04:11.004
+That's a little easier to do in this case.
+
+82
+00:04:11.004 --> 00:04:14.007
+So periodically, our API is going to come back and tell us
+
+83
+00:04:14.007 --> 00:04:18.000
+whether or not we need an update for our software.
+
+84
+00:04:18.000 --> 00:04:21.001
+Ah, we got our first one in the console.
+
+85
+00:04:21.001 --> 00:04:24.007
+Our API return indicated that a software update is required,
+
+86
+00:04:24.007 --> 00:04:26.006
+and we indeed did get a notification
+
+87
+00:04:26.006 --> 00:04:28.006
+on the notification queue.
+
+88
+00:04:28.006 --> 00:04:31.002
+Same situation for the second one,
+
+89
+00:04:31.002 --> 00:04:33.007
+but the third try tells us a software update
+
+90
+00:04:33.007 --> 00:04:36.006
+is not required, and that message did not end up
+
+91
+00:04:36.006 --> 00:04:38.000
+on the notification queue.
+
+92
+00:04:38.000 --> 00:04:39.000
+So there we have done,
+
+93
+00:04:39.000 --> 00:04:40.005
+what we have done is configured a filter
+
+94
+00:04:40.005 --> 00:04:43.009
+that causes specialized downstream delivery behavior
+
+95
+00:04:43.009 --> 00:04:46.003
+from our primary message channel
+
+96
+00:04:46.003 --> 00:04:50.000
+without modifying the existing behavior of that channel.
+

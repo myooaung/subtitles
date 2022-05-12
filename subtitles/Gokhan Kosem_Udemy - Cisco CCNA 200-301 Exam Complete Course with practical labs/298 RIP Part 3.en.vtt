@@ -1,0 +1,308 @@
+WEBVTT
+1
+00:00:00.000 --> 00:00:06.000
+Now let’s look at the RIP protocol in more detail and troubleshoots some issues.
+
+2
+00:00:06.000 --> 00:00:08.000
+show ip protocols
+
+3
+00:00:08.000 --> 00:00:13.000
+shows me once again that RIP is running on this router
+
+4
+00:00:13.000 --> 00:00:15.000
+sending updates every 30 seconds
+
+5
+00:00:15.000 --> 00:00:19.000
+other timers on each of these routers are not synchronized
+
+6
+00:00:19.000 --> 00:00:23.000
+so they're not all sending it at exactly the same time.
+
+7
+00:00:23.000 --> 00:00:31.000
+In this example, the next 1 is due in 21 seconds, invalid of the 180 seconds
+
+8
+00:00:31.000 --> 00:00:35.000
+this specifies the invalid parameter
+
+9
+00:00:35.000 --> 00:00:38.000
+when that expires the route is declared invalid
+
+10
+00:00:38.000 --> 00:00:43.000
+and they're should be at least 3 times the value of the update interval
+
+11
+00:00:43.000 --> 00:00:47.000
+a route becomes invalid when no updates refresh the route.
+
+12
+00:00:47.000 --> 00:00:50.000
+In other words, if router 1 doesn’t get an update
+
+13
+00:00:50.000 --> 00:00:55.000
+about a network from router 2 for a period of 180 seconds
+
+14
+00:00:55.000 --> 00:00:57.000
+the router's declared invalid.
+
+15
+00:00:57.000 --> 00:01:00.000
+The route will then enter what's called a holddown timer
+
+16
+00:01:00.000 --> 00:01:06.000
+and this is when a route is marked as inaccessible and advertises unreachable.
+
+17
+00:01:06.000 --> 00:01:10.000
+However, the router will still forward packets in its routing table
+
+18
+00:01:10.000 --> 00:01:14.000
+even if they're marked as inaccessible
+
+19
+00:01:14.000 --> 00:01:17.000
+so traffic will be forwarded during the holddown interval
+
+20
+00:01:17.000 --> 00:01:21.000
+a route is only flushed after this timer expires
+
+21
+00:01:21.000 --> 00:01:24.000
+in other words, it's removed from the routing table
+
+22
+00:01:24.000 --> 00:01:27.000
+after the expiry of the flush timer.
+
+23
+00:01:27.000 --> 00:01:29.000
+We can look at the RIP database
+
+24
+00:01:29.000 --> 00:01:36.000
+These are the routes that RIP has learned about
+
+25
+00:01:36.000 --> 00:01:39.000
+notice it includes automatic summary routes
+
+26
+00:01:39.000 --> 00:01:43.000
+The RIP database can be different to the routing table
+
+27
+00:01:43.000 --> 00:01:46.000
+when multiple routing protocols are used
+
+28
+00:01:46.000 --> 00:01:50.000
+EIGRP, as an example, will take precedence over RIP
+
+29
+00:01:50.000 --> 00:01:54.000
+and EIGRP routes will be preferred over RIP if there are conflicts
+
+30
+00:01:54.000 --> 00:02:00.000
+so EIGRP routes will be put into the routing table in preference of RIP routes.
+
+31
+00:02:00.000 --> 00:02:05.000
+Now automatic summarization is a problem when you have discontiguous subnets.
+
+32
+00:02:05.000 --> 00:02:07.000
+So on router 3
+
+33
+00:02:07.000 --> 00:02:17.000
+I’m going to create another loopback of 1.1.1.2/32
+
+34
+00:02:17.000 --> 00:02:23.000
+router 1 has a loopback of 1.1.1.1/32
+
+35
+00:02:23.000 --> 00:02:31.000
+and now router 3 has a loopback of 1.1.1.2/32
+
+36
+00:02:31.000 --> 00:02:35.000
+I’m going to advertise that into RIP
+
+37
+00:02:35.000 --> 00:02:42.000
+this is going to cause a problem now because on router 2
+
+38
+00:02:42.000 --> 00:02:45.000
+when we use the show ip route command
+
+39
+00:02:45.000 --> 00:02:52.000
+you'll see that router 2 see's 2 paths to get to network 1.0.0.0/8
+
+40
+00:02:52.000 --> 00:02:58.000
+it thinks it can get to 1.0.0.0/8 via router 1 and router 3
+
+41
+00:02:58.000 --> 00:03:02.000
+so in some cases the problem you're going to have
+
+42
+00:03:02.000 --> 00:03:06.000
+is that when router 2 wants to ping 1.1.1.1 as an example
+
+43
+00:03:06.000 --> 00:03:10.000
+it will send some packets to router 1 and some packets to router 3
+
+44
+00:03:10.000 --> 00:03:15.000
+because it thinks it has 2 ways to get to the destination network.
+
+45
+00:03:15.000 --> 00:03:22.000
+On router 1, as an example, if I try and ping 1.1.1.2 that doesn’t work.
+
+46
+00:03:22.000 --> 00:03:25.000
+On router 1 if I use the command show ip route
+
+47
+00:03:25.000 --> 00:03:27.000
+I can see the routing table
+
+48
+00:03:27.000 --> 00:03:31.000
+it hasn’t learned about the network 1.1.1.1
+
+49
+00:03:31.000 --> 00:03:34.000
+this can cause all kinds of problems in your network.
+
+50
+00:03:34.000 --> 00:03:38.000
+So, what you should do to solve this is going to the RIP process
+
+51
+00:03:38.000 --> 00:03:44.000
+and type no auto-summary this does affect EIGRP in a similar way.
+
+52
+00:03:44.000 --> 00:03:49.000
+So with EIGRP also want to disable automatic summarization
+
+53
+00:03:49.000 --> 00:03:56.000
+so I'll disable automatic summarization on all these routers
+
+54
+00:03:56.000 --> 00:03:59.000
+and now when I use the command show ip route.
+
+55
+00:03:59.000 --> 00:04:02.000
+I should see more specific routes.
+
+56
+00:04:02.000 --> 00:04:07.000
+So notice now I’m seeing 2.2.2.2/32
+
+57
+00:04:07.000 --> 00:04:12.000
+I’m still seeing the old 2 network which was advertised previously.
+
+58
+00:04:12.000 --> 00:04:15.000
+So when if I type clear ip route *
+
+59
+00:04:15.000 --> 00:04:20.000
+that allows me to remove all routes from the routing table
+
+60
+00:04:20.000 --> 00:04:29.000
+and force an update so that I don’t have to wait for routes to expire
+
+61
+00:04:29.000 --> 00:04:35.000
+and then be relearned and notice now I see 1.1.1.1 on router 1
+
+62
+00:04:35.000 --> 00:04:38.000
+as directly connected, so it’s the loopback of router 1
+
+63
+00:04:38.000 --> 00:04:47.000
+Now I also see 1.1.1.2 advertise via router 2, 10.1.1.2
+
+64
+00:04:47.000 --> 00:04:50.000
+so now router 1 should be able to ping
+
+65
+00:04:50.000 --> 00:04:53.000
+the loopback of router 3 with this IP address.
+
+66
+00:04:53.000 --> 00:05:02.000
+So I have added this loopback to router 3
+
+67
+00:05:02.000 --> 00:05:07.000
+and that now works and on route 3
+
+68
+00:05:07.000 --> 00:05:13.000
+we should be able to ping router's 1 loopback
+
+69
+00:05:13.000 --> 00:05:18.000
+that works and on router 2 when I use the command show ip route
+
+70
+00:05:18.000 --> 00:05:22.000
+I see specific routes via different interfaces.
+
+71
+00:05:22.000 --> 00:05:29.000
+So 1.1.1.1 is available via F0/0 this interface
+
+72
+00:05:29.000 --> 00:05:35.000
+1.1.1.2 is available via F0/1 this interface.
+
+73
+00:05:35.000 --> 00:05:38.000
+This is a lot better than it was previously.
+
+74
+00:05:38.000 --> 00:05:43.000
+So the moral of the story is when you setup RIP
+
+75
+00:05:43.000 --> 00:05:48.000
+make sure that you disable automatic summarization
+
+76
+00:05:48.000 --> 00:05:50.000
+and ensure that you use version 2
+
+77
+00:05:50.000 --> 00:05:55.000
+otherwise, you're going to have problems in a lot of topologies.

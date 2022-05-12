@@ -1,0 +1,429 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:01.008
+- [Instructor] Now that we've discussed
+
+2
+00:00:01.008 --> 00:00:04.007
+some of the main practices involved with GitOps,
+
+3
+00:00:04.007 --> 00:00:07.001
+let's see them in action.
+
+4
+00:00:07.001 --> 00:00:10.008
+To do that, we'll establish an end-to-end GitOps workflow
+
+5
+00:00:10.008 --> 00:00:12.009
+that combines the GitOps principles
+
+6
+00:00:12.009 --> 00:00:16.005
+with the practices that we discussed in this chapter.
+
+7
+00:00:16.005 --> 00:00:20.005
+The workflow uses GitHub, CircleCI, Docker Hub, Flux,
+
+8
+00:00:20.005 --> 00:00:22.006
+and Azure Arc.
+
+9
+00:00:22.006 --> 00:00:25.009
+It's pretty complex, so we'll break it into pieces.
+
+10
+00:00:25.009 --> 00:00:27.008
+First, we'll focus on the practice
+
+11
+00:00:27.008 --> 00:00:29.008
+of using container platforms
+
+12
+00:00:29.008 --> 00:00:32.006
+by standing up a small K3s cluster
+
+13
+00:00:32.006 --> 00:00:35.004
+that we'll manage with Azure Arc.
+
+14
+00:00:35.004 --> 00:00:39.004
+Azure Arc isn't necessary for our container platforms,
+
+15
+00:00:39.004 --> 00:00:41.005
+but it's a newer feature in Azure
+
+16
+00:00:41.005 --> 00:00:44.003
+that has some support for GitOps built in,
+
+17
+00:00:44.003 --> 00:00:47.003
+so it's worth exploring.
+
+18
+00:00:47.003 --> 00:00:49.009
+So let's start on my local workstation
+
+19
+00:00:49.009 --> 00:00:52.008
+where I've installed Docker and K3s.
+
+20
+00:00:52.008 --> 00:00:55.007
+K3s is a small Kubernetes distribution
+
+21
+00:00:55.007 --> 00:00:57.007
+that's provided by Rancher.
+
+22
+00:00:57.007 --> 00:01:01.003
+It comes with the command line wrapper K3d.
+
+23
+00:01:01.003 --> 00:01:05.004
+We can use K3d to quickly stand up a cluster
+
+24
+00:01:05.004 --> 00:01:07.004
+on our local workstation.
+
+25
+00:01:07.004 --> 00:01:09.004
+So here, I'm telling K3d
+
+26
+00:01:09.004 --> 00:01:12.009
+to create a cluster named arccluster.
+
+27
+00:01:12.009 --> 00:01:15.006
+I'll go ahead and execute that command
+
+28
+00:01:15.006 --> 00:01:21.008
+and the cluster will begin to provision on my machine.
+
+29
+00:01:21.008 --> 00:01:24.002
+That's how quickly you can get up and running
+
+30
+00:01:24.002 --> 00:01:26.004
+locally with Kubernetes.
+
+31
+00:01:26.004 --> 00:01:29.001
+Now let's head over to Azure.
+
+32
+00:01:29.001 --> 00:01:32.001
+Within Azure, we're going to stand up
+
+33
+00:01:32.001 --> 00:01:34.002
+and configure Azure Arc.
+
+34
+00:01:34.002 --> 00:01:36.005
+Now, you'll need an Azure account for this.
+
+35
+00:01:36.005 --> 00:01:38.000
+So if you don't have one,
+
+36
+00:01:38.000 --> 00:01:41.005
+just click on this green button to get a free trial.
+
+37
+00:01:41.005 --> 00:01:45.006
+I'm going to head into the portal and within the portal,
+
+38
+00:01:45.006 --> 00:01:48.007
+we can do a global search for Arc
+
+39
+00:01:48.007 --> 00:01:50.009
+and you'll see that Azure Arc
+
+40
+00:01:50.009 --> 00:01:53.001
+appears as the first selection.
+
+41
+00:01:53.001 --> 00:01:54.004
+Go ahead and click on it
+
+42
+00:01:54.004 --> 00:01:58.005
+and this takes us to the starting page for Azure Arc.
+
+43
+00:01:58.005 --> 00:02:02.005
+Now, Azure Arc is used to manage resources
+
+44
+00:02:02.005 --> 00:02:04.009
+remotely from Azure,
+
+45
+00:02:04.009 --> 00:02:08.004
+so things like our local K3s cluster
+
+46
+00:02:08.004 --> 00:02:12.003
+or maybe a cluster over in GCP or AWS
+
+47
+00:02:12.003 --> 00:02:15.005
+can be managed using Azure Arc.
+
+48
+00:02:15.005 --> 00:02:18.003
+The cluster doesn't need to be in Azure,
+
+49
+00:02:18.003 --> 00:02:20.009
+but it can be managed from there.
+
+50
+00:02:20.009 --> 00:02:22.007
+Now, because we're interested
+
+51
+00:02:22.007 --> 00:02:25.002
+in managing existing infrastructure,
+
+52
+00:02:25.002 --> 00:02:27.005
+I'll select this first option.
+
+53
+00:02:27.005 --> 00:02:29.001
+I'll go ahead and hit Add
+
+54
+00:02:29.001 --> 00:02:31.000
+and then we have a Kubernetes cluster,
+
+55
+00:02:31.000 --> 00:02:35.004
+so I'm going to select this option in the middle.
+
+56
+00:02:35.004 --> 00:02:38.008
+Now, before we can manage that cluster with Arc,
+
+57
+00:02:38.008 --> 00:02:43.007
+we need some software installed on our workstation.
+
+58
+00:02:43.007 --> 00:02:47.006
+The softwares listed here, I've already installed it.
+
+59
+00:02:47.006 --> 00:02:50.000
+You can work through the instructions here
+
+60
+00:02:50.000 --> 00:02:55.003
+to install Azure CLI, some extensions for it, and Helm.
+
+61
+00:02:55.003 --> 00:02:57.005
+Once you've completed those instructions,
+
+62
+00:02:57.005 --> 00:03:01.005
+go ahead and click on Cluster Details to continue.
+
+63
+00:03:01.005 --> 00:03:05.001
+Now we need to provide some additional information
+
+64
+00:03:05.001 --> 00:03:07.000
+about the resource we want to create,
+
+65
+00:03:07.000 --> 00:03:09.002
+and that starts with the resource group.
+
+66
+00:03:09.002 --> 00:03:16.008
+I'm just going to name the resource group arc-cluster-rg
+
+67
+00:03:16.008 --> 00:03:19.006
+and then I'll go ahead and hit OK
+
+68
+00:03:19.006 --> 00:03:25.001
+and then we need to provide a name for the cluster in Azure.
+
+69
+00:03:25.001 --> 00:03:31.000
+I'll just call this the k3d-local-cluster.
+
+70
+00:03:31.000 --> 00:03:32.008
+And you can leave the region set
+
+71
+00:03:32.008 --> 00:03:36.001
+to whatever Azure has selected.
+
+72
+00:03:36.001 --> 00:03:38.009
+Once that's all in place, go ahead, hit Next.
+
+73
+00:03:38.009 --> 00:03:40.004
+This takes us to the tags.
+
+74
+00:03:40.004 --> 00:03:41.007
+We don't need any of those,
+
+75
+00:03:41.007 --> 00:03:45.001
+so I'm going to continue to the run script.
+
+76
+00:03:45.001 --> 00:03:48.004
+You'll notice that Azure provides us with a script
+
+77
+00:03:48.004 --> 00:03:50.008
+to get our local Kubernetes cluster
+
+78
+00:03:50.008 --> 00:03:53.000
+synced up with Azure Arc.
+
+79
+00:03:53.000 --> 00:03:55.007
+So it's going to create that resource group
+
+80
+00:03:55.007 --> 00:03:59.004
+and then it uses one of the extensions we installed
+
+81
+00:03:59.004 --> 00:04:02.003
+to make the sync occur.
+
+82
+00:04:02.003 --> 00:04:05.007
+I'm going to go ahead and copy the last three commands
+
+83
+00:04:05.007 --> 00:04:06.008
+in the script.
+
+84
+00:04:06.008 --> 00:04:10.007
+I've already logged into Azure via the Azure CLI,
+
+85
+00:04:10.007 --> 00:04:13.002
+so I don't need that first command.
+
+86
+00:04:13.002 --> 00:04:15.003
+If you haven't logged into Azure,
+
+87
+00:04:15.003 --> 00:04:17.008
+you'll want to copy the first one.
+
+88
+00:04:17.008 --> 00:04:20.002
+All right, so once that's copied,
+
+89
+00:04:20.002 --> 00:04:24.000
+then we're going to navigate back to a terminal.
+
+90
+00:04:24.000 --> 00:04:26.004
+I'll go ahead and clear it.
+
+91
+00:04:26.004 --> 00:04:30.001
+And then from here, we can paste the commands
+
+92
+00:04:30.001 --> 00:04:33.005
+and that's going to connect our local K3s cluster
+
+93
+00:04:33.005 --> 00:04:37.002
+to Azure Arc.
+
+94
+00:04:37.002 --> 00:04:39.008
+So the connection appears to be completed.
+
+95
+00:04:39.008 --> 00:04:44.000
+Let's navigate over to Azure to verify that.
+
+96
+00:04:44.000 --> 00:04:47.001
+To do that, just click on the Verification button
+
+97
+00:04:47.001 --> 00:04:49.000
+at the bottom of your screen
+
+98
+00:04:49.000 --> 00:04:53.003
+and we'll get a confirmation that our local K3d cluster
+
+99
+00:04:53.003 --> 00:04:57.002
+has successfully been connected to Azure Arc.
+
+100
+00:04:57.002 --> 00:04:59.007
+Let's go take a quick look at the cluster
+
+101
+00:04:59.007 --> 00:05:03.006
+and we can see some additional information about it.
+
+102
+00:05:03.006 --> 00:05:05.004
+So by embracing containers,
+
+103
+00:05:05.004 --> 00:05:08.002
+we start to head down that cloud native path
+
+104
+00:05:08.002 --> 00:05:12.004
+that has other practices that tie in so nicely with GitOps.
+
+105
+00:05:12.004 --> 00:05:14.005
+Now that we have our cluster setup,
+
+106
+00:05:14.005 --> 00:05:16.004
+we're going to move on and take a look
+
+107
+00:05:16.004 --> 00:05:20.000
+at some of the next practices in that mix.
+

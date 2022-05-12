@@ -1,0 +1,785 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:01.008
+- In previous lessons
+
+2
+00:00:01.008 --> 00:00:04.004
+we have learned about Spring Boot Actuator
+
+3
+00:00:04.004 --> 00:00:07.006
+and how to use it to expose all kinds of information
+
+4
+00:00:07.006 --> 00:00:11.000
+about the runtime state of your spring based application.
+
+5
+00:00:11.000 --> 00:00:12.009
+We have learned how to configure
+
+6
+00:00:12.009 --> 00:00:16.001
+custom application health reporting, for instance.
+
+7
+00:00:16.001 --> 00:00:18.002
+Let's take it all one step further
+
+8
+00:00:18.002 --> 00:00:21.002
+and learn how spring enables your spring application
+
+9
+00:00:21.002 --> 00:00:23.009
+to interface with the state-of-the-art
+
+10
+00:00:23.009 --> 00:00:27.001
+runtime monitoring platforms.
+
+11
+00:00:27.001 --> 00:00:31.000
+The key to how this works is the micrometer library.
+
+12
+00:00:31.000 --> 00:00:34.004
+Micrometer provides an application metrics facade
+
+13
+00:00:34.004 --> 00:00:37.004
+that supports numerous runtime monitoring systems,
+
+14
+00:00:37.004 --> 00:00:39.008
+such as Prometheus and DataDog,
+
+15
+00:00:39.008 --> 00:00:43.009
+and probably 20 others or more.
+
+16
+00:00:43.009 --> 00:00:45.008
+Micrometer serves the purpose
+
+17
+00:00:45.008 --> 00:00:49.006
+of providing a standardized reporting format.
+
+18
+00:00:49.006 --> 00:00:51.000
+And when spring leverages
+
+19
+00:00:51.000 --> 00:00:53.005
+the micrometer library to publish its metrics,
+
+20
+00:00:53.005 --> 00:00:56.000
+it is then publishing them in formats that these other
+
+21
+00:00:56.000 --> 00:00:58.009
+runtime monitoring systems can consume
+
+22
+00:00:58.009 --> 00:01:01.005
+and make actionable to the end user.
+
+23
+00:01:01.005 --> 00:01:03.005
+We are going to use in our demonstration
+
+24
+00:01:03.005 --> 00:01:05.005
+a platform called Prometheus.
+
+25
+00:01:05.005 --> 00:01:08.008
+Prometheus is an application runtime monitoring tool
+
+26
+00:01:08.008 --> 00:01:10.009
+and like many others in its class,
+
+27
+00:01:10.009 --> 00:01:13.003
+it specializes in fine-grained
+
+28
+00:01:13.003 --> 00:01:16.002
+and customizable event alerting.
+
+29
+00:01:16.002 --> 00:01:18.006
+It specializes in trending over time
+
+30
+00:01:18.006 --> 00:01:20.009
+and in multi-application management.
+
+31
+00:01:20.009 --> 00:01:23.005
+So you can have a dashboard with many applications
+
+32
+00:01:23.005 --> 00:01:25.007
+and group them in alerting groups
+
+33
+00:01:25.007 --> 00:01:29.008
+and capture trending over time in groups of applications.
+
+34
+00:01:29.008 --> 00:01:31.004
+So that's the specialty Prometheus
+
+35
+00:01:31.004 --> 00:01:33.009
+and run-time monitoring tools like it.
+
+36
+00:01:33.009 --> 00:01:36.008
+Before we go into our lesson,
+
+37
+00:01:36.008 --> 00:01:41.006
+let's first talk about three important categories of metric.
+
+38
+00:01:41.006 --> 00:01:43.000
+One of them is a counter.
+
+39
+00:01:43.000 --> 00:01:45.008
+Just as you might think, a counter is a single metric.
+
+40
+00:01:45.008 --> 00:01:47.002
+It's a count of something.
+
+41
+00:01:47.002 --> 00:01:51.002
+It's a static report of a number at a given point in time.
+
+42
+00:01:51.002 --> 00:01:52.007
+An example of something you would use
+
+43
+00:01:52.007 --> 00:01:55.003
+a counter for is uptime.
+
+44
+00:01:55.003 --> 00:01:59.006
+Like, to say how many seconds the application has been up.
+
+45
+00:01:59.006 --> 00:02:02.000
+A second type of metric is a gauge.
+
+46
+00:02:02.000 --> 00:02:03.009
+A gauge is a current value.
+
+47
+00:02:03.009 --> 00:02:05.001
+It's a snapshot value,
+
+48
+00:02:05.001 --> 00:02:09.001
+but it's typically on a range of values with an upper bound.
+
+49
+00:02:09.001 --> 00:02:10.006
+So gauge metrics allow you
+
+50
+00:02:10.006 --> 00:02:13.003
+to create graphs to show trends over time.
+
+51
+00:02:13.003 --> 00:02:16.006
+An example of a gauge is CPU process use.
+
+52
+00:02:16.006 --> 00:02:20.001
+And then finally a timer metric is, as you might think,
+
+53
+00:02:20.001 --> 00:02:21.009
+how long something takes.
+
+54
+00:02:21.009 --> 00:02:22.007
+Typically though,
+
+55
+00:02:22.007 --> 00:02:25.004
+relative to other actions in the same series.
+
+56
+00:02:25.004 --> 00:02:28.001
+So an example of a timer type of metric would be
+
+57
+00:02:28.001 --> 00:02:31.000
+latency on an HTTP request, for example.
+
+58
+00:02:31.000 --> 00:02:35.004
+Now that we've got some of these basic terminology in mind,
+
+59
+00:02:35.004 --> 00:02:37.003
+let's have a look at an integration
+
+60
+00:02:37.003 --> 00:02:40.001
+of our spring application into
+
+61
+00:02:40.001 --> 00:02:44.003
+this runtime monitoring platform called Prometheus.
+
+62
+00:02:44.003 --> 00:02:46.006
+First of all, let's have a look at start state.
+
+63
+00:02:46.006 --> 00:02:50.002
+Okay, so right now we've got our demo application running
+
+64
+00:02:50.002 --> 00:02:52.009
+and I started it running before this lesson started.
+
+65
+00:02:52.009 --> 00:02:54.003
+And what I'd like to show you
+
+66
+00:02:54.003 --> 00:02:58.003
+is one of these endpoints in this actuator output
+
+67
+00:02:58.003 --> 00:03:00.006
+that we've been looking at for a bit now.
+
+68
+00:03:00.006 --> 00:03:01.008
+The end point we're going to look at
+
+69
+00:03:01.008 --> 00:03:03.005
+is the metrics end point.
+
+70
+00:03:03.005 --> 00:03:08.002
+This end point shows all of the categories of metric
+
+71
+00:03:08.002 --> 00:03:12.008
+that spring boot is reporting through the micrometer library
+
+72
+00:03:12.008 --> 00:03:15.009
+in order to be consumed by a runtime platform.
+
+73
+00:03:15.009 --> 00:03:17.001
+The reason I'm showing you this is,
+
+74
+00:03:17.001 --> 00:03:18.006
+is what we're going to do next is
+
+75
+00:03:18.006 --> 00:03:21.009
+we are going to configure a custom metric
+
+76
+00:03:21.009 --> 00:03:25.007
+to publish along with the other of these default metrics.
+
+77
+00:03:25.007 --> 00:03:28.002
+So let's stop our app
+
+78
+00:03:28.002 --> 00:03:30.004
+and let's walk through how this is done.
+
+79
+00:03:30.004 --> 00:03:35.003
+Let us start, as we often do with the pom file.
+
+80
+00:03:35.003 --> 00:03:39.001
+The pom dot XML file for this Maven based application
+
+81
+00:03:39.001 --> 00:03:41.009
+is telling us the dependence that we need to pull in.
+
+82
+00:03:41.009 --> 00:03:45.002
+And first of all, in order to make this work,
+
+83
+00:03:45.002 --> 00:03:48.007
+we need to pull in a dependency on this library
+
+84
+00:03:48.007 --> 00:03:50.002
+that I mentioned a minute ago,
+
+85
+00:03:50.002 --> 00:03:53.000
+the IO dot micrometer library,
+
+86
+00:03:53.000 --> 00:03:55.005
+and specifically we're pulling in
+
+87
+00:03:55.005 --> 00:03:59.008
+the Prometheus's registry underneath this library,
+
+88
+00:03:59.008 --> 00:04:02.006
+which has specific registry that's compatible
+
+89
+00:04:02.006 --> 00:04:04.004
+with the Prometheus platform.
+
+90
+00:04:04.004 --> 00:04:08.001
+So we're pulling in this micrometer metrics facade library,
+
+91
+00:04:08.001 --> 00:04:09.003
+and just as a reminder,
+
+92
+00:04:09.003 --> 00:04:11.006
+we're also pulling in the spring boot
+
+93
+00:04:11.006 --> 00:04:13.007
+actuator dependency right here.
+
+94
+00:04:13.007 --> 00:04:17.006
+That's why we can see these actuator metrics at all.
+
+95
+00:04:17.006 --> 00:04:19.008
+Okay. So that's in our pom dot XML.
+
+96
+00:04:19.008 --> 00:04:23.000
+We build this and all the things that we need come in.
+
+97
+00:04:23.000 --> 00:04:25.009
+Another thing I want to point out to you is a reminder
+
+98
+00:04:25.009 --> 00:04:30.001
+that we are exposing all of our endpoints over the web,
+
+99
+00:04:30.001 --> 00:04:33.006
+which is an important thing for Prometheus to work.
+
+100
+00:04:33.006 --> 00:04:35.003
+In particular, actually,
+
+101
+00:04:35.003 --> 00:04:38.006
+it just needs to have the Prometheus metrics exposed,
+
+102
+00:04:38.006 --> 00:04:40.007
+but we're exposing them all for demo purposes
+
+103
+00:04:40.007 --> 00:04:42.006
+and so that's why we're going to be able to see
+
+104
+00:04:42.006 --> 00:04:44.005
+what we need to see in this browser
+
+105
+00:04:44.005 --> 00:04:46.007
+and Prometheus we'll be able to consume it.
+
+106
+00:04:46.007 --> 00:04:50.002
+Finally, having done those things,
+
+107
+00:04:50.002 --> 00:04:53.005
+the path to setting up a custom metric
+
+108
+00:04:53.005 --> 00:04:56.000
+is astonishingly simple.
+
+109
+00:04:56.000 --> 00:04:57.001
+We are depending here,
+
+110
+00:04:57.001 --> 00:04:58.003
+like I mentioned before,
+
+111
+00:04:58.003 --> 00:05:01.008
+on the IO micrometer library,
+
+112
+00:05:01.008 --> 00:05:04.004
+and we're going to create a public class,
+
+113
+00:05:04.004 --> 00:05:07.001
+let's call it the weekend gauge.
+
+114
+00:05:07.001 --> 00:05:11.005
+Now let's register this class that we scaffolded here
+
+115
+00:05:11.005 --> 00:05:15.007
+with the spring context, using the component annotation.
+
+116
+00:05:15.007 --> 00:05:19.006
+Now spring will inject our dependency on the
+
+117
+00:05:19.006 --> 00:05:23.000
+meter registry from the IO micrometer library.
+
+118
+00:05:23.000 --> 00:05:24.004
+And all we need to do here is
+
+119
+00:05:24.004 --> 00:05:27.005
+set some state on this registry
+
+120
+00:05:27.005 --> 00:05:28.008
+and we're going to set up a gauge.
+
+121
+00:05:28.008 --> 00:05:30.004
+Remember I talked about the three types?
+
+122
+00:05:30.004 --> 00:05:31.009
+The counter, the gauge, the timer.
+
+123
+00:05:31.009 --> 00:05:35.007
+Registry gives us a quick shortcut to set up a gauge.
+
+124
+00:05:35.007 --> 00:05:38.008
+We're going to use the three parameter
+
+125
+00:05:38.008 --> 00:05:40.009
+signature of this method.
+
+126
+00:05:40.009 --> 00:05:43.008
+And first we will give it a name for our gauge,
+
+127
+00:05:43.008 --> 00:05:45.004
+let's call it
+
+128
+00:05:45.004 --> 00:05:49.005
+weekend time to...
+
+129
+00:05:49.005 --> 00:05:51.009
+wait.
+
+130
+00:05:51.009 --> 00:05:54.007
+And we're going to use the tags class
+
+131
+00:05:54.007 --> 00:05:56.007
+from our micrometer library.
+
+132
+00:05:56.007 --> 00:05:58.003
+We're actually going to send some tags.
+
+133
+00:05:58.003 --> 00:05:59.007
+So we'll send an empty tag set.
+
+134
+00:05:59.007 --> 00:06:02.000
+And then finally, what goes here,
+
+135
+00:06:02.000 --> 00:06:03.009
+the number that we want to report
+
+136
+00:06:03.009 --> 00:06:05.007
+for this particular metric,
+
+137
+00:06:05.007 --> 00:06:08.006
+which is a countdown to the weekend here
+
+138
+00:06:08.006 --> 00:06:13.005
+in a private class inside this gauge class.
+
+139
+00:06:13.005 --> 00:06:14.005
+It's just a silly,
+
+140
+00:06:14.005 --> 00:06:20.006
+single number that tells us how long it is to the weekend.
+
+141
+00:06:20.006 --> 00:06:23.009
+Believe it or not, this is all we need to do.
+
+142
+00:06:23.009 --> 00:06:25.006
+Let's restart our app.
+
+143
+00:06:25.006 --> 00:06:28.005
+What do you say?
+
+144
+00:06:28.005 --> 00:06:32.003
+Give it a few seconds here to start up.
+
+145
+00:06:32.003 --> 00:06:34.000
+We are loaded.
+
+146
+00:06:34.000 --> 00:06:39.000
+Now, let's refresh our actuator page.
+
+147
+00:06:39.000 --> 00:06:41.007
+Let's go into our metrics.
+
+148
+00:06:41.007 --> 00:06:46.004
+And at the bottom you will see our new metric.
+
+149
+00:06:46.004 --> 00:06:48.000
+Let's take this a step further
+
+150
+00:06:48.000 --> 00:06:51.007
+and let's look at the Prometheus metrics.
+
+151
+00:06:51.007 --> 00:06:56.002
+Now this page of a complicated looking text
+
+152
+00:06:56.002 --> 00:07:01.002
+is the input that the Prometheus platform pulls in.
+
+153
+00:07:01.002 --> 00:07:04.000
+It's kind of a formatted view of all of these different
+
+154
+00:07:04.000 --> 00:07:07.000
+metrics that Prometheus will be able to understand,
+
+155
+00:07:07.000 --> 00:07:09.005
+again, thanks to the micrometer library.
+
+156
+00:07:09.005 --> 00:07:15.002
+We will see our weekend metric.
+
+157
+00:07:15.002 --> 00:07:16.002
+There it is.
+
+158
+00:07:16.002 --> 00:07:21.003
+Our weekend time to wait gauge is here and it wasn't before.
+
+159
+00:07:21.003 --> 00:07:22.009
+Now, just to prove this whole thing out,
+
+160
+00:07:22.009 --> 00:07:24.003
+let's go over to Prometheus,
+
+161
+00:07:24.003 --> 00:07:26.003
+which I happen to have running here.
+
+162
+00:07:26.003 --> 00:07:28.003
+Quick overview here.
+
+163
+00:07:28.003 --> 00:07:30.006
+We've got two targets registered here in Prometheus.
+
+164
+00:07:30.006 --> 00:07:33.000
+I'll give you a notice at the end of here,
+
+165
+00:07:33.000 --> 00:07:33.008
+how this is done,
+
+166
+00:07:33.008 --> 00:07:36.005
+but one of them is our demo API,
+
+167
+00:07:36.005 --> 00:07:38.004
+which is up thanks to our health metric
+
+168
+00:07:38.004 --> 00:07:40.002
+that we have surfaced.
+
+169
+00:07:40.002 --> 00:07:42.002
+Now let's go in here to the graph
+
+170
+00:07:42.002 --> 00:07:46.002
+and look for our new leaf configured gauge,
+
+171
+00:07:46.002 --> 00:07:48.001
+weekend time to wait,
+
+172
+00:07:48.001 --> 00:07:50.002
+and we will see that we have numbers here.
+
+173
+00:07:50.002 --> 00:07:53.007
+If we waited long enough over the period of several days,
+
+174
+00:07:53.007 --> 00:07:56.007
+this gauge would climb up on Monday
+
+175
+00:07:56.007 --> 00:07:59.003
+and start walking back down Tuesday, Wednesday, Thursday.
+
+176
+00:07:59.003 --> 00:08:02.002
+Just to give you a little bit more sense of how this works,
+
+177
+00:08:02.002 --> 00:08:05.003
+let's open up another panel here in Prometheus,
+
+178
+00:08:05.003 --> 00:08:10.007
+and let's have a look at say the system CPU usage,
+
+179
+00:08:10.007 --> 00:08:12.009
+and you can actually see a more meaningful graph
+
+180
+00:08:12.009 --> 00:08:16.003
+showing all kinds of metrics here collected over time.
+
+181
+00:08:16.003 --> 00:08:17.007
+So that's how Prometheus works.
+
+182
+00:08:17.007 --> 00:08:19.003
+Finally, let me do show you.
+
+183
+00:08:19.003 --> 00:08:22.000
+We can't go all into Prometheus and configuring it,
+
+184
+00:08:22.000 --> 00:08:24.006
+but there is a Prometheus YML file,
+
+185
+00:08:24.006 --> 00:08:28.004
+in which we have configured our demo API,
+
+186
+00:08:28.004 --> 00:08:30.004
+which we saw there on the targets page.
+
+187
+00:08:30.004 --> 00:08:32.004
+We're giving it the path to the metrics
+
+188
+00:08:32.004 --> 00:08:35.000
+as this actuator Prometheus path,
+
+189
+00:08:35.000 --> 00:08:38.002
+which is this right here,
+
+190
+00:08:38.002 --> 00:08:40.001
+and told it the host,
+
+191
+00:08:40.001 --> 00:08:42.001
+which is local host 9092.
+
+192
+00:08:42.001 --> 00:08:43.006
+So that's how Prometheus is coming in
+
+193
+00:08:43.006 --> 00:08:45.003
+and pulling in these metrics.
+
+194
+00:08:45.003 --> 00:08:47.005
+There, now we have successfully configured
+
+195
+00:08:47.005 --> 00:08:51.002
+a custom Prometheus metric using spring boot actuator,
+
+196
+00:08:51.002 --> 00:08:53.000
+and the micrometer library.
+

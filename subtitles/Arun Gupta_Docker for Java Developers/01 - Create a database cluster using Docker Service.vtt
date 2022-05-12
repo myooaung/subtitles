@@ -1,0 +1,1005 @@
+WEBVTT
+1
+00:00:00.060 --> 00:00:02.070
+- [Instructor] So far, we have seen how can we create
+
+2
+00:00:02.070 --> 00:00:06.050
+a multi-container application, deploy them on a single host
+
+3
+00:00:06.050 --> 00:00:09.030
+on a multi-node using Docker Machine
+
+4
+00:00:09.030 --> 00:00:12.050
+and multi-node using Docker for AWS.
+
+5
+00:00:12.050 --> 00:00:16.010
+Now, those containers were all stateless containers,
+
+6
+00:00:16.010 --> 00:00:18.010
+but we then ran a little bit of call trace,
+
+7
+00:00:18.010 --> 00:00:21.070
+but the state was maintained within the container itself.
+
+8
+00:00:21.070 --> 00:00:24.090
+Let's take a look at how can we create Couchbase cluster
+
+9
+00:00:24.090 --> 00:00:27.060
+using Docker Services.
+
+10
+00:00:27.060 --> 00:00:30.060
+Now, Couchbase is NoSQL document database,
+
+11
+00:00:30.060 --> 00:00:32.070
+and it has homogeneous architecture.
+
+12
+00:00:32.070 --> 00:00:36.020
+What that means is there is no master, no slave.
+
+13
+00:00:36.020 --> 00:00:39.060
+The way you create a Couchbase cluster is you spin up
+
+14
+00:00:39.060 --> 00:00:42.070
+one Couchbase node, another Couchbase node,
+
+15
+00:00:42.070 --> 00:00:44.040
+and the third Couchbase node.
+
+16
+00:00:44.040 --> 00:00:46.040
+You pick any random node and add
+
+17
+00:00:46.040 --> 00:00:48.090
+the other two nodes to that first node,
+
+18
+00:00:48.090 --> 00:00:51.050
+and that makes a homogeneous Couchbase cluster.
+
+19
+00:00:51.050 --> 00:00:54.070
+But in order to automate it, in order to simplify
+
+20
+00:00:54.070 --> 00:00:56.090
+the process, we need to have this concept
+
+21
+00:00:56.090 --> 00:00:59.030
+of a master service, quote-unquote.
+
+22
+00:00:59.030 --> 00:01:03.000
+So we can make a master service with a single replica.
+
+23
+00:01:03.000 --> 00:01:05.040
+This allows us to uniquely identify a node
+
+24
+00:01:05.040 --> 00:01:08.040
+to which other nodes can be added.
+
+25
+00:01:08.040 --> 00:01:10.040
+Then, we're going to make a worker service,
+
+26
+00:01:10.040 --> 00:01:13.060
+and this worker service could have up to three replicas,
+
+27
+00:01:13.060 --> 00:01:16.080
+certainly more, but for demo purposes, we will show three.
+
+28
+00:01:16.080 --> 00:01:20.050
+And then, as soon as this service starts up,
+
+29
+00:01:20.050 --> 00:01:23.030
+these nodes will join the master service,
+
+30
+00:01:23.030 --> 00:01:25.060
+forming a Couchbase cluster.
+
+31
+00:01:25.060 --> 00:01:27.030
+And the key part that I want to highlight here
+
+32
+00:01:27.030 --> 00:01:31.060
+is how the images that are used in all of these containers
+
+33
+00:01:31.060 --> 00:01:35.060
+or services are exactly alike, and that's what makes sense,
+
+34
+00:01:35.060 --> 00:01:38.070
+that this is actually a homogeneous Couchbase cluster.
+
+35
+00:01:38.070 --> 00:01:41.090
+So, let's first take a look at how this image is created,
+
+36
+00:01:41.090 --> 00:01:44.080
+and then we'll show you live in action.
+
+37
+00:01:44.080 --> 00:01:49.090
+I'm in the browser here, and I am going to go to my repo
+
+38
+00:01:49.090 --> 00:01:52.060
+where all the details are available.
+
+39
+00:01:52.060 --> 00:01:54.040
+Here is my docker-images repo,
+
+40
+00:01:54.040 --> 00:01:57.020
+and I'm looking at the Couchbase folder over there.
+
+41
+00:01:57.020 --> 00:02:00.070
+If I look at the Dockerfile, it chooses couchbase:latest
+
+42
+00:02:00.070 --> 00:02:02.070
+as the base image, and there,
+
+43
+00:02:02.070 --> 00:02:05.060
+it's using a configure-node.sh script,
+
+44
+00:02:05.060 --> 00:02:09.000
+and this configure-node.sh script is used as a command.
+
+45
+00:02:09.000 --> 00:02:13.080
+So let's look back here on configure-node.sh script here.
+
+46
+00:02:13.080 --> 00:02:15.010
+We have seen this script earlier.
+
+47
+00:02:15.010 --> 00:02:18.020
+So the REST API is from line 9 to 21.
+
+48
+00:02:18.020 --> 00:02:20.040
+It's configuring the server.
+
+49
+00:02:20.040 --> 00:02:24.030
+If we go down here, it takes three environment variables.
+
+50
+00:02:24.030 --> 00:02:25.080
+The first is a type.
+
+51
+00:02:25.080 --> 00:02:28.000
+Type could be a worker or a master.
+
+52
+00:02:28.000 --> 00:02:30.020
+Well, if it's a master, nothing happens,
+
+53
+00:02:30.020 --> 00:02:34.010
+but if it's a worker, go from line 25 to 39
+
+54
+00:02:34.010 --> 00:02:35.080
+to configure the server.
+
+55
+00:02:35.080 --> 00:02:39.000
+The second environment variable it takes is $AUTO_REBALANCE.
+
+56
+00:02:39.000 --> 00:02:41.020
+Now, if you're adding a node to the cluster,
+
+57
+00:02:41.020 --> 00:02:44.010
+you want the data to be rebalanced across the cluster.
+
+58
+00:02:44.010 --> 00:02:46.040
+So that is what this variable indicates.
+
+59
+00:02:46.040 --> 00:02:49.020
+$AUTO_REBALANCE could be true or false.
+
+60
+00:02:49.020 --> 00:02:52.060
+Either way, the node needs to be added to the cluster,
+
+61
+00:02:52.060 --> 00:02:54.090
+so it also needs to know what is the location
+
+62
+00:02:54.090 --> 00:02:56.070
+of the Couchbase master.
+
+63
+00:02:56.070 --> 00:02:58.070
+So essentially, it takes three variables:
+
+64
+00:02:58.070 --> 00:03:02.000
+worker, $AUTO_REBALANCE, and $COUCHBASE_MASTER.
+
+65
+00:03:02.000 --> 00:03:04.090
+Let's go ahead and create our cluster now.
+
+66
+00:03:04.090 --> 00:03:06.070
+I'm in my terminal here.
+
+67
+00:03:06.070 --> 00:03:08.040
+Now that we are in chapter five,
+
+68
+00:03:08.040 --> 00:03:10.020
+let's go to the chapter five directory
+
+69
+00:03:10.020 --> 00:03:12.060
+in exercise files as well.
+
+70
+00:03:12.060 --> 00:03:15.010
+And if I do docker info,
+
+71
+00:03:15.010 --> 00:03:16.080
+you can see, it's running.
+
+72
+00:03:16.080 --> 00:03:18.090
+First of all, the Experimental mode is true,
+
+73
+00:03:18.090 --> 00:03:21.030
+so make sure you have installed Experimental mode over here.
+
+74
+00:03:21.030 --> 00:03:24.010
+We talked about installing this in an earlier version,
+
+75
+00:03:24.010 --> 00:03:28.060
+and if I go up here, it says Swarm is inactive.
+
+76
+00:03:28.060 --> 00:03:30.070
+So let's initialize our Swarm, because that's
+
+77
+00:03:30.070 --> 00:03:33.040
+what will allow us to create the services.
+
+78
+00:03:33.040 --> 00:03:37.040
+So, docker swarm init.
+
+79
+00:03:37.040 --> 00:03:38.090
+This is the only node in the cluster,
+
+80
+00:03:38.090 --> 00:03:41.000
+so it started up as a manager node.
+
+81
+00:03:41.000 --> 00:03:44.080
+Now, in here, I'm going to create a network,
+
+82
+00:03:44.080 --> 00:03:48.000
+so docker network create,
+
+83
+00:03:48.000 --> 00:03:50.080
+and I'm going to create this as an overlay network,
+
+84
+00:03:50.080 --> 00:03:52.050
+call it couchbase.
+
+85
+00:03:52.050 --> 00:03:54.030
+Overlay network is important because this
+
+86
+00:03:54.030 --> 00:03:57.040
+will allow the containers across multiple nodes
+
+87
+00:03:57.040 --> 00:04:00.000
+to communicate with each other.
+
+88
+00:04:00.000 --> 00:04:02.080
+Let's take a look at my networks here.
+
+89
+00:04:02.080 --> 00:04:04.050
+There are other networks here as well.
+
+90
+00:04:04.050 --> 00:04:06.050
+What we care about the couchbase network,
+
+91
+00:04:06.050 --> 00:04:09.020
+driver is overlay, and scope is swarm.
+
+92
+00:04:09.020 --> 00:04:11.000
+Let's create our master service.
+
+93
+00:04:11.000 --> 00:04:13.030
+Docker service create.
+
+94
+00:04:13.030 --> 00:04:14.080
+That's our command.
+
+95
+00:04:14.080 --> 00:04:16.080
+We're going to give it a name.
+
+96
+00:04:16.080 --> 00:04:18.070
+Couchbase-master.
+
+97
+00:04:18.070 --> 00:04:20.090
+We're going to make a single replica here.
+
+98
+00:04:20.090 --> 00:04:24.050
+We're going to use the network couchbase.
+
+99
+00:04:24.050 --> 00:04:27.020
+We're going to expose the port 8091 only.
+
+100
+00:04:27.020 --> 00:04:28.080
+That is for administrative purposes,
+
+101
+00:04:28.080 --> 00:04:31.080
+and now we need to specify the environment variable.
+
+102
+00:04:31.080 --> 00:04:35.040
+We're going to call it as master.
+
+103
+00:04:35.040 --> 00:04:38.040
+And then finally, we need to use our image,
+
+104
+00:04:38.040 --> 00:04:41.010
+arungupta/couchbase.
+
+105
+00:04:41.010 --> 00:04:43.010
+Let's create our service.
+
+106
+00:04:43.010 --> 00:04:46.020
+Once the service is created, we can take a look at it.
+
+107
+00:04:46.020 --> 00:04:48.040
+Docker service ls.
+
+108
+00:04:48.040 --> 00:04:51.060
+One of one replica is now created for us,
+
+109
+00:04:51.060 --> 00:04:52.080
+so that's kind of cool.
+
+110
+00:04:52.080 --> 00:04:54.030
+Now, let's go to the browser
+
+111
+00:04:54.030 --> 00:04:57.000
+and take a look at how my administrative console,
+
+112
+00:04:57.000 --> 00:04:59.020
+the Couchbase web console, looks like.
+
+113
+00:04:59.020 --> 00:05:01.010
+The Couchbase web console is accessible at
+
+114
+00:05:01.010 --> 00:05:03.080
+localhost:8091.
+
+115
+00:05:03.080 --> 00:05:04.090
+Well, it's showing a setup screen,
+
+116
+00:05:04.090 --> 00:05:06.090
+because at this point of time, my container is not
+
+117
+00:05:06.090 --> 00:05:09.080
+fully up yet, and we can verify that by going back
+
+118
+00:05:09.080 --> 00:05:13.010
+to our terminal and looking at the logs for the service.
+
+119
+00:05:13.010 --> 00:05:18.010
+In here, I can say docker service logs,
+
+120
+00:05:18.010 --> 00:05:21.000
+and I'm going to give it the service name,
+
+121
+00:05:21.000 --> 00:05:23.050
+and just say, follow the logs along.
+
+122
+00:05:23.050 --> 00:05:26.080
+It takes about 25 to 30 seconds for the Couchbase container
+
+123
+00:05:26.080 --> 00:05:29.020
+to come up, and that is primarily because that is
+
+124
+00:05:29.020 --> 00:05:32.040
+how we configured it into the configure-node.sh script
+
+125
+00:05:32.040 --> 00:05:34.000
+that goes in the Docker file.
+
+126
+00:05:34.000 --> 00:05:37.010
+So depending upon when do you try to access
+
+127
+00:05:37.010 --> 00:05:40.060
+the Couchbase web console, you might see a setup page,
+
+128
+00:05:40.060 --> 00:05:43.010
+or if a few seconds have already passed by,
+
+129
+00:05:43.010 --> 00:05:45.040
+then you might just see the login page,
+
+130
+00:05:45.040 --> 00:05:48.010
+which doesn't show up until later in the video.
+
+131
+00:05:48.010 --> 00:05:50.020
+So don't panic if you see a login page.
+
+132
+00:05:50.020 --> 00:05:52.030
+Just keep going forward, and then you will see
+
+133
+00:05:52.030 --> 00:05:54.010
+a login page and the credentials
+
+134
+00:05:54.010 --> 00:05:57.070
+to be able to log in to the Couchbase console.
+
+135
+00:05:57.070 --> 00:06:01.060
+And this shows now that my server is now fully configured.
+
+136
+00:06:01.060 --> 00:06:04.030
+This is the output from the REST, and it says
+
+137
+00:06:04.030 --> 00:06:07.020
+couchbase-master.1, meaning this is the first instance
+
+138
+00:06:07.020 --> 00:06:09.060
+of the container that is running.
+
+139
+00:06:09.060 --> 00:06:13.030
+As mentioned earlier, make sure an edge build is being used,
+
+140
+00:06:13.030 --> 00:06:15.090
+which will have the experimental features automatically
+
+141
+00:06:15.090 --> 00:06:18.090
+enabled, or if you're using a stable build,
+
+142
+00:06:18.090 --> 00:06:21.060
+then make sure you enable the experimental features.
+
+143
+00:06:21.060 --> 00:06:25.000
+Either way, if you have the logs not working,
+
+144
+00:06:25.000 --> 00:06:27.010
+it doesn't break your build anyway.
+
+145
+00:06:27.010 --> 00:06:30.010
+You won't be able to see only the logs part of it.
+
+146
+00:06:30.010 --> 00:06:32.090
+Let's go back to the browser, and here, if I refresh
+
+147
+00:06:32.090 --> 00:06:37.020
+the page now, I'm prompted with a login and a password.
+
+148
+00:06:37.020 --> 00:06:40.080
+My default login here is Administrator,
+
+149
+00:06:40.080 --> 00:06:43.020
+and password is Password.
+
+150
+00:06:43.020 --> 00:06:44.070
+Let's sign in.
+
+151
+00:06:44.070 --> 00:06:47.010
+This is my Couchbase web console.
+
+152
+00:06:47.010 --> 00:06:49.080
+If I look at the server nodes,
+
+153
+00:06:49.080 --> 00:06:52.040
+it shows only a single node exists.
+
+154
+00:06:52.040 --> 00:06:53.060
+So that's kind of cool.
+
+155
+00:06:53.060 --> 00:06:56.080
+We have been able to create a simple Couchbase node here.
+
+156
+00:06:56.080 --> 00:07:01.020
+Let's create a Couchbase cluster by using a new service.
+
+157
+00:07:01.020 --> 00:07:03.060
+Let's get out of the logs here
+
+158
+00:07:03.060 --> 00:07:07.000
+and now, I'm going to create another service.
+
+159
+00:07:07.000 --> 00:07:11.070
+I'm going to name it Couchbase-worker.
+
+160
+00:07:11.070 --> 00:07:14.070
+To begin with, I'll have a single replica.
+
+161
+00:07:14.070 --> 00:07:18.010
+I want to use the same network,
+
+162
+00:07:18.010 --> 00:07:21.010
+and I'm going to give the environment variable type
+
+163
+00:07:21.010 --> 00:07:25.090
+as worker, and I need to also give it the location
+
+164
+00:07:25.090 --> 00:07:29.020
+for the Couchbase master,
+
+165
+00:07:29.020 --> 00:07:32.000
+so COUCHBASE_MASTER,
+
+166
+00:07:32.000 --> 00:07:34.000
+and this, for us, is going to be
+
+167
+00:07:34.000 --> 00:07:37.090
+the service name qualified by the network name.
+
+168
+00:07:37.090 --> 00:07:40.030
+Important part to remember is this name could differ
+
+169
+00:07:40.030 --> 00:07:41.090
+depending upon where you are running,
+
+170
+00:07:41.090 --> 00:07:44.010
+if you are running on the single node or the multiple nodes.
+
+171
+00:07:44.010 --> 00:07:45.080
+Just watch out for that.
+
+172
+00:07:45.080 --> 00:07:49.080
+And finally, I'm going to say I don't want the auto balance
+
+173
+00:07:49.080 --> 00:07:52.030
+to automatically kick in, so instead of true,
+
+174
+00:07:52.030 --> 00:07:54.080
+I'll say false, and once again,
+
+175
+00:07:54.080 --> 00:07:57.030
+I need to give it my image name here.
+
+176
+00:07:57.030 --> 00:08:00.030
+So this is creating my worker service.
+
+177
+00:08:00.030 --> 00:08:03.050
+Let's take a look at docker service ls.
+
+178
+00:08:03.050 --> 00:08:08.020
+One of one is automatically created for my worker service,
+
+179
+00:08:08.020 --> 00:08:11.050
+and I can, once again, look at the logs
+
+180
+00:08:11.050 --> 00:08:14.020
+for the worker service.
+
+181
+00:08:14.020 --> 00:08:17.000
+It waits for a few seconds before it can start
+
+182
+00:08:17.000 --> 00:08:20.000
+using the REST API to configure Couchbase.
+
+183
+00:08:20.000 --> 00:08:23.040
+Okay, now this is, once again, worker.1.
+
+184
+00:08:23.040 --> 00:08:25.080
+REST API is being used to configure it,
+
+185
+00:08:25.080 --> 00:08:28.090
+and it identified the type as worker,
+
+186
+00:08:28.090 --> 00:08:30.070
+so it's going to configure it to make sure
+
+187
+00:08:30.070 --> 00:08:32.050
+that this is part of the cluster.
+
+188
+00:08:32.050 --> 00:08:35.010
+And here, my Couchbase CLI, which is included as part
+
+189
+00:08:35.010 --> 00:08:38.070
+of the container itself, is using the server-add API
+
+190
+00:08:38.070 --> 00:08:43.040
+to configure the Couchbase worker to be part of the cluster.
+
+191
+00:08:43.040 --> 00:08:45.000
+Now that the server is fully configured,
+
+192
+00:08:45.000 --> 00:08:47.080
+let's go back to the Couchbase web console.
+
+193
+00:08:47.080 --> 00:08:49.020
+And right away, we see here,
+
+194
+00:08:49.020 --> 00:08:52.040
+Pending Rebalance tab with one over here.
+
+195
+00:08:52.040 --> 00:08:53.090
+What that means is there's one node
+
+196
+00:08:53.090 --> 00:08:55.080
+that is pending rebalance.
+
+197
+00:08:55.080 --> 00:09:00.090
+The IP address for the original node here is 10.0.0.3.
+
+198
+00:09:00.090 --> 00:09:04.080
+If I look here, this is 10.0.0.5.
+
+199
+00:09:04.080 --> 00:09:07.080
+And now I can click on Rebalance,
+
+200
+00:09:07.080 --> 00:09:10.030
+and the cluster is fully rebalanced.
+
+201
+00:09:10.030 --> 00:09:11.060
+And this was a rather quick process,
+
+202
+00:09:11.060 --> 00:09:14.030
+because there is no data buckets available in here,
+
+203
+00:09:14.030 --> 00:09:16.070
+but you get the point.
+
+204
+00:09:16.070 --> 00:09:17.070
+Now, let's go back
+
+205
+00:09:17.070 --> 00:09:21.050
+and see how we're going to scale such cluster.
+
+206
+00:09:21.050 --> 00:09:25.000
+Let's get out of the logs, and all I'm going to do is
+
+207
+00:09:25.000 --> 00:09:28.080
+docker service scale, that's my command here,
+
+208
+00:09:28.080 --> 00:09:33.040
+and I'm going to say couchbase-worker, and to two.
+
+209
+00:09:33.040 --> 00:09:35.070
+Services scale to two.
+
+210
+00:09:35.070 --> 00:09:37.010
+Let's take a look at the services.
+
+211
+00:09:37.010 --> 00:09:39.060
+It says two of two replicas are running.
+
+212
+00:09:39.060 --> 00:09:40.080
+Now, the container is up and running,
+
+213
+00:09:40.080 --> 00:09:43.040
+but is my application logic up and running?
+
+214
+00:09:43.040 --> 00:09:46.020
+Let's take a look at that by following the logs here.
+
+215
+00:09:46.020 --> 00:09:50.080
+Now, here, you see, still couchbase-worker.1 is there,
+
+216
+00:09:50.080 --> 00:09:52.020
+so that means the second container
+
+217
+00:09:52.020 --> 00:09:54.040
+in this service has not started yet.
+
+218
+00:09:54.040 --> 00:09:56.060
+It should be starting any minute now.
+
+219
+00:09:56.060 --> 00:09:57.050
+And there you go.
+
+220
+00:09:57.050 --> 00:10:01.060
+Now I can see the output from couchbase-worker.2,
+
+221
+00:10:01.060 --> 00:10:04.080
+and these are the output form my REST API,
+
+222
+00:10:04.080 --> 00:10:07.030
+and then finally, it'll configure that node
+
+223
+00:10:07.030 --> 00:10:09.070
+to be part of the Couchbase cluster as well.
+
+224
+00:10:09.070 --> 00:10:12.000
+And that's my output from Couchbase CLI
+
+225
+00:10:12.000 --> 00:10:13.090
+and that is fully configured.
+
+226
+00:10:13.090 --> 00:10:15.020
+Now, let's go back to the browser
+
+227
+00:10:15.020 --> 00:10:18.020
+and once again, I see Pending Rebalance,
+
+228
+00:10:18.020 --> 00:10:21.080
+and I just hit the button Rebalance,
+
+229
+00:10:21.080 --> 00:10:25.080
+and voila, we've got a three-node Couchbase cluster
+
+230
+00:10:25.080 --> 00:10:28.010
+created using Docker Services.
+
+231
+00:10:28.010 --> 00:10:29.070
+So just to clean up our setup,
+
+232
+00:10:29.070 --> 00:10:31.080
+we're going to go, remove the services,
+
+233
+00:10:31.080 --> 00:10:33.080
+and the network.
+
+234
+00:10:33.080 --> 00:10:36.060
+Get out of the log here.
+
+235
+00:10:36.060 --> 00:10:39.000
+Docker service rm.
+
+236
+00:10:39.000 --> 00:10:41.030
+Let's remove the worker.
+
+237
+00:10:41.030 --> 00:10:46.010
+Let's remove the master, so the services are gone.
+
+238
+00:10:46.010 --> 00:10:47.050
+Let's verify it.
+
+239
+00:10:47.050 --> 00:10:49.050
+Services are indeed gone.
+
+240
+00:10:49.050 --> 00:10:53.040
+And we can say docker network rm couchbase,
+
+241
+00:10:53.040 --> 00:10:58.020
+and we can verify that again, docker network ls.
+
+242
+00:10:58.020 --> 00:10:59.060
+The network is gone as well.
+
+243
+00:10:59.060 --> 00:11:00.070
+So in this section,
+
+244
+00:11:00.070 --> 00:11:04.070
+we saw how you could use Couchbase, a popular NoSQL
+
+245
+00:11:04.070 --> 00:11:07.040
+document database to create a cluster very easily
+
+246
+00:11:07.040 --> 00:11:09.010
+using Docker Services.
+
+247
+00:11:09.010 --> 00:11:11.030
+The concepts were shown using Couchbase,
+
+248
+00:11:11.030 --> 00:11:13.080
+but they would certainly be applicable to any other
+
+249
+00:11:13.080 --> 00:11:16.060
+database, relational, non-relational, doesn't matter,
+
+250
+00:11:16.060 --> 00:11:19.030
+but it gives you an idea on how you can set up
+
+251
+00:11:19.030 --> 00:11:21.000
+a database cluster.
+

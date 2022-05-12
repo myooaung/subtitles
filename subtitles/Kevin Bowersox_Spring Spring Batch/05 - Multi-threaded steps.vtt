@@ -1,0 +1,509 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:03.001
+- [Instructor] Most batch jobs can be executed
+
+2
+00:00:03.001 --> 00:00:04.009
+using a single thread.
+
+3
+00:00:04.009 --> 00:00:07.005
+However, when performance issues arise,
+
+4
+00:00:07.005 --> 00:00:11.000
+you may need to consider building a multi-threaded job
+
+5
+00:00:11.000 --> 00:00:15.002
+that performs processing over multiple threads.
+
+6
+00:00:15.002 --> 00:00:18.009
+Switching to a multi-threaded job should not be taken likely
+
+7
+00:00:18.009 --> 00:00:21.001
+because it comes with trade-offs.
+
+8
+00:00:21.001 --> 00:00:24.005
+Multi-threaded jobs inherently lose the capability
+
+9
+00:00:24.005 --> 00:00:26.001
+to restart.
+
+10
+00:00:26.001 --> 00:00:28.007
+So let's assume we did our due diligence
+
+11
+00:00:28.007 --> 00:00:31.009
+and determined that multi-threading is required.
+
+12
+00:00:31.009 --> 00:00:35.002
+Let's take a look at how it's put in place.
+
+13
+00:00:35.002 --> 00:00:39.002
+I've added a couple things within the working files
+
+14
+00:00:39.002 --> 00:00:42.006
+for this lesson to help us be successful.
+
+15
+00:00:42.006 --> 00:00:45.003
+So the first thing that I've added is
+
+16
+00:00:45.003 --> 00:00:49.002
+within our TrackedOrderItemProcessor.
+
+17
+00:00:49.002 --> 00:00:54.003
+I am now outputting the thread that is being used
+
+18
+00:00:54.003 --> 00:00:59.000
+by this processor and that's going to help us keep track
+
+19
+00:00:59.000 --> 00:01:02.003
+of the multi-threaded nature of the job.
+
+20
+00:01:02.003 --> 00:01:04.005
+Now the other thing that we needed
+
+21
+00:01:04.005 --> 00:01:09.002
+to put in place was a different item writer.
+
+22
+00:01:09.002 --> 00:01:11.007
+The item writer that we were using,
+
+23
+00:01:11.007 --> 00:01:16.005
+the JSON file ItemWriter was not multi-threaded.
+
+24
+00:01:16.005 --> 00:01:21.001
+So I added the JdbcBatchItemWriter
+
+25
+00:01:21.001 --> 00:01:22.008
+and you're familiar with this.
+
+26
+00:01:22.008 --> 00:01:26.008
+We've used it in the past with the named parameters
+
+27
+00:01:26.008 --> 00:01:30.002
+in order to insert records into our database.
+
+28
+00:01:30.002 --> 00:01:34.004
+This ItemWriter is multi-threaded so it can be used
+
+29
+00:01:34.004 --> 00:01:38.002
+in multi-threaded jobs and if you want to see the sequel,
+
+30
+00:01:38.002 --> 00:01:41.007
+you can navigate up to the top of the class
+
+31
+00:01:41.007 --> 00:01:44.007
+and in the INSERT_ORDER_SQL,
+
+32
+00:01:44.007 --> 00:01:47.005
+here you see the insert statement.
+
+33
+00:01:47.005 --> 00:01:50.006
+So we're using the named parameters
+
+34
+00:01:50.006 --> 00:01:54.001
+and then really the only difference with this version
+
+35
+00:01:54.001 --> 00:01:56.003
+of the sequel statement is
+
+36
+00:01:56.003 --> 00:01:59.001
+that we've added the tracking_number
+
+37
+00:01:59.001 --> 00:02:01.000
+and the free_shipping columns
+
+38
+00:02:01.000 --> 00:02:03.007
+and their associated parameters.
+
+39
+00:02:03.007 --> 00:02:06.007
+So that was what was put in place
+
+40
+00:02:06.007 --> 00:02:10.008
+and now we're going to begin the configuration
+
+41
+00:02:10.008 --> 00:02:14.002
+of that multi-threaded step.
+
+42
+00:02:14.002 --> 00:02:19.002
+So we're going to make our ChunkBasedStep multi-threaded.
+
+43
+00:02:19.002 --> 00:02:24.008
+In order to do that, we need a task executor.
+
+44
+00:02:24.008 --> 00:02:27.005
+So we're going to declare a Bean.
+
+45
+00:02:27.005 --> 00:02:33.009
+And the Bean is going to be of type TaskExecutor
+
+46
+00:02:33.009 --> 00:02:38.000
+and this is essentially configuring our thread pool.
+
+47
+00:02:38.000 --> 00:02:43.007
+I'll name the method for the Bean taskExecutor
+
+48
+00:02:43.007 --> 00:02:46.001
+and then inside the body of this method,
+
+49
+00:02:46.001 --> 00:02:50.009
+I'm going to create a ThreadPoolTaskExecutor
+
+50
+00:02:50.009 --> 00:02:54.001
+and I'll name that object executor
+
+51
+00:02:54.001 --> 00:02:56.007
+and then we'll just use the new operator
+
+52
+00:02:56.007 --> 00:02:59.002
+and the constructor to create it.
+
+53
+00:02:59.002 --> 00:03:02.007
+Now here, we can specify some configuration
+
+54
+00:03:02.007 --> 00:03:06.000
+for our ThreadPoolTaskExecutor.
+
+55
+00:03:06.000 --> 00:03:09.005
+So here we can set the corePoolSize
+
+56
+00:03:09.005 --> 00:03:11.008
+which is going to be the amount of cores
+
+57
+00:03:11.008 --> 00:03:13.005
+that we have to work with.
+
+58
+00:03:13.005 --> 00:03:15.004
+In this case, I'm just going to go ahead
+
+59
+00:03:15.004 --> 00:03:18.000
+and set it to two
+
+60
+00:03:18.000 --> 00:03:21.001
+and then from there, we're going to go ahead
+
+61
+00:03:21.001 --> 00:03:24.009
+and specify the MaxPoolSize
+
+62
+00:03:24.009 --> 00:03:28.000
+for the among of threads in the pool
+
+63
+00:03:28.000 --> 00:03:30.008
+and I'm going to set that to 10.
+
+64
+00:03:30.008 --> 00:03:33.009
+And then finally, we just return the executor
+
+65
+00:03:33.009 --> 00:03:37.005
+from this method and then we need
+
+66
+00:03:37.005 --> 00:03:41.001
+to import the taskExecutor type.
+
+67
+00:03:41.001 --> 00:03:44.004
+Okay, so we have that Bean configured
+
+68
+00:03:44.004 --> 00:03:46.007
+and then you're going to see how simple it is
+
+69
+00:03:46.007 --> 00:03:52.000
+to make our ChunkBasedStep multi-threaded.
+
+70
+00:03:52.000 --> 00:03:57.005
+Simply add the taskExecutor method at the bottom
+
+71
+00:03:57.005 --> 00:04:01.006
+of our configuration and then we can go ahead
+
+72
+00:04:01.006 --> 00:04:05.002
+and call our taskExecutor method
+
+73
+00:04:05.002 --> 00:04:08.005
+which will cause the Bean to be injected
+
+74
+00:04:08.005 --> 00:04:10.007
+and at this point, we are set up
+
+75
+00:04:10.007 --> 00:04:14.002
+for a multi-threaded step to be executed.
+
+76
+00:04:14.002 --> 00:04:19.009
+So multiple threads are going to execute our ChunckBasedStep
+
+77
+00:04:19.009 --> 00:04:23.001
+now one thing I did mention at the beginning of the course
+
+78
+00:04:23.001 --> 00:04:27.005
+is that when we use a multi-theaded step,
+
+79
+00:04:27.005 --> 00:04:32.004
+we are no longer able to restart the job
+
+80
+00:04:32.004 --> 00:04:34.007
+in a successful state.
+
+81
+00:04:34.007 --> 00:04:38.009
+So we're going to configure our itemReader not
+
+82
+00:04:38.009 --> 00:04:42.001
+to track the state of the job.
+
+83
+00:04:42.001 --> 00:04:47.008
+So on the configuration for the JdbcPagingItemReader,
+
+84
+00:04:47.008 --> 00:04:51.004
+you're going to find a saveState boolean
+
+85
+00:04:51.004 --> 00:04:55.005
+and we need to go ahead and set this to false
+
+86
+00:04:55.005 --> 00:04:58.005
+in order for our job to successfully complete.
+
+87
+00:04:58.005 --> 00:05:01.009
+Okay so everything is in place for our job.
+
+88
+00:05:01.009 --> 00:05:05.003
+Now the one thing we'll need to do is set up the table
+
+89
+00:05:05.003 --> 00:05:07.002
+that we're going to write to.
+
+90
+00:05:07.002 --> 00:05:08.009
+So here you see we're writing
+
+91
+00:05:08.009 --> 00:05:12.008
+to the TRACKED_ORDER table and it's going
+
+92
+00:05:12.008 --> 00:05:16.005
+to expect these different columns within that table.
+
+93
+00:05:16.005 --> 00:05:20.006
+Now if you navigate to the data directory included
+
+94
+00:05:20.006 --> 00:05:22.007
+with the files for the course,
+
+95
+00:05:22.007 --> 00:05:27.008
+you're going to see the TRACED_ORDER.sql file
+
+96
+00:05:27.008 --> 00:05:31.006
+and this contains the DDL in order to create that table.
+
+97
+00:05:31.006 --> 00:05:35.009
+So just go ahead, copy it and then you can navigate
+
+98
+00:05:35.009 --> 00:05:37.009
+to the MySQL Workbench
+
+99
+00:05:37.009 --> 00:05:43.007
+and just go ahead paste in that script and execute it
+
+100
+00:05:43.007 --> 00:05:46.003
+and that should cause the table to be created.
+
+101
+00:05:46.003 --> 00:05:48.004
+Let's just verify that.
+
+102
+00:05:48.004 --> 00:05:51.007
+So there we see our TRACKED_ORDER table
+
+103
+00:05:51.007 --> 00:05:55.001
+and we see the columns within it.
+
+104
+00:05:55.001 --> 00:05:57.002
+Okay, we're set up for a run.
+
+105
+00:05:57.002 --> 00:05:59.005
+Let's head to the terminal
+
+106
+00:05:59.005 --> 00:06:03.002
+and then we're going to go ahead, kick off our script
+
+107
+00:06:03.002 --> 00:06:06.002
+and that should package our job into a jar
+
+108
+00:06:06.002 --> 00:06:08.009
+and then it's going to launch it.
+
+109
+00:06:08.009 --> 00:06:12.005
+And we'll keep a close eye on the console output
+
+110
+00:06:12.005 --> 00:06:14.002
+so that we can see the multiple threads.
+
+111
+00:06:14.002 --> 00:06:17.009
+There it looks like it's kicking off.
+
+112
+00:06:17.009 --> 00:06:21.005
+Okay, so you'll notice that, within our processor,
+
+113
+00:06:21.005 --> 00:06:25.002
+it's alternating between these two threads
+
+114
+00:06:25.002 --> 00:06:29.006
+that are being used to execute the processor logic
+
+115
+00:06:29.006 --> 00:06:33.006
+in parallel on these two different threads.
+
+116
+00:06:33.006 --> 00:06:37.009
+So we were able to successfully set up a job
+
+117
+00:06:37.009 --> 00:06:41.005
+that leveraged multiple threads and we were able
+
+118
+00:06:41.005 --> 00:06:44.000
+to ensure the thread safety of our job
+
+119
+00:06:44.000 --> 00:06:47.004
+by picking the appropriate readers and writers.
+
+120
+00:06:47.004 --> 00:06:49.005
+So it's really important when you're working
+
+121
+00:06:49.005 --> 00:06:51.007
+with multi-threaded jobs
+
+122
+00:06:51.007 --> 00:06:55.003
+that you consult the Javadocs for each of the readers
+
+123
+00:06:55.003 --> 00:06:57.003
+and writers you're working with.
+
+124
+00:06:57.003 --> 00:06:59.004
+It will stay explicitly within them
+
+125
+00:06:59.004 --> 00:07:01.002
+whether or not their thread is safe
+
+126
+00:07:01.002 --> 00:07:03.003
+and you want to be sure
+
+127
+00:07:03.003 --> 00:07:05.000
+to choose those threads safe implementations.
+

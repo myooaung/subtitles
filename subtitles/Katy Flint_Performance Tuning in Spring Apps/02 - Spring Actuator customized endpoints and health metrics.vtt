@@ -1,0 +1,745 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:02.003
+- [Instructor] Let's continue our exploration
+
+2
+00:00:02.003 --> 00:00:04.005
+of Spring Boot Actuator by learning
+
+3
+00:00:04.005 --> 00:00:06.006
+about some practical use cases
+
+4
+00:00:06.006 --> 00:00:08.004
+that you're likely to encounter in your work
+
+5
+00:00:08.004 --> 00:00:09.007
+as a spring developer.
+
+6
+00:00:09.007 --> 00:00:12.008
+Customized actuator behaviors are available
+
+7
+00:00:12.008 --> 00:00:16.003
+by extending the Spring Boot Actuate package classes
+
+8
+00:00:16.003 --> 00:00:17.008
+and also by taking advantage
+
+9
+00:00:17.008 --> 00:00:20.009
+of the built-in framework capabilities.
+
+10
+00:00:20.009 --> 00:00:23.004
+In this lesson, we're going to do three things.
+
+11
+00:00:23.004 --> 00:00:26.002
+We're going to build a custom health component.
+
+12
+00:00:26.002 --> 00:00:28.004
+We're going to show you how to modify
+
+13
+00:00:28.004 --> 00:00:32.007
+your runtime logger configurations in real time at runtime.
+
+14
+00:00:32.007 --> 00:00:34.009
+And we're going to show you how to create
+
+15
+00:00:34.009 --> 00:00:38.003
+custom application info for additional metrics
+
+16
+00:00:38.003 --> 00:00:40.005
+on the actuator reporting.
+
+17
+00:00:40.005 --> 00:00:43.000
+Let's go to our demo application
+
+18
+00:00:43.000 --> 00:00:45.005
+and start with that custom health component.
+
+19
+00:00:45.005 --> 00:00:47.008
+Actually let us start by looking
+
+20
+00:00:47.008 --> 00:00:51.004
+at the runtime actuator metrics
+
+21
+00:00:51.004 --> 00:00:55.003
+that we're seeing right now with our demo application.
+
+22
+00:00:55.003 --> 00:00:57.008
+So we've got a demo API application.
+
+23
+00:00:57.008 --> 00:01:01.001
+It's in a running state and it is configured
+
+24
+00:01:01.001 --> 00:01:05.003
+to show us this health information.
+
+25
+00:01:05.003 --> 00:01:07.001
+Reminder, we're getting there by going
+
+26
+00:01:07.001 --> 00:01:09.004
+to the actuator directory,
+
+27
+00:01:09.004 --> 00:01:12.005
+clicking on health and seeing this information.
+
+28
+00:01:12.005 --> 00:01:15.008
+So we've got at the top of roll up of our application health
+
+29
+00:01:15.008 --> 00:01:18.004
+and then spring has automatically configured for us
+
+30
+00:01:18.004 --> 00:01:22.001
+these three individual components
+
+31
+00:01:22.001 --> 00:01:25.004
+that it is reporting to us detailed metrics on.
+
+32
+00:01:25.004 --> 00:01:26.005
+Just a quick reminder,
+
+33
+00:01:26.005 --> 00:01:30.005
+we're seeing those because of these two specific properties
+
+34
+00:01:30.005 --> 00:01:32.007
+in the application properties file.
+
+35
+00:01:32.007 --> 00:01:35.005
+The health show details property
+
+36
+00:01:35.005 --> 00:01:39.007
+and the endpoint health show components properties.
+
+37
+00:01:39.007 --> 00:01:43.003
+Without those, all we would see here on the health metric
+
+38
+00:01:43.003 --> 00:01:46.001
+is the overall status of our application,
+
+39
+00:01:46.001 --> 00:01:49.005
+which is a composite of the three component statuses.
+
+40
+00:01:49.005 --> 00:01:51.004
+All right, so without further ado,
+
+41
+00:01:51.004 --> 00:01:53.001
+let's build a custom component.
+
+42
+00:01:53.001 --> 00:01:55.001
+So we're going to build another entry
+
+43
+00:01:55.001 --> 00:01:57.002
+here in this component list.
+
+44
+00:01:57.002 --> 00:02:00.009
+We're going to build a custom health component.
+
+45
+00:02:00.009 --> 00:02:04.002
+Now let's walk through what it takes to do this.
+
+46
+00:02:04.002 --> 00:02:06.006
+The first thing we need to do is create a class
+
+47
+00:02:06.006 --> 00:02:09.007
+that implements the org.springframework
+
+48
+00:02:09.007 --> 00:02:17.005
+boot actuate health indicator interface,
+
+49
+00:02:17.005 --> 00:02:18.004
+like so.
+
+50
+00:02:18.004 --> 00:02:22.000
+And then we need to register this class
+
+51
+00:02:22.000 --> 00:02:24.005
+as a spring component.
+
+52
+00:02:24.005 --> 00:02:26.008
+That's going to allow spring to scan it
+
+53
+00:02:26.008 --> 00:02:30.002
+and hook it into the actuator framework.
+
+54
+00:02:30.002 --> 00:02:34.007
+Now having done that, we need to override
+
+55
+00:02:34.007 --> 00:02:37.005
+this important health method,
+
+56
+00:02:37.005 --> 00:02:40.000
+which is specified in this interface.
+
+57
+00:02:40.000 --> 00:02:44.008
+And this health method wants us to return a health object.
+
+58
+00:02:44.008 --> 00:02:49.003
+Let's put in our override annotation here to be clear
+
+59
+00:02:49.003 --> 00:02:51.005
+about what we're doing.
+
+60
+00:02:51.005 --> 00:02:54.004
+Okay, so this health method here is the one
+
+61
+00:02:54.004 --> 00:02:57.005
+that's going to send back the interesting data
+
+62
+00:02:57.005 --> 00:03:01.008
+that we're going to surface over here in our actuator table.
+
+63
+00:03:01.008 --> 00:03:04.001
+All right, notice here that we need to return
+
+64
+00:03:04.001 --> 00:03:06.006
+a health object from this health override
+
+65
+00:03:06.006 --> 00:03:10.001
+that also is in the Spring Boot Actuate package
+
+66
+00:03:10.001 --> 00:03:12.003
+and the basics here, what we need to do,
+
+67
+00:03:12.003 --> 00:03:15.005
+we can just kind of show you quickly.
+
+68
+00:03:15.005 --> 00:03:17.005
+We're going to return a health object.
+
+69
+00:03:17.005 --> 00:03:21.001
+Let's give it a status of up.
+
+70
+00:03:21.001 --> 00:03:23.003
+Let's send it with details,
+
+71
+00:03:23.003 --> 00:03:24.007
+which will allow us to see
+
+72
+00:03:24.007 --> 00:03:27.009
+all of this interesting stuff in here.
+
+73
+00:03:27.009 --> 00:03:34.001
+And with detail method, wants a message key
+
+74
+00:03:34.001 --> 00:03:38.007
+and wants a message up.
+
+75
+00:03:38.007 --> 00:03:42.000
+And then finally, we're going to send it to the builder.
+
+76
+00:03:42.000 --> 00:03:45.003
+And now when this health object is built,
+
+77
+00:03:45.003 --> 00:03:47.000
+spring framework will know what to do with it
+
+78
+00:03:47.000 --> 00:03:49.007
+and know how to display our information here.
+
+79
+00:03:49.007 --> 00:03:51.009
+So what we've done here is the basics.
+
+80
+00:03:51.009 --> 00:03:56.001
+Let's add some logic to simulate something interesting.
+
+81
+00:03:56.001 --> 00:03:57.006
+Let's do something fun
+
+82
+00:03:57.006 --> 00:04:00.008
+and we're calling this a weekend health metric.
+
+83
+00:04:00.008 --> 00:04:07.008
+So if it's the weekend, this is just kind of a play example.
+
+84
+00:04:07.008 --> 00:04:12.003
+If it's the weekend, we're going to return a health status
+
+85
+00:04:12.003 --> 00:04:16.006
+of let's call it out of service just for fun.
+
+86
+00:04:16.006 --> 00:04:21.009
+Let's give it a message key, and let's say yes.
+
+87
+00:04:21.009 --> 00:04:25.000
+And let's say build it and return it.
+
+88
+00:04:25.000 --> 00:04:26.003
+All right, so our message key,
+
+89
+00:04:26.003 --> 00:04:27.009
+we have, what am I missing here?
+
+90
+00:04:27.009 --> 00:04:30.001
+Out of service,
+
+91
+00:04:30.001 --> 00:04:32.006
+oh, need dot
+
+92
+00:04:32.006 --> 00:04:35.000
+and with detail here.
+
+93
+00:04:35.000 --> 00:04:36.007
+That'll fix it up.
+
+94
+00:04:36.007 --> 00:04:39.000
+Okay, so what's happening here is,
+
+95
+00:04:39.000 --> 00:04:41.005
+the message key here is playtime.
+
+96
+00:04:41.005 --> 00:04:44.007
+So we're going to report to spring boot actuator,
+
+97
+00:04:44.007 --> 00:04:46.003
+whether it's play time or not.
+
+98
+00:04:46.003 --> 00:04:48.006
+If it's the weekend, we're going to return
+
+99
+00:04:48.006 --> 00:04:53.000
+an out of service status for our application
+
+100
+00:04:53.000 --> 00:04:55.007
+and we're going to say play time is yes.
+
+101
+00:04:55.007 --> 00:04:57.002
+When it's not the weekend,
+
+102
+00:04:57.002 --> 00:04:58.009
+we're going to return that the status is up
+
+103
+00:04:58.009 --> 00:05:00.006
+and it's not play time.
+
+104
+00:05:00.006 --> 00:05:02.002
+And we just have a utility method here
+
+105
+00:05:02.002 --> 00:05:04.007
+giving us a silly isWeekend boolean.
+
+106
+00:05:04.007 --> 00:05:07.007
+So let's see, we've configured our class.
+
+107
+00:05:07.007 --> 00:05:09.007
+We've hooked it into spring.
+
+108
+00:05:09.007 --> 00:05:14.003
+And I believe that is all we need to do.
+
+109
+00:05:14.003 --> 00:05:17.007
+Application properties are set up with details.
+
+110
+00:05:17.007 --> 00:05:21.002
+Let's launch this and see what we have.
+
+111
+00:05:21.002 --> 00:05:25.001
+Relaunching it, step and rerun.
+
+112
+00:05:25.001 --> 00:05:28.008
+Application has started successfully.
+
+113
+00:05:28.008 --> 00:05:31.000
+Now we're just going to reload this health page.
+
+114
+00:05:31.000 --> 00:05:35.001
+And if I did this right,
+
+115
+00:05:35.001 --> 00:05:38.003
+there is our weekend health status.
+
+116
+00:05:38.003 --> 00:05:40.001
+Our status is out of service
+
+117
+00:05:40.001 --> 00:05:42.009
+because I am actually recording this on the weekend
+
+118
+00:05:42.009 --> 00:05:44.000
+and it is play time.
+
+119
+00:05:44.000 --> 00:05:46.002
+These are the details of our new component.
+
+120
+00:05:46.002 --> 00:05:48.008
+Now this is what is interesting here.
+
+121
+00:05:48.008 --> 00:05:52.001
+The status of out of service has rolled up
+
+122
+00:05:52.001 --> 00:05:55.004
+to be the overall status of the application.
+
+123
+00:05:55.004 --> 00:05:57.008
+Let me show you how we pulled that off.
+
+124
+00:05:57.008 --> 00:05:59.007
+Over here in application properties,
+
+125
+00:05:59.007 --> 00:06:04.001
+there's a health status ordering in which we can identify
+
+126
+00:06:04.001 --> 00:06:06.002
+which statuses should roll up
+
+127
+00:06:06.002 --> 00:06:09.009
+to the top level overall application status.
+
+128
+00:06:09.009 --> 00:06:11.009
+We've indicated that we want out of service
+
+129
+00:06:11.009 --> 00:06:13.008
+to be first in line.
+
+130
+00:06:13.008 --> 00:06:17.003
+And so we have an out of service and that's what bubbles up.
+
+131
+00:06:17.003 --> 00:06:19.003
+By default, you don't have to specify this.
+
+132
+00:06:19.003 --> 00:06:22.000
+By default, it will respond to downs and ups,
+
+133
+00:06:22.000 --> 00:06:24.007
+downs bubble up as the overall status.
+
+134
+00:06:24.007 --> 00:06:27.004
+So there we have successfully achieved
+
+135
+00:06:27.004 --> 00:06:30.009
+a custom health component
+
+136
+00:06:30.009 --> 00:06:35.001
+reporting on the weekend health of the runtime.
+
+137
+00:06:35.001 --> 00:06:38.004
+All right, I'd like to go through a couple more things.
+
+138
+00:06:38.004 --> 00:06:43.000
+Another thing you can do with actuator is extend
+
+139
+00:06:43.000 --> 00:06:45.008
+the application information.
+
+140
+00:06:45.008 --> 00:06:48.001
+Right now, we're not showing anything useful here
+
+141
+00:06:48.001 --> 00:06:50.005
+on that application information metric.
+
+142
+00:06:50.005 --> 00:06:52.001
+This one is so easy.
+
+143
+00:06:52.001 --> 00:06:55.003
+All you need to do in application properties
+
+144
+00:06:55.003 --> 00:06:57.009
+is put in an info property.
+
+145
+00:06:57.009 --> 00:06:58.007
+Let's do a couple of them,
+
+146
+00:06:58.007 --> 00:07:10.006
+info weekend activity equals learn about spring.
+
+147
+00:07:10.006 --> 00:07:12.004
+That's just silly for an example,
+
+148
+00:07:12.004 --> 00:07:14.009
+but something much more useful is to put
+
+149
+00:07:14.009 --> 00:07:17.004
+application properties like a version number.
+
+150
+00:07:17.004 --> 00:07:19.003
+And here's a trick you need to know.
+
+151
+00:07:19.003 --> 00:07:22.009
+You can dynamically get your application version in here
+
+152
+00:07:22.009 --> 00:07:24.006
+in a number of different ways.
+
+153
+00:07:24.006 --> 00:07:25.009
+We're just going to take advantage
+
+154
+00:07:25.009 --> 00:07:28.005
+of what we can do with our pom.xml.
+
+155
+00:07:28.005 --> 00:07:32.005
+And we can point to some of these attributes
+
+156
+00:07:32.005 --> 00:07:35.005
+here in the XML file and surface them right to the endpoint.
+
+157
+00:07:35.005 --> 00:07:42.002
+So specifically, we can point to the project version
+
+158
+00:07:42.002 --> 00:07:46.003
+and the project name there in our application properties
+
+159
+00:07:46.003 --> 00:07:51.005
+using the special at syntax.
+
+160
+00:07:51.005 --> 00:07:55.003
+So project version,
+
+161
+00:07:55.003 --> 00:08:00.005
+app names, same way we can do that.
+
+162
+00:08:00.005 --> 00:08:01.006
+What was it called name there?
+
+163
+00:08:01.006 --> 00:08:05.001
+Okay, so those two things will get pulled from pom.xml
+
+164
+00:08:05.001 --> 00:08:08.006
+and how to get those dynamically into this pom.xml
+
+165
+00:08:08.006 --> 00:08:11.000
+is outside the scope of this lesson.
+
+166
+00:08:11.000 --> 00:08:12.004
+But let me just show you that it works.
+
+167
+00:08:12.004 --> 00:08:18.008
+We're going to relaunch.
+
+168
+00:08:18.008 --> 00:08:22.004
+Let's go back to our endpoint again.
+
+169
+00:08:22.004 --> 00:08:26.003
+Now we see the debug messages right here in the console.
+
+170
+00:08:26.003 --> 00:08:27.009
+So that's how you can dynamically change
+
+171
+00:08:27.009 --> 00:08:29.005
+your logging configurations.
+
+172
+00:08:29.005 --> 00:08:31.006
+Now, when you restart this application,
+
+173
+00:08:31.006 --> 00:08:33.005
+it will all go back to its default,
+
+174
+00:08:33.005 --> 00:08:35.003
+but this is a good way in a production
+
+175
+00:08:35.003 --> 00:08:37.004
+or even in a testing situation
+
+176
+00:08:37.004 --> 00:08:42.003
+to quickly change that logging configuration by logger.
+
+177
+00:08:42.003 --> 00:08:43.009
+And that concludes this lesson,
+
+178
+00:08:43.009 --> 00:08:46.003
+learning some detailed use cases
+
+179
+00:08:46.003 --> 00:08:48.009
+of how to use actuator in your situation,
+
+180
+00:08:48.009 --> 00:08:50.002
+how to customize it.
+
+181
+00:08:50.002 --> 00:08:51.006
+The sky is the limit
+
+182
+00:08:51.006 --> 00:08:55.001
+with access to the entire Spring Boot Actuator library
+
+183
+00:08:55.001 --> 00:08:58.001
+that you can extend and customize to your heart's desire.
+
+184
+00:08:58.001 --> 00:08:59.003
+The sky is really the limit
+
+185
+00:08:59.003 --> 00:09:01.000
+as to what you can influence here
+
+186
+00:09:01.000 --> 00:09:03.000
+in your actuator output metrics.
+

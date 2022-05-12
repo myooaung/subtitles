@@ -1,0 +1,405 @@
+WEBVTT
+1
+00:00:00.006 --> 00:00:02.009
+- [Instructor] Logging is an important part
+
+2
+00:00:02.009 --> 00:00:07.006
+of developing and operating any kind of application.
+
+3
+00:00:07.006 --> 00:00:10.001
+We are going to explore different ways
+
+4
+00:00:10.001 --> 00:00:13.005
+to incorporate logging in your Lambda Function,
+
+5
+00:00:13.005 --> 00:00:17.004
+how logs can be tracked in CloudWatch Logging service,
+
+6
+00:00:17.004 --> 00:00:18.005
+and finally,
+
+7
+00:00:18.005 --> 00:00:23.000
+some best practices specific to Lambda logging.
+
+8
+00:00:23.000 --> 00:00:25.001
+The most basic logging we have
+
+9
+00:00:25.001 --> 00:00:28.006
+is using Standard Out and Standard Error,
+
+10
+00:00:28.006 --> 00:00:31.001
+which are captured by Lambda runtime,
+
+11
+00:00:31.001 --> 00:00:35.007
+and are shown in the result of Lambda call in IntelliJ,
+
+12
+00:00:35.007 --> 00:00:38.001
+or Lambda web console.
+
+13
+00:00:38.001 --> 00:00:41.009
+They're also pushed to the CloudWatch Logging service,
+
+14
+00:00:41.009 --> 00:00:46.002
+which centralizes logs from many different services,
+
+15
+00:00:46.002 --> 00:00:47.002
+such as Lambda,
+
+16
+00:00:47.002 --> 00:00:50.007
+API Gateway, Step Functions,
+
+17
+00:00:50.007 --> 00:00:53.000
+and many others.
+
+18
+00:00:53.000 --> 00:00:55.005
+You can then easily view them,
+
+19
+00:00:55.005 --> 00:00:59.000
+search for specific search terms or errors,
+
+20
+00:00:59.000 --> 00:01:01.001
+filter specific fields,
+
+21
+00:01:01.001 --> 00:01:04.008
+and archive for future analysis.
+
+22
+00:01:04.008 --> 00:01:08.007
+Three main concepts you should be aware of are,
+
+23
+00:01:08.007 --> 00:01:13.007
+Log Events, which represent a single log message.
+
+24
+00:01:13.007 --> 00:01:18.005
+Log Stream, sequence of log events on the same source.
+
+25
+00:01:18.005 --> 00:01:22.008
+In Lambda, this would come from the same virtual container.
+
+26
+00:01:22.008 --> 00:01:25.000
+If we deploy a new version,
+
+27
+00:01:25.000 --> 00:01:29.001
+or if you have five parallel and concurrent executions,
+
+28
+00:01:29.001 --> 00:01:32.001
+there will be five containers created.
+
+29
+00:01:32.001 --> 00:01:35.006
+And for each one, new log stream.
+
+30
+00:01:35.006 --> 00:01:40.003
+Log group, group of log streams that share the same element.
+
+31
+00:01:40.003 --> 00:01:41.007
+For example,
+
+32
+00:01:41.007 --> 00:01:46.008
+this would be one Lambda function or one API Gateway.
+
+33
+00:01:46.008 --> 00:01:49.006
+Every invocation will always include
+
+34
+00:01:49.006 --> 00:01:53.004
+start and end report logs,
+
+35
+00:01:53.004 --> 00:01:55.000
+with the request ID,
+
+36
+00:01:55.000 --> 00:01:58.007
+which is unique for each invocation.
+
+37
+00:01:58.007 --> 00:02:02.001
+While System.out and error are easy to work with,
+
+38
+00:02:02.001 --> 00:02:05.009
+they don't support log levels or multi-line logging.
+
+39
+00:02:05.009 --> 00:02:06.009
+For example,
+
+40
+00:02:06.009 --> 00:02:09.009
+one e.printStackTrace()
+
+41
+00:02:09.009 --> 00:02:13.009
+would create a log event for each line.
+
+42
+00:02:13.009 --> 00:02:18.002
+In Java, it's much more typical to use a logging framework
+
+43
+00:02:18.002 --> 00:02:22.002
+like Log4j 2 with SLF4J,
+
+44
+00:02:22.002 --> 00:02:25.002
+which allows us to easily set log levels
+
+45
+00:02:25.002 --> 00:02:28.002
+and define custom message outputs.
+
+46
+00:02:28.002 --> 00:02:30.002
+The configuration can be copied
+
+47
+00:02:30.002 --> 00:02:34.001
+from AWS Lambda logging guideline.
+
+48
+00:02:34.001 --> 00:02:37.001
+First, we need to add Maven dependencies
+
+49
+00:02:37.001 --> 00:02:40.001
+of AWS Log4j 2 appender,
+
+50
+00:02:40.001 --> 00:02:51.004
+which I already have prepared.
+
+51
+00:02:51.004 --> 00:02:53.003
+This library is required
+
+52
+00:02:53.003 --> 00:02:58.003
+since it appends request ID to our logs.
+
+53
+00:02:58.003 --> 00:03:01.004
+Specific to AWS Log4j,
+
+54
+00:03:01.004 --> 00:03:04.003
+we must also configure a new transformer
+
+55
+00:03:04.003 --> 00:03:06.006
+for the Maven Shade plugin.
+
+56
+00:03:06.006 --> 00:03:10.003
+So just copy paste over existing plugin
+
+57
+00:03:10.003 --> 00:03:20.006
+and refresh Maven.
+
+58
+00:03:20.006 --> 00:03:21.008
+And lastly,
+
+59
+00:03:21.008 --> 00:03:27.003
+we need to add Log4j 2 XML configuration file,
+
+60
+00:03:27.003 --> 00:03:29.007
+which defines the logging pattern
+
+61
+00:03:29.007 --> 00:03:42.006
+together with log level.
+
+62
+00:03:42.006 --> 00:03:44.001
+With this configuration,
+
+63
+00:03:44.001 --> 00:03:46.004
+each line contains date,
+
+64
+00:03:46.004 --> 00:03:48.007
+time, request ID,
+
+65
+00:03:48.007 --> 00:03:53.000
+log level and class name.
+
+66
+00:03:53.000 --> 00:03:54.005
+To use Log4j,
+
+67
+00:03:54.005 --> 00:03:57.004
+we will be using SLF4J
+
+68
+00:03:57.004 --> 00:04:00.003
+as a facade library for logging.
+
+69
+00:04:00.003 --> 00:04:03.002
+First thing we need to add is a logger
+
+70
+00:04:03.002 --> 00:04:05.006
+from logger factory.
+
+71
+00:04:05.006 --> 00:04:07.005
+To make things easier,
+
+72
+00:04:07.005 --> 00:04:11.006
+I will use Lombok annotations.
+
+73
+00:04:11.006 --> 00:04:30.006
+Now just add a couple of log files between the code.
+
+74
+00:04:30.006 --> 00:04:41.009
+Now let's update our Lambda function.
+
+75
+00:04:41.009 --> 00:04:53.006
+And finally, let's make a new request.
+
+76
+00:04:53.006 --> 00:05:01.001
+Now we can see Log4j logs in CloudWatch console.
+
+77
+00:05:01.001 --> 00:05:02.004
+But keep in mind,
+
+78
+00:05:02.004 --> 00:05:05.000
+we never need to leave IntelliJ.
+
+79
+00:05:05.000 --> 00:05:07.000
+With AWS toolkit,
+
+80
+00:05:07.000 --> 00:05:12.005
+we can also observe logs directly in AWS Explorer.
+
+81
+00:05:12.005 --> 00:05:19.008
+Just right click on function and view log stream.
+
+82
+00:05:19.008 --> 00:05:22.008
+Let me leave you with some best practices
+
+83
+00:05:22.008 --> 00:05:24.008
+when it comes to logging.
+
+84
+00:05:24.008 --> 00:05:27.002
+If you want to change log level
+
+85
+00:05:27.002 --> 00:05:29.005
+without making deployment,
+
+86
+00:05:29.005 --> 00:05:32.006
+use environment variables.
+
+87
+00:05:32.006 --> 00:05:33.007
+In CloudWatch,
+
+88
+00:05:33.007 --> 00:05:36.004
+you can filter down JSON events.
+
+89
+00:05:36.004 --> 00:05:38.005
+So when logging objects,
+
+90
+00:05:38.005 --> 00:05:41.003
+it is useful to convert them to JSON
+
+91
+00:05:41.003 --> 00:05:44.005
+with lightweight Jackson library.
+
+92
+00:05:44.005 --> 00:05:45.008
+And finally,
+
+93
+00:05:45.008 --> 00:05:48.008
+check out Lambda Powertools utility.
+
+94
+00:05:48.008 --> 00:05:51.004
+It outputs structured JSON.
+
+95
+00:05:51.004 --> 00:05:53.008
+It allows you to pass in strings
+
+96
+00:05:53.008 --> 00:05:56.000
+or more complex objects,
+
+97
+00:05:56.000 --> 00:06:00.002
+and takes care of serializing the log output.
+
+98
+00:06:00.002 --> 00:06:01.009
+With simple annotations,
+
+99
+00:06:01.009 --> 00:06:04.005
+it covers common use cases
+
+100
+00:06:04.005 --> 00:06:07.005
+such as logging the Lambda event payload,
+
+101
+00:06:07.005 --> 00:06:11.000
+and capturing cold start information.
+

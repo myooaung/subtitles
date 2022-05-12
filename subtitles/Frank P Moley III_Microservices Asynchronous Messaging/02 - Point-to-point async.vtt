@@ -1,0 +1,657 @@
+WEBVTT
+1
+00:00:00.004 --> 00:00:02.002
+- [Instructor] As previously mentioned,
+
+2
+00:00:02.002 --> 00:00:04.007
+point to point asynchronous messaging
+
+3
+00:00:04.007 --> 00:00:08.009
+is one of the most common uses of this communication style.
+
+4
+00:00:08.009 --> 00:00:11.002
+I want to take a look at when you would use it
+
+5
+00:00:11.002 --> 00:00:13.009
+and how it is constructed.
+
+6
+00:00:13.009 --> 00:00:16.004
+The use cases can be endless,
+
+7
+00:00:16.004 --> 00:00:20.008
+but they tend to fall into a few groups of classifications.
+
+8
+00:00:20.008 --> 00:00:24.000
+The first and probably the most common
+
+9
+00:00:24.000 --> 00:00:26.005
+is when no response is needed.
+
+10
+00:00:26.005 --> 00:00:29.001
+If the client or the service doesn't really need to know
+
+11
+00:00:29.001 --> 00:00:30.009
+that the task is done,
+
+12
+00:00:30.009 --> 00:00:35.007
+there is no real valid reason to wait for it to finish.
+
+13
+00:00:35.007 --> 00:00:39.003
+As such, you can produce a message and fire it off
+
+14
+00:00:39.003 --> 00:00:41.008
+and essentially forget about it.
+
+15
+00:00:41.008 --> 00:00:45.002
+A place I've used this a lot is with audit records
+
+16
+00:00:45.002 --> 00:00:47.004
+that are not mission-critical.
+
+17
+00:00:47.004 --> 00:00:49.001
+If the audit record itself
+
+18
+00:00:49.001 --> 00:00:52.003
+is not a hard and fast system requirement,
+
+19
+00:00:52.003 --> 00:00:56.000
+there is no reason to wait for it to get written.
+
+20
+00:00:56.000 --> 00:00:58.004
+You can fire a message to the message broker
+
+21
+00:00:58.004 --> 00:01:00.004
+intended for the audit system
+
+22
+00:01:00.004 --> 00:01:02.009
+and just expect it to get written.
+
+23
+00:01:02.009 --> 00:01:05.003
+Now, of course you cannot guarantee
+
+24
+00:01:05.003 --> 00:01:07.006
+that it is written or even done so
+
+25
+00:01:07.006 --> 00:01:09.007
+in a timely matter in this model,
+
+26
+00:01:09.007 --> 00:01:12.007
+but with proper tuning, you will get the record written
+
+27
+00:01:12.007 --> 00:01:14.008
+with a high degree of success
+
+28
+00:01:14.008 --> 00:01:17.009
+and save yourself some processing time
+
+29
+00:01:17.009 --> 00:01:21.000
+that isn't so critical.
+
+30
+00:01:21.000 --> 00:01:23.009
+Another use case is when you have admin tasks
+
+31
+00:01:23.009 --> 00:01:25.004
+that need to happen.
+
+32
+00:01:25.004 --> 00:01:29.002
+I've used this for cleanup operations on aggregated data
+
+33
+00:01:29.002 --> 00:01:35.000
+that was denormalized for efficiencies in an RDBMS system.
+
+34
+00:01:35.000 --> 00:01:37.006
+When I rolled up data to a new view,
+
+35
+00:01:37.006 --> 00:01:41.004
+I had no need for the original pieces of data any longer,
+
+36
+00:01:41.004 --> 00:01:43.004
+so I fired off a message that triggered
+
+37
+00:01:43.004 --> 00:01:48.001
+the cleanup operation to remove those individual pieces.
+
+38
+00:01:48.001 --> 00:01:51.003
+This not only allowed my aggregated data queries
+
+39
+00:01:51.003 --> 00:01:52.009
+to be more efficient,
+
+40
+00:01:52.009 --> 00:01:57.003
+but it also let the single process move faster
+
+41
+00:01:57.003 --> 00:01:59.002
+since it just aggregated
+
+42
+00:01:59.002 --> 00:02:02.007
+and left the cleanup to another process.
+
+43
+00:02:02.007 --> 00:02:05.007
+The beauty of this model is that if a task
+
+44
+00:02:05.007 --> 00:02:08.003
+didn't execute for some reason,
+
+45
+00:02:08.003 --> 00:02:11.001
+because the data was time series in nature,
+
+46
+00:02:11.001 --> 00:02:13.006
+the next admin task execution
+
+47
+00:02:13.006 --> 00:02:16.001
+would clean up after the failed attempt.
+
+48
+00:02:16.001 --> 00:02:19.005
+And this is a case where I ignore DLQ.
+
+49
+00:02:19.005 --> 00:02:23.009
+In this case, I only cared if I missed X number of attempts,
+
+50
+00:02:23.009 --> 00:02:25.003
+because that was an indication
+
+51
+00:02:25.003 --> 00:02:28.000
+that something was really wrong.
+
+52
+00:02:28.000 --> 00:02:30.001
+There are other out of band processes
+
+53
+00:02:30.001 --> 00:02:32.002
+that may need to be run as well
+
+54
+00:02:32.002 --> 00:02:36.003
+that can benefit from point to point asynchronous messaging.
+
+55
+00:02:36.003 --> 00:02:39.000
+Consider the case of sending an email.
+
+56
+00:02:39.000 --> 00:02:41.002
+Email itself is asynchronous
+
+57
+00:02:41.002 --> 00:02:43.009
+and not guaranteed for delivery.
+
+58
+00:02:43.009 --> 00:02:47.006
+As such, there's no real reason to wait around
+
+59
+00:02:47.006 --> 00:02:50.004
+for the building of the email and sending it out,
+
+60
+00:02:50.004 --> 00:02:55.001
+since after all, it will just be an empty result at the end.
+
+61
+00:02:55.001 --> 00:02:58.000
+As such, I have built communication systems
+
+62
+00:02:58.000 --> 00:03:00.002
+for other developers to consume,
+
+63
+00:03:00.002 --> 00:03:03.007
+and I implemented them with asynchronous messaging.
+
+64
+00:03:03.007 --> 00:03:06.002
+The producer would put a message on a queue
+
+65
+00:03:06.002 --> 00:03:08.009
+and my communication service would pick it up
+
+66
+00:03:08.009 --> 00:03:10.009
+and send the email.
+
+67
+00:03:10.009 --> 00:03:13.009
+In the end, nothing was guaranteed anyway,
+
+68
+00:03:13.009 --> 00:03:17.004
+so the improved efficiencies were well worth it.
+
+69
+00:03:17.004 --> 00:03:20.001
+Scaling your system is a huge implication
+
+70
+00:03:20.001 --> 00:03:22.003
+of all asynchronous messaging
+
+71
+00:03:22.003 --> 00:03:24.001
+and indeed it was a drive
+
+72
+00:03:24.001 --> 00:03:27.004
+behind many of the aforementioned use cases.
+
+73
+00:03:27.004 --> 00:03:29.009
+Once you start offloading the processing
+
+74
+00:03:29.009 --> 00:03:31.008
+and blocking nature of calls
+
+75
+00:03:31.008 --> 00:03:34.007
+that would qualify for asynchronous messaging,
+
+76
+00:03:34.007 --> 00:03:37.009
+it becomes easier to scale the system.
+
+77
+00:03:37.009 --> 00:03:41.002
+You start scaling it based on the true blocking calls,
+
+78
+00:03:41.002 --> 00:03:44.006
+instead of everything being a wait and see system
+
+79
+00:03:44.006 --> 00:03:46.006
+that hinders scaling.
+
+80
+00:03:46.006 --> 00:03:48.000
+By isolating these jobs,
+
+81
+00:03:48.000 --> 00:03:52.000
+you can scale them individually and with solid data
+
+82
+00:03:52.000 --> 00:03:53.007
+while leaving the client-side systems
+
+83
+00:03:53.007 --> 00:03:56.004
+to be scaled based on the real needs
+
+84
+00:03:56.004 --> 00:03:59.007
+and not unnecessary waiting.
+
+85
+00:03:59.007 --> 00:04:02.002
+This system is built of several components
+
+86
+00:04:02.002 --> 00:04:05.007
+with distinct lines of communication between them.
+
+87
+00:04:05.007 --> 00:04:08.005
+We start our system with a message broker
+
+88
+00:04:08.005 --> 00:04:11.007
+as it is the heart of our system as a whole.
+
+89
+00:04:11.007 --> 00:04:13.005
+We then create our producer,
+
+90
+00:04:13.005 --> 00:04:15.007
+it will be called synchronously in this example
+
+91
+00:04:15.007 --> 00:04:17.009
+by some external system.
+
+92
+00:04:17.009 --> 00:04:22.001
+The RESTful message will come in and start the process.
+
+93
+00:04:22.001 --> 00:04:25.000
+Now our producer knows about the message broker
+
+94
+00:04:25.000 --> 00:04:27.007
+and how to communicate with it.
+
+95
+00:04:27.007 --> 00:04:31.001
+We then need some downstream action to take place,
+
+96
+00:04:31.001 --> 00:04:34.001
+and this is where the consumer comes into play.
+
+97
+00:04:34.001 --> 00:04:37.004
+It is responsible for all of the activity that occurs
+
+98
+00:04:37.004 --> 00:04:39.007
+once the message is produced.
+
+99
+00:04:39.007 --> 00:04:44.004
+Usually the real heavy lifting is in this component.
+
+100
+00:04:44.004 --> 00:04:46.009
+It also knows about the message broker,
+
+101
+00:04:46.009 --> 00:04:49.001
+but in a little bit different way.
+
+102
+00:04:49.001 --> 00:04:53.000
+Usually the consumer attaches directly to the message broker
+
+103
+00:04:53.000 --> 00:04:56.002
+and actively listens or polls the message broker
+
+104
+00:04:56.002 --> 00:04:58.002
+for a new message.
+
+105
+00:04:58.002 --> 00:05:00.006
+It then goes into a quote unquote idle state
+
+106
+00:05:00.006 --> 00:05:03.001
+until the next polling time triggers
+
+107
+00:05:03.001 --> 00:05:06.001
+for the message to be listened for.
+
+108
+00:05:06.001 --> 00:05:09.005
+Now, the original service makes a call to the producer
+
+109
+00:05:09.005 --> 00:05:12.007
+and blocks, waiting for a response.
+
+110
+00:05:12.007 --> 00:05:16.003
+The producer creates a message based on the contract
+
+111
+00:05:16.003 --> 00:05:19.008
+for the system and puts the message on the broker.
+
+112
+00:05:19.008 --> 00:05:23.007
+At this point, the producer can return its response
+
+113
+00:05:23.007 --> 00:05:29.003
+to the original service, usually with an accepted status.
+
+114
+00:05:29.003 --> 00:05:32.000
+Now the message will move to the message broker
+
+115
+00:05:32.000 --> 00:05:34.007
+and be put on the appropriate queue.
+
+116
+00:05:34.007 --> 00:05:38.002
+The message broker will then present the message.
+
+117
+00:05:38.002 --> 00:05:41.007
+The consumer, during its next listen phase,
+
+118
+00:05:41.007 --> 00:05:43.007
+will receive the message,
+
+119
+00:05:43.007 --> 00:05:46.003
+which is now cleared from the message broker
+
+120
+00:05:46.003 --> 00:05:50.000
+once the act is received and it is done.
+
+121
+00:05:50.000 --> 00:05:51.000
+Now, keep in mind,
+
+122
+00:05:51.000 --> 00:05:54.000
+the act time is determined by the consumer.
+
+123
+00:05:54.000 --> 00:05:57.006
+It can wait to acknowledge the message until it is done,
+
+124
+00:05:57.006 --> 00:06:02.006
+or it can do so immediately, which is the most common case.
+
+125
+00:06:02.006 --> 00:06:04.009
+It will then do its own processing,
+
+126
+00:06:04.009 --> 00:06:08.006
+and communication is now complete.
+
+127
+00:06:08.006 --> 00:06:11.001
+Now there are a few things to consider when just going out
+
+128
+00:06:11.001 --> 00:06:14.006
+and implementing this strategy for all of your calls.
+
+129
+00:06:14.006 --> 00:06:16.005
+The first is wire time.
+
+130
+00:06:16.005 --> 00:06:18.005
+If the act of building the message,
+
+131
+00:06:18.005 --> 00:06:20.006
+setting up the connection to the message broker,
+
+132
+00:06:20.006 --> 00:06:22.009
+and sending the message takes as long
+
+133
+00:06:22.009 --> 00:06:26.003
+or more than just making the downstream call,
+
+134
+00:06:26.003 --> 00:06:28.005
+you may want to consider that in your design,
+
+135
+00:06:28.005 --> 00:06:30.008
+are you really saving time?
+
+136
+00:06:30.008 --> 00:06:32.008
+Now, because in either a RESTful call
+
+137
+00:06:32.008 --> 00:06:34.006
+or in a message broker call
+
+138
+00:06:34.006 --> 00:06:37.005
+the setup and tear down is often similar,
+
+139
+00:06:37.005 --> 00:06:39.003
+as such, be wary when people say
+
+140
+00:06:39.003 --> 00:06:42.003
+that the wire time increase in cost
+
+141
+00:06:42.003 --> 00:06:45.002
+makes this not a viable solution.
+
+142
+00:06:45.002 --> 00:06:46.006
+Along the same lines,
+
+143
+00:06:46.006 --> 00:06:50.000
+building extra components isn't always worth it,
+
+144
+00:06:50.000 --> 00:06:53.004
+especially if the consumer is executing code
+
+145
+00:06:53.004 --> 00:06:57.006
+that isn't out of place for the producer's main flow.
+
+146
+00:06:57.006 --> 00:07:00.005
+If the total time to make the call isn't worth it
+
+147
+00:07:00.005 --> 00:07:03.001
+and the code fits in the producer,
+
+148
+00:07:03.001 --> 00:07:06.001
+you should take that into consideration.
+
+149
+00:07:06.001 --> 00:07:08.006
+If, however, your code is out of place
+
+150
+00:07:08.006 --> 00:07:12.003
+or the complexity of more components is easily replaced
+
+151
+00:07:12.003 --> 00:07:17.003
+by the reduced processing time, this is a great trade-off.
+
+152
+00:07:17.003 --> 00:07:21.000
+Finally, you must plan for failure scenario.
+
+153
+00:07:21.000 --> 00:07:22.002
+Usually in this model,
+
+154
+00:07:22.002 --> 00:07:25.003
+you will build an adjoining dead-letter queue.
+
+155
+00:07:25.003 --> 00:07:28.006
+Use that dead-letter queue, but more importantly,
+
+156
+00:07:28.006 --> 00:07:30.006
+don't just ignore it.
+
+157
+00:07:30.006 --> 00:07:34.003
+Build in processing to inspect the DLQ regularly
+
+158
+00:07:34.003 --> 00:07:37.005
+and ensure that you aren't getting messages there.
+
+159
+00:07:37.005 --> 00:07:40.009
+Better yet, alert when you do get them.
+
+160
+00:07:40.009 --> 00:07:43.005
+If you can respond to errors programmatically,
+
+161
+00:07:43.005 --> 00:07:45.001
+feel free to do so.
+
+162
+00:07:45.001 --> 00:07:48.004
+But in my experience, the cause of the DLQ
+
+163
+00:07:48.004 --> 00:07:50.000
+makes it such that the message
+
+164
+00:07:50.000 --> 00:07:53.000
+needs manual intervention oftentimes.
+

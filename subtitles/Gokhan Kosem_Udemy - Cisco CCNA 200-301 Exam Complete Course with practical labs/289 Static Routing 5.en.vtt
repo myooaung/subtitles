@@ -1,0 +1,432 @@
+WEBVTT
+1
+00:00:00.000 --> 00:00:05.000
+So router 1 can ping the loopback of router 3
+
+2
+00:00:05.000 --> 00:00:11.000
+but notice the ping was sent from 10.1.1.1 to router 3.
+
+3
+00:00:11.000 --> 00:00:17.000
+With ping you can specify the source interface of a ping
+
+4
+00:00:17.000 --> 00:00:23.000
+so I could say loopback 0 or specify the source IP address.
+
+5
+00:00:23.000 --> 00:00:27.000
+So let’s specify loopback 0
+
+6
+00:00:27.000 --> 00:00:32.000
+in other words, pings are being sent from the loopback of router 1 to router 3
+
+7
+00:00:32.000 --> 00:00:38.000
+but the pings are failing because router 3 is receiving a ping
+
+8
+00:00:38.000 --> 00:00:41.000
+from an IP address of 1.1.1.1
+
+9
+00:00:41.000 --> 00:00:45.000
+sh run int loopback0
+
+10
+00:00:45.000 --> 00:00:51.000
+this router has this IP address configured on loopback0
+
+11
+00:00:51.000 --> 00:00:57.000
+and we are telling the router to ping the loopback of router 3
+
+12
+00:00:57.000 --> 00:01:02.000
+using the IP address as configured on loopback 0.
+
+13
+00:01:02.000 --> 00:01:05.000
+We can see that in the debug on router3
+
+14
+00:01:05.000 --> 00:01:09.000
+does router 3 have that route in its routing table?
+
+15
+00:01:09.000 --> 00:01:18.000
+The answer is no, so debug ip packet do the ping again
+
+16
+00:01:18.000 --> 00:01:25.000
+what we can see is that it’s unroutable.
+
+17
+00:01:25.000 --> 00:01:30.000
+Router 3 doesn’t know how to get back to 1.1.1.1
+
+18
+00:01:30.000 --> 00:01:36.000
+so we need to configure the loopback of router 1 on router 3
+
+19
+00:01:36.000 --> 00:01:38.000
+and this is the problem
+
+20
+00:01:38.000 --> 00:01:40.000
+how many routes do you need to configure
+
+21
+00:01:40.000 --> 00:01:43.000
+on this routers to allow for full communication?
+
+22
+00:01:43.000 --> 00:01:46.000
+A lot of static routes need to be configured
+
+23
+00:01:46.000 --> 00:01:49.000
+to allow full connectivity between these routers.
+
+24
+00:01:49.000 --> 00:01:54.000
+So sh run | include route on router 3
+
+25
+00:01:54.000 --> 00:01:58.000
+shows me that I have 1 static route configured.
+
+26
+00:01:58.000 --> 00:02:04.000
+So I need to configure another static route 1.1.1.1
+
+27
+00:02:04.000 --> 00:02:11.000
+and that’s available from router 3 points of view via 10.1.2.1
+
+28
+00:02:11.000 --> 00:02:14.000
+from router 3 points of view to get to this loopback
+
+29
+00:02:14.000 --> 00:02:17.000
+it needs to forward traffic via this IP address.
+
+30
+00:02:17.000 --> 00:02:30.000
+However, the ping is still failing, we can see a message on router 3
+
+31
+00:02:30.000 --> 00:02:34.000
+saying that it receives a message from 10.1.2.1
+
+32
+00:02:34.000 --> 00:02:37.000
+stating that this address is unreachable.
+
+33
+00:02:37.000 --> 00:02:39.000
+So in other words
+
+34
+00:02:39.000 --> 00:02:43.000
+router 1 is sending traffic from this loopback interface
+
+35
+00:02:43.000 --> 00:02:45.000
+to this loopback interface
+
+36
+00:02:45.000 --> 00:02:48.000
+and it gets successfully to router 3.
+
+37
+00:02:48.000 --> 00:02:52.000
+Router 3 tries to route it back to router 2
+
+38
+00:02:52.000 --> 00:02:54.000
+but router 2 is saying host unreachable.
+
+39
+00:02:54.000 --> 00:03:00.000
+In other words, router 2 doesn’t have a route to 1.1.1.1
+
+40
+00:03:00.000 --> 00:03:04.000
+which as we can see in the routing table isn’t there.
+
+41
+00:03:04.000 --> 00:03:07.000
+So we have to configure a static route
+
+42
+00:03:07.000 --> 00:03:16.000
+on router 2 to the loopback of router 1 via 10.1.1.1
+
+43
+00:03:16.000 --> 00:03:20.000
+does the ping work now? Yes, it does.
+
+44
+00:03:20.000 --> 00:03:25.000
+so ping succeeds from the loopback of router 1
+
+45
+00:03:25.000 --> 00:03:29.000
+to the loopback of router 3 because router 2 now knows
+
+46
+00:03:29.000 --> 00:03:34.000
+about the loopback of router 3 as well as the loopback of router 1.
+
+47
+00:03:34.000 --> 00:03:36.000
+Are we finished?
+
+48
+00:03:36.000 --> 00:03:44.000
+show ip route, so router 1 kind of looks right
+
+49
+00:03:44.000 --> 00:03:47.000
+let’s do a show run, show run | include route
+
+50
+00:03:47.000 --> 00:03:52.000
+Router 1 has 3 static routes in the routing table.
+
+51
+00:03:52.000 --> 00:03:54.000
+1 for this network, 1 for this network and 1 for this network
+
+52
+00:03:54.000 --> 00:03:58.000
+so that looks good. Router 2 show ip route
+
+53
+00:03:58.000 --> 00:04:04.000
+router 2 only has a static route to the loopback of router 1
+
+54
+00:04:04.000 --> 00:04:10.000
+and loopback of router 3 which is correct for the network shown in the diagram.
+
+55
+00:04:10.000 --> 00:04:13.000
+What about router 3? show ip route
+
+56
+00:04:13.000 --> 00:04:18.000
+it has a static route to the loopback of router 1
+
+57
+00:04:18.000 --> 00:04:23.000
+it has a static route to 10.1.1.0
+
+58
+00:04:23.000 --> 00:04:27.000
+but it doesn’t have a static route to the loopback of router 2
+
+59
+00:04:27.000 --> 00:04:29.000
+I'll just turn off debugging
+
+60
+00:04:29.000 --> 00:04:33.000
+and then try and ping the loopback of router 2
+
+61
+00:04:33.000 --> 00:04:35.000
+what you’ll notice is the pings fail.
+
+62
+00:04:35.000 --> 00:04:40.000
+So what I need to do is configure a route
+
+63
+00:04:40.000 --> 00:04:47.000
+to the loopback of router 2 via the next hop 10.1.2.1
+
+64
+00:04:47.000 --> 00:04:52.000
+so router 3 can now ping the loopback of router 2
+
+65
+00:04:52.000 --> 00:04:57.000
+it can ping the loopback of router 1 that’s good
+
+66
+00:04:57.000 --> 00:05:00.000
+router 1 can ping the loopback of router 2
+
+67
+00:05:00.000 --> 00:05:05.000
+and the loopback of router 3 I'll turn debugging off on router 2
+
+68
+00:05:05.000 --> 00:05:12.000
+it can ping the loopback of router 1 and the loopback of router 3.
+
+69
+00:05:12.000 --> 00:05:14.000
+now I did add some extra networks
+
+70
+00:05:14.000 --> 00:05:17.000
+show ip route on router 1
+
+71
+00:05:17.000 --> 00:05:25.000
+shows me that I added 10.1.10.0 as well as 1.1.1.2
+
+72
+00:05:25.000 --> 00:05:30.000
+so can router 2 ping 1.1.1.2 and the answer is no
+
+73
+00:05:30.000 --> 00:05:33.000
+in the routing table of router 2
+
+74
+00:05:33.000 --> 00:05:39.000
+I only have a static route to 1.1.1.1
+
+75
+00:05:39.000 --> 00:05:48.000
+so I would need to add another route for 1.1.1.2
+
+76
+00:05:48.000 --> 00:05:56.000
+so I could type IP route 1.1.1.2/32 mask 10.1.1.1
+
+77
+00:05:56.000 --> 00:06:02.000
+and now I’ll be able to ping 1.1.1.2
+
+78
+00:06:02.000 --> 00:06:08.000
+now do I have to use explicit mask as per
+
+79
+00:06:08.000 --> 00:06:17.000
+the subnets configured on interfaces and the answer is no.
+
+80
+00:06:17.000 --> 00:06:23.000
+I could as an example remove this static route
+
+81
+00:06:23.000 --> 00:06:29.000
+and change that to something like this
+
+82
+00:06:29.000 --> 00:06:41.000
+so in other words, I’m going to match 10.1.1.1.0
+
+83
+00:06:41.000 --> 00:06:47.000
+and anything in that range is going to be forwarded to 10.1.2.1
+
+84
+00:06:47.000 --> 00:06:51.000
+so ping 1.1.1.1 that works and 1.1.1.2 also works
+
+85
+00:06:51.000 --> 00:06:55.000
+you need to be careful however doing that
+
+86
+00:06:55.000 --> 00:07:00.000
+because this doesn’t just match those 2 networks
+
+87
+00:07:00.000 --> 00:07:05.000
+it matches anything in the range 1.1.1.0
+
+88
+00:07:05.000 --> 00:07:09.000
+but in this case based on our topology, I can do that
+
+89
+00:07:09.000 --> 00:07:13.000
+router 1 also has this additional network that I added
+
+90
+00:07:13.000 --> 00:07:24.000
+so I need to configure that network as well on router 2
+
+91
+00:07:24.000 --> 00:07:29.000
+as well as I'll just copy this to make it easier, as well as router 3
+
+92
+00:07:29.000 --> 00:07:36.000
+and you need to be careful doing copying and pasting like I’ve just done
+
+93
+00:07:36.000 --> 00:07:41.000
+because that should be 2.1 on this router.
+
+94
+00:07:41.000 --> 00:07:49.000
+So ping 10.1.10.1 ping works ping 10.1.10.1
+
+95
+00:07:49.000 --> 00:07:55.000
+which is the loopback to IP address configured on router 1.
+
+96
+00:07:55.000 --> 00:07:59.000
+So here’s the problem, we configured a very small network
+
+97
+00:07:59.000 --> 00:08:05.000
+but we configured 3 static routes on router 1
+
+98
+00:08:05.000 --> 00:08:10.000
+we've configured 4 static routes on router 2
+
+99
+00:08:10.000 --> 00:08:19.000
+and we've configured 4 static routes on router 3
+
+100
+00:08:19.000 --> 00:08:22.000
+that’s 11 routes just to get this network working
+
+101
+00:08:22.000 --> 00:08:27.000
+it would have been told if I hadn’t use a summary route on router 3
+
+102
+00:08:27.000 --> 00:08:30.000
+that's a lot of work for very small network
+
+103
+00:08:30.000 --> 00:08:34.000
+and that’s 1 of the problems with static routes, it’s a lot of work
+
+104
+00:08:34.000 --> 00:08:39.000
+to configure this routes and you the person that has to configure them.
+
+105
+00:08:39.000 --> 00:08:44.000
+Dynamic routing protocols allow routes to be automatically learned
+
+106
+00:08:44.000 --> 00:08:48.000
+and adjusted so the work is shifted from your shoulders to the routers.
+
+107
+00:08:48.000 --> 00:08:51.000
+The routing protocols do the heavy lifting
+
+108
+00:08:51.000 --> 00:08:56.000
+rather than you having to do all this manual configuration.

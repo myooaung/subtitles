@@ -1,0 +1,757 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:02.006
+- [Instructor] Application runtime startup
+
+2
+00:00:02.006 --> 00:00:06.001
+for spring applications involves a lot of activities.
+
+3
+00:00:06.001 --> 00:00:07.007
+It's a very healthy framework
+
+4
+00:00:07.007 --> 00:00:09.005
+and there's a lot of context to load,
+
+5
+00:00:09.005 --> 00:00:11.005
+a lot of beans to get initialized.
+
+6
+00:00:11.005 --> 00:00:14.004
+Sometimes that can contribute to a slower startup time
+
+7
+00:00:14.004 --> 00:00:15.006
+than you might like.
+
+8
+00:00:15.006 --> 00:00:18.004
+Sometimes that can inhibit your success.
+
+9
+00:00:18.004 --> 00:00:19.008
+Often it's not a problem,
+
+10
+00:00:19.008 --> 00:00:22.005
+but let's talk about when startup time does matter.
+
+11
+00:00:22.005 --> 00:00:26.000
+A long startup time, meaning multiple seconds,
+
+12
+00:00:26.000 --> 00:00:29.004
+six, eight, 10, 12 seconds can get in the way
+
+13
+00:00:29.004 --> 00:00:32.009
+of continuous integration and continuous deployment
+
+14
+00:00:32.009 --> 00:00:34.004
+automated testing.
+
+15
+00:00:34.004 --> 00:00:35.007
+In those types of scenarios,
+
+16
+00:00:35.007 --> 00:00:37.004
+you're often starting up your application
+
+17
+00:00:37.004 --> 00:00:39.009
+doing automated smoke testing and a variety of things
+
+18
+00:00:39.009 --> 00:00:40.007
+like that.
+
+19
+00:00:40.007 --> 00:00:42.009
+Sometimes starting it up multiple times.
+
+20
+00:00:42.009 --> 00:00:45.005
+And so a long startup time really can impact
+
+21
+00:00:45.005 --> 00:00:49.002
+that type of pipeline in your DevOps context.
+
+22
+00:00:49.002 --> 00:00:50.001
+Also,
+
+23
+00:00:50.001 --> 00:00:51.000
+you don't want to discount it,
+
+24
+00:00:51.000 --> 00:00:54.007
+a long startup time can be just plain inconvenient
+
+25
+00:00:54.007 --> 00:00:55.009
+for a developer,
+
+26
+00:00:55.009 --> 00:00:58.007
+especially if you've got a small laptop,
+
+27
+00:00:58.007 --> 00:01:01.000
+having to restart it multiple times during the day
+
+28
+00:01:01.000 --> 00:01:04.001
+can be a drain on your productivity.
+
+29
+00:01:04.001 --> 00:01:04.009
+In general,
+
+30
+00:01:04.009 --> 00:01:07.002
+a long startup time can be an indicator
+
+31
+00:01:07.002 --> 00:01:09.000
+of bloated dependencies.
+
+32
+00:01:09.000 --> 00:01:12.002
+We've learned how easy it is to add dependencies
+
+33
+00:01:12.002 --> 00:01:13.009
+into a spring boot application.
+
+34
+00:01:13.009 --> 00:01:15.009
+It's so easy that sometimes you add things
+
+35
+00:01:15.009 --> 00:01:17.007
+and forget to take them back out when you decide
+
+36
+00:01:17.007 --> 00:01:18.009
+you don't need them.
+
+37
+00:01:18.009 --> 00:01:21.004
+So just keeping an eye on that startup time
+
+38
+00:01:21.004 --> 00:01:23.008
+is often a good thing to do,
+
+39
+00:01:23.008 --> 00:01:27.003
+even though it doesn't usually lend to a production type
+
+40
+00:01:27.003 --> 00:01:28.005
+of emergency.
+
+41
+00:01:28.005 --> 00:01:31.008
+Context and bean loading is most of the challenge here.
+
+42
+00:01:31.008 --> 00:01:32.008
+And in this lesson,
+
+43
+00:01:32.008 --> 00:01:35.008
+observability is going to be our focus.
+
+44
+00:01:35.008 --> 00:01:39.007
+Once we think our application is taking too long to start,
+
+45
+00:01:39.007 --> 00:01:42.004
+the whole trick is how do we see what's going on
+
+46
+00:01:42.004 --> 00:01:44.004
+under the hood so we can make decisions
+
+47
+00:01:44.004 --> 00:01:46.002
+about streamlining things.
+
+48
+00:01:46.002 --> 00:01:49.008
+We're going to look at two types of metrics, our old friend,
+
+49
+00:01:49.008 --> 00:01:51.003
+actuator metrics.
+
+50
+00:01:51.003 --> 00:01:53.008
+We've got some new tricks we can pull out of our sleeve
+
+51
+00:01:53.008 --> 00:01:54.007
+for there.
+
+52
+00:01:54.007 --> 00:01:57.003
+And also the Java Flight Recorder event capturing
+
+53
+00:01:57.003 --> 00:01:58.008
+is a tool that we're going to look at.
+
+54
+00:01:58.008 --> 00:02:00.001
+So let's jump right in here.
+
+55
+00:02:00.001 --> 00:02:01.006
+The first thing I do want to show you
+
+56
+00:02:01.006 --> 00:02:04.006
+is how to reveal startup metrics,
+
+57
+00:02:04.006 --> 00:02:09.008
+very detailed event metrics in your actuator directory.
+
+58
+00:02:09.008 --> 00:02:11.008
+And the trick here is a class called
+
+59
+00:02:11.008 --> 00:02:13.008
+buffering application startup.
+
+60
+00:02:13.008 --> 00:02:18.004
+It is in the spring framework dot boot library.
+
+61
+00:02:18.004 --> 00:02:23.009
+The way to do this is to make one of these
+
+62
+00:02:23.009 --> 00:02:25.007
+new buffering application startup.
+
+63
+00:02:25.007 --> 00:02:30.003
+And it takes a funny little parameter here called capacity.
+
+64
+00:02:30.003 --> 00:02:33.003
+This startup utility works in memory.
+
+65
+00:02:33.003 --> 00:02:36.001
+And so it wants you to limit how many events
+
+66
+00:02:36.001 --> 00:02:36.009
+that you can capture.
+
+67
+00:02:36.009 --> 00:02:42.003
+This number is a number of events that the startup buffer
+
+68
+00:02:42.003 --> 00:02:43.006
+will work with.
+
+69
+00:02:43.006 --> 00:02:45.008
+And then when it's full, it stops working.
+
+70
+00:02:45.008 --> 00:02:47.002
+So you want to give it a capacity.
+
+71
+00:02:47.002 --> 00:02:49.002
+10,000 is pretty generous.
+
+72
+00:02:49.002 --> 00:02:52.001
+You will see that our startup events are more like 400,
+
+73
+00:02:52.001 --> 00:02:54.006
+but just to kind of have a look at things here,
+
+74
+00:02:54.006 --> 00:02:56.004
+let's give it a 10,000.
+
+75
+00:02:56.004 --> 00:02:59.001
+And then we start up our application.
+
+76
+00:02:59.001 --> 00:03:00.006
+Well, we have to do an additional thing,
+
+77
+00:03:00.006 --> 00:03:03.008
+which is set the application start-up hook
+
+78
+00:03:03.008 --> 00:03:06.008
+to be this buffering application startup object.
+
+79
+00:03:06.008 --> 00:03:09.001
+And then we run it in the usual fashion,
+
+80
+00:03:09.001 --> 00:03:10.002
+run our application.
+
+81
+00:03:10.002 --> 00:03:11.000
+Let's see.
+
+82
+00:03:11.000 --> 00:03:14.002
+So we've made our buffering application startup object.
+
+83
+00:03:14.002 --> 00:03:15.005
+We've got a run.
+
+84
+00:03:15.005 --> 00:03:20.005
+We do not require any additional runtime VM parameters.
+
+85
+00:03:20.005 --> 00:03:22.005
+I think we can just start this.
+
+86
+00:03:22.005 --> 00:03:27.004
+We want to start the client application.
+
+87
+00:03:27.004 --> 00:03:31.002
+Hopefully we'll get a successful startup.
+
+88
+00:03:31.002 --> 00:03:33.002
+Then what we're going to look at here is our old friend,
+
+89
+00:03:33.002 --> 00:03:35.004
+the actuator directory.
+
+90
+00:03:35.004 --> 00:03:37.002
+Notice in here in our actuator directory,
+
+91
+00:03:37.002 --> 00:03:40.009
+we have a new category of metrics called startup
+
+92
+00:03:40.009 --> 00:03:46.009
+and this beautiful list of things is a list of events
+
+93
+00:03:46.009 --> 00:03:51.007
+that our startup buffer captured for us.
+
+94
+00:03:51.007 --> 00:03:53.007
+It's not so easy to read here.
+
+95
+00:03:53.007 --> 00:03:55.004
+So what I'd like to do is switch it over
+
+96
+00:03:55.004 --> 00:03:57.006
+to view the raw data and then pretty printed.
+
+97
+00:03:57.006 --> 00:04:02.007
+And now you can see very clearly the detailed metrics
+
+98
+00:04:02.007 --> 00:04:05.007
+on all of your startup events that actuator
+
+99
+00:04:05.007 --> 00:04:07.008
+is now capturing.
+
+100
+00:04:07.008 --> 00:04:11.007
+The name of the event, beans it's instantiating,
+
+101
+00:04:11.007 --> 00:04:13.003
+how long it takes.
+
+102
+00:04:13.003 --> 00:04:17.008
+It's very detailed. However, it's not super readable.
+
+103
+00:04:17.008 --> 00:04:20.000
+If you've got something you're really concerned about
+
+104
+00:04:20.000 --> 00:04:22.002
+and you want to drill straight in and look at it,
+
+105
+00:04:22.002 --> 00:04:23.009
+it's quite useful for that.
+
+106
+00:04:23.009 --> 00:04:26.000
+There is one trick you can do to help yourself out
+
+107
+00:04:26.000 --> 00:04:27.008
+a little bit.
+
+108
+00:04:27.008 --> 00:04:32.005
+The buffering application startup class has an ability
+
+109
+00:04:32.005 --> 00:04:36.003
+to add a filter so you can filter some things out.
+
+110
+00:04:36.003 --> 00:04:40.003
+Let's see. This is startup step.
+
+111
+00:04:40.003 --> 00:04:44.000
+Startup step get name.
+
+112
+00:04:44.000 --> 00:04:47.001
+Starts with.
+
+113
+00:04:47.001 --> 00:04:51.001
+And I think we want to start it with,
+
+114
+00:04:51.001 --> 00:04:59.004
+let's just filter out the spring beans instantiate events.
+
+115
+00:04:59.004 --> 00:05:04.003
+Now, when we do this, having added the filter,
+
+116
+00:05:04.003 --> 00:05:07.001
+let's restart.
+
+117
+00:05:07.001 --> 00:05:08.006
+We will go from,
+
+118
+00:05:08.006 --> 00:05:11.006
+I think there was 415 last I looked at this,
+
+119
+00:05:11.006 --> 00:05:17.009
+416 events to, I'm going to reload this.
+
+120
+00:05:17.009 --> 00:05:24.005
+And now we have fewer events. We have more like 391.
+
+121
+00:05:24.005 --> 00:05:26.005
+Okay. That's still a lot, but you get the point.
+
+122
+00:05:26.005 --> 00:05:30.002
+You can filter on events using that add filter mechanism.
+
+123
+00:05:30.002 --> 00:05:31.002
+Okay.
+
+124
+00:05:31.002 --> 00:05:34.001
+Now let's look at the second way to get insight
+
+125
+00:05:34.001 --> 00:05:36.002
+into your startup events.
+
+126
+00:05:36.002 --> 00:05:39.005
+And that is using the Java Flight Recorder.
+
+127
+00:05:39.005 --> 00:05:42.007
+I'm going to switch over to the demo API application
+
+128
+00:05:42.007 --> 00:05:44.009
+to demonstrate this one for you.
+
+129
+00:05:44.009 --> 00:05:46.005
+It works in a very similar way.
+
+130
+00:05:46.005 --> 00:05:49.008
+We're going to make a new Flight Recorder
+
+131
+00:05:49.008 --> 00:05:52.005
+application startup object,
+
+132
+00:05:52.005 --> 00:05:57.001
+and this one doesn't require any input parameters.
+
+133
+00:05:57.001 --> 00:06:00.006
+We're going to set the application startup as the subject.
+
+134
+00:06:00.006 --> 00:06:03.003
+Why do I have a squiggle here?
+
+135
+00:06:03.003 --> 00:06:05.003
+Better pass it in.
+
+136
+00:06:05.003 --> 00:06:07.007
+Oh, it doesn't like the typo.
+
+137
+00:06:07.007 --> 00:06:09.009
+Well, that's silly, but we'll take care of it anyway.
+
+138
+00:06:09.009 --> 00:06:11.002
+All right. So now we've got that.
+
+139
+00:06:11.002 --> 00:06:12.008
+Now here for this technique,
+
+140
+00:06:12.008 --> 00:06:15.002
+we have to add some VM properties.
+
+141
+00:06:15.002 --> 00:06:19.000
+So let's go to edit configuration.
+
+142
+00:06:19.000 --> 00:06:20.003
+Oh, I did already put these in here
+
+143
+00:06:20.003 --> 00:06:21.003
+in advance of the lesson.
+
+144
+00:06:21.003 --> 00:06:22.008
+So we need two properties.
+
+145
+00:06:22.008 --> 00:06:26.006
+This Flight Recorder plus Flight Recorder is a VM property.
+
+146
+00:06:26.006 --> 00:06:31.003
+And also this rather long one start flight recording.
+
+147
+00:06:31.003 --> 00:06:34.009
+We're telling it how long to run the event capture.
+
+148
+00:06:34.009 --> 00:06:37.005
+20 seconds for our case will be plenty.
+
+149
+00:06:37.005 --> 00:06:39.005
+And we're going to give it a file name.
+
+150
+00:06:39.005 --> 00:06:44.009
+This will save that file off so that we can examine it
+
+151
+00:06:44.009 --> 00:06:47.003
+in Flight Recorder.
+
+152
+00:06:47.003 --> 00:06:52.007
+And I will start this just to show you a bit of it working.
+
+153
+00:06:52.007 --> 00:06:54.008
+And this is telling us off the bat that it started
+
+154
+00:06:54.008 --> 00:06:57.008
+the recording and it's writing our file to here.
+
+155
+00:06:57.008 --> 00:06:59.000
+All right,
+
+156
+00:06:59.000 --> 00:07:03.004
+let's go without much more work into this tool
+
+157
+00:07:03.004 --> 00:07:04.006
+that we haven't looked at yet.
+
+158
+00:07:04.006 --> 00:07:07.003
+It's a Java Flight Recorder utility
+
+159
+00:07:07.003 --> 00:07:09.005
+inside the JDK mission control.
+
+160
+00:07:09.005 --> 00:07:12.001
+We're going to talk more about this tool in a later lesson.
+
+161
+00:07:12.001 --> 00:07:15.000
+What we can do here then is open that file
+
+162
+00:07:15.000 --> 00:07:18.000
+that we saved off.
+
+163
+00:07:18.000 --> 00:07:20.000
+And then when we open that file,
+
+164
+00:07:20.000 --> 00:07:23.004
+we can go into an event browser view
+
+165
+00:07:23.004 --> 00:07:25.002
+down to the startup steps.
+
+166
+00:07:25.002 --> 00:07:26.009
+Did you notice in the actuator,
+
+167
+00:07:26.009 --> 00:07:29.004
+we said we had 415 startup steps.
+
+168
+00:07:29.004 --> 00:07:31.004
+It's the same amount here.
+
+169
+00:07:31.004 --> 00:07:34.002
+It's always nice when numbers match up.
+
+170
+00:07:34.002 --> 00:07:36.009
+And then what we can do here is get a much more
+
+171
+00:07:36.009 --> 00:07:39.007
+human friendly view of our statistics.
+
+172
+00:07:39.007 --> 00:07:42.002
+We can sort, for example,
+
+173
+00:07:42.002 --> 00:07:45.004
+kind of the main thing you can sort by duration
+
+174
+00:07:45.004 --> 00:07:48.005
+the things that are taking the longest right up here at top.
+
+175
+00:07:48.005 --> 00:07:52.008
+We can see that there are few of these bean context load
+
+176
+00:07:52.008 --> 00:07:55.008
+events that are taking close to a second.
+
+177
+00:07:55.008 --> 00:07:59.000
+And then if we felt like it, we could examine those.
+
+178
+00:07:59.000 --> 00:08:01.007
+We have stack traces down here and we could examine those
+
+179
+00:08:01.007 --> 00:08:03.002
+and see if there's anything untoward
+
+180
+00:08:03.002 --> 00:08:05.001
+that we should be eliminating.
+
+181
+00:08:05.001 --> 00:08:07.009
+You can also learn a lot honestly about spring,
+
+182
+00:08:07.009 --> 00:08:11.008
+just by examining this type of tracing.
+
+183
+00:08:11.008 --> 00:08:13.005
+For instance, this post processor,
+
+184
+00:08:13.005 --> 00:08:15.002
+the configuration class post-process
+
+185
+00:08:15.002 --> 00:08:17.008
+are part of the context initialization
+
+186
+00:08:17.008 --> 00:08:19.001
+takes nearly a second here.
+
+187
+00:08:19.001 --> 00:08:21.002
+And that's kind of interesting to note.
+
+188
+00:08:21.002 --> 00:08:23.004
+So that's a bit about capturing metrics
+
+189
+00:08:23.004 --> 00:08:27.000
+on your application startup for spring boot application.
+

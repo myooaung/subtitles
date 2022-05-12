@@ -1,0 +1,473 @@
+WEBVTT
+1
+00:00:00.050 --> 00:00:01.080
+- [Instructor] I'm not sure if you noticed,
+
+2
+00:00:01.080 --> 00:00:05.040
+but the custom MessageHeader properties were not propagated
+
+3
+00:00:05.040 --> 00:00:09.030
+in our response management using the @SendTo.
+
+4
+00:00:09.030 --> 00:00:12.090
+Looking at the current queue, which I have open,
+
+5
+00:00:12.090 --> 00:00:17.060
+you will not see the custom properties of order state,
+
+6
+00:00:17.060 --> 00:00:21.010
+store ID, or book order ID.
+
+7
+00:00:21.010 --> 00:00:24.040
+We're gonna remedy by using a MessageBuilder.
+
+8
+00:00:24.040 --> 00:00:26.060
+Now, of course, we could instantiate
+
+9
+00:00:26.060 --> 00:00:28.050
+an abstract message class on our own
+
+10
+00:00:28.050 --> 00:00:30.010
+and populate the headers manually,
+
+11
+00:00:30.010 --> 00:00:32.030
+but that really gets tedious.
+
+12
+00:00:32.030 --> 00:00:34.080
+Spring offers the MessageBuilder object
+
+13
+00:00:34.080 --> 00:00:37.000
+for easing that process.
+
+14
+00:00:37.000 --> 00:00:41.060
+We're gonna go back and open our WarehouseReceiver
+
+15
+00:00:41.060 --> 00:00:45.060
+and change the return type of the ProcessedBookOrder
+
+16
+00:00:45.060 --> 00:00:57.040
+and we're gonna wrap it with a message
+
+17
+00:00:57.040 --> 00:00:59.080
+for ProcessedBookOrder.
+
+18
+00:00:59.080 --> 00:01:02.050
+We're wrapping our return type with a message type
+
+19
+00:01:02.050 --> 00:01:05.020
+because the message type has the ability to represent
+
+20
+00:01:05.020 --> 00:01:08.060
+our needed JMS headers, which we want to pass along.
+
+21
+00:01:08.060 --> 00:01:10.000
+And that's all we're gonna do in this class
+
+22
+00:01:10.000 --> 00:01:11.090
+because our WarehouseProcessingService
+
+23
+00:01:11.090 --> 00:01:13.090
+contains much of the logic for determining
+
+24
+00:01:13.090 --> 00:01:16.010
+the order of the state should be.
+
+25
+00:01:16.010 --> 00:01:20.080
+In our WarehouseProcessingService,
+
+26
+00:01:20.080 --> 00:01:24.000
+we're similarly going to change the return type.
+
+27
+00:01:24.000 --> 00:01:37.060
+We'll type Message.
+
+28
+00:01:37.060 --> 00:01:40.060
+Okay, we wanna capture the state of the orders
+
+29
+00:01:40.060 --> 00:01:44.010
+and pass them along, so they can be seen in ActiveMQ
+
+30
+00:01:44.010 --> 00:01:47.020
+for debugging or for some future processing logic.
+
+31
+00:01:47.020 --> 00:01:50.070
+Let's create a new private method called build
+
+32
+00:01:50.070 --> 00:01:54.000
+at the bottom of the screen and that's going to return
+
+33
+00:01:54.000 --> 00:01:57.010
+our message ProcessedBookOrder object.
+
+34
+00:01:57.010 --> 00:01:59.070
+So we'll type
+
+35
+00:01:59.070 --> 00:02:04.010
+private
+
+36
+00:02:04.010 --> 00:02:07.050
+Message
+
+37
+00:02:07.050 --> 00:02:11.070
+ProcessedBookOrder and we'll call this build.
+
+38
+00:02:11.070 --> 00:02:14.020
+And this method is gonna take three parameters.
+
+39
+00:02:14.020 --> 00:02:19.060
+It's gonna take a ProcessedBookOrder.
+
+40
+00:02:19.060 --> 00:02:25.070
+It will take a orderState, which is of type String.
+
+41
+00:02:25.070 --> 00:02:28.050
+And we're going to pass the storeId,
+
+42
+00:02:28.050 --> 00:02:36.050
+which is also of type String.
+
+43
+00:02:36.050 --> 00:02:38.020
+Inside the new build method,
+
+44
+00:02:38.020 --> 00:02:40.040
+we'll work with Spring's MessageBuilder.
+
+45
+00:02:40.040 --> 00:02:44.050
+Now, Spring indicates that this builder class can be used
+
+46
+00:02:44.050 --> 00:02:46.060
+for creating generic messages with headers
+
+47
+00:02:46.060 --> 00:02:50.020
+where the payload could be any standard JMS message.
+
+48
+00:02:50.020 --> 00:02:53.090
+Interestingly, you could also pass a throwable
+
+49
+00:02:53.090 --> 00:02:57.010
+if you wanted to send along an exception that occurs.
+
+50
+00:02:57.010 --> 00:02:59.090
+In a micro service environment, that can be very useful.
+
+51
+00:02:59.090 --> 00:03:02.000
+Where several micro services are glued together
+
+52
+00:03:02.000 --> 00:03:04.050
+through the use of a MOM like ActiveMQ,
+
+53
+00:03:04.050 --> 00:03:07.090
+as messages are passed along, you can sometimes lose sight
+
+54
+00:03:07.090 --> 00:03:10.010
+of what caused the original problems.
+
+55
+00:03:10.010 --> 00:03:14.050
+So we will use a MessageBuilder here to capture the payload
+
+56
+00:03:14.050 --> 00:03:17.090
+of the ProcessedBookOrder and our other MessageHeaders.
+
+57
+00:03:17.090 --> 00:03:22.020
+We're going to type return
+
+58
+00:03:22.020 --> 00:03:25.090
+MessageBuilder.
+
+59
+00:03:25.090 --> 00:03:27.080
+Hit Enter.
+
+60
+00:03:27.080 --> 00:03:30.010
+We'll type withPayload.
+
+61
+00:03:30.010 --> 00:03:35.040
+Our payload is going to be the bookOrder.
+
+62
+00:03:35.040 --> 00:03:37.060
+We'll hit Enter again.
+
+63
+00:03:37.060 --> 00:03:42.010
+.setHeader
+
+64
+00:03:42.010 --> 00:03:49.050
+and we're going to apply the first one as the orderState.
+
+65
+00:03:49.050 --> 00:03:52.020
+And of course, we're passing it in our orderState.
+
+66
+00:03:52.020 --> 00:03:53.080
+Hit Enter again.
+
+67
+00:03:53.080 --> 00:03:57.030
+And we're going to say setHeader as well.
+
+68
+00:03:57.030 --> 00:04:02.000
+And this time, we're gonna pass in the storeId
+
+69
+00:04:02.000 --> 00:04:05.030
+with the storeId.
+
+70
+00:04:05.030 --> 00:04:09.070
+And then we're gonna use a chained method called build.
+
+71
+00:04:09.070 --> 00:04:11.090
+In fact, all of these are chained methods
+
+72
+00:04:11.090 --> 00:04:14.050
+using the dot annotation.
+
+73
+00:04:14.050 --> 00:04:18.040
+So we're returning what our chained message builder object
+
+74
+00:04:18.040 --> 00:04:20.080
+allows with the payload and two headers.
+
+75
+00:04:20.080 --> 00:04:23.070
+Now, in each of our add, update, and delete methods,
+
+76
+00:04:23.070 --> 00:04:26.070
+let's use this build method we created.
+
+77
+00:04:26.070 --> 00:04:28.040
+So we'll come up here.
+
+78
+00:04:28.040 --> 00:04:30.000
+We'll type
+
+79
+00:04:30.000 --> 00:04:32.000
+build
+
+80
+00:04:32.000 --> 00:04:33.030
+and
+
+81
+00:04:33.030 --> 00:04:36.040
+we've already got this wrapped, so we'll type comma.
+
+82
+00:04:36.040 --> 00:04:40.020
+We need our
+
+83
+00:04:40.020 --> 00:04:41.050
+orderState.
+
+84
+00:04:41.050 --> 00:04:42.060
+So for the deleted,
+
+85
+00:04:42.060 --> 00:04:45.060
+we're gonna use the past tense of delete.
+
+86
+00:04:45.060 --> 00:04:50.030
+We'll say Deleted.
+
+87
+00:04:50.030 --> 00:04:57.040
+And we're gonna pass our storeId.
+
+88
+00:04:57.040 --> 00:05:01.060
+I need to change this up here as well
+
+89
+00:05:01.060 --> 00:05:05.040
+to be a wrapped ProcessedBookOrder.
+
+90
+00:05:05.040 --> 00:05:07.050
+We'll come up to our next one.
+
+91
+00:05:07.050 --> 00:05:12.050
+Same thing again, build.
+
+92
+00:05:12.050 --> 00:05:15.080
+Comma, we're gonna use the past tense of update,
+
+93
+00:05:15.080 --> 00:05:17.070
+so we'll say
+
+94
+00:05:17.070 --> 00:05:21.040
+Updated
+
+95
+00:05:21.040 --> 00:05:23.030
+'cause that's what this is doing.
+
+96
+00:05:23.030 --> 00:05:27.040
+It's saying that the record was updated.
+
+97
+00:05:27.040 --> 00:05:31.020
+Again, we're going to change this and wrap this
+
+98
+00:05:31.020 --> 00:05:43.000
+with our message.
+
+99
+00:05:43.000 --> 00:05:44.070
+And finally,
+
+100
+00:05:44.070 --> 00:05:48.010
+our
+
+101
+00:05:48.010 --> 00:05:51.000
+add method.
+
+102
+00:05:51.000 --> 00:05:53.060
+Type build, parenthesis,
+
+103
+00:05:53.060 --> 00:05:55.090
+comma.
+
+104
+00:05:55.090 --> 00:06:02.040
+We're gonna say Added, past tense.
+
+105
+00:06:02.040 --> 00:06:07.080
+And of course, the storeId.
+
+106
+00:06:07.080 --> 00:06:25.080
+Okay, so let's go ahead and compile our app again.
+
+107
+00:06:25.080 --> 00:06:39.020
+And we'll run it.
+
+108
+00:06:39.020 --> 00:06:41.040
+Okay.
+
+109
+00:06:41.040 --> 00:06:44.050
+So let's open up
+
+110
+00:06:44.050 --> 00:06:47.050
+our application.
+
+111
+00:06:47.050 --> 00:06:49.020
+Refresh this.
+
+112
+00:06:49.020 --> 00:06:54.030
+Select Lost at Sea, click Add to Order.
+
+113
+00:06:54.030 --> 00:06:58.040
+Come over to our messages and refresh this page.
+
+114
+00:06:58.040 --> 00:07:00.060
+Go to queues.
+
+115
+00:07:00.060 --> 00:07:03.060
+So we have two messages, click on the last one.
+
+116
+00:07:03.060 --> 00:07:06.070
+And now, you can see that we have the store ID,
+
+117
+00:07:06.070 --> 00:07:11.040
+we have the order state, and
+
+118
+00:07:11.040 --> 00:07:14.000
+we have the message at the bottom.
+

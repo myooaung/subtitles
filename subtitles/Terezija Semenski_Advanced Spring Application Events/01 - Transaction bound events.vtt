@@ -1,0 +1,377 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:03.007
+- [Instructor] Spring allows us to bind an EventListener
+
+2
+00:00:03.007 --> 00:00:07.000
+to phase of the current resection.
+
+3
+00:00:07.000 --> 00:00:10.007
+In this lesson, you will learn how to allow the events
+
+4
+00:00:10.007 --> 00:00:13.006
+to be used with more flexibility
+
+5
+00:00:13.006 --> 00:00:15.009
+when the outcome of the current transaction
+
+6
+00:00:15.009 --> 00:00:18.008
+matters to the listener.
+
+7
+00:00:18.008 --> 00:00:22.006
+In Spring, whenever we want our class or methods
+
+8
+00:00:22.006 --> 00:00:25.005
+to be executed in a transaction,
+
+9
+00:00:25.005 --> 00:00:28.006
+we use transactional notation.
+
+10
+00:00:28.006 --> 00:00:31.003
+It is used to combine more than one rights
+
+11
+00:00:31.003 --> 00:00:35.006
+on a database as a single atomic operation.
+
+12
+00:00:35.006 --> 00:00:37.006
+When somebody calls the method
+
+13
+00:00:37.006 --> 00:00:40.000
+annotated with transactional,
+
+14
+00:00:40.000 --> 00:00:45.004
+all or none of the rights of the database are executed.
+
+15
+00:00:45.004 --> 00:00:50.003
+Now, imagine using events within transactional context.
+
+16
+00:00:50.003 --> 00:00:53.001
+What does this look like?
+
+17
+00:00:53.001 --> 00:00:57.001
+Let's look at the example of an order management.
+
+18
+00:00:57.001 --> 00:01:02.000
+When a customer places an order in our e-commerce system,
+
+19
+00:01:02.000 --> 00:01:05.001
+order service runs in transaction
+
+20
+00:01:05.001 --> 00:01:07.005
+and makes updates to the order
+
+21
+00:01:07.005 --> 00:01:13.007
+from saved to completed by calling order repository.
+
+22
+00:01:13.007 --> 00:01:17.007
+It also publishes an order completed event,
+
+23
+00:01:17.007 --> 00:01:22.001
+which triggers all interested listeners.
+
+24
+00:01:22.001 --> 00:01:24.008
+In our case, we have a listener
+
+25
+00:01:24.008 --> 00:01:28.006
+that updates user reward points or for customer
+
+26
+00:01:28.006 --> 00:01:33.002
+and another one that sends a notification email
+
+27
+00:01:33.002 --> 00:01:37.002
+about an order completed successfully.
+
+28
+00:01:37.002 --> 00:01:40.000
+Since we are running under transaction,
+
+29
+00:01:40.000 --> 00:01:45.008
+all database updates either get committed or rolled back.
+
+30
+00:01:45.008 --> 00:01:49.001
+In our case, we have consistency,
+
+31
+00:01:49.001 --> 00:01:52.008
+since both order and user reward points
+
+32
+00:01:52.008 --> 00:01:54.006
+need to get updated,
+
+33
+00:01:54.006 --> 00:01:55.006
+or in our case,
+
+34
+00:01:55.006 --> 00:01:59.005
+after an error both get reverted.
+
+35
+00:01:59.005 --> 00:02:02.002
+So far so good,
+
+36
+00:02:02.002 --> 00:02:06.003
+but what about the case of an error?
+
+37
+00:02:06.003 --> 00:02:08.005
+In case an exception happens,
+
+38
+00:02:08.005 --> 00:02:13.001
+sever in order service or order repository,
+
+39
+00:02:13.001 --> 00:02:15.000
+everything is still good,
+
+40
+00:02:15.000 --> 00:02:18.004
+as we haven't published an event yet.
+
+41
+00:02:18.004 --> 00:02:22.007
+In case an exception happens in the first listener,
+
+42
+00:02:22.007 --> 00:02:25.002
+we still might be on the safe side
+
+43
+00:02:25.002 --> 00:02:30.004
+as invocation of other listeners is interrupted.
+
+44
+00:02:30.004 --> 00:02:32.003
+Everything is rolled back,
+
+45
+00:02:32.003 --> 00:02:35.006
+so we have consistent state between order
+
+46
+00:02:35.006 --> 00:02:37.006
+and customer reward points
+
+47
+00:02:37.006 --> 00:02:40.009
+and the email has not been sent yet.
+
+48
+00:02:40.009 --> 00:02:45.004
+The same goes for the listener that sends out an email.
+
+49
+00:02:45.004 --> 00:02:49.002
+However, what if there are no exceptions?
+
+50
+00:02:49.002 --> 00:02:53.004
+Both order repository and customer repository
+
+51
+00:02:53.004 --> 00:02:55.006
+issue stage changes.
+
+52
+00:02:55.006 --> 00:02:58.001
+Commit has not yet occurred.
+
+53
+00:02:58.001 --> 00:03:00.006
+An email is sent,
+
+54
+00:03:00.006 --> 00:03:03.003
+and at the end of the method execution,
+
+55
+00:03:03.003 --> 00:03:05.000
+commit fails,
+
+56
+00:03:05.000 --> 00:03:08.003
+and stage changes are rolled back.
+
+57
+00:03:08.003 --> 00:03:11.009
+We still have a consistent state in database
+
+58
+00:03:11.009 --> 00:03:16.003
+with no order completed and reward points changed.
+
+59
+00:03:16.003 --> 00:03:20.002
+However, we have sent an email to the client
+
+60
+00:03:20.002 --> 00:03:22.007
+that the transaction went through.
+
+61
+00:03:22.007 --> 00:03:24.005
+We would much rather wait
+
+62
+00:03:24.005 --> 00:03:27.002
+for the commit to successfully happen
+
+63
+00:03:27.002 --> 00:03:30.002
+and then issue an email.
+
+64
+00:03:30.002 --> 00:03:34.002
+Spring provides us a special kind of listener
+
+65
+00:03:34.002 --> 00:03:38.002
+called TransactionalEventListener.
+
+66
+00:03:38.002 --> 00:03:40.007
+This doesn't mean that the event listener
+
+67
+00:03:40.007 --> 00:03:43.001
+is transactional itself,
+
+68
+00:03:43.001 --> 00:03:46.003
+but event consumption is delayed
+
+69
+00:03:46.003 --> 00:03:50.001
+until a certain transaction outcome.
+
+70
+00:03:50.001 --> 00:03:53.007
+This gives us more fine grain control
+
+71
+00:03:53.007 --> 00:03:56.008
+on when event listeners should get triggered
+
+72
+00:03:56.008 --> 00:04:00.005
+based on the transaction phase.
+
+73
+00:04:00.005 --> 00:04:01.009
+Before commit,
+
+74
+00:04:01.009 --> 00:04:03.003
+the event will be handled
+
+75
+00:04:03.003 --> 00:04:06.000
+before the transaction commit.
+
+76
+00:04:06.000 --> 00:04:10.000
+After commit, this is a default phase used.
+
+77
+00:04:10.000 --> 00:04:12.005
+The event will be handled when the transaction
+
+78
+00:04:12.005 --> 00:04:14.009
+gets committed successfully.
+
+79
+00:04:14.009 --> 00:04:17.005
+We can use this in our event listener
+
+80
+00:04:17.005 --> 00:04:22.004
+should only run if the current transaction was successful.
+
+81
+00:04:22.004 --> 00:04:25.007
+After rollback, the event will be handled
+
+82
+00:04:25.007 --> 00:04:29.001
+after the transaction has rolled back.
+
+83
+00:04:29.001 --> 00:04:30.006
+After completion,
+
+84
+00:04:30.006 --> 00:04:32.002
+the event will be handled
+
+85
+00:04:32.002 --> 00:04:36.006
+when the transaction commits or is rolled back.
+
+86
+00:04:36.006 --> 00:04:42.001
+We can use it in cases we want to always run our listener.
+
+87
+00:04:42.001 --> 00:04:45.001
+This leads us to the following rule.
+
+88
+00:04:45.001 --> 00:04:47.006
+It is almost always advised
+
+89
+00:04:47.006 --> 00:04:52.008
+to avoid infrastructure interactions within EventListener
+
+90
+00:04:52.008 --> 00:04:56.001
+that is part of transactional context.
+
+91
+00:04:56.001 --> 00:05:00.002
+Not only does it cause the transaction to run longer,
+
+92
+00:05:00.002 --> 00:05:02.004
+but more problematic is
+
+93
+00:05:02.004 --> 00:05:05.004
+if subsequent event listener fails
+
+94
+00:05:05.004 --> 00:05:08.000
+and the transaction rolls back.
+

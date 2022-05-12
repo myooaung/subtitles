@@ -1,0 +1,397 @@
+WEBVTT
+1
+00:00:00.050 --> 00:00:02.020
+- [Instructor] We notice that our Docker image
+
+2
+00:00:02.020 --> 00:00:06.020
+was 489 megabytes, and that is even when we use
+
+3
+00:00:06.020 --> 00:00:10.010
+OpenJDK8-jre as the base image.
+
+4
+00:00:10.010 --> 00:00:12.030
+Because it contains a lot of JDK functionality
+
+5
+00:00:12.030 --> 00:00:15.010
+that is not needed by our application.
+
+6
+00:00:15.010 --> 00:00:18.040
+JDK9 introduced module systems that allows you
+
+7
+00:00:18.040 --> 00:00:20.080
+to selectively include the functionality needed
+
+8
+00:00:20.080 --> 00:00:24.050
+for your application, and leave everything else behind.
+
+9
+00:00:24.050 --> 00:00:26.050
+We'll look at how the Docker image size
+
+10
+00:00:26.050 --> 00:00:28.080
+for our Java application can be reduced,
+
+11
+00:00:28.080 --> 00:00:32.000
+using the tools provided by JDK9 onwards.
+
+12
+00:00:32.000 --> 00:00:34.020
+Now jlink is a tool that we're going to use
+
+13
+00:00:34.020 --> 00:00:36.050
+and that is available in JDK9 onwards
+
+14
+00:00:36.050 --> 00:00:40.030
+and it allows to assemble and optimize a set of modules
+
+15
+00:00:40.030 --> 00:00:43.030
+and their dependencies into a custom runtime image,
+
+16
+00:00:43.030 --> 00:00:46.010
+or a custom JRE for your application.
+
+17
+00:00:46.010 --> 00:00:49.080
+Now for that, we're going to use a setup here
+
+18
+00:00:49.080 --> 00:00:52.020
+and let's walk through that setup a bit.
+
+19
+00:00:52.020 --> 00:00:53.040
+What we have done is we have created
+
+20
+00:00:53.040 --> 00:00:56.060
+an Ubuntu instance on EC2,
+
+21
+00:00:56.060 --> 00:00:58.040
+we have logged into the instance,
+
+22
+00:00:58.040 --> 00:01:00.020
+we have installed the default JDK.
+
+23
+00:01:00.020 --> 00:01:03.040
+When we look at the default JDK version, that is JDK10,
+
+24
+00:01:03.040 --> 00:01:06.040
+which is beyond JDK9 and so that works for us.
+
+25
+00:01:06.040 --> 00:01:10.000
+Of course we have cloned the repo, built the application,
+
+26
+00:01:10.000 --> 00:01:13.010
+installed Docker in there, and built the Docker image,
+
+27
+00:01:13.010 --> 00:01:15.040
+so that we can compare the two Docker image sizes.
+
+28
+00:01:15.040 --> 00:01:16.080
+So that's kind of cool.
+
+29
+00:01:16.080 --> 00:01:19.020
+With that setup, let's go to our terminal
+
+30
+00:01:19.020 --> 00:01:23.000
+where our EC2 instance is already logged into.
+
+31
+00:01:23.000 --> 00:01:24.050
+So here we are.
+
+32
+00:01:24.050 --> 00:01:27.090
+I'm going to type java -version
+
+33
+00:01:27.090 --> 00:01:31.040
+and that is indeed OpenJDK version 10.
+
+34
+00:01:31.040 --> 00:01:35.000
+Now, jlink tool operates on jar files,
+
+35
+00:01:35.000 --> 00:01:37.030
+and our application generally, the war file.
+
+36
+00:01:37.030 --> 00:01:40.080
+So we're going to copy the war file to the jar file.
+
+37
+00:01:40.080 --> 00:01:45.010
+And the command for that is in our GitHub repo.
+
+38
+00:01:45.010 --> 00:01:48.080
+Let's copy the first command here
+
+39
+00:01:48.080 --> 00:01:51.060
+and drop it in this directory.
+
+40
+00:01:51.060 --> 00:01:56.000
+So my greeting war is copied to greeting jar.
+
+41
+00:01:56.000 --> 00:01:59.090
+Let's copy the jlink command
+
+42
+00:01:59.090 --> 00:02:02.050
+and drop it here.
+
+43
+00:02:02.050 --> 00:02:04.050
+Once I give this command,
+
+44
+00:02:04.050 --> 00:02:07.010
+jlink is saying create a new directory
+
+45
+00:02:07.010 --> 00:02:10.080
+by the name myjre, add the modules,
+
+46
+00:02:10.080 --> 00:02:13.060
+and in turn, it's also using a tool, jdeps,
+
+47
+00:02:13.060 --> 00:02:16.000
+which says, okay, give me all the dependencies
+
+48
+00:02:16.000 --> 00:02:17.060
+for a particular jar file.
+
+49
+00:02:17.060 --> 00:02:19.040
+So it's saying print module dependencies
+
+50
+00:02:19.040 --> 00:02:22.070
+for greeting.jar and in addition,
+
+51
+00:02:22.070 --> 00:02:25.040
+these are all the modules that are needed for Spring Boot.
+
+52
+00:02:25.040 --> 00:02:26.080
+So essentially, you are creating
+
+53
+00:02:26.080 --> 00:02:29.010
+a collective list of modules needed
+
+54
+00:02:29.010 --> 00:02:31.090
+for your application and its dependencies.
+
+55
+00:02:31.090 --> 00:02:34.060
+So if we look at our directory here,
+
+56
+00:02:34.060 --> 00:02:38.020
+I have a myjre directory created for us
+
+57
+00:02:38.020 --> 00:02:41.050
+because that's exactly where my custom runtime is available.
+
+58
+00:02:41.050 --> 00:02:43.020
+So the next thing that we're going to do is
+
+59
+00:02:43.020 --> 00:02:47.090
+look at our Dockerfile.jre here.
+
+60
+00:02:47.090 --> 00:02:49.070
+If I look at this, first of all,
+
+61
+00:02:49.070 --> 00:02:53.010
+it's using debian:9-slim as my base image
+
+62
+00:02:53.010 --> 00:02:56.010
+because I have a custom JRE, everything baked in,
+
+63
+00:02:56.010 --> 00:02:58.070
+I don't need to go anything fancy.
+
+64
+00:02:58.070 --> 00:03:01.030
+I'm copying my target greeting war,
+
+65
+00:03:01.030 --> 00:03:04.040
+copying my custom JRE, usual ports,
+
+66
+00:03:04.040 --> 00:03:05.080
+set up the new directory,
+
+67
+00:03:05.080 --> 00:03:08.060
+and then fire up the Java or the JVM,
+
+68
+00:03:08.060 --> 00:03:10.060
+this time from my custom directory,
+
+69
+00:03:10.060 --> 00:03:13.020
+and then it goes to greeting.war, of course.
+
+70
+00:03:13.020 --> 00:03:15.070
+Let's go ahead and then build the image.
+
+71
+00:03:15.070 --> 00:03:21.070
+Let's copy the command for that.
+
+72
+00:03:21.070 --> 00:03:24.040
+All we're saying is sudo docker image build
+
+73
+00:03:24.040 --> 00:03:25.060
+to build the image.
+
+74
+00:03:25.060 --> 00:03:28.060
+We're using a specific file Dockerfile.jre.
+
+75
+00:03:28.060 --> 00:03:31.080
+Remember the default Docker file name is Dockerfile.
+
+76
+00:03:31.080 --> 00:03:34.030
+Then is my tag and then my context.
+
+77
+00:03:34.030 --> 00:03:37.020
+So let's build the Docker image.
+
+78
+00:03:37.020 --> 00:03:39.090
+And now, if we look at what Docker images
+
+79
+00:03:39.090 --> 00:03:45.020
+do we have locally here,
+
+80
+00:03:45.020 --> 00:03:48.040
+you can see the size difference is significant.
+
+81
+00:03:48.040 --> 00:03:52.060
+As opposed to 489 megabytes that we were getting earlier,
+
+82
+00:03:52.060 --> 00:03:55.040
+now we're getting 160 megabyte image.
+
+83
+00:03:55.040 --> 00:03:57.020
+So that is pretty cool actually.
+
+84
+00:03:57.020 --> 00:04:03.000
+So now, let's use this image and launch our container.
+
+85
+00:04:03.000 --> 00:04:04.090
+Copy the command for that.
+
+86
+00:04:04.090 --> 00:04:09.010
+In our terminal, let's drop the command.
+
+87
+00:04:09.010 --> 00:04:11.040
+And our container is running.
+
+88
+00:04:11.040 --> 00:04:14.070
+It's running in a detached mode,
+
+89
+00:04:14.070 --> 00:04:17.020
+forwarding to 8080 on the local host,
+
+90
+00:04:17.020 --> 00:04:19.020
+to 8080 on the container.
+
+91
+00:04:19.020 --> 00:04:27.050
+Let's try to access our application now
+
+92
+00:04:27.050 --> 00:04:29.020
+and we get the same response back.
+
+93
+00:04:29.020 --> 00:04:30.050
+So that is pretty cool.
+
+94
+00:04:30.050 --> 00:04:32.030
+So in this section, we looked at
+
+95
+00:04:32.030 --> 00:04:36.000
+how we can create a custom JRE for your application,
+
+96
+00:04:36.000 --> 00:04:38.030
+package it up as a Docker image,
+
+97
+00:04:38.030 --> 00:04:41.010
+and then access the response back from it.
+
+98
+00:04:41.010 --> 00:04:45.000
+So same Java application but now using custom JRE
+
+99
+00:04:45.000 --> 00:04:46.000
+and a Docker image.
+

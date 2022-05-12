@@ -1,0 +1,581 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:02.005
+- [Instructor] Reading data from a database
+
+2
+00:00:02.005 --> 00:00:06.000
+is another common requirement in batch jobs.
+
+3
+00:00:06.000 --> 00:00:08.008
+Within Spring Batch, there are several out of the box
+
+4
+00:00:08.008 --> 00:00:11.004
+item readers that make it easy to read
+
+5
+00:00:11.004 --> 00:00:13.007
+from a relational database.
+
+6
+00:00:13.007 --> 00:00:17.005
+These out of the box implementations include item readers
+
+7
+00:00:17.005 --> 00:00:21.000
+for JDBC cursors, hibernates, stored procedures
+
+8
+00:00:21.000 --> 00:00:23.000
+and JDBC paging.
+
+9
+00:00:23.000 --> 00:00:27.007
+In this lesson, we'll explore the JDBC cursor item reader
+
+10
+00:00:27.007 --> 00:00:29.005
+which is suitable for reading data
+
+11
+00:00:29.005 --> 00:00:32.009
+in single-threaded scenarios.
+
+12
+00:00:32.009 --> 00:00:36.005
+Within the data directory found in your working files,
+
+13
+00:00:36.005 --> 00:00:41.006
+you'll find the shipped_order.sql file.
+
+14
+00:00:41.006 --> 00:00:45.001
+If we open this file, you'll see that it contains
+
+15
+00:00:45.001 --> 00:00:49.007
+the DDL to generate a shipped order table
+
+16
+00:00:49.007 --> 00:00:54.004
+and then the insert statements to populate that table.
+
+17
+00:00:54.004 --> 00:00:58.005
+I've already executed this script within my mySQL database
+
+18
+00:00:58.005 --> 00:01:00.001
+and you'll notice that I have
+
+19
+00:01:00.001 --> 00:01:03.001
+the shipped order table in place.
+
+20
+00:01:03.001 --> 00:01:06.006
+You'll want to position this table and the data before
+
+21
+00:01:06.006 --> 00:01:09.006
+we begin this lesson.
+
+22
+00:01:09.006 --> 00:01:13.000
+In order to read data from a relational database,
+
+23
+00:01:13.000 --> 00:01:17.002
+we're going to create a new type of item reader,
+
+24
+00:01:17.002 --> 00:01:20.007
+the JDBC cursor item reader.
+
+25
+00:01:20.007 --> 00:01:23.003
+To do that, we're going to remove
+
+26
+00:01:23.003 --> 00:01:27.005
+the old flat file item reader and replace it.
+
+27
+00:01:27.005 --> 00:01:31.006
+So let's just go in and we'll take out all the configuration
+
+28
+00:01:31.006 --> 00:01:34.000
+related to that item reader
+
+29
+00:01:34.000 --> 00:01:39.002
+and we'll provide a new item reader implementation.
+
+30
+00:01:39.002 --> 00:01:40.007
+Within Spring Batch,
+
+31
+00:01:40.007 --> 00:01:45.002
+we can use a JDBC cursor item reader builder
+
+32
+00:01:45.002 --> 00:01:48.000
+to help us with the configuration
+
+33
+00:01:48.000 --> 00:01:51.000
+of a JDBC cursor item reader.
+
+34
+00:01:51.000 --> 00:01:54.005
+This builder does accept one generic argument,
+
+35
+00:01:54.005 --> 00:01:58.002
+which is the type of the POJO we'd like to read
+
+36
+00:01:58.002 --> 00:02:02.008
+from our data store, in this case, the relational database.
+
+37
+00:02:02.008 --> 00:02:07.001
+Using the builder, we can then chain method calls to provide
+
+38
+00:02:07.001 --> 00:02:10.002
+the configuration for our new item reader.
+
+39
+00:02:10.002 --> 00:02:14.000
+The first thing that we'll need to provide is a data source.
+
+40
+00:02:14.000 --> 00:02:17.001
+So I'm going to use the dataSource method
+
+41
+00:02:17.001 --> 00:02:20.002
+and then I'm just going to press Control + one
+
+42
+00:02:20.002 --> 00:02:23.006
+and declare a new field data source.
+
+43
+00:02:23.006 --> 00:02:28.006
+This will add the field to our class and we can go ahead
+
+44
+00:02:28.006 --> 00:02:34.007
+and inject the data source that we've configured
+
+45
+00:02:34.007 --> 00:02:36.009
+using Spring Boot.
+
+46
+00:02:36.009 --> 00:02:42.006
+This will allow our item reader to connect to our database.
+
+47
+00:02:42.006 --> 00:02:46.000
+The next thing we're going to do is specify a name
+
+48
+00:02:46.000 --> 00:02:49.002
+for our JDBC cursor item reader.
+
+49
+00:02:49.002 --> 00:02:56.006
+I'm just going to use jdbcCursorItemReader
+
+50
+00:02:56.006 --> 00:03:00.002
+and then we can proceed with our configuration.
+
+51
+00:03:00.002 --> 00:03:03.009
+An important piece of the configuration is the SQL
+
+52
+00:03:03.009 --> 00:03:09.004
+that will be used to read the data from the database.
+
+53
+00:03:09.004 --> 00:03:10.004
+Now you'll notice,
+
+54
+00:03:10.004 --> 00:03:14.006
+within our LinkedIn batch application class,
+
+55
+00:03:14.006 --> 00:03:19.004
+there is a static string order_sql.
+
+56
+00:03:19.004 --> 00:03:24.000
+We can go take a look at that SQL and it contains
+
+57
+00:03:24.000 --> 00:03:27.009
+the SQL statement that we can use to select an order
+
+58
+00:03:27.009 --> 00:03:31.002
+from our shipped_order table.
+
+59
+00:03:31.002 --> 00:03:33.007
+You'll notice it lists out all the fields
+
+60
+00:03:33.007 --> 00:03:37.003
+and then an important part of the SQL statement
+
+61
+00:03:37.003 --> 00:03:39.007
+is the order by clause.
+
+62
+00:03:39.007 --> 00:03:43.003
+So if we do not specify an order by clause,
+
+63
+00:03:43.003 --> 00:03:46.005
+the database does not guarantee the order
+
+64
+00:03:46.005 --> 00:03:48.005
+the data will be provided.
+
+65
+00:03:48.005 --> 00:03:52.006
+This can cause issues if we do need to restart our job
+
+66
+00:03:52.006 --> 00:03:54.001
+with Spring Batch.
+
+67
+00:03:54.001 --> 00:03:58.005
+So you want to be sure always to specify an order by clause
+
+68
+00:03:58.005 --> 00:04:01.009
+within your SQL statements.
+
+69
+00:04:01.009 --> 00:04:05.008
+Okay, once we have the SQL statement in place,
+
+70
+00:04:05.008 --> 00:04:10.004
+we're going to add one more item to our configuration
+
+71
+00:04:10.004 --> 00:04:12.003
+and that's a rowMapper.
+
+72
+00:04:12.003 --> 00:04:16.007
+A rowMapper is used to map the rows
+
+73
+00:04:16.007 --> 00:04:19.008
+from the database to our POJO.
+
+74
+00:04:19.008 --> 00:04:24.002
+For the moment, we're just going to add a constructor
+
+75
+00:04:24.002 --> 00:04:27.002
+that will stub for a rowMapper
+
+76
+00:04:27.002 --> 00:04:30.004
+we're going to build in the future.
+
+77
+00:04:30.004 --> 00:04:33.006
+And then finally, with all the configuration in place,
+
+78
+00:04:33.006 --> 00:04:37.003
+we'll call the build method in order to create
+
+79
+00:04:37.003 --> 00:04:39.007
+our new item reader.
+
+80
+00:04:39.007 --> 00:04:43.006
+Now we still have one piece of work and that's to build
+
+81
+00:04:43.006 --> 00:04:45.007
+our OrderRowMapper class.
+
+82
+00:04:45.007 --> 00:04:49.007
+So just hover over the OrderRowMapper constructor
+
+83
+00:04:49.007 --> 00:04:53.007
+and hit Control + one, that will bring up this dialogue
+
+84
+00:04:53.007 --> 00:04:56.009
+and you'll want to click on Create Class.
+
+85
+00:04:56.009 --> 00:04:59.002
+It's a lot easier when we allow the tool
+
+86
+00:04:59.002 --> 00:05:02.006
+to help us build our job configuration.
+
+87
+00:05:02.006 --> 00:05:04.005
+So once this dialogue opens,
+
+88
+00:05:04.005 --> 00:05:07.005
+it has the appropriate interface, rowMapper
+
+89
+00:05:07.005 --> 00:05:10.003
+and we just go ahead and hit Finish.
+
+90
+00:05:10.003 --> 00:05:13.002
+Here you'll see that we have a class that implements
+
+91
+00:05:13.002 --> 00:05:14.009
+the rowMapper interface,
+
+92
+00:05:14.009 --> 00:05:18.007
+it does have a generic parameter order
+
+93
+00:05:18.007 --> 00:05:23.006
+and then we have to define this mapRow method
+
+94
+00:05:23.006 --> 00:05:26.008
+in order to satisfy that interface.
+
+95
+00:05:26.008 --> 00:05:32.004
+Now this is very similar to our FieldSetMapper.
+
+96
+00:05:32.004 --> 00:05:35.005
+In fact, let's take a look at our FieldSetMapper.
+
+97
+00:05:35.005 --> 00:05:40.000
+And I'm just going to go copy this configuration.
+
+98
+00:05:40.000 --> 00:05:43.003
+You'll remember that our FieldSetMapper was used
+
+99
+00:05:43.003 --> 00:05:47.006
+to take the tokens from a line in a CSV
+
+100
+00:05:47.006 --> 00:05:50.007
+and build a new order instance.
+
+101
+00:05:50.007 --> 00:05:56.000
+We're doing a very similar thing within our rowMapper.
+
+102
+00:05:56.000 --> 00:06:02.000
+Instead of taking the fieldSet and the fields returned
+
+103
+00:06:02.000 --> 00:06:05.006
+from a CSV, we're working with a ResultSet
+
+104
+00:06:05.006 --> 00:06:11.004
+and we can easily modify the code that we use
+
+105
+00:06:11.004 --> 00:06:15.005
+for the FieldSetMapper to work for our rowMapper.
+
+106
+00:06:15.005 --> 00:06:19.001
+So you'll notice that the mapRow method
+
+107
+00:06:19.001 --> 00:06:21.006
+gets a ResultSet passed in.
+
+108
+00:06:21.006 --> 00:06:24.003
+When we were working in the FieldSetMapper,
+
+109
+00:06:24.003 --> 00:06:25.005
+it was a fieldSet.
+
+110
+00:06:25.005 --> 00:06:30.004
+Let's just go ahead and we're going to replace the fieldSet
+
+111
+00:06:30.004 --> 00:06:32.009
+with our ResultSet.
+
+112
+00:06:32.009 --> 00:06:36.001
+So we'll replace all and then if you've worked
+
+113
+00:06:36.001 --> 00:06:40.008
+with a ResultSet before, you'll notice the readLong,
+
+114
+00:06:40.008 --> 00:06:45.002
+readBigDecimal methods are very similar to what is found
+
+115
+00:06:45.002 --> 00:06:48.009
+on a ResultSet but instead of reading,
+
+116
+00:06:48.009 --> 00:06:50.009
+those methods just start with get.
+
+117
+00:06:50.009 --> 00:06:55.004
+So we can go ahead and replace all the reads with gets
+
+118
+00:06:55.004 --> 00:06:58.001
+and there we have our configuration.
+
+119
+00:06:58.001 --> 00:07:02.005
+So you'll notice the get methods on the ResultSet
+
+120
+00:07:02.005 --> 00:07:08.004
+very similar to those read methods on our FieldSetMapper.
+
+121
+00:07:08.004 --> 00:07:12.007
+So at this point, we have our rowMapper implementation
+
+122
+00:07:12.007 --> 00:07:16.003
+which is used to take a ResultSet from a database
+
+123
+00:07:16.003 --> 00:07:20.000
+and convert it to an instance of an order
+
+124
+00:07:20.000 --> 00:07:24.004
+and that's how we go from the ResultSet over to our POJO.
+
+125
+00:07:24.004 --> 00:07:27.000
+This point, we're just going to return
+
+126
+00:07:27.000 --> 00:07:30.006
+to our job configuration, save everything
+
+127
+00:07:30.006 --> 00:07:35.005
+and now we are set up to execute this job.
+
+128
+00:07:35.005 --> 00:07:39.007
+So let's head over to the terminal and within
+
+129
+00:07:39.007 --> 00:07:44.001
+the root directory of our project, we'll use the run script
+
+130
+00:07:44.001 --> 00:07:51.002
+to kick off the job and once the job is packaged into a jar,
+
+131
+00:07:51.002 --> 00:07:55.007
+then we will execute it and we'll see all the rows read
+
+132
+00:07:55.007 --> 00:07:57.006
+from our relational database.
+
+133
+00:07:57.006 --> 00:07:59.006
+So there we can see we're consuming the data
+
+134
+00:07:59.006 --> 00:08:01.006
+from the database.
+
+135
+00:08:01.006 --> 00:08:04.006
+And that completes our configuration
+
+136
+00:08:04.006 --> 00:08:08.006
+of our first item reader that works with a database.
+
+137
+00:08:08.006 --> 00:08:11.009
+So the JDBC cursor item reader, it's an effective way
+
+138
+00:08:11.009 --> 00:08:15.008
+to read from a database, however, it has one big drawback,
+
+139
+00:08:15.008 --> 00:08:17.007
+it's not thread-safe.
+
+140
+00:08:17.007 --> 00:08:21.008
+So if you plan to execute your job with multiple threads,
+
+141
+00:08:21.008 --> 00:08:24.004
+there's a different item reader implementation
+
+142
+00:08:24.004 --> 00:08:28.006
+that we'll need to use, it's the JDBC paging item reader.
+
+143
+00:08:28.006 --> 00:08:31.005
+We're going to cover that in the next lesson.
+
+144
+00:08:31.005 --> 00:08:34.007
+However, if you're in a single-threaded scenario,
+
+145
+00:08:34.007 --> 00:08:39.000
+you can consider using the JDBC cursor item reader.
+

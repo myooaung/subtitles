@@ -1,0 +1,457 @@
+WEBVTT
+1
+00:00:00.004 --> 00:00:01.004
+- [Instructor] One of my first uses
+
+2
+00:00:01.004 --> 00:00:03.004
+of asynchronous communications
+
+3
+00:00:03.004 --> 00:00:06.001
+was in a system I was refactoring.
+
+4
+00:00:06.001 --> 00:00:08.004
+I was building a new and improved version
+
+5
+00:00:08.004 --> 00:00:10.001
+of a single domain model
+
+6
+00:00:10.001 --> 00:00:13.005
+as I was helping my company move to a microservices
+
+7
+00:00:13.005 --> 00:00:17.007
+and RESTful operations from monolith and SOAP.
+
+8
+00:00:17.007 --> 00:00:21.001
+Part of my task was to isolate and migrate the data
+
+9
+00:00:21.001 --> 00:00:23.004
+without system impact.
+
+10
+00:00:23.004 --> 00:00:25.006
+The design that I created and used
+
+11
+00:00:25.006 --> 00:00:28.007
+was based on asynchronous messaging.
+
+12
+00:00:28.007 --> 00:00:31.009
+It's important to note that data migrations are not easy.
+
+13
+00:00:31.009 --> 00:00:34.007
+They're about moving data at their core.
+
+14
+00:00:34.007 --> 00:00:36.003
+You're usually taking data
+
+15
+00:00:36.003 --> 00:00:38.006
+from an all-encompassing database
+
+16
+00:00:38.006 --> 00:00:41.006
+and moving it to a new focused database.
+
+17
+00:00:41.006 --> 00:00:45.005
+This is often a core part of a microservices migration,
+
+18
+00:00:45.005 --> 00:00:48.001
+which again is where I first encountered it.
+
+19
+00:00:48.001 --> 00:00:52.000
+The migration, however, isn't just about moving data.
+
+20
+00:00:52.000 --> 00:00:54.009
+It's also about transforming it.
+
+21
+00:00:54.009 --> 00:00:57.004
+The key for me was that I had to cut over
+
+22
+00:00:57.004 --> 00:01:01.005
+to the new system without a noticeable downtime.
+
+23
+00:01:01.005 --> 00:01:03.002
+I had a very small window
+
+24
+00:01:03.002 --> 00:01:06.008
+of scheduled downtime to deploy new code
+
+25
+00:01:06.008 --> 00:01:09.002
+but not nearly enough to move the data.
+
+26
+00:01:09.002 --> 00:01:11.002
+So I had to build a migration plan
+
+27
+00:01:11.002 --> 00:01:15.001
+that started months before the actual code deployed.
+
+28
+00:01:15.001 --> 00:01:18.007
+Orchestration is often used for its reliability
+
+29
+00:01:18.007 --> 00:01:21.009
+and the ease of use in an event-driven system,
+
+30
+00:01:21.009 --> 00:01:24.003
+like a database write.
+
+31
+00:01:24.003 --> 00:01:25.005
+Now, before we jump in the model,
+
+32
+00:01:25.005 --> 00:01:28.007
+we have a few things that we need to consider first.
+
+33
+00:01:28.007 --> 00:01:32.006
+First, writes are clearly critical to this migration plan
+
+34
+00:01:32.006 --> 00:01:35.000
+and need to be captured.
+
+35
+00:01:35.000 --> 00:01:38.004
+Sometimes reads do more than just read.
+
+36
+00:01:38.004 --> 00:01:39.007
+And you need to make sure
+
+37
+00:01:39.007 --> 00:01:43.003
+that your reads aren't impactful to the data.
+
+38
+00:01:43.003 --> 00:01:46.003
+I have found cases where reads are transactional
+
+39
+00:01:46.003 --> 00:01:48.007
+and actually modify the data.
+
+40
+00:01:48.007 --> 00:01:50.006
+Not a good practice, mind you
+
+41
+00:01:50.006 --> 00:01:53.002
+but it may exist.
+
+42
+00:01:53.002 --> 00:01:56.005
+The impact of the transformations you perform
+
+43
+00:01:56.005 --> 00:01:59.007
+may have a bigger impact than you expect.
+
+44
+00:01:59.007 --> 00:02:02.000
+You may now care about more writes
+
+45
+00:02:02.000 --> 00:02:04.004
+than your core domain.
+
+46
+00:02:04.004 --> 00:02:08.004
+Your writes may span across multiple components as well
+
+47
+00:02:08.004 --> 00:02:10.005
+that may have distinct uses
+
+48
+00:02:10.005 --> 00:02:13.001
+that need to be considered.
+
+49
+00:02:13.001 --> 00:02:15.008
+Migration time is important here as well.
+
+50
+00:02:15.008 --> 00:02:18.001
+Synchronization of data is hard,
+
+51
+00:02:18.001 --> 00:02:20.002
+which we will talk about in a bit.
+
+52
+00:02:20.002 --> 00:02:22.009
+But you need a clear picture of when the migration
+
+53
+00:02:22.009 --> 00:02:26.001
+will be done for a full cut over.
+
+54
+00:02:26.001 --> 00:02:28.009
+Also, depending on the cut over window,
+
+55
+00:02:28.009 --> 00:02:32.002
+you may end up in a strange state during migration
+
+56
+00:02:32.002 --> 00:02:34.003
+where you are writing for multiple sources
+
+57
+00:02:34.003 --> 00:02:36.003
+to the same databases.
+
+58
+00:02:36.003 --> 00:02:38.000
+And you need to ensure, in this case,
+
+59
+00:02:38.000 --> 00:02:40.007
+that data remains intact.
+
+60
+00:02:40.007 --> 00:02:42.001
+Now, I'm going to present a model
+
+61
+00:02:42.001 --> 00:02:43.009
+that I have used and it worked for me
+
+62
+00:02:43.009 --> 00:02:46.004
+in my microservice conversions.
+
+63
+00:02:46.004 --> 00:02:49.001
+This isn't the only way to do migration
+
+64
+00:02:49.001 --> 00:02:51.000
+but I have found in my experiences
+
+65
+00:02:51.000 --> 00:02:54.008
+that it worked very well for what I needed to do.
+
+66
+00:02:54.008 --> 00:02:56.008
+So we start with the original system,
+
+67
+00:02:56.008 --> 00:02:58.003
+and its database.
+
+68
+00:02:58.003 --> 00:03:01.005
+Reads and writes are currently occurring here.
+
+69
+00:03:01.005 --> 00:03:03.006
+You then create your new database
+
+70
+00:03:03.006 --> 00:03:06.001
+and if possible, the new service.
+
+71
+00:03:06.001 --> 00:03:08.006
+Having a new service in place actually will aid
+
+72
+00:03:08.006 --> 00:03:12.001
+in both the migration and the cut over.
+
+73
+00:03:12.001 --> 00:03:15.001
+Now, you bring into the picture a message broker
+
+74
+00:03:15.001 --> 00:03:17.006
+and a consumer of that broker.
+
+75
+00:03:17.006 --> 00:03:20.003
+The consumer should utilize the new service
+
+76
+00:03:20.003 --> 00:03:23.004
+to perform its work if at all possible.
+
+77
+00:03:23.004 --> 00:03:27.000
+The consumer knows how to read the old database
+
+78
+00:03:27.000 --> 00:03:28.004
+and write to the new database
+
+79
+00:03:28.004 --> 00:03:33.009
+either directly or as I suggest, through the service.
+
+80
+00:03:33.009 --> 00:03:36.004
+Now, you define your producer.
+
+81
+00:03:36.004 --> 00:03:39.001
+The producer may be a database trigger,
+
+82
+00:03:39.001 --> 00:03:41.001
+it may be a separate process,
+
+83
+00:03:41.001 --> 00:03:44.004
+it may even a function of the original service.
+
+84
+00:03:44.004 --> 00:03:46.001
+It really doesn't matter where.
+
+85
+00:03:46.001 --> 00:03:48.000
+They will all usually work.
+
+86
+00:03:48.000 --> 00:03:52.001
+In this model, we will use a trigger from the database.
+
+87
+00:03:52.001 --> 00:03:56.001
+Now, the original service sends a create, update
+
+88
+00:03:56.001 --> 00:03:59.005
+or delete message to the original database.
+
+89
+00:03:59.005 --> 00:04:02.005
+A trigger will fire a message to the producer,
+
+90
+00:04:02.005 --> 00:04:06.005
+providing the identifier and the action.
+
+91
+00:04:06.005 --> 00:04:09.001
+The producer will then put a message on the queue
+
+92
+00:04:09.001 --> 00:04:11.000
+for the consumer.
+
+93
+00:04:11.000 --> 00:04:13.008
+The consumer will receive the message,
+
+94
+00:04:13.008 --> 00:04:16.007
+the consumer will then query the original database,
+
+95
+00:04:16.007 --> 00:04:18.006
+except from the delete case,
+
+96
+00:04:18.006 --> 00:04:21.003
+and read the data that it needs.
+
+97
+00:04:21.003 --> 00:04:22.006
+Once it has its data,
+
+98
+00:04:22.006 --> 00:04:24.004
+it will call the new service,
+
+99
+00:04:24.004 --> 00:04:28.009
+which in turn, writes the action to the new database.
+
+100
+00:04:28.009 --> 00:04:31.008
+Some other process called a crawler here
+
+101
+00:04:31.008 --> 00:04:33.008
+will crawl the database for records
+
+102
+00:04:33.008 --> 00:04:36.001
+that may not be touched.
+
+103
+00:04:36.001 --> 00:04:38.009
+Because the latest state of the original database
+
+104
+00:04:38.009 --> 00:04:41.002
+is always what you want to have here,
+
+105
+00:04:41.002 --> 00:04:42.009
+it doesn't matter if the data
+
+106
+00:04:42.009 --> 00:04:45.001
+was already been written.
+
+107
+00:04:45.001 --> 00:04:48.001
+Your service should handle that case.
+
+108
+00:04:48.001 --> 00:04:50.000
+It will also use the producer
+
+109
+00:04:50.000 --> 00:04:52.004
+to get messages to the database
+
+110
+00:04:52.004 --> 00:04:54.006
+to keep things moving in a steady state.
+
+111
+00:04:54.006 --> 00:04:57.002
+In fact, if things are going well,
+
+112
+00:04:57.002 --> 00:05:00.003
+you can leverage the crawler for a determination
+
+113
+00:05:00.003 --> 00:05:02.001
+of when the migration is done,
+
+114
+00:05:02.001 --> 00:05:06.000
+and you are simply in a synchronization phase.
+

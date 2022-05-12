@@ -1,0 +1,253 @@
+WEBVTT
+1
+00:00:00.007 --> 00:00:02.002
+- [Instructor] Previously, you learned
+
+2
+00:00:02.002 --> 00:00:04.006
+how to delay event conception
+
+3
+00:00:04.006 --> 00:00:07.003
+until a certain phase of transaction
+
+4
+00:00:07.003 --> 00:00:11.003
+with @TransactionalEventListener.
+
+5
+00:00:11.003 --> 00:00:15.002
+Let's use it to our advantage to fix the use-case
+
+6
+00:00:15.002 --> 00:00:18.009
+of placing an order when an email is sent
+
+7
+00:00:18.009 --> 00:00:22.009
+even though rollback has occurred.
+
+8
+00:00:22.009 --> 00:00:29.000
+In our project, we have order package with OrderService.
+
+9
+00:00:29.000 --> 00:00:32.008
+OrderService has a method, placeOrder,
+
+10
+00:00:32.008 --> 00:00:36.004
+which accepts an order as an argument.
+
+11
+00:00:36.004 --> 00:00:38.005
+As you can see, it is changing
+
+12
+00:00:38.005 --> 00:00:41.006
+the status of the order to complete it,
+
+13
+00:00:41.006 --> 00:00:44.000
+saving it to the database,
+
+14
+00:00:44.000 --> 00:00:49.000
+and after that, publishing an order-completed event.
+
+15
+00:00:49.000 --> 00:00:51.009
+Now, we need to create listener
+
+16
+00:00:51.009 --> 00:00:55.000
+in promotion listeners clause,
+
+17
+00:00:55.000 --> 00:01:10.001
+which listens for order-completed event.
+
+18
+00:01:10.001 --> 00:01:14.002
+We also need to call promotion service
+
+19
+00:01:14.002 --> 00:01:18.007
+dot calculate reward points.
+
+20
+00:01:18.007 --> 00:01:21.004
+Whenever a new order is made,
+
+21
+00:01:21.004 --> 00:01:24.005
+our listener appends rewards status points
+
+22
+00:01:24.005 --> 00:01:26.005
+to the customer.
+
+23
+00:01:26.005 --> 00:01:29.004
+Imagine here logic that iterates
+
+24
+00:01:29.004 --> 00:01:31.004
+through each order entry
+
+25
+00:01:31.004 --> 00:01:33.009
+that contains products with quantities
+
+26
+00:01:33.009 --> 00:01:38.009
+and calculates the sum of all gathered reward points.
+
+27
+00:01:38.009 --> 00:01:40.009
+For the sake of simulation,
+
+28
+00:01:40.009 --> 00:01:46.000
+reward points have been hard-coded to 10 for each order.
+
+29
+00:01:46.000 --> 00:01:47.009
+This number is appended
+
+30
+00:01:47.009 --> 00:01:51.006
+to the existing customer reward points.
+
+31
+00:01:51.006 --> 00:01:54.008
+We also need to append email listener
+
+32
+00:01:54.008 --> 00:01:57.002
+for order-completed event,
+
+33
+00:01:57.002 --> 00:02:24.008
+which is responsible for sending out an email.
+
+34
+00:02:24.008 --> 00:02:28.006
+Now let's check our two test cases,
+
+35
+00:02:28.006 --> 00:02:33.001
+one, where a transaction has been successfully committed
+
+36
+00:02:33.001 --> 00:02:37.000
+and an email has been sent,
+
+37
+00:02:37.000 --> 00:02:40.002
+and another, where rollback is occurring
+
+38
+00:02:40.002 --> 00:02:43.004
+and email should not be sent.
+
+39
+00:02:43.004 --> 00:02:46.002
+Keep in mind, there is one caveat
+
+40
+00:02:46.002 --> 00:02:49.002
+to put rollback to the test.
+
+41
+00:02:49.002 --> 00:02:52.001
+Since we want our commit to fail,
+
+42
+00:02:52.001 --> 00:02:55.007
+there is a constraint on customer reward points
+
+43
+00:02:55.007 --> 00:02:58.009
+which only accepts two digits,
+
+44
+00:02:58.009 --> 00:03:02.000
+which means customers have a maximum
+
+45
+00:03:02.000 --> 00:03:05.003
+of 99 reward points.
+
+46
+00:03:05.003 --> 00:03:08.000
+Since we start with 90 points
+
+47
+00:03:08.000 --> 00:03:11.000
+and on each order append 10 more,
+
+48
+00:03:11.000 --> 00:03:14.007
+we expect the commit to fail.
+
+49
+00:03:14.007 --> 00:03:21.000
+Let's run them through.
+
+50
+00:03:21.000 --> 00:03:24.007
+Well, the first one seems fine.
+
+51
+00:03:24.007 --> 00:03:26.004
+The second one failed.
+
+52
+00:03:26.004 --> 00:03:29.000
+It seems that rollback did occur
+
+53
+00:03:29.000 --> 00:03:31.007
+but our email went through.
+
+54
+00:03:31.007 --> 00:03:37.003
+We can also see that in the console log.
+
+55
+00:03:37.003 --> 00:03:43.003
+Email did get triggered after reward points listener.
+
+56
+00:03:43.003 --> 00:03:46.002
+Let's notify our email listener
+
+57
+00:03:46.002 --> 00:03:51.003
+to get triggered only after successful commit.
+
+58
+00:03:51.003 --> 00:03:57.003
+For that, we will use @TransactionalEventListener
+
+59
+00:03:57.003 --> 00:04:03.001
+with phase after commit.
+
+60
+00:04:03.001 --> 00:04:05.008
+Even if we leave out the phase,
+
+61
+00:04:05.008 --> 00:04:09.009
+it will still work, as this is the default phase.
+
+62
+00:04:09.009 --> 00:04:21.005
+Now, let's rerun our test.
+
+63
+00:04:21.005 --> 00:04:25.000
+And now we have covered all use-cases.
+

@@ -1,0 +1,317 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:04.000
+- When building a batch job, typically we execute steps
+
+2
+00:00:04.000 --> 00:00:07.003
+in sequence: one step at a time.
+
+3
+00:00:07.003 --> 00:00:11.002
+There can be scenarios when two steps must execute
+
+4
+00:00:11.002 --> 00:00:13.001
+in parallel.
+
+5
+00:00:13.001 --> 00:00:16.006
+Spring Batch supports this functionality by providing
+
+6
+00:00:16.006 --> 00:00:18.008
+splits.
+
+7
+00:00:18.008 --> 00:00:23.002
+A split allows us to execute two flows simultaneously
+
+8
+00:00:23.002 --> 00:00:25.003
+using multiple threads.
+
+9
+00:00:25.003 --> 00:00:28.001
+This technique can be used to improve the performance
+
+10
+00:00:28.001 --> 00:00:29.008
+of a job.
+
+11
+00:00:29.008 --> 00:00:34.007
+In order to take a look at a split, we're going to be adding
+
+12
+00:00:34.007 --> 00:00:35.008
+a Billing Flow.
+
+13
+00:00:35.008 --> 00:00:39.006
+So we'll modify our Billing Job and turn it into a flow.
+
+14
+00:00:39.006 --> 00:00:44.002
+And then within our Deliver Package Job, we're going to
+
+15
+00:00:44.002 --> 00:00:49.000
+execute the Delivery Flow and the Billing Flow in parallel
+
+16
+00:00:49.000 --> 00:00:52.006
+using a split.
+
+17
+00:00:52.006 --> 00:00:55.001
+In order to work with a split, we'll need to
+
+18
+00:00:55.001 --> 00:00:56.007
+build another flow.
+
+19
+00:00:56.007 --> 00:01:01.000
+So I'm going to navigate to our Billing Job,
+
+20
+00:01:01.000 --> 00:01:05.005
+and I'm going to copy the configuration of the Billing Job.
+
+21
+00:01:05.005 --> 00:01:10.005
+And then we're going to modify it in order to turn this job
+
+22
+00:01:10.005 --> 00:01:12.009
+into a flow.
+
+23
+00:01:12.009 --> 00:01:17.000
+So we'll need to return a flow from our method
+
+24
+00:01:17.000 --> 00:01:21.001
+because that's the type of bean that we would like to create
+
+25
+00:01:21.001 --> 00:01:23.006
+And then instead of a Billing Job,
+
+26
+00:01:23.006 --> 00:01:26.009
+we're going to create a Billing Flow.
+
+27
+00:01:26.009 --> 00:01:30.000
+Now we'll need to change the configuration,
+
+28
+00:01:30.000 --> 00:01:32.001
+we're not going to be using a job fillder.
+
+29
+00:01:32.001 --> 00:01:36.002
+So, let's remove some of that configuration.
+
+30
+00:01:36.002 --> 00:01:40.005
+We will be using the SendInvoiceStep within our flow.
+
+31
+00:01:40.005 --> 00:01:45.001
+So in order to build a flow, we use a FlowBuilder,
+
+32
+00:01:45.001 --> 00:01:48.004
+and that FlowBuilder has age in our type argument
+
+33
+00:01:48.004 --> 00:01:50.007
+of simple flow.
+
+34
+00:01:50.007 --> 00:01:53.003
+And then we have to give that flow a name.
+
+35
+00:01:53.003 --> 00:01:57.001
+We're going to be calling this our BillingFlow.
+
+36
+00:01:57.001 --> 00:02:02.002
+And once we've created that flow, we're now able to
+
+37
+00:02:02.002 --> 00:02:05.000
+include it within a split.
+
+38
+00:02:05.000 --> 00:02:08.007
+So we're going to introduce the split within our
+
+39
+00:02:08.007 --> 00:02:10.007
+DeliveryPackageJob.
+
+40
+00:02:10.007 --> 00:02:13.000
+So I'm going to navigate there,
+
+41
+00:02:13.000 --> 00:02:17.004
+and this is going to require us to modify some of the
+
+42
+00:02:17.004 --> 00:02:20.009
+configuration within this job.
+
+43
+00:02:20.009 --> 00:02:23.001
+So the first thing that we're going to do
+
+44
+00:02:23.001 --> 00:02:26.007
+is we're going to remove our DeliveryFlow,
+
+45
+00:02:26.007 --> 00:02:30.003
+and we're going to remove our job step.
+
+46
+00:02:30.003 --> 00:02:34.002
+And then we're going to use the split method
+
+47
+00:02:34.002 --> 00:02:39.003
+and this will cause the execution of our jobs
+
+48
+00:02:39.003 --> 00:02:42.008
+to perform the next steps in parallel.
+
+49
+00:02:42.008 --> 00:02:48.006
+Now in order to do that, we need to provide a task executer.
+
+50
+00:02:48.006 --> 00:02:52.007
+This is going to help create a thread for each of the
+
+51
+00:02:52.007 --> 00:02:56.002
+different tasks that we would like to execute
+
+52
+00:02:56.002 --> 00:03:00.004
+within this split so our two flows will each be assigned
+
+53
+00:03:00.004 --> 00:03:03.005
+a task and execute in separate threads.
+
+54
+00:03:03.005 --> 00:03:08.004
+We can use a very simple implementation of the task executer
+
+55
+00:03:08.004 --> 00:03:13.004
+It's the simple Async task executer.
+
+56
+00:03:13.004 --> 00:03:18.000
+And then from there we're going to define the flows that
+
+57
+00:03:18.000 --> 00:03:22.000
+we would like to add to the split using the add method.
+
+58
+00:03:22.000 --> 00:03:25.008
+Now you'll remember that we wanted to execute the
+
+59
+00:03:25.008 --> 00:03:27.004
+Delivery Flow.
+
+60
+00:03:27.004 --> 00:03:31.000
+And then we also wanted to perform our Billing Flow.
+
+61
+00:03:31.000 --> 00:03:34.002
+So let's specify both of those.
+
+62
+00:03:34.002 --> 00:03:40.006
+And at this point we have our job configured for a split.
+
+63
+00:03:40.006 --> 00:03:46.002
+Okay. So now let's navigate to our terminal.
+
+64
+00:03:46.002 --> 00:03:55.006
+And we're going to go ahead and run our Delivery Job.
+
+65
+00:03:55.006 --> 00:03:59.000
+Okay. Let's take a look at some of this output.
+
+66
+00:03:59.000 --> 00:04:04.003
+If we look at our job, you'll notice that we start by
+
+67
+00:04:04.003 --> 00:04:08.002
+driving to the address after we packaged the item.
+
+68
+00:04:08.002 --> 00:04:11.007
+And then we move into the invoice step,
+
+69
+00:04:11.007 --> 00:04:16.007
+and this is occurring at the same time
+
+70
+00:04:16.007 --> 00:04:19.001
+that we are delivering the item.
+
+71
+00:04:19.001 --> 00:04:23.006
+So billing and delivery are occurring in parallel.
+
+72
+00:04:23.006 --> 00:04:27.004
+And you can even see the different task executers
+
+73
+00:04:27.004 --> 00:04:30.001
+and the threads associated with them.
+
+74
+00:04:30.001 --> 00:04:35.004
+So, using the split, we were able to deviate from sequential
+
+75
+00:04:35.004 --> 00:04:37.003
+job execution.
+
+76
+00:04:37.003 --> 00:04:41.002
+Its important to remember that splits are used with flows
+
+77
+00:04:41.002 --> 00:04:43.006
+as opposed to steps or jobs.
+
+78
+00:04:43.006 --> 00:04:46.007
+And using this feature within spring batch,
+
+79
+00:04:46.007 --> 00:04:52.000
+you can simultaneously execute different job logic.
+

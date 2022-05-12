@@ -1,0 +1,721 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:01.004
+- [Instructor] Now there's several ways
+
+2
+00:00:01.004 --> 00:00:05.001
+to deploy a controller using Kubernetes
+
+3
+00:00:05.001 --> 00:00:07.000
+and the first way that we're going to look at
+
+4
+00:00:07.000 --> 00:00:08.009
+and the one that we're going to use in this course
+
+5
+00:00:08.009 --> 00:00:11.006
+is actually using Kubebuilder to do the deploy.
+
+6
+00:00:11.006 --> 00:00:12.009
+Now in the real world,
+
+7
+00:00:12.009 --> 00:00:14.006
+we would do this a little bit differently
+
+8
+00:00:14.006 --> 00:00:16.000
+but for now this will work
+
+9
+00:00:16.000 --> 00:00:17.008
+and I'll talk through the other options
+
+10
+00:00:17.008 --> 00:00:19.003
+as we jump into our code.
+
+11
+00:00:19.003 --> 00:00:21.006
+So let's get to our IDE.
+
+12
+00:00:21.006 --> 00:00:23.006
+So we need to make a couple of modifications
+
+13
+00:00:23.006 --> 00:00:27.000
+to the actual manifest that's going to be used.
+
+14
+00:00:27.000 --> 00:00:32.000
+So open up config, manager, and look at the manager.yaml.
+
+15
+00:00:32.000 --> 00:00:35.003
+And this is a deployment manifest that is used
+
+16
+00:00:35.003 --> 00:00:38.002
+by the make system to deploy the artifact.
+
+17
+00:00:38.002 --> 00:00:40.001
+We're going to scroll down here
+
+18
+00:00:40.001 --> 00:00:42.003
+and underneath the image name,
+
+19
+00:00:42.003 --> 00:00:44.007
+so right here on line 35, we're going to add a new value.
+
+20
+00:00:44.007 --> 00:00:50.005
+We're going to put an image pull policy to if not present.
+
+21
+00:00:50.005 --> 00:00:51.005
+Now the reason we're going to do that
+
+22
+00:00:51.005 --> 00:00:53.006
+is because you'll see that we're deploying the latest
+
+23
+00:00:53.006 --> 00:00:55.006
+and that's because we're still in development mode.
+
+24
+00:00:55.006 --> 00:00:58.009
+If you pull the latest, it's always going to try to do
+
+25
+00:00:58.009 --> 00:01:01.002
+an image pull from a remote system.
+
+26
+00:01:01.002 --> 00:01:02.005
+And we want to prevent that
+
+27
+00:01:02.005 --> 00:01:04.006
+because we're not deploying this anywhere
+
+28
+00:01:04.006 --> 00:01:06.009
+to an image repository.
+
+29
+00:01:06.009 --> 00:01:07.009
+The next thing that we need to do
+
+30
+00:01:07.009 --> 00:01:10.004
+is we need to add some environment variables.
+
+31
+00:01:10.004 --> 00:01:14.001
+So underneath the name here, I'm going to add a couple things.
+
+32
+00:01:14.001 --> 00:01:15.008
+I'm going to do an ENV.
+
+33
+00:01:15.008 --> 00:01:17.007
+And the first thing I'm going to do is a name
+
+34
+00:01:17.007 --> 00:01:22.001
+and we're going to call this AWS_ACCESS_KEY_ID.
+
+35
+00:01:22.001 --> 00:01:24.007
+This should look very familiar if you've done Kubernetes.
+
+36
+00:01:24.007 --> 00:01:26.009
+We're going to do a value from.
+
+37
+00:01:26.009 --> 00:01:31.000
+We're going to do that as a secretKeyRef.
+
+38
+00:01:31.000 --> 00:01:32.002
+We're going to do our name
+
+39
+00:01:32.002 --> 00:01:37.000
+and we're going to call this thing objstore-secret.
+
+40
+00:01:37.000 --> 00:01:40.003
+And the key, we will just use the same value,
+
+41
+00:01:40.003 --> 00:01:43.004
+AWS_ACCESS_KEY_ID.
+
+42
+00:01:43.004 --> 00:01:45.001
+Now, if you're doing this locally,
+
+43
+00:01:45.001 --> 00:01:47.003
+you can definitely just pass in the environment here.
+
+44
+00:01:47.003 --> 00:01:48.008
+You don't have to go through the secret
+
+45
+00:01:48.008 --> 00:01:51.003
+but I want to make sure that you see how this is
+
+46
+00:01:51.003 --> 00:01:53.006
+more likely to be done in the real world.
+
+47
+00:01:53.006 --> 00:01:56.007
+Granted, I would actually be using a home chart to do this
+
+48
+00:01:56.007 --> 00:01:59.000
+and we'll talk a little bit about that here in a bit.
+
+49
+00:01:59.000 --> 00:02:04.001
+So let's go down in our SECRET_ACCESS_KEY.
+
+50
+00:02:04.001 --> 00:02:06.004
+Okay, so our file is now ready.
+
+51
+00:02:06.004 --> 00:02:08.000
+I'm a going to execute a couple commands
+
+52
+00:02:08.000 --> 00:02:09.008
+to let some things happen in the background
+
+53
+00:02:09.008 --> 00:02:11.001
+while we go make our secret.
+
+54
+00:02:11.001 --> 00:02:13.004
+So, I'm going to jump into terminal.
+
+55
+00:02:13.004 --> 00:02:14.004
+And the first time I'm going to do
+
+56
+00:02:14.004 --> 00:02:16.004
+is I'm going to do a make undeploy.
+
+57
+00:02:16.004 --> 00:02:18.007
+I just feel more comfortable doing a full undeploy
+
+58
+00:02:18.007 --> 00:02:21.000
+before we go do any more work.
+
+59
+00:02:21.000 --> 00:02:24.005
+So then once again, I'll do a make.
+
+60
+00:02:24.005 --> 00:02:28.001
+We'll make our manifest. Make sure everything is good to go.
+
+61
+00:02:28.001 --> 00:02:29.006
+I'm going to go ahead and do a make install
+
+62
+00:02:29.006 --> 00:02:32.002
+even though I don't really need to do the install here
+
+63
+00:02:32.002 --> 00:02:35.002
+because we're going to reinstall over the top of it
+
+64
+00:02:35.002 --> 00:02:37.008
+and then I'm going to do a make docker-build.
+
+65
+00:02:37.008 --> 00:02:39.002
+Now this is going to take a while.
+
+66
+00:02:39.002 --> 00:02:41.002
+So I'm going to let this run in the background.
+
+67
+00:02:41.002 --> 00:02:42.003
+And while this is going on,
+
+68
+00:02:42.003 --> 00:02:44.001
+we'll talk about building our secret.
+
+69
+00:02:44.001 --> 00:02:45.006
+So once that's often running
+
+70
+00:02:45.006 --> 00:02:47.008
+and we can see the downloads happening,
+
+71
+00:02:47.008 --> 00:02:50.005
+let's jump back to our IDE.
+
+72
+00:02:50.005 --> 00:02:54.006
+So now within our IDE, I want to create a secret
+
+73
+00:02:54.006 --> 00:02:57.005
+under the directory for our project.
+
+74
+00:02:57.005 --> 00:02:59.004
+So let's create a new file.
+
+75
+00:02:59.004 --> 00:03:02.009
+I'm just going to simply call this secret.yaml.
+
+76
+00:03:02.009 --> 00:03:07.000
+Now API version V1.
+
+77
+00:03:07.000 --> 00:03:11.007
+Kind is going to be a secret.
+
+78
+00:03:11.007 --> 00:03:17.003
+Metadata name will be objstore our secret.
+
+79
+00:03:17.003 --> 00:03:21.005
+Our namespace is going to be cninf-system
+
+80
+00:03:21.005 --> 00:03:23.000
+and that's where this is going to deploy.
+
+81
+00:03:23.000 --> 00:03:24.004
+If you read through all the manifests
+
+82
+00:03:24.004 --> 00:03:25.008
+that come with Kubebuilder,
+
+83
+00:03:25.008 --> 00:03:28.005
+this is the deploy place within Kubernetes
+
+84
+00:03:28.005 --> 00:03:29.005
+where this is going to live.
+
+85
+00:03:29.005 --> 00:03:31.007
+So we'll have to go create that namespace
+
+86
+00:03:31.007 --> 00:03:32.006
+to put the secret out there
+
+87
+00:03:32.006 --> 00:03:34.003
+but for now, this is fine.
+
+88
+00:03:34.003 --> 00:03:39.003
+The type of secret is opaque and the data for our secret.
+
+89
+00:03:39.003 --> 00:03:44.004
+So we're going to have an AWS_ACCESS_KEY_ID
+
+90
+00:03:44.004 --> 00:03:49.005
+and an AWS_SECRET_ACCESS_KEY.
+
+91
+00:03:49.005 --> 00:03:51.006
+Spell that properly.
+
+92
+00:03:51.006 --> 00:03:53.005
+Now, to get the data for this,
+
+93
+00:03:53.005 --> 00:03:55.000
+if you've never worked with secrets,
+
+94
+00:03:55.000 --> 00:03:57.002
+we actually have to base64 and code it.
+
+95
+00:03:57.002 --> 00:04:00.000
+I'm not going to show my secrets on screen per se
+
+96
+00:04:00.000 --> 00:04:01.000
+even though I'm going to delete them
+
+97
+00:04:01.000 --> 00:04:02.000
+by the time you see them.
+
+98
+00:04:02.000 --> 00:04:05.001
+But I do want to sort of keep an idea that these are secrets
+
+99
+00:04:05.001 --> 00:04:07.008
+so I'm going to keep them off screen and just copy and paste.
+
+100
+00:04:07.008 --> 00:04:09.009
+But let's go into our terminal window
+
+101
+00:04:09.009 --> 00:04:12.000
+and we can see the docker's running still
+
+102
+00:04:12.000 --> 00:04:14.005
+so we'll jump into our other value.
+
+103
+00:04:14.005 --> 00:04:17.009
+Now what we're going to do is I want you to copy the value
+
+104
+00:04:17.009 --> 00:04:21.001
+for the AWS_ACCESS_KEY_ID.
+
+105
+00:04:21.001 --> 00:04:26.007
+And what you're going to do is an echo -n, put your value in
+
+106
+00:04:26.007 --> 00:04:30.004
+and then you're going to pipe that to base64.
+
+107
+00:04:30.004 --> 00:04:33.005
+Now for me, this was my access key ID
+
+108
+00:04:33.005 --> 00:04:35.003
+so I will copy that.
+
+109
+00:04:35.003 --> 00:04:37.001
+I'm going to go back to my IDE.
+
+110
+00:04:37.001 --> 00:04:39.009
+I'm going to paste that in for my ACCESS_KEY_ID.
+
+111
+00:04:39.009 --> 00:04:42.006
+And that's the base64 encoded value.
+
+112
+00:04:42.006 --> 00:04:45.003
+I like to put a space here. There we go.
+
+113
+00:04:45.003 --> 00:04:47.000
+All right, that one's good to go.
+
+114
+00:04:47.000 --> 00:04:49.008
+So now let's do our other one.
+
+115
+00:04:49.008 --> 00:04:51.005
+Jump back to the terminal.
+
+116
+00:04:51.005 --> 00:04:54.008
+Once again, you do an echo -n
+
+117
+00:04:54.008 --> 00:05:00.006
+and we will base64 and code this.
+
+118
+00:05:00.006 --> 00:05:03.005
+Copy the data and drop it in.
+
+119
+00:05:03.005 --> 00:05:05.001
+So now our secret is ready to go.
+
+120
+00:05:05.001 --> 00:05:07.002
+We can use that.
+
+121
+00:05:07.002 --> 00:05:08.007
+Close that file down.
+
+122
+00:05:08.007 --> 00:05:11.001
+I want to go check on Docker.
+
+123
+00:05:11.001 --> 00:05:12.006
+For me Docker is still running.
+
+124
+00:05:12.006 --> 00:05:14.006
+It may not be done for you. It may be done.
+
+125
+00:05:14.006 --> 00:05:16.007
+We'll let that go in the background.
+
+126
+00:05:16.007 --> 00:05:20.004
+In the meantime, let's go ahead and create our namespace.
+
+127
+00:05:20.004 --> 00:05:27.009
+So we will do a K create NS cninf-system.
+
+128
+00:05:27.009 --> 00:05:30.002
+So now we've created that system
+
+129
+00:05:30.002 --> 00:05:38.005
+and now I want to do a k apply -f objstore-secret
+
+130
+00:05:38.005 --> 00:05:41.004
+- n cninf-system.
+
+131
+00:05:41.004 --> 00:05:43.006
+And I like to put the namespace,
+
+132
+00:05:43.006 --> 00:05:45.006
+it's just me being me so,
+
+133
+00:05:45.006 --> 00:05:50.000
+we're going to apply that file to the cninf-system.
+
+134
+00:05:50.000 --> 00:05:52.008
+It's actual name as I called it was secret.yaml
+
+135
+00:05:52.008 --> 00:05:57.003
+so I need to fix that here and enter.
+
+136
+00:05:57.003 --> 00:05:59.000
+Okay, that secret has been created.
+
+137
+00:05:59.000 --> 00:06:06.007
+We can validate that by doing a k get secret -n cninf-system
+
+138
+00:06:06.007 --> 00:06:07.006
+It's out there.
+
+139
+00:06:07.006 --> 00:06:08.004
+Everything's good to go.
+
+140
+00:06:08.004 --> 00:06:10.002
+So now we are going to be ready to deploy.
+
+141
+00:06:10.002 --> 00:06:12.001
+So let's check on Docker.
+
+142
+00:06:12.001 --> 00:06:14.007
+Looks like Docker is done which is great.
+
+143
+00:06:14.007 --> 00:06:17.002
+So we need to get our Docker image that has been built
+
+144
+00:06:17.002 --> 00:06:19.000
+out to our kind cluster.
+
+145
+00:06:19.000 --> 00:06:24.002
+So I am going to copy this data here
+
+146
+00:06:24.002 --> 00:06:30.003
+and I'm going to do a kind load docker-image,
+
+147
+00:06:30.003 --> 00:06:36.001
+paste that in and I have named my kind cluster LIL.
+
+148
+00:06:36.001 --> 00:06:38.008
+So this is going to go ahead and load this out there
+
+149
+00:06:38.008 --> 00:06:40.004
+and now we have the Docker image loaded.
+
+150
+00:06:40.004 --> 00:06:43.008
+So now we're actually good to go out and deploy
+
+151
+00:06:43.008 --> 00:06:45.008
+this to our environment.
+
+152
+00:06:45.008 --> 00:06:49.005
+So we will do a make deploy.
+
+153
+00:06:49.005 --> 00:06:51.000
+And it's going to run through several things.
+
+154
+00:06:51.000 --> 00:06:52.005
+You can read what's being created.
+
+155
+00:06:52.005 --> 00:06:54.009
+So it's creating values that need to be
+
+156
+00:06:54.009 --> 00:06:56.008
+out in the infrastructure.
+
+157
+00:06:56.008 --> 00:07:00.002
+And we also need to make sure, I do not remember
+
+158
+00:07:00.002 --> 00:07:01.003
+but let's go ahead and double check.
+
+159
+00:07:01.003 --> 00:07:05.000
+Let's make the actual CRD back out there again
+
+160
+00:07:05.000 --> 00:07:07.002
+in case I did not do that before.
+
+161
+00:07:07.002 --> 00:07:09.002
+I just like to do these things a couple times
+
+162
+00:07:09.002 --> 00:07:10.000
+to make sure.
+
+163
+00:07:10.000 --> 00:07:11.003
+Everything should be good
+
+164
+00:07:11.003 --> 00:07:16.007
+so let's take a look at our cninf-system.
+
+165
+00:07:16.007 --> 00:07:19.004
+You'll see we've got two pods running of our manager
+
+166
+00:07:19.004 --> 00:07:20.006
+which is great.
+
+167
+00:07:20.006 --> 00:07:28.009
+So now I can do a k apply -n lil -f config/samples.
+
+168
+00:07:28.009 --> 00:07:30.006
+We're going to put it back out there.
+
+169
+00:07:30.006 --> 00:07:34.009
+K get objstore -n lil.
+
+170
+00:07:34.009 --> 00:07:36.005
+It's already been created in the time
+
+171
+00:07:36.005 --> 00:07:38.004
+that it took me to type that.
+
+172
+00:07:38.004 --> 00:07:42.008
+So S3API list-buckets.
+
+173
+00:07:42.008 --> 00:07:44.005
+There's the value that we created
+
+174
+00:07:44.005 --> 00:07:45.009
+and let's just double check.
+
+175
+00:07:45.009 --> 00:07:55.000
+We can do a delete so K delete objstore -n lil fpmlil -01
+
+176
+00:07:55.000 --> 00:07:56.000
+and we've deleted it.
+
+177
+00:07:56.000 --> 00:07:57.002
+Everything should be good to go.
+
+178
+00:07:57.002 --> 00:07:58.007
+You're good to run your system.
+
+179
+00:07:58.007 --> 00:08:00.003
+This has been a whirlwind of activity
+
+180
+00:08:00.003 --> 00:08:04.000
+but we have a working controller that does its thing.
+

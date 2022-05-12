@@ -1,0 +1,445 @@
+WEBVTT
+1
+00:00:00.000 --> 00:00:02.002
+- [Narrator] To deploy the correct versions
+
+2
+00:00:02.002 --> 00:00:05.004
+of our microservices onto our Kubernetes cluster.
+
+3
+00:00:05.004 --> 00:00:08.001
+We'll need to update our resource manifests
+
+4
+00:00:08.001 --> 00:00:12.009
+with the latest container images built by the CI pipeline.
+
+5
+00:00:12.009 --> 00:00:14.000
+To automate this,
+
+6
+00:00:14.000 --> 00:00:16.003
+we'll use another Jenkins pipeline
+
+7
+00:00:16.003 --> 00:00:18.007
+that's found within the deploy project,
+
+8
+00:00:18.007 --> 00:00:22.001
+inside the exercise files for this lesson.
+
+9
+00:00:22.001 --> 00:00:25.004
+This pipeline will be shared by each of the microservices
+
+10
+00:00:25.004 --> 00:00:29.005
+inside of our application and used to deploy them.
+
+11
+00:00:29.005 --> 00:00:31.007
+Let's walk through each part of this script
+
+12
+00:00:31.007 --> 00:00:34.006
+to learn exactly what it does.
+
+13
+00:00:34.006 --> 00:00:37.001
+The script includes an options block
+
+14
+00:00:37.001 --> 00:00:41.000
+that configure some unique behaviors for this pipeline.
+
+15
+00:00:41.000 --> 00:00:42.001
+The first option,
+
+16
+00:00:42.001 --> 00:00:45.000
+disable concurrent builds prevents the pipeline
+
+17
+00:00:45.000 --> 00:00:48.008
+from executing more than one run at a time.
+
+18
+00:00:48.008 --> 00:00:51.004
+This is important because it prevents conflicts
+
+19
+00:00:51.004 --> 00:00:53.007
+between our deployments.
+
+20
+00:00:53.007 --> 00:00:56.006
+The next option override index triggers,
+
+21
+00:00:56.006 --> 00:00:58.007
+prevents the pipeline from executing
+
+22
+00:00:58.007 --> 00:01:02.008
+when a new commit is made to the deploy repository.
+
+23
+00:01:02.008 --> 00:01:05.006
+This is necessary because the pipeline itself,
+
+24
+00:01:05.006 --> 00:01:09.003
+will commit changes to the manifests in the repository.
+
+25
+00:01:09.003 --> 00:01:12.008
+And we can't have those commits triggering another build.
+
+26
+00:01:12.008 --> 00:01:14.006
+It will create a loop.
+
+27
+00:01:14.006 --> 00:01:17.009
+The pipeline is also configured to accept parameters
+
+28
+00:01:17.009 --> 00:01:20.005
+that are passed to it by the CI pipelines
+
+29
+00:01:20.005 --> 00:01:23.002
+for each microservice.
+
+30
+00:01:23.002 --> 00:01:26.004
+These parameters are used to update the manifests
+
+31
+00:01:26.004 --> 00:01:29.005
+with the latest container image.
+
+32
+00:01:29.005 --> 00:01:32.000
+The parameters received by the pipeline include,
+
+33
+00:01:32.000 --> 00:01:33.007
+the GitHub organization name,
+
+34
+00:01:33.007 --> 00:01:35.000
+the image name,
+
+35
+00:01:35.000 --> 00:01:36.007
+and its version.
+
+36
+00:01:36.007 --> 00:01:38.007
+These are all provided by the jobs
+
+37
+00:01:38.007 --> 00:01:41.002
+that trigger the pipeline.
+
+38
+00:01:41.002 --> 00:01:44.004
+The pipeline also declares one environment variable
+
+39
+00:01:44.004 --> 00:01:48.004
+that holds the SSH URL to our deploy repository
+
+40
+00:01:48.004 --> 00:01:50.003
+within GitHub.
+
+41
+00:01:50.003 --> 00:01:51.008
+To keep things flexible,
+
+42
+00:01:51.008 --> 00:01:54.002
+we use the GitHub org parameter
+
+43
+00:01:54.002 --> 00:01:59.009
+that's passed into the pipeline to construct this URL.
+
+44
+00:01:59.009 --> 00:02:03.001
+Now let's talk about the work that this pipeline performs
+
+45
+00:02:03.001 --> 00:02:05.005
+within its stage.
+
+46
+00:02:05.005 --> 00:02:08.008
+The first step in the stage uses the get plugin
+
+47
+00:02:08.008 --> 00:02:10.005
+to pull the main branch
+
+48
+00:02:10.005 --> 00:02:12.007
+from the deploy repository
+
+49
+00:02:12.007 --> 00:02:15.009
+where all of our manifests are found.
+
+50
+00:02:15.009 --> 00:02:19.000
+The git plugin requires us to provide the URL
+
+51
+00:02:19.000 --> 00:02:21.002
+of the deploy repository
+
+52
+00:02:21.002 --> 00:02:25.002
+and an SSH key that's used to authenticate with GitHub
+
+53
+00:02:25.002 --> 00:02:29.000
+when all the files are pulled from the repo.
+
+54
+00:02:29.000 --> 00:02:32.005
+After we've pulled the manifests from the repository,
+
+55
+00:02:32.005 --> 00:02:34.006
+we then configure git
+
+56
+00:02:34.006 --> 00:02:38.002
+to identify the pipeline as the committer.
+
+57
+00:02:38.002 --> 00:02:41.001
+That's done in these two commands.
+
+58
+00:02:41.001 --> 00:02:43.004
+That's necessary because in later stages,
+
+59
+00:02:43.004 --> 00:02:46.007
+the pipeline's going to perform a commit.
+
+60
+00:02:46.007 --> 00:02:50.001
+The changes that the pipeline will commit are made here,
+
+61
+00:02:50.001 --> 00:02:54.001
+where we use customized to update the container image found
+
+62
+00:02:54.001 --> 00:02:56.003
+within our manifests.
+
+63
+00:02:56.003 --> 00:02:57.001
+To do this,
+
+64
+00:02:57.001 --> 00:03:00.009
+we use the customized edit set image command.
+
+65
+00:03:00.009 --> 00:03:03.004
+This command leverages our image name,
+
+66
+00:03:03.004 --> 00:03:06.006
+parameter and our version parameter
+
+67
+00:03:06.006 --> 00:03:10.009
+to update the version for the container image.
+
+68
+00:03:10.009 --> 00:03:14.009
+Once we've updated that version inside of our manifests,
+
+69
+00:03:14.009 --> 00:03:19.005
+we commit those changes to our local repository.
+
+70
+00:03:19.005 --> 00:03:23.000
+Then we use the SSH agent plugin
+
+71
+00:03:23.000 --> 00:03:25.001
+and an SSH key
+
+72
+00:03:25.001 --> 00:03:27.006
+in order to authenticate with GitHub
+
+73
+00:03:27.006 --> 00:03:29.008
+when we push those changes
+
+74
+00:03:29.008 --> 00:03:33.004
+to the main branch of our repository.
+
+75
+00:03:33.004 --> 00:03:35.006
+Once those changes are pushed,
+
+76
+00:03:35.006 --> 00:03:38.002
+our deployed repository in GitHub,
+
+77
+00:03:38.002 --> 00:03:40.008
+will contain the latest container image
+
+78
+00:03:40.008 --> 00:03:44.004
+that was built by the CI pipeline.
+
+79
+00:03:44.004 --> 00:03:46.007
+Now that we've talked through the pipeline,
+
+80
+00:03:46.007 --> 00:03:47.008
+let's go ahead
+
+81
+00:03:47.008 --> 00:03:51.004
+and we'll push the Jenkinsfile over to GitHub.
+
+82
+00:03:51.004 --> 00:03:52.002
+To do that,
+
+83
+00:03:52.002 --> 00:03:56.002
+I'm going to head to a terminal and I'll stage our changes.
+
+84
+00:03:56.002 --> 00:03:59.003
+Then I'll go ahead and create a new commit
+
+85
+00:03:59.003 --> 00:04:00.003
+and for the message,
+
+86
+00:04:00.003 --> 00:04:04.000
+I'll just say adding the new pipeline.
+
+87
+00:04:04.000 --> 00:04:05.008
+Once I've created the commit,
+
+88
+00:04:05.008 --> 00:04:09.007
+I can go ahead and push those changes over to GitHub.
+
+89
+00:04:09.007 --> 00:04:13.004
+Now this will cause Jenkins to pick up the pipeline
+
+90
+00:04:13.004 --> 00:04:16.007
+when it scans our organization and then all tempt
+
+91
+00:04:16.007 --> 00:04:17.009
+to execute it.
+
+92
+00:04:17.009 --> 00:04:19.003
+Now I'm going to warn you.
+
+93
+00:04:19.003 --> 00:04:20.004
+It's going to fail,
+
+94
+00:04:20.004 --> 00:04:23.002
+but let's go ahead and we'll do the push anyway,
+
+95
+00:04:23.002 --> 00:04:26.000
+and then we'll head over to Jenkins.
+
+96
+00:04:26.000 --> 00:04:29.006
+Soon we should see the organization folder scan,
+
+97
+00:04:29.006 --> 00:04:31.007
+pick up the new pipeline.
+
+98
+00:04:31.007 --> 00:04:32.005
+Okay.
+
+99
+00:04:32.005 --> 00:04:33.004
+There it went.
+
+100
+00:04:33.004 --> 00:04:36.001
+Let's go ahead and we'll refresh our page.
+
+101
+00:04:36.001 --> 00:04:38.001
+There we see the new pipeline.
+
+102
+00:04:38.001 --> 00:04:41.008
+Let's navigate into it and we can see it has failed,
+
+103
+00:04:41.008 --> 00:04:43.001
+but let's check it out.
+
+104
+00:04:43.001 --> 00:04:44.009
+So I'll click on the main branch
+
+105
+00:04:44.009 --> 00:04:46.009
+and then go into our first build.
+
+106
+00:04:46.009 --> 00:04:49.005
+And then within the console output,
+
+107
+00:04:49.005 --> 00:04:52.003
+you can see that the pipeline failed
+
+108
+00:04:52.003 --> 00:04:56.005
+because we haven't passed any parameters to it.
+
+109
+00:04:56.005 --> 00:04:59.007
+We'll need to create the trigger within the CI pipeline
+
+110
+00:04:59.007 --> 00:05:02.000
+to pass those parameters.
+
+111
+00:05:02.000 --> 00:05:05.000
+Let's pick it up there in our next lesson.
+

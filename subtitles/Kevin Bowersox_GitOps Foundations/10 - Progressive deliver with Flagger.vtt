@@ -1,0 +1,737 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:02.002
+- [Instructor] Canary deployments with Flagger,
+
+2
+00:00:02.002 --> 00:00:03.008
+allow us to reduce the risk
+
+3
+00:00:03.008 --> 00:00:06.005
+of releasing a new version of an application.
+
+4
+00:00:06.005 --> 00:00:09.000
+Let's see how it's done.
+
+5
+00:00:09.000 --> 00:00:11.001
+You'll recall, we have Flux, Flagger,
+
+6
+00:00:11.001 --> 00:00:13.003
+and the Nginx ingress controller
+
+7
+00:00:13.003 --> 00:00:16.008
+deployed to our Kubernetes cluster that runs on Azure.
+
+8
+00:00:16.008 --> 00:00:17.008
+The only problem is,
+
+9
+00:00:17.008 --> 00:00:21.001
+we don't have an application running on the controller.
+
+10
+00:00:21.001 --> 00:00:23.006
+To establish our GitOps workflow,
+
+11
+00:00:23.006 --> 00:00:25.003
+we'll need to set up a source,
+
+12
+00:00:25.003 --> 00:00:28.001
+and a customization that Flux can use
+
+13
+00:00:28.001 --> 00:00:31.006
+to deploy an app on the cluster.
+
+14
+00:00:31.006 --> 00:00:34.007
+So inside of the environment repository,
+
+15
+00:00:34.007 --> 00:00:38.001
+the flagger folder holds the desired state of our system.
+
+16
+00:00:38.001 --> 00:00:41.005
+It has YAML manifests that describe a deployment,
+
+17
+00:00:41.005 --> 00:00:43.005
+an autoscaler, an ingress,
+
+18
+00:00:43.005 --> 00:00:46.000
+a Canary, and a namespace.
+
+19
+00:00:46.000 --> 00:00:49.008
+Let's take a look at a few of these Kubernetes resources,
+
+20
+00:00:49.008 --> 00:00:53.000
+we'll start with the ingress.
+
+21
+00:00:53.000 --> 00:00:54.008
+You'll notice that the ingress
+
+22
+00:00:54.008 --> 00:00:58.003
+is configured to route traffic coming into the DNS label
+
+23
+00:00:58.003 --> 00:01:01.006
+assigned to the Nginx ingress controller.
+
+24
+00:01:01.006 --> 00:01:05.004
+It passes that traffic to the GitOps foundation service
+
+25
+00:01:05.004 --> 00:01:08.002
+that will be established by our Canary.
+
+26
+00:01:08.002 --> 00:01:10.005
+So let's hop up a directory,
+
+27
+00:01:10.005 --> 00:01:16.008
+and we can take a look at the Canary.
+
+28
+00:01:16.008 --> 00:01:18.005
+So the first thing you'll notice
+
+29
+00:01:18.005 --> 00:01:20.009
+about the configuration of the Canary is,
+
+30
+00:01:20.009 --> 00:01:23.005
+it's pretty intense,
+
+31
+00:01:23.005 --> 00:01:26.006
+so I'm going to highlight a few key things for you.
+
+32
+00:01:26.006 --> 00:01:30.000
+You'll notice that the Canary has references
+
+33
+00:01:30.000 --> 00:01:33.002
+to other resources that we'll deploy on the cluster.
+
+34
+00:01:33.002 --> 00:01:36.006
+There, you can see our gitops-foundations deployment.
+
+35
+00:01:36.006 --> 00:01:38.009
+There's a reference to the ingress,
+
+36
+00:01:38.009 --> 00:01:40.007
+the autoscaler,
+
+37
+00:01:40.007 --> 00:01:43.005
+and then it establishes a service.
+
+38
+00:01:43.005 --> 00:01:47.006
+Here, the service is named gitops-foundations-service.
+
+39
+00:01:47.006 --> 00:01:50.000
+There's going to be kind of a shadow service
+
+40
+00:01:50.000 --> 00:01:53.006
+that is the Canary version of this established.
+
+41
+00:01:53.006 --> 00:01:56.008
+And all these components are going to work together
+
+42
+00:01:56.008 --> 00:02:00.003
+to determine how much traffic is incrementally routed
+
+43
+00:02:00.003 --> 00:02:04.001
+to the Canary, based upon how it performs.
+
+44
+00:02:04.001 --> 00:02:07.008
+Now, that's going to be determined by these tests
+
+45
+00:02:07.008 --> 00:02:11.000
+that are established lower in our configuration.
+
+46
+00:02:11.000 --> 00:02:15.006
+These are all about how we route test traffic to the Canary,
+
+47
+00:02:15.006 --> 00:02:20.001
+and then incrementally route more traffic to it.
+
+48
+00:02:20.001 --> 00:02:22.007
+So, here you can see some of those tests.
+
+49
+00:02:22.007 --> 00:02:24.006
+All right, so let's get started.
+
+50
+00:02:24.006 --> 00:02:27.008
+We're going to navigate into a terminal,
+
+51
+00:02:27.008 --> 00:02:30.004
+and here we can begin our work.
+
+52
+00:02:30.004 --> 00:02:33.001
+So, the first thing you should do is make sure
+
+53
+00:02:33.001 --> 00:02:37.003
+that you're in the Flux configuration repository.
+
+54
+00:02:37.003 --> 00:02:39.007
+We're going to place the custom resources
+
+55
+00:02:39.007 --> 00:02:43.004
+for the source and the customization here.
+
+56
+00:02:43.004 --> 00:02:46.004
+So once you're in that repository,
+
+57
+00:02:46.004 --> 00:02:50.008
+you can go ahead and create the source.
+
+58
+00:02:50.008 --> 00:02:53.009
+Now, the first thing you'll notice about this source
+
+59
+00:02:53.009 --> 00:02:57.000
+is that it's the same source we worked with
+
+60
+00:02:57.000 --> 00:02:58.005
+when we took a look at Flux.
+
+61
+00:02:58.005 --> 00:03:00.007
+So nothing different here,
+
+62
+00:03:00.007 --> 00:03:03.003
+let's go ahead and create the source.
+
+63
+00:03:03.003 --> 00:03:08.001
+And then the next thing we'll need is the customization.
+
+64
+00:03:08.001 --> 00:03:11.000
+So this customization is very similar
+
+65
+00:03:11.000 --> 00:03:12.008
+to what we looked at with Flux.
+
+66
+00:03:12.008 --> 00:03:16.001
+The only difference is it's going to look
+
+67
+00:03:16.001 --> 00:03:18.006
+for the desired state of the system
+
+68
+00:03:18.006 --> 00:03:20.002
+in the Flagger directory,
+
+69
+00:03:20.002 --> 00:03:22.002
+that's the directory we just looked at
+
+70
+00:03:22.002 --> 00:03:23.008
+in the environment repository.
+
+71
+00:03:23.008 --> 00:03:26.006
+So, that's where it'll find the manifests.
+
+72
+00:03:26.006 --> 00:03:28.000
+Okay, let's go ahead.
+
+73
+00:03:28.000 --> 00:03:31.001
+We can create that definition.
+
+74
+00:03:31.001 --> 00:03:33.005
+And now if we take a look,
+
+75
+00:03:33.005 --> 00:03:36.004
+you'll see those two YAML files
+
+76
+00:03:36.004 --> 00:03:39.003
+defining our source and our customization.
+
+77
+00:03:39.003 --> 00:03:42.009
+Now remember, Flux is driven through a GitOps approach,
+
+78
+00:03:42.009 --> 00:03:46.009
+so we need to add those into our repository,
+
+79
+00:03:46.009 --> 00:03:52.002
+and then we'll commit them,
+
+80
+00:03:52.002 --> 00:03:54.009
+and then we'll push them up to GitHub
+
+81
+00:03:54.009 --> 00:03:58.008
+so that Flux can pull these definitions,
+
+82
+00:03:58.008 --> 00:04:02.003
+and make the source and the customization available
+
+83
+00:04:02.003 --> 00:04:04.001
+on the cluster.
+
+84
+00:04:04.001 --> 00:04:05.001
+Okay.
+
+85
+00:04:05.001 --> 00:04:07.006
+So, that's kicked off.
+
+86
+00:04:07.006 --> 00:04:11.008
+Let's do one thing while Flux is doing its work.
+
+87
+00:04:11.008 --> 00:04:17.003
+We're going to set up a load tester on our cluster.
+
+88
+00:04:17.003 --> 00:04:18.008
+So to do that,
+
+89
+00:04:18.008 --> 00:04:21.004
+Flagger makes available a load tester
+
+90
+00:04:21.004 --> 00:04:24.000
+that we can install with helm.
+
+91
+00:04:24.000 --> 00:04:28.006
+So, I'm going to go ahead and install that load tester.
+
+92
+00:04:28.006 --> 00:04:31.000
+Whoops! It looks like we got ahead of ourselves there.
+
+93
+00:04:31.000 --> 00:04:33.006
+It looks like Flux hasn't synced yet,
+
+94
+00:04:33.006 --> 00:04:35.004
+and created our namespace.
+
+95
+00:04:35.004 --> 00:04:39.009
+Let's head out to Azure and take a look to see its progress.
+
+96
+00:04:39.009 --> 00:04:42.004
+So here's our Kubernetes cluster.
+
+97
+00:04:42.004 --> 00:04:44.004
+And if we navigate into it,
+
+98
+00:04:44.004 --> 00:04:48.000
+we can take a look at what's being deployed by Flux
+
+99
+00:04:48.000 --> 00:04:49.006
+onto the cluster.
+
+100
+00:04:49.006 --> 00:04:50.005
+Okay.
+
+101
+00:04:50.005 --> 00:04:53.000
+There we can see, we have the Flagger namespace,
+
+102
+00:04:53.000 --> 00:04:55.009
+just got set up.
+
+103
+00:04:55.009 --> 00:04:59.006
+There's the gitops-foundations workflow,
+
+104
+00:04:59.006 --> 00:05:02.006
+which is underway.
+
+105
+00:05:02.006 --> 00:05:06.000
+You'll notice there's the primary.
+
+106
+00:05:06.000 --> 00:05:08.009
+And then if we take a look at the services,
+
+107
+00:05:08.009 --> 00:05:10.002
+there's our service.
+
+108
+00:05:10.002 --> 00:05:14.003
+You'll notice the primary and the canary.
+
+109
+00:05:14.003 --> 00:05:16.005
+Okay. Let's head back to the terminal,
+
+110
+00:05:16.005 --> 00:05:18.004
+and then I'll try that command again
+
+111
+00:05:18.004 --> 00:05:23.003
+to install the load tester with helm.
+
+112
+00:05:23.003 --> 00:05:26.004
+Okay. Looks like we're good to go this time.
+
+113
+00:05:26.004 --> 00:05:30.000
+You'll notice that the load tester establishes an end point
+
+114
+00:05:30.000 --> 00:05:33.002
+that we can hit to use the service.
+
+115
+00:05:33.002 --> 00:05:36.009
+Okay. So I'm going to go ahead and clear my console,
+
+116
+00:05:36.009 --> 00:05:38.006
+and then let's take a look
+
+117
+00:05:38.006 --> 00:05:42.004
+to see if our Canary has been established.
+
+118
+00:05:42.004 --> 00:05:48.007
+To do that, we can set up a watch using kubectl,
+
+119
+00:05:48.007 --> 00:05:52.002
+and we can just look for all the canaries in the namespace.
+
+120
+00:05:52.002 --> 00:05:54.005
+There we can see our Canary,
+
+121
+00:05:54.005 --> 00:05:56.009
+and you'll notice it's initialized.
+
+122
+00:05:56.009 --> 00:06:00.005
+It hasn't had a new release to deploy yet.
+
+123
+00:06:00.005 --> 00:06:04.003
+So I'm going to open another terminal, and in this terminal,
+
+124
+00:06:04.003 --> 00:06:08.006
+we can use kubectl to describe our Canary.
+
+125
+00:06:08.006 --> 00:06:09.004
+Okay.
+
+126
+00:06:09.004 --> 00:06:12.008
+So you'll notice if we look at the output of this command,
+
+127
+00:06:12.008 --> 00:06:16.005
+we get some information about the status of our Canary.
+
+128
+00:06:16.005 --> 00:06:18.001
+You can see that, right now,
+
+129
+00:06:18.001 --> 00:06:22.001
+it's just synced up, and there's really nothing going on.
+
+130
+00:06:22.001 --> 00:06:24.006
+That's going to change here in a minute.
+
+131
+00:06:24.006 --> 00:06:26.004
+Let's first go make sure
+
+132
+00:06:26.004 --> 00:06:30.005
+that everything is good out on Azure.
+
+133
+00:06:30.005 --> 00:06:33.008
+So, there's our services.
+
+134
+00:06:33.008 --> 00:06:37.005
+There, it appears that our pods are up and running.
+
+135
+00:06:37.005 --> 00:06:40.002
+All right, everything looks pretty good here.
+
+136
+00:06:40.002 --> 00:06:45.005
+So now we're going to navigate back to GitHub.
+
+137
+00:06:45.005 --> 00:06:46.003
+And remember,
+
+138
+00:06:46.003 --> 00:06:48.009
+everything gets driven through Git with GitOps,
+
+139
+00:06:48.009 --> 00:06:53.009
+so we're going to change our deployment.
+
+140
+00:06:53.009 --> 00:06:55.007
+Inside of the deployment,
+
+141
+00:06:55.007 --> 00:06:58.008
+I'm going to go ahead and change this over
+
+142
+00:06:58.008 --> 00:07:02.009
+to version two of our container image.
+
+143
+00:07:02.009 --> 00:07:07.004
+And this is going to be progressively delivered by Flagger.
+
+144
+00:07:07.004 --> 00:07:10.005
+So let's go ahead, we'll make the commit.
+
+145
+00:07:10.005 --> 00:07:13.006
+And then I want to head back to our terminal,
+
+146
+00:07:13.006 --> 00:07:16.006
+where we have a watch on our Canary.
+
+147
+00:07:16.006 --> 00:07:20.003
+Its status should flip here in a minute.
+
+148
+00:07:20.003 --> 00:07:24.004
+So, there you can see the Canary deployment just started.
+
+149
+00:07:24.004 --> 00:07:27.005
+Now let's head over to that second terminal,
+
+150
+00:07:27.005 --> 00:07:32.005
+and I'm going to describe the Canary once again.
+
+151
+00:07:32.005 --> 00:07:37.006
+You can see, it's starting to scale up new replicas.
+
+152
+00:07:37.006 --> 00:07:39.003
+Let's just keep an eye on this.
+
+153
+00:07:39.003 --> 00:07:43.001
+And every so often, I'm going to take a look
+
+154
+00:07:43.001 --> 00:07:44.008
+and see where it's at.
+
+155
+00:07:44.008 --> 00:07:47.003
+You can see right now the weight is at 5,
+
+156
+00:07:47.003 --> 00:07:50.005
+so it's routing some of the traffic there.
+
+157
+00:07:50.005 --> 00:07:52.000
+Let's go out,
+
+158
+00:07:52.000 --> 00:07:54.008
+and we can start sending a little bit of traffic.
+
+159
+00:07:54.008 --> 00:07:57.003
+So here's the Nginx controller.
+
+160
+00:07:57.003 --> 00:08:01.001
+If you remember that DNS label that we had,
+
+161
+00:08:01.001 --> 00:08:06.000
+now it's hosting our application, since it's been deployed.
+
+162
+00:08:06.000 --> 00:08:07.004
+Let's go back.
+
+163
+00:08:07.004 --> 00:08:11.000
+We'll take a look at how our Canary's doing.
+
+164
+00:08:11.000 --> 00:08:17.003
+You can see we're up to 20% of the traffic. Excellent.
+
+165
+00:08:17.003 --> 00:08:20.004
+We can head over to where we have the watch.
+
+166
+00:08:20.004 --> 00:08:22.002
+You can see it's still progressing.
+
+167
+00:08:22.002 --> 00:08:25.006
+It's telling us it's at 30 now.
+
+168
+00:08:25.006 --> 00:08:28.003
+Now it's up to 35.
+
+169
+00:08:28.003 --> 00:08:29.003
+It's at 40.
+
+170
+00:08:29.003 --> 00:08:32.009
+It's going to get promoted soon.
+
+171
+00:08:32.009 --> 00:08:34.008
+And there it's starting to promote
+
+172
+00:08:34.008 --> 00:08:39.008
+the new version of our container image.
+
+173
+00:08:39.008 --> 00:08:43.001
+So, there we can see the new version was promoted,
+
+174
+00:08:43.001 --> 00:08:48.000
+and we have successfully completed our Canary deployment.
+
+175
+00:08:48.000 --> 00:08:51.000
+Let's take one final look at the Canary,
+
+176
+00:08:51.000 --> 00:08:52.009
+and we can describe it,
+
+177
+00:08:52.009 --> 00:08:57.000
+and we can see all the steps that it went through there.
+
+178
+00:08:57.000 --> 00:08:59.009
+All right, so that's a look at how Flagger
+
+179
+00:08:59.009 --> 00:09:03.008
+uses a GitOps approach to progressive delivery.
+
+180
+00:09:03.008 --> 00:09:07.004
+And that rounds up our look at the different GitOps tools
+
+181
+00:09:07.004 --> 00:09:08.006
+that you can use.
+
+182
+00:09:08.006 --> 00:09:11.002
+They all use that GitOps pattern
+
+183
+00:09:11.002 --> 00:09:14.005
+to handle different pieces of operations
+
+184
+00:09:14.005 --> 00:09:16.000
+of a cloud native system.
+

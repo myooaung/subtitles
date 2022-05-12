@@ -1,0 +1,677 @@
+WEBVTT
+1
+00:00:00.050 --> 00:00:01.070
+- [Instructor] Now that we understand
+
+2
+00:00:01.070 --> 00:00:04.000
+the structure of the JSON web tokens,
+
+3
+00:00:04.000 --> 00:00:06.070
+let's see how it works in our application.
+
+4
+00:00:06.070 --> 00:00:09.080
+We have two new files in the exercises.
+
+5
+00:00:09.080 --> 00:00:12.080
+JwtTokenProvider which encapsulates
+
+6
+00:00:12.080 --> 00:00:16.020
+all of the creating and creating of the JWT tokens.
+
+7
+00:00:16.020 --> 00:00:20.070
+And JwtTokenFilter which is a Spring Web filter.
+
+8
+00:00:20.070 --> 00:00:22.090
+Web filters are classes that execute
+
+9
+00:00:22.090 --> 00:00:25.020
+before invoking the controller
+
+10
+00:00:25.020 --> 00:00:28.070
+or Spring Data REST repository methods.
+
+11
+00:00:28.070 --> 00:00:31.030
+We've also modified the following files:
+
+12
+00:00:31.030 --> 00:00:36.090
+we've added jjwt dependency in the pom.xml,
+
+13
+00:00:36.090 --> 00:00:39.030
+WebSecurityConfiguration is added
+
+14
+00:00:39.030 --> 00:00:42.060
+to the JwtTokenFilter filter,
+
+15
+00:00:42.060 --> 00:00:47.010
+UserController, and ExploreCaliUserDetailsService methods
+
+16
+00:00:47.010 --> 00:00:51.040
+are now JWT and role-based security aware,
+
+17
+00:00:51.040 --> 00:00:55.060
+and new properties are added to application.properties.
+
+18
+00:00:55.060 --> 00:01:01.000
+So let's actually run the endpoint to sign in as a user.
+
+19
+00:01:01.000 --> 00:01:05.040
+So we have the signin endpoint and the user is wally,
+
+20
+00:01:05.040 --> 00:01:12.020
+and he's sending the password letmein.
+
+21
+00:01:12.020 --> 00:01:14.050
+And we see a return of very long
+
+22
+00:01:14.050 --> 00:01:18.030
+gobbledygooped string and this is the JWT token.
+
+23
+00:01:18.030 --> 00:01:20.080
+We can copy this to an online website
+
+24
+00:01:20.080 --> 00:01:26.030
+that will interpret it.
+
+25
+00:01:26.030 --> 00:01:29.010
+This is the jsonwebtoken.io website,
+
+26
+00:01:29.010 --> 00:01:32.000
+and I'll paste this token value here.
+
+27
+00:01:32.000 --> 00:01:35.090
+And it will actually interpret the contents.
+
+28
+00:01:35.090 --> 00:01:38.070
+So we see that the header of this type is JWT.
+
+29
+00:01:38.070 --> 00:01:42.090
+The algorithm is HAMC SHA256.
+
+30
+00:01:42.090 --> 00:01:45.050
+The payload is also know as claims.
+
+31
+00:01:45.050 --> 00:01:48.040
+The claims that's specific to our application
+
+32
+00:01:48.040 --> 00:01:50.040
+are the subject and roles.
+
+33
+00:01:50.040 --> 00:01:52.060
+The subject is the username wally,
+
+34
+00:01:52.060 --> 00:01:56.000
+and the roles are ADMIN and CSR.
+
+35
+00:01:56.000 --> 00:01:59.000
+The next three claims are automatically generated.
+
+36
+00:01:59.000 --> 00:02:00.080
+Iat is the time.
+
+37
+00:02:00.080 --> 00:02:02.060
+The JWT was issued.
+
+38
+00:02:02.060 --> 00:02:04.010
+Exp is the expiration.
+
+39
+00:02:04.010 --> 00:02:07.000
+And the jti is the unique identifier.
+
+40
+00:02:07.000 --> 00:02:11.030
+Now let's go back and look at the JwtProvider class.
+
+41
+00:02:11.030 --> 00:02:15.010
+So in the JwtProvider class, this is the utility
+
+42
+00:02:15.010 --> 00:02:19.030
+that leverages the io.jsonwebtoken library.
+
+43
+00:02:19.030 --> 00:02:22.000
+First it Auto-wires two properties.
+
+44
+00:02:22.000 --> 00:02:26.010
+Let me make this a little better to read there, yes.
+
+45
+00:02:26.010 --> 00:02:28.010
+And these two properties are
+
+46
+00:02:28.010 --> 00:02:30.090
+set in the application.properties
+
+47
+00:02:30.090 --> 00:02:33.010
+and it's a unique secretKey value.
+
+48
+00:02:33.010 --> 00:02:34.080
+And the validityInMilliseconds,
+
+49
+00:02:34.080 --> 00:02:37.040
+we've had the expiration set for the number
+
+50
+00:02:37.040 --> 00:02:39.070
+of milliseconds that's for 10 minutes.
+
+51
+00:02:39.070 --> 00:02:46.020
+Then we have a method that will actually create the token
+
+52
+00:02:46.020 --> 00:02:48.050
+given the username and list of roles,
+
+53
+00:02:48.050 --> 00:02:51.080
+it builds the claims with the Subject.
+
+54
+00:02:51.080 --> 00:02:53.060
+And for each of the roles it creates
+
+55
+00:02:53.060 --> 00:02:56.060
+a SimpleGrantedAuthority which is
+
+56
+00:02:56.060 --> 00:02:59.020
+Spring Security specific interface.
+
+57
+00:02:59.020 --> 00:03:01.050
+And then, it adds the dates that are our interest,
+
+58
+00:03:01.050 --> 00:03:05.040
+like the expiration and when it was issued.
+
+59
+00:03:05.040 --> 00:03:09.030
+And now there are methods to decode the token.
+
+60
+00:03:09.030 --> 00:03:12.000
+We have a method that takes the token
+
+61
+00:03:12.000 --> 00:03:15.070
+and parses it to make sure it's a valid key.
+
+62
+00:03:15.070 --> 00:03:19.070
+And also if it does not then it would throw it an exception,
+
+63
+00:03:19.070 --> 00:03:22.080
+and so we return false.
+
+64
+00:03:22.080 --> 00:03:24.040
+There's another helper method
+
+65
+00:03:24.040 --> 00:03:29.060
+that's given the token it pulls off the username.
+
+66
+00:03:29.060 --> 00:03:34.050
+And another helper method for given the token,
+
+67
+00:03:34.050 --> 00:03:38.020
+it will get the roles for that user.
+
+68
+00:03:38.020 --> 00:03:39.080
+Now let's look at the annotations
+
+69
+00:03:39.080 --> 00:03:44.060
+I added to UserController class.
+
+70
+00:03:44.060 --> 00:03:50.060
+On the sign-up and getAllUsers methods,
+
+71
+00:03:50.060 --> 00:03:55.070
+there is an @PreAuthorized with ROLE_ADMIN value.
+
+72
+00:03:55.070 --> 00:03:58.010
+So only users with the admin role
+
+73
+00:03:58.010 --> 00:04:01.050
+can add in a user or look up all the users.
+
+74
+00:04:01.050 --> 00:04:03.000
+But how does this work?
+
+75
+00:04:03.000 --> 00:04:05.070
+This annotation depends on a Spring Web filter
+
+76
+00:04:05.070 --> 00:04:08.000
+that is establishes the authenticated users
+
+77
+00:04:08.000 --> 00:04:12.000
+list of granted authorities, also known as roles.
+
+78
+00:04:12.000 --> 00:04:14.010
+Web filters are invoked
+
+79
+00:04:14.010 --> 00:04:16.070
+before the controller method is invoked.
+
+80
+00:04:16.070 --> 00:04:18.090
+And if certain expectations are not met,
+
+81
+00:04:18.090 --> 00:04:22.040
+the filter can block the controller method's invocation.
+
+82
+00:04:22.040 --> 00:04:27.010
+Let's open up our WebSecurityConfiguration class.
+
+83
+00:04:27.010 --> 00:04:30.040
+And it's here that we have established
+
+84
+00:04:30.040 --> 00:04:34.040
+a new filter called JwtFilter.
+
+85
+00:04:34.040 --> 00:04:38.050
+So let's drill down into the JwtFilter.
+
+86
+00:04:38.050 --> 00:04:41.050
+So, with this filter,
+
+87
+00:04:41.050 --> 00:04:44.060
+we have overridden the doFilter method.
+
+88
+00:04:44.060 --> 00:04:50.090
+Our filter extends GenericFilterBean.
+
+89
+00:04:50.090 --> 00:04:53.030
+So I could talk through all these lines of code,
+
+90
+00:04:53.030 --> 00:04:55.020
+but I think it will make it easier
+
+91
+00:04:55.020 --> 00:04:58.060
+to understand if we actually run this in the debugger.
+
+92
+00:04:58.060 --> 00:05:02.000
+So, I'm gonna stop the application from running
+
+93
+00:05:02.000 --> 00:05:06.080
+and then run it again in debug mode.
+
+94
+00:05:06.080 --> 00:05:11.050
+So we hit the breakpoint in the security configuration
+
+95
+00:05:11.050 --> 00:05:14.060
+where we add the filter.
+
+96
+00:05:14.060 --> 00:05:17.050
+And the application is been running.
+
+97
+00:05:17.050 --> 00:05:20.000
+So let's go over to Postman,
+
+98
+00:05:20.000 --> 00:05:24.010
+and so I'm going to invoke the signin endpoint
+
+99
+00:05:24.010 --> 00:05:28.060
+with wally and letmein.
+
+100
+00:05:28.060 --> 00:05:34.000
+And right away, we've hit the JwtFilter
+
+101
+00:05:34.000 --> 00:05:35.090
+doFilter method.
+
+102
+00:05:35.090 --> 00:05:40.020
+And this will look and see if any authentication
+
+103
+00:05:40.020 --> 00:05:44.030
+is required in this case for the signin that's freely open.
+
+104
+00:05:44.030 --> 00:05:49.040
+So it's not gonna have to apply all those JWT token logic.
+
+105
+00:05:49.040 --> 00:05:50.070
+It'll just click go.
+
+106
+00:05:50.070 --> 00:05:57.040
+And now we're at the UserController signin method,
+
+107
+00:05:57.040 --> 00:05:59.070
+and I'll just click Go there.
+
+108
+00:05:59.070 --> 00:06:03.080
+And now we are going through the user service
+
+109
+00:06:03.080 --> 00:06:08.060
+for signing in.
+
+110
+00:06:08.060 --> 00:06:13.050
+And this is now jumping into JwtFilter
+
+111
+00:06:13.050 --> 00:06:15.030
+where it will create the token.
+
+112
+00:06:15.030 --> 00:06:18.010
+So here our username is wally.
+
+113
+00:06:18.010 --> 00:06:19.080
+And then we have our list of roles
+
+114
+00:06:19.080 --> 00:06:22.020
+already established as admin
+
+115
+00:06:22.020 --> 00:06:26.020
+and customer service representative.
+
+116
+00:06:26.020 --> 00:06:30.060
+So here we build the claims,
+
+117
+00:06:30.060 --> 00:06:34.070
+create the date, and then invoke the Jwts.builder method,
+
+118
+00:06:34.070 --> 00:06:39.030
+and returned the JWT string.
+
+119
+00:06:39.030 --> 00:06:40.050
+So here's our value.
+
+120
+00:06:40.050 --> 00:06:42.000
+Now how do we actually use it?
+
+121
+00:06:42.000 --> 00:06:44.010
+I'm going to copy it over here,
+
+122
+00:06:44.010 --> 00:06:46.070
+and remember the endpoint
+
+123
+00:06:46.070 --> 00:06:49.030
+for getting the users is protected.
+
+124
+00:06:49.030 --> 00:06:51.070
+So on the header, I have the Key
+
+125
+00:06:51.070 --> 00:06:53.080
+that I have to set to authorization,
+
+126
+00:06:53.080 --> 00:06:55.060
+and then the Value is Bearer.
+
+127
+00:06:55.060 --> 00:06:57.010
+And then I need a space,
+
+128
+00:06:57.010 --> 00:06:59.050
+and then I'm pasting in the token.
+
+129
+00:06:59.050 --> 00:07:03.050
+I'm gonna send that.
+
+130
+00:07:03.050 --> 00:07:05.020
+And we're back in our filter again,
+
+131
+00:07:05.020 --> 00:07:14.020
+and we're going to walk through this code.
+
+132
+00:07:14.020 --> 00:07:20.010
+And now because this user has the role for ROLE_ADMIN,
+
+133
+00:07:20.010 --> 00:07:25.070
+we do go to the getAllUsers method.
+
+134
+00:07:25.070 --> 00:07:28.020
+And all of the users are returned.
+
+135
+00:07:28.020 --> 00:07:29.050
+So I'm gonna show you happens
+
+136
+00:07:29.050 --> 00:07:33.010
+if you do not have the appropriate headers.
+
+137
+00:07:33.010 --> 00:07:36.030
+I'm invoking that same endpoint,
+
+138
+00:07:36.030 --> 00:07:39.030
+but I am not setting the headers.
+
+139
+00:07:39.030 --> 00:07:41.070
+It looks for a token and the headerValue
+
+140
+00:07:41.070 --> 00:07:42.070
+for looking up the token.
+
+141
+00:07:42.070 --> 00:07:49.070
+It does not find it.
+
+142
+00:07:49.070 --> 00:07:51.030
+And because it does not find it,
+
+143
+00:07:51.030 --> 00:07:53.030
+we go through this filter again.
+
+144
+00:07:53.030 --> 00:07:56.030
+Because it's trying to forward to an error endpoint
+
+145
+00:07:56.030 --> 00:07:57.050
+which we haven't established,
+
+146
+00:07:57.050 --> 00:07:58.070
+but that's something that can be done
+
+147
+00:07:58.070 --> 00:08:01.010
+in another option.
+
+148
+00:08:01.010 --> 00:08:02.080
+And we get the 403 Forbidden,
+
+149
+00:08:02.080 --> 00:08:07.010
+so we never actually reach the UserController method
+
+150
+00:08:07.010 --> 00:08:08.070
+to get all the users.
+
+151
+00:08:08.070 --> 00:08:12.010
+So, in TourRatingController,
+
+152
+00:08:12.010 --> 00:08:14.050
+I've added some other guards.
+
+153
+00:08:14.050 --> 00:08:17.000
+So here in TourRatingController,
+
+154
+00:08:17.000 --> 00:08:20.010
+I've added a user has to be preauthorized
+
+155
+00:08:20.010 --> 00:08:24.080
+to have the ROLE_CSR to create a TourRating,
+
+156
+00:08:24.080 --> 00:08:29.070
+to get the score of a TourRating of a tour.
+
+157
+00:08:29.070 --> 00:08:31.080
+And there is no protection on getting
+
+158
+00:08:31.080 --> 00:08:35.040
+all ratings for a tour, so that's publicly available
+
+159
+00:08:35.040 --> 00:08:38.080
+as well as getting the average score for a tour.
+
+160
+00:08:38.080 --> 00:08:41.050
+But to update a TourRating, you have to have that
+
+161
+00:08:41.050 --> 00:08:45.030
+customer representative role as well as update with PATCH,
+
+162
+00:08:45.030 --> 00:08:47.020
+and, of course, to delete you need
+
+163
+00:08:47.020 --> 00:08:49.080
+to have that preauthorized annotation.
+
+164
+00:08:49.080 --> 00:08:52.000
+This was a very quick overview
+
+165
+00:08:52.000 --> 00:08:54.030
+of the code changes in this chapter.
+
+166
+00:08:54.030 --> 00:08:55.090
+If you want a deeper understanding,
+
+167
+00:08:55.090 --> 00:08:58.010
+I encourage you to download and run the video's
+
+168
+00:08:58.010 --> 00:09:00.070
+exercise files locally and invoke the APIs
+
+169
+00:09:00.070 --> 00:09:02.000
+with the tokens yourself.
+

@@ -1,0 +1,281 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:02.000
+- [Instructor] So now we're going to look
+
+2
+00:00:02.000 --> 00:00:06.003
+at the benefits and simplicity of using spring transactions.
+
+3
+00:00:06.003 --> 00:00:09.004
+I already have the app up and started,
+
+4
+00:00:09.004 --> 00:00:12.001
+and I want to see all the ratings for a tour
+
+5
+00:00:12.001 --> 00:00:13.008
+with an ID of one.
+
+6
+00:00:13.008 --> 00:00:18.005
+In Postman, I want to get all the tour ratings for tour one.
+
+7
+00:00:18.005 --> 00:00:23.001
+And I see there is one for customer ID of four
+
+8
+00:00:23.001 --> 00:00:25.006
+with a score of five, and they loved it.
+
+9
+00:00:25.006 --> 00:00:27.005
+Now I want to invoke an API.
+
+10
+00:00:27.005 --> 00:00:31.000
+We're going to give a score of three to tour one
+
+11
+00:00:31.000 --> 00:00:40.006
+for customers with IDs one, two, three, four, five, and six.
+
+12
+00:00:40.006 --> 00:00:43.003
+And we get an internal server error
+
+13
+00:00:43.003 --> 00:00:46.006
+with a constraint violation exception on tour rating.
+
+14
+00:00:46.006 --> 00:00:49.004
+So let's debug this. Why is this happening?
+
+15
+00:00:49.004 --> 00:00:56.001
+So here is our method to post to the score
+
+16
+00:00:56.001 --> 00:00:59.006
+and the tour ID and a list of customers,
+
+17
+00:00:59.006 --> 00:01:02.000
+which invokes the tour rating service
+
+18
+00:01:02.000 --> 00:01:08.009
+to rate many customers for a particular tour,
+
+19
+00:01:08.009 --> 00:01:11.005
+and if we drill down into that service,
+
+20
+00:01:11.005 --> 00:01:14.002
+here's where we take the tour ID and the score
+
+21
+00:01:14.002 --> 00:01:16.003
+and the list of customers,
+
+22
+00:01:16.003 --> 00:01:20.005
+and we will iterate through the tour,
+
+23
+00:01:20.005 --> 00:01:24.002
+and for each customer,
+
+24
+00:01:24.002 --> 00:01:29.000
+we will add a new tour rating for that customer
+
+25
+00:01:29.000 --> 00:01:31.001
+and the tour.
+
+26
+00:01:31.001 --> 00:01:32.005
+But why are we getting the exception?
+
+27
+00:01:32.005 --> 00:01:35.002
+Why are we getting a constraint violation?
+
+28
+00:01:35.002 --> 00:01:38.008
+I think we need to look at the schema.sql,
+
+29
+00:01:38.008 --> 00:01:40.008
+and at the bottom of the schema.sql,
+
+30
+00:01:40.008 --> 00:01:44.009
+we have a constraint, which says on a tour rating,
+
+31
+00:01:44.009 --> 00:01:49.009
+you cannot have a customer rate more than one tour
+
+32
+00:01:49.009 --> 00:01:52.005
+of a certain tour ID.
+
+33
+00:01:52.005 --> 00:02:00.004
+So let's look again what happened whenever we did that post.
+
+34
+00:02:00.004 --> 00:02:01.007
+Let's see what tour ratings
+
+35
+00:02:01.007 --> 00:02:05.000
+there exist in the database for one.
+
+36
+00:02:05.000 --> 00:02:07.003
+And we see that it did create some,
+
+37
+00:02:07.003 --> 00:02:10.004
+we had the score of five for customer ID four,
+
+38
+00:02:10.004 --> 00:02:15.008
+but we also now have for customer ID one and two and three.
+
+39
+00:02:15.008 --> 00:02:19.000
+So it went through customer one, two, and three,
+
+40
+00:02:19.000 --> 00:02:22.004
+and then it stopped on four, because that's where
+
+41
+00:02:22.004 --> 00:02:25.002
+the constraint violation exception happened.
+
+42
+00:02:25.002 --> 00:02:29.002
+So it looks like our application is behaving as defined,
+
+43
+00:02:29.002 --> 00:02:32.003
+however, normally in a business level service call,
+
+44
+00:02:32.003 --> 00:02:35.001
+if there is a failure during execution,
+
+45
+00:02:35.001 --> 00:02:37.000
+the state of the data should appear
+
+46
+00:02:37.000 --> 00:02:39.009
+as if the service was never invoked.
+
+47
+00:02:39.009 --> 00:02:41.003
+This sounds complicated,
+
+48
+00:02:41.003 --> 00:02:44.008
+but spring transactions makes this incredibly easy
+
+49
+00:02:44.008 --> 00:02:47.002
+just by adding one annotation.
+
+50
+00:02:47.002 --> 00:02:49.002
+So I'm going to go back into the code
+
+51
+00:02:49.002 --> 00:02:51.006
+and stop my application,
+
+52
+00:02:51.006 --> 00:02:55.009
+and then on tour rating service, this rate many method,
+
+53
+00:02:55.009 --> 00:03:06.001
+I'm going to add annotation @transactional.
+
+54
+00:03:06.001 --> 00:03:10.006
+And now I'm going to run the application,
+
+55
+00:03:10.006 --> 00:03:14.002
+and I'm going to try that API again
+
+56
+00:03:14.002 --> 00:03:17.003
+for customers one, two, three, four, five, and six,
+
+57
+00:03:17.003 --> 00:03:20.009
+to set a score of three.
+
+58
+00:03:20.009 --> 00:03:23.006
+We still get the internal server error,
+
+59
+00:03:23.006 --> 00:03:27.005
+but let's look at the ratings for the tour again.
+
+60
+00:03:27.005 --> 00:03:30.008
+So we still have the customer ID four having its ratings,
+
+61
+00:03:30.008 --> 00:03:36.004
+but customers one, two, three have not been created.
+
+62
+00:03:36.004 --> 00:03:39.006
+The nice thing about @transactional is that it can be set
+
+63
+00:03:39.006 --> 00:03:41.006
+on a whole class, not just a method.
+
+64
+00:03:41.006 --> 00:03:44.005
+So let's move the annotation of the class.
+
+65
+00:03:44.005 --> 00:03:49.001
+Let's move it from the method,
+
+66
+00:03:49.001 --> 00:03:50.005
+and put it at the top of the class
+
+67
+00:03:50.005 --> 00:03:55.002
+so that all of these services
+
+68
+00:03:55.002 --> 00:03:57.003
+can be transactional and rolled back
+
+69
+00:03:57.003 --> 00:04:00.000
+if something fails.
+
+70
+00:04:00.000 --> 00:04:04.000
+Now we have a transactional service, thanks to spring.
+

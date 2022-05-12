@@ -1,0 +1,453 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:02.008
+- [Illustrator] In some instances within a job,
+
+2
+00:00:02.008 --> 00:00:04.005
+an exception may occur.
+
+3
+00:00:04.005 --> 00:00:07.003
+However, the job should not be failed.
+
+4
+00:00:07.003 --> 00:00:10.001
+Spring Batch allows for this sort of behavior
+
+5
+00:00:10.001 --> 00:00:12.006
+through a concept known as skips.
+
+6
+00:00:12.006 --> 00:00:16.000
+Skips allow permissible exceptions to be ignored
+
+7
+00:00:16.000 --> 00:00:19.004
+so that jobs can continue their processing.
+
+8
+00:00:19.004 --> 00:00:22.004
+Let's take a look at how we can configure a step
+
+9
+00:00:22.004 --> 00:00:25.001
+to incorporate some skip logic.
+
+10
+00:00:25.001 --> 00:00:27.006
+In order to see skip logic in action,
+
+11
+00:00:27.006 --> 00:00:29.006
+I've added a little volatility into
+
+12
+00:00:29.006 --> 00:00:32.006
+our Tracked Order Item Processor.
+
+13
+00:00:32.006 --> 00:00:37.004
+Let's imagine that the tracking number, that's added
+
+14
+00:00:37.004 --> 00:00:42.001
+by this processor is received by a third party shipper
+
+15
+00:00:42.001 --> 00:00:44.002
+that exposes an API.
+
+16
+00:00:44.002 --> 00:00:45.008
+So here you see we have a call
+
+17
+00:00:45.008 --> 00:00:47.009
+to the get Tracking Number method.
+
+18
+00:00:47.009 --> 00:00:51.001
+And let's imagine this is the call to the API.
+
+19
+00:00:51.001 --> 00:00:53.009
+So you'll see that we can return the Tracking Number
+
+20
+00:00:53.009 --> 00:00:57.008
+from this method, but roughly 30% of the time,
+
+21
+00:00:57.008 --> 00:01:02.003
+it's going to throw in Order Processing Exception.
+
+22
+00:01:02.003 --> 00:01:05.007
+So we've essentially added some volatility here,
+
+23
+00:01:05.007 --> 00:01:09.000
+so that we can try out the skip logic.
+
+24
+00:01:09.000 --> 00:01:12.004
+Now in order to incorporate this, let's go over
+
+25
+00:01:12.004 --> 00:01:14.009
+to the configuration of our job.
+
+26
+00:01:14.009 --> 00:01:19.006
+And we're going to go to the chunk based step.
+
+27
+00:01:19.006 --> 00:01:24.001
+Within the chunk based step, we're going to add a call
+
+28
+00:01:24.001 --> 00:01:26.005
+to the fault Tolerant method
+
+29
+00:01:26.005 --> 00:01:29.004
+within our steps configuration,
+
+30
+00:01:29.004 --> 00:01:34.003
+this is going to return a fault tolerance step builder.
+
+31
+00:01:34.003 --> 00:01:36.008
+And this allows us to incorporate
+
+32
+00:01:36.008 --> 00:01:40.003
+some resiliency strategies like skips.
+
+33
+00:01:40.003 --> 00:01:43.006
+So here you'll see the skip method
+
+34
+00:01:43.006 --> 00:01:46.007
+on the fault tolerant step builder.
+
+35
+00:01:46.007 --> 00:01:52.004
+And it allows us to specify the type of exception
+
+36
+00:01:52.004 --> 00:01:55.001
+that we would like to skip.
+
+37
+00:01:55.001 --> 00:02:00.000
+So anytime this step throws an order processing exception,
+
+38
+00:02:00.000 --> 00:02:02.009
+we're going to be okay with continuing processing,
+
+39
+00:02:02.009 --> 00:02:05.007
+and we'll just skip that item.
+
+40
+00:02:05.007 --> 00:02:10.001
+Now within the configuration of skips,
+
+41
+00:02:10.001 --> 00:02:12.009
+we're able to specify a skip limit.
+
+42
+00:02:12.009 --> 00:02:18.001
+So this is how many skips can occur within this step before
+
+43
+00:02:18.001 --> 00:02:20.003
+we would actually fail the job.
+
+44
+00:02:20.003 --> 00:02:24.009
+Because if every item within this step were
+
+45
+00:02:24.009 --> 00:02:26.007
+to throw that exception,
+
+46
+00:02:26.007 --> 00:02:28.004
+there's probably something a little bit more
+
+47
+00:02:28.004 --> 00:02:31.006
+critical going on, and we wouldn't want to fail.
+
+48
+00:02:31.006 --> 00:02:34.007
+So let's go ahead and add a skip limit of five.
+
+49
+00:02:34.007 --> 00:02:38.001
+And then we're going to add one more thing here,
+
+50
+00:02:38.001 --> 00:02:41.001
+we're able to add a listener.
+
+51
+00:02:41.001 --> 00:02:45.000
+And in this case, it's going to be a skip listener.
+
+52
+00:02:45.000 --> 00:02:48.009
+So I'm going to go ahead and specify that we would like
+
+53
+00:02:48.009 --> 00:02:52.001
+to register a listener using the listener method.
+
+54
+00:02:52.001 --> 00:02:55.003
+And then I'm going to create a new class
+
+55
+00:02:55.003 --> 00:02:58.003
+of type custom skip listener.
+
+56
+00:02:58.003 --> 00:03:02.000
+So I'm just creating the stub for that constructor,
+
+57
+00:03:02.000 --> 00:03:06.005
+and then we can use Ctrl+1 to create the class.
+
+58
+00:03:06.005 --> 00:03:09.006
+And then within the new class dialogue,
+
+59
+00:03:09.006 --> 00:03:13.000
+we're going to go ahead and specify
+
+60
+00:03:13.000 --> 00:03:19.009
+that this class is going to use the skip listener interface.
+
+61
+00:03:19.009 --> 00:03:22.005
+So here we can see that interface.
+
+62
+00:03:22.005 --> 00:03:26.004
+And this interface does except two generics.
+
+63
+00:03:26.004 --> 00:03:29.009
+So the first generic is going to be the type of the input,
+
+64
+00:03:29.009 --> 00:03:31.004
+and it's going to be order.
+
+65
+00:03:31.004 --> 00:03:33.003
+And then for the second generic,
+
+66
+00:03:33.003 --> 00:03:37.007
+we're going to specify that it is a tracked order.
+
+67
+00:03:37.007 --> 00:03:40.007
+So let's go ahead and we'll hit finish
+
+68
+00:03:40.007 --> 00:03:44.008
+to create our skip listener.
+
+69
+00:03:44.008 --> 00:03:48.004
+You'll see several methods on this interface.
+
+70
+00:03:48.004 --> 00:03:53.003
+The one we're interested in is the onSkipInProcess
+
+71
+00:03:53.003 --> 00:03:56.005
+and what we're going to do is add a little bit
+
+72
+00:03:56.005 --> 00:03:59.001
+of console output here.
+
+73
+00:03:59.001 --> 00:04:02.004
+So I'm just going to write to the console,
+
+74
+00:04:02.004 --> 00:04:08.008
+and I'll say skipping processing of item with ID.
+
+75
+00:04:08.008 --> 00:04:13.002
+And then we'll just print the ID of the item,
+
+76
+00:04:13.002 --> 00:04:17.009
+and here we can get the order item ID.
+
+77
+00:04:17.009 --> 00:04:20.007
+And we'll go ahead and save that.
+
+78
+00:04:20.007 --> 00:04:24.005
+So we have this output within our skip listener,
+
+79
+00:04:24.005 --> 00:04:27.009
+that's going to give us some insights into what's going on.
+
+80
+00:04:27.009 --> 00:04:31.009
+And then within our Tracked Order Item Processor,
+
+81
+00:04:31.009 --> 00:04:34.006
+we're also sending a little bit more console output out
+
+82
+00:04:34.006 --> 00:04:37.008
+as well, so we can see what item we're processing.
+
+83
+00:04:37.008 --> 00:04:41.007
+Now you'll notice we've configured the volatility
+
+84
+00:04:41.007 --> 00:04:44.000
+to roughly 30% of the time skip.
+
+85
+00:04:44.000 --> 00:04:48.008
+This will most likely result in a failure of the job
+
+86
+00:04:48.008 --> 00:04:52.005
+because we'll throw more than five most likely.
+
+87
+00:04:52.005 --> 00:04:55.005
+So let's navigate over to our console,
+
+88
+00:04:55.005 --> 00:04:59.001
+and then we're going to go ahead and kick off our job.
+
+89
+00:04:59.001 --> 00:05:01.004
+So here, you'll see the job will build
+
+90
+00:05:01.004 --> 00:05:03.005
+and then begin to execute.
+
+91
+00:05:03.005 --> 00:05:07.009
+And we should see some output regarding those skips.
+
+92
+00:05:07.009 --> 00:05:09.001
+There we go.
+
+93
+00:05:09.001 --> 00:05:11.009
+And you can see that we did fail.
+
+94
+00:05:11.009 --> 00:05:15.001
+And if we take a look at the console output,
+
+95
+00:05:15.001 --> 00:05:18.006
+within the stack trace, you're going to see
+
+96
+00:05:18.006 --> 00:05:22.009
+that we had a skip limit exceeded exception.
+
+97
+00:05:22.009 --> 00:05:27.008
+And we did hit that cap on five skips.
+
+98
+00:05:27.008 --> 00:05:30.004
+So let's go back to the job,
+
+99
+00:05:30.004 --> 00:05:36.001
+and within the Tracked Order Item Processor,
+
+100
+00:05:36.001 --> 00:05:39.008
+I'm going to tone this way down to just 1%.
+
+101
+00:05:39.008 --> 00:05:42.004
+Actually, let's set it to three.
+
+102
+00:05:42.004 --> 00:05:47.002
+And then we'll save that and now I'm going to go back,
+
+103
+00:05:47.002 --> 00:05:50.004
+clear the console and rerun the job.
+
+104
+00:05:50.004 --> 00:05:53.008
+Hopefully, we won't hit our skip limit this time,
+
+105
+00:05:53.008 --> 00:05:57.007
+and we'll see the job successfully execute, ignoring
+
+106
+00:05:57.007 --> 00:06:01.006
+those exceptions that are thrown.
+
+107
+00:06:01.006 --> 00:06:04.005
+Okay, so there if we look, you can see
+
+108
+00:06:04.005 --> 00:06:09.006
+we did have two skips occur, we didn't hit our skip limit.
+
+109
+00:06:09.006 --> 00:06:13.002
+So the Job did complete successfully.
+
+110
+00:06:13.002 --> 00:06:17.008
+So that's a look at one of the fault tolerant strategies
+
+111
+00:06:17.008 --> 00:06:21.001
+that Spring Batch provides, the skip.
+
+112
+00:06:21.001 --> 00:06:23.009
+There's others that we'll take a look at, in order
+
+113
+00:06:23.009 --> 00:06:27.000
+to make our batch jobs more resilient.
+

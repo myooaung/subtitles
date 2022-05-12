@@ -1,0 +1,393 @@
+WEBVTT
+1
+00:00:00.006 --> 00:00:02.000
+- [Instructor] You've already learned
+
+2
+00:00:02.000 --> 00:00:04.004
+that Lambda is an awesome service,
+
+3
+00:00:04.004 --> 00:00:07.002
+that spins up a micro virtual machine,
+
+4
+00:00:07.002 --> 00:00:10.009
+with settings you provide for the execution environment,
+
+5
+00:00:10.009 --> 00:00:13.004
+and it executes your code.
+
+6
+00:00:13.004 --> 00:00:17.008
+But, what really happens between a micro virtual machine
+
+7
+00:00:17.008 --> 00:00:22.007
+before, during, and after execution of your code?
+
+8
+00:00:22.007 --> 00:00:25.002
+What happens with database connections
+
+9
+00:00:25.002 --> 00:00:27.004
+established from my code?
+
+10
+00:00:27.004 --> 00:00:31.008
+What happens if your function runs into a infinite loop,
+
+11
+00:00:31.008 --> 00:00:36.000
+or is waiting for a long time for external resource?
+
+12
+00:00:36.000 --> 00:00:39.005
+Understanding the internals of Lambda Execution,
+
+13
+00:00:39.005 --> 00:00:42.004
+will help us optimize our functions,
+
+14
+00:00:42.004 --> 00:00:46.001
+to be more performant, and cost effective.
+
+15
+00:00:46.001 --> 00:00:49.003
+When the Lambda service receives an event,
+
+16
+00:00:49.003 --> 00:00:54.005
+it spins up a new virtual machine, with the memory, runtime,
+
+17
+00:00:54.005 --> 00:00:57.003
+and configuration specified.
+
+18
+00:00:57.003 --> 00:00:58.008
+During this step,
+
+19
+00:00:58.008 --> 00:01:03.004
+it loads the code by downloading it from S3 bucket.
+
+20
+00:01:03.004 --> 00:01:06.009
+Once complete, Lambda imports libraries,
+
+21
+00:01:06.009 --> 00:01:11.000
+runs any incentivization code, outside the handler,
+
+22
+00:01:11.000 --> 00:01:14.006
+before finally running the handler code.
+
+23
+00:01:14.006 --> 00:01:19.002
+The first three steps are referred to as a Cold Start.
+
+24
+00:01:19.002 --> 00:01:21.007
+You'll learn the function was Cold,
+
+25
+00:01:21.007 --> 00:01:24.001
+before it started executing,
+
+26
+00:01:24.001 --> 00:01:27.008
+which adds latency to the execution.
+
+27
+00:01:27.008 --> 00:01:31.004
+Does it mean it happens for every request?
+
+28
+00:01:31.004 --> 00:01:32.007
+It depends.
+
+29
+00:01:32.007 --> 00:01:34.006
+If it was the first time
+
+30
+00:01:34.006 --> 00:01:39.000
+this Lambda function was executed, then yes.
+
+31
+00:01:39.000 --> 00:01:40.001
+However,
+
+32
+00:01:40.001 --> 00:01:42.009
+once the cold start has finished,
+
+33
+00:01:42.009 --> 00:01:45.009
+Lambda freezes the Execution Context,
+
+34
+00:01:45.009 --> 00:01:50.005
+to be ready for reuse, for around 15 minutes.
+
+35
+00:01:50.005 --> 00:01:54.000
+During this time, if another request arrives,
+
+36
+00:01:54.000 --> 00:01:56.006
+the service will reuse the context,
+
+37
+00:01:56.006 --> 00:01:59.007
+skipping all bootstrapping time.
+
+38
+00:01:59.007 --> 00:02:03.001
+But, what does this mean for us?
+
+39
+00:02:03.001 --> 00:02:03.009
+Well,
+
+40
+00:02:03.009 --> 00:02:09.002
+since any global variables outside of code will get reused,
+
+41
+00:02:09.002 --> 00:02:12.008
+which will make invocation finish faster.
+
+42
+00:02:12.008 --> 00:02:14.006
+This means that any code,
+
+43
+00:02:14.006 --> 00:02:18.000
+that can be reused across different executions,
+
+44
+00:02:18.000 --> 00:02:20.007
+such as database connection,
+
+45
+00:02:20.007 --> 00:02:23.001
+connection to S3 bucket,
+
+46
+00:02:23.001 --> 00:02:25.004
+loading file in memory,
+
+47
+00:02:25.004 --> 00:02:29.002
+and making an API call, that could be cached,
+
+48
+00:02:29.002 --> 00:02:31.007
+can be put outside the handler,
+
+49
+00:02:31.007 --> 00:02:36.003
+that's almost removing the Cold Start entirely.
+
+50
+00:02:36.003 --> 00:02:41.002
+This allows AWS Lambda to reuse existing resources,
+
+51
+00:02:41.002 --> 00:02:43.005
+such as database connections,
+
+52
+00:02:43.005 --> 00:02:47.001
+for the duration of the containers lifetime,
+
+53
+00:02:47.001 --> 00:02:51.005
+but do you need to care about closing database connections?
+
+54
+00:02:51.005 --> 00:02:56.000
+No, you don't need to explicitly manage connections,
+
+55
+00:02:56.000 --> 00:02:58.002
+or implement connection pooling,
+
+56
+00:02:58.002 --> 00:03:02.002
+because AWS Lambda manages this for you.
+
+57
+00:03:02.002 --> 00:03:05.004
+Other code optimizations, that we can use
+
+58
+00:03:05.004 --> 00:03:07.008
+are specific to Java.
+
+59
+00:03:07.008 --> 00:03:10.006
+Reduce number of dependencies.
+
+60
+00:03:10.006 --> 00:03:14.007
+If you include the library, like AWS SDK,
+
+61
+00:03:14.007 --> 00:03:18.002
+make sure to include only the individual services
+
+62
+00:03:18.002 --> 00:03:20.000
+that you need.
+
+63
+00:03:20.000 --> 00:03:23.008
+If you're only interacting with S3 in your function,
+
+64
+00:03:23.008 --> 00:03:27.008
+only include the S3 portion of the SDK.
+
+65
+00:03:27.008 --> 00:03:31.002
+Prefer simpler dependency injection frameworks,
+
+66
+00:03:31.002 --> 00:03:35.001
+that load quickly on execution environment start-up.
+
+67
+00:03:35.001 --> 00:03:36.004
+For example,
+
+68
+00:03:36.004 --> 00:03:40.008
+I prefer Guice and Dagger, over more complex ones,
+
+69
+00:03:40.008 --> 00:03:43.002
+like Spring Framework.
+
+70
+00:03:43.002 --> 00:03:47.001
+Use AWS SDK version two.
+
+71
+00:03:47.001 --> 00:03:50.001
+New library comes with significant improvements
+
+72
+00:03:50.001 --> 00:03:52.001
+to improve cold start.
+
+73
+00:03:52.001 --> 00:03:56.007
+Use the built in HTTP client, over Apache, or Netty,
+
+74
+00:03:56.007 --> 00:04:00.000
+which can save you up to one second.
+
+75
+00:04:00.000 --> 00:04:02.000
+We did default configuration,
+
+76
+00:04:02.000 --> 00:04:04.008
+the SDK will automatically determine
+
+77
+00:04:04.008 --> 00:04:07.004
+which credential provider to use,
+
+78
+00:04:07.004 --> 00:04:09.007
+by looking at various places,
+
+79
+00:04:09.007 --> 00:04:11.008
+such as system properties,
+
+80
+00:04:11.008 --> 00:04:14.008
+credential files, et cetera.
+
+81
+00:04:14.008 --> 00:04:17.004
+By using dedicated provider,
+
+82
+00:04:17.004 --> 00:04:21.006
+you can save up to 90 milliseconds.
+
+83
+00:04:21.006 --> 00:04:24.001
+Similar to the credential provider,
+
+84
+00:04:24.001 --> 00:04:27.004
+the SDK can also dramatically determine
+
+85
+00:04:27.004 --> 00:04:31.000
+which region to use, through different sources.
+
+86
+00:04:31.000 --> 00:04:32.007
+By specifying a region,
+
+87
+00:04:32.007 --> 00:04:36.006
+you can save up to 80 milliseconds.
+
+88
+00:04:36.006 --> 00:04:40.009
+AWS SDK comes also with other libraries,
+
+89
+00:04:40.009 --> 00:04:44.006
+that improve in serialization time.
+
+90
+00:04:44.006 --> 00:04:46.009
+Avoid using recursive code,
+
+91
+00:04:46.009 --> 00:04:50.006
+as it could lead to unintended function invocations,
+
+92
+00:04:50.006 --> 00:04:52.009
+and escalated costs.
+
+93
+00:04:52.009 --> 00:04:57.004
+Finally, make sure to run performance tests.
+
+94
+00:04:57.004 --> 00:05:00.004
+A great library that can help you with that,
+
+95
+00:05:00.004 --> 00:05:03.002
+is AWS Power Tuning,
+
+96
+00:05:03.002 --> 00:05:07.001
+as it does AB testing of different configurations,
+
+97
+00:05:07.001 --> 00:05:10.002
+which can help you find optimal value
+
+98
+00:05:10.002 --> 00:05:14.000
+for memory, timeout, and price.
+

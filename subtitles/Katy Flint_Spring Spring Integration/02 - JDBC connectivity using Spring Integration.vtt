@@ -1,0 +1,609 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:03.002
+- [Instructor] JDBC is the Java-centric protocol
+
+2
+00:00:03.002 --> 00:00:06.002
+for connecting to a relational database.
+
+3
+00:00:06.002 --> 00:00:09.006
+Let us build a JDBC connection endpoint together.
+
+4
+00:00:09.006 --> 00:00:18.002
+Initialize the project files by using git checkout 04_02b.
+
+5
+00:00:18.002 --> 00:00:19.002
+Now, for this lesson,
+
+6
+00:00:19.002 --> 00:00:21.009
+imagine that we have several power devices
+
+7
+00:00:21.009 --> 00:00:24.000
+on a consumer power grid,
+
+8
+00:00:24.000 --> 00:00:26.001
+and each of these devices communicate
+
+9
+00:00:26.001 --> 00:00:30.004
+to the consumer local database with status updates.
+
+10
+00:00:30.004 --> 00:00:33.005
+Our consumer dashboard application that we are building
+
+11
+00:00:33.005 --> 00:00:34.009
+needs to query this database
+
+12
+00:00:34.009 --> 00:00:37.003
+to discover if any devices are offline
+
+13
+00:00:37.003 --> 00:00:39.007
+and to notify the consumer in this event.
+
+14
+00:00:39.007 --> 00:00:42.009
+Let's configure a Spring Integration JDBC adapter
+
+15
+00:00:42.009 --> 00:00:45.008
+to accomplish this.
+
+16
+00:00:45.008 --> 00:00:48.007
+Let's first have a look at AppSupportStatus.java.
+
+17
+00:00:48.007 --> 00:00:51.005
+This is the domain object that we've been building.
+
+18
+00:00:51.005 --> 00:00:55.003
+This object encapsulates state for communication
+
+19
+00:00:55.003 --> 00:00:57.008
+along our central message pipeline.
+
+20
+00:00:57.008 --> 00:01:00.007
+In line 15, we have prepared for this lesson
+
+21
+00:01:00.007 --> 00:01:02.001
+by adding a property
+
+22
+00:01:02.001 --> 00:01:07.003
+that captures an array list of devices known to be offline,
+
+23
+00:01:07.003 --> 00:01:09.003
+along with some appropriate business logic
+
+24
+00:01:09.003 --> 00:01:11.008
+in line 36 and et cetera.
+
+25
+00:01:11.008 --> 00:01:13.003
+With that as background,
+
+26
+00:01:13.003 --> 00:01:16.005
+let's go now to a file called jdbc.xml,
+
+27
+00:01:16.005 --> 00:01:18.000
+and let's start configuring.
+
+28
+00:01:18.000 --> 00:01:19.004
+As we have done previously,
+
+29
+00:01:19.004 --> 00:01:23.007
+we're going to start by configuring a direct channel.
+
+30
+00:01:23.007 --> 00:01:27.000
+Let's call this channel dataChannel.
+
+31
+00:01:27.000 --> 00:01:28.006
+And the full use of that channel
+
+32
+00:01:28.006 --> 00:01:30.004
+will become clear momentarily,
+
+33
+00:01:30.004 --> 00:01:31.009
+but right now let's jump on in,
+
+34
+00:01:31.009 --> 00:01:36.007
+and let's have a look at our JDBC adapter configuration.
+
+35
+00:01:36.007 --> 00:01:39.000
+Now, to configure this endpoint,
+
+36
+00:01:39.000 --> 00:01:41.007
+we're going to use not the int namespace,
+
+37
+00:01:41.007 --> 00:01:45.002
+but the int-jdbc namespace.
+
+38
+00:01:45.002 --> 00:01:47.005
+You'll notice that we have imported those namespaces
+
+39
+00:01:47.005 --> 00:01:49.008
+into our configuration file there
+
+40
+00:01:49.008 --> 00:01:53.007
+in line six and lines 11 through 12.
+
+41
+00:01:53.007 --> 00:01:57.001
+That gives us access to the int-jdbc namespace.
+
+42
+00:01:57.001 --> 00:01:58.009
+Now let's look at a few examples
+
+43
+00:01:58.009 --> 00:02:01.008
+of capabilities we have available to us here.
+
+44
+00:02:01.008 --> 00:02:05.006
+We have an outbound-channel-adapter that we can configure.
+
+45
+00:02:05.006 --> 00:02:10.000
+Outbound adapters handle a message, take a message in,
+
+46
+00:02:10.000 --> 00:02:13.003
+and use that message in order to execute a query.
+
+47
+00:02:13.003 --> 00:02:17.000
+Outbound-gateways that you see there on the screen
+
+48
+00:02:17.000 --> 00:02:18.009
+is kind of like a combination
+
+49
+00:02:18.009 --> 00:02:21.009
+of an outbound and an inbound adapter.
+
+50
+00:02:21.009 --> 00:02:23.005
+It's bidirectional.
+
+51
+00:02:23.005 --> 00:02:25.005
+Its role is to handle a message,
+
+52
+00:02:25.005 --> 00:02:27.007
+use it to execute a SQL query,
+
+53
+00:02:27.007 --> 00:02:29.005
+and then respond with the result
+
+54
+00:02:29.005 --> 00:02:31.004
+by sending it to a reply channel.
+
+55
+00:02:31.004 --> 00:02:34.000
+We, however, for this example are going to configure
+
+56
+00:02:34.000 --> 00:02:36.005
+an inbound-channel-adapter.
+
+57
+00:02:36.005 --> 00:02:40.006
+Inbound adapters are primarily to execute a select statement
+
+58
+00:02:40.006 --> 00:02:43.000
+and return the result as a message.
+
+59
+00:02:43.000 --> 00:02:45.004
+That's what we're going to do here,
+
+60
+00:02:45.004 --> 00:02:47.001
+an inbound-channel-adapter.
+
+61
+00:02:47.001 --> 00:02:52.007
+Let's give it an id of gridStatusPoller
+
+62
+00:02:52.007 --> 00:02:58.000
+because it's going to poll the database for device statuses.
+
+63
+00:02:58.000 --> 00:03:00.004
+It is going to put the results of its polling
+
+64
+00:03:00.004 --> 00:03:05.006
+out to the channel we configured in line 17, dataChannel.
+
+65
+00:03:05.006 --> 00:03:07.004
+It seems really simple on the face of it,
+
+66
+00:03:07.004 --> 00:03:08.007
+but what we need to do here
+
+67
+00:03:08.007 --> 00:03:11.001
+is right here in the XML configuration,
+
+68
+00:03:11.001 --> 00:03:14.004
+we can configure a query, so we're going to do that.
+
+69
+00:03:14.004 --> 00:03:17.003
+We're going to select the display field
+
+70
+00:03:17.003 --> 00:03:20.006
+from the device table
+
+71
+00:03:20.006 --> 00:03:24.000
+where isup equals false
+
+72
+00:03:24.000 --> 00:03:25.007
+because we're querying for devices
+
+73
+00:03:25.007 --> 00:03:28.001
+that are offline right now.
+
+74
+00:03:28.001 --> 00:03:33.000
+We need to give our inbound-channel-adapter a data-source.
+
+75
+00:03:33.000 --> 00:03:34.005
+A word on that in just a moment.
+
+76
+00:03:34.005 --> 00:03:37.000
+And we're going to set the attribute auto-startup
+
+77
+00:03:37.000 --> 00:03:38.002
+to be false,
+
+78
+00:03:38.002 --> 00:03:41.001
+and I'll talk more about that in just a moment too.
+
+79
+00:03:41.001 --> 00:03:44.007
+Finally, we're going to configure this element
+
+80
+00:03:44.007 --> 00:03:47.004
+as Spring Integration poller.
+
+81
+00:03:47.004 --> 00:03:50.005
+This is a very powerful capability of Spring Integration
+
+82
+00:03:50.005 --> 00:03:51.009
+that we haven't explored yet.
+
+83
+00:03:51.009 --> 00:03:56.000
+What a poller will do is continue to execute this query
+
+84
+00:03:56.000 --> 00:03:58.004
+that we're setting up on a fixed interval
+
+85
+00:03:58.004 --> 00:04:01.000
+and manage itself in order to do that.
+
+86
+00:04:01.000 --> 00:04:04.005
+So let's give this a fixed rate of five seconds.
+
+87
+00:04:04.005 --> 00:04:06.001
+And something you can also do
+
+88
+00:04:06.001 --> 00:04:07.005
+that I want to be sure to point out here
+
+89
+00:04:07.005 --> 00:04:09.009
+is we could cause the life cycle of this poll
+
+90
+00:04:09.009 --> 00:04:12.003
+to be wrapped in a transaction.
+
+91
+00:04:12.003 --> 00:04:14.009
+That's kind of a nice shortcut
+
+92
+00:04:14.009 --> 00:04:16.004
+that we could leverage if we wanted to,
+
+93
+00:04:16.004 --> 00:04:18.008
+if transactions were a concern for us.
+
+94
+00:04:18.008 --> 00:04:21.005
+At this time, it is not, and so we're not going to do that,
+
+95
+00:04:21.005 --> 00:04:24.009
+but I wanted to make sure to show that capability to you.
+
+96
+00:04:24.009 --> 00:04:27.002
+So now we've configured that inbound-channel-adapter.
+
+97
+00:04:27.002 --> 00:04:29.007
+I promised you information about the data source,
+
+98
+00:04:29.007 --> 00:04:32.009
+the data source we configured in advance at this lesson.
+
+99
+00:04:32.009 --> 00:04:35.006
+They're in line 27.
+
+100
+00:04:35.006 --> 00:04:38.001
+Notice that we set up a data source
+
+101
+00:04:38.001 --> 00:04:39.008
+in our application.xml file.
+
+102
+00:04:39.008 --> 00:04:42.007
+This is an h2-embedded memory,
+
+103
+00:04:42.007 --> 00:04:45.003
+this simply being initialized with some data
+
+104
+00:04:45.003 --> 00:04:46.008
+on application startup.
+
+105
+00:04:46.008 --> 00:04:48.003
+Also, I wanted to point out to you
+
+106
+00:04:48.003 --> 00:04:50.003
+the implication of this auto-startup.
+
+107
+00:04:50.003 --> 00:04:51.008
+They're on line 28.
+
+108
+00:04:51.008 --> 00:04:55.005
+By default, Spring will start this polling at the moment
+
+109
+00:04:55.005 --> 00:04:58.007
+as soon as it can when the Spring context gets configured.
+
+110
+00:04:58.007 --> 00:05:01.007
+However, our application is not going to be ready for it
+
+111
+00:05:01.007 --> 00:05:02.008
+by the time it starts running.
+
+112
+00:05:02.008 --> 00:05:06.005
+So we're going to instead explicitly call start
+
+113
+00:05:06.005 --> 00:05:11.000
+on our dataPoller here in our data manager there in line 58.
+
+114
+00:05:11.000 --> 00:05:12.005
+Now let's start the application
+
+115
+00:05:12.005 --> 00:05:16.009
+and see what we have achieved.
+
+116
+00:05:16.009 --> 00:05:20.009
+We have achieved an error. What did we get here?
+
+117
+00:05:20.009 --> 00:05:22.004
+Okay, this is worth learning.
+
+118
+00:05:22.004 --> 00:05:26.006
+See this error: Dispatcher has no subscribers for a channel?
+
+119
+00:05:26.006 --> 00:05:27.006
+What that is telling us
+
+120
+00:05:27.006 --> 00:05:30.002
+is that we have configured a subscribable channel,
+
+121
+00:05:30.002 --> 00:05:32.009
+our dataChannel that has no subscribers,
+
+122
+00:05:32.009 --> 00:05:35.006
+either in code or in configuration.
+
+123
+00:05:35.006 --> 00:05:37.004
+The transformation that belongs here
+
+124
+00:05:37.004 --> 00:05:38.009
+will solve that problem.
+
+125
+00:05:38.009 --> 00:05:42.001
+It will act as a subscriber to the dataChannel.
+
+126
+00:05:42.001 --> 00:05:43.000
+In a previous lesson,
+
+127
+00:05:43.000 --> 00:05:45.000
+we used the JSON-to-Object transformer.
+
+128
+00:05:45.000 --> 00:05:47.004
+We're just going to do a custom transformer right now.
+
+129
+00:05:47.004 --> 00:05:52.000
+The input-channel is going to be our dataChannel,
+
+130
+00:05:52.000 --> 00:05:54.005
+meaning when something comes through the dataChannel,
+
+131
+00:05:54.005 --> 00:05:58.000
+our transformer's going to pick it up, do a transformation,
+
+132
+00:05:58.000 --> 00:06:03.003
+put it to our status monitor application messaging bus.
+
+133
+00:06:03.003 --> 00:06:07.003
+We're going to call the method transform
+
+134
+00:06:07.003 --> 00:06:11.000
+on a bin that we configured below in line 25
+
+135
+00:06:11.000 --> 00:06:13.004
+called transformer.
+
+136
+00:06:13.004 --> 00:06:16.009
+When our SQL query in our adapter picks up data,
+
+137
+00:06:16.009 --> 00:06:18.007
+it will pipe it to the dataChannel.
+
+138
+00:06:18.007 --> 00:06:20.008
+The dataChannel will do a transformation
+
+139
+00:06:20.008 --> 00:06:23.006
+to a domain object to the statusMonitorChannel
+
+140
+00:06:23.006 --> 00:06:26.003
+so that our application can pick up that domain object
+
+141
+00:06:26.003 --> 00:06:28.001
+and do something meaningful with it.
+
+142
+00:06:28.001 --> 00:06:30.008
+Now we should be able to start up this application
+
+143
+00:06:30.008 --> 00:06:34.008
+and see something useful.
+
+144
+00:06:34.008 --> 00:06:37.002
+And sure enough, here you see on the Grid Status component
+
+145
+00:06:37.002 --> 00:06:39.007
+of the dashboard, upper left, a message saying
+
+146
+00:06:39.007 --> 00:06:42.000
+the power grid has one or more devices offline.
+
+147
+00:06:42.000 --> 00:06:43.008
+That's coming directly from our query
+
+148
+00:06:43.008 --> 00:06:45.008
+of our embedded database.
+
+149
+00:06:45.008 --> 00:06:48.008
+So we've configured a JDBC adapter
+
+150
+00:06:48.008 --> 00:06:51.004
+and are using it to bring in live data
+
+151
+00:06:51.004 --> 00:06:54.001
+into our user interface
+
+152
+00:06:54.001 --> 00:06:58.000
+through our application messaging flow pipeline.
+

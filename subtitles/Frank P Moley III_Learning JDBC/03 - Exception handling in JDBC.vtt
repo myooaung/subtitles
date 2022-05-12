@@ -1,0 +1,485 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:01.006
+- [Instructor] Now, throughout this course
+
+2
+00:00:01.006 --> 00:00:04.004
+we haven't really been doing much error handling
+
+3
+00:00:04.004 --> 00:00:05.006
+with our SQL code.
+
+4
+00:00:05.006 --> 00:00:06.009
+We've just been catching it
+
+5
+00:00:06.009 --> 00:00:09.007
+and converting it to a very generic runtime exception,
+
+6
+00:00:09.007 --> 00:00:12.006
+printing the stack trace and throwing it out.
+
+7
+00:00:12.006 --> 00:00:13.005
+And that's essentially
+
+8
+00:00:13.005 --> 00:00:17.009
+how many people do JDBC code exceptions
+
+9
+00:00:17.009 --> 00:00:20.002
+and I want to talk through some very common patterns
+
+10
+00:00:20.002 --> 00:00:22.003
+that you could leverage instead
+
+11
+00:00:22.003 --> 00:00:25.005
+that I think will make your code much cleaner.
+
+12
+00:00:25.005 --> 00:00:27.005
+Now, first of all, why?
+
+13
+00:00:27.005 --> 00:00:30.001
+So as you can probably tell at this point,
+
+14
+00:00:30.001 --> 00:00:33.003
+error handling in JDBC can be a nightmare,
+
+15
+00:00:33.003 --> 00:00:36.004
+and if you don't manage it, it can get even worse.
+
+16
+00:00:36.004 --> 00:00:38.000
+Everything is a SQLException,
+
+17
+00:00:38.000 --> 00:00:40.004
+which I strongly dislike
+
+18
+00:00:40.004 --> 00:00:42.007
+because I can't really do any flow control
+
+19
+00:00:42.007 --> 00:00:45.003
+when everything's the same.
+
+20
+00:00:45.003 --> 00:00:47.008
+One thing to note is that it's not something to ignore.
+
+21
+00:00:47.008 --> 00:00:50.004
+So we kind of ignored it in our examples,
+
+22
+00:00:50.004 --> 00:00:52.007
+and that was just because we didn't really want to deal
+
+23
+00:00:52.007 --> 00:00:54.001
+with it at that time.
+
+24
+00:00:54.001 --> 00:00:56.008
+But in the real world, you need to deal with this,
+
+25
+00:00:56.008 --> 00:00:59.007
+and I'm going to give you a couple strategies.
+
+26
+00:00:59.007 --> 00:01:01.004
+The first strategy that you can deal with
+
+27
+00:01:01.004 --> 00:01:04.004
+is a common unpacking routine.
+
+28
+00:01:04.004 --> 00:01:07.003
+Now, in this case, you would catch a SQLException
+
+29
+00:01:07.003 --> 00:01:10.009
+and you would unpack it into your own named exception
+
+30
+00:01:10.009 --> 00:01:13.000
+based on the error code.
+
+31
+00:01:13.000 --> 00:01:15.000
+You would log those error codes
+
+32
+00:01:15.000 --> 00:01:17.003
+or you would add them to the common message
+
+33
+00:01:17.003 --> 00:01:19.008
+or maybe both.
+
+34
+00:01:19.008 --> 00:01:21.007
+You would create named exceptions
+
+35
+00:01:21.007 --> 00:01:23.003
+for the most common issues,
+
+36
+00:01:23.003 --> 00:01:27.005
+the ones that we would see most often in your code use case,
+
+37
+00:01:27.005 --> 00:01:28.009
+and everything else you just throw
+
+38
+00:01:28.009 --> 00:01:31.000
+to a generic exception.
+
+39
+00:01:31.000 --> 00:01:34.001
+Now, the benefit of this is you can build a hierarchy.
+
+40
+00:01:34.001 --> 00:01:35.007
+So all of your data access code
+
+41
+00:01:35.007 --> 00:01:38.006
+can actually throw that common exception,
+
+42
+00:01:38.006 --> 00:01:41.003
+and then you can build named exceptions off
+
+43
+00:01:41.003 --> 00:01:43.006
+of that that are much more specific,
+
+44
+00:01:43.006 --> 00:01:46.005
+so if there was a chance to do error control
+
+45
+00:01:46.005 --> 00:01:49.000
+in your application, you could do so
+
+46
+00:01:49.000 --> 00:01:51.003
+because not everything is the same exception.
+
+47
+00:01:51.003 --> 00:01:54.003
+It's no longer everybody is a SQLException.
+
+48
+00:01:54.003 --> 00:01:57.005
+You have some control of it.
+
+49
+00:01:57.005 --> 00:02:00.007
+A pattern that I personally prefer more
+
+50
+00:02:00.007 --> 00:02:03.001
+is to use runtime exceptions.
+
+51
+00:02:03.001 --> 00:02:06.003
+Now, in this course, we just used generic RTE
+
+52
+00:02:06.003 --> 00:02:09.007
+but in reality, I create my own hierarchy
+
+53
+00:02:09.007 --> 00:02:12.006
+of exceptions in my data applications,
+
+54
+00:02:12.006 --> 00:02:13.007
+and leverage those
+
+55
+00:02:13.007 --> 00:02:16.008
+but all of them instead of extending exception,
+
+56
+00:02:16.008 --> 00:02:19.000
+extend runtime exception.
+
+57
+00:02:19.000 --> 00:02:21.004
+Now, the reason I like to do this
+
+58
+00:02:21.004 --> 00:02:25.005
+is because everything is converted to a runtime exception,
+
+59
+00:02:25.005 --> 00:02:28.009
+I don't have to litter it across my APIs
+
+60
+00:02:28.009 --> 00:02:31.009
+because I don't have to declare that I'm throwing it,
+
+61
+00:02:31.009 --> 00:02:35.008
+which means I don't have to catch it in the higher layers.
+
+62
+00:02:35.008 --> 00:02:37.002
+By allowing it to bubble up,
+
+63
+00:02:37.002 --> 00:02:41.000
+I can only deal with it at the top of my application stack
+
+64
+00:02:41.000 --> 00:02:43.002
+and since most of time when I write Java,
+
+65
+00:02:43.002 --> 00:02:45.002
+I'm writing web applications,
+
+66
+00:02:45.002 --> 00:02:47.006
+and specifically web services,
+
+67
+00:02:47.006 --> 00:02:48.009
+that's when I want to catch it,
+
+68
+00:02:48.009 --> 00:02:51.008
+and I want to convert it into a result code
+
+69
+00:02:51.008 --> 00:02:55.008
+or a status code out of my REST API.
+
+70
+00:02:55.008 --> 00:02:59.008
+Now, when you convert your exception to an RTE,
+
+71
+00:02:59.008 --> 00:03:01.007
+that's the time that you want to log it,
+
+72
+00:03:01.007 --> 00:03:04.005
+and you want to log it with all of the details
+
+73
+00:03:04.005 --> 00:03:06.006
+of the SQLException.
+
+74
+00:03:06.006 --> 00:03:08.000
+Now, the biggest benefit here,
+
+75
+00:03:08.000 --> 00:03:09.002
+at least from my perspective,
+
+76
+00:03:09.002 --> 00:03:12.002
+is you have no leaky APIs.
+
+77
+00:03:12.002 --> 00:03:14.000
+So even in the previous model
+
+78
+00:03:14.000 --> 00:03:17.004
+where we were actually controlling the exception name,
+
+79
+00:03:17.004 --> 00:03:20.008
+most of the time, people don't control the application
+
+80
+00:03:20.008 --> 00:03:22.000
+at that level.
+
+81
+00:03:22.000 --> 00:03:23.005
+They just bubble it up.
+
+82
+00:03:23.005 --> 00:03:25.008
+You then still have all these throws declarations
+
+83
+00:03:25.008 --> 00:03:27.006
+on all of your method signatures
+
+84
+00:03:27.006 --> 00:03:28.008
+and then it gets really ugly
+
+85
+00:03:28.008 --> 00:03:30.007
+from an API perspective.
+
+86
+00:03:30.007 --> 00:03:32.008
+Runtime exceptions avoid that
+
+87
+00:03:32.008 --> 00:03:34.008
+because no one's going to deal with the exception anyway.
+
+88
+00:03:34.008 --> 00:03:36.002
+Just let it bubble up,
+
+89
+00:03:36.002 --> 00:03:40.006
+and you catch it at the top of your application stack.
+
+90
+00:03:40.006 --> 00:03:43.004
+Now, you can do a simple leak
+
+91
+00:03:43.004 --> 00:03:45.008
+where you leak that SQLException up
+
+92
+00:03:45.008 --> 00:03:48.002
+from your application layers.
+
+93
+00:03:48.002 --> 00:03:51.003
+The problem with this is now at the very top of your code,
+
+94
+00:03:51.003 --> 00:03:53.003
+you're dealing with SQLExceptions,
+
+95
+00:03:53.003 --> 00:03:57.004
+when in reality, you may have swapped out databases
+
+96
+00:03:57.004 --> 00:03:59.002
+and you're still carrying that baggage
+
+97
+00:03:59.002 --> 00:04:03.003
+because you have to keep your APIs consistent.
+
+98
+00:04:03.003 --> 00:04:04.009
+When you leak exceptions,
+
+99
+00:04:04.009 --> 00:04:07.009
+each method signature must declare
+
+100
+00:04:07.009 --> 00:04:11.002
+that it is serving this exception out
+
+101
+00:04:11.002 --> 00:04:12.008
+or else it has to handle it.
+
+102
+00:04:12.008 --> 00:04:13.009
+And since you're leaking it,
+
+103
+00:04:13.009 --> 00:04:16.002
+it's going to be declared all the way up to stack,
+
+104
+00:04:16.002 --> 00:04:20.002
+even when you're not actually doing data access code.
+
+105
+00:04:20.002 --> 00:04:21.009
+Now, at first, this may seem easy.
+
+106
+00:04:21.009 --> 00:04:24.000
+Just put a throws, throws, throws
+
+107
+00:04:24.000 --> 00:04:26.005
+or better yet, just throw exception.
+
+108
+00:04:26.005 --> 00:04:29.006
+The reality is is that's a nightmare to manage.
+
+109
+00:04:29.006 --> 00:04:31.000
+You don't want to do that.
+
+110
+00:04:31.000 --> 00:04:33.000
+Please don't allow your exceptions to leak
+
+111
+00:04:33.000 --> 00:04:35.000
+unless you truly are going to handle them
+
+112
+00:04:35.000 --> 00:04:36.006
+at a higher layer,
+
+113
+00:04:36.006 --> 00:04:38.006
+which is the beauty of runtime exceptions.
+
+114
+00:04:38.006 --> 00:04:40.004
+Nobody has to know about them
+
+115
+00:04:40.004 --> 00:04:43.001
+until we handle them at the top of the layer.
+
+116
+00:04:43.001 --> 00:04:44.001
+That's my soapbox
+
+117
+00:04:44.001 --> 00:04:46.005
+and that's just how I deal with exceptions.
+
+118
+00:04:46.005 --> 00:04:47.005
+But at the very least,
+
+119
+00:04:47.005 --> 00:04:49.006
+unpack them in your data access
+
+120
+00:04:49.006 --> 00:04:53.000
+and convert them to something that they can be useful
+
+121
+00:04:53.000 --> 00:04:56.000
+outside the data access layer itself.
+

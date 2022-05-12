@@ -1,0 +1,533 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:03.001
+- [Instructor] So we spent quite a bit of time building code
+
+2
+00:00:03.001 --> 00:00:05.000
+around the controller
+
+3
+00:00:05.000 --> 00:00:07.006
+and putting a few little snippets here and there.
+
+4
+00:00:07.006 --> 00:00:10.001
+Now it's time to actually do work in our controller.
+
+5
+00:00:10.001 --> 00:00:11.007
+And this is sort of the culmination
+
+6
+00:00:11.007 --> 00:00:13.007
+of everything we've been building up to
+
+7
+00:00:13.007 --> 00:00:16.003
+so we can show you how the controller would work
+
+8
+00:00:16.003 --> 00:00:17.006
+in the real world.
+
+9
+00:00:17.006 --> 00:00:20.008
+So let's jump into our IDs.
+
+10
+00:00:20.008 --> 00:00:23.007
+So I want you to jump to your controller.
+
+11
+00:00:23.007 --> 00:00:27.006
+Let's go down to our reconcile method and we're going to start
+
+12
+00:00:27.006 --> 00:00:32.004
+after we've added our finalizer when the timestamp is zero.
+
+13
+00:00:32.004 --> 00:00:33.002
+All right.
+
+14
+00:00:33.002 --> 00:00:40.007
+So if instance.status.state is pending.
+
+15
+00:00:40.007 --> 00:00:41.009
+Now why is this important?
+
+16
+00:00:41.009 --> 00:00:45.002
+The only time we want to do a creation is when it's pending.
+
+17
+00:00:45.002 --> 00:00:48.001
+No other state should ever trigger a new creation
+
+18
+00:00:48.001 --> 00:00:49.003
+of our bucket, right?
+
+19
+00:00:49.003 --> 00:00:51.001
+That's pretty straightforward logic.
+
+20
+00:00:51.001 --> 00:00:53.006
+So only if we're pending.
+
+21
+00:00:53.006 --> 00:00:55.001
+Now we're going to do an info message.
+
+22
+00:00:55.001 --> 00:01:00.005
+It just basically says starting to create resources
+
+23
+00:01:00.005 --> 00:01:03.007
+and I would never put log info messages at this granularity
+
+24
+00:01:03.007 --> 00:01:05.005
+but for this purpose, it's fine.
+
+25
+00:01:05.005 --> 00:01:07.005
+So we're going to do an error assignment.
+
+26
+00:01:07.005 --> 00:01:09.003
+R.createresources.
+
+27
+00:01:09.003 --> 00:01:12.004
+And this is the method that we created earlier
+
+28
+00:01:12.004 --> 00:01:14.008
+that does all of the creation of our resource
+
+29
+00:01:14.008 --> 00:01:17.004
+and our config map.
+
+30
+00:01:17.004 --> 00:01:23.002
+Now, if the error is not empty, so if that update fails,
+
+31
+00:01:23.002 --> 00:01:28.006
+here we want to set our status to error.
+
+32
+00:01:28.006 --> 00:01:30.006
+And the reason that this is important is
+
+33
+00:01:30.006 --> 00:01:33.003
+because we don't want to continual propagation
+
+34
+00:01:33.003 --> 00:01:36.004
+and execution of this because it's in pending state
+
+35
+00:01:36.004 --> 00:01:37.008
+but we know we're going to get an error
+
+36
+00:01:37.008 --> 00:01:40.004
+and then we just keep doing the same trivial behavior
+
+37
+00:01:40.004 --> 00:01:41.003
+over and over.
+
+38
+00:01:41.003 --> 00:01:42.006
+So let's go ahead and set it to error
+
+39
+00:01:42.006 --> 00:01:44.006
+that way it'll never execute again
+
+40
+00:01:44.006 --> 00:01:47.004
+because we've guarded against that.
+
+41
+00:01:47.004 --> 00:01:49.004
+And since this is just a status update,
+
+42
+00:01:49.004 --> 00:01:53.003
+we can do an update of our status.
+
+43
+00:01:53.003 --> 00:01:55.005
+So if this happens, we're going to go ahead and do that.
+
+44
+00:01:55.005 --> 00:01:58.009
+Let's log this error out
+
+45
+00:01:58.009 --> 00:02:02.006
+and we'll simply say error creating bucket.
+
+46
+00:02:02.006 --> 00:02:04.003
+Although it could be much more than that, right?
+
+47
+00:02:04.003 --> 00:02:06.000
+It could be the config map or something else
+
+48
+00:02:06.000 --> 00:02:07.001
+but for now that's fine.
+
+49
+00:02:07.001 --> 00:02:12.000
+And in this case, we'll go ahead and return our ctrl.result
+
+50
+00:02:12.000 --> 00:02:13.005
+and our error.
+
+51
+00:02:13.005 --> 00:02:14.004
+Excellent.
+
+52
+00:02:14.004 --> 00:02:17.005
+So now we will create the instance if we are pending.
+
+53
+00:02:17.005 --> 00:02:19.003
+As long as we don't get an error state,
+
+54
+00:02:19.003 --> 00:02:20.007
+everything is good to go.
+
+55
+00:02:20.007 --> 00:02:23.002
+Otherwise we will set the state to error
+
+56
+00:02:23.002 --> 00:02:25.006
+on the CR and leave it alone.
+
+57
+00:02:25.006 --> 00:02:27.002
+Now, down here in our delete flow
+
+58
+00:02:27.002 --> 00:02:28.003
+we've got a little bit different.
+
+59
+00:02:28.003 --> 00:02:31.007
+Remember I said to keep the finalizer after you're done.
+
+60
+00:02:31.007 --> 00:02:33.007
+And we're going to do that here.
+
+61
+00:02:33.007 --> 00:02:36.003
+So once again, we will do an error assignment
+
+62
+00:02:36.003 --> 00:02:39.004
+and we're going to do that to our delete resource method.
+
+63
+00:02:39.004 --> 00:02:43.007
+And we will pass the context and our instance.
+
+64
+00:02:43.007 --> 00:02:48.001
+And if our error does not equal nil,
+
+65
+00:02:48.001 --> 00:02:49.003
+we are once again going
+
+66
+00:02:49.003 --> 00:02:56.008
+to set our instant state equal to error.
+
+67
+00:02:56.008 --> 00:03:01.005
+We will once again update our status.
+
+68
+00:03:01.005 --> 00:03:07.005
+And then we will log this
+
+69
+00:03:07.005 --> 00:03:10.001
+and just say error deleting bucket.
+
+70
+00:03:10.001 --> 00:03:14.007
+And we will return our control result.error.
+
+71
+00:03:14.007 --> 00:03:16.002
+And now we can let our finalizer run.
+
+72
+00:03:16.002 --> 00:03:18.001
+So now we're creating a bucket
+
+73
+00:03:18.001 --> 00:03:20.006
+or we're deleting a bucket based on the flow.
+
+74
+00:03:20.006 --> 00:03:22.004
+Let's jump into our terminal.
+
+75
+00:03:22.004 --> 00:03:23.008
+We're going to do a few steps here
+
+76
+00:03:23.008 --> 00:03:25.002
+to kind of get ourselves ready.
+
+77
+00:03:25.002 --> 00:03:26.000
+So the first thing I want to do
+
+78
+00:03:26.000 --> 00:03:27.005
+is I want to do a make undeploy.
+
+79
+00:03:27.005 --> 00:03:30.000
+I want to get everything out of the environment.
+
+80
+00:03:30.000 --> 00:03:31.003
+And I'm doing this just to make sure
+
+81
+00:03:31.003 --> 00:03:34.004
+that everything is clear and clean.
+
+82
+00:03:34.004 --> 00:03:35.005
+We're going to get some errors
+
+83
+00:03:35.005 --> 00:03:37.006
+because things aren't found and that's fine.
+
+84
+00:03:37.006 --> 00:03:39.000
+What we actually pulled out of there
+
+85
+00:03:39.000 --> 00:03:41.007
+that I care about is we pulled out our CRD.
+
+86
+00:03:41.007 --> 00:03:45.000
+So that way now if I do a make,
+
+87
+00:03:45.000 --> 00:03:49.005
+we're going to go ahead and make our manifests as well.
+
+88
+00:03:49.005 --> 00:03:52.008
+And we will do a make install.
+
+89
+00:03:52.008 --> 00:03:54.006
+And let's put everything back out there
+
+90
+00:03:54.006 --> 00:03:56.006
+that we need to run this locally.
+
+91
+00:03:56.006 --> 00:03:57.006
+Now we can run it.
+
+92
+00:03:57.006 --> 00:04:00.009
+So make run.
+
+93
+00:04:00.009 --> 00:04:04.000
+We'll let this do its thing and start running.
+
+94
+00:04:04.000 --> 00:04:05.000
+Excellent. We're up and running.
+
+95
+00:04:05.000 --> 00:04:07.000
+So before we get too deep,
+
+96
+00:04:07.000 --> 00:04:08.006
+there's a few things that I want to do.
+
+97
+00:04:08.006 --> 00:04:11.005
+The first thing I'm going to do is an aws s3api.
+
+98
+00:04:11.005 --> 00:04:12.009
+You can do this through the console
+
+99
+00:04:12.009 --> 00:04:15.001
+if you feel more comfortable looking at your buckets.
+
+100
+00:04:15.001 --> 00:04:18.009
+But I'm just going to do a list buckets command.
+
+101
+00:04:18.009 --> 00:04:20.007
+And then we will see that we've got one bucket out there.
+
+102
+00:04:20.007 --> 00:04:22.008
+It's called an instructor aws01.
+
+103
+00:04:22.008 --> 00:04:27.000
+Great. So now let's apply our CR.
+
+104
+00:04:27.000 --> 00:04:30.008
+Again, we're going to use one in our config samples.
+
+105
+00:04:30.008 --> 00:04:35.008
+And now very quickly, let's take a look at that.
+
+106
+00:04:35.008 --> 00:04:37.003
+So you'll see it's been created.
+
+107
+00:04:37.003 --> 00:04:39.009
+So it's gone through the pending, creating
+
+108
+00:04:39.009 --> 00:04:43.000
+and created state in the time that we've typed this.
+
+109
+00:04:43.000 --> 00:04:45.005
+If we jump over to our running console, you'll see
+
+110
+00:04:45.005 --> 00:04:48.002
+that we get some info messages that we've created resources
+
+111
+00:04:48.002 --> 00:04:50.000
+and things like that.
+
+112
+00:04:50.000 --> 00:04:54.006
+Let's validate by I calling our S3 call and there it is.
+
+113
+00:04:54.006 --> 00:04:58.008
+We've got a bucket that has been created based on our CR
+
+114
+00:04:58.008 --> 00:05:02.002
+and we can do one more thing here.
+
+115
+00:05:02.002 --> 00:05:03.009
+You also see that we've got a config map
+
+116
+00:05:03.009 --> 00:05:05.004
+and we could describe that if we wanted to
+
+117
+00:05:05.004 --> 00:05:08.001
+to make sure that everything looks good.
+
+118
+00:05:08.001 --> 00:05:14.000
+So let's describe our config map
+
+119
+00:05:14.000 --> 00:05:15.009
+and there's all of our data.
+
+120
+00:05:15.009 --> 00:05:20.007
+So now our next step is we are going to do a delete
+
+121
+00:05:20.007 --> 00:05:24.008
+of our object store.
+
+122
+00:05:24.008 --> 00:05:29.001
+Now let's take a look first of all at S3.
+
+123
+00:05:29.001 --> 00:05:30.005
+Our bucket is gone.
+
+124
+00:05:30.005 --> 00:05:35.001
+We can look for our config map, they're gone.
+
+125
+00:05:35.001 --> 00:05:39.000
+And finally, we can look for our object store and it's gone.
+
+126
+00:05:39.000 --> 00:05:42.006
+That is exactly what we expected our system to do.
+
+127
+00:05:42.006 --> 00:05:44.007
+But now we can attach a bucket
+
+128
+00:05:44.007 --> 00:05:46.007
+with a config map describing it
+
+129
+00:05:46.007 --> 00:05:49.008
+to a name space by simply applying ACR.
+
+130
+00:05:49.008 --> 00:05:51.007
+And that's the benefit of the operator.
+
+131
+00:05:51.007 --> 00:05:54.006
+Stay tuned next and I'll show you how to deploy this
+
+132
+00:05:54.006 --> 00:05:56.005
+using Kubebuilder and give you some ideas
+
+133
+00:05:56.005 --> 00:05:59.000
+on how to make this production ready.
+

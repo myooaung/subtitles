@@ -1,0 +1,421 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:03.006
+- [Instructor] Spring batch uses the job repository
+
+2
+00:00:03.006 --> 00:00:07.009
+to store metadata about the execution of a batch job.
+
+3
+00:00:07.009 --> 00:00:09.000
+Up until this point,
+
+4
+00:00:09.000 --> 00:00:13.006
+this metadata was stored in an in-memory H2 database.
+
+5
+00:00:13.006 --> 00:00:17.001
+This isn't very useful since we'll lose the metadata
+
+6
+00:00:17.001 --> 00:00:20.005
+with every execution of a job.
+
+7
+00:00:20.005 --> 00:00:23.008
+In this lesson, we're going to set up our job repository
+
+8
+00:00:23.008 --> 00:00:27.003
+to connect to our MySQL database.
+
+9
+00:00:27.003 --> 00:00:31.000
+That way, we can store the metadata
+
+10
+00:00:31.000 --> 00:00:34.009
+regarding our job executions persistently
+
+11
+00:00:34.009 --> 00:00:37.009
+across different runs of jobs.
+
+12
+00:00:37.009 --> 00:00:39.004
+So in order to do that,
+
+13
+00:00:39.004 --> 00:00:45.003
+we need to add a new dependency into our palm.xml file,
+
+14
+00:00:45.003 --> 00:00:48.009
+and that dependency is going to be for
+
+15
+00:00:48.009 --> 00:00:51.009
+the MySQL database driver.
+
+16
+00:00:51.009 --> 00:00:56.005
+Now Currently, we have the H2 database configured,
+
+17
+00:00:56.005 --> 00:01:00.000
+we're just going to reuse that dependency section
+
+18
+00:01:00.000 --> 00:01:02.003
+to set up our MySQL driver,
+
+19
+00:01:02.003 --> 00:01:05.001
+and we'll remove H2 in the process.
+
+20
+00:01:05.001 --> 00:01:07.003
+So anytime we're using a Maven dependency,
+
+21
+00:01:07.003 --> 00:01:09.001
+we need a group ID.
+
+22
+00:01:09.001 --> 00:01:11.008
+In this case, it's going to be mysql.
+
+23
+00:01:11.008 --> 00:01:14.007
+And we also need an artifact ID.
+
+24
+00:01:14.007 --> 00:01:19.007
+In this case, it's going to be mysql-connector-java.
+
+25
+00:01:19.007 --> 00:01:22.006
+And then we can go ahead and remove this scope.
+
+26
+00:01:22.006 --> 00:01:26.002
+Okay, so that will get us the required dependencies,
+
+27
+00:01:26.002 --> 00:01:29.008
+we'll get the JDBC driver on the class path.
+
+28
+00:01:29.008 --> 00:01:34.002
+Now we need to instruct Spring on how to
+
+29
+00:01:34.002 --> 00:01:40.006
+create a data source that can connect to our MySQL database.
+
+30
+00:01:40.006 --> 00:01:42.003
+Now when we're using Spring Boot
+
+31
+00:01:42.003 --> 00:01:46.000
+that's done within the application.properties file.
+
+32
+00:01:46.000 --> 00:01:49.006
+And what we'll do is declare several properties
+
+33
+00:01:49.006 --> 00:01:54.000
+that start with spring.datasource.
+
+34
+00:01:54.000 --> 00:01:57.006
+So I'm just going to go ahead and copy that a few times.
+
+35
+00:01:57.006 --> 00:02:00.000
+And then we can specify those.
+
+36
+00:02:00.000 --> 00:02:02.007
+So the first thing we need to specify
+
+37
+00:02:02.007 --> 00:02:05.007
+is the driver class name.
+
+38
+00:02:05.007 --> 00:02:08.008
+And in this case, we're going to provide
+
+39
+00:02:08.008 --> 00:02:14.005
+the fully qualified name of the MySQL database driver,
+
+40
+00:02:14.005 --> 00:02:19.001
+which is com.mysql.jdbc.driver.
+
+41
+00:02:19.001 --> 00:02:22.003
+After that, we need to provide our connection string.
+
+42
+00:02:22.003 --> 00:02:27.001
+So we specify the spring.datasource.url property.
+
+43
+00:02:27.001 --> 00:02:30.000
+Here we specify the protocol,
+
+44
+00:02:30.000 --> 00:02:34.001
+which is going to be jdbc:mysql.
+
+45
+00:02:34.001 --> 00:02:36.006
+Then we specify our host name,
+
+46
+00:02:36.006 --> 00:02:41.009
+which is going to be localhost and our port number 3306.
+
+47
+00:02:41.009 --> 00:02:45.004
+Followed by the schema we would like to connect to.
+
+48
+00:02:45.004 --> 00:02:49.008
+In our case, it's going to be the batch_repo schema.
+
+49
+00:02:49.008 --> 00:02:54.006
+And that's where the spring batch framework is going to
+
+50
+00:02:54.006 --> 00:02:59.005
+write all of the tables that back our job repository.
+
+51
+00:02:59.005 --> 00:03:03.000
+Now the other thing we'll need to specify is the name
+
+52
+00:03:03.000 --> 00:03:08.008
+of the user that will be connecting to that schema.
+
+53
+00:03:08.008 --> 00:03:13.003
+And then we'll need to supply the password for that user,
+
+54
+00:03:13.003 --> 00:03:16.009
+which we declared as batch.
+
+55
+00:03:16.009 --> 00:03:21.000
+From there, we can also specify the platform.
+
+56
+00:03:21.000 --> 00:03:23.004
+And that's going to instruct spring
+
+57
+00:03:23.004 --> 00:03:25.006
+on what type of database we're using.
+
+58
+00:03:25.006 --> 00:03:28.001
+In this case, it's going to be mysql.
+
+59
+00:03:28.001 --> 00:03:32.001
+And then the final property we're going to configure
+
+60
+00:03:32.001 --> 00:03:35.008
+is related to spring batch itself.
+
+61
+00:03:35.008 --> 00:03:41.004
+And basically, we're telling it, when we launch a job,
+
+62
+00:03:41.004 --> 00:03:45.006
+it should create the data model for the job repository
+
+63
+00:03:45.006 --> 00:03:49.000
+within our schema if it doesn't exist.
+
+64
+00:03:49.000 --> 00:03:50.008
+And to do that, we use the
+
+65
+00:03:50.008 --> 00:03:55.005
+spring.batch.initialize-schema property,
+
+66
+00:03:55.005 --> 00:03:57.006
+and we set it to always.
+
+67
+00:03:57.006 --> 00:04:01.005
+And that will cause all those tables that hold the metadata
+
+68
+00:04:01.005 --> 00:04:05.002
+regarding our batch job execution to be created by default.
+
+69
+00:04:05.002 --> 00:04:07.009
+So we don't have to hammer out a bunch of DDL
+
+70
+00:04:07.009 --> 00:04:10.002
+within our database.
+
+71
+00:04:10.002 --> 00:04:14.004
+Okay, so everything is in place,
+
+72
+00:04:14.004 --> 00:04:16.004
+we'll just go ahead and save it.
+
+73
+00:04:16.004 --> 00:04:21.002
+And then we can launch our application.
+
+74
+00:04:21.002 --> 00:04:25.002
+We'll right click on our main class,
+
+75
+00:04:25.002 --> 00:04:28.007
+and then we're going to go to run as,
+
+76
+00:04:28.007 --> 00:04:30.008
+and then Java application.
+
+77
+00:04:30.008 --> 00:04:33.002
+If we take a peek at our console,
+
+78
+00:04:33.002 --> 00:04:36.005
+we're going to see our jobs startup,
+
+79
+00:04:36.005 --> 00:04:39.001
+and there you can see that it ran.
+
+80
+00:04:39.001 --> 00:04:41.008
+Now let's head over to the MySQL database
+
+81
+00:04:41.008 --> 00:04:42.009
+to see what happened.
+
+82
+00:04:42.009 --> 00:04:46.002
+So here you can see our batch repost schema.
+
+83
+00:04:46.002 --> 00:04:47.008
+I'm going to go ahead and refresh that,
+
+84
+00:04:47.008 --> 00:04:50.003
+you'll notice we get some tables.
+
+85
+00:04:50.003 --> 00:04:54.006
+These are the tables that will hold the metadata
+
+86
+00:04:54.006 --> 00:04:58.006
+regarding our batch job runs.
+
+87
+00:04:58.006 --> 00:05:01.005
+Some of these table names should look familiar.
+
+88
+00:05:01.005 --> 00:05:06.009
+You'll see job execution, job instance and step execution.
+
+89
+00:05:06.009 --> 00:05:12.003
+If we were to take a look at these tables,
+
+90
+00:05:12.003 --> 00:05:15.007
+you're going to see our last job run.
+
+91
+00:05:15.007 --> 00:05:19.004
+So here is the step execution.
+
+92
+00:05:19.004 --> 00:05:24.006
+We can also take a look at the job execution.
+
+93
+00:05:24.006 --> 00:05:28.000
+And here you can see that it completed successfully.
+
+94
+00:05:28.000 --> 00:05:31.002
+There's the status and exit code that we talked about.
+
+95
+00:05:31.002 --> 00:05:34.006
+We'll get into those a little bit more detail later.
+
+96
+00:05:34.006 --> 00:05:38.000
+And then here's our job instance that was created
+
+97
+00:05:38.000 --> 00:05:42.006
+for the deliver package job.
+
+98
+00:05:42.006 --> 00:05:45.009
+So in this lesson, we were able to configure
+
+99
+00:05:45.009 --> 00:05:51.004
+our job repository to work with our MySQL database,
+
+100
+00:05:51.004 --> 00:05:55.000
+and will now be able to store information
+
+101
+00:05:55.000 --> 00:05:57.005
+about our job executions.
+
+102
+00:05:57.005 --> 00:06:01.008
+This is useful for monitoring the execution of a batch job
+
+103
+00:06:01.008 --> 00:06:05.008
+or determining how failures may have occurred.
+
+104
+00:06:05.008 --> 00:06:09.001
+And this is also used by the framework when determining
+
+105
+00:06:09.001 --> 00:06:13.000
+if a particular job can be restarted.
+

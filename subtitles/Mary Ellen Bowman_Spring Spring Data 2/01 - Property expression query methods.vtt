@@ -1,0 +1,501 @@
+WEBVTT
+1
+00:00:00.050 --> 00:00:02.080
+- [Narrator] For general purpose database lookups,
+
+2
+00:00:02.080 --> 00:00:05.030
+the built in find all and find one
+
+3
+00:00:05.030 --> 00:00:07.070
+repository methods are sufficient.
+
+4
+00:00:07.070 --> 00:00:10.080
+But what should we do if we want to look up all full-time
+
+5
+00:00:10.080 --> 00:00:13.080
+students, or students with a certain last name,
+
+6
+00:00:13.080 --> 00:00:16.040
+or students within an age range,
+
+7
+00:00:16.040 --> 00:00:19.060
+or even all students taking a certain course.
+
+8
+00:00:19.060 --> 00:00:21.050
+This chapter demonstrates how to use spring
+
+9
+00:00:21.050 --> 00:00:24.060
+data commons to query a data source.
+
+10
+00:00:24.060 --> 00:00:27.000
+The exercise files use spring data JPA,
+
+11
+00:00:27.000 --> 00:00:30.000
+but the lessons learned here apply
+
+12
+00:00:30.000 --> 00:00:33.010
+to any spring data module that depends on commons.
+
+13
+00:00:33.010 --> 00:00:36.040
+I want to show you the expanded domain model
+
+14
+00:00:36.040 --> 00:00:40.030
+for the university application that we use in this chapter.
+
+15
+00:00:40.030 --> 00:00:45.000
+So along with student, it has a person attribute.
+
+16
+00:00:45.000 --> 00:00:50.030
+A student can be enrolled in several courses,
+
+17
+00:00:50.030 --> 00:00:55.070
+and each course has an instructor which is of type staff,
+
+18
+00:00:55.070 --> 00:00:59.060
+and a list of prerequisite courses.
+
+19
+00:00:59.060 --> 00:01:03.000
+Several courses are associated with one department
+
+20
+00:01:03.000 --> 00:01:07.060
+and each department has a chair which is also
+
+21
+00:01:07.060 --> 00:01:09.090
+of type staff.
+
+22
+00:01:09.090 --> 00:01:12.040
+The staff entity encapsulates a person
+
+23
+00:01:12.040 --> 00:01:15.030
+attribute as a member.
+
+24
+00:01:15.030 --> 00:01:19.050
+This chapter focuses on querying with spring data,
+
+25
+00:01:19.050 --> 00:01:22.050
+but before that we need to load up the H2 database
+
+26
+00:01:22.050 --> 00:01:24.070
+when the application starts.
+
+27
+00:01:24.070 --> 00:01:27.030
+We can do this in the main class called
+
+28
+00:01:27.030 --> 00:01:29.030
+University Application.
+
+29
+00:01:29.030 --> 00:01:33.030
+So in University Application we inject the repository
+
+30
+00:01:33.030 --> 00:01:37.080
+interfaces, implement the command line runner interface,
+
+31
+00:01:37.080 --> 00:01:40.050
+and we have to then implement
+
+32
+00:01:40.050 --> 00:01:44.070
+the run method for that and override that.
+
+33
+00:01:44.070 --> 00:01:48.020
+And we will populate the in memory store with students,
+
+34
+00:01:48.020 --> 00:01:52.080
+staff, departments, courses, and course prerequisites.
+
+35
+00:01:52.080 --> 00:01:54.020
+So here's our list of students.
+
+36
+00:01:54.020 --> 00:01:56.080
+We only have four students in this school so far.
+
+37
+00:01:56.080 --> 00:01:58.060
+We have several staff members.
+
+38
+00:01:58.060 --> 00:02:00.030
+Some are deans,
+
+39
+00:02:00.030 --> 00:02:04.030
+and some are professors.
+
+40
+00:02:04.030 --> 00:02:07.040
+Let me make this a little bigger to fit it in.
+
+41
+00:02:07.040 --> 00:02:09.010
+There's three departments, humanities,
+
+42
+00:02:09.010 --> 00:02:11.020
+social sciences, and natural sciences.
+
+43
+00:02:11.020 --> 00:02:16.010
+And for each of those there is a chair of the department:
+
+44
+00:02:16.010 --> 00:02:18.040
+Dean Jones, Dean Martin, and Dean Jones is also
+
+45
+00:02:18.040 --> 00:02:22.050
+chair of social sciences as well as humanities.
+
+46
+00:02:22.050 --> 00:02:26.060
+Within humanities we have courses for English,
+
+47
+00:02:26.060 --> 00:02:29.020
+and for each of the courses we have a professor.
+
+48
+00:02:29.020 --> 00:02:31.030
+And we also reference within that course
+
+49
+00:02:31.030 --> 00:02:35.000
+the department it's in, and we also note after we've
+
+50
+00:02:35.000 --> 00:02:39.050
+persisted we want to add any prerequisites to it.
+
+51
+00:02:39.050 --> 00:02:43.020
+So you can't take English 202 or English 201
+
+52
+00:02:43.020 --> 00:02:46.030
+without first taking English 101.
+
+53
+00:02:46.030 --> 00:02:48.060
+And so then we have our natural science courses
+
+54
+00:02:48.060 --> 00:02:53.060
+and any prerequisites and social science courses
+
+55
+00:02:53.060 --> 00:02:55.030
+with their titles.
+
+56
+00:02:55.030 --> 00:02:57.080
+Three is the number of credits the course is,
+
+57
+00:02:57.080 --> 00:02:59.050
+the professor
+
+58
+00:02:59.050 --> 00:03:02.060
+and the department it's in.
+
+59
+00:03:02.060 --> 00:03:04.090
+And for some reason you cannot take
+
+60
+00:03:04.090 --> 00:03:10.020
+psychology without taking history or English.
+
+61
+00:03:10.020 --> 00:03:12.080
+So it can cross departments.
+
+62
+00:03:12.080 --> 00:03:13.090
+So
+
+63
+00:03:13.090 --> 00:03:17.060
+at application startup this will save it to the H2
+
+64
+00:03:17.060 --> 00:03:20.010
+memory database, and when it stops the memory goes away
+
+65
+00:03:20.010 --> 00:03:23.050
+so this has to run each time at startup.
+
+66
+00:03:23.050 --> 00:03:27.030
+Let's look at the student repository.
+
+67
+00:03:27.030 --> 00:03:29.040
+And now we actually have methods in our
+
+68
+00:03:29.040 --> 00:03:31.050
+crud repository for student repository.
+
+69
+00:03:31.050 --> 00:03:34.000
+We're just going to look at these first three.
+
+70
+00:03:34.000 --> 00:03:37.080
+So I have find by full-time,
+
+71
+00:03:37.080 --> 00:03:39.080
+find by age,
+
+72
+00:03:39.080 --> 00:03:41.070
+and find by attendee last name.
+
+73
+00:03:41.070 --> 00:03:43.010
+Which your typical things you would like
+
+74
+00:03:43.010 --> 00:03:45.010
+to look up on a student.
+
+75
+00:03:45.010 --> 00:03:47.040
+And full-time we know is an attribute
+
+76
+00:03:47.040 --> 00:03:49.080
+of student, and it's a Boolean type.
+
+77
+00:03:49.080 --> 00:03:52.010
+We know that age is an attribute of student,
+
+78
+00:03:52.010 --> 00:03:54.000
+and that's a type integer.
+
+79
+00:03:54.000 --> 00:03:56.060
+And we know that there is an attendee attribute
+
+80
+00:03:56.060 --> 00:03:59.070
+on a student and within attendee there is a last name
+
+81
+00:03:59.070 --> 00:04:01.070
+attribute, and that's a string
+
+82
+00:04:01.070 --> 00:04:04.000
+or having that as a parameter.
+
+83
+00:04:04.000 --> 00:04:06.000
+So these query methods are declared,
+
+84
+00:04:06.000 --> 00:04:08.010
+but who implements the methods?
+
+85
+00:04:08.010 --> 00:04:09.090
+Well the good news is it's not me.
+
+86
+00:04:09.090 --> 00:04:13.090
+And I'll run it just to prove that.
+
+87
+00:04:13.090 --> 00:04:16.050
+So in query demos we're going to look at
+
+88
+00:04:16.050 --> 00:04:20.070
+this simple query example method.
+
+89
+00:04:20.070 --> 00:04:23.090
+So at startup by just running this test,
+
+90
+00:04:23.090 --> 00:04:26.080
+it will invoke the university application run method
+
+91
+00:04:26.080 --> 00:04:30.000
+and instantiate all of our university objects
+
+92
+00:04:30.000 --> 00:04:32.040
+and come into the break point here
+
+93
+00:04:32.040 --> 00:04:39.050
+in simple query examples.
+
+94
+00:04:39.050 --> 00:04:45.030
+I'll make this a little easier to read on one page.
+
+95
+00:04:45.030 --> 00:04:51.010
+So first we're going to find all students that are 20.
+
+96
+00:04:51.010 --> 00:04:53.030
+There's only one student that's 20.
+
+97
+00:04:53.030 --> 00:04:56.000
+Then we're gonna find full-time students.
+
+98
+00:04:56.000 --> 00:04:58.040
+We have three full-time students.
+
+99
+00:04:58.040 --> 00:04:59.040
+And we're gonna find students
+
+100
+00:04:59.040 --> 00:05:02.000
+that have the last name of Doe.
+
+101
+00:05:02.000 --> 00:05:06.030
+We have two students with the last name of Doe.
+
+102
+00:05:06.030 --> 00:05:07.030
+Is it a miracle?
+
+103
+00:05:07.030 --> 00:05:08.040
+Is it magic?
+
+104
+00:05:08.040 --> 00:05:11.080
+Well no, it's actually not magical at all.
+
+105
+00:05:11.080 --> 00:05:14.090
+Via be-an utils and reflection, spring implements
+
+106
+00:05:14.090 --> 00:05:17.030
+the method under the covers for us.
+
+107
+00:05:17.030 --> 00:05:20.000
+However, we must follow the rules when declaring
+
+108
+00:05:20.000 --> 00:05:22.070
+methods and correctly map the entity properties
+
+109
+00:05:22.070 --> 00:05:26.000
+to the method signatures.
+
+110
+00:05:26.000 --> 00:05:28.030
+So these are the rules when using property
+
+111
+00:05:28.030 --> 00:05:30.020
+expressions for our query methods.
+
+112
+00:05:30.020 --> 00:05:33.010
+First we have to declare the return type.
+
+113
+00:05:33.010 --> 00:05:35.090
+Then you need to begin the method signature with findBy
+
+114
+00:05:35.090 --> 00:05:38.080
+followed by the property name in camel case.
+
+115
+00:05:38.080 --> 00:05:41.060
+Optionally, chain sub-property names
+
+116
+00:05:41.060 --> 00:05:43.060
+following camel case rules as we did
+
+117
+00:05:43.060 --> 00:05:46.090
+in findByAttendeeLastName.
+
+118
+00:05:46.090 --> 00:05:48.080
+And then add any query parameters
+
+119
+00:05:48.080 --> 00:05:52.080
+whose type matches the property type.
+
+120
+00:05:52.080 --> 00:05:56.010
+Spring data facilitates fast failure.
+
+121
+00:05:56.010 --> 00:05:58.070
+Here attendee is misspelled.
+
+122
+00:05:58.070 --> 00:06:01.020
+At bootstrap, spring data throws
+
+123
+00:06:01.020 --> 00:06:03.080
+a PropertyReferenceException.
+
+124
+00:06:03.080 --> 00:06:06.000
+Without spring data you would not know there was
+
+125
+00:06:06.000 --> 00:06:10.000
+a syntax error until the query actually runs.
+

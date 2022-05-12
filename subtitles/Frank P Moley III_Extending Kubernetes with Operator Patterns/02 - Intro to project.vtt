@@ -1,0 +1,249 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:01.003
+- [Instructor] All right,
+
+2
+00:00:01.003 --> 00:00:02.002
+we're almost done with the pre-work
+
+3
+00:00:02.002 --> 00:00:05.006
+so we can write some code, but before we get there,
+
+4
+00:00:05.006 --> 00:00:08.006
+it's time to introduce the project that we will be building
+
+5
+00:00:08.006 --> 00:00:11.002
+as part of this course,
+
+6
+00:00:11.002 --> 00:00:15.001
+s3 is an object storage technology from Amazon.
+
+7
+00:00:15.001 --> 00:00:17.000
+It is extremely reliable
+
+8
+00:00:17.000 --> 00:00:19.001
+and very easy to use.
+
+9
+00:00:19.001 --> 00:00:22.000
+As such it's often used in Cloud Native
+
+10
+00:00:22.000 --> 00:00:23.009
+and distributed systems.
+
+11
+00:00:23.009 --> 00:00:27.003
+Now every Cloud provider offers this similar type
+
+12
+00:00:27.003 --> 00:00:30.001
+of technology, which makes it even better
+
+13
+00:00:30.001 --> 00:00:34.000
+for uses by systems because everywhere you go
+
+14
+00:00:34.000 --> 00:00:36.003
+you've got this sort of technology.
+
+15
+00:00:36.003 --> 00:00:39.001
+The key is we need to provision it
+
+16
+00:00:39.001 --> 00:00:43.001
+before our deployments so we can use it within our apps.
+
+17
+00:00:43.001 --> 00:00:45.003
+Now there's multiple ways to do this
+
+18
+00:00:45.003 --> 00:00:48.001
+but what I am going to propose that we are going to build
+
+19
+00:00:48.001 --> 00:00:49.006
+as part of this course,
+
+20
+00:00:49.006 --> 00:00:51.007
+is we are going to build an operator
+
+21
+00:00:51.007 --> 00:00:54.000
+that will be responsible for creating
+
+22
+00:00:54.000 --> 00:00:57.003
+and essentially mounting an s3 bucket
+
+23
+00:00:57.003 --> 00:01:00.001
+for our applications to use.
+
+24
+00:01:00.001 --> 00:01:02.005
+We want to tie it to the same namespace
+
+25
+00:01:02.005 --> 00:01:04.002
+that our CR is created in,
+
+26
+00:01:04.002 --> 00:01:08.004
+As namespace isolation is a common security practice
+
+27
+00:01:08.004 --> 00:01:12.000
+but our operator will definitely act on any namespace.
+
+28
+00:01:12.000 --> 00:01:14.007
+So when we do this, we are going to create the bucket
+
+29
+00:01:14.007 --> 00:01:17.007
+for each namespace as we go forward.
+
+30
+00:01:17.007 --> 00:01:19.004
+And this is really, really important
+
+31
+00:01:19.004 --> 00:01:21.000
+when you're building applications,
+
+32
+00:01:21.000 --> 00:01:23.007
+because a namespace tend to apps
+
+33
+00:01:23.007 --> 00:01:25.002
+that share a common purpose.
+
+34
+00:01:25.002 --> 00:01:27.004
+So sharing an s3 bucket
+
+35
+00:01:27.004 --> 00:01:31.005
+between all of those apps in a namespace is kind of okay.
+
+36
+00:01:31.005 --> 00:01:34.007
+And furthermore, having it defined in the namespace
+
+37
+00:01:34.007 --> 00:01:37.009
+means that your apps can get the configuration
+
+38
+00:01:37.009 --> 00:01:39.008
+from a central location.
+
+39
+00:01:39.008 --> 00:01:41.005
+But more on that later,
+
+40
+00:01:41.005 --> 00:01:43.007
+I'm getting a little bit ahead of myself.
+
+41
+00:01:43.007 --> 00:01:46.004
+The basic gist here is that our operator
+
+42
+00:01:46.004 --> 00:01:49.008
+is going to be an API gateway for s3
+
+43
+00:01:49.008 --> 00:01:52.007
+but it's an API gateway for the creation
+
+44
+00:01:52.007 --> 00:01:56.002
+and management of the bucket, not the objects in them.
+
+45
+00:01:56.002 --> 00:01:58.008
+That is what the applications will do.
+
+46
+00:01:58.008 --> 00:02:02.004
+When you build an application, you're going to load the details
+
+47
+00:02:02.004 --> 00:02:04.009
+and you are going to put your objects and pull your objects
+
+48
+00:02:04.009 --> 00:02:06.003
+out of the bucket
+
+49
+00:02:06.003 --> 00:02:09.000
+but your app doesn't have to worry about the bucket
+
+50
+00:02:09.000 --> 00:02:12.008
+because it's going to be defined by our operator.
+
+51
+00:02:12.008 --> 00:02:15.007
+So now we're going to expand and improve on this operator
+
+52
+00:02:15.007 --> 00:02:17.005
+throughout the next few videos,
+
+53
+00:02:17.005 --> 00:02:18.004
+but we're going to do this
+
+54
+00:02:18.004 --> 00:02:22.001
+in a very step by step methodical process.
+
+55
+00:02:22.001 --> 00:02:24.000
+So bear with me as we're doing this
+
+56
+00:02:24.000 --> 00:02:27.002
+because you may see something that doesn't make sense.
+
+57
+00:02:27.002 --> 00:02:30.004
+For instance, how we're going to manage credentials early on?
+
+58
+00:02:30.004 --> 00:02:32.005
+But it will make sense by the end of the course
+
+59
+00:02:32.005 --> 00:02:35.005
+I'm trying to give you this from the ground up.
+
+60
+00:02:35.005 --> 00:02:37.007
+But for right now, the important point is
+
+61
+00:02:37.007 --> 00:02:41.003
+we're going to build an operator that manages s3 buckets
+
+62
+00:02:41.003 --> 00:02:44.000
+per namespace for our applications.
+

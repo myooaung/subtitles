@@ -1,0 +1,1041 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:02.009
+- Let's turn our attention to another hotspot
+
+2
+00:00:02.009 --> 00:00:07.005
+for Spring application performance and that is Hibernate.
+
+3
+00:00:07.005 --> 00:00:11.005
+Now to be clear, Hibernate itself is not a problem.
+
+4
+00:00:11.005 --> 00:00:14.007
+It's a prevalent and very convenient solution
+
+5
+00:00:14.007 --> 00:00:17.004
+to a difficult task which is the work
+
+6
+00:00:17.004 --> 00:00:20.005
+of connecting your application to a data store.
+
+7
+00:00:20.005 --> 00:00:23.009
+It allows for convenient configuration-based mapping
+
+8
+00:00:23.009 --> 00:00:28.001
+of database tables, rows, and columns directly
+
+9
+00:00:28.001 --> 00:00:29.008
+to your Java objects.
+
+10
+00:00:29.008 --> 00:00:32.009
+That's what ORM means, Object-Relational Mapping.
+
+11
+00:00:32.009 --> 00:00:34.009
+This can speed up development tremendously
+
+12
+00:00:34.009 --> 00:00:37.009
+because it hides a lot of boilerplate code,
+
+13
+00:00:37.009 --> 00:00:41.006
+abstraction of the complexity of the database management
+
+14
+00:00:41.006 --> 00:00:42.009
+from the developer.
+
+15
+00:00:42.009 --> 00:00:45.006
+And while often it will perform just fine,
+
+16
+00:00:45.006 --> 00:00:46.009
+there is also a downside
+
+17
+00:00:46.009 --> 00:00:51.001
+that the actual database interactions can become invisible
+
+18
+00:00:51.001 --> 00:00:53.009
+and actually may perhaps not even understood
+
+19
+00:00:53.009 --> 00:00:56.005
+by the developer who's coding along happily
+
+20
+00:00:56.005 --> 00:00:58.009
+in their integrated development environment,
+
+21
+00:00:58.009 --> 00:01:02.002
+or even more importantly to the ops support team.
+
+22
+00:01:02.002 --> 00:01:04.001
+Much is written, there is much to learn
+
+23
+00:01:04.001 --> 00:01:07.003
+about the intricacies of database performance
+
+24
+00:01:07.003 --> 00:01:09.006
+and with it Hibernate performance.
+
+25
+00:01:09.006 --> 00:01:12.000
+This lesson will hit the essential points
+
+26
+00:01:12.000 --> 00:01:14.003
+that a developer should understand.
+
+27
+00:01:14.003 --> 00:01:17.006
+Our special focus though is going to be on observability
+
+28
+00:01:17.006 --> 00:01:21.000
+of these metrics that are so important to the end result
+
+29
+00:01:21.000 --> 00:01:23.007
+of a high-performing and resilient application.
+
+30
+00:01:23.007 --> 00:01:25.005
+Let's talk about connection pooling.
+
+31
+00:01:25.005 --> 00:01:27.006
+At a rather high level connection pooling
+
+32
+00:01:27.006 --> 00:01:31.006
+saves you the expense of making a new database connection
+
+33
+00:01:31.006 --> 00:01:33.005
+every time you need data.
+
+34
+00:01:33.005 --> 00:01:36.009
+It's a time consuming, resource consuming thing,
+
+35
+00:01:36.009 --> 00:01:40.002
+to make a database connection across the network.
+
+36
+00:01:40.002 --> 00:01:45.009
+And by pooling you can contain a group of JDBC connections
+
+37
+00:01:45.009 --> 00:01:50.001
+in a pool that remain hot, so to speak, ready to use,
+
+38
+00:01:50.001 --> 00:01:52.008
+your application can borrow a connection from the pool,
+
+39
+00:01:52.008 --> 00:01:55.001
+use it, and then return it to the pool
+
+40
+00:01:55.001 --> 00:01:58.001
+for the next bit of code to reuse.
+
+41
+00:01:58.001 --> 00:02:00.005
+The important properties on a connection pool
+
+42
+00:02:00.005 --> 00:02:04.008
+are the size of the pool and the timeout of the connections.
+
+43
+00:02:04.008 --> 00:02:07.005
+The more connections you have in your pool,
+
+44
+00:02:07.005 --> 00:02:09.000
+the more memory it's going to take
+
+45
+00:02:09.000 --> 00:02:11.007
+from your available memory but you will be guaranteed
+
+46
+00:02:11.007 --> 00:02:13.009
+to have one available at all times,
+
+47
+00:02:13.009 --> 00:02:16.003
+but that pool is smaller, you use less memory,
+
+48
+00:02:16.003 --> 00:02:18.007
+but you may have to create new ones on the fly.
+
+49
+00:02:18.007 --> 00:02:20.007
+So some memory trade-offs with that.
+
+50
+00:02:20.007 --> 00:02:23.003
+Usually what's typically done in practice
+
+51
+00:02:23.003 --> 00:02:26.004
+is you take a guess at what might be a good number
+
+52
+00:02:26.004 --> 00:02:29.005
+of connections based on other applications that seem
+
+53
+00:02:29.005 --> 00:02:32.001
+to be working well within your enterprise.
+
+54
+00:02:32.001 --> 00:02:35.000
+Or maybe you will just take the Spring defaults
+
+55
+00:02:35.000 --> 00:02:37.004
+and then you want to monitor the effectiveness.
+
+56
+00:02:37.004 --> 00:02:39.003
+With Spring and Hibernate we can track
+
+57
+00:02:39.003 --> 00:02:41.005
+our connection pool performance over time,
+
+58
+00:02:41.005 --> 00:02:43.000
+and that is the hard part.
+
+59
+00:02:43.000 --> 00:02:44.004
+That's the part we often forget about
+
+60
+00:02:44.004 --> 00:02:46.005
+and we're going to cover that observability piece
+
+61
+00:02:46.005 --> 00:02:48.005
+of it shortly in this lesson.
+
+62
+00:02:48.005 --> 00:02:50.002
+The second high level topic I'd like
+
+63
+00:02:50.002 --> 00:02:52.000
+to talk about is caching.
+
+64
+00:02:52.000 --> 00:02:55.006
+Caching is the technique of reusing data for a period
+
+65
+00:02:55.006 --> 00:02:59.004
+of time, saving the expense of additional database queries
+
+66
+00:02:59.004 --> 00:03:01.006
+when that data that you're looking for
+
+67
+00:03:01.006 --> 00:03:04.000
+is already available in the cache.
+
+68
+00:03:04.000 --> 00:03:07.006
+Similar in concept to web application caching,
+
+69
+00:03:07.006 --> 00:03:10.004
+Hibernate has both a session scope cache,
+
+70
+00:03:10.004 --> 00:03:12.002
+which we call level one.
+
+71
+00:03:12.002 --> 00:03:14.009
+A level one cache is enabled by default.
+
+72
+00:03:14.009 --> 00:03:17.006
+And also an application scoped cache,
+
+73
+00:03:17.006 --> 00:03:20.000
+which we call level two caching.
+
+74
+00:03:20.000 --> 00:03:22.006
+Application scoped level two caching
+
+75
+00:03:22.006 --> 00:03:24.007
+must be explicitly enabled.
+
+76
+00:03:24.007 --> 00:03:29.001
+And most of the studies to be done on caching effectiveness
+
+77
+00:03:29.001 --> 00:03:31.006
+are in relation to level two caching.
+
+78
+00:03:31.006 --> 00:03:33.008
+At a high level, some of the important,
+
+79
+00:03:33.008 --> 00:03:36.005
+configurable properties that you can apply
+
+80
+00:03:36.005 --> 00:03:39.000
+to your cache are concurrency,
+
+81
+00:03:39.000 --> 00:03:41.009
+that is, is it a read-only cache for instance,
+
+82
+00:03:41.009 --> 00:03:45.000
+or can you also write to the cache,
+
+83
+00:03:45.000 --> 00:03:47.000
+the size of your cache,
+
+84
+00:03:47.000 --> 00:03:50.006
+the age of data store inside the cache,
+
+85
+00:03:50.006 --> 00:03:53.008
+and how much memory you will allow your cache to take.
+
+86
+00:03:53.008 --> 00:03:55.001
+Just speaking at a high level,
+
+87
+00:03:55.001 --> 00:03:57.003
+entities are made cacheable in Hibernate
+
+88
+00:03:57.003 --> 00:04:01.009
+by using the cacheable annotation on an entity
+
+89
+00:04:01.009 --> 00:04:05.005
+and the concurrency and such you can configure by entity.
+
+90
+00:04:05.005 --> 00:04:08.002
+Kind of like connection pooling, in practice,
+
+91
+00:04:08.002 --> 00:04:10.000
+we usually take a good guess
+
+92
+00:04:10.000 --> 00:04:13.004
+at what these configuration values ought to be.
+
+93
+00:04:13.004 --> 00:04:15.005
+And then again, the important part is
+
+94
+00:04:15.005 --> 00:04:17.009
+to monitor the results to see if your cache
+
+95
+00:04:17.009 --> 00:04:19.006
+is performing effectively.
+
+96
+00:04:19.006 --> 00:04:21.006
+Looking at hits and misses and things like that
+
+97
+00:04:21.006 --> 00:04:25.007
+are how you know if your caching is effective.
+
+98
+00:04:25.007 --> 00:04:27.006
+On to observability pretty soon.
+
+99
+00:04:27.006 --> 00:04:30.005
+But first let's talk about lazy loading.
+
+100
+00:04:30.005 --> 00:04:33.003
+Lazy loading is the third kind of hot topic
+
+101
+00:04:33.003 --> 00:04:37.002
+that you'll encounter when you work with Hibernate.
+
+102
+00:04:37.002 --> 00:04:39.008
+Lazy loading is a feature in which Hibernate
+
+103
+00:04:39.008 --> 00:04:42.009
+delays data fetching until the runtime
+
+104
+00:04:42.009 --> 00:04:45.007
+actually requires the use of the object.
+
+105
+00:04:45.007 --> 00:04:49.000
+So the real world advantages of lazy loading
+
+106
+00:04:49.000 --> 00:04:51.004
+are significant enough that most of the time
+
+107
+00:04:51.004 --> 00:04:53.002
+it's the right approach.
+
+108
+00:04:53.002 --> 00:04:55.005
+In particular, it's very important
+
+109
+00:04:55.005 --> 00:04:58.009
+for those situations where you have many-to-many
+
+110
+00:04:58.009 --> 00:05:01.004
+or one-to-many relationships.
+
+111
+00:05:01.004 --> 00:05:04.004
+This is a common enough problem that it has a name,
+
+112
+00:05:04.004 --> 00:05:09.008
+it's called the N Plus One Problem of Hibernate querying.
+
+113
+00:05:09.008 --> 00:05:12.004
+The issue is when you have a one-to-many
+
+114
+00:05:12.004 --> 00:05:14.004
+or many-many to relationships,
+
+115
+00:05:14.004 --> 00:05:16.003
+sometimes you don't need to fetch all the manys.
+
+116
+00:05:16.003 --> 00:05:17.007
+You just need a few of them.
+
+117
+00:05:17.007 --> 00:05:21.009
+And if you tell Hibernate to lazy load your application
+
+118
+00:05:21.009 --> 00:05:24.007
+and Hibernate will be smart enough to not do a bunch
+
+119
+00:05:24.007 --> 00:05:26.009
+of queries that aren't necessary in order
+
+120
+00:05:26.009 --> 00:05:29.005
+to fulfill the business logic that you've got coded.
+
+121
+00:05:29.005 --> 00:05:32.006
+So, especially in n-to-many relationships
+
+122
+00:05:32.006 --> 00:05:35.001
+to make sure that your fetch type is lazy
+
+123
+00:05:35.001 --> 00:05:38.005
+is a very important aspect of performance.
+
+124
+00:05:38.005 --> 00:05:40.007
+Okay, let's go on to the observability part
+
+125
+00:05:40.007 --> 00:05:43.008
+of our lesson here because this is
+
+126
+00:05:43.008 --> 00:05:46.004
+where the game is won or lost.
+
+127
+00:05:46.004 --> 00:05:48.006
+You can know all that you need to know theoretically
+
+128
+00:05:48.006 --> 00:05:50.009
+about all of the previous topics,
+
+129
+00:05:50.009 --> 00:05:52.003
+but if you can't observe the behaviors
+
+130
+00:05:52.003 --> 00:05:57.001
+and measure it and make adjustments, then it's just no use.
+
+131
+00:05:57.001 --> 00:05:59.006
+So we're going to go into a demonstration now
+
+132
+00:05:59.006 --> 00:06:04.002
+and talk about observability of queries and statistics.
+
+133
+00:06:04.002 --> 00:06:05.006
+Two things I want to show you.
+
+134
+00:06:05.006 --> 00:06:07.002
+I want to show you a property
+
+135
+00:06:07.002 --> 00:06:10.006
+that will allow your application at runtime
+
+136
+00:06:10.006 --> 00:06:15.008
+to dump details about your queries into your logs
+
+137
+00:06:15.008 --> 00:06:19.005
+and also deeper level statistics about your queries.
+
+138
+00:06:19.005 --> 00:06:24.000
+The important properties here are the org.Hibernate.SQL
+
+139
+00:06:24.000 --> 00:06:25.004
+must be set to debug.
+
+140
+00:06:25.004 --> 00:06:28.008
+When you have that property set to debug, every time,
+
+141
+00:06:28.008 --> 00:06:31.000
+I've got a running application here ready to show you,
+
+142
+00:06:31.000 --> 00:06:33.003
+every time you fire a query,
+
+143
+00:06:33.003 --> 00:06:37.006
+it will get dumped into the log just as we see here.
+
+144
+00:06:37.006 --> 00:06:40.001
+See the org.Hibernate.SQL,
+
+145
+00:06:40.001 --> 00:06:44.002
+which is set to debug is now pumping out messages,
+
+146
+00:06:44.002 --> 00:06:48.003
+telling us exactly what queries we fired with each request.
+
+147
+00:06:48.003 --> 00:06:51.007
+Another important one, and also a slightly dangerous one,
+
+148
+00:06:51.007 --> 00:06:54.000
+is the generate statistics property,
+
+149
+00:06:54.000 --> 00:06:57.002
+Hibernate.generate_statistics.
+
+150
+00:06:57.002 --> 00:06:58.002
+When you set that true,
+
+151
+00:06:58.002 --> 00:07:01.007
+you will get more detailed statistics about your queries.
+
+152
+00:07:01.007 --> 00:07:06.007
+Here is an example of a fully fledged statistics dump
+
+153
+00:07:06.007 --> 00:07:11.000
+in which we're talking about the JDBC connection usage,
+
+154
+00:07:11.000 --> 00:07:14.006
+the batch usage, the level two cache hits and misses
+
+155
+00:07:14.006 --> 00:07:16.001
+that we talked about earlier.
+
+156
+00:07:16.001 --> 00:07:19.004
+So enabling statistics can give you a lot of information
+
+157
+00:07:19.004 --> 00:07:21.009
+into your logs, however, it's expensive
+
+158
+00:07:21.009 --> 00:07:24.001
+and don't do this in a production scenario
+
+159
+00:07:24.001 --> 00:07:26.008
+because it is a performance drain.
+
+160
+00:07:26.008 --> 00:07:30.005
+But this is really what I want to show you.
+
+161
+00:07:30.005 --> 00:07:33.003
+I want to show you how to register all of this information
+
+162
+00:07:33.003 --> 00:07:38.004
+on caches, connections, and queries through the actuator
+
+163
+00:07:38.004 --> 00:07:41.003
+that we looked at in a previous lesson.
+
+164
+00:07:41.003 --> 00:07:45.004
+The way to do this is in your palm.XML.
+
+165
+00:07:45.004 --> 00:07:49.004
+If you put a dependency on this org.Hibernate,
+
+166
+00:07:49.004 --> 00:07:52.002
+Hibernate micrometer artifact,
+
+167
+00:07:52.002 --> 00:07:55.006
+then you get a lot of things available to you.
+
+168
+00:07:55.006 --> 00:07:58.009
+Let's start with a look at the actuator metrics
+
+169
+00:07:58.009 --> 00:08:01.002
+for our application.
+
+170
+00:08:01.002 --> 00:08:03.005
+We did cover actuator in a previous lesson,
+
+171
+00:08:03.005 --> 00:08:06.006
+and you'll recall that you can hit this directory
+
+172
+00:08:06.006 --> 00:08:09.007
+and see a list of all the metrics that Spring boot
+
+173
+00:08:09.007 --> 00:08:10.009
+is exposing for you.
+
+174
+00:08:10.009 --> 00:08:14.009
+And in here, we have a category called metrics.
+
+175
+00:08:14.009 --> 00:08:18.000
+Now that we expose our metrics, we see a lot
+
+176
+00:08:18.000 --> 00:08:20.000
+of statistics here that we didn't see the first time
+
+177
+00:08:20.000 --> 00:08:22.005
+we reviewed this functionality.
+
+178
+00:08:22.005 --> 00:08:28.005
+We see connection pool usage, we see query statistics,
+
+179
+00:08:28.005 --> 00:08:31.004
+and we see cache statistics.
+
+180
+00:08:31.004 --> 00:08:35.001
+All of this makes it possible then to surface all
+
+181
+00:08:35.001 --> 00:08:38.000
+of these details and performance metrics
+
+182
+00:08:38.000 --> 00:08:40.003
+inside a tool like Prometheus,
+
+183
+00:08:40.003 --> 00:08:42.007
+which we also looked at in a previous lesson.
+
+184
+00:08:42.007 --> 00:08:44.001
+So previously, when we looked at these
+
+185
+00:08:44.001 --> 00:08:46.004
+we could not see some of these items,
+
+186
+00:08:46.004 --> 00:08:49.001
+but by putting it into our palm.XML,
+
+187
+00:08:49.001 --> 00:08:52.002
+we can, for example, have a look at the health
+
+188
+00:08:52.002 --> 00:08:53.008
+of our connection pool.
+
+189
+00:08:53.008 --> 00:08:54.009
+So one of the things we can at here
+
+190
+00:08:54.009 --> 00:08:58.000
+is connection pool statistics.
+
+191
+00:08:58.000 --> 00:09:06.008
+We can have a look at the hikari connections,
+
+192
+00:09:06.008 --> 00:09:09.008
+which will give us a count of how many connections we have
+
+193
+00:09:09.008 --> 00:09:11.005
+in our pool configured.
+
+194
+00:09:11.005 --> 00:09:14.006
+We have actually two applications here that we're tracking,
+
+195
+00:09:14.006 --> 00:09:17.007
+and we have statistics on both of them showing us
+
+196
+00:09:17.007 --> 00:09:21.006
+that each connection pool has configured 10 connections.
+
+197
+00:09:21.006 --> 00:09:30.004
+Then we can also see, let's see hikari connections idle.
+
+198
+00:09:30.004 --> 00:09:32.001
+Hikari connections idle will show us
+
+199
+00:09:32.001 --> 00:09:36.002
+how many we have unused in our connection pool.
+
+200
+00:09:36.002 --> 00:09:38.007
+Now you can't really see it here
+
+201
+00:09:38.007 --> 00:09:41.001
+because I have got a quiet local app,
+
+202
+00:09:41.001 --> 00:09:43.008
+but this will keep track of your usage over time.
+
+203
+00:09:43.008 --> 00:09:46.006
+So this is a gauge that will show you
+
+204
+00:09:46.006 --> 00:09:50.002
+over time how many connections you had idle.
+
+205
+00:09:50.002 --> 00:09:52.003
+And this is an example of something
+
+206
+00:09:52.003 --> 00:09:54.007
+if you have too many connections configured,
+
+207
+00:09:54.007 --> 00:09:57.002
+many of them are sitting idle, you can free up some
+
+208
+00:09:57.002 --> 00:09:59.009
+of that memory space and reduce the size
+
+209
+00:09:59.009 --> 00:10:01.002
+of your connection pool.
+
+210
+00:10:01.002 --> 00:10:04.000
+So that's just one example of metrics that you can observe
+
+211
+00:10:04.000 --> 00:10:05.007
+in quite a lot of detail,
+
+212
+00:10:05.007 --> 00:10:07.000
+how your connection pool is happening.
+
+213
+00:10:07.000 --> 00:10:10.001
+Let's have a look at some cache metrics.
+
+214
+00:10:10.001 --> 00:10:11.001
+These metrics will be here
+
+215
+00:10:11.001 --> 00:10:15.002
+under the Hibernate cache category.
+
+216
+00:10:15.002 --> 00:10:17.007
+Oh, this is something I don't like about Prometheus,
+
+217
+00:10:17.007 --> 00:10:22.009
+at least I haven't figured out how to only put one unit
+
+218
+00:10:22.009 --> 00:10:26.002
+of querying there in the box at a time.
+
+219
+00:10:26.002 --> 00:10:29.000
+So this is telling us that in our cache,
+
+220
+00:10:29.000 --> 00:10:32.007
+our query plan is executing a certain number of hits.
+
+221
+00:10:32.007 --> 00:10:34.000
+We have got hits and misses,
+
+222
+00:10:34.000 --> 00:10:36.001
+and that's telling us how effective our cache
+
+223
+00:10:36.001 --> 00:10:41.003
+is being in terms of is it providing use.
+
+224
+00:10:41.003 --> 00:10:43.001
+What you want to see is a fairly high number
+
+225
+00:10:43.001 --> 00:10:44.003
+of hits in your cache.
+
+226
+00:10:44.003 --> 00:10:46.002
+And when you're only getting misses that tells you
+
+227
+00:10:46.002 --> 00:10:47.003
+that maybe you're not using it
+
+228
+00:10:47.003 --> 00:10:50.000
+as effectively as you could, for instance.
+
+229
+00:10:50.000 --> 00:10:53.009
+And then finally, just the queries in general.
+
+230
+00:10:53.009 --> 00:10:56.009
+We can look at a metric called, just as for example,
+
+231
+00:10:56.009 --> 00:10:58.001
+there's a rich set of metrics here,
+
+232
+00:10:58.001 --> 00:11:00.002
+I'm just showing you some examples,
+
+233
+00:11:00.002 --> 00:11:06.006
+Hibernate query, Hibernate query executions,
+
+234
+00:11:06.006 --> 00:11:08.008
+max number of seconds.
+
+235
+00:11:08.008 --> 00:11:12.007
+So for both of the applications that I'm monitoring here,
+
+236
+00:11:12.007 --> 00:11:14.006
+it's telling us over time,
+
+237
+00:11:14.006 --> 00:11:16.003
+we have graph over time telling us
+
+238
+00:11:16.003 --> 00:11:19.005
+what the longest query we fired is four
+
+239
+00:11:19.005 --> 00:11:21.002
+and five seconds here, respectively.
+
+240
+00:11:21.002 --> 00:11:23.007
+So all kinds of useful information.
+
+241
+00:11:23.007 --> 00:11:26.004
+And the final thing I want to explain is that
+
+242
+00:11:26.004 --> 00:11:30.007
+because you can surface these metrics using actuator
+
+243
+00:11:30.007 --> 00:11:32.006
+in such a straightforward fashion,
+
+244
+00:11:32.006 --> 00:11:34.008
+just by configuring the dependencies
+
+245
+00:11:34.008 --> 00:11:37.000
+that your application draws in,
+
+246
+00:11:37.000 --> 00:11:39.006
+the bar is very low for you as a developer
+
+247
+00:11:39.006 --> 00:11:43.007
+to be able to see real metrics for your running application.
+
+248
+00:11:43.007 --> 00:11:46.005
+If you can point your local running application
+
+249
+00:11:46.005 --> 00:11:50.005
+to a production-like database or something even close,
+
+250
+00:11:50.005 --> 00:11:53.007
+and if you can load there in your local situation,
+
+251
+00:11:53.007 --> 00:11:56.001
+use your favorite load runner to create some type
+
+252
+00:11:56.001 --> 00:11:58.001
+of load against your application,
+
+253
+00:11:58.001 --> 00:11:59.007
+you can very quickly get a feel for
+
+254
+00:11:59.007 --> 00:12:03.002
+if your configurations are being effective or not.
+
+255
+00:12:03.002 --> 00:12:05.009
+It might not be exactly a production scenario,
+
+256
+00:12:05.009 --> 00:12:08.005
+but you can certainly see where weaknesses are
+
+257
+00:12:08.005 --> 00:12:10.005
+and things to investigate further.
+
+258
+00:12:10.005 --> 00:12:12.005
+So that's a bit about Hibernate performance
+
+259
+00:12:12.005 --> 00:12:14.002
+and in particular observability
+
+260
+00:12:14.002 --> 00:12:17.000
+of key metrics with Hibernate.
+

@@ -1,0 +1,625 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:01.004
+- [Instructor] In the previous video,
+
+2
+00:00:01.004 --> 00:00:04.000
+we looked at ordering and limiting results
+
+3
+00:00:04.000 --> 00:00:07.000
+in order to prepare ourselves to actually do paging.
+
+4
+00:00:07.000 --> 00:00:09.007
+And paging is construct within JBC,
+
+5
+00:00:09.007 --> 00:00:13.000
+and really, all database operations whereby we limit
+
+6
+00:00:13.000 --> 00:00:15.006
+the amount of data we return from the database
+
+7
+00:00:15.006 --> 00:00:16.007
+in a given slice.
+
+8
+00:00:16.007 --> 00:00:19.005
+That way, if we only need to see the first page,
+
+9
+00:00:19.005 --> 00:00:20.005
+we only see that.
+
+10
+00:00:20.005 --> 00:00:22.006
+But if we do need see the tenth page,
+
+11
+00:00:22.006 --> 00:00:25.000
+then we can slice through that data.
+
+12
+00:00:25.000 --> 00:00:27.004
+It provides a much more efficient mechanism
+
+13
+00:00:27.004 --> 00:00:29.009
+by getting data to the customer,
+
+14
+00:00:29.009 --> 00:00:32.005
+as opposed to giving them all the data at once.
+
+15
+00:00:32.005 --> 00:00:36.009
+So let's take a look in Postgres, how to implement paging.
+
+16
+00:00:36.009 --> 00:00:39.006
+So what I want you to do is jump back in your ID.
+
+17
+00:00:39.006 --> 00:00:40.009
+Now I do want to reiterate here,
+
+18
+00:00:40.009 --> 00:00:44.000
+this is how you can do paging and Postgres.
+
+19
+00:00:44.000 --> 00:00:46.001
+There is more than one way to do paging,
+
+20
+00:00:46.001 --> 00:00:49.002
+and there's more than one way to do it across databases.
+
+21
+00:00:49.002 --> 00:00:50.004
+This works for Postgres,
+
+22
+00:00:50.004 --> 00:00:53.008
+and this is a pattern that I've utilized many times over.
+
+23
+00:00:53.008 --> 00:00:56.002
+So, I'm going to show you my pattern for paging,
+
+24
+00:00:56.002 --> 00:00:58.005
+and you can expand on it as you wish.
+
+25
+00:00:58.005 --> 00:01:01.006
+The idea and concepts, however, will still be the same.
+
+26
+00:01:01.006 --> 00:01:03.001
+So let's open up our project.
+
+27
+00:01:03.001 --> 00:01:06.005
+Go to source, main, Java,
+
+28
+00:01:06.005 --> 00:01:10.005
+our base package and our customer DAO.
+
+29
+00:01:10.005 --> 00:01:11.004
+Well, the first thing we're going to do
+
+30
+00:01:11.004 --> 00:01:13.001
+is we're going to take the
+
+31
+00:01:13.001 --> 00:01:17.000
+SQL statement that we wrote in the previous video,
+
+32
+00:01:17.000 --> 00:01:21.000
+and we're going to copy and paste it.
+
+33
+00:01:21.000 --> 00:01:23.009
+Now, obviously, we need to make a couple changes to it.
+
+34
+00:01:23.009 --> 00:01:27.002
+So the first thing we're going to do is change the limit
+
+35
+00:01:27.002 --> 00:01:30.001
+to paged.
+
+36
+00:01:30.001 --> 00:01:32.009
+And then at the end of our method,
+
+37
+00:01:32.009 --> 00:01:36.002
+after the limit, we're going to do an offset
+
+38
+00:01:36.002 --> 00:01:37.004
+with a question mark.
+
+39
+00:01:37.004 --> 00:01:39.003
+And offset, as you might imagine,
+
+40
+00:01:39.003 --> 00:01:42.008
+offset's where we actually do the query from.
+
+41
+00:01:42.008 --> 00:01:46.001
+So, let's scroll down to our method.
+
+42
+00:01:46.001 --> 00:01:50.002
+And once again, we can copy our method,
+
+43
+00:01:50.002 --> 00:01:52.002
+which is not the best way to write code,
+
+44
+00:01:52.002 --> 00:01:54.007
+but for this purpose, it works.
+
+45
+00:01:54.007 --> 00:01:56.009
+We will paste it.
+
+46
+00:01:56.009 --> 00:02:01.005
+And we need to change the name, so we will get all paged.
+
+47
+00:02:01.005 --> 00:02:04.000
+We're going to pass it the limit still,
+
+48
+00:02:04.000 --> 00:02:08.006
+but we're also going to pass it the page number.
+
+49
+00:02:08.006 --> 00:02:11.007
+Now, we need to actually manipulate this page number
+
+50
+00:02:11.007 --> 00:02:14.002
+in order to know which one we're working with.
+
+51
+00:02:14.002 --> 00:02:16.007
+So let's do that next.
+
+52
+00:02:16.007 --> 00:02:20.005
+So, we will do an int offset
+
+53
+00:02:20.005 --> 00:02:22.001
+equals.
+
+54
+00:02:22.001 --> 00:02:25.004
+And what I'm going to do is page number minus one,
+
+55
+00:02:25.004 --> 00:02:27.007
+and that's because usually we think of page number
+
+56
+00:02:27.007 --> 00:02:30.006
+starting at one and not zero based indexes.
+
+57
+00:02:30.006 --> 00:02:32.008
+So this way we can manipulate
+
+58
+00:02:32.008 --> 00:02:35.008
+from a page number that makes sense to a human,
+
+59
+00:02:35.008 --> 00:02:37.006
+but convert it to a zero-based index,
+
+60
+00:02:37.006 --> 00:02:39.009
+which is what we need in code.
+
+61
+00:02:39.009 --> 00:02:42.004
+So we're going to take that times our limit.
+
+62
+00:02:42.004 --> 00:02:44.002
+Now this, of course, is going to assume
+
+63
+00:02:44.002 --> 00:02:47.002
+that we always have a consistent limit passed in.
+
+64
+00:02:47.002 --> 00:02:49.004
+If you start manipulating the limits between calls,
+
+65
+00:02:49.004 --> 00:02:50.009
+that's going to mess things up,
+
+66
+00:02:50.009 --> 00:02:52.001
+but that doesn't really make sense
+
+67
+00:02:52.001 --> 00:02:53.009
+from an application standpoint, either.
+
+68
+00:02:53.009 --> 00:02:56.005
+So if we have a finite set limit,
+
+69
+00:02:56.005 --> 00:03:00.004
+then our page number methodology will always work.
+
+70
+00:03:00.004 --> 00:03:04.001
+Now we'll leave in most of our logic here.
+
+71
+00:03:04.001 --> 00:03:07.002
+I do want to add in one thing.
+
+72
+00:03:07.002 --> 00:03:11.007
+We need to change our name
+
+73
+00:03:11.007 --> 00:03:13.004
+to get all paged,
+
+74
+00:03:13.004 --> 00:03:14.007
+but after we do that.
+
+75
+00:03:14.007 --> 00:03:20.002
+So, we're going to say if limit is less than one,
+
+76
+00:03:20.002 --> 00:03:21.007
+our limit
+
+77
+00:03:21.007 --> 00:03:24.006
+equals 10.
+
+78
+00:03:24.006 --> 00:03:26.001
+That way we get a default limit,
+
+79
+00:03:26.001 --> 00:03:28.001
+which is something I didn't have before,
+
+80
+00:03:28.001 --> 00:03:31.000
+but I probably should have added to begin with.
+
+81
+00:03:31.000 --> 00:03:35.001
+So we'll do a statement.setInt.
+
+82
+00:03:35.001 --> 00:03:38.005
+Two will be our offset.
+
+83
+00:03:38.005 --> 00:03:40.007
+And now we're ready to actually run our query.
+
+84
+00:03:40.007 --> 00:03:44.005
+So let's go back to our executer
+
+85
+00:03:44.005 --> 00:03:45.003
+and you'll see before,
+
+86
+00:03:45.003 --> 00:03:48.008
+we got 20 names and we printed them all out.
+
+87
+00:03:48.008 --> 00:03:52.004
+Let's now make a little change here.
+
+88
+00:03:52.004 --> 00:03:56.004
+We're going to do a system.out.printline,
+
+89
+00:03:56.004 --> 00:03:58.007
+and we're going to simply say paged
+
+90
+00:03:58.007 --> 00:04:01.002
+so we know where we start.
+
+91
+00:04:01.002 --> 00:04:04.002
+And we're going to do a simple loop.
+
+92
+00:04:04.002 --> 00:04:06.004
+I equals one.
+
+93
+00:04:06.004 --> 00:04:08.008
+I is less than three.
+
+94
+00:04:08.008 --> 00:04:11.000
+I plus plus.
+
+95
+00:04:11.000 --> 00:04:16.000
+And we will do a system.out.printline,
+
+96
+00:04:16.000 --> 00:04:20.005
+and we are going to say we are on page number,
+
+97
+00:04:20.005 --> 00:04:25.004
+pass out our page, which is going to be I in this case.
+
+98
+00:04:25.004 --> 00:04:28.008
+And then we will call into our customer DAO,
+
+99
+00:04:28.008 --> 00:04:31.008
+.findallpaged.
+
+100
+00:04:31.008 --> 00:04:34.006
+And we're going to send in a limit of 10
+
+101
+00:04:34.006 --> 00:04:37.008
+and a page number equal to I.
+
+102
+00:04:37.008 --> 00:04:38.006
+And then once again,
+
+103
+00:04:38.006 --> 00:04:41.002
+we'll do a for each on that
+
+104
+00:04:41.002 --> 00:04:45.002
+and we'll do our system.out
+
+105
+00:04:45.002 --> 00:04:46.007
+print line.
+
+106
+00:04:46.007 --> 00:04:52.000
+Okay, so now we can run our method.
+
+107
+00:04:52.000 --> 00:04:52.009
+Now what I want you to do,
+
+108
+00:04:52.009 --> 00:04:55.003
+we're going to scroll up in our return here.
+
+109
+00:04:55.003 --> 00:04:57.008
+So you'll see that we got 20 names to begin with.
+
+110
+00:04:57.008 --> 00:05:02.002
+Started with Brandon Adams and ended with Marilyn Andrews.
+
+111
+00:05:02.002 --> 00:05:03.005
+And down below,
+
+112
+00:05:03.005 --> 00:05:07.000
+we start with Brandon Adams on page number one,
+
+113
+00:05:07.000 --> 00:05:10.001
+and on page number two, we end with Marilyn Andrews.
+
+114
+00:05:10.001 --> 00:05:11.003
+So all of our data is there.
+
+115
+00:05:11.003 --> 00:05:12.009
+we've got 20 records to begin with.
+
+116
+00:05:12.009 --> 00:05:15.009
+We've got two pages of 10 to continue
+
+117
+00:05:15.009 --> 00:05:17.004
+after we've done our paging.
+
+118
+00:05:17.004 --> 00:05:19.007
+And you can look at any individual name
+
+119
+00:05:19.007 --> 00:05:21.006
+and find its correlation.
+
+120
+00:05:21.006 --> 00:05:25.001
+So we can look here at the very end of page number one,
+
+121
+00:05:25.001 --> 00:05:29.002
+customer 984, followed by customer 1080
+
+122
+00:05:29.002 --> 00:05:31.007
+on the very beginning of the second page.
+
+123
+00:05:31.007 --> 00:05:33.009
+So if we scroll back up here,
+
+124
+00:05:33.009 --> 00:05:36.008
+you'll see we have customer 984 followed by 1080,
+
+125
+00:05:36.008 --> 00:05:38.004
+which is 10 and 11.
+
+126
+00:05:38.004 --> 00:05:40.001
+Again, as we would expect.
+
+127
+00:05:40.001 --> 00:05:42.009
+So, this is a little bit different way to get your data.
+
+128
+00:05:42.009 --> 00:05:45.009
+It provides you a nice contract for only returning the data
+
+129
+00:05:45.009 --> 00:05:47.006
+that you're going to work with.
+
+130
+00:05:47.006 --> 00:05:48.005
+There are many systems
+
+131
+00:05:48.005 --> 00:05:51.003
+where your customer is only going to look at the first page.
+
+132
+00:05:51.003 --> 00:05:53.009
+They're never going to go to the second or third page
+
+133
+00:05:53.009 --> 00:05:55.001
+in an ideal use case,
+
+134
+00:05:55.001 --> 00:05:57.001
+so there's no reason to retrieve all that data
+
+135
+00:05:57.001 --> 00:05:58.006
+from the database.
+
+136
+00:05:58.006 --> 00:06:01.004
+This gives you a much more efficient operation,
+
+137
+00:06:01.004 --> 00:06:02.008
+but it does come with some overhead
+
+138
+00:06:02.008 --> 00:06:06.005
+because now we've got two way communication back and forth
+
+139
+00:06:06.005 --> 00:06:09.004
+every time we need to go back and get the next page.
+
+140
+00:06:09.004 --> 00:06:12.001
+So, if they're always going to the third and fourth page,
+
+141
+00:06:12.001 --> 00:06:14.005
+you might want to make your page sizes bigger
+
+142
+00:06:14.005 --> 00:06:18.007
+or consider other alternatives to getting your data back.
+
+143
+00:06:18.007 --> 00:06:21.008
+But the reality is that this is used all over the place,
+
+144
+00:06:21.008 --> 00:06:23.009
+and even more so, is that it's implemented differently
+
+145
+00:06:23.009 --> 00:06:25.003
+in every database.
+
+146
+00:06:25.003 --> 00:06:27.002
+So while I showed you one methodology,
+
+147
+00:06:27.002 --> 00:06:28.009
+I want to reiterate that this is different
+
+148
+00:06:28.009 --> 00:06:30.004
+for every database,
+
+149
+00:06:30.004 --> 00:06:32.006
+not only how the offset function works,
+
+150
+00:06:32.006 --> 00:06:35.004
+because there isn't an offset in every database,
+
+151
+00:06:35.004 --> 00:06:39.000
+but how the actual database keeps track of the cursor.
+
+152
+00:06:39.000 --> 00:06:42.000
+In Oracle databases, for instance, you have a row number
+
+153
+00:06:42.000 --> 00:06:44.004
+that you can do very similar techniques
+
+154
+00:06:44.004 --> 00:06:45.009
+using that row number.
+
+155
+00:06:45.009 --> 00:06:48.004
+Each database is different, look it up.
+
+156
+00:06:48.004 --> 00:06:52.000
+But the concept of paging and sorting is all the same.
+

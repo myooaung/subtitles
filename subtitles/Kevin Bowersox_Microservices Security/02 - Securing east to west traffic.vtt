@@ -1,0 +1,401 @@
+WEBVTT
+1
+00:00:00.006 --> 00:00:03.003
+- [Instructor] Well-designed microservices are created
+
+2
+00:00:03.003 --> 00:00:05.009
+with the single responsibility pattern in mind.
+
+3
+00:00:05.009 --> 00:00:08.009
+They do one thing and they do it well.
+
+4
+00:00:08.009 --> 00:00:11.001
+And hearing to this principle creates the need
+
+5
+00:00:11.001 --> 00:00:14.009
+for microservices to consume other microservices.
+
+6
+00:00:14.009 --> 00:00:17.000
+This generates East, West traffic
+
+7
+00:00:17.000 --> 00:00:19.007
+inside of the cluster of services.
+
+8
+00:00:19.007 --> 00:00:22.006
+The sideways traffic between the microservices
+
+9
+00:00:22.006 --> 00:00:25.001
+creates new security considerations,
+
+10
+00:00:25.001 --> 00:00:27.004
+such as how we identify a user
+
+11
+00:00:27.004 --> 00:00:29.007
+and how we make access decisions
+
+12
+00:00:29.007 --> 00:00:32.008
+within the cluster of services.
+
+13
+00:00:32.008 --> 00:00:35.004
+Let's consider a simple e-commerce scenario
+
+14
+00:00:35.004 --> 00:00:38.004
+where a customer is placing an order.
+
+15
+00:00:38.004 --> 00:00:41.001
+We'll assume the customer has already authenticated
+
+16
+00:00:41.001 --> 00:00:43.006
+and the client owned by the e-commerce company
+
+17
+00:00:43.006 --> 00:00:46.006
+is holding a valid access token.
+
+18
+00:00:46.006 --> 00:00:47.009
+To place the order,
+
+19
+00:00:47.009 --> 00:00:51.002
+the order service will need to call the payment service,
+
+20
+00:00:51.002 --> 00:00:53.007
+which can issue a financial transaction
+
+21
+00:00:53.007 --> 00:00:56.002
+using the account details of the customer
+
+22
+00:00:56.002 --> 00:00:58.004
+who is our resource owner.
+
+23
+00:00:58.004 --> 00:01:01.009
+One anti-pattern is to use a single access token
+
+24
+00:01:01.009 --> 00:01:06.006
+with a shared scope that allows access to both services.
+
+25
+00:01:06.006 --> 00:01:07.008
+This isn't ideal
+
+26
+00:01:07.008 --> 00:01:10.005
+because it starts to form a distributed monolith
+
+27
+00:01:10.005 --> 00:01:14.004
+where the scopes use to protect both services must align
+
+28
+00:01:14.004 --> 00:01:17.005
+and we start to build tight coupling.
+
+29
+00:01:17.005 --> 00:01:20.005
+We also violate the concept of lease privilege
+
+30
+00:01:20.005 --> 00:01:22.009
+because the access token could be used
+
+31
+00:01:22.009 --> 00:01:26.002
+to call the more sensitive payment service directly
+
+32
+00:01:26.002 --> 00:01:28.009
+by the client or even the resource owner
+
+33
+00:01:28.009 --> 00:01:32.005
+who has access to the access token.
+
+34
+00:01:32.005 --> 00:01:35.002
+One strategy to avoid this situation
+
+35
+00:01:35.002 --> 00:01:36.006
+is for the order service
+
+36
+00:01:36.006 --> 00:01:38.007
+to perform a client credentials grant
+
+37
+00:01:38.007 --> 00:01:40.008
+to obtain a new access token
+
+38
+00:01:40.008 --> 00:01:43.005
+prior to calling the payment service.
+
+39
+00:01:43.005 --> 00:01:45.005
+This allows the order service
+
+40
+00:01:45.005 --> 00:01:49.001
+and the payment service to have decoupled scopes.
+
+41
+00:01:49.001 --> 00:01:51.006
+The new access token with the payment scope
+
+42
+00:01:51.006 --> 00:01:54.003
+is only held by the order service
+
+43
+00:01:54.003 --> 00:01:58.009
+which avoids providing the client with elevated access.
+
+44
+00:01:58.009 --> 00:02:01.009
+Unfortunately, while this approach is somewhat better
+
+45
+00:02:01.009 --> 00:02:05.006
+it still takes us closer to a distributed monolith.
+
+46
+00:02:05.006 --> 00:02:07.005
+Without the original tokens,
+
+47
+00:02:07.005 --> 00:02:09.009
+the payment service has no awareness
+
+48
+00:02:09.009 --> 00:02:12.007
+of the end user's identity.
+
+49
+00:02:12.007 --> 00:02:15.009
+It is forced to defer access control decisions
+
+50
+00:02:15.009 --> 00:02:17.005
+to the order service
+
+51
+00:02:17.005 --> 00:02:20.005
+because the order service can obtain the identity
+
+52
+00:02:20.005 --> 00:02:23.005
+of the end user using something like the sub-claim
+
+53
+00:02:23.005 --> 00:02:24.005
+on a JWT
+
+54
+00:02:24.005 --> 00:02:29.002
+or using the OIDC user info endpoint.
+
+55
+00:02:29.002 --> 00:02:32.007
+Without any information about the end user's identity,
+
+56
+00:02:32.007 --> 00:02:35.000
+the payment service has no choice
+
+57
+00:02:35.000 --> 00:02:39.000
+but to trust the calls it receives from the order service.
+
+58
+00:02:39.000 --> 00:02:41.000
+If an attacker or an insider
+
+59
+00:02:41.000 --> 00:02:43.004
+could compromise the order service,
+
+60
+00:02:43.004 --> 00:02:47.006
+they could issue a payment from any of the customers.
+
+61
+00:02:47.006 --> 00:02:49.000
+To solve this problem,
+
+62
+00:02:49.000 --> 00:02:52.002
+we can use a JWT containing claims about the end-user
+
+63
+00:02:52.002 --> 00:02:55.003
+that is passed along with our new access token
+
+64
+00:02:55.003 --> 00:02:59.004
+from the order service to the payment service.
+
+65
+00:02:59.004 --> 00:03:00.008
+Sometimes this is done
+
+66
+00:03:00.008 --> 00:03:03.009
+by nesting one token inside of the other.
+
+67
+00:03:03.009 --> 00:03:06.004
+The payment service can read these claims
+
+68
+00:03:06.004 --> 00:03:09.000
+after verifying the integrity of the token
+
+69
+00:03:09.000 --> 00:03:11.002
+using at signature.
+
+70
+00:03:11.002 --> 00:03:13.004
+With this information, the payment service
+
+71
+00:03:13.004 --> 00:03:15.001
+can identify the user
+
+72
+00:03:15.001 --> 00:03:17.002
+and make a decision about whether or not
+
+73
+00:03:17.002 --> 00:03:21.004
+to authorize the payment that's been requested.
+
+74
+00:03:21.004 --> 00:03:22.009
+When using this approach,
+
+75
+00:03:22.009 --> 00:03:24.004
+we can apply a pattern
+
+76
+00:03:24.004 --> 00:03:26.007
+that helps us protect sensitive information
+
+77
+00:03:26.007 --> 00:03:29.002
+about our end-user.
+
+78
+00:03:29.002 --> 00:03:33.000
+In this pattern, the client is issued a reference token
+
+79
+00:03:33.000 --> 00:03:36.007
+that it holds to access the microservices.
+
+80
+00:03:36.007 --> 00:03:39.000
+When the reference token enters the network
+
+81
+00:03:39.000 --> 00:03:41.000
+through the API gateway,
+
+82
+00:03:41.000 --> 00:03:44.009
+it is passed to the IAM platform where it is switched
+
+83
+00:03:44.009 --> 00:03:48.004
+from a reference token into a structured token.
+
+84
+00:03:48.004 --> 00:03:51.006
+This structured token or JWT contains claims
+
+85
+00:03:51.006 --> 00:03:54.008
+about the identity of the end-user.
+
+86
+00:03:54.008 --> 00:03:57.001
+This approach better protects information
+
+87
+00:03:57.001 --> 00:04:01.000
+about the end-user because it never sends a structured token
+
+88
+00:04:01.000 --> 00:04:03.001
+with claims to the client.
+
+89
+00:04:03.001 --> 00:04:05.008
+However, it does exchange the reference token
+
+90
+00:04:05.008 --> 00:04:08.009
+for a structured token at the API gateway
+
+91
+00:04:08.009 --> 00:04:12.002
+that can be passed back to our microservices,
+
+92
+00:04:12.002 --> 00:04:15.005
+which use it to identify the end-user.
+
+93
+00:04:15.005 --> 00:04:19.003
+These techniques allow microservices to securely communicate
+
+94
+00:04:19.003 --> 00:04:21.006
+and helps establish a user context
+
+95
+00:04:21.006 --> 00:04:26.006
+without any state stored between the services.
+
+96
+00:04:26.006 --> 00:04:29.007
+When building microservices that must collaborate,
+
+97
+00:04:29.007 --> 00:04:32.001
+it's important to closely examine calls
+
+98
+00:04:32.001 --> 00:04:33.007
+from one service to another
+
+99
+00:04:33.007 --> 00:04:37.005
+to ensure scope or claims based security decisions
+
+100
+00:04:37.005 --> 00:04:42.000
+do not become intertwined to couple the services together.
+

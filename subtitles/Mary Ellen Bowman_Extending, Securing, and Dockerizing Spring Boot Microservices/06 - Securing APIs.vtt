@@ -1,0 +1,441 @@
+WEBVTT
+1
+00:00:00.050 --> 00:00:02.030
+- [Instructor] So, now that some APIs
+
+2
+00:00:02.030 --> 00:00:05.000
+in TourRatingController requires
+
+3
+00:00:05.000 --> 00:00:07.080
+pre-authorization, guess what?
+
+4
+00:00:07.080 --> 00:00:11.020
+Those JUnit API tests are now failing.
+
+5
+00:00:11.020 --> 00:00:14.020
+So, we see that I've run all the tests
+
+6
+00:00:14.020 --> 00:00:15.080
+in TourRatingControllerTest
+
+7
+00:00:15.080 --> 00:00:17.080
+and delete updateWithPut,
+
+8
+00:00:17.080 --> 00:00:21.070
+createTourRating and createManyTourRatings
+
+9
+00:00:21.070 --> 00:00:24.090
+which are the endpoints that require pre-authorization
+
+10
+00:00:24.090 --> 00:00:27.090
+to have the CSR role are failing.
+
+11
+00:00:27.090 --> 00:00:31.080
+The problem is we need to make a restTemplate request
+
+12
+00:00:31.080 --> 00:00:35.050
+that also includes an HttpEntity object
+
+13
+00:00:35.050 --> 00:00:38.040
+where we can put in a JWT token.
+
+14
+00:00:38.040 --> 00:00:40.090
+Let's look at a specific test,
+
+15
+00:00:40.090 --> 00:00:42.030
+probably the easiest one in here
+
+16
+00:00:42.030 --> 00:00:45.010
+is delete because it doesn't have a payload
+
+17
+00:00:45.010 --> 00:00:49.040
+and it doesn't really have a response payload either.
+
+18
+00:00:49.040 --> 00:00:54.020
+So, in the delete method on restTemplate,
+
+19
+00:00:54.020 --> 00:00:57.050
+we don't have the ability to add a header,
+
+20
+00:00:57.050 --> 00:00:59.080
+so we need to add a header
+
+21
+00:00:59.080 --> 00:01:04.080
+with the restTemplate exchange method.
+
+22
+00:01:04.080 --> 00:01:15.050
+So, I'm going to change this to exchange.
+
+23
+00:01:15.050 --> 00:01:21.030
+And I'm using the same URL.
+
+24
+00:01:21.030 --> 00:01:25.040
+Then I have to have the verb,
+
+25
+00:01:25.040 --> 00:01:30.010
+the HttpMethod delete
+
+26
+00:01:30.010 --> 00:01:39.040
+and then I need a new HttpEntity object
+
+27
+00:01:39.040 --> 00:01:49.010
+and having a parameter of null in there for now.
+
+28
+00:01:49.010 --> 00:01:55.080
+And then the return is void.
+
+29
+00:01:55.080 --> 00:02:01.000
+So, the HttpEntity requires an HTTP header object.
+
+30
+00:02:01.000 --> 00:02:03.060
+For delete we need a header value authorization
+
+31
+00:02:03.060 --> 00:02:05.020
+with a value of bearer
+
+32
+00:02:05.020 --> 00:02:07.030
+plus the JWT token
+
+33
+00:02:07.030 --> 00:02:10.040
+for the customer service representative.
+
+34
+00:02:10.040 --> 00:02:12.010
+In the Test Web folder,
+
+35
+00:02:12.010 --> 00:02:22.040
+I created a helper class called JwtRequestHelper
+
+36
+00:02:22.040 --> 00:02:26.060
+and within the helper there is a method called withRole.
+
+37
+00:02:26.060 --> 00:02:28.060
+So, in this helper class,
+
+38
+00:02:28.060 --> 00:02:30.090
+we've injected the JwtProvider
+
+39
+00:02:30.090 --> 00:02:32.060
+which is our helper class
+
+40
+00:02:32.060 --> 00:02:35.070
+to generate and parse tokens.
+
+41
+00:02:35.070 --> 00:02:38.050
+So, calling the withRole method,
+
+42
+00:02:38.050 --> 00:02:41.000
+passing in a specific role name,
+
+43
+00:02:41.000 --> 00:02:44.030
+we instantiate an HTTP header's object,
+
+44
+00:02:44.030 --> 00:02:47.020
+instantiate a role object,
+
+45
+00:02:47.020 --> 00:02:49.050
+set the role name
+
+46
+00:02:49.050 --> 00:02:55.030
+and then invoke the createToken method on JwtProvider.
+
+47
+00:02:55.030 --> 00:02:58.010
+For this example, we really don't care about the username
+
+48
+00:02:58.010 --> 00:02:59.030
+but we do care about the role,
+
+49
+00:02:59.030 --> 00:03:02.060
+so we setting the list of roles,
+
+50
+00:03:02.060 --> 00:03:04.090
+in this case it's just one.
+
+51
+00:03:04.090 --> 00:03:06.080
+And then we add to the header
+
+52
+00:03:06.080 --> 00:03:11.000
+the authorization key followed by bearer
+
+53
+00:03:11.000 --> 00:03:12.090
+plus the token string
+
+54
+00:03:12.090 --> 00:03:15.060
+and then return that as an HTTP header,
+
+55
+00:03:15.060 --> 00:03:18.040
+so I'm gonna actually use this now.
+
+56
+00:03:18.040 --> 00:03:21.090
+Inside HttpEntity,
+
+57
+00:03:21.090 --> 00:03:30.030
+I'm going to call JwtRequestHelper.withRole
+
+58
+00:03:30.030 --> 00:03:35.060
+and then the string ROLE_CSR.
+
+59
+00:03:35.060 --> 00:03:40.060
+So, let's run this
+
+60
+00:03:40.060 --> 00:03:43.030
+and now our delete test passes,
+
+61
+00:03:43.030 --> 00:03:45.090
+so we're gonna actually walk through all of the methods
+
+62
+00:03:45.090 --> 00:03:51.090
+that require the pre-processing of the token.
+
+63
+00:03:51.090 --> 00:03:57.020
+So, another one that failed was CreateTourRating.
+
+64
+00:03:57.020 --> 00:04:00.010
+We're going to set a postForEntity,
+
+65
+00:04:00.010 --> 00:04:03.040
+we're going to say exchange
+
+66
+00:04:03.040 --> 00:04:07.010
+using the same URL,
+
+67
+00:04:07.010 --> 00:04:13.090
+the verb is POST.
+
+68
+00:04:13.090 --> 00:04:23.090
+And then I'm gonna have a new HttpEntity
+
+69
+00:04:23.090 --> 00:04:29.040
+with the ratingDto
+
+70
+00:04:29.040 --> 00:04:39.090
+followed by the JwtRequestHelper.withRole.
+
+71
+00:04:39.090 --> 00:04:41.040
+And then it returns a void class,
+
+72
+00:04:41.040 --> 00:04:43.010
+I'm gonna actually just copy this
+
+73
+00:04:43.010 --> 00:04:46.020
+because I'm gonna use it frequently.
+
+74
+00:04:46.020 --> 00:04:56.090
+The next one is createManyTourRatings.
+
+75
+00:04:56.090 --> 00:05:10.000
+We build the URL.
+
+76
+00:05:10.000 --> 00:05:26.090
+Now, update with PUT.
+
+77
+00:05:26.090 --> 00:05:43.080
+And update with PATCH.
+
+78
+00:05:43.080 --> 00:05:55.010
+So, now let's run them.
+
+79
+00:05:55.010 --> 00:05:56.040
+And they pass.
+
+80
+00:05:56.040 --> 00:06:00.070
+The UserControllerTest I've already updated
+
+81
+00:06:00.070 --> 00:06:04.080
+to use the JwtRequestHelper
+
+82
+00:06:04.080 --> 00:06:10.020
+and it also has a test if an invalid role is passed in.
+
+83
+00:06:10.020 --> 00:06:13.030
+So, if a unauthorized user tries to log in,
+
+84
+00:06:13.030 --> 00:06:15.030
+it finds that the token is invalid
+
+85
+00:06:15.030 --> 00:06:17.050
+and it will assert that we get a 403,
+
+86
+00:06:17.050 --> 00:06:19.050
+so you wanna test not just for the happy path
+
+87
+00:06:19.050 --> 00:06:21.030
+but for the unhappy path
+
+88
+00:06:21.030 --> 00:06:23.030
+and speaking of error handling,
+
+89
+00:06:23.030 --> 00:06:25.090
+there was one last feature I wanted to demonstrate.
+
+90
+00:06:25.090 --> 00:06:29.020
+Let's open ExceptionHandlerController
+
+91
+00:06:29.020 --> 00:06:37.070
+which is a new class I created in the web folder.
+
+92
+00:06:37.070 --> 00:06:39.070
+This is ExceptionHandlerController
+
+93
+00:06:39.070 --> 00:06:43.050
+and it is annotated with @RestControllerAdvice.
+
+94
+00:06:43.050 --> 00:06:47.030
+It is a common presentation layer error handler
+
+95
+00:06:47.030 --> 00:06:49.080
+and ExceptionHandlerController it knows
+
+96
+00:06:49.080 --> 00:06:53.000
+how to handle four types of exceptions,
+
+97
+00:06:53.000 --> 00:06:58.000
+AccessDeniedException, HttpServerErrorException,
+
+98
+00:06:58.000 --> 00:07:00.060
+InsufficientAuthenticationException
+
+99
+00:07:00.060 --> 00:07:04.070
+and then a catch for all general exceptions.
+
+100
+00:07:04.070 --> 00:07:07.020
+With that exception, the desired HTTP status
+
+101
+00:07:07.020 --> 00:07:10.050
+is sent back with the HTTP response.
+
+102
+00:07:10.050 --> 00:07:15.060
+By default, Spring provides an errorAttributes object
+
+103
+00:07:15.060 --> 00:07:19.040
+and we are injecting and using that dane here
+
+104
+00:07:19.040 --> 00:07:22.070
+and override what will be the contents
+
+105
+00:07:22.070 --> 00:07:25.020
+of the errorAttributes.
+
+106
+00:07:25.020 --> 00:07:28.070
+So, errorAttributes in this example
+
+107
+00:07:28.070 --> 00:07:32.000
+we're going to omit the exception attribute
+
+108
+00:07:32.000 --> 00:07:36.020
+as to not expose proprietary application information.
+
+109
+00:07:36.020 --> 00:07:39.010
+Not all errorAttributes include the exception key
+
+110
+00:07:39.010 --> 00:07:41.000
+but this is good practice.
+

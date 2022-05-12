@@ -1,0 +1,365 @@
+WEBVTT
+1
+00:00:00.006 --> 00:00:03.006
+- [Instructor] Spring Boot 2.0 introduced a new technology
+
+2
+00:00:03.006 --> 00:00:08.000
+to provide non-blocking IO called the Reactive Stack.
+
+3
+00:00:08.000 --> 00:00:11.009
+This new reactive stack leverages multi-core processors
+
+4
+00:00:11.009 --> 00:00:14.008
+to handle several concurrent connections.
+
+5
+00:00:14.008 --> 00:00:18.005
+The original Servlet Stack provides synchronous blocking IO
+
+6
+00:00:18.005 --> 00:00:21.002
+with one request per thread.
+
+7
+00:00:21.002 --> 00:00:25.000
+Spring data now provides reactive repository interfaces
+
+8
+00:00:25.000 --> 00:00:28.007
+that interact with non-blocking data sources such as
+
+9
+00:00:28.007 --> 00:00:33.002
+Mongo, Cassandra, Redis, and Couchbase.
+
+10
+00:00:33.002 --> 00:00:39.000
+This video focuses exclusively on reactive repositories.
+
+11
+00:00:39.000 --> 00:00:44.005
+So in this project, we're going to look at the pom.xml
+
+12
+00:00:44.005 --> 00:00:48.008
+and we're seeing that this is based on our existing example
+
+13
+00:00:48.008 --> 00:00:51.005
+for MongoDB
+
+14
+00:00:51.005 --> 00:00:53.009
+but in the dependency here,
+
+15
+00:00:53.009 --> 00:00:58.007
+it's Spring Boot starter data MongoDB reactive.
+
+16
+00:00:58.007 --> 00:01:01.002
+Also, department repository
+
+17
+00:01:01.002 --> 00:01:06.004
+and staff repository extends reactive cred repository.
+
+18
+00:01:06.004 --> 00:01:11.000
+Which is different than Mongo cred repositories.
+
+19
+00:01:11.000 --> 00:01:12.006
+I'm going to drill down into the code
+
+20
+00:01:12.006 --> 00:01:16.002
+for the reactive cred repository.
+
+21
+00:01:16.002 --> 00:01:20.005
+And we see the typical methods for crod methods,
+
+22
+00:01:20.005 --> 00:01:24.002
+the return types are either Mono or Flux.
+
+23
+00:01:24.002 --> 00:01:29.005
+A Mono is an asynchronous publisher of zero or one result.
+
+24
+00:01:29.005 --> 00:01:34.001
+A Flux is a publisher of an asynchronous sequence of zero
+
+25
+00:01:34.001 --> 00:01:36.005
+to any number of results.
+
+26
+00:01:36.005 --> 00:01:39.001
+Let's go back to staff repository.
+
+27
+00:01:39.001 --> 00:01:41.002
+So we have query methods
+
+28
+00:01:41.002 --> 00:01:45.001
+and this method must either return a Flux or Mono,
+
+29
+00:01:45.001 --> 00:01:49.003
+otherwise a run-time error is thrown at invocation.
+
+30
+00:01:49.003 --> 00:01:54.000
+So let's try out some of these repository methods.
+
+31
+00:01:54.000 --> 00:01:55.003
+This code demonstrates
+
+32
+00:01:55.003 --> 00:01:58.008
+that simply invoking the repository method does not
+
+33
+00:01:58.008 --> 00:02:01.004
+automatically interact with the data source.
+
+34
+00:02:01.004 --> 00:02:05.000
+The methods are asynchronous and return immediately.
+
+35
+00:02:05.000 --> 00:02:06.006
+To interact with the data source,
+
+36
+00:02:06.006 --> 00:02:11.006
+each publisher, Mono or Flux, requires a subscriber.
+
+37
+00:02:11.006 --> 00:02:15.005
+It is the subscriber that actually triggers the interaction.
+
+38
+00:02:15.005 --> 00:02:16.003
+In this file,
+
+39
+00:02:16.003 --> 00:02:20.001
+the block of subscribe methods trigger the interaction
+
+40
+00:02:20.001 --> 00:02:24.001
+and don't return until their interaction is complete.
+
+41
+00:02:24.001 --> 00:02:28.001
+So let's walk through these methods.
+
+42
+00:02:28.001 --> 00:02:33.009
+First we're going to call staffRepository.save
+
+43
+00:02:33.009 --> 00:02:36.004
+to create the Mono of Dean Jones
+
+44
+00:02:36.004 --> 00:02:40.007
+and then we'll create the Mono of Dean Martin
+
+45
+00:02:40.007 --> 00:02:45.003
+and then we're going to create a Flux for findAll.
+
+46
+00:02:45.003 --> 00:02:48.003
+So at this moment nothing is actually been saved
+
+47
+00:02:48.003 --> 00:02:50.007
+to the database and we're going to prove that
+
+48
+00:02:50.007 --> 00:02:53.008
+by calling this print statement.
+
+49
+00:02:53.008 --> 00:02:58.002
+This is saying that there is no staff found in the database
+
+50
+00:02:58.002 --> 00:02:59.007
+because there's been no subscription.
+
+51
+00:02:59.007 --> 00:03:03.001
+Now we're going to subscribe to the Dean Jones' Mono
+
+52
+00:03:03.001 --> 00:03:05.003
+and block until it's completed.
+
+53
+00:03:05.003 --> 00:03:09.006
+So now here we actually create the staff in the database
+
+54
+00:03:09.006 --> 00:03:13.006
+and so with block it actually returns the result.
+
+55
+00:03:13.006 --> 00:03:15.008
+Another way is to call subscribe
+
+56
+00:03:15.008 --> 00:03:17.005
+so we're going to, on Dean Martin Mono,
+
+57
+00:03:17.005 --> 00:03:19.004
+we're going to call subscribe.
+
+58
+00:03:19.004 --> 00:03:23.002
+That does not return the result but it is in the database
+
+59
+00:03:23.002 --> 00:03:30.000
+and now we're going to invoke the staffFlux.count
+
+60
+00:03:30.000 --> 00:03:32.007
+and we'll block until that completes.
+
+61
+00:03:32.007 --> 00:03:34.009
+So this is going to give us the count in the database
+
+62
+00:03:34.009 --> 00:03:38.000
+after the subscription so now we have two staff members
+
+63
+00:03:38.000 --> 00:03:40.006
+in the database.
+
+64
+00:03:40.006 --> 00:03:42.001
+And now we're actually going
+
+65
+00:03:42.001 --> 00:03:46.003
+to look up the Dean Martin staff which we didn't get
+
+66
+00:03:46.003 --> 00:03:50.007
+from the subscribe method on line 53.
+
+67
+00:03:50.007 --> 00:03:52.006
+And now we're going to interact
+
+68
+00:03:52.006 --> 00:03:55.004
+with the department repository.
+
+69
+00:03:55.004 --> 00:03:58.001
+We're going to get to look up
+
+70
+00:03:58.001 --> 00:04:00.003
+in the repository find all the departments
+
+71
+00:04:00.003 --> 00:04:02.006
+and then the count for it
+
+72
+00:04:02.006 --> 00:04:06.001
+and like I said, it does not actually execute that.
+
+73
+00:04:06.001 --> 00:04:11.003
+It's going to be done in another call.
+
+74
+00:04:11.003 --> 00:04:15.003
+And now we're going to do a save all.
+
+75
+00:04:15.003 --> 00:04:18.004
+We're going to create three department.
+
+76
+00:04:18.004 --> 00:04:22.007
+Said, uh, humanities, natural sciences and social sciences
+
+77
+00:04:22.007 --> 00:04:28.000
+with these Deans that we've already persisted.
+
+78
+00:04:28.000 --> 00:04:30.008
+Now we're going to show that,
+
+79
+00:04:30.008 --> 00:04:33.006
+because we only got the Flux, they did not save
+
+80
+00:04:33.006 --> 00:04:36.003
+to the database yet.
+
+81
+00:04:36.003 --> 00:04:39.000
+This is before the subscription of the departments.
+
+82
+00:04:39.000 --> 00:04:41.006
+Now on the Flux we call blockLast which is,
+
+83
+00:04:41.006 --> 00:04:48.003
+it's not going to return until the last department is saved.
+
+84
+00:04:48.003 --> 00:04:54.003
+And now, we're going to show them the department number
+
+85
+00:04:54.003 --> 00:04:58.000
+after the subscription is happened.
+
+86
+00:04:58.000 --> 00:05:00.007
+This is example forced asynchronous features
+
+87
+00:05:00.007 --> 00:05:04.000
+to display synchronously and honestly the power
+
+88
+00:05:04.000 --> 00:05:07.003
+of the reactive stack is lost.
+
+89
+00:05:07.003 --> 00:05:11.002
+WebFlux in the web tier automatically subscribes to the Mono
+
+90
+00:05:11.002 --> 00:05:13.001
+and Flux publishers.
+
+91
+00:05:13.001 --> 00:05:16.000
+It's there where reactive programming comes alive.
+

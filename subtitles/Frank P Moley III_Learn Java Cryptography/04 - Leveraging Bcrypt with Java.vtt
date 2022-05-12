@@ -1,0 +1,381 @@
+WEBVTT
+1
+00:00:00.050 --> 00:00:02.080
+- So now that we've generated a hash, and talked about
+
+2
+00:00:02.080 --> 00:00:06.050
+why that hashing algorithm shouldn't be used for passwords,
+
+3
+00:00:06.050 --> 00:00:09.000
+I wanna show you how to actually use BCrypt
+
+4
+00:00:09.000 --> 00:00:11.050
+to hash a password.
+
+5
+00:00:11.050 --> 00:00:15.000
+Now again, this is outside the JCA, but this is very
+
+6
+00:00:15.000 --> 00:00:18.060
+important for Java developers to understand.
+
+7
+00:00:18.060 --> 00:00:20.030
+Now let's jump into our ID and the first thing
+
+8
+00:00:20.030 --> 00:00:24.040
+that we need to do is open up our pom.xml file.
+
+9
+00:00:24.040 --> 00:00:27.050
+We're gonna add a new dependency.
+
+10
+00:00:27.050 --> 00:00:35.030
+And the dependency that we are going to add is jBCrypt,
+
+11
+00:00:35.030 --> 00:00:43.010
+and this comes from the group de.svenkubiak.
+
+12
+00:00:43.010 --> 00:00:49.000
+And we are going to use version 0.4.1.
+
+13
+00:00:49.000 --> 00:00:55.070
+Go ahead and let Maven do its thing, and download that jar.
+
+14
+00:00:55.070 --> 00:00:57.090
+And then we're gonna go ahead and open up our HashUtil,
+
+15
+00:00:57.090 --> 00:01:02.020
+so in src, main, java, com.frankmoley.crypto hash,
+
+16
+00:01:02.020 --> 00:01:04.090
+open up HashUtils.
+
+17
+00:01:04.090 --> 00:01:08.080
+This is actually a super simple algorithm to use,
+
+18
+00:01:08.080 --> 00:01:13.040
+because they've done all the work for you.
+
+19
+00:01:13.040 --> 00:01:17.030
+So it returns a string, so we are going to do
+
+20
+00:01:17.030 --> 00:01:21.010
+a public static string, hashPassword,
+
+21
+00:01:21.010 --> 00:01:25.000
+and we will simply pass in the password.
+
+22
+00:01:25.000 --> 00:01:26.070
+Now the first thing that you may be saying is,
+
+23
+00:01:26.070 --> 00:01:28.090
+"Wait a minute, don't we need to salt?"
+
+24
+00:01:28.090 --> 00:01:31.050
+And we do need to salt, but the implementation of
+
+25
+00:01:31.050 --> 00:01:36.050
+BCrypt that we have actually has a password salt generator.
+
+26
+00:01:36.050 --> 00:01:43.030
+In addition, BCrypt stores the salt with the output string.
+
+27
+00:01:43.030 --> 00:01:51.000
+So we will do a BCrypt.hashpw, and we will pass it
+
+28
+00:01:51.000 --> 00:01:55.000
+the password attribute, and then we will call it back
+
+29
+00:01:55.000 --> 00:01:59.020
+into the BCrypt library, gensalt.
+
+30
+00:01:59.020 --> 00:02:01.090
+Now you notice that there's three different methods here
+
+31
+00:02:01.090 --> 00:02:04.060
+that we can use to generate salt.
+
+32
+00:02:04.060 --> 00:02:06.090
+One is plain or default, in which case
+
+33
+00:02:06.090 --> 00:02:09.030
+we're gonna need ten rounds of BCrypt.
+
+34
+00:02:09.030 --> 00:02:12.020
+We also can pass in an integer, in which we will adjust
+
+35
+00:02:12.020 --> 00:02:16.010
+the default number of rounds for BCrypt.
+
+36
+00:02:16.010 --> 00:02:19.030
+We also can pass in a separate secure random generator
+
+37
+00:02:19.030 --> 00:02:22.040
+if we want to, however, it will do a secure random
+
+38
+00:02:22.040 --> 00:02:25.030
+behind the scenes so we don't need to deal with that.
+
+39
+00:02:25.030 --> 00:02:27.070
+We're just gonna go ahead and accept the default round
+
+40
+00:02:27.070 --> 00:02:31.010
+size of ten, but now we need to create a method
+
+41
+00:02:31.010 --> 00:02:35.050
+to determine if they are verified.
+
+42
+00:02:35.050 --> 00:02:37.050
+Think about how you actually look up a password
+
+43
+00:02:37.050 --> 00:02:39.080
+in the database.
+
+44
+00:02:39.080 --> 00:02:43.020
+You might go get the user record based on the user name,
+
+45
+00:02:43.020 --> 00:02:47.020
+and you would get a password string from the database,
+
+46
+00:02:47.020 --> 00:02:50.020
+and that password string was hashed.
+
+47
+00:02:50.020 --> 00:02:52.060
+So you would then need to be able to compare
+
+48
+00:02:52.060 --> 00:02:57.080
+that hashed password against a hash of the incoming
+
+49
+00:02:57.080 --> 00:03:01.060
+password that they've typed, and the BCrypt library
+
+50
+00:03:01.060 --> 00:03:05.090
+that we are using has a method called Check Password,
+
+51
+00:03:05.090 --> 00:03:11.000
+where we pass it in a password, and then the hashed password
+
+52
+00:03:11.000 --> 00:03:14.040
+itself, and that should return a value that we can then
+
+53
+00:03:14.040 --> 00:03:18.080
+determine true or false whether these two are the same.
+
+54
+00:03:18.080 --> 00:03:23.010
+So let's jump into our tests, so in source, test, java,
+
+55
+00:03:23.010 --> 00:03:27.010
+in the Hash package of com.frankmoley.crypto,
+
+56
+00:03:27.010 --> 00:03:30.050
+we are going to create a new method.
+
+57
+00:03:30.050 --> 00:03:34.050
+I'll shrink that down there so we can see a little easier.
+
+58
+00:03:34.050 --> 00:03:38.000
+So a new test, and that test we will simply call
+
+59
+00:03:38.000 --> 00:03:42.020
+testPasswordRoutine.
+
+60
+00:03:42.020 --> 00:03:45.070
+Now I am going to create a secret phrase,
+
+61
+00:03:45.070 --> 00:03:49.010
+that is essentially my password.
+
+62
+00:03:49.010 --> 00:03:50.060
+So the secret phrase that I'm gonna use is
+
+63
+00:03:50.060 --> 00:03:52.080
+correct horse battery staple.
+
+64
+00:03:52.080 --> 00:03:54.070
+Now I want you think about what we talked about in the last
+
+65
+00:03:54.070 --> 00:03:58.090
+video about entropy, and do a Google search on that,
+
+66
+00:03:58.090 --> 00:04:01.040
+you might find the comic rather amusing that
+
+67
+00:04:01.040 --> 00:04:07.040
+that comes from, as well as a little bit enlightening.
+
+68
+00:04:07.040 --> 00:04:10.000
+So we'll simply create a password hash using our
+
+69
+00:04:10.000 --> 00:04:16.010
+HashUtils.hashPassword and we will pass it our secretPhrase,
+
+70
+00:04:16.010 --> 00:04:22.050
+and we will do a system.out.println on that password hash
+
+71
+00:04:22.050 --> 00:04:26.040
+so that you can see how the BCrypt is output.
+
+72
+00:04:26.040 --> 00:04:30.080
+And now I'm gonna do an assertTrue, and what I wanna do here
+
+73
+00:04:30.080 --> 00:04:33.040
+is I actually wanna go in and call the verifyPassword
+
+74
+00:04:33.040 --> 00:04:37.050
+routine, where I send in our secret phrase,
+
+75
+00:04:37.050 --> 00:04:39.070
+and then our passwordHash.
+
+76
+00:04:39.070 --> 00:04:42.080
+Now since we just executed this we do assume that this
+
+77
+00:04:42.080 --> 00:04:45.020
+is gonna return true, but I want you
+
+78
+00:04:45.020 --> 00:04:47.090
+to see how this actually works.
+
+79
+00:04:47.090 --> 00:04:52.050
+Let's go ahead and just run that test.
+
+80
+00:04:52.050 --> 00:04:54.030
+And as soon as compilation is done here
+
+81
+00:04:54.030 --> 00:04:56.040
+we'll see some output.
+
+82
+00:04:56.040 --> 00:04:59.020
+So take a look at the actual string here that we see
+
+83
+00:04:59.020 --> 00:05:07.020
+in the console, $2a$10$Xz...
+
+84
+00:05:07.020 --> 00:05:10.010
+So if you take a look at that, the salt is actually embedded
+
+85
+00:05:10.010 --> 00:05:13.070
+into there, as well as the number of rounds
+
+86
+00:05:13.070 --> 00:05:15.080
+that this actually took place.
+
+87
+00:05:15.080 --> 00:05:18.080
+That $10 tells it that it was ten rounds.
+
+88
+00:05:18.080 --> 00:05:22.020
+The hash is also embedded in this string.
+
+89
+00:05:22.020 --> 00:05:25.020
+That's how the verify password is also working,
+
+90
+00:05:25.020 --> 00:05:28.050
+because it takes the number of rounds in the salt
+
+91
+00:05:28.050 --> 00:05:33.030
+and applies it to the incoming password, and rehashes it.
+
+92
+00:05:33.030 --> 00:05:35.070
+Now what you'll find is that BCrypt actually
+
+93
+00:05:35.070 --> 00:05:40.050
+takes a little longer than a 256-bit SHA hash,
+
+94
+00:05:40.050 --> 00:05:43.050
+and that's on purpose, that inherent latency
+
+95
+00:05:43.050 --> 00:05:48.000
+prevents brute force attacks from being scripted.
+

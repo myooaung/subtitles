@@ -1,0 +1,457 @@
+WEBVTT
+1
+00:00:00.005 --> 00:00:02.009
+- The JdbcPagingItemReader
+
+2
+00:00:02.009 --> 00:00:06.007
+is another item reader implementation that is necessary
+
+3
+00:00:06.007 --> 00:00:09.005
+when working in multi-threaded scenarios
+
+4
+00:00:09.005 --> 00:00:11.007
+with a relational database.
+
+5
+00:00:11.007 --> 00:00:14.001
+Its configuration is very similar
+
+6
+00:00:14.001 --> 00:00:17.003
+to the JdbcCursorItemReade,
+
+7
+00:00:17.003 --> 00:00:19.009
+aside from a small difference or two.
+
+8
+00:00:19.009 --> 00:00:26.003
+Let's dive in and see the JdbcPagingItemReader in action.
+
+9
+00:00:26.003 --> 00:00:31.001
+So to get started, we're going to switch the implementation
+
+10
+00:00:31.001 --> 00:00:32.009
+of our item reader.
+
+11
+00:00:32.009 --> 00:00:36.005
+And to do that, we need to change the builder
+
+12
+00:00:36.005 --> 00:00:39.008
+that we're using to construct that item reader.
+
+13
+00:00:39.008 --> 00:00:43.009
+Now, just like the JdbcCursorItemReade has a builder,
+
+14
+00:00:43.009 --> 00:00:48.002
+so does the JdbcPagingItemReader.
+
+15
+00:00:48.002 --> 00:00:51.009
+So we'll make that switch and go ahead and import the type.
+
+16
+00:00:51.009 --> 00:00:54.006
+Now you'll notice that the interface
+
+17
+00:00:54.006 --> 00:00:56.009
+on that builder is a little bit different.
+
+18
+00:00:56.009 --> 00:01:01.003
+We're no longer supplying the SQL directly
+
+19
+00:01:01.003 --> 00:01:05.001
+within the configuration of the item reader.
+
+20
+00:01:05.001 --> 00:01:09.002
+Instead, we're going to use a query provider
+
+21
+00:01:09.002 --> 00:01:12.008
+in order to construct our SQL statement.
+
+22
+00:01:12.008 --> 00:01:15.002
+This is important because with the paging,
+
+23
+00:01:15.002 --> 00:01:17.009
+it's a little bit complex.
+
+24
+00:01:17.009 --> 00:01:20.007
+So for now, I'm just going to go ahead
+
+25
+00:01:20.007 --> 00:01:24.002
+and provide a stub for our query provider.
+
+26
+00:01:24.002 --> 00:01:27.000
+We'll define it in that method in a moment.
+
+27
+00:01:27.000 --> 00:01:30.009
+Now the other thing that needs to be configured
+
+28
+00:01:30.009 --> 00:01:36.008
+on the JdbcPagingItemReader is the page size.
+
+29
+00:01:36.008 --> 00:01:41.005
+And this is going to specify how many items are in a page
+
+30
+00:01:41.005 --> 00:01:45.002
+so that when this item reader is reading from the database,
+
+31
+00:01:45.002 --> 00:01:47.007
+it reads that amount of items.
+
+32
+00:01:47.007 --> 00:01:50.003
+Now it's important that our page size
+
+33
+00:01:50.003 --> 00:01:52.007
+also matches our chunk size.
+
+34
+00:01:52.007 --> 00:01:55.004
+So you'll notice right now we have a discrepancy,
+
+35
+00:01:55.004 --> 00:01:58.008
+the chunk is three and the page size is 10.
+
+36
+00:01:58.008 --> 00:02:01.002
+Let's go ahead and sync those up.
+
+37
+00:02:01.002 --> 00:02:07.004
+And now we can proceed with building out our query provider.
+
+38
+00:02:07.004 --> 00:02:11.001
+I'm just going to hover over this stub method
+
+39
+00:02:11.001 --> 00:02:13.007
+and hit Control + One, and that allows us
+
+40
+00:02:13.007 --> 00:02:16.001
+to easily create the method.
+
+41
+00:02:16.001 --> 00:02:21.001
+And then I'm just going to place it above the configuration
+
+42
+00:02:21.001 --> 00:02:26.009
+of our item reader.
+
+43
+00:02:26.009 --> 00:02:30.006
+The paging query provider is going to be defined as a bean.
+
+44
+00:02:30.006 --> 00:02:33.000
+So I'm going to annotate the method
+
+45
+00:02:33.000 --> 00:02:37.004
+with the bean annotation, and then declare it as public.
+
+46
+00:02:37.004 --> 00:02:42.007
+Now inside of this method, we're going to build out
+
+47
+00:02:42.007 --> 00:02:44.007
+our paging query provider.
+
+48
+00:02:44.007 --> 00:02:47.004
+So there's an implementation we're going to use.
+
+49
+00:02:47.004 --> 00:02:51.002
+It's the SQL paging query provider.
+
+50
+00:02:51.002 --> 00:02:55.004
+And we create that implementation using a factory bean.
+
+51
+00:02:55.004 --> 00:03:00.001
+So I'm going to create a new factory bean
+
+52
+00:03:00.001 --> 00:03:03.006
+and we can just use the new operator and the constructor
+
+53
+00:03:03.006 --> 00:03:05.007
+to create that factory bean.
+
+54
+00:03:05.007 --> 00:03:09.007
+And it's going to provide us with some methods
+
+55
+00:03:09.007 --> 00:03:13.005
+that help us construct our paging query provider.
+
+56
+00:03:13.005 --> 00:03:19.001
+So the first of those methods is the setSelectclause.
+
+57
+00:03:19.001 --> 00:03:24.008
+So we can navigate to the top of our class,
+
+58
+00:03:24.008 --> 00:03:30.001
+and we can use the order SQL field
+
+59
+00:03:30.001 --> 00:03:32.006
+to grab that SELECT statement.
+
+60
+00:03:32.006 --> 00:03:34.008
+So here you can see that we select
+
+61
+00:03:34.008 --> 00:03:39.008
+all of the different fields within our table,
+
+62
+00:03:39.008 --> 00:03:46.002
+and we can just paste that within the setSelectclause.
+
+63
+00:03:46.002 --> 00:03:47.008
+It needs to be a string,
+
+64
+00:03:47.008 --> 00:03:50.001
+so we'll want to start with a quote,
+
+65
+00:03:50.001 --> 00:03:54.009
+and then we paste in the remainder of the SQL statement,
+
+66
+00:03:54.009 --> 00:03:59.007
+and that ends our configuration of the setSelectclause.
+
+67
+00:03:59.007 --> 00:04:04.006
+Now we'll need to specify the FROM clause.
+
+68
+00:04:04.006 --> 00:04:06.005
+So this is going to be the table
+
+69
+00:04:06.005 --> 00:04:08.006
+that we would like to read from.
+
+70
+00:04:08.006 --> 00:04:10.005
+If you remember, we are reading
+
+71
+00:04:10.005 --> 00:04:14.003
+from the shipped underscore order table,
+
+72
+00:04:14.003 --> 00:04:17.005
+so we just specified that as a string.
+
+73
+00:04:17.005 --> 00:04:22.007
+And then we're going to go ahead and set our sort key.
+
+74
+00:04:22.007 --> 00:04:26.002
+Remember sorts are very important when we're working
+
+75
+00:04:26.002 --> 00:04:29.001
+with these different item readers
+
+76
+00:04:29.001 --> 00:04:31.008
+that query a relational database.
+
+77
+00:04:31.008 --> 00:04:35.008
+And then finally, we're going to set the data source
+
+78
+00:04:35.008 --> 00:04:41.001
+on this factory bean so that we can have a connection
+
+79
+00:04:41.001 --> 00:04:44.001
+to our relational database.
+
+80
+00:04:44.001 --> 00:04:47.002
+From there, all we need to do is use the factory
+
+81
+00:04:47.002 --> 00:04:50.002
+to create the object, and that's done
+
+82
+00:04:50.002 --> 00:04:54.004
+by calling the GetObject method.
+
+83
+00:04:54.004 --> 00:04:56.004
+Now the other thing you'll notice is
+
+84
+00:04:56.004 --> 00:05:00.000
+that this factory does throw an exception.
+
+85
+00:05:00.000 --> 00:05:03.008
+So we're going to need to propagate that exception
+
+86
+00:05:03.008 --> 00:05:08.005
+through our call stack, in order to be able to handle it.
+
+87
+00:05:08.005 --> 00:05:11.000
+If that exception were to be thrown,
+
+88
+00:05:11.000 --> 00:05:13.009
+it would cause our job to fail,
+
+89
+00:05:13.009 --> 00:05:16.008
+but you'll notice how we're sending it up through the step,
+
+90
+00:05:16.008 --> 00:05:21.008
+and then ultimately throwing it from our job.
+
+91
+00:05:21.008 --> 00:05:23.004
+So everything is configured,
+
+92
+00:05:23.004 --> 00:05:27.006
+we have a JdbcPagingItemReader,
+
+93
+00:05:27.006 --> 00:05:32.004
+and that item reader will read pages of data
+
+94
+00:05:32.004 --> 00:05:34.000
+from a relational database.
+
+95
+00:05:34.000 --> 00:05:36.008
+And the key point about this, it's thread safe
+
+96
+00:05:36.008 --> 00:05:40.003
+so we can use this in a multi-threaded scenario.
+
+97
+00:05:40.003 --> 00:05:42.009
+So let's now head over to the terminal
+
+98
+00:05:42.009 --> 00:05:48.000
+and we're going to go ahead and kick off this job.
+
+99
+00:05:48.000 --> 00:05:52.000
+So our projects going to be packaged into a jar,
+
+100
+00:05:52.000 --> 00:05:54.001
+and then once that jar is built,
+
+101
+00:05:54.001 --> 00:05:57.009
+our script we'll execute it.
+
+102
+00:05:57.009 --> 00:06:00.008
+There we can see we are reading data
+
+103
+00:06:00.008 --> 00:06:06.005
+from the database using our JdbcPagingItemReader.
+
+104
+00:06:06.005 --> 00:06:08.005
+One interesting thing to point out
+
+105
+00:06:08.005 --> 00:06:12.006
+about this item reader is the complexity of paging
+
+106
+00:06:12.006 --> 00:06:13.008
+within a database.
+
+107
+00:06:13.008 --> 00:06:17.007
+It typically varies by your database implementation.
+
+108
+00:06:17.007 --> 00:06:21.006
+Within this implementation, it is intelligent enough
+
+109
+00:06:21.006 --> 00:06:24.004
+to detect what database you're using,
+
+110
+00:06:24.004 --> 00:06:29.002
+and it will construct the appropriate paging query in order
+
+111
+00:06:29.002 --> 00:06:32.003
+for the item reader to appropriately pull data
+
+112
+00:06:32.003 --> 00:06:34.001
+from the data source.
+
+113
+00:06:34.001 --> 00:06:38.000
+So this is one of those benefits you get out of the box
+
+114
+00:06:38.000 --> 00:06:43.000
+from Spring Batch and it's item reader implementations.
+
