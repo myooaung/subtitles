@@ -1,0 +1,588 @@
+1
+00:00:01,880 --> 00:00:05,270
+Hello and welcome to another lab, in this lab
+
+2
+00:00:05,270 --> 00:00:12,110
+I'm going to show you how to implement a certain use case where we want to have an application load
+
+3
+00:00:12,120 --> 00:00:20,690
+balancer that's Internet facing but we want to have our instances in private subnets so up until now
+
+4
+00:00:20,690 --> 00:00:26,290
+when we've had an internet facing load balancer and our instances have been in public subnets.
+
+5
+00:00:26,510 --> 00:00:31,340
+And you'll remember that when you create an application load balancer that's Internet facing it actually
+
+6
+00:00:31,340 --> 00:00:36,350
+creates nodes within each of your Availability Zones that are sitting in your subnet and using your
+
+7
+00:00:36,350 --> 00:00:38,210
+IP addresses from your subnet.
+
+8
+00:00:38,210 --> 00:00:47,360
+So what we need to do in order to be able to connect to instances in a private subnet is actually configure
+
+9
+00:00:47,390 --> 00:00:51,050
+the application load balancer with the public subnets.
+
+10
+00:00:51,050 --> 00:00:55,820
+So you don't configure the private subnets with the application load balancer that you configure the
+
+11
+00:00:55,820 --> 00:01:03,550
+public subnets but those public subnets must be in the same availability zone as the targets.
+
+12
+00:01:03,560 --> 00:01:10,100
+So your public and private subnets must be in the same availability zone as your targets.
+
+13
+00:01:10,100 --> 00:01:11,510
+So it's quite easy to setup.
+
+14
+00:01:11,600 --> 00:01:17,360
+But what we're also going to do in this lab is firstly we're going to install a NAT gateway because
+
+15
+00:01:17,360 --> 00:01:23,750
+we're going to run our user data code to install Apache and run some configuration so it's going to need
+
+16
+00:01:23,750 --> 00:01:24,890
+to access the Internet.
+
+17
+00:01:24,920 --> 00:01:30,740
+So we need a NAT gateway for our private instances to be able to access the outside world via the Internet
+
+18
+00:01:30,740 --> 00:01:31,340
+gateway.
+
+19
+00:01:31,340 --> 00:01:34,370
+The other thing I want to do is set up the security groups better.
+
+20
+00:01:34,370 --> 00:01:38,630
+Up until now we've just been using the web access security group but that's definitely not a security
+
+21
+00:01:38,630 --> 00:01:40,360
+best practice.
+
+22
+00:01:40,430 --> 00:01:46,540
+What I want to do is set up this configuration so what we have is for our application load balancer
+
+23
+00:01:46,550 --> 00:01:51,980
+we're going to have a security group called PublicALB and this is going to apply to our Internet
+
+24
+00:01:51,980 --> 00:02:00,930
+facing ALB. The inbound protocol port will allow port 80 from any source but for the outbound traffic
+
+25
+00:02:00,960 --> 00:02:06,470
+is restricted to the security group called PrivateEC2. PrivateEC2
+
+26
+00:02:06,470 --> 00:02:09,560
+Is the security group that applies to all web front end.
+
+27
+00:02:09,560 --> 00:02:12,240
+This is all web servers sitting in the private subnet.
+
+28
+00:02:12,270 --> 00:02:19,770
+PrivateEC2 only has a single inbound rule and that allows port 80 from the public ALB.
+
+29
+00:02:19,800 --> 00:02:26,400
+So what we're doing is we're restricting access so that the Internet facing ALB can receive port 80
+
+30
+00:02:26,400 --> 00:02:32,280
+from anywhere but it can only send to this security group or members of this security group.
+
+31
+00:02:32,280 --> 00:02:38,850
+And this security group privateEC2 is only allowing inbound traffic from the application load
+
+32
+00:02:38,850 --> 00:02:39,330
+balancer.
+
+33
+00:02:39,360 --> 00:02:45,090
+So this is a much more secure configuration and we'll see how this works in a multi tier application
+
+34
+00:02:45,210 --> 00:02:46,350
+in the next lab.
+
+35
+00:02:46,350 --> 00:02:47,660
+So that's what we're going to do.
+
+36
+00:02:47,670 --> 00:02:52,290
+Let's head into the console and start building this out. Just before we get started in the console.
+
+37
+00:02:52,290 --> 00:02:57,810
+I wanted to bring this article to your attention and the link as always will be in the course download.
+
+38
+00:02:57,810 --> 00:03:03,300
+So this explains a bit more about how you connect public facing loan balances to easy two instances
+
+39
+00:03:03,660 --> 00:03:05,670
+in private subnets.
+
+40
+00:03:05,670 --> 00:03:10,240
+In other words ones that have private IP addresses that don't have public IP addresses.
+
+41
+00:03:10,320 --> 00:03:11,430
+So let's get started.
+
+42
+00:03:11,430 --> 00:03:16,770
+I'm going to go over to the VPC management console and I actually don't have any subnets in my default
+
+43
+00:03:16,770 --> 00:03:20,590
+VPC these ones here are all created from another part of the course.
+
+44
+00:03:20,610 --> 00:03:22,180
+So I want to do things in order.
+
+45
+00:03:22,320 --> 00:03:24,710
+So let's create a couple of private subnets.
+
+46
+00:03:24,720 --> 00:03:31,810
+I'm going to call the first one private to a and I'm going to put that in my default VPC and put it
+
+47
+00:03:31,810 --> 00:03:36,790
+in ap-southeast-2a and for the CIDR block I'm going to do 1
+
+48
+00:03:39,570 --> 00:03:49,190
+172.31.48.0/20 and then going to create private2B
+
+49
+00:03:49,230 --> 00:03:52,170
+And this one's also going to be the default VPC.
+
+50
+00:03:52,170 --> 00:04:02,730
+It's gonna go in 2b and I'm going to make this 172.31.64.0/20.
+
+51
+00:04:02,780 --> 00:04:05,560
+We can now create a route table for the subnets.
+
+52
+00:04:05,700 --> 00:04:14,810
+We're just gonna call this route RT1 and it's going to go my default VPC and I'm going to associate
+
+53
+00:04:14,810 --> 00:04:18,010
+that with the two subnets that I just set up.
+
+54
+00:04:18,800 --> 00:04:24,470
+So that's gonna be these guys private2A and private2B and what I would now want to do is go into
+
+55
+00:04:24,470 --> 00:04:32,880
+that route table edit route some I'm going to add a route to a wildcard destination and I'm going to
+
+56
+00:04:32,880 --> 00:04:35,390
+put in the NAT gateway and there's one at Gateway.
+
+57
+00:04:35,490 --> 00:04:36,080
+So that's it.
+
+58
+00:04:36,090 --> 00:04:40,880
+I've created a couple of private subnets in two different Availability Zones.
+
+59
+00:04:41,010 --> 00:04:48,900
+I've created a route table associated the subnets to the Route Table and I've created a rule that says
+
+60
+00:04:48,900 --> 00:04:55,740
+that for all traffic that's not within the VPC CIDR block send it to the NAT Gateway and then
+
+61
+00:04:55,740 --> 00:05:02,430
+that Gateway has been created in a public subnet within the same VPC.
+
+62
+00:05:02,560 --> 00:05:07,870
+So it has an elastic IP address and it's able to then route traffic to the outside world.
+
+63
+00:05:07,960 --> 00:05:15,490
+So that's that bit set up the next thing to do is to go and create an auto scaling group with a series
+
+64
+00:05:15,580 --> 00:05:17,920
+of instances in our private subnet.
+
+65
+00:05:17,920 --> 00:05:22,900
+The next thing we need to do before we set up our auto scaling group or a load balancer is just set
+
+66
+00:05:22,900 --> 00:05:24,370
+up our security groups.
+
+67
+00:05:24,430 --> 00:05:29,910
+So we've got these two security group configurations and we just need to create these ahead of time.
+
+68
+00:05:30,100 --> 00:05:39,470
+So let's head to the console and go to security groups and let's create our security groups.
+
+69
+00:05:39,490 --> 00:05:47,540
+So the first one is going to be called public ALB and that's going to go in the default VPC.
+
+70
+00:05:47,540 --> 00:05:51,370
+And I just need to copy that name into the description as well.
+
+71
+00:05:51,410 --> 00:05:56,870
+And then I'm going to create one more security group and this is going to be private EC2 what I
+
+72
+00:05:56,870 --> 00:05:57,490
+can do now.
+
+73
+00:05:57,490 --> 00:06:03,710
+Now that I've got these two security groups set up I can actually create the rules so for the public ALB
+
+74
+00:06:03,710 --> 00:06:04,570
+...
+
+75
+00:06:04,580 --> 00:06:17,740
+I'm going to create an inbound rule that allows HTTP from anywhere and I'm going to say rule for
+
+76
+00:06:17,740 --> 00:06:26,710
+the outbound rules I'm going to remove this rule and I'm going to add a rule that allows HTTP.
+
+77
+00:06:29,420 --> 00:06:32,100
+and this time I'm going to specify the security group.
+
+78
+00:06:32,670 --> 00:06:35,070
+And it's gonna be the privateEC2 security group
+
+79
+00:06:38,500 --> 00:06:45,850
+and then go and go to the privateEC2 security group and it's gonna have a rule that allows HTTP.
+
+80
+00:06:47,940 --> 00:06:50,740
+from the publicALB.
+
+81
+00:06:50,740 --> 00:06:54,160
+and that's all the rules set up.
+
+82
+00:06:54,780 --> 00:07:00,540
+So now we can go to EC2 and the first thing we need to do there is create our auto scaling group
+
+83
+00:07:01,560 --> 00:07:11,090
+so let's create an auto scaling group choose Amazon Linux 2 AMI, T2 micro I'm gonna call it LC1 change
+
+84
+00:07:11,090 --> 00:07:18,960
+to S3 full access and then I'm going to paste in and then I'm gonna paste in the same user data that
+
+85
+00:07:18,960 --> 00:07:25,290
+we've been using in many labs in this section. Then I'm going to click next go to security groups and
+
+86
+00:07:25,290 --> 00:07:27,570
+now can select a security group.
+
+87
+00:07:27,690 --> 00:07:33,510
+In this case it's gonna be the privateEC2 because this is for EC2 instances in the private
+
+88
+00:07:33,510 --> 00:07:37,140
+subnet and they're going to allow port 80 inbound.
+
+89
+00:07:37,140 --> 00:07:41,150
+Now it's warning me that we don't have port 22 open so we won't be able to connect into it.
+
+90
+00:07:41,160 --> 00:07:46,380
+That's okay we don't need to manage this instance and then click Create choose my key pair.
+
+91
+00:07:47,760 --> 00:07:55,590
+And now a create my auto scaling group so we can say we can have four instances and these are going
+
+92
+00:07:55,590 --> 00:08:04,260
+to go into the private subnets that we just created so that's private2A and private2B and we have
+
+93
+00:08:04,260 --> 00:08:06,050
+a warning that we won't get a public IP.
+
+94
+00:08:06,090 --> 00:08:08,390
+That's exactly what we expect.
+
+95
+00:08:08,460 --> 00:08:09,270
+Let's go forwards.
+
+96
+00:08:09,270 --> 00:08:11,480
+We can keep it at initial size.
+
+97
+00:08:11,760 --> 00:08:14,390
+Go to review create auto scaling group.
+
+98
+00:08:14,580 --> 00:08:17,580
+So the next thing we need to do is create our load balancer.
+
+99
+00:08:17,580 --> 00:08:25,940
+So I'm gonna create an application load balancer gonna call it myalb this time it's going to be Internet
+
+100
+00:08:25,940 --> 00:08:27,080
+facing.
+
+101
+00:08:27,080 --> 00:08:32,450
+But remember we need to connect the public subnets not the private subnets.
+
+102
+00:08:32,450 --> 00:08:34,660
+So it's going to listen on HTTP.
+
+103
+00:08:34,730 --> 00:08:40,930
+I'm going to connect to ap-southeast-2A and 2B and within here we can now see that we have two subnets
+
+104
+00:08:40,970 --> 00:08:43,370
+but we don't want to connect to the private segment.
+
+105
+00:08:43,370 --> 00:08:49,460
+We need to use the public subnet can then go to security groups and we're going to choose our public
+
+106
+00:08:49,520 --> 00:08:51,960
+ALB and create a target group.
+
+107
+00:08:52,100 --> 00:08:53,250
+One.
+
+108
+00:08:53,390 --> 00:08:57,920
+And again we're just going to go down change the healthy threshold to 2.
+
+109
+00:08:58,080 --> 00:09:05,950
+And now we're going to go straight past here because we're going to add auto scaling group so we've
+
+110
+00:09:05,950 --> 00:09:07,500
+got the load balancer.
+
+111
+00:09:07,810 --> 00:09:10,670
+It's provisioning.
+
+112
+00:09:10,920 --> 00:09:13,770
+Let's go to auto scaling.
+
+113
+00:09:13,910 --> 00:09:19,040
+We're going to click edit and we're gonna choose the target group and that's going to connect our light
+
+114
+00:09:19,040 --> 00:09:23,360
+balance to our auto scaling group and register our instances.
+
+115
+00:09:23,390 --> 00:09:30,620
+So let's just go back to low balances now in fact let's go to target groups targets and we just need
+
+116
+00:09:30,620 --> 00:09:35,180
+to keep an eye until our initial status changes to healthy.
+
+117
+00:09:35,210 --> 00:09:40,160
+So it's been a few minutes and the application load balancer is showing us active.
+
+118
+00:09:40,520 --> 00:09:46,250
+So let's take the DNS name and I can open a new tab and I'm going to connect.
+
+119
+00:09:46,290 --> 00:09:52,840
+And there we go we've got Bella and let's see if we cycle we've got Janessa and Dolly and Raina.
+
+120
+00:09:52,970 --> 00:09:56,450
+So we've definitely got our low balance working.
+
+121
+00:09:56,720 --> 00:09:59,330
+Instances are in a private subnet .
+
+122
+00:09:59,420 --> 00:10:06,440
+We've used a NAT gateway in order to download a patch and configure these instances as well as of course
+
+123
+00:10:06,490 --> 00:10:11,110
+connections as free to pull some files down and we've configured our application load balance.
+
+124
+00:10:11,120 --> 00:10:16,250
+So we have public subnets and it's using those or it's using the nodes it's deployed into those public
+
+125
+00:10:16,250 --> 00:10:20,570
+subnets to connect to our instances in the private subnets.
+
+126
+00:10:20,570 --> 00:10:28,760
+So that's the architecture for using public Internet facing application load balancers with instances
+
+127
+00:10:28,760 --> 00:10:31,730
+with private IP addresses in private subnets.
+
+128
+00:10:31,760 --> 00:10:37,280
+And just to recap on security groups what we've done is we've created these two security groups we've
+
+129
+00:10:37,310 --> 00:10:42,210
+put our back-end instances into the private EC2 security group.
+
+130
+00:10:42,320 --> 00:10:48,110
+We've created a public ALB security group and we've put our load balancer in it.
+
+131
+00:10:48,300 --> 00:10:54,740
+And then we've locked down the rules so that the load balancer can only send traffic to the EC2
+
+132
+00:10:54,740 --> 00:10:55,360
+instances.
+
+133
+00:10:55,370 --> 00:11:01,070
+And the EC2 instances can only receive traffic on port 80 from the ALB.
+
+134
+00:11:01,160 --> 00:11:03,440
+So that's a nice secure configuration.
+
+135
+00:11:03,450 --> 00:11:07,730
+Our security groups are locked down in our instances or in private subnets.
+
+136
+00:11:07,760 --> 00:11:09,940
+So we've had a lot of fun with that lab guys.
+
+137
+00:11:10,010 --> 00:11:12,840
+We can now go back and take everything down.
+
+138
+00:11:12,860 --> 00:11:20,920
+So I just show you how to clean up let's go and delete our load balancer we can remove our target group
+
+139
+00:11:23,080 --> 00:11:31,120
+we can go to auto scaling and delete our auto scaling group and our launch configuration
+
+140
+00:11:35,440 --> 00:11:43,980
+we can then go to instances and we can delete these instances or terminate these instances and then
+
+141
+00:11:43,980 --> 00:11:51,690
+don't forget now to go over to VPC and what we want to do is go to Nat gateways and we want to delete
+
+142
+00:11:51,690 --> 00:11:53,680
+on that guy where you do pay for these.
+
+143
+00:11:53,870 --> 00:11:58,530
+And once you deleted it you're going to pay for the elastic IP address because it won't be used.
+
+144
+00:11:58,530 --> 00:12:03,930
+So what you got to do is just wait for that to be deleted and then you should be able to go and release
+
+145
+00:12:03,930 --> 00:12:08,180
+your elastic IP so that's it for this lab guys in the next lesson.
+
+146
+00:12:08,190 --> 00:12:15,150
+I'm actually going to talk you through a multi tier architecture and how we would apply security groups
+
+147
+00:12:15,580 --> 00:12:19,100
+with a two tier application architecture.
+

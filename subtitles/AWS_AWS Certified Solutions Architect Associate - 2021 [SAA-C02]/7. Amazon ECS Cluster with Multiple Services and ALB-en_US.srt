@@ -1,0 +1,848 @@
+1
+00:00:02,690 --> 00:00:04,400
+Hi guys this is gonna be a great lab.
+
+2
+00:00:04,400 --> 00:00:11,450
+What we're going to do now is set up ECS services within an ECS cluster and the way we're going to
+
+3
+00:00:11,450 --> 00:00:18,410
+do it we're going to create multiple services and we're going to attach an elastic load balancer and
+
+4
+00:00:18,470 --> 00:00:22,050
+application load balancer to those services.
+
+5
+00:00:22,130 --> 00:00:29,970
+Now the services will run tasks and those tasks will be patchy on one service and nginx on the other.
+
+6
+00:00:29,970 --> 00:00:36,630
+Now one of the things you may have noticed is that Apache and nginx both run on port 80 and what
+
+7
+00:00:36,630 --> 00:00:41,040
+we actually have here underneath this is a single EC2 instance.
+
+8
+00:00:41,040 --> 00:00:48,910
+So we have one EC2 instance in one subnet and another EC2 instance add another subnet so the
+
+9
+00:00:48,910 --> 00:00:55,540
+problem is when you have multiple services or multiple containers running on the same port we have an
+
+10
+00:00:55,540 --> 00:01:00,180
+issue where you can't share a port a port on the host.
+
+11
+00:01:00,330 --> 00:01:08,070
+So you need different ports on the host and the way this is achieved is the container instance creates
+
+12
+00:01:08,100 --> 00:01:16,350
+dynamically a port for that specific task and it communicates what that port is to the application load
+
+13
+00:01:16,350 --> 00:01:17,170
+balancer.
+
+14
+00:01:17,280 --> 00:01:24,780
+And this is a particular capability of an ALB you can't do this with NLB or an CLB.
+
+15
+00:01:24,810 --> 00:01:32,760
+So the host port is generated on the instance and the ALB gets to find out what it is that's communicated.
+
+16
+00:01:32,760 --> 00:01:39,380
+So when you look in your target group you'll see the port and the ALB then sends traffic on that ports
+
+17
+00:01:39,380 --> 00:01:44,680
+to the instance and then the instance forwards it to Apache.
+
+18
+00:01:44,700 --> 00:01:49,860
+In this case or if it comes in on this other point it's forwards it to nginx.
+
+19
+00:01:49,890 --> 00:01:55,060
+Another problem we have to solve is we have a single listener running on port 80 here.
+
+20
+00:01:55,290 --> 00:01:57,950
+Now we have two services on the back-end.
+
+21
+00:01:58,050 --> 00:02:01,560
+So how do we forward traffic to the correct service.
+
+22
+00:02:01,800 --> 00:02:04,680
+And we're going to do that through path based routing.
+
+23
+00:02:04,860 --> 00:02:09,330
+So we've path based routing and dynamic HOST PORT mapping.
+
+24
+00:02:09,330 --> 00:02:11,190
+We're able to set up this configuration
+
+25
+00:02:15,080 --> 00:02:15,740
+in this lab.
+
+26
+00:02:15,740 --> 00:02:22,400
+We want to create this as a secure configuration so much again to put the ECS containers into private
+
+27
+00:02:22,400 --> 00:02:28,600
+subnets and we're going to use a NAT gateway in a public subnet so that they can access the outside
+
+28
+00:02:28,600 --> 00:02:33,600
+world to pull down these images from Docker Hub.
+
+29
+00:02:33,610 --> 00:02:39,130
+We're also going to set up the security groups to restrict access so that the application load balancer
+
+30
+00:02:39,130 --> 00:02:44,830
+consort to the ECS clients securely on specific ports.
+
+31
+00:02:44,830 --> 00:02:49,520
+So what we're gonna do now is head over to the console and start building this out.
+
+32
+00:02:49,540 --> 00:02:55,240
+Now what I've done in advance is set up a couple of these security groups so we have the ECS clients
+
+33
+00:02:55,240 --> 00:03:04,070
+security group and that security group allows traffic inbound from the ALB security group.
+
+34
+00:03:04,060 --> 00:03:05,740
+So that's this one here.
+
+35
+00:03:06,190 --> 00:03:14,190
+And it does so on the port range 32000 to 33000 which is where I've seen the dynamic ports being created
+
+36
+00:03:17,160 --> 00:03:18,330
+for outbound.
+
+37
+00:03:18,330 --> 00:03:20,200
+We have all traffic is allowed out.
+
+38
+00:03:20,250 --> 00:03:25,050
+Now we do need we could restrict this further but we do need a couple of things we need to be able to
+
+39
+00:03:25,590 --> 00:03:33,310
+pull the images from Docker Hub and we also need to be able to setup the ECS end points on the
+
+40
+00:03:33,310 --> 00:03:34,930
+ALB security group.
+
+41
+00:03:34,930 --> 00:03:43,750
+We have an outbound rule which allows traffic to the ECS clients security group on that port range.
+
+42
+00:03:43,750 --> 00:03:47,650
+So that's the traffic pool and that's also going to be where the health checks go.
+
+43
+00:03:47,800 --> 00:03:54,410
+And for inbound it just allows from any source on the DP port.
+
+44
+00:03:54,410 --> 00:04:00,910
+The other thing I've configured as a NAT gateway if you haven't got one already you need to put one
+
+45
+00:04:00,910 --> 00:04:04,750
+into the correct VPC and you need to make sure it's in a public subnet.
+
+46
+00:04:04,750 --> 00:04:10,480
+So this will enable your private subnet instances to access the internet but the actual NAT gateway
+
+47
+00:04:10,480 --> 00:04:13,480
+sits in a public subnet.
+
+48
+00:04:13,480 --> 00:04:19,470
+And then you'll select an ill and elastic IP or just created new elastic IP.
+
+49
+00:04:19,570 --> 00:04:20,580
+So I've already got one.
+
+50
+00:04:20,590 --> 00:04:22,060
+It's available.
+
+51
+00:04:22,060 --> 00:04:28,630
+And once you've you've created you in that Gateway you then need to go to round tables choose the round
+
+52
+00:04:28,630 --> 00:04:36,210
+table for your private subnets and you need to go in and put a round out to the outside world so or
+
+53
+00:04:36,210 --> 00:04:43,350
+any destination and you need to put in the idea that Gateway and you'll be notified that by dropping
+
+54
+00:04:43,350 --> 00:04:46,860
+down in this box and choosing it that gateway.
+
+55
+00:04:46,860 --> 00:04:52,040
+So that's already set up.
+
+56
+00:04:52,610 --> 00:04:57,860
+And what we're going to do now is head over to the command line and start creating our cluster.
+
+57
+00:04:57,860 --> 00:05:04,520
+So I've opened the command line and I'm going to run the command AWS ECS create cluster
+
+58
+00:05:08,210 --> 00:05:15,770
+dash dash cluster dash name and then we're gonna give it a name and I'm going to call ECS dash cluster
+
+59
+00:05:16,130 --> 00:05:18,800
+dash B.
+
+60
+00:05:19,460 --> 00:05:20,380
+And that was created.
+
+61
+00:05:20,420 --> 00:05:22,010
+That's just an empty cluster now.
+
+62
+00:05:22,040 --> 00:05:27,680
+If we actually head over to the console refresh we can now see that we have a cluster.
+
+63
+00:05:27,800 --> 00:05:40,210
+There's nothing running in it we could also view our cluster here by doing AWS ECS list clusters and
+
+64
+00:05:40,210 --> 00:05:41,630
+you can get the air in there.
+
+65
+00:05:41,650 --> 00:05:45,810
+We're actually going to add our instances manually by going into the console.
+
+66
+00:05:45,820 --> 00:05:51,590
+So we have the cluster and we want to go to EC2 choose community and.
+
+67
+00:05:51,850 --> 00:05:58,490
+And you can actually then go in and search for ECS optimized and find the ECS optimized AMIs.
+
+68
+00:05:58,540 --> 00:06:01,230
+I know the my I.D. I want to use.
+
+69
+00:06:01,300 --> 00:06:06,900
+So I'm going to put that in I'm going to click next I'm going to choose the VPC.
+
+70
+00:06:06,900 --> 00:06:09,090
+I want these in a private subnet.
+
+71
+00:06:09,360 --> 00:06:16,560
+You need to select your instance row and we then need to put it in the cluster configuration.
+
+72
+00:06:16,560 --> 00:06:26,280
+So in order to ensure that this connects to your cluster you need to put in the ECS cluster equals cluster
+
+73
+00:06:26,280 --> 00:06:26,790
+name.
+
+74
+00:06:26,820 --> 00:06:34,210
+And that goes into that ECS config so this short bash scripts will perform that for us
+
+75
+00:06:37,090 --> 00:06:42,700
+we can then put this instance into the ECS clients security group
+
+76
+00:06:48,810 --> 00:06:49,650
+and that's launching.
+
+77
+00:06:49,660 --> 00:06:54,510
+And what I'm going to do now is and then go back in and I'm going to do exactly the same thing.
+
+78
+00:06:54,520 --> 00:06:59,680
+The only difference is this time I'm going to put it into the private subnet to be.
+
+79
+00:06:59,680 --> 00:07:04,900
+So it's going to be a separate subnet those instances are now launching and let's go and create our
+
+80
+00:07:04,900 --> 00:07:05,810
+load balancer.
+
+81
+00:07:06,730 --> 00:07:08,990
+So we're going to use an application load balancer.
+
+82
+00:07:09,040 --> 00:07:11,900
+I'm just going to call it my ALB.
+
+83
+00:07:12,040 --> 00:07:14,920
+We're going to have a single listener in port 80.
+
+84
+00:07:15,010 --> 00:07:21,250
+We're going to choose VPC our custom VPC and then we need to select a subnet.
+
+85
+00:07:21,250 --> 00:07:27,400
+Now remember when you have an Internet facing elastic load balancer even if your clients are in a private
+
+86
+00:07:27,400 --> 00:07:34,920
+subnet you need to put the LBO you need to connect the ELB to the public subnets.
+
+87
+00:07:34,960 --> 00:07:41,980
+So if we just go back over to our diagram we have a public subnet in each availability zone where our
+
+88
+00:07:41,980 --> 00:07:42,940
+private subnet is.
+
+89
+00:07:42,940 --> 00:07:48,340
+That's essential you must have a public subnet in the same availability zone as your private subnet.
+
+90
+00:07:48,340 --> 00:07:51,650
+And then you attach the public subnet to the ALB.
+
+91
+00:07:51,790 --> 00:07:55,180
+It will then be able to register the clients in the private subnet.
+
+92
+00:07:55,200 --> 00:08:03,370
+But that's the way you set up and I'll be or any you'll be for that matter so we collect next.
+
+93
+00:08:03,880 --> 00:08:10,910
+We choose the L.B. security group and now we're going to try to target group the first ones it's going
+
+94
+00:08:10,910 --> 00:08:17,170
+to be called one and are going to change the healthy threshold down to two and everything else can stay
+
+95
+00:08:17,170 --> 00:08:23,220
+the same and we're not going to register the instances now that will happen through the service that
+
+96
+00:08:23,220 --> 00:08:24,390
+we create any C.S.
+
+97
+00:08:27,480 --> 00:08:31,020
+that's being created and is currently provisioning.
+
+98
+00:08:31,020 --> 00:08:36,800
+Let's go over to well let's have a quick look and see how our instances are where they're running one's
+
+99
+00:08:36,810 --> 00:08:38,670
+definitely completed.
+
+100
+00:08:38,910 --> 00:08:45,710
+So let's go into our cluster and go to ISIS instances and sure enough both our instances are here now.
+
+101
+00:08:45,720 --> 00:08:47,040
+So that's great.
+
+102
+00:08:47,040 --> 00:08:52,230
+The next thing we need to do is we need to create our task definitions.
+
+103
+00:08:52,380 --> 00:08:59,220
+Now I'm going to first create one for nginx. We'll go to EC2 we're just going to call this engine
+
+104
+00:08:59,220 --> 00:09:06,900
+X we don't need to fill out any of these details here we're going to put in 50 megabytes and 128 for
+
+105
+00:09:06,920 --> 00:09:14,370
+CPE and then we add a container definition and this will be nginx and then this is nginx again
+
+106
+00:09:14,370 --> 00:09:18,970
+and this is the actual image that's gonna get pulled from Docker Hub so make sure that that's correct.
+
+107
+00:09:18,990 --> 00:09:25,710
+You can change the names but this one is essentially this one needs to be the same and then we then
+
+108
+00:09:25,710 --> 00:09:33,990
+put the host port 0 container port is 80 so back on our diagram the host port is the port on the ECS
+
+109
+00:09:34,110 --> 00:09:41,790
+instance the EC2 instance when you set it to 0 that allows the EC2 instance to be able to
+
+110
+00:09:41,790 --> 00:09:48,090
+then create this dynamic port that can be used for this dynamic port mapping to the container port and
+
+111
+00:09:48,090 --> 00:09:50,050
+then the container port is this one eighty.
+
+112
+00:09:50,070 --> 00:09:56,250
+So that's the actual service port there's lots of other stuff you can put in here but we don't need
+
+113
+00:09:56,250 --> 00:10:01,670
+to put anything at this stage so we can just click Add and create
+
+114
+00:10:04,630 --> 00:10:06,840
+and that's our task definition at the end.
+
+115
+00:10:06,840 --> 00:10:07,590
+There's a revision.
+
+116
+00:10:07,590 --> 00:10:12,200
+No because I've played around with this quite a lot and deleted task definitions it's now up to six.
+
+117
+00:10:12,210 --> 00:10:17,880
+So even if you delete your task completely your task definition completely you will still see this number
+
+118
+00:10:17,880 --> 00:10:18,300
+increment
+
+119
+00:10:24,230 --> 00:10:30,680
+the next thing I want to do is I need to create a task definition for hasty TTP demon.
+
+120
+00:10:30,700 --> 00:10:37,300
+So Apache and let's go into this first one because this one actually does do this for us.
+
+121
+00:10:37,310 --> 00:10:38,730
+So if against this sample at
+
+122
+00:10:42,460 --> 00:10:44,610
+this installs the hate TTP demons.
+
+123
+00:10:44,620 --> 00:10:48,520
+This is Apache 2.0 point for and also runs a commands.
+
+124
+00:10:48,520 --> 00:10:52,630
+This is a docker CMD command where you can actually output some information.
+
+125
+00:10:52,630 --> 00:10:57,550
+So we're gonna do this and we're actually going to modify some of this code.
+
+126
+00:10:57,700 --> 00:11:00,810
+The thing that we need to change as well is that the host port here is 80.
+
+127
+00:11:00,820 --> 00:11:07,060
+So remember for dynamic port mapping we need zero and 80 for the container port to do that or create
+
+128
+00:11:07,060 --> 00:11:08,590
+a new revision.
+
+129
+00:11:09,130 --> 00:11:15,010
+And we're going to rename this task definition to Apache Dash.
+
+130
+00:11:15,080 --> 00:11:23,280
+Alby and we need to change the network mode to default and change the compatibility is to EC2.
+
+131
+00:11:23,450 --> 00:11:26,040
+We're going to go to sample app.
+
+132
+00:11:26,270 --> 00:11:32,060
+We're going to change the host port to zero and then we're going to come down to this code here and
+
+133
+00:11:32,060 --> 00:11:38,250
+I'm gonna change this message here to read.
+
+134
+00:11:38,470 --> 00:11:45,160
+This is the container running on service dash Apache.
+
+135
+00:11:45,550 --> 00:11:53,900
+And then we're going to change the file that goes to from index or hasty mail to service dash patching
+
+136
+00:11:54,780 --> 00:12:03,590
+and we can click updates and creates and if you go back to task definitions we now have the two task
+
+137
+00:12:03,590 --> 00:12:05,960
+definitions that we need.
+
+138
+00:12:05,960 --> 00:12:10,400
+So let's go to our cluster and start creating services.
+
+139
+00:12:10,520 --> 00:12:18,810
+The first one we're going to create is going to be the nginx and we're going to call this service
+
+140
+00:12:18,810 --> 00:12:24,220
+dash nginx and put two tasks in there.
+
+141
+00:12:24,630 --> 00:12:31,460
+We can leave the defaults there and we can disable the service discovering and we can choose an application
+
+142
+00:12:31,460 --> 00:12:32,360
+load balancer.
+
+143
+00:12:32,410 --> 00:12:37,340
+Note here that it says that the application load balancer allows containers to use dynamic host port
+
+144
+00:12:37,340 --> 00:12:43,610
+mapping multiple tasks allow per container instance and then it says multiple services can use the same
+
+145
+00:12:43,610 --> 00:12:47,960
+listener port on a single load balance of rule based routing and paths.
+
+146
+00:12:47,960 --> 00:12:49,390
+So there's two things there.
+
+147
+00:12:49,400 --> 00:12:56,440
+Remember the Dynamic Host port mapping is where we're able to share container ports on the same post.
+
+148
+00:12:56,440 --> 00:13:01,820
+So we've got multiple containers running on the same ports in different services on the same EC2
+
+149
+00:13:01,820 --> 00:13:06,710
+instance of the container instance a single EC2 instance in this case.
+
+150
+00:13:06,710 --> 00:13:11,500
+And we're able to do that because of this dynamic port mapping.
+
+151
+00:13:11,540 --> 00:13:13,690
+The other thing is we have a single lesson.
+
+152
+00:13:13,730 --> 00:13:17,970
+So all traffic is coming in on port 80 but it's going to two different services.
+
+153
+00:13:18,200 --> 00:13:23,570
+And that's why we're using path based routing to enable traffic to reach the destination.
+
+154
+00:13:23,570 --> 00:13:29,780
+And you can't do that with network load balancers or CLB and you have to do static host port mappings
+
+155
+00:13:30,920 --> 00:13:31,820
+for a CLB.
+
+156
+00:13:31,820 --> 00:13:34,330
+So nowhere near as good.
+
+157
+00:13:34,490 --> 00:13:40,040
+We can then click Add to load balancer of and it tells us the container name the host port and the
+
+158
+00:13:40,040 --> 00:13:48,980
+container port choose our listener choose our target group and everything else is done for us we can
+
+159
+00:13:49,530 --> 00:13:54,950
+set up auto scaling here but we won't do that in this lab we're going to do that in the next lab so
+
+160
+00:13:54,950 --> 00:14:02,210
+we can create that service and that service is being created that's view the service and we can see
+
+161
+00:14:02,210 --> 00:14:10,210
+the tasks here and they're already running what I want to do now then is go to my load balancer get
+
+162
+00:14:10,210 --> 00:14:11,820
+the DNS address.
+
+163
+00:14:11,980 --> 00:14:13,700
+Copy that to my clipboard.
+
+164
+00:14:13,940 --> 00:14:16,050
+And let's go to a browser window
+
+165
+00:14:20,090 --> 00:14:20,770
+and there we go.
+
+166
+00:14:20,770 --> 00:14:26,630
+We can see our service and we're probably cycling free both availability zones but it's the same screen
+
+167
+00:14:26,630 --> 00:14:29,020
+so we can't see any difference.
+
+168
+00:14:29,450 --> 00:14:31,460
+But that's our first service working.
+
+169
+00:14:31,460 --> 00:14:35,600
+What we want to do now is go and create our second service.
+
+170
+00:14:35,600 --> 00:14:38,060
+So let's go in and EC2 launch.
+
+171
+00:14:38,210 --> 00:14:39,800
+And we're going to choose the Apache.
+
+172
+00:14:39,830 --> 00:14:48,340
+I'll create a task definition and this time we're going to call it service dash Apache...
+
+173
+00:14:49,610 --> 00:14:57,580
+click Next disable the service discovery choose our application load balancer same thing again add to
+
+174
+00:14:57,580 --> 00:15:01,720
+load balancer choose the same listener and this time.
+
+175
+00:15:01,720 --> 00:15:05,620
+Now we could've created a target group ahead of time but I'm just going to let it create one for me
+
+176
+00:15:05,760 --> 00:15:11,300
+and it's already created the name and it's already set up the path pattern for me as well based on the
+
+177
+00:15:11,300 --> 00:15:12,280
+name of the service.
+
+178
+00:15:12,290 --> 00:15:19,610
+And that's exactly what I want because I called my HTTP default.html file service dash Apache
+
+179
+00:15:19,610 --> 00:15:31,280
+.html and let's put this valuation order 1 and click on Next click on Next and create service.
+
+180
+00:15:31,280 --> 00:15:39,350
+And that's now being created so let's click view service and if we go back to services both services
+
+181
+00:15:39,350 --> 00:15:45,110
+are active now before we check this one out I want to show you in low balances so let's go to target
+
+182
+00:15:45,110 --> 00:15:52,540
+groups and we can see our t one target group so you can see that this is the portal on the container
+
+183
+00:15:52,620 --> 00:15:58,940
+instance and that's the one that's been dynamically generated and the health checks go to the traffic
+
+184
+00:15:58,940 --> 00:15:59,340
+ports.
+
+185
+00:15:59,360 --> 00:16:03,620
+So that means they go to this port and they're healthy.
+
+186
+00:16:03,620 --> 00:16:10,250
+And then if we go to this other target group the same thing is happening in this case they're in an
+
+187
+00:16:10,250 --> 00:16:11,120
+initial state.
+
+188
+00:16:11,710 --> 00:16:16,840
+Let's refresh that they should shortly change to healthy Oh no.
+
+189
+00:16:16,860 --> 00:16:23,940
+These ones have gone to unhealthy so let's just have a quick look and try and work out why that is okay.
+
+190
+00:16:23,950 --> 00:16:28,610
+So a health check port is slash service slash Apache now.
+
+191
+00:16:28,660 --> 00:16:33,700
+There is a hasty email file there but we haven't specified the file name so let's just remove that and
+
+192
+00:16:33,700 --> 00:16:41,490
+leave it back to path and change the healthy thresholds to speed things up and sure enough that was
+
+193
+00:16:41,490 --> 00:16:42,060
+the problem.
+
+194
+00:16:42,060 --> 00:16:49,620
+So what we can see is that the port which was originally used went into the draining state and then
+
+195
+00:16:49,980 --> 00:16:57,180
+we have a new container instance actually starting on 3 2 7 7 1 and that's now become healthy.
+
+196
+00:16:57,250 --> 00:17:07,280
+So if we go back to our tasks and we'll go into that with the Apache task and look at events we'll see
+
+197
+00:17:08,380 --> 00:17:14,350
+that targets were deregistered and stopped and then started new tasks and then they've reached a steady
+
+198
+00:17:14,350 --> 00:17:14,760
+state.
+
+199
+00:17:14,770 --> 00:17:17,860
+So you can actually see the lifecycle happening here.
+
+200
+00:17:18,010 --> 00:17:23,860
+Now let's go to our target group now let's go to our load balancer and in fact we've already got the
+
+201
+00:17:23,860 --> 00:17:25,440
+DNS name here.
+
+202
+00:17:25,510 --> 00:17:32,440
+So what we should be able to do is put in service dash Apache.html.
+
+203
+00:17:32,500 --> 00:17:34,030
+And if we hit enter.
+
+204
+00:17:34,060 --> 00:17:38,000
+Sure enough there are application running.
+
+205
+00:17:38,070 --> 00:17:41,240
+And it says this is the container running on service Apache.
+
+206
+00:17:41,280 --> 00:17:41,970
+So that's great.
+
+207
+00:17:41,970 --> 00:17:46,100
+That means we have the dynamic host port mapping working.
+
+208
+00:17:46,230 --> 00:17:49,530
+And we also have this path based routing working as well.
+
+209
+00:17:49,590 --> 00:17:51,000
+So that's it for this lab guys.
+
+210
+00:17:51,000 --> 00:17:52,510
+Hope you had a lot of fun there.
+
+211
+00:17:52,740 --> 00:17:58,230
+And in the next lab we're going to look at how we can scale using auto scaling so we're going to leave
+
+212
+00:17:58,260 --> 00:17:59,430
+the resources running.
+

@@ -1,0 +1,569 @@
+WEBVTT
+1
+00:00:01.760 --> 00:00:02.600
+Welcome back.
+
+2
+00:00:02.600 --> 00:00:09.110
+And in this lab I'm going to cover server access logging proxy protocol and X 44 in relation to the
+
+3
+00:00:09.110 --> 00:00:11.510
+application and network load balances.
+
+4
+00:00:11.510 --> 00:00:17.900
+So you may recognize this diagram because it looks very similar to before in the previous lesson.
+
+5
+00:00:17.990 --> 00:00:22.910
+We had a classic load balancer in both of these places because I was trying to show you that you can
+
+6
+00:00:22.910 --> 00:00:29.360
+have Layer 7 and layer form of a classic load balancer and you have support for X forwarded for at last
+
+7
+00:00:29.360 --> 00:00:36.530
+seven and proxy protocol layer for the difference here is we've split the two between an application
+
+8
+00:00:36.530 --> 00:00:42.200
+load balancer and a network load balancer because as you know an application load balancer only operates
+
+9
+00:00:42.200 --> 00:00:46.690
+at least seven and a network load balancer only operates at four.
+
+10
+00:00:46.700 --> 00:00:53.870
+So for these low balances the routing decisions that they make are based on L4 data or L7 data.
+
+11
+00:00:53.900 --> 00:00:59.150
+So when it comes to access logging and logging the source IP addresses of our Internet clients they
+
+12
+00:00:59.150 --> 00:01:01.340
+both behave slightly differently.
+
+13
+00:01:01.340 --> 00:01:06.650
+The network load balancer actually sends the client IP by default in a format that you can see in the
+
+14
+00:01:06.650 --> 00:01:07.830
+log files.
+
+15
+00:01:07.850 --> 00:01:13.690
+You can also add the proxy protocol and that just means that you need to have an interpreter to be at
+
+16
+00:01:13.690 --> 00:01:15.580
+to see that information in your log files.
+
+17
+00:01:15.590 --> 00:01:21.620
+We'll see this in the labs for the application load balancer the source IP is forwarded using the x
+
+18
+00:01:21.620 --> 00:01:27.290
+forwarded for header so it's added onto the data and it's there but we have to make a modification in
+
+19
+00:01:27.290 --> 00:01:30.780
+Apache if we want to be able to see that information.
+
+20
+00:01:30.800 --> 00:01:35.060
+So what we're going to do now is we're actually going to set this up we're going to set up to load balancers
+
+21
+00:01:35.480 --> 00:01:41.600
+and we're going to have to see two instances of Apache and we're going to go in and have a look in the
+
+22
+00:01:41.600 --> 00:01:46.080
+log files and see what information about our clients we can find.
+
+23
+00:01:46.190 --> 00:01:52.910
+We're also going to enable server access logging on the low balances to an Amazon S3 bucket and we'll
+
+24
+00:01:52.910 --> 00:01:56.240
+have a look at those log files and see what information's available there.
+
+25
+00:01:56.240 --> 00:02:01.410
+I mean the easy to management console I know I'm going to launch two instances.
+
+26
+00:02:01.620 --> 00:02:06.900
+These are going to be Amazon and it's to EMI and T2 micro and move freight is quite quickly because
+
+27
+00:02:06.900 --> 00:02:13.870
+you've done this lots of times before and then you use my default VPC use my S3 full access I am oral
+
+28
+00:02:14.370 --> 00:02:19.560
+and then under user data I'm going to paste the same code that we've been using for the last several
+
+29
+00:02:19.560 --> 00:02:25.290
+labs and then I just need to put it in the web access security group and just launch.
+
+30
+00:02:25.290 --> 00:02:30.850
+So while those are launching and then go straight down to load balances and create to load balances.
+
+31
+00:02:31.020 --> 00:02:36.270
+So the first one's going to be an application load balancing and a call that my Alby is going to have
+
+32
+00:02:36.270 --> 00:02:43.470
+a hasty tepee listener I'm going to put this into my default subnet and it's going to my default VPC
+
+33
+00:02:43.470 --> 00:02:50.410
+rubber and it's going to have two public subnets and let's put it in the web access security group and
+
+34
+00:02:50.410 --> 00:02:58.110
+then create a target creep called C.G. 1 legal settings except healthy fresh all comes down to two and
+
+35
+00:02:58.110 --> 00:03:05.340
+four register targets I'm actually going to register one of my targets here and that's going to create
+
+36
+00:03:06.370 --> 00:03:12.530
+and that's all being created and let's do the same but now we're going to select a network load balancer.
+
+37
+00:03:12.530 --> 00:03:21.460
+So I'm going to call this my MLB it's gonna be a tepee listener before VPC and again put it in public
+
+38
+00:03:21.460 --> 00:03:28.190
+subnets and we're going to put this in T G to get a credit target group called TGT healthy fresh is
+
+39
+00:03:28.210 --> 00:03:34.420
+going to be to interval 10 seconds and I'm gonna register the other instance.
+
+40
+00:03:34.420 --> 00:03:40.660
+So each of these instances is registered to only one load balancer and I'm going to create and that's
+
+41
+00:03:40.660 --> 00:03:40.930
+that.
+
+42
+00:03:40.930 --> 00:03:45.280
+So those two are provisioning and let's just go back and check our instances.
+
+43
+00:03:45.400 --> 00:03:49.380
+And what I want to do is actually log into each of these instances.
+
+44
+00:03:49.480 --> 00:03:55.390
+The next thing I want to do is enable server access logging so to do that we select our low balancer.
+
+45
+00:03:55.390 --> 00:03:57.340
+We come down to attributes.
+
+46
+00:03:57.520 --> 00:04:05.620
+We select access logs and I'm just going to create a new one here called DCT labs logs and I'm going
+
+47
+00:04:05.620 --> 00:04:12.820
+to select the option to create it for me and then going to go to my network load balancer and I'm going
+
+48
+00:04:12.820 --> 00:04:20.320
+to enable access logs here we already have the logs bucket now so I'm just gonna put in DCT labs logs
+
+49
+00:04:20.320 --> 00:04:30.230
+and save and if we go over to S3 we should now see that that bucket is being created for us.
+
+50
+00:04:30.260 --> 00:04:36.980
+So here it is and it's got a directory called Dawe logs and then the account number.
+
+51
+00:04:37.090 --> 00:04:41.890
+And then there's a test file so we should see some files coming into here once we start making connection
+
+52
+00:04:41.890 --> 00:04:44.790
+requests through our load balances back up.
+
+53
+00:04:44.800 --> 00:04:50.350
+Looking at my instances I've labeled my instances instance one which is attached to my application load
+
+54
+00:04:50.350 --> 00:04:55.850
+balancer and instance to and what I'm going to do now is just log onto each of these two instances.
+
+55
+00:04:55.960 --> 00:04:59.080
+So I've set up a connection to each of my instances.
+
+56
+00:04:59.080 --> 00:05:03.340
+And before we go over there what I want to do is go to my low balances.
+
+57
+00:05:03.340 --> 00:05:11.220
+I'm going to take the DNS name go to a browsing tab and I'm just gonna pay start in and we get Kirsten
+
+58
+00:05:11.230 --> 00:05:17.200
+so we've got one of our instances there called Kirsten and then let's go back and do the same for the
+
+59
+00:05:17.230 --> 00:05:21.800
+network load balancer and hopefully this is up and running as well.
+
+60
+00:05:21.830 --> 00:05:22.320
+Sure is.
+
+61
+00:05:22.340 --> 00:05:27.170
+We got two here and one that does for each of these I'm just going to hit refresh a bunch a bunch of
+
+62
+00:05:27.170 --> 00:05:35.450
+times so I can generate some log files both using the server access logging for the load balancer but
+
+63
+00:05:35.450 --> 00:05:37.740
+also on the backend on Apache.
+
+64
+00:05:37.850 --> 00:05:42.110
+Let's now have a look in Apache and see what information is being logged.
+
+65
+00:05:42.120 --> 00:05:47.930
+I'm now logged on to instance one instance one is attached to my application load balancer and what
+
+66
+00:05:47.930 --> 00:06:00.730
+I want to do is run a command to have a look at the log files in Apache.
+
+67
+00:06:00.830 --> 00:06:06.740
+So what we're seeing here is a combination of health checks and we're also seeing some information coming
+
+68
+00:06:06.740 --> 00:06:14.450
+from you can see Macintosh I'm using a Mac so you can see that some data is coming from my machine using
+
+69
+00:06:14.450 --> 00:06:22.850
+Safari but if I type this to grep to search for what I know is my public IP address there's nothing
+
+70
+00:06:22.850 --> 00:06:23.150
+there.
+
+71
+00:06:23.150 --> 00:06:30.350
+So what we're actually seeing is the private IP addresses of the load balancer and my easy to instance
+
+72
+00:06:30.590 --> 00:06:31.700
+in the public subnet.
+
+73
+00:06:31.700 --> 00:06:34.710
+So these are private AWB s IP addresses.
+
+74
+00:06:34.730 --> 00:06:38.600
+Now what we want to see is the source IP address of the client.
+
+75
+00:06:38.900 --> 00:06:41.610
+But to do that we have to make a couple of modifications.
+
+76
+00:06:41.660 --> 00:06:46.100
+And what we need to do is edit the hasty CPD dot com file
+
+77
+00:06:49.330 --> 00:06:56.920
+and we need to scroll way down and keep going down the file until you see the section for logging and
+
+78
+00:06:56.920 --> 00:07:01.990
+some what we want to do is actually paste in some code here and I'll show you where to get this.
+
+79
+00:07:01.990 --> 00:07:08.740
+I'll provide it obviously in the course downloads but also I'll provide a URL for an AWP as article
+
+80
+00:07:08.860 --> 00:07:10.030
+which tells you all about this.
+
+81
+00:07:10.030 --> 00:07:12.150
+But we're just changing the log format.
+
+82
+00:07:12.180 --> 00:07:17.650
+So we're just adding in the X forwarded four so it's going to show the contents of the X forwarded for
+
+83
+00:07:17.650 --> 00:07:18.010
+header.
+
+84
+00:07:18.130 --> 00:07:22.690
+So now let's just save this and we just need to restart H2 TPD
+
+85
+00:07:25.590 --> 00:07:29.450
+and now let's go back and generate some more load on our instance.
+
+86
+00:07:30.090 --> 00:07:35.510
+So this is instance one and the one that's attached to my application load balancer and it is going
+
+87
+00:07:35.510 --> 00:07:37.180
+to hit refresh a bunch of times.
+
+88
+00:07:37.230 --> 00:07:44.070
+So hopefully Apache will now log some information which will include my source IP address so let's run
+
+89
+00:07:44.070 --> 00:07:45.430
+that grep command again.
+
+90
+00:07:45.450 --> 00:07:51.540
+So I'm going to open the access log and search for my public IP address of my machine.
+
+91
+00:07:51.540 --> 00:07:53.630
+And then we go get lots of hits.
+
+92
+00:07:53.640 --> 00:08:00.300
+So what we've done is we've just enabled Apache to see the export ad for headers so we know the export
+
+93
+00:08:00.300 --> 00:08:02.010
+ad for headers are there.
+
+94
+00:08:02.010 --> 00:08:07.560
+The application load balancer doesn't need to be configured it sends that by default or we needed to
+
+95
+00:08:07.560 --> 00:08:12.490
+do here was edit Apache to find that information.
+
+96
+00:08:12.510 --> 00:08:16.800
+Let's now head over to instance to which is attached to the network load balancer.
+
+97
+00:08:16.800 --> 00:08:26.020
+So I'm logged on to instance to let's run the same cat command to look at the log files in Apache and
+
+98
+00:08:26.020 --> 00:08:29.290
+straight away I can see my public IP address.
+
+99
+00:08:29.290 --> 00:08:35.230
+So the main difference is that with the network load balancer this IP address is actually readable in
+
+100
+00:08:35.230 --> 00:08:43.990
+the TTP header whereas with the application load balancer it's an ex forwarded for header which you
+
+101
+00:08:43.990 --> 00:08:46.220
+need to be able to interpret in Apache.
+
+102
+00:08:46.270 --> 00:08:51.190
+Now you can use proxy protocol of the network load balancer but that's something different.
+
+103
+00:08:51.220 --> 00:08:54.270
+What we're seeing here is not the proxy protocol.
+
+104
+00:08:54.370 --> 00:08:58.670
+It's just that the IP address is being sent in a format that's readable.
+
+105
+00:08:58.680 --> 00:09:04.930
+Now another thing you need to know about the network no balancer is if you specify your targets by IP
+
+106
+00:09:04.930 --> 00:09:09.970
+address then that information won't be present and you'll have to use the proxy protocol if you want
+
+107
+00:09:09.970 --> 00:09:11.720
+to be able to see the source IP.
+
+108
+00:09:11.740 --> 00:09:17.980
+The reason being is when you specify a target by IP address you will see the source IP address of the
+
+109
+00:09:17.980 --> 00:09:20.090
+packet is coming from the load balancer.
+
+110
+00:09:20.380 --> 00:09:26.410
+If you specify instance then you'll see the source IP address as being from the actual source client.
+
+111
+00:09:26.530 --> 00:09:32.170
+Let's go back over to S3 now and see if we can find some server access logs from our low balances.
+
+112
+00:09:32.170 --> 00:09:37.130
+I've just refreshed my bucket and I can see that I now have a folder called Elastic Load Balancing.
+
+113
+00:09:37.360 --> 00:09:45.190
+And if I go in here I'll drill down to the date and I can see that I have a couple of logs from my application
+
+114
+00:09:45.190 --> 00:09:46.540
+load balancer.
+
+115
+00:09:46.540 --> 00:09:51.600
+So I'll just download these or download one of these and we'll open it up and have a look.
+
+116
+00:09:51.610 --> 00:09:55.630
+This is the log file that was generated by my application load balancer.
+
+117
+00:09:55.720 --> 00:09:57.030
+You can see the protocol.
+
+118
+00:09:57.070 --> 00:09:58.950
+You can see a timestamp here.
+
+119
+00:09:59.080 --> 00:10:01.800
+You can see an identifier for the load balancer.
+
+120
+00:10:01.960 --> 00:10:07.420
+You can see here the public IP address of my machine on the Internet.
+
+121
+00:10:07.420 --> 00:10:13.270
+You can then see the address of the actual easy to instance itself and the port so this port easy on
+
+122
+00:10:13.270 --> 00:10:14.290
+the easy to instance.
+
+123
+00:10:14.290 --> 00:10:21.220
+That's obviously the private IP of the easy to instance and you can then see some more information about
+
+124
+00:10:21.220 --> 00:10:23.770
+what the GET GET request was.
+
+125
+00:10:23.770 --> 00:10:26.320
+You can see the browser version is being used and so on.
+
+126
+00:10:26.320 --> 00:10:27.910
+So there's quite a bit of information in there.
+
+127
+00:10:28.210 --> 00:10:30.250
+So that's what a server access log looks like.
+
+128
+00:10:30.460 --> 00:10:31.620
+So that's it for this lab.
+
+129
+00:10:31.630 --> 00:10:37.060
+I just wanted to show you the logging options for elastic low balances and to make you aware of the
+
+130
+00:10:37.060 --> 00:10:44.680
+X forwarded for proxy protocol and what information is actually sent in the packets that your easy two
+
+131
+00:10:44.680 --> 00:10:51.530
+instances receive and indeed which information is logged by the low balance using server access logging.
+
+132
+00:10:51.550 --> 00:10:53.560
+So hopefully that will make sense to you.
+
+133
+00:10:53.560 --> 00:10:59.740
+What we can do now is we can actually go back and terminate our instances and we can delete our load
+
+134
+00:10:59.740 --> 00:11:03.560
+balances and I'm going to remove both my target groups as well.
+
+135
+00:11:03.610 --> 00:11:05.250
+So just a final recap.
+
+136
+00:11:05.350 --> 00:11:11.110
+You can enable server access logging on your low balances and it logs it to an S free bucket which you
+
+137
+00:11:11.110 --> 00:11:17.170
+specify and that includes the source IP address of your client along with other information the network
+
+138
+00:11:17.170 --> 00:11:23.170
+load balance or price at lower for the application load balancer at last seven application load balance
+
+139
+00:11:23.410 --> 00:11:29.380
+includes the source IP address of the client in ex forwarded for headers whereas the network load balance
+
+140
+00:11:29.440 --> 00:11:35.440
+actually sends that information in the hasty T.P. header itself but also supports the proxy protocol.
+
+141
+00:11:35.440 --> 00:11:36.880
+So that's it for this lab guys.
+
+142
+00:11:36.880 --> 00:11:39.330
+Hope you enjoyed the course and learning lots.
+

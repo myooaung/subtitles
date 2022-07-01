@@ -1,0 +1,368 @@
+1
+00:00:02,310 --> 00:00:06,100
+We're going to cover EBS snapshots in a bit more detail now.
+
+2
+00:00:06,190 --> 00:00:14,480
+So an EBS snapshot captures a point-in-time state of your instance or specifically of your volume.
+
+3
+00:00:14,680 --> 00:00:21,640
+So it's a way of taking your EBS volume and creating a copy of it a snapshot of it in a specific point
+
+4
+00:00:21,640 --> 00:00:25,410
+in time and storing that on S3.
+
+5
+00:00:25,480 --> 00:00:31,390
+So you remember that the EBS volume is within an availability zone, the same availability zone as your
+
+6
+00:00:31,390 --> 00:00:32,710
+instance.
+
+7
+00:00:32,710 --> 00:00:39,070
+And then when you create a snapshot of that volume it goes into Amazon S3 which is a regional service.
+
+8
+00:00:39,070 --> 00:00:44,830
+And that means you can then access that snapshot from another availability zone so you can either copy
+
+9
+00:00:45,220 --> 00:00:51,010
+this between regions or you can create a volume from it within a region in a different availability
+
+10
+00:00:51,010 --> 00:00:55,260
+zone and we'll go through all the different scenarios shortly.
+
+11
+00:00:55,390 --> 00:01:00,320
+The other thing to know about snapshots is that when you create multiple snapshots they're incremental.
+
+12
+00:01:00,340 --> 00:01:06,490
+So that means if you have a volume that's 10 gigabytes in size and you take a snapshot of it you have
+
+13
+00:01:06,490 --> 00:01:13,150
+a 10 gigabyte snapshot if you then change a gigabytes of data you've got in the region of a gigabyte
+
+14
+00:01:13,150 --> 00:01:16,210
+of data that needs to be stored in this snapshot.
+
+15
+00:01:16,600 --> 00:01:20,920
+And what this snapshot will then do is it will reference the other 10 gig that's back here and that
+
+16
+00:01:20,920 --> 00:01:26,520
+carries on as you create more and more snapshots but there's a few important points to note about that
+
+17
+00:01:26,530 --> 00:01:30,490
+and I'm actually going to take you to an article because it explains it in great detail.
+
+18
+00:01:30,700 --> 00:01:36,580
+So you'll want to look up deleting an Amazon EBS snapshot and the key thing is here is that it says
+
+19
+00:01:37,180 --> 00:01:42,670
+if you make periodic snapshots of a volume the snapshots are incremental so that's what I just explained.
+
+20
+00:01:42,670 --> 00:01:47,320
+And that means that only the blocks on the device have changed after your last snapshot are saved in
+
+21
+00:01:47,320 --> 00:01:48,700
+the new snapshot.
+
+22
+00:01:48,700 --> 00:01:54,180
+Now in most backup systems that would mean that you need all of those snapshots in order to recover.
+
+23
+00:01:54,310 --> 00:01:58,810
+So you'd need the original that had the 10 gig on it and then you'd need each of the other snapshots
+
+24
+00:01:59,140 --> 00:02:04,900
+which has the changes the incremental changes and then you restore it altogether.
+
+25
+00:02:05,470 --> 00:02:07,010
+However that's not the way it works would be.
+
+26
+00:02:07,040 --> 00:02:07,810
+Yes.
+
+27
+00:02:07,810 --> 00:02:13,420
+So it then goes on to say even those snapshots are saved incrementally, the snapshot deletion process
+
+28
+00:02:13,450 --> 00:02:19,380
+is designed so that you need to retain only the most recent snapshot in order to restore the volume.
+
+29
+00:02:19,450 --> 00:02:22,760
+So actually in this case you don't need the original.
+
+30
+00:02:22,810 --> 00:02:26,430
+You only need the last one which should be seen on.
+
+31
+00:02:26,920 --> 00:02:33,570
+But anyway you only need this last snapshot and that's because it's designed in such a way that if you
+
+32
+00:02:33,570 --> 00:02:41,400
+delete these previous snapshots it just keeps the data and makes sure that this is a fully restore rebel
+
+33
+00:02:41,490 --> 00:02:43,720
+snapshot.
+
+34
+00:02:43,770 --> 00:02:48,460
+So what would you do then is if you want the most up to date version you would take this last snapshot
+
+35
+00:02:48,480 --> 00:02:54,730
+and you create your volume and enough availability zine from that snapshot so let's get into the console
+
+36
+00:02:54,730 --> 00:02:57,610
+now and just have a look at snapshots.
+
+37
+00:02:57,670 --> 00:03:03,910
+So let's go to volumes and I have an instance that's running and all I'm going to do is just create
+
+38
+00:03:03,910 --> 00:03:05,010
+a snapshot.
+
+39
+00:03:05,210 --> 00:03:06,880
+And this is the root device.
+
+40
+00:03:06,880 --> 00:03:14,310
+I'm just going to call it snap 1 and so we create that snapshot and if we now head over to the snapshots
+
+41
+00:03:14,370 --> 00:03:21,420
+you can see it's pending and that's being written 15 percent they go I refreshed and is very done very
+
+42
+00:03:21,420 --> 00:03:28,560
+quickly so we can say this isn't encrypted and that's because the root volume isn't encrypted and we
+
+43
+00:03:28,560 --> 00:03:35,370
+can then perform a few operations the next lab we actually can go into detail about all the different
+
+44
+00:03:35,370 --> 00:03:39,250
+operations you can perform whether it's encrypted or unencrypted and so on.
+
+45
+00:03:39,300 --> 00:03:47,460
+So we won't do that now but what I can do then is go and let's take a snapshot of this volume.
+
+46
+00:03:48,000 --> 00:03:52,500
+Now I haven't actually gone on and changed that data but just assume that you've got some changes in
+
+47
+00:03:52,500 --> 00:03:56,290
+the data here you now create another snapshot.
+
+48
+00:03:56,700 --> 00:04:03,320
+And so I now  have root snap 1 and root snap 2, root snap 1 will have the original 8 gig
+
+49
+00:04:03,350 --> 00:04:08,400
+root snap 2 will appear to have 8 gig still, the capacity still shows as the same because that's the size
+
+50
+00:04:08,400 --> 00:04:13,560
+of the volume but that's not showing you the used space and actually the amount of space this would use
+
+51
+00:04:13,560 --> 00:04:15,420
+up is unclear.
+
+52
+00:04:15,420 --> 00:04:21,500
+You can't see it in the console but that would be the incremental changes from Root snap one.
+
+53
+00:04:21,540 --> 00:04:27,450
+However if we wanted to do a restore of the latest copy of the volume this is the one we would use and
+
+54
+00:04:27,450 --> 00:04:32,580
+it would reflect the changes the original and any changes being made.
+
+55
+00:04:32,590 --> 00:04:39,510
+Another tool that we have is data lifecycle manager and this is a way that you can automate the lifecycle
+
+56
+00:04:39,570 --> 00:04:41,300
+of snapshots.
+
+57
+00:04:41,330 --> 00:04:47,310
+It's a relatively new service but it is several months old so it will be featuring on the exam now.
+
+58
+00:04:47,850 --> 00:04:52,920
+So what we can do is first before we run it we have to go back to our volumes and we need to give it
+
+59
+00:04:52,920 --> 00:04:53,400
+a tag.
+
+60
+00:04:53,940 --> 00:04:59,170
+So I'm going to create a tag I'm just going to call it DLM for data lifecycle manager and I'm just going
+
+61
+00:04:59,170 --> 00:05:00,180
+to call this snapshot
+
+62
+00:05:03,080 --> 00:05:11,210
+so we now go to lifecycle management and let's call this DLM snapshot and we can choose a volume or an
+
+63
+00:05:11,210 --> 00:05:12,330
+instance.
+
+64
+00:05:12,350 --> 00:05:18,230
+So if you choose instance then you'd you'd come up with your instance ideas or you you choose the entire
+
+65
+00:05:18,230 --> 00:05:20,980
+instance rather than just an individual volume.
+
+66
+00:05:21,010 --> 00:05:30,230
+But in this case we're going to go to volume DLM snapshot and then we have a schedule so you can modify
+
+67
+00:05:30,230 --> 00:05:30,690
+this.
+
+68
+00:05:30,710 --> 00:05:38,810
+And in this case it's going to run by default at 12 hours starting at 9:00 UTC and then you can define
+
+69
+00:05:38,810 --> 00:05:40,380
+the number of snapshots you wanted signs.
+
+70
+00:05:40,380 --> 00:05:42,650
+Let's say we want to keep the last three snapshots
+
+71
+00:05:45,310 --> 00:05:52,070
+you can perform tagging and you can modify the role if you like and it's as simple as that.
+
+72
+00:05:52,070 --> 00:05:57,290
+You then just create the policy and this will automate the creation of those look of those snapshots
+
+73
+00:05:57,290 --> 00:05:58,520
+for you.
+
+74
+00:05:58,520 --> 00:06:00,400
+So in this case I'm just going to remove this.
+
+75
+00:06:00,410 --> 00:06:03,330
+I don't need this lifecycle policy.
+
+76
+00:06:03,390 --> 00:06:09,470
+Now there's another thing about snapshots that you need to understand to take a fully consistent snapshot.
+
+77
+00:06:09,480 --> 00:06:13,060
+Sometimes referred to as a crash consistent snapshot.
+
+78
+00:06:13,170 --> 00:06:16,020
+You must stop right to the volume.
+
+79
+00:06:16,200 --> 00:06:23,100
+So that means that to ensure that you have a fully consistent snapshot you need to stop any activity
+
+80
+00:06:23,100 --> 00:06:24,880
+that's going on on the volume.
+
+81
+00:06:24,960 --> 00:06:28,860
+Of course that's very hard for a root volume when the operating system is running on it.
+
+82
+00:06:29,190 --> 00:06:35,900
+So ideally you would shut down your instance and you would then take a snapshot of it.
+
+83
+00:06:35,980 --> 00:06:38,520
+You can take a snapshot while the instance is running.
+
+84
+00:06:38,530 --> 00:06:41,040
+But that would be the ideal scenario.
+
+85
+00:06:41,310 --> 00:06:43,250
+We have non root volumes.
+
+86
+00:06:43,540 --> 00:06:48,950
+What you want to do is try to ensure that you you do stop any writes that are taking place.
+
+87
+00:06:49,090 --> 00:06:56,050
+So that might mean that you can pause your application shut down your application service or worst case
+
+88
+00:06:56,050 --> 00:07:01,570
+you might need to actually detach the volume and that will definitely ensure that there's no more activity
+
+89
+00:07:01,570 --> 00:07:02,190
+happening on it.
+
+90
+00:07:03,310 --> 00:07:06,070
+So that's set for snapshots for now in the next lab.
+
+91
+00:07:06,070 --> 00:07:11,260
+We're going to go into a lot more detail on the various operations that you can perform on UBS volumes
+
+92
+00:07:11,260 --> 00:07:12,850
+snapshots and a mind.
+

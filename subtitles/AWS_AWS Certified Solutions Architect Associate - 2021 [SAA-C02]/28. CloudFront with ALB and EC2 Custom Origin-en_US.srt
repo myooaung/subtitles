@@ -1,0 +1,432 @@
+1
+00:00:02,260 --> 00:00:02,890
+Hi guys.
+
+2
+00:00:02,890 --> 00:00:07,910
+In this lab we're going to be creating another Amazon CloudFront distribution.
+
+3
+00:00:07,930 --> 00:00:15,100
+This time we're going to be using a custom origin with EC2 instances in an auto scaling group behind
+
+4
+00:00:15,100 --> 00:00:16,870
+an application load balancer.
+
+5
+00:00:16,900 --> 00:00:19,660
+This time we're going to be creating everything from scratch.
+
+6
+00:00:19,660 --> 00:00:26,770
+So let's get over to the console before we get started I just wanted to show you that the two distributions
+
+7
+00:00:27,040 --> 00:00:33,310
+that we set to disable on in the previous lab are now disabled and can be deleted.
+
+8
+00:00:33,310 --> 00:00:36,690
+So you do have to wait for those for a while so easy to forget them.
+
+9
+00:00:36,700 --> 00:00:42,700
+Don't forget to come back in and then just delete.
+
+10
+00:00:42,900 --> 00:00:43,730
+So that's done.
+
+11
+00:00:43,740 --> 00:00:45,190
+Let's head over to EC2.
+
+12
+00:00:45,300 --> 00:00:51,390
+And what I want to do is firstly I'm going to create a load balancer so let's create an application load
+
+13
+00:00:51,390 --> 00:00:55,380
+balancer and I'm just going to call this myalb.
+
+14
+00:00:55,590 --> 00:01:01,610
+It's going to be an Internet-facing load balancer and I'm going to use HTTP.
+
+15
+00:01:01,920 --> 00:01:09,120
+I'm going to use my custom VPC and I'm just going to go in and select a couple of public subnets
+
+16
+00:01:13,280 --> 00:01:19,130
+and let's click next going to choose my web access security group and then I'm going to create a new
+
+17
+00:01:19,130 --> 00:01:21,820
+target group called TG1.
+
+18
+00:01:22,370 --> 00:01:29,210
+We're going to leave all the defaults here and we're just going to change the healthy threshold to two
+
+19
+00:01:29,210 --> 00:01:32,300
+don't have any targets to attach yet.
+
+20
+00:01:32,300 --> 00:01:41,070
+So let's just click Create. So that's creating let's go to auto scaling groups and I wanted to do all
+
+21
+00:01:41,070 --> 00:01:46,140
+this just to make sure that you guys are getting more practice because it's easy with a long course
+
+22
+00:01:46,140 --> 00:01:48,900
+as well to forget a few things that you learned earlier.
+
+23
+00:01:48,930 --> 00:01:56,610
+So let's just keep our our skills sharp by re-using the skills that we learned. I now need to create 
+
+24
+00:01:56,610 --> 00:01:59,180
+the launch configuration for my auto scaling group.
+
+25
+00:01:59,180 --> 00:02:01,110
+Just gonna call it LC1.
+
+26
+00:02:01,340 --> 00:02:09,470
+I'm going to use my S3 full access I and I'm going to then paste in some code for the user
+
+27
+00:02:09,470 --> 00:02:09,980
+data.
+
+28
+00:02:10,490 --> 00:02:15,050
+If you've done the EC2 section in the course and the ELB section of the course you'll recognize
+
+29
+00:02:15,050 --> 00:02:16,180
+this code.
+
+30
+00:02:16,310 --> 00:02:21,430
+Essentially we're installing a web server and we're then giving that web server a name.
+
+31
+00:02:21,440 --> 00:02:27,230
+So when the index.txt file is displayed it will say "this is" and it will have a name.
+
+32
+00:02:27,290 --> 00:02:31,520
+And that way we can see that where our load balancer is working and we're cycling between different
+
+33
+00:02:31,520 --> 00:02:32,290
+servers.
+
+34
+00:02:32,420 --> 00:02:34,030
+It does rely on a couple of files.
+
+35
+00:02:34,040 --> 00:02:40,540
+These are in the course downloads and they need to be in the path to your bucket here.
+
+36
+00:02:42,410 --> 00:02:49,900
+And then need to choose assign a public IP address to every instance click next going to choose the
+
+37
+00:02:49,960 --> 00:02:56,590
+web access security group and then click review and create launch configuration.
+
+38
+00:02:56,610 --> 00:03:03,260
+Choose my key pair and then I'm going to create my auto scaling group and this is gonna be ASG1 I'm
+
+39
+00:03:03,260 --> 00:03:10,730
+going to have two instances, custom VPC again and I want these to be in a public subnet.
+
+40
+00:03:10,730 --> 00:03:20,180
+Course you could use a private subnet but you would then need a NAT Gateway and what I'm gonna do is
+
+41
+00:03:20,180 --> 00:03:25,970
+I'm going to say receive traffic from one or more load balancers and choose my target group and I'm
+
+42
+00:03:25,970 --> 00:03:29,300
+going to leave the health check setting at default.
+
+43
+00:03:29,420 --> 00:03:37,160
+I don't want to set instance protection so let's just go straight for now and click Create auto scanning
+
+44
+00:03:37,160 --> 00:03:41,700
+group so that should take a few minutes.
+
+45
+00:03:41,890 --> 00:03:51,190
+We can always go into our target group go to targets and shortly we should see our targets registered
+
+46
+00:03:52,240 --> 00:03:57,760
+so that's working I can see that my targets are being registered and they're in the initial state while
+
+47
+00:03:57,760 --> 00:03:58,850
+that's happening.
+
+48
+00:03:58,930 --> 00:04:04,910
+Let's go back over to CloudFront and create our distribution because it will take a few minutes
+
+49
+00:04:04,910 --> 00:04:09,340
+to create the distribution we click Create distribution.
+
+50
+00:04:09,340 --> 00:04:12,900
+We choose web and Origin domain name.
+
+51
+00:04:12,910 --> 00:04:18,230
+We're going to come down and here's the elastic load balancer and myalb.
+
+52
+00:04:18,340 --> 00:04:25,840
+I don't need to specify any settings there and in fact I think we can leave pretty much all these defaults
+
+53
+00:04:33,520 --> 00:04:39,010
+and I can click Create distribution and that's now in the states as in progress is being created and
+
+54
+00:04:39,010 --> 00:04:44,380
+that could take a while sometimes you know it could be 15 minutes or more so let's just leave that going
+
+55
+00:04:44,720 --> 00:04:51,010
+and let's go back and check how our target groups are and then hit refresh and they're healthy so that's
+
+56
+00:04:51,010 --> 00:04:51,860
+awesome.
+
+57
+00:04:51,880 --> 00:04:53,900
+Let's go to load balancer.
+
+58
+00:04:53,980 --> 00:05:00,040
+I'm going to get the DNS name and copy that's in my clipboard and let's just go and paste this into
+
+59
+00:05:00,040 --> 00:05:01,230
+the browser.
+
+60
+00:05:01,390 --> 00:05:05,410
+And so here we get our index.html page and it says "Hi this is Joseph".
+
+61
+00:05:06,160 --> 00:05:12,820
+And if I hit refresh I've got Sharon as well so that that means I've got a different index.html
+
+62
+00:05:12,840 --> 00:05:18,610
+file on each of my back end EC2 instances and because this is a load balancer I can just
+
+63
+00:05:18,610 --> 00:05:23,860
+hit refresh and I'm just going to cycle between those. We don't actually have to wait until this is
+
+64
+00:05:23,860 --> 00:05:31,200
+completely deployed what we can do is just grab this domain name copy it to our clipboard and let's
+
+65
+00:05:31,210 --> 00:05:34,600
+then go to another tab and put it in.
+
+66
+00:05:34,600 --> 00:05:40,810
+And sure enough it is up and running so I can see I've got the index.html file from one of my
+
+67
+00:05:40,810 --> 00:05:41,830
+instances.
+
+68
+00:05:41,830 --> 00:05:50,140
+Now if I refresh of course I get the same one because the content has been cached so obviously this
+
+69
+00:05:50,140 --> 00:05:56,320
+is not an ideal solution when you have what we have in our lab environments. In our lab environment we
+
+70
+00:05:56,320 --> 00:06:01,420
+have to different EC2 instances that have different content. Now that isn't the way that you would normally
+
+71
+00:06:02,080 --> 00:06:07,600
+define your instances behind an application load balancer you want your instances to have the same content
+
+72
+00:06:07,600 --> 00:06:13,120
+so it doesn't matter which instance the connection goes to but it's an interesting point to point out
+
+73
+00:06:13,150 --> 00:06:21,150
+because this is where you have a use case then for multiple origins and setting up behaviors.
+
+74
+00:06:21,200 --> 00:06:29,660
+So if you remember what we can do is go into our distribution we can select another, we can create another
+
+75
+00:06:29,690 --> 00:06:32,870
+origin.
+
+76
+00:06:33,100 --> 00:06:39,160
+And so if we had multiple application load balancers we'd be able to select a different one now and then
+
+77
+00:06:39,160 --> 00:06:47,170
+we could create a behavior rule that says that traffic that's destined for a certain path like a /images
+
+78
+00:06:47,170 --> 00:06:53,680
+or a /checkout or whatever, whatever it might be, goes to a different origin.
+
+79
+00:06:53,800 --> 00:06:58,960
+Now we finished what I wanted to show you in this lab but one of the other things that I wanted to cover
+
+80
+00:06:59,800 --> 00:07:06,070
+is Lambda Edge so if we come down to if we create a new distribution here we just scroll down to here
+
+81
+00:07:06,070 --> 00:07:11,210
+it is Lambda function associations and we can actually just click on learn more.
+
+82
+00:07:11,380 --> 00:07:15,020
+And it tells us about adding triggers for a Lambda Edge function.
+
+83
+00:07:15,310 --> 00:07:21,100
+And what this means is you can create AWS Lambda functions that
+
+84
+00:07:24,390 --> 00:07:31,110
+execute closer to your users and say you know the example that says here is you can create a trigger
+
+85
+00:07:31,110 --> 00:07:36,780
+that causes the function's execute when CloudFront receives a request from a viewer for a specific cache
+
+86
+00:07:36,780 --> 00:07:39,510
+behavior you set up for your distribution.
+
+87
+00:07:39,510 --> 00:07:49,100
+So this is another way of getting your logic closer to your users as well as your content.
+
+88
+00:07:49,110 --> 00:07:54,180
+This is definitely something that can come up in the exam so it's worth just reading up on Lambda Edge
+
+89
+00:07:54,180 --> 00:07:56,420
+just to understand exactly what it is.
+
+90
+00:07:56,430 --> 00:08:03,200
+Another thing that I said I'd show you is the log files that are produced by CloudFront.
+
+91
+00:08:03,210 --> 00:08:07,980
+So let's go back to S3 and this is actually from the previous lab where we had a bucket.
+
+92
+00:08:07,980 --> 00:08:15,150
+We didn't configure logging this time but let's go into dctlabs.com and I had this SIF f logs prefix
+
+93
+00:08:15,630 --> 00:08:22,080
+and we've been here we have a bunch of zip files so I can download these and so you can see some of
+
+94
+00:08:22,080 --> 00:08:28,750
+the information that's been logged here and there isn't too much, we haven't sent many requests but
+
+95
+00:08:28,780 --> 00:08:34,320
+one of the things that stands out is the source IP so you can see the IP you can see something that
+
+96
+00:08:34,330 --> 00:08:36,910
+obviously relates to Sydney the region.
+
+97
+00:08:36,910 --> 00:08:41,800
+You can see the CloudFront distribution name and you can see some information about the browser and
+
+98
+00:08:41,800 --> 00:08:47,810
+even the computer and the processor type that's being that's on my client that I'm connecting from.
+
+99
+00:08:47,860 --> 00:08:49,630
+So that's it for there.
+
+100
+00:08:49,630 --> 00:08:53,280
+Now don't forget to go back and delete your resources.
+
+101
+00:08:53,290 --> 00:08:56,120
+You can delete your load balancer.
+
+102
+00:08:56,350 --> 00:09:01,600
+You can delete your target groups and you can go to auto scanning
+
+103
+00:09:04,490 --> 00:09:10,430
+delete your ASG and if you want to you can go also and delete your launch configuration
+
+104
+00:09:13,550 --> 00:09:15,860
+and just check that your instances get terminated.
+
+105
+00:09:15,860 --> 00:09:21,020
+The IEA should do that but sometimes I just go in and do it myself anyway just to be sure.
+
+106
+00:09:21,170 --> 00:09:23,840
+And then that's everything cleaned up there.
+
+107
+00:09:23,840 --> 00:09:35,840
+We just then need to go back to CloudFront and again you've got to disable and then delete so I can
+
+108
+00:09:35,840 --> 00:09:41,360
+hit disable and then I'm gonna have to come back in 10 or 15 minutes and just delete this distribution.
+

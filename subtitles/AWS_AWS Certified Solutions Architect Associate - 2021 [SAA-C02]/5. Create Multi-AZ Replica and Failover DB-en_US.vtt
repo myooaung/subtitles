@@ -1,0 +1,421 @@
+WEBVTT
+1
+00:00:02.650 --> 00:00:03.070
+Hi guys.
+
+2
+00:00:03.070 --> 00:00:08.440
+What we're gonna do in this lab is we're going to enable multi AZ for the database that we configured
+
+3
+00:00:08.440 --> 00:00:09.630
+in the last lab.
+
+4
+00:00:09.730 --> 00:00:14.650
+But before I do that I need to explain to you what multi AZ is and also how it compares to
+
+5
+00:00:14.650 --> 00:00:22.660
+read replicas as these are two ways that you can enable high availability and also offloading of performance
+
+6
+00:00:22.870 --> 00:00:24.520
+from your master database.
+
+7
+00:00:25.180 --> 00:00:28.480
+So let's look at the two, multi AZ
+
+8
+00:00:28.570 --> 00:00:36.430
+What this means is you enable multi AZ on your database and it creates a standby copy of your database
+
+9
+00:00:36.900 --> 00:00:40.810
+in another availability zone within the same VPC.
+
+10
+00:00:40.810 --> 00:00:43.220
+So it's within the region within the VPC.
+
+11
+00:00:43.230 --> 00:00:45.040
+It's just in a different availability side.
+
+12
+00:00:45.050 --> 00:00:50.910
+It's always going to be in a different availability zone and the replication is synchronous.
+
+13
+00:00:50.980 --> 00:00:54.100
+So synchronous means that before
+
+14
+00:00:56.590 --> 00:01:03.370
+before a replication event came complete it needs to the database needs to check that it has successfully
+
+15
+00:01:03.370 --> 00:01:05.470
+been written to the database.
+
+16
+00:01:05.470 --> 00:01:12.790
+So that's different to asynchronous where there's no checking so the data is replicated but there's
+
+17
+00:01:12.790 --> 00:01:18.620
+no check to prove that the transaction has been committed before carrying on.
+
+18
+00:01:18.640 --> 00:01:25.840
+So with a read replica you have asynchronous replication. Now read replicas are a different use case.
+
+19
+00:01:25.960 --> 00:01:31.330
+So multi AZ you have a primary database and a secondary database.
+
+20
+00:01:31.330 --> 00:01:33.170
+Let's have a look at a diagram.
+
+21
+00:01:33.340 --> 00:01:35.700
+So you've got your RDS master.
+
+22
+00:01:35.890 --> 00:01:39.280
+You create an RDS replica of it not a read replica.
+
+23
+00:01:39.280 --> 00:01:46.300
+This is a standby copy of your master database your application servers will then connect to the master
+
+24
+00:01:46.300 --> 00:01:50.520
+instance and synchronous replication happens to the standby.
+
+25
+00:01:50.650 --> 00:01:53.530
+Now there's no endpoint address on that standby.
+
+26
+00:01:53.650 --> 00:01:58.000
+So you'll remember from the previous lab we get a long endpoint address like this.
+
+27
+00:01:58.000 --> 00:02:01.050
+And that's the address that your app server connects to.
+
+28
+00:02:01.300 --> 00:02:07.090
+But the replica doesn't have an endpoint address because what happens is when you failover the same
+
+29
+00:02:07.390 --> 00:02:12.150
+address is mapped to the standby instance.
+
+30
+00:02:12.220 --> 00:02:17.850
+That means that you can't use this instance except for in a scenario where you failover from the master
+
+31
+00:02:17.860 --> 00:02:25.050
+and that can be an unplanned event or it can be a planned event so read replicas are different because
+
+32
+00:02:25.050 --> 00:02:26.520
+with a read replica
+
+33
+00:02:26.520 --> 00:02:32.780
+what happens is you create a replica copy of your database but it has a separate endpoint.
+
+34
+00:02:32.850 --> 00:02:34.570
+So with a read replica.
+
+35
+00:02:34.620 --> 00:02:42.000
+What happens is you have this separate copy with its own endpoint and you can have different application
+
+36
+00:02:42.000 --> 00:02:46.020
+servers connecting to that database but it's only four reads.
+
+37
+00:02:46.020 --> 00:02:51.750
+So what this is doing is it's off loading reads from your master database or in this case in this diagram
+
+38
+00:02:51.750 --> 00:02:53.940
+the one on the bottom is the master.
+
+39
+00:02:53.940 --> 00:02:57.870
+So you can read and write to your master database.
+
+40
+00:02:57.870 --> 00:03:05.490
+You can't write anything to any standby copies of your master database multi AZ copies but you can
+
+41
+00:03:05.580 --> 00:03:08.690
+read from an RDS read replica.
+
+42
+00:03:08.760 --> 00:03:13.410
+So if you've got a lot of read traffic and your master database is having a performance implication
+
+43
+00:03:13.410 --> 00:03:15.870
+it might be worthwhile a neighboring read replicas
+
+44
+00:03:19.140 --> 00:03:24.810
+so as I mentioned only the database engine on the primary instance is actually a multi AZ whereas
+
+45
+00:03:24.810 --> 00:03:32.050
+with read replicas all read replicas are accessible and can be used for read scaling. With multi AZ
+
+46
+00:03:32.060 --> 00:03:34.240
+backups are taken from the standby.
+
+47
+00:03:34.340 --> 00:03:40.820
+And that's good because it means that your primary production system that's live isn't getting any performance
+
+48
+00:03:40.820 --> 00:03:43.730
+implication from actually performing the backup.
+
+49
+00:03:43.730 --> 00:03:46.430
+There are no backups configured by default for a read replica.
+
+50
+00:03:47.030 --> 00:03:54.290
+So a multi AZ deployment always spans two aces within a single region whereas a read replica can be
+
+51
+00:03:54.290 --> 00:04:02.300
+within the same AZ it can be across different AZs or it can even be across regions with multi AZ
+
+52
+00:04:02.360 --> 00:04:09.470
+the database engine version upgrades happen on the primary whereas with a read replica the database
+
+53
+00:04:09.500 --> 00:04:12.650
+engine version upgrade is independent from the source instance.
+
+54
+00:04:15.970 --> 00:04:22.970
+With multi AZ failover to the standby is automatic, if a problem is detected then you can do it manually
+
+55
+00:04:22.970 --> 00:04:23.420
+as well.
+
+56
+00:04:25.020 --> 00:04:30.540
+Read replicas can be manually promoted to a standalone database so you can promote a read replica to
+
+57
+00:04:30.540 --> 00:04:33.260
+become a writer or database.
+
+58
+00:04:33.690 --> 00:04:34.650
+So that's the theory.
+
+59
+00:04:34.650 --> 00:04:36.030
+Let's get on with the lab.
+
+60
+00:04:36.030 --> 00:04:41.490
+So what we're going to do is we currently have our EC2 app server which in this case it's a wordpress
+
+61
+00:04:41.490 --> 00:04:45.600
+server and we've got a database but we don't have a replica.
+
+62
+00:04:45.810 --> 00:04:50.420
+So we just have what's going on in the top here.
+
+63
+00:04:50.430 --> 00:04:54.210
+Let's go over to the console and we're going to head into RDS
+
+64
+00:04:58.560 --> 00:05:06.870
+and if we just choose our database here we can then click modify and all we need to do is specify yes
+
+65
+00:05:06.930 --> 00:05:15.450
+under multiple deployment and we can leave everyone else's defaults and it's going to warn us that you
+
+66
+00:05:15.450 --> 00:05:21.360
+may experience a significant performance impact when converting this database instance to multi AZ.
+
+67
+00:05:21.450 --> 00:05:27.120
+This will impact, this impact will be much more noticeable on database instances with large amounts of
+
+68
+00:05:27.120 --> 00:05:29.340
+storage and write intensive workloads.
+
+69
+00:05:29.340 --> 00:05:32.450
+So of course the data needs to be replicated.
+
+70
+00:05:32.460 --> 00:05:37.080
+So it's going to have a performance implication because it needs to be read from the current master
+
+71
+00:05:37.080 --> 00:05:44.100
+database and transferred to the new one therefore you can leave it as the default which is to apply
+
+72
+00:05:44.190 --> 00:05:47.190
+the change during the next scheduled maintenance window.
+
+73
+00:05:47.190 --> 00:05:50.460
+In our case we want to choose apply immediately.
+
+74
+00:05:50.460 --> 00:05:56.860
+So we just collect modified DB for instance and if you just go back to databases and we refresh our
+
+75
+00:05:58.620 --> 00:06:03.890
+and it now says modifying so I got to leave that a few minutes until it becomes available again.
+
+76
+00:06:03.920 --> 00:06:06.590
+So that took 10 minutes or so but it's now available.
+
+77
+00:06:07.010 --> 00:06:13.220
+So I'm going to go into my DB and we now have multi AZ enabled.
+
+78
+00:06:13.220 --> 00:06:19.370
+What I want to do is simulate a failover and the way that we can do that or actually cause a failover
+
+79
+00:06:19.700 --> 00:06:26.060
+and the way we can do that is we can choose reboot and then we'll reboot with failover.
+
+80
+00:06:26.060 --> 00:06:27.470
+Now let's just check.
+
+81
+00:06:27.470 --> 00:06:29.910
+So we've got our WordPress sites.
+
+82
+00:06:30.530 --> 00:06:37.410
+And if you remember from the diagram we have our master database server.
+
+83
+00:06:37.460 --> 00:06:40.070
+We have our WordPress instance connecting to it.
+
+84
+00:06:40.520 --> 00:06:42.890
+And what we've just done is we've created a replica.
+
+85
+00:06:42.890 --> 00:06:44.600
+So this is a standby replica.
+
+86
+00:06:45.140 --> 00:06:48.530
+And the endpoint is currently mapped to our master.
+
+87
+00:06:48.590 --> 00:06:55.370
+So what's going to happen is when we click reboot and cause a failover, the endpoint address will be
+
+88
+00:06:55.370 --> 00:06:57.920
+remapped to the RDS replica.
+
+89
+00:06:57.920 --> 00:07:00.890
+And this will then become the master and things flip around.
+
+90
+00:07:00.890 --> 00:07:06.830
+So this then becomes the standby in the synchronous replication goes in the opposite direction so let's
+
+91
+00:07:06.830 --> 00:07:09.570
+head back and let's do it guys.
+
+92
+00:07:09.580 --> 00:07:14.900
+RDS we're going to choose the option reboot with failover and hit reboot
+
+93
+00:07:19.340 --> 00:07:25.880
+and now let's go to our WordPress database or WordPress site and click refresh and you can see that's
+
+94
+00:07:25.880 --> 00:07:32.870
+not working and if we open a new tab we'll get the same thing so that's timing out and it's going to
+
+95
+00:07:32.870 --> 00:07:39.700
+take a little bit of time while the address gets remapped to the new RDS instance.
+
+96
+00:07:39.710 --> 00:07:40.820
+And that didn't take long.
+
+97
+00:07:40.820 --> 00:07:44.890
+I just hit refresh again and this time I got the results.
+
+98
+00:07:44.900 --> 00:07:48.920
+And this one appears to be hanging but let's just hit refresh and there we go.
+
+99
+00:07:48.920 --> 00:07:52.930
+So that really didn't take more than a minute or so maybe two minutes.
+
+100
+00:07:53.000 --> 00:07:58.420
+So it's quite a fast failover and that's all we're going to do in this lab and what we've done now
+
+101
+00:07:58.420 --> 00:08:04.870
+is we've got our RDS master in this other availability zone and we've got our replication going
+
+102
+00:08:05.170 --> 00:08:12.040
+to the availability zone where the master used to be and what's happened is our server is now just connecting
+
+103
+00:08:12.040 --> 00:08:16.300
+to that endpoint over here and what we're going to do in the next lab is we're going to create this
+
+104
+00:08:16.300 --> 00:08:17.470
+configuration.
+
+105
+00:08:17.470 --> 00:08:19.600
+So we're actually going to create a read replica.
+

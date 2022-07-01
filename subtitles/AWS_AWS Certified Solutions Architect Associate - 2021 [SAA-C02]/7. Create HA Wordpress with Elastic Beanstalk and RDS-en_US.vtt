@@ -1,0 +1,1013 @@
+WEBVTT
+1
+00:00:01.940 --> 00:00:02.450
+Hi guys.
+
+2
+00:00:02.450 --> 00:00:07.550
+In this lab we're going to create a high availability WordPress solution with Elastic Beanstalk
+
+3
+00:00:07.570 --> 00:00:08.590
+.
+
+4
+00:00:08.910 --> 00:00:14.540
+Now everything that you can see inside this orange rectangle is the Elastic Beanstalk environment.
+
+5
+00:00:14.540 --> 00:00:18.200
+So that means it's going to be provisioned by Elastic Beanstalk.
+
+6
+00:00:18.290 --> 00:00:23.270
+The RDS database we're going to create manually through the console and there are some advantages
+
+7
+00:00:23.270 --> 00:00:23.900
+to doing that.
+
+8
+00:00:23.900 --> 00:00:29.990
+You can then use the RDS database with multiple environments and manage it independently of Elastic
+
+9
+00:00:29.990 --> 00:00:36.950
+Beanstalk so when we create our Elastic Beanstalk environment it's going to provision an application
+
+10
+00:00:36.950 --> 00:00:42.050
+load balancer and auto scaling group and EC2 instance.
+
+11
+00:00:42.050 --> 00:00:47.930
+And once we've uploaded our code which we're going to create on on a developer client or in this case
+
+12
+00:00:47.930 --> 00:00:55.040
+we're actually going to use an EC2 instance it will then provision WordPress install the WordPress
+
+13
+00:00:55.040 --> 00:01:00.020
+into the RDS database and create an elastic file system a mountain that file system and that's where
+
+14
+00:01:00.020 --> 00:01:02.210
+it's going to store its code.
+
+15
+00:01:02.210 --> 00:01:04.570
+So that's what the solution looks like.
+
+16
+00:01:04.700 --> 00:01:09.590
+And we're going to create exactly the solution with the only difference as I mentioned before is we're
+
+17
+00:01:09.590 --> 00:01:14.650
+going to use an EC2 instance on Amazon rather than an external clients.
+
+18
+00:01:14.660 --> 00:01:19.880
+And the reason being just that I don't want students coming from a Windows machine and some from a Linux
+
+19
+00:01:19.880 --> 00:01:24.710
+machine and some from the Mac machine and maybe the commands don't work or you know some utility is
+
+20
+00:01:24.710 --> 00:01:25.420
+not installed.
+
+21
+00:01:25.790 --> 00:01:31.440
+So let's just use an Amazon Linux 2 AMI and then the commands are going to be the same for everyone.
+
+22
+00:01:31.610 --> 00:01:33.620
+Up to you, you can choose whatever you want.
+
+23
+00:01:35.090 --> 00:01:40.730
+So that's the environment we're going to build out. Now I am actually going to be working through an
+
+24
+00:01:40.760 --> 00:01:46.670
+AWS article and the plus for you is that that means that you can refer to that article if anything goes
+
+25
+00:01:46.670 --> 00:01:47.180
+wrong.
+
+26
+00:01:47.210 --> 00:01:53.810
+Of course there's still support through the forum as well and you can contact me if you need some specific
+
+27
+00:01:53.810 --> 00:01:54.430
+help.
+
+28
+00:01:54.650 --> 00:02:01.340
+But using an AWS article and tutorial from AWS really helps because that means that you can reference
+
+29
+00:02:01.340 --> 00:02:04.290
+back and work out what went wrong if something went wrong.
+
+30
+00:02:04.460 --> 00:02:08.780
+And this one can be a little bit tricky if you make any mistakes anywhere it's not going to be very
+
+31
+00:02:08.780 --> 00:02:09.990
+forgiving for you.
+
+32
+00:02:11.000 --> 00:02:14.890
+So let's get over to the console and start building this out.
+
+33
+00:02:14.900 --> 00:02:19.520
+This is the AWS article that referred to before and obviously the link will be available to
+
+34
+00:02:19.520 --> 00:02:21.920
+you in the course downloads.
+
+35
+00:02:21.920 --> 00:02:24.770
+So we're going to follow this quite closely.
+
+36
+00:02:24.800 --> 00:02:29.130
+There'll be a few differences but we're largely going to follow through this article.
+
+37
+00:02:29.390 --> 00:02:35.330
+And the first thing we're going to do is launch a DB instance in RDS. We're in the RDS management
+
+38
+00:02:35.330 --> 00:02:38.650
+console and I'm just going to choose create database.
+
+39
+00:02:38.880 --> 00:02:42.820
+I'm going to choose mysql and I'm going to choose free tier.
+
+40
+00:02:42.920 --> 00:02:48.410
+And the reason being what I would do is it will actually stop us from doing a multi AZ deployment and
+
+41
+00:02:48.410 --> 00:02:54.380
+a few other things but it keeps it within the free tier for you so reduces cost.
+
+42
+00:02:54.380 --> 00:03:01.790
+Now we can change this to multi AZ later on. For the other settings we need to call the database
+
+43
+00:03:02.170 --> 00:03:04.790
+DB and you do need to call it that.
+
+44
+00:03:05.150 --> 00:03:09.860
+And I'm just going to put in my master user name is digitalcloud and I'm going to save that as my password
+
+45
+00:03:09.860 --> 00:03:10.310
+as well.
+
+46
+00:03:14.300 --> 00:03:20.290
+I'm going to leave this one in my default VPC and I'm going to let it create a new VPC security group
+
+47
+00:03:20.990 --> 00:03:26.330
+and all other settings are going to stay the same except the database name which should be DB And the
+
+48
+00:03:26.330 --> 00:03:32.780
+port is going to be 3306 because this is mysql so that's all the options I'm going
+
+49
+00:03:32.780 --> 00:03:38.750
+to remove deletion protection and create database while the database is being created let's head over
+
+50
+00:03:38.750 --> 00:03:45.870
+to EC2 now the thing I want is to show you is I've already created an instance and this is where
+
+51
+00:03:45.870 --> 00:03:48.450
+we're going to be running our commands from.
+
+52
+00:03:48.450 --> 00:03:56.300
+So I've given it S3 full access because I do need to move some data into S3 and I've given
+
+53
+00:03:56.300 --> 00:04:03.410
+it access to my Web access security group so that I've got ports wanting to open for SSH. If we
+
+54
+00:04:03.410 --> 00:04:09.080
+now go down to security groups we'll see this security group called RDS launch wizard.
+
+55
+00:04:09.080 --> 00:04:16.250
+Now this was created by the launch wizard and it allows port 3306 from my IP address this is
+
+56
+00:04:16.250 --> 00:04:18.380
+my public IP address at home.
+
+57
+00:04:18.680 --> 00:04:20.930
+Now what I want to do is I want to change this.
+
+58
+00:04:20.930 --> 00:04:25.970
+And the reason being I'm not going to connect into this database is actually going to be my elastic
+
+59
+00:04:25.970 --> 00:04:28.730
+beanstalk environment that connects to this database.
+
+60
+00:04:29.300 --> 00:04:36.230
+So what we could do is we could give it the IP of our elastic or the security group of our elastic beanstalk
+
+61
+00:04:36.230 --> 00:04:39.240
+instance but we don't actually have that yet.
+
+62
+00:04:39.470 --> 00:04:45.380
+The other way of doing this and this is what is actually shown in the article by AWS is to use the security
+
+63
+00:04:45.380 --> 00:04:46.690
+group itself.
+
+64
+00:04:46.730 --> 00:04:53.330
+So we're going to select RDS launch with a security group and now anything that's a member of this
+
+65
+00:04:53.330 --> 00:05:00.670
+security group will be able to send data on Port 3306 to other instances in the security group.
+
+66
+00:05:00.770 --> 00:05:03.620
+In this case our RDS instance.
+
+67
+00:05:03.620 --> 00:05:08.480
+So what we will need to do is add this to Elastic Beanstalk and environment and we'll be doing that
+
+68
+00:05:08.480 --> 00:05:09.960
+shortly once we've created it.
+
+69
+00:05:11.030 --> 00:05:16.000
+So I'm just gonna click save that and let's head back to RDS and see how we're getting on.
+
+70
+00:05:16.040 --> 00:05:22.040
+So it looks like we now have our endpoints and port and you can see the RDS launch was a security
+
+71
+00:05:22.040 --> 00:05:24.080
+group in here that we've just edited.
+
+72
+00:05:24.080 --> 00:05:31.430
+So the next task is to go over to our EC2 instance that we're going to use for running commands.
+
+73
+00:05:31.430 --> 00:05:39.680
+I've always already SSH'd into my EC2 instance and I've also logged in as root user what I'm gonna
+
+74
+00:05:39.710 --> 00:05:49.350
+do is make a directory called WordPress dash beanstalk. I now need to run a command to download Wordpress
+
+75
+00:05:49.530 --> 00:05:55.440
+and all these commands are going to be in the article we're now going to download some code from get
+
+76
+00:05:55.650 --> 00:06:00.090
+and we should now have these directories so let's just clear the screen to make it easy for you to see
+
+77
+00:06:00.090 --> 00:06:09.030
+what's going on and we now have this source code which came from get hub we've got our WordPress tar
+
+78
+00:06:09.060 --> 00:06:16.650
+file and what I need to do is extract wordpress so I'm going to run ... WordPress
+
+79
+00:06:19.310 --> 00:06:27.370
+... and so now what we should have is our WordPress directory and we'll now going to move
+
+80
+00:06:27.430 --> 00:06:29.830
+the WordPress contents
+
+81
+00:06:32.190 --> 00:06:35.840
+into all WordPress beanstalk photo.
+
+82
+00:06:35.850 --> 00:06:41.070
+Now bear in mind what I've done here WordPress slash style if you want to get this right you have the
+
+83
+00:06:41.070 --> 00:06:41.350
+data.
+
+84
+00:06:41.370 --> 00:06:46.200
+If you follow the article directly it doesn't do that and you just end up moving your directory into
+
+85
+00:06:46.830 --> 00:06:49.740
+the WordPress beanstalk folder and it doesn't work.
+
+86
+00:06:49.740 --> 00:06:53.010
+So make sure you put the command line is in just as I have here
+
+87
+00:06:55.990 --> 00:07:03.010
+we can now change directories to that photo and we're going to run this command to unzip these files
+
+88
+00:07:03.790 --> 00:07:12.220
+from the get files that we downloaded into this directory along with the WordPress folder or the contents
+
+89
+00:07:12.250 --> 00:07:15.250
+that we extracted from the WordPress directory.
+
+90
+00:07:15.250 --> 00:07:25.050
+So I'm going to run this and then we can run this command to see if the directory structure looks the
+
+91
+00:07:25.050 --> 00:07:25.710
+way it should do.
+
+92
+00:07:26.840 --> 00:07:29.660
+And that looks good to me that looks like it does in the article.
+
+93
+00:07:29.780 --> 00:07:36.770
+If you don't have tree just run yum install tree dash why we're not gonna go to the elastic beanstalk
+
+94
+00:07:36.770 --> 00:07:45.000
+console and create so elastic beanstalk environment now if I just go over to this article what you'll
+
+95
+00:07:45.000 --> 00:07:50.790
+find is if you scroll down to launch an Elastic Beanstalk environment there's a link here and you can
+
+96
+00:07:50.790 --> 00:07:56.730
+open that and it just takes you straight to the wizard and actually fills out the application name and
+
+97
+00:07:56.730 --> 00:07:58.410
+environment named for you.
+
+98
+00:07:58.440 --> 00:08:00.980
+So that's good to make sure that you get it right.
+
+99
+00:08:01.020 --> 00:08:06.690
+We then needs to choose the platform and in this case PHP is the option because this is Wordpress and
+
+100
+00:08:06.690 --> 00:08:12.300
+we can leave sample application because we're actually going to upload our code later on and we can
+
+101
+00:08:12.300 --> 00:08:20.160
+choose review and launch and we now need to choose crates app and now it's gonna go off and actually
+
+102
+00:08:20.160 --> 00:08:21.090
+create our environment.
+
+103
+00:08:21.090 --> 00:08:23.210
+And that would take several minutes to complete.
+
+104
+00:08:23.280 --> 00:08:27.110
+So that took several minutes to complete and we now have a healthy environment.
+
+105
+00:08:27.270 --> 00:08:32.010
+And if we want to we can have a look at this link here and open this up and sure enough we've got our
+
+106
+00:08:32.040 --> 00:08:33.150
+congratulations
+
+107
+00:08:33.150 --> 00:08:39.540
+message saying that we've got our PHP app running and what we want to do now is you remember that
+
+108
+00:08:39.540 --> 00:08:48.480
+we updated RDS security group so that it would only accept connections on Port 3306 from
+
+109
+00:08:48.570 --> 00:08:50.220
+members of that security group.
+
+110
+00:08:50.220 --> 00:08:57.360
+So what we need to do now in order to enable our instance to attach to RDS instance is we need
+
+111
+00:08:57.360 --> 00:09:03.450
+to add the RDS launch wizard to the list of security groups that it's a member of and we can choose
+
+112
+00:09:03.510 --> 00:09:04.050
+apply.
+
+113
+00:09:04.260 --> 00:09:10.080
+Now what you'll notice is it tells us that each of your existing EC2 instances will be replaced
+
+114
+00:09:10.200 --> 00:09:12.570
+and your new settings will take effect then.
+
+115
+00:09:12.930 --> 00:09:20.400
+So we can confirm this and if we now go across to EC2 just choose instances and we can see that
+
+116
+00:09:20.400 --> 00:09:26.760
+we've got this tutorials environment one that's running and so we'll keep an eye on this and it should
+
+117
+00:09:26.760 --> 00:09:30.560
+get terminated and then a new instance will be replaced we'll replace it.
+
+118
+00:09:30.930 --> 00:09:35.580
+And that instance will have the new settings and of course in your Elastic Beanstalk environment when
+
+119
+00:09:35.580 --> 00:09:40.770
+this Elastic Beanstalk environment is complete you'll have your code stored somewhere and it doesn't
+
+120
+00:09:40.770 --> 00:09:46.410
+matter if your instance is replaced because the code is stored outside of the instance and Elastic Beanstalk
+
+121
+00:09:46.440 --> 00:09:48.990
+then gets your environment back up and running again.
+
+122
+00:09:49.050 --> 00:09:50.410
+So that's all good.
+
+123
+00:09:50.430 --> 00:09:51.600
+Now let's click refresh.
+
+124
+00:09:51.600 --> 00:09:53.360
+It's still not happened yet.
+
+125
+00:09:53.400 --> 00:10:00.630
+We could go back to our environment here see what's happening now and we can see the information events
+
+126
+00:10:00.630 --> 00:10:04.740
+happening and suddenly very quickly change to environment update completed.
+
+127
+00:10:04.740 --> 00:10:11.440
+So let's go back and see what's going on in EC2 and we can see we have another one being initialized.
+
+128
+00:10:11.440 --> 00:10:17.050
+So we now have the replacement instance being initialized and I think very soon the other one will get
+
+129
+00:10:17.050 --> 00:10:19.750
+shut down and there we go it's time to shut down already.
+
+130
+00:10:19.750 --> 00:10:27.310
+So while this is happening you'll find that your environment changes to warning in a minute because
+
+131
+00:10:27.610 --> 00:10:32.110
+obviously there's no instance running in the new instance will take a while to register with the load
+
+132
+00:10:32.110 --> 00:10:33.230
+balancer.
+
+133
+00:10:33.290 --> 00:10:38.410
+Sure enough they go a hit refresh and it says it's helped Environment Health is transition from green
+
+134
+00:10:38.410 --> 00:10:43.200
+to yellow and it tells us the elastic low bouncer has no healthy instances.
+
+135
+00:10:43.240 --> 00:10:46.630
+So we had over here we can see load balancer.
+
+136
+00:10:46.980 --> 00:10:51.880
+Well let's go to our target group and choose targets and it's now healthy.
+
+137
+00:10:51.880 --> 00:10:53.710
+So that didn't take very long.
+
+138
+00:10:53.820 --> 00:10:55.450
+Let's just make sure that it's the right one.
+
+139
+00:10:55.450 --> 00:10:55.810
+Yeah.
+
+140
+00:10:55.840 --> 00:10:57.220
+So that's good.
+
+141
+00:10:57.220 --> 00:11:00.910
+It's it's healthy now so it shouldn't take long for this to go back to green.
+
+142
+00:11:00.910 --> 00:11:01.710
+There we go.
+
+143
+00:11:01.720 --> 00:11:03.780
+Environment is transition from yellow to green.
+
+144
+00:11:03.790 --> 00:11:04.500
+So that's great.
+
+145
+00:11:04.870 --> 00:11:06.220
+So that's completes it.
+
+146
+00:11:06.280 --> 00:11:07.510
+That was pretty fast.
+
+147
+00:11:07.620 --> 00:11:12.910
+Go to instances now we should see that we have this healthy instance running the next thing we need
+
+148
+00:11:12.910 --> 00:11:17.340
+to do is configure our environment to connect to our RDS instance.
+
+149
+00:11:17.470 --> 00:11:23.200
+Now you will need to go to RDS and you'll need to make sure that you get a copy of this endpoint address
+
+150
+00:11:23.440 --> 00:11:25.240
+and you need to know your port.
+
+151
+00:11:25.240 --> 00:11:29.140
+You also need to know your username and password for your database.
+
+152
+00:11:29.140 --> 00:11:35.890
+So what we do is we go to tutorials environment in plastic beanstalk we choose configuration software
+
+153
+00:11:36.640 --> 00:11:42.100
+and we collect that modify button then we come down to environment environment properties and what we're
+
+154
+00:11:42.100 --> 00:11:45.870
+going to do here is we're going to enter these environment properties.
+
+155
+00:11:46.060 --> 00:11:54.600
+First one is RDS underscore DB underscore a name and this should be a DB then we've got RDS underscore
+
+156
+00:11:54.600 --> 00:12:01.740
+hostname and this should be the endpoint of database instance.
+
+157
+00:12:02.030 --> 00:12:10.310
+We then have RDS underscore port and this should be 3306 if you chose mysql then
+
+158
+00:12:10.340 --> 00:12:18.810
+RDS username which in this case should be digitalcloud and I'm going to just copy that
+
+159
+00:12:18.810 --> 00:12:26.950
+to my clipboard and then we have RDS password and that should also be digital cloud
+
+160
+00:12:27.500 --> 00:12:32.450
+so we can click apply and it's going to update the settings and while that's happening what we're going
+
+161
+00:12:32.450 --> 00:12:39.140
+to do is head back over to our command line where we actually need to make some modifications to a couple
+
+162
+00:12:39.140 --> 00:12:41.380
+of files so we're back on the command line.
+
+163
+00:12:41.510 --> 00:12:49.550
+I'm just going to clear the screen and what we need to do is nano dot Eby extensions slash dev and it's
+
+164
+00:12:49.550 --> 00:12:55.960
+dot config and what we need to do in here is we need to scroll down to here where it says my IP and
+
+165
+00:12:55.970 --> 00:12:57.110
+that's the loop back address.
+
+166
+00:12:57.110 --> 00:12:58.820
+We don't want to use to loop back address.
+
+167
+00:12:58.850 --> 00:13:01.450
+We want to specify the address we're going to connect from.
+
+168
+00:13:01.600 --> 00:13:06.470
+In my case I'm just going to open this up so we can connect from anywhere you can make this more secure
+
+169
+00:13:06.500 --> 00:13:16.700
+by specifying your IP address and we can save this file and then going to edit the file dot Eby extensions
+
+170
+00:13:16.700 --> 00:13:26.020
+slash ESFs dash create config and what we need to do in here is we need to specify the VPC I.D. and
+
+171
+00:13:26.020 --> 00:13:27.100
+the three subnets.
+
+172
+00:13:27.120 --> 00:13:32.790
+So what other days just backspace this head back to the console.
+
+173
+00:13:32.890 --> 00:13:42.030
+Let's go to virtual private cloud I'm going to look at my VPC and I'm gonna take the idea of my default
+
+174
+00:13:42.040 --> 00:13:47.260
+VPC and I'm going to pace that in and then I'm gonna come down here and I'm going to backspace this
+
+175
+00:13:47.260 --> 00:13:49.310
+one out.
+
+176
+00:13:49.310 --> 00:13:56.670
+Go back to go to subnets and these three subnets are all part of that VPC.
+
+177
+00:13:56.680 --> 00:13:59.050
+So you need to take the ID of each subnet
+
+178
+00:14:03.580 --> 00:14:06.310
+paste that in and then do the same.
+
+179
+00:14:06.310 --> 00:14:06.650
+Again
+
+180
+00:14:10.150 --> 00:14:16.060
+and that's all three subnets and we don't need to change anything else so let's just save this file and
+
+181
+00:14:16.060 --> 00:14:22.330
+we now need to run this command to create a zip file with all our code in it and that's created that
+
+182
+00:14:22.330 --> 00:14:23.640
+file in the directory above.
+
+183
+00:14:23.650 --> 00:14:26.780
+So we just change to the directory above.
+
+184
+00:14:27.070 --> 00:14:30.150
+And we've now got this WordPress dash beanstalk dot zip.
+
+185
+00:14:30.280 --> 00:14:39.830
+Now I'm just gonna copy this to a bucket on S3 so that I can then just download that to my machine
+
+186
+00:14:40.340 --> 00:14:44.880
+and upload the zip file from there to beanstalk.
+
+187
+00:14:45.080 --> 00:14:54.740
+So I'm going to copy WordPress dot dash beanstalk dot zip to S3 colon slash slash DCT company and hit
+
+188
+00:14:54.740 --> 00:15:01.710
+enter and that's all file uploaded go over to S3
+
+189
+00:15:05.470 --> 00:15:11.620
+and we have the DCT company folder here and the wordpress that's dash stored far that I just downloaded
+
+190
+00:15:11.620 --> 00:15:13.780
+so I'm just gonna download that to my machine.
+
+191
+00:15:13.810 --> 00:15:20.470
+We can now head over to our elastic beanstalk environment and let's just hit refresh here and it's gone
+
+192
+00:15:20.470 --> 00:15:21.120
+back to green.
+
+193
+00:15:21.120 --> 00:15:22.430
+So that's all good.
+
+194
+00:15:22.450 --> 00:15:28.630
+Let's upload and deploy our code and I'm going to choose this WordPress dash beanstalk dot zip file
+
+195
+00:15:29.560 --> 00:15:30.940
+and choose deploy.
+
+196
+00:15:30.940 --> 00:15:37.810
+So what's happened is we've now uploaded our code from our client which happens to be an EC2 instance
+
+197
+00:15:37.840 --> 00:15:45.280
+but could be anywhere into elastic beanstalk and it's then going to deploy that code onto our environment
+
+198
+00:15:45.430 --> 00:15:51.610
+and that includes putting WordPress on this instance and connect it into a database deploying an air
+
+199
+00:15:51.610 --> 00:15:54.880
+force file system and mounting it to our instance.
+
+200
+00:15:54.880 --> 00:15:59.350
+So let's go back to the console and have a look and see in EFS what's going on.
+
+201
+00:15:59.410 --> 00:16:05.770
+So I'm just going to choose EFS and sure enough we've got a file system here and we can say it's
+
+202
+00:16:05.770 --> 00:16:12.550
+got three different availability zones and it's in the state of creating and if we go over to our EC2
+
+203
+00:16:12.580 --> 00:16:18.040
+management console we should see that we've now got our tutorials environment running. Well that's
+
+204
+00:16:18.040 --> 00:16:21.060
+been running for a while so that's nothing new there.
+
+205
+00:16:21.430 --> 00:16:24.250
+But let's go to cloudformation and see what's going on.
+
+206
+00:16:24.250 --> 00:16:27.220
+So in cloudformation we have an update in progress.
+
+207
+00:16:27.220 --> 00:16:33.120
+We can go to events and we can see what's going on and so far so good.
+
+208
+00:16:33.130 --> 00:16:39.210
+So that took several minutes but the update is complete now so we can see everything's completed successfully.
+
+209
+00:16:39.220 --> 00:16:40.410
+Let's go to our environment.
+
+210
+00:16:40.420 --> 00:16:45.520
+And I just refreshed out a second ago and it all looks green so everything is healthy.
+
+211
+00:16:45.520 --> 00:16:52.000
+Let's try going to this link so this takes us to the WordPress set up and we should now be able to put
+
+212
+00:16:52.000 --> 00:16:53.590
+in some information systems.
+
+213
+00:16:53.590 --> 00:17:05.020
+Call it my WP Eb site for elastic beanstalk and we're just going to use the we're just gonna use using
+
+214
+00:17:05.030 --> 00:17:09.160
+a nail and then I'm going to leave the password as it is.
+
+215
+00:17:09.160 --> 00:17:11.200
+Copy it to my clipboard.
+
+216
+00:17:11.300 --> 00:17:15.730
+... testing dot com and install Wordpress
+
+217
+00:17:19.520 --> 00:17:29.370
+and sure enough that's worked so we should now be able to log in our password, and there we are in WordPress.
+
+218
+00:17:29.430 --> 00:17:30.360
+So that's really great.
+
+219
+00:17:30.360 --> 00:17:32.070
+It looks like it's all worked well.
+
+220
+00:17:32.190 --> 00:17:33.860
+I hope it's worked well for you.
+
+221
+00:17:33.870 --> 00:17:40.790
+Let's just go back over to the diagram to have a look at the logical view of what we've just created.
+
+222
+00:17:40.820 --> 00:17:44.310
+So what we've done is we've created an elastic beanstalk environment.
+
+223
+00:17:44.540 --> 00:17:49.600
+It's provisioned a load balancer an auto scaling group and an EC2 instance.
+
+224
+00:17:49.650 --> 00:17:55.370
+We've then manually created an RDS database and then we've created some source code and that source
+
+225
+00:17:55.370 --> 00:18:01.490
+code has been uploaded loaded to beanstalk and beanstalk is then deployed that source code which had
+
+226
+00:18:01.490 --> 00:18:07.280
+WordPress in it and it also had the directions to create an EFS file system to store the source
+
+227
+00:18:07.280 --> 00:18:09.680
+code on and that's all worked.
+
+228
+00:18:09.710 --> 00:18:11.000
+So that's fantastic.
+
+229
+00:18:11.000 --> 00:18:13.010
+I hope it works well for you guys.
+
+230
+00:18:13.040 --> 00:18:15.740
+Now remember you do need to follow this step by step.
+
+231
+00:18:15.770 --> 00:18:18.810
+So just go through my guidance in this video.
+
+232
+00:18:19.070 --> 00:18:24.980
+If you've had any problems look into cloudformation that's usually where you'll find some some good
+
+233
+00:18:24.980 --> 00:18:31.640
+information about what's failed or if not go into the event log within elastic beanstalk and you can
+
+234
+00:18:31.640 --> 00:18:36.050
+often find some task events there that may have failed for some reason.
+
+235
+00:18:36.050 --> 00:18:41.300
+If you have any other problems of course go to the forum or message me directly and hopefully we'll
+
+236
+00:18:41.300 --> 00:18:46.880
+get you working now if you'd like to there's a few additional tasks you can do that are in the article.
+
+237
+00:18:46.880 --> 00:18:52.460
+So for instance you can modify your auto scaling group through elastic beanstalk so that you have multiple
+
+238
+00:18:52.460 --> 00:18:57.800
+instances running so feel free to go and play around with that you could also enable multi AZ for your
+
+239
+00:18:57.800 --> 00:19:01.210
+database and play around with failing over and stuff like that.
+
+240
+00:19:01.370 --> 00:19:04.830
+But otherwise the only thing that's left to do is to clean up our environment.
+
+241
+00:19:04.850 --> 00:19:10.730
+So let's head over to the console and what we can do is in our elastic beanstalk where we can choose
+
+242
+00:19:10.730 --> 00:19:20.140
+actions and terminate environment and we'll need to copy the name of the environment paste that in and
+
+243
+00:19:20.140 --> 00:19:26.890
+click terminate and if we're going to cloudformation now and refresh we should see a delete in progress.
+
+244
+00:19:26.890 --> 00:19:29.970
+Now don't forget that we provisioned something separately.
+
+245
+00:19:29.980 --> 00:19:38.470
+So we'll have to also go back into RDS and delete our database.
+
+246
+00:19:38.670 --> 00:19:46.620
+And if you have enabled deletion protection you're first going to modify, choose to remove deletion
+
+247
+00:19:46.620 --> 00:19:53.020
+protection, save it, and update immediately. And then you can go in and delete. In this case we just choose
+
+248
+00:19:53.040 --> 00:19:56.490
+that we acknowledge and type "delete me"
+
+249
+00:20:00.280 --> 00:20:03.650
+and that should delete all the resources as always.
+
+250
+00:20:03.730 --> 00:20:07.800
+Best advice is to go into EC2 just make sure that everything's been deleted.
+
+251
+00:20:07.870 --> 00:20:12.510
+In cloudformation as well and make sure you don't have any extra resources.
+
+252
+00:20:12.550 --> 00:20:14.340
+So hope you've had a lot of fun guys.
+
+253
+00:20:14.350 --> 00:20:15.300
+See you in the next lab.
+

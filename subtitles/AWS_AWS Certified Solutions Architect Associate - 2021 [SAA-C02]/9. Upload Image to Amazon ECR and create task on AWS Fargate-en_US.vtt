@@ -1,0 +1,501 @@
+WEBVTT
+1
+00:00:03.130 --> 00:00:09.130
+In this lab we're going to cover the elastic container registry. ECR is a fully managed docker container
+
+2
+00:00:09.130 --> 00:00:15.760
+registry and it's where you store the images of your containers so you store images in the registry
+
+3
+00:00:16.150 --> 00:00:23.590
+and then those images are pulled down based on your task definition and they're pulled down to create
+
+4
+00:00:23.590 --> 00:00:25.950
+your task or your actual container itself.
+
+5
+00:00:27.150 --> 00:00:31.780
+What we're going to do in this lab is we're going to create an EC2 instance.
+
+6
+00:00:31.860 --> 00:00:38.970
+We're going to install Docker on that instance where then going to download Ubuntu image and we're going
+
+7
+00:00:38.970 --> 00:00:44.880
+to make some modifications to it and then we're going to upload that image to the registry and then
+
+8
+00:00:44.880 --> 00:00:53.410
+deploy a Fargate cluster and actually use our image and deploy a task using our Custom Image.
+
+9
+00:00:53.460 --> 00:00:58.140
+Now it's a little bit beyond the scope of the exam for the exam you just need to know what the ECR
+
+10
+00:00:58.200 --> 00:01:03.390
+is and you need to know that it can work with both the Fargate cluster launch type and the EC2
+
+11
+00:01:03.390 --> 00:01:11.460
+launch type and check out the FAQs just for a few more background details but from an operational
+
+12
+00:01:11.460 --> 00:01:16.110
+perspective you won't need to know how to run some of the commands so it's fully up to you if you want
+
+13
+00:01:16.110 --> 00:01:19.050
+to continue with this lab or not but it should be some fun.
+
+14
+00:01:19.050 --> 00:01:24.630
+So let's get into the console and launch an instance.
+
+15
+00:01:24.630 --> 00:01:26.490
+I'm just going to choose the Amazon Linux 2
+
+16
+00:01:26.490 --> 00:01:36.060
+AMI, going to put it into my custom VPC choose a public subnet and I don't need to change any of details.
+
+17
+00:01:36.060 --> 00:01:42.960
+Just give a security group that gives me port twenty to four secure shall access and I can launch that
+
+18
+00:01:42.960 --> 00:01:50.660
+instance copy the IP to my clipboard and now I'm going to go into a command line and let's try and SSH
+
+19
+00:01:50.710 --> 00:01:54.870
+into this instance and it is ready.
+
+20
+00:01:54.870 --> 00:01:59.930
+So let's go in and I just want to update my packages.
+
+21
+00:01:59.960 --> 00:02:02.650
+I'm going to run sudo um update -y.
+
+22
+00:02:02.820 --> 00:02:05.990
+And I also need to get some permissions.
+
+23
+00:02:06.870 --> 00:02:18.310
+So I'm gonna run was configure put in my access key and secret ID, and remember don't share these
+
+24
+00:02:18.310 --> 00:02:23.120
+normally. ap-southeast-2 is my region.
+
+25
+00:02:23.110 --> 00:02:27.490
+That's my default region and that's all I need to do there.
+
+26
+00:02:29.070 --> 00:02:42.070
+And then we're going to run pseudo Amazon bash Linux bash extras install Docker and sometimes it hangs
+
+27
+00:02:42.070 --> 00:02:46.720
+for a couple or even a few minutes before it actually completes the installation it kinda looks like
+
+28
+00:02:46.720 --> 00:02:49.150
+it's not working but you just gotta be patient.
+
+29
+00:02:49.150 --> 00:02:54.460
+So the installation is properly started now and you just have to click on yes type in Y
+
+30
+00:03:01.320 --> 00:03:11.380
+and that's complete and we can type "sudo service Docker start" and that should be started and then
+
+31
+00:03:11.380 --> 00:03:18.400
+we're going to run "sudo systemctl enable docker" so that it starts.
+
+32
+00:03:18.490 --> 00:03:19.420
+I miss that.
+
+33
+00:03:19.720 --> 00:03:25.500
+So it should be sudo and this is gonna ensure that it restarts after a reboot.
+
+34
+00:03:26.050 --> 00:03:31.810
+And then what we want to do is change some permissions we're going to do sudo use a more dash a dash
+
+35
+00:03:31.810 --> 00:03:41.470
+G Docker EC2 use a and that means we can run commands as the EC2 use it rather than switching
+
+36
+00:03:41.470 --> 00:03:49.840
+to route we now run Docker info we might get permissions problems and if so what we need to do is we're
+
+37
+00:03:49.840 --> 00:03:57.940
+just going to run pseudo shut down the shore and so I'm going to restart the system and then hopefully
+
+38
+00:03:57.940 --> 00:03:59.650
+I'll come up with the right permissions.
+
+39
+00:03:59.650 --> 00:04:07.540
+So I'm back on my system and I'm just gonna type Docker info again and it looks better this time so
+
+40
+00:04:07.930 --> 00:04:12.570
+we can continue and what I'm going to do is I'm going to do touch Docker file.
+
+41
+00:04:12.570 --> 00:04:18.730
+So it's just going to create a file called Docker file and then I'm going to use nano to edit the docker
+
+42
+00:04:18.730 --> 00:04:28.860
+file and I'm going to paste some information into it.
+
+43
+00:04:29.100 --> 00:04:36.270
+Now I'm actually following through closely with this web page in this article.
+
+44
+00:04:36.270 --> 00:04:40.400
+So this tutorial takes you through basics for Amazon ECS.
+
+45
+00:04:40.420 --> 00:04:43.350
+So dot so Docker basics for Amazon ECS.
+
+46
+00:04:43.380 --> 00:04:48.120
+And if you scroll down you'll see this code.
+
+47
+00:04:48.120 --> 00:04:54.600
+Now all I've done is just edited some of the information that's output rather than being hello world.
+
+48
+00:04:54.600 --> 00:04:58.100
+And this will also be available in the course downloads.
+
+49
+00:04:58.410 --> 00:05:00.180
+So I'm going to save my file
+
+50
+00:05:08.750 --> 00:05:22.200
+and then I'm going to run docker build the DCT container and I realised my error and what I need to do
+
+51
+00:05:22.200 --> 00:05:23.910
+is put a dot on the end here
+
+52
+00:05:32.490 --> 00:05:33.570
+so that's going to download.
+
+53
+00:05:33.570 --> 00:05:41.210
+This has been to image according to the doc a file that we created.
+
+54
+00:05:41.250 --> 00:05:45.800
+So now that that's completed we can type darker images.
+
+55
+00:05:45.840 --> 00:05:47.160
+Dash dash filter
+
+56
+00:05:52.770 --> 00:06:03.790
+reference equals DCT bash container to tag our instance and then we're going to run Docker run bash
+
+57
+00:06:03.820 --> 00:06:12.490
+T dash I dash P 80 colon 80 DCT dash container
+
+58
+00:06:15.470 --> 00:06:21.020
+and so ignore the message here that says it can determine the service fully qualified domain name that's
+
+59
+00:06:21.050 --> 00:06:21.790
+okay.
+
+60
+00:06:21.860 --> 00:06:27.860
+What we should find now is if we come back to the ECS management console grab that public IP address
+
+61
+00:06:27.860 --> 00:06:28.970
+and put it in.
+
+62
+00:06:28.970 --> 00:06:30.500
+Sure enough this is our container.
+
+63
+00:06:30.500 --> 00:06:35.630
+So this is the message that we should see says this is a container installed from our DCT container
+
+64
+00:06:35.630 --> 00:06:38.060
+image in the DCT ECR repository.
+
+65
+00:06:38.060 --> 00:06:44.750
+Of course it's not in the actual ECR repository at this moment but it will be soon so we can come back
+
+66
+00:06:44.990 --> 00:06:52.220
+and we know that containers working I can do a control C or command C and that stops the container from
+
+67
+00:06:52.220 --> 00:06:52.850
+running.
+
+68
+00:06:53.030 --> 00:06:57.650
+And what we want to do now is actually copy this container to ECR.
+
+69
+00:06:58.190 --> 00:07:01.700
+So I'm just gonna paste in these commands.. are quite long.
+
+70
+00:07:01.700 --> 00:07:04.730
+So what we're putting in is aws ecr.
+
+71
+00:07:04.850 --> 00:07:10.430
+Create dash repository and then we give it the repository name DCT ECR.
+
+72
+00:07:10.940 --> 00:07:17.840
+And in this case I'm going to put it in this ap-southeast-2 so that's being created.
+
+73
+00:07:17.890 --> 00:07:19.120
+We can see the IP.
+
+74
+00:07:25.700 --> 00:07:34.490
+We then going to run this come on Docker tag DCT container and then we need to give it the AWS accounts
+
+75
+00:07:34.550 --> 00:07:38.790
+I.D. and the ECR region.
+
+76
+00:07:38.800 --> 00:07:46.700
+So what I need to do there is take this information and I'm going to copy that and then I'm just gonna
+
+77
+00:07:46.740 --> 00:07:47.730
+backspace here
+
+78
+00:07:51.940 --> 00:08:01.600
+and paste that in we're then going to retrieve the log in information by running this command aws ecr
+
+79
+00:08:01.630 --> 00:08:09.160
+get log in no include email and then the region.
+
+80
+00:08:09.300 --> 00:08:15.970
+And so I have an error there because I have a dash where I shouldn't do so that should be ap-southeast-2.
+
+81
+00:08:15.990 --> 00:08:19.080
+So I'm just going to try that again and this is what we should see.
+
+82
+00:08:19.080 --> 00:08:22.270
+So now we have the log in information.
+
+83
+00:08:22.660 --> 00:08:27.600
+And so you want to copy all of this text and then paste it
+
+84
+00:08:31.620 --> 00:08:35.220
+and press enter and we have a logging succeeded
+
+85
+00:08:38.960 --> 00:08:44.550
+so we now authenticated and we can put the docker push command in.
+
+86
+00:08:44.660 --> 00:08:49.970
+And again we need to specify the accounts I.D. in the region.
+
+87
+00:08:49.970 --> 00:08:59.610
+So I'm going to backspace here and I'm gonna go back up and copy this same repository where you are.
+
+88
+00:09:03.710 --> 00:09:09.500
+And now we can see our image is actually being pushed up into our ECR repository.
+
+89
+00:09:09.500 --> 00:09:13.250
+So while that's happening let's head over and have a look at ECR in the console
+
+90
+00:09:18.850 --> 00:09:24.940
+so we have repositories here and you can see there's a hello repository from a previous exercise and
+
+91
+00:09:24.940 --> 00:09:31.510
+we've got this DCT ECR repository and here we can see we have an image have an image tag.
+
+92
+00:09:32.050 --> 00:09:33.930
+And that was just created now.
+
+93
+00:09:33.990 --> 00:09:41.180
+And what I want to do is just copy this image you are I again make sure I've got that with the latest
+
+94
+00:09:41.180 --> 00:09:45.550
+on the end as well and we're going to go to clusters.
+
+95
+00:09:45.800 --> 00:09:50.200
+What we're going to do now is use the get started with it which creates a Fargate cluster.
+
+96
+00:09:50.360 --> 00:09:55.310
+We're gonna choose configure we're going to call this ECR test.
+
+97
+00:09:55.310 --> 00:09:59.090
+Put in the you are right to our image.
+
+98
+00:09:59.090 --> 00:10:03.870
+We're going to specify 200 for memory 80 for the port.
+
+99
+00:10:04.220 --> 00:10:10.130
+And we're going to go down a few units and put in 100 and we don't need for anything else.
+
+100
+00:10:10.130 --> 00:10:19.180
+So we just click update and then we'll click next and we don't need a load balancer
+
+101
+00:10:23.710 --> 00:10:24.460
+we'll call.
+
+102
+00:10:24.460 --> 00:10:30.110
+Call the cluster ECR test and it's going to create a new VPC.
+
+103
+00:10:30.160 --> 00:10:35.950
+Remember that using cloudformation.
+
+104
+00:10:36.000 --> 00:10:39.950
+Now we can click Create so it appears to have finished.
+
+105
+00:10:39.950 --> 00:10:49.910
+Let's go to view service and see if our task is running and it of pending state right now and now the
+
+106
+00:10:49.910 --> 00:10:51.650
+task appears to be running.
+
+107
+00:10:51.650 --> 00:11:00.240
+Let's go into the task and find out what its public IP is going to copy that IP address and sure enough
+
+108
+00:11:00.240 --> 00:11:00.770
+there we go.
+
+109
+00:11:00.790 --> 00:11:03.120
+So we now have a container running on Fargate.
+
+110
+00:11:03.150 --> 00:11:09.030
+And we really have this time pulled the image down from our ECR repository.
+
+111
+00:11:09.090 --> 00:11:14.340
+So just to recap what we've done is we've installed Docker on an EC2 instance.
+
+112
+00:11:14.340 --> 00:11:22.050
+We've downloaded and have been to image and then we've customized that image uploaded it to the ECI
+
+113
+00:11:22.080 --> 00:11:28.320
+registry which we created from the command line and then launched a Fargate cluster with a task that
+
+114
+00:11:28.320 --> 00:11:29.820
+pulled that image down.
+
+115
+00:11:29.820 --> 00:11:30.650
+So that's pretty cool.
+
+116
+00:11:30.660 --> 00:11:35.220
+It is a little bit outside of the exam requirements but hopefully you've had some fun doing that.
+
+117
+00:11:35.220 --> 00:11:41.340
+What we can do now is clean up our repository by deleting it.
+
+118
+00:11:41.430 --> 00:11:50.100
+So we do NWS ACR delete repository repository name once called DCT ECR and I specify the region and
+
+119
+00:11:50.100 --> 00:11:52.530
+dash dash force on the end.
+
+120
+00:11:52.530 --> 00:11:53.910
+And so that should be gone.
+
+121
+00:11:53.910 --> 00:11:57.750
+Let's head back and have a quick look at ECR
+
+122
+00:12:00.460 --> 00:12:09.280
+and the DCT ECR repository is gone and then back in ECS we can quite simply go into our cluster and
+
+123
+00:12:10.450 --> 00:12:13.120
+type delete me and that's it for cleaning up.
+
+124
+00:12:13.120 --> 00:12:18.910
+And for this lab and we're actually finished now with ECS and in the next lab we're going to have a
+
+125
+00:12:18.910 --> 00:12:20.890
+look at Elastic Kubernetes service.
+

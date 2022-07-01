@@ -1,0 +1,569 @@
+WEBVTT
+1
+00:00:03.380 --> 00:00:10.650
+Hi guys we just got a little bit more theory to cover before we get stuck into the practical on read replicas.
+
+2
+00:00:10.650 --> 00:00:16.940
+MySQL replicas, global databases, multi-masters, can all get a bit confusing with Aurora.
+
+3
+00:00:17.010 --> 00:00:21.120
+So what I want to do is just try and in the next couple of labs really try and make this stuff very
+
+4
+00:00:21.120 --> 00:00:21.900
+clear.
+
+5
+00:00:21.900 --> 00:00:26.520
+As I mentioned multi-Master's something that's in preview so we're going to push that to the side.
+
+6
+00:00:26.520 --> 00:00:28.700
+We're not going to cover that in the next couple of labs.
+
+7
+00:00:28.830 --> 00:00:34.800
+But what I am going to do is make sure that you guys fully understand what an aurora replica is.
+
+8
+00:00:34.840 --> 00:00:39.480
+What a mysql replica is the difference between those and the global database.
+
+9
+00:00:39.510 --> 00:00:46.260
+So first off between the role of replicas and mysql replicas you've got up to 15 Aurora replicas.
+
+10
+00:00:46.260 --> 00:00:51.950
+Now remember these are in region and we'll see in a diagram what this all looks like in a second.
+
+11
+00:00:51.990 --> 00:00:55.620
+You've then got the mysql replicas these are only up to five.
+
+12
+00:00:55.950 --> 00:00:59.920
+And these are all in different regions and yet across region.
+
+13
+00:00:59.970 --> 00:01:01.700
+So this is not within a region.
+
+14
+00:01:01.740 --> 00:01:03.510
+So these are very different use cases.
+
+15
+00:01:03.510 --> 00:01:07.130
+This is just for scaling your reeds up within your region.
+
+16
+00:01:07.290 --> 00:01:15.120
+Very low latency fast synchronization whereas with mysql replica you got a bit of a longer lag in
+
+17
+00:01:15.120 --> 00:01:23.420
+terms of your replication time but you're gonna be using these for scaling reads across region and also
+
+18
+00:01:23.660 --> 00:01:28.140
+for using as a failover target in different regions.
+
+19
+00:01:28.400 --> 00:01:34.760
+There's a performance impact with mysql replica because it's using that sequel then log replication
+
+20
+00:01:34.880 --> 00:01:43.130
+whereas with a raw replica the impact on the primary is very low with both you can failover.
+
+21
+00:01:43.150 --> 00:01:48.280
+So you can use these as failover targets with obviously with the Aurora replica that's within the same
+
+22
+00:01:48.280 --> 00:01:54.180
+region and with the mysql replica that's cross region and you can see a little bit difference between
+
+23
+00:01:54.180 --> 00:02:00.480
+the amount of data that you might lose you can automatically fai over two in aurora replica but you
+
+24
+00:02:00.480 --> 00:02:01.820
+can't have mysql replica.
+
+25
+00:02:01.830 --> 00:02:05.230
+So there's some manual interface intervention required there.
+
+26
+00:02:06.670 --> 00:02:11.830
+There's a couple of other features because of the sequel binlog replication a couple of things that
+
+27
+00:02:11.830 --> 00:02:12.570
+you can do.
+
+28
+00:02:12.580 --> 00:02:17.060
+mysql so let's get onto a diagram.
+
+29
+00:02:17.100 --> 00:02:21.900
+This diagram shows you what Aurora looks like within a region.
+
+30
+00:02:21.900 --> 00:02:28.380
+So as I mentioned before you always get two copies of your data and at least three availability zones
+
+31
+00:02:28.380 --> 00:02:35.130
+so that's six way replication are six copies of your data storage is actually provisioned in 10 gigabyte
+
+32
+00:02:35.130 --> 00:02:39.240
+chunks and then that's replicated across to all these different copies.
+
+33
+00:02:39.390 --> 00:02:45.510
+You have one primary so this is the one where the rights come from the primary rights to all copies
+
+34
+00:02:45.510 --> 00:02:50.320
+of the data in each of these availability zones
+
+35
+00:02:53.500 --> 00:02:59.530
+a single logical volume is actually presented to the DB instances so they're not aware they don't see
+
+36
+00:02:59.770 --> 00:03:05.890
+different copies of the data and that's how you're read replicas can then read the data so they read
+
+37
+00:03:05.890 --> 00:03:10.870
+that data and that's why it's such a low lag time because the primary is basic just writing to all three
+
+38
+00:03:10.870 --> 00:03:14.180
+of these pretty much at the same time.
+
+39
+00:03:15.720 --> 00:03:22.470
+Your read replicas or your Aurora replicas can then read that data and serve applications we've read traffic
+
+40
+00:03:23.250 --> 00:03:25.880
+just as with the other databases.
+
+41
+00:03:25.890 --> 00:03:30.310
+The primary has its own endpoint and then the replicas have different endpoints.
+
+42
+00:03:30.450 --> 00:03:35.730
+And then you can then promote a replica to be a primary.
+
+43
+00:03:35.730 --> 00:03:43.980
+Now in terms of the automatic promotion there's a thing called tiers and tiers represent the order in
+
+44
+00:03:43.980 --> 00:03:49.060
+which you would like replicas to be automatically promoted to primaries in the event of a failure.
+
+45
+00:03:49.170 --> 00:03:52.200
+So you can specify tiers for each of the replicas.
+
+46
+00:03:52.200 --> 00:03:59.350
+And that that controls the order of promotion as I mentioned before you can also use auto scaling to
+
+47
+00:03:59.350 --> 00:04:02.650
+add replicas and we'll look at that in the console.
+
+48
+00:04:02.650 --> 00:04:06.610
+So let's get on and actually start building some stuff in the console.
+
+49
+00:04:06.610 --> 00:04:11.340
+I'm locked into the IWC management console and I'm just going to head over to RDS
+
+50
+00:04:16.130 --> 00:04:23.060
+and what we're going to do is we're going to create a database and the first thing we're gonna do is
+
+51
+00:04:23.060 --> 00:04:30.650
+we're just going to try a standard Aurora database and before we go any further I've gotta warn you
+
+52
+00:04:30.650 --> 00:04:33.330
+guys this is not free tier.
+
+53
+00:04:33.590 --> 00:04:40.040
+So none of the labs that we're going to do on Aurora are gonna be free tier and I'm gonna be adding
+
+54
+00:04:40.040 --> 00:04:43.660
+quite a few copies of databases to show you the various features.
+
+55
+00:04:43.670 --> 00:04:48.780
+So this is definitely going to cost them money wouldn't be a lot if you shut it down fast enough.
+
+56
+00:04:48.800 --> 00:04:51.130
+But you know this could be could be some dollars.
+
+57
+00:04:51.140 --> 00:04:57.410
+So just bear in mind if you don't want to incur any costs you should just watch along and not actually
+
+58
+00:04:57.410 --> 00:04:58.430
+perform these labs.
+
+59
+00:04:59.330 --> 00:05:05.560
+So I'm going to choose the Aurora database engine and we're going to choose my school five point six
+
+60
+00:05:05.570 --> 00:05:11.440
+we're not going to go for the latest version because there are some limitations with mysql.
+
+61
+00:05:11.450 --> 00:05:12.440
+Five point seven.
+
+62
+00:05:12.440 --> 00:05:14.660
+Some of the features aren't available yet.
+
+63
+00:05:15.320 --> 00:05:18.860
+And note the Aurora global database feature.
+
+64
+00:05:18.920 --> 00:05:22.910
+So you actually have to click on this option here and go into a different wizard and we're going to
+
+65
+00:05:22.910 --> 00:05:25.950
+do that in a couple of laps time.
+
+66
+00:05:26.210 --> 00:05:33.910
+So I click next and this is where you can see that you have the option to even provision and manage
+
+67
+00:05:33.910 --> 00:05:37.230
+the servants and sizes or use service.
+
+68
+00:05:37.240 --> 00:05:44.020
+So if I provision then I've got my DB engine and then I've got my instance class so I might change this
+
+69
+00:05:44.020 --> 00:05:48.520
+to one of the other DV instance classes and that'll be that.
+
+70
+00:05:48.670 --> 00:05:55.300
+And then I could use multi easy and I can create read replicas if I then go to service.
+
+71
+00:05:55.360 --> 00:06:04.070
+Some of those options disappear and what I'll do instead is I'll be able to specify the minimum and
+
+72
+00:06:04.070 --> 00:06:06.580
+maximum resources for the DB cluster.
+
+73
+00:06:06.590 --> 00:06:07.760
+So let's just have a look at that.
+
+74
+00:06:08.360 --> 00:06:16.790
+I'm just going to call this database digital cloud paste that into a few places there and this is where
+
+75
+00:06:16.790 --> 00:06:24.200
+you then have the option to specify the amount of RAM so you can say the minimum there is one 1 unit.
+
+76
+00:06:24.200 --> 00:06:26.590
+So these are units and then this is the amount of RAM.
+
+77
+00:06:26.600 --> 00:06:34.790
+So one unit is 2 gig 2 units is 4 gig 4 units is 8 gig so I can say I want to start at 1 unit so 2 gigabytes
+
+78
+00:06:34.790 --> 00:06:41.480
+of RAM and go up to a maximum of 16 units or 32 gigabytes of RAM and it will automatically scale the
+
+79
+00:06:41.480 --> 00:06:43.000
+database for us.
+
+80
+00:06:43.100 --> 00:06:47.600
+Now I don't want to use that option now because it does have some limitations so I'm just gonna go back
+
+81
+00:06:47.600 --> 00:06:54.800
+to provisioned and I'm going to choose the smallest option available and I'm not going to create a replica
+
+82
+00:06:54.920 --> 00:07:00.270
+right now because we're going to create one for the console and I'm just going to paste in my deviance
+
+83
+00:07:00.280 --> 00:07:06.140
+and so identifier keep my master username and password the same click on Next
+
+84
+00:07:09.580 --> 00:07:15.210
+I'm going to put something in for the cluster identifier and database name and we're just going to leave
+
+85
+00:07:15.210 --> 00:07:18.030
+this in the default VPC and subnet group
+
+86
+00:07:22.180 --> 00:07:25.360
+and I don't need public accessibility.
+
+87
+00:07:25.430 --> 00:07:29.720
+I'm gonna choose an existing security group because I know I've already got some ideas.
+
+88
+00:07:29.720 --> 00:07:32.000
+Launch was at one set so just grab one of those
+
+89
+00:07:34.730 --> 00:07:37.790
+and you can leave encryption on or turn it off.
+
+90
+00:07:37.790 --> 00:07:42.460
+And then here this is where you can specify the failover priorities that I mentioned before.
+
+91
+00:07:42.680 --> 00:07:50.600
+Which control the order of promotion then got back up and backtracks backtrack allows you to determine
+
+92
+00:07:50.600 --> 00:07:56.360
+how far back in time you want to go so you can specify the amount of time and then you're able to
+
+93
+00:07:59.270 --> 00:08:03.400
+move your database back to that point in time without needing to do a restore.
+
+94
+00:08:03.410 --> 00:08:04.630
+So that's a pretty cool feature.
+
+95
+00:08:06.290 --> 00:08:12.980
+We're going to disable enhanced model of showing hacks we don't need it and I'm going to disable this
+
+96
+00:08:12.980 --> 00:08:20.320
+option leave the maintenance window has no preference and I'm going to disable the deletion protection
+
+97
+00:08:20.440 --> 00:08:21.640
+and create database
+
+98
+00:08:30.490 --> 00:08:35.530
+so we're now in the console and we can see that we're in a state of creating and you can see that you
+
+99
+00:08:35.530 --> 00:08:36.580
+have a hierarchy here.
+
+100
+00:08:36.580 --> 00:08:39.760
+So first off this is showing as reader.
+
+101
+00:08:39.790 --> 00:08:43.180
+But once it's created it will change to writer.
+
+102
+00:08:43.540 --> 00:08:49.900
+So it's been several minutes and we now have the database available and we can see that the role is
+
+103
+00:08:49.900 --> 00:08:51.610
+changed to writer.
+
+104
+00:08:51.610 --> 00:08:57.100
+So let's go in and have a look at the database we can see that we have an endpoint ports 3306
+
+105
+00:08:57.110 --> 00:09:04.030
+because the engine is still mysql and we can see the availability zone that the primary instance
+
+106
+00:09:04.030 --> 00:09:05.200
+is running from.
+
+107
+00:09:05.200 --> 00:09:11.770
+And then we have monitoring where you can see some metrics from cloud watch on what's going on from
+
+108
+00:09:11.770 --> 00:09:13.470
+a performance perspective.
+
+109
+00:09:13.510 --> 00:09:16.870
+Now the key thing that I want to show you is let's go back up to this level.
+
+110
+00:09:16.990 --> 00:09:23.820
+So you go up to the database configuration level and you go to actions and here you got a few options.
+
+111
+00:09:23.830 --> 00:09:26.930
+So one is you can create a clone.
+
+112
+00:09:27.010 --> 00:09:29.530
+So this creates a full clone of your database.
+
+113
+00:09:29.530 --> 00:09:37.120
+And if you click on it you get a few options including you can specify the database engine or the database
+
+114
+00:09:37.120 --> 00:09:43.630
+instance class so you actually can't change the engine but you can change the instance class and you
+
+115
+00:09:43.630 --> 00:09:45.940
+can specify some different parameters and so on.
+
+116
+00:09:46.960 --> 00:09:54.580
+So that's a great way to clone your database and you can also then create a cross region read replica.
+
+117
+00:09:54.590 --> 00:09:58.060
+So this is going to be the subject of the next lab.
+
+118
+00:09:58.230 --> 00:10:04.890
+You can restore to a point in time so that's the BackTrack feature and you can add a replica free auto
+
+119
+00:10:04.890 --> 00:10:07.590
+scaling so we're going to go and add a reader.
+
+120
+00:10:07.590 --> 00:10:10.540
+But this is the same thing as just using auto scaling.
+
+121
+00:10:10.590 --> 00:10:18.600
+So if you come in here you can use two different metrics even CPU utilization or average connections
+
+122
+00:10:18.660 --> 00:10:21.680
+both on your existing replicas.
+
+123
+00:10:21.720 --> 00:10:27.810
+So it's even a percentage of the CPU or number of connections and then you could also specify some
+
+124
+00:10:27.810 --> 00:10:30.980
+scale parameters and cool down stuff.
+
+125
+00:10:31.020 --> 00:10:35.640
+And obviously you can go from one to 50 and you can't have more than 15 because that's the maximum number
+
+126
+00:10:35.640 --> 00:10:36.840
+of rural replicas
+
+127
+00:10:39.710 --> 00:10:41.040
+who come back and just go here.
+
+128
+00:10:41.040 --> 00:10:47.300
+Then what we want to do now is click Add reader and we can actually choose the availability zone if
+
+129
+00:10:47.300 --> 00:10:47.690
+we want.
+
+130
+00:10:47.690 --> 00:10:51.150
+Remember that the Aurora replicas are within region.
+
+131
+00:10:51.200 --> 00:10:56.510
+So you you can choose an availability zone but you can't choose a different region and you can choose
+
+132
+00:10:56.510 --> 00:10:59.030
+to change this ones publicly available if you want to.
+
+133
+00:10:59.030 --> 00:11:06.980
+You can't change the encryption attributes because the primary is already encrypted but you could also
+
+134
+00:11:06.980 --> 00:11:09.770
+change the DB instance class if you wanted to.
+
+135
+00:11:09.800 --> 00:11:11.870
+So let's just go in and let's put in
+
+136
+00:11:15.020 --> 00:11:18.530
+read only D.B. as the instance identifier.
+
+137
+00:11:18.740 --> 00:11:25.610
+Let's give it a priority of Tier 1 and we'll leave the other attributes as they are and just click Add
+
+138
+00:11:25.610 --> 00:11:31.550
+reader so we can see now that we can we have the hierarchy here where we can see the writer and the
+
+139
+00:11:31.550 --> 00:11:37.040
+reader it's in a state of creating at the moment it's gonna take a few minutes to provision this instance
+
+140
+00:11:37.040 --> 00:11:42.470
+we can see it's in the creating state and we can say it's a reader whereas the digital cloud database
+
+141
+00:11:42.470 --> 00:11:46.910
+is a writer and what we're gonna do is we're going to end the lab here but we're going to leave things
+
+142
+00:11:46.910 --> 00:11:51.080
+running because in the next lab we're going to create a cross region read replica.
+

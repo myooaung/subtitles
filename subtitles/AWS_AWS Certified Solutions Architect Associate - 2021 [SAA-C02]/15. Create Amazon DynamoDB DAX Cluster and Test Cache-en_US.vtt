@@ -1,0 +1,601 @@
+WEBVTT
+1
+00:00:03.450 --> 00:00:11.070
+In this lab we're going to create a DynamoDB accelerator cache in front of a DynamoDB table.
+
+2
+00:00:11.070 --> 00:00:14.870
+And what we're gonna do is we're going to also create an EC2 instance.
+
+3
+00:00:15.000 --> 00:00:20.010
+So we create our table we create our cache and we have an EC2 instance.
+
+4
+00:00:20.060 --> 00:00:24.230
+And on that EC2 instance we're going to install nodeJS.
+
+5
+00:00:24.270 --> 00:00:32.960
+And we're actually going to run some nodeJS applications to query data in DynamoDB through the cache.
+
+6
+00:00:32.970 --> 00:00:35.470
+So there's a couple of things we need to get this working.
+
+7
+00:00:35.490 --> 00:00:41.800
+Firstly we need a security group and that security group needs the following rules TCP 8000 for Dynamo
+
+8
+00:00:41.800 --> 00:00:46.430
+DB and TCP 8111 for DynamoDB accelerator.
+
+9
+00:00:46.440 --> 00:00:51.480
+Now I'm just creating one security group and applying it to my EC2 instance and my accelerator and
+
+10
+00:00:51.480 --> 00:00:58.530
+that means might to instance can connect both the DynamoDB and Dax. And Dax can also connect to dynamodb
+
+11
+00:00:58.550 --> 00:01:03.830
+you might want to split these into two in a production scenario you would.
+
+12
+00:01:03.880 --> 00:01:09.070
+And in that case you would have a separate security group for the EC2 instance and the source address
+
+13
+00:01:09.070 --> 00:01:13.510
+would then be the security group that the EC2 instance is assigned to and that would be an extra
+
+14
+00:01:13.510 --> 00:01:14.380
+level of security.
+
+15
+00:01:14.380 --> 00:01:20.030
+Then in terms of roles we're going to apply a role to each of these so there's gonna be a role for the
+
+16
+00:01:20.030 --> 00:01:25.820
+EC2 instance and the permissions that it will have are both to access DynamoDB because we're going
+
+17
+00:01:25.820 --> 00:01:32.420
+to create the initial table from the EC2 instance using a script and we're then going to also need
+
+18
+00:01:32.420 --> 00:01:39.230
+access to DynamoDB accelerator so those permissions for that as well the IAM role that's attached
+
+19
+00:01:39.230 --> 00:01:42.970
+to the dynamoDB accelerator needs access to dynamodb.
+
+20
+00:01:42.970 --> 00:01:50.100
+And that's because it's going to read items from the database and then store them in the in-memory
+
+21
+00:01:50.100 --> 00:01:51.050
+cache.
+
+22
+00:01:51.420 --> 00:01:53.980
+So let's head over to the console and start building this out.
+
+23
+00:01:55.550 --> 00:02:00.320
+The first thing I want to draw your attention to is this AWS article and we're going to use this so
+
+24
+00:02:00.320 --> 00:02:06.170
+that we can create an application that we can then use to test our dynamoDB accelerator cluster.
+
+25
+00:02:06.500 --> 00:02:09.460
+And I'm gonna go through and use the nodejs version.
+
+26
+00:02:09.530 --> 00:02:14.390
+You can feel free to change if you like and we're just going to run these commands.
+
+27
+00:02:14.540 --> 00:02:28.540
+Now before we do that let's create an IAM role. So I'm gonna head over to identity and access management.
+
+28
+00:02:28.750 --> 00:02:35.770
+I'm gonna head to roles and choose create role and the first one is going to be from my to instance
+
+29
+00:02:35.790 --> 00:02:38.950
+so I'm going to choose the service that we use this role as EC2
+
+30
+00:02:43.770 --> 00:02:49.650
+and I'm gonna search for DynamoDB and I'm just gonna give it the full access
+
+31
+00:02:54.390 --> 00:02:56.010
+and this one I'm going to call
+
+32
+00:02:59.460 --> 00:03:02.100
+dynamo DB Dax.
+
+33
+00:03:06.770 --> 00:03:08.150
+And let's create that role.
+
+34
+00:03:10.420 --> 00:03:16.430
+Now you might be wondering about the permissions for DynamoDB accelerator but let's go in and have
+
+35
+00:03:16.430 --> 00:03:22.930
+a look at this policy so we can see here we have an action and the actions are in dynamoDB star and
+
+36
+00:03:22.940 --> 00:03:24.270
+Dax star.
+
+37
+00:03:24.410 --> 00:03:29.920
+So we actually get a whole load of permissions and they apply both to dynamoDB and DAX.
+
+38
+00:03:29.930 --> 00:03:32.420
+So that's all we need for that policy.
+
+39
+00:03:32.420 --> 00:03:38.200
+We can then grow it go and create a role for for DAX itself.
+
+40
+00:03:38.330 --> 00:03:44.930
+And in this case we're going to choose DynamoDB and then we can choose Amazon dynamoDB accelerator
+
+41
+00:03:45.350 --> 00:03:48.560
+and it says it allows Dax to call DynamoDB on your behalf.
+
+42
+00:03:48.560 --> 00:03:50.380
+So that's exactly what we want.
+
+43
+00:03:50.690 --> 00:03:59.800
+And if we go through to permissions again we've got the DynamoDB full access here so we can click next
+
+44
+00:04:01.020 --> 00:04:06.040
+click review and we'll call this Dax dynamoDB
+
+45
+00:04:09.470 --> 00:04:13.360
+and click write role
+
+46
+00:04:16.970 --> 00:04:19.310
+so we have our two roles now.
+
+47
+00:04:19.310 --> 00:04:26.430
+And what I'm gonna do is I'm going to spin up an EC2 instance and this instance is going to be in
+
+48
+00:04:26.430 --> 00:04:36.380
+my custom VPC to choose the Amazon T2 micro and put it in my custom VPC it's gonna go in
+
+49
+00:04:36.380 --> 00:04:42.330
+a public subnet and I'm going to choose my dynamoDB Dax role
+
+50
+00:04:48.970 --> 00:04:53.080
+and then I'm going to go and choose my web access security group and you'll notice I've already added
+
+51
+00:04:53.080 --> 00:04:57.700
+the ports in here so you'll need to add these to your security group so that's the port eight thousand
+
+52
+00:04:57.700 --> 00:05:05.890
+for dynamoDB and port 8111 for DynamoDB accelerator so go for it and click launch while
+
+53
+00:05:05.890 --> 00:05:11.200
+that's happening what we're gonna do is head over to DynamoDB and we're going to create our dynamo
+
+54
+00:05:11.230 --> 00:05:12.880
+DB Dax cluster.
+
+55
+00:05:13.060 --> 00:05:20.290
+So we just go to Dax clusters choose create cluster and I'm just gonna call this Dax one I'm gonna choose
+
+56
+00:05:20.290 --> 00:05:25.610
+the smallest instance available and I'm gonna pop this down to cluster size 1.
+
+57
+00:05:25.690 --> 00:05:29.860
+This probably isn't on through to I'm pretty sure this is not through to so by the way guys there could be
+
+58
+00:05:29.860 --> 00:05:36.820
+a cost associated with doing this I'm then gonna go in and choose my Dax the DynamoDB service role
+
+59
+00:05:38.800 --> 00:05:45.130
+and if you're doing this for the first time you can go in and create a subnet group and you'll just
+
+60
+00:05:45.130 --> 00:05:51.970
+specify the subnets that you want your dynamo DV accelerator instance to actually run in because remember
+
+61
+00:05:52.000 --> 00:05:58.570
+even if DynamoDB be doesn't run on instances where you don't see them any way with dynamiteDB Dax
+
+62
+00:05:58.930 --> 00:06:05.140
+they do so you do choose an instance size for your cluster in this case I'm just gonna choose the subnets
+
+63
+00:06:05.230 --> 00:06:10.060
+group that I created earlier and I'm going to choose my web access security group which has all the
+
+64
+00:06:10.300 --> 00:06:16.450
+firewall rules in ensuring that I have a triple one so that might dynamoDB accelerated cache can
+
+65
+00:06:16.450 --> 00:06:25.620
+actually access my DynamoDB instance I'm going to leave the default here but what you could do is then
+
+66
+00:06:25.620 --> 00:06:32.820
+go in you can provide a description you can choose the EC2 you want the cluster to go into so
+
+67
+00:06:32.820 --> 00:06:39.060
+I could choose ap-southeast-2a and then you can go in and change parameter groups maintenance windows and
+
+68
+00:06:39.060 --> 00:06:39.740
+so on.
+
+69
+00:06:39.780 --> 00:06:46.750
+So I'm just going to leave the default settings there and choose a launch cluster and while that's all
+
+70
+00:06:46.750 --> 00:06:53.920
+happening I've copied my IP address and locked into my EC2 instance and what we're gonna do now
+
+71
+00:06:53.920 --> 00:07:01.540
+is run through these commands to install node version manager to download some sample program source code
+
+72
+00:07:01.540 --> 00:07:07.750
+for my W S and then we're gonna use that to create and write tables, create a table, and write some data
+
+73
+00:07:07.750 --> 00:07:15.640
+to it and query that data both straight from DynamoDB and then using a dynamoDB Dax endpoint so that
+
+74
+00:07:15.640 --> 00:07:20.290
+we're querying through the cache and we'll see the difference in the results. So I'm logged into my EC2
+
+75
+00:07:20.290 --> 00:07:25.470
+instance and the first command I'm gonna run is going to download the node version manager then going
+
+76
+00:07:25.480 --> 00:07:30.760
+to activate it and then going to install nodeJS and then I'm going to run a command just to check that
+
+77
+00:07:30.760 --> 00:07:34.960
+that's all working and it tells me that we're running Digest version six point 4.0.
+
+78
+00:07:34.990 --> 00:07:35.980
+So that's all good.
+
+79
+00:07:36.160 --> 00:07:42.820
+We now need to install the nodeJS client for backs and we're now going to actually go and download
+
+80
+00:07:42.820 --> 00:07:46.720
+the source code for our sample application for nodejs.
+
+81
+00:07:46.730 --> 00:07:50.560
+Then we're going to unzip that and let's have a look at what we got here.
+
+82
+00:07:50.560 --> 00:07:54.210
+Let's change directory to try.
+
+83
+00:07:54.250 --> 00:07:55.080
+Thanks.
+
+84
+00:07:55.150 --> 00:08:00.340
+Have a look inside and we've actually got our nodeJS out here so let's go into unknown js folder and
+
+85
+00:08:00.340 --> 00:08:01.550
+see what we have.
+
+86
+00:08:01.630 --> 00:08:07.990
+And here we have these files which we can use to run our sample application so the first one I want
+
+87
+00:08:07.990 --> 00:08:12.430
+to run is going to do node 01 dash create table.
+
+88
+00:08:12.430 --> 00:08:16.870
+Now before I do that what I've got to do because I've actually created all this in the Sydney region
+
+89
+00:08:16.870 --> 00:08:24.730
+is I just need to go into each of these tables and edit the region so I can come in and you can do this
+
+90
+00:08:24.730 --> 00:08:30.310
+and just change to whatever region you want to create your dax table in so I'm going to change this
+
+91
+00:08:30.310 --> 00:08:37.460
+to ap-southeast-2 and then gonna save.
+
+92
+00:08:37.550 --> 00:08:40.410
+Now I need to do that for all six tables.
+
+93
+00:08:40.490 --> 00:08:45.830
+So I'm going to post a recording while I do that because basically it's just one item the region that
+
+94
+00:08:45.830 --> 00:08:47.590
+needs to be changed in each of these.
+
+95
+00:08:47.780 --> 00:08:55.730
+I've now edited my region in all those files so what I can now do is run node 0 1 and then choose the
+
+96
+00:08:55.730 --> 00:08:59.820
+0 1 create table J.S. fell and hit enter.
+
+97
+00:09:00.080 --> 00:09:03.850
+And so let's head back over to the console now and see what's happened.
+
+98
+00:09:03.860 --> 00:09:10.720
+If we go into tables and I'm just gonna refresh and sure enough we've now got the tri Dax table let's
+
+99
+00:09:10.760 --> 00:09:13.330
+have a quick look at clusters are still creating.
+
+100
+00:09:13.520 --> 00:09:22.490
+So that's okay while that's happening let's go back and we're going to run node 0 2 write data and this
+
+101
+00:09:22.490 --> 00:09:27.590
+one is gonna put a bunch of items into our tables if we now go into our table and go to items we'll
+
+102
+00:09:27.590 --> 00:09:29.090
+see there's a whole bunch of data here
+
+103
+00:09:33.790 --> 00:09:43.210
+so let's query our table we can run note a through get item test and we can see that we are getting a response
+
+104
+00:09:43.210 --> 00:09:50.770
+time of about two point four milliseconds down to nought point four milliseconds and let's now run the
+
+105
+00:09:50.770 --> 00:10:00.570
+next file which is a query test and that's twenty about one point six milliseconds and then we can run
+
+106
+00:10:02.910 --> 00:10:11.260
+the 0 5 file which is a scan test and we got about one point six milliseconds so keep an eye to those
+
+107
+00:10:11.500 --> 00:10:17.910
+item values or those response times because we're next going to query directly you.
+
+108
+00:10:17.920 --> 00:10:19.720
+DynamiteDB accelerator.
+
+109
+00:10:19.720 --> 00:10:24.250
+And we'll see what the response times are like and how much faster they'll will need to now get our
+
+110
+00:10:24.250 --> 00:10:31.650
+cluster name so the way we can do that is two ways we can run this command AWS dax describe clusters
+
+111
+00:10:31.710 --> 00:10:36.870
+and then query and then we look for clusters and the discovery points and I'll just need to close the
+
+112
+00:10:36.930 --> 00:10:45.250
+parentheses there and it wants me to specify a region so I can just do dash dash region and specify
+
+113
+00:10:45.280 --> 00:10:53.200
+ap-southeast-2 and then you get your end point so you can see the port.
+
+114
+00:10:53.310 --> 00:11:00.050
+And this is the actual I O N or this is the actual address of the of the dot of the tax cluster.
+
+115
+00:11:00.060 --> 00:11:03.860
+So then you can just append a triple one onto the end with a colon in between them.
+
+116
+00:11:04.050 --> 00:11:09.930
+The other way to do this is just to head over to Dax and you can see the end point here including the
+
+117
+00:11:11.720 --> 00:11:13.970
+colon and the port.
+
+118
+00:11:13.960 --> 00:11:23.770
+So I'm just gonna select this and it's a bit finicky and copy that to my clipboard my dynamoDB Dax
+
+119
+00:11:23.770 --> 00:11:25.480
+cluster is now available.
+
+120
+00:11:25.480 --> 00:11:31.270
+So what I want to do is run the commands to query so I'm going to run a command that gets all item first
+
+121
+00:11:31.570 --> 00:11:33.490
+and I'm going to paste in that endpoint
+
+122
+00:11:38.890 --> 00:11:42.070
+and we get a response time that's a bit faster than before.
+
+123
+00:11:42.250 --> 00:11:48.560
+Let's rerun it and yeah it's running about one point eight milliseconds versus two point four.
+
+124
+00:11:48.560 --> 00:12:01.030
+Now let's run the query test and again we're going to put in our end point and I came back in one point
+
+125
+00:12:01.030 --> 00:12:02.890
+four milliseconds.
+
+126
+00:12:02.890 --> 00:12:05.450
+We had one point six before.
+
+127
+00:12:05.560 --> 00:12:13.740
+So now let's do the next one which was the scan test and that's running at one point two milliseconds
+
+128
+00:12:13.740 --> 00:12:14.940
+versus one point six.
+
+129
+00:12:14.940 --> 00:12:16.350
+So we're definitely seeing an improvement.
+
+130
+00:12:16.350 --> 00:12:22.920
+So just heading back to our diagram what we've done now is we've created a table in DynamoDB using
+
+131
+00:12:23.130 --> 00:12:25.560
+no J from our EC2 instance.
+
+132
+00:12:25.710 --> 00:12:32.400
+We've created a DynamoDB accelerator cluster and we've then been able to query data through the cache
+
+133
+00:12:32.490 --> 00:12:35.790
+on that dax cluster and see an improved response time.
+
+134
+00:12:35.910 --> 00:12:36.750
+So that's really good.
+
+135
+00:12:36.750 --> 00:12:41.610
+Let's go back over to the console and what we're gonna do there is just remove our configuration and
+
+136
+00:12:41.610 --> 00:12:42.610
+clean everything up.
+
+137
+00:12:42.630 --> 00:12:45.630
+So I'm back in the console just before we clean this all up.
+
+138
+00:12:45.630 --> 00:12:49.890
+Let's just have a quick look around the DynamoDB accelerator cluster.
+
+139
+00:12:50.010 --> 00:12:57.210
+You can see our nodes here and you can add nodes you can reboot nodes here or delete them.
+
+140
+00:12:57.330 --> 00:13:01.770
+We can see some cloudwatch metrics so we can see how many cache hits have occurred.
+
+141
+00:13:01.770 --> 00:13:03.870
+You can set alarms as well.
+
+142
+00:13:03.870 --> 00:13:09.780
+And under the cluster you can edit certain things you can edit the parameter groups and the maintenance
+
+143
+00:13:09.780 --> 00:13:12.290
+windows and S.A. notifications.
+
+144
+00:13:12.300 --> 00:13:16.740
+But a lot of our settings are locked down so you've got to get them right when you can actually create
+
+145
+00:13:16.740 --> 00:13:18.870
+your cluster.
+
+146
+00:13:18.880 --> 00:13:26.150
+So what we want to do now we're just going to delete this cluster we can then go to tables and we can
+
+147
+00:13:26.150 --> 00:13:30.590
+delete our dynamoDB table and Dax table
+
+148
+00:13:35.410 --> 00:13:41.320
+and we're also finished with our instance so let's go of it too EC2 and just terminate our instance
+
+149
+00:13:41.800 --> 00:13:46.540
+and that's everything cleaned up. In the next lab we're going to create a new table which we're going
+
+150
+00:13:46.540 --> 00:13:52.120
+to configure as a global table so that we have a multi-region multi-master database.
+

@@ -1,0 +1,769 @@
+WEBVTT
+1
+00:00:01.920 --> 00:00:02.400
+Hi guys.
+
+2
+00:00:02.400 --> 00:00:09.900
+In this lab we're going to get a bit deeper into the application load balancer listeners and SSL tier
+
+3
+00:00:09.900 --> 00:00:10.750
+less.
+
+4
+00:00:10.770 --> 00:00:18.390
+So what I want to do is show you how we can create multiple listeners and have multiple target groups
+
+5
+00:00:18.390 --> 00:00:19.800
+sitting behind them.
+
+6
+00:00:19.890 --> 00:00:24.190
+So there's a few things on the slide which are worth noting.
+
+7
+00:00:24.210 --> 00:00:28.240
+The first is we have two listeners here and there on different ports.
+
+8
+00:00:28.240 --> 00:00:29.250
+One is a secure port.
+
+9
+00:00:29.250 --> 00:00:36.000
+One is and now you can only have one listener per port number you can't have multiple listeners with
+
+10
+00:00:36.000 --> 00:00:37.800
+port four for free.
+
+11
+00:00:37.830 --> 00:00:41.820
+So on the front end you have to have unique ports.
+
+12
+00:00:41.850 --> 00:00:47.510
+However you can connect to target groups on the back end that have the same port number.
+
+13
+00:00:47.520 --> 00:00:54.840
+So that means your instances can be listening on port 80 and be in type in multiple target groups that
+
+14
+00:00:54.840 --> 00:00:58.050
+are attached to the same load balancer and even the same listener.
+
+15
+00:00:58.050 --> 00:01:02.010
+Now you also notice that one instance here is kind of between two target groups.
+
+16
+00:01:02.010 --> 00:01:04.070
+That's because it's part of both.
+
+17
+00:01:04.080 --> 00:01:07.620
+So an instance can be in multiple target groups.
+
+18
+00:01:07.650 --> 00:01:12.780
+We then have the rules here and the rules that we're going to set up in this lab are going to be that
+
+19
+00:01:12.780 --> 00:01:17.990
+we on our secure listener have a default rule that takes us to instance one.
+
+20
+00:01:18.150 --> 00:01:24.080
+But then if we put in shop dot DCT labs dot coms this will be DCT labs dot com and this will be shopped
+
+21
+00:01:24.120 --> 00:01:25.990
+or DCT labs dot com.
+
+22
+00:01:26.190 --> 00:01:34.770
+If you put that into the URL the host based routing condition will forward the traffic to target group
+
+23
+00:01:34.770 --> 00:01:39.090
+to you and it should be out a cycle between instance to an instance free.
+
+24
+00:01:39.090 --> 00:01:45.480
+Alternatively if you use the unsecure port port 80 it's going to pick it up on a different listener
+
+25
+00:01:45.960 --> 00:01:49.770
+and that listener is going to forward on to target group free.
+
+26
+00:01:49.770 --> 00:01:54.780
+So we're going to set up this exact configuration including the SSL TALF certificates and I'm going
+
+27
+00:01:54.780 --> 00:01:57.210
+to show you how to generate those as well.
+
+28
+00:01:57.330 --> 00:01:58.770
+So that's enough for the fairy.
+
+29
+00:01:58.770 --> 00:02:01.490
+Let's get into the console and start building this out.
+
+30
+00:02:01.500 --> 00:02:07.530
+The first thing we need to do is actually create a certificate for use with our load balancer.
+
+31
+00:02:07.530 --> 00:02:14.520
+Now I mean the AWB certificate manager you can find this by typing in certificate and you'll find certificate
+
+32
+00:02:14.520 --> 00:02:15.650
+manager here.
+
+33
+00:02:15.690 --> 00:02:18.570
+It's under security identity and compliance.
+
+34
+00:02:18.570 --> 00:02:20.610
+What I'm gonna do is click get started.
+
+35
+00:02:20.610 --> 00:02:23.070
+Request a public certificate.
+
+36
+00:02:23.070 --> 00:02:29.880
+I'm gonna put in DCT lamps dot com and click next and then going to choose the email validation option
+
+37
+00:02:30.480 --> 00:02:34.360
+and choose review and confirm and request I'll continue.
+
+38
+00:02:34.470 --> 00:02:41.040
+And then what I want to do is request another certificate and this one is going to be shop DCT labs
+
+39
+00:02:42.230 --> 00:02:46.440
+dot com and again I'll use email validation.
+
+40
+00:02:46.490 --> 00:02:52.370
+So what I need to do now is actually go to my email and there'll be an email that's waiting for me where
+
+41
+00:02:52.370 --> 00:02:56.310
+I need to click a link to validate my certificate.
+
+42
+00:02:56.360 --> 00:03:01.170
+And that really just proves that I have ownership of the domain DCT labs dot com.
+
+43
+00:03:01.190 --> 00:03:07.010
+So this is the email I received and all I need to do is click on the link here to approve the request
+
+44
+00:03:07.310 --> 00:03:09.110
+and then ask me to approve.
+
+45
+00:03:09.110 --> 00:03:12.330
+So I get a click I approve and that's it it's done.
+
+46
+00:03:12.350 --> 00:03:16.060
+I've also got another e-mail for the shop that DCC labs dot com certificate.
+
+47
+00:03:16.070 --> 00:03:18.020
+So I'm just gonna go and do that now.
+
+48
+00:03:18.020 --> 00:03:22.100
+So I only took a few seconds and one side approved both of those requests.
+
+49
+00:03:22.100 --> 00:03:27.380
+I've now got my certificates issued so I can go back to easy too.
+
+50
+00:03:27.440 --> 00:03:29.290
+And we're going to set up our load balancer.
+
+51
+00:03:29.390 --> 00:03:32.440
+Now before we do that let's actually get our instances running.
+
+52
+00:03:32.440 --> 00:03:38.690
+So I'm going to create a auto scaling group and I'm going to use four instances t to micros gonna call
+
+53
+00:03:38.690 --> 00:03:45.560
+my launch configuration LC 1 gonna use my I role for S3 full access and then I'm going to put in this
+
+54
+00:03:45.560 --> 00:03:47.750
+code same code that you've seen before.
+
+55
+00:03:47.750 --> 00:03:50.520
+Again it's always in the course downloads for each section.
+
+56
+00:03:50.600 --> 00:03:56.780
+So just grab that code and paste it in and it's gonna give a name to our instance on a web page so I
+
+57
+00:03:56.780 --> 00:04:04.400
+can click Next figure security group I'm going to choose web access and create my launch configuration
+
+58
+00:04:04.580 --> 00:04:10.580
+now for the auto scanning group again I'm going to just call it ASG one I'm going to use four instances
+
+59
+00:04:11.180 --> 00:04:14.400
+and I'm going to put those across two availability zones.
+
+60
+00:04:14.410 --> 00:04:17.750
+It doesn't matter and we're not testing cross so no balancing or anything like that.
+
+61
+00:04:17.780 --> 00:04:24.650
+So we can just collect configure screening policies keep it over its initial size and just go through
+
+62
+00:04:24.650 --> 00:04:27.460
+and click review and crazy also scaling group.
+
+63
+00:04:27.920 --> 00:04:30.230
+So that will be our instance is being created.
+
+64
+00:04:30.320 --> 00:04:32.170
+Now let's go and create our load balancer.
+
+65
+00:04:32.210 --> 00:04:39.510
+I'm going to create an application load balancer again it's just going to be called My Alby now for
+
+66
+00:04:39.510 --> 00:04:40.080
+the listener.
+
+67
+00:04:40.100 --> 00:04:45.360
+Paul I want to have two listeners so I'm going to also add my hasty CPS listener.
+
+68
+00:04:45.360 --> 00:04:53.280
+We put instances in AP SD to a to b so I'm going to choose those two subnets and now I need to choose
+
+69
+00:04:53.280 --> 00:04:58.340
+my cert so you can choose a certificate from AWB cert manager.
+
+70
+00:04:58.350 --> 00:05:04.540
+That's where we just created our certificate a few minutes ago or you can upload one chooses to forgive
+
+71
+00:05:04.540 --> 00:05:04.680
+him.
+
+72
+00:05:04.690 --> 00:05:07.610
+I am or uploads a certificate to I am.
+
+73
+00:05:07.660 --> 00:05:11.650
+In this case I'm going to choose one of my available certificates and it's going to be shopped at these
+
+74
+00:05:11.650 --> 00:05:12.580
+t labs dot com.
+
+75
+00:05:12.580 --> 00:05:18.290
+So actually what I want to do is I want shopped at these d labs dot com to be my secure site.
+
+76
+00:05:18.310 --> 00:05:20.950
+There isn't an option to configure the security policy.
+
+77
+00:05:20.980 --> 00:05:26.380
+I'm just gonna leave it on the most recent security policy that's selected by default.
+
+78
+00:05:26.380 --> 00:05:31.650
+I'm going to choose my web access security group and then I'm going to create a new target group called
+
+79
+00:05:31.790 --> 00:05:39.690
+G1 and I'm just going to change my healthy threshold to 2 and everyone else can stay as it is just to
+
+80
+00:05:39.690 --> 00:05:41.060
+keep reusing skills.
+
+81
+00:05:41.100 --> 00:05:43.160
+I'm not going to add these to registered.
+
+82
+00:05:43.200 --> 00:05:47.790
+What I'm gonna do is just create my load balancer and while that's provisioning what I want to do is
+
+83
+00:05:47.790 --> 00:05:52.490
+go to my instances I should have for running instances and I'm just going to label these.
+
+84
+00:05:52.510 --> 00:06:01.680
+So it's going to be instance one instance to instance for a and instance for so we can now go back to
+
+85
+00:06:01.830 --> 00:06:06.420
+are load balancer and what I want to do is configure the listener.
+
+86
+00:06:06.420 --> 00:06:14.030
+So we now have two listeners once listening on port 80 and one's listening on hasty CPS four for free.
+
+87
+00:06:14.040 --> 00:06:19.890
+Now what I want to do is create two additional target groups so if you remember from the diagram two
+
+88
+00:06:19.890 --> 00:06:25.830
+of them are going to lessen on port 80 and note that we have port four for free on the front end but
+
+89
+00:06:25.830 --> 00:06:27.090
+poor 80 on the back end.
+
+90
+00:06:27.090 --> 00:06:30.620
+So secure in the front but then it's unsecure.
+
+91
+00:06:30.840 --> 00:06:36.720
+Whereas in this side it's unsecure on the front but secure on the back and I really set it up like this
+
+92
+00:06:36.720 --> 00:06:39.470
+just so that you can see the different combinations.
+
+93
+00:06:39.510 --> 00:06:43.590
+We're not actually going to set up a certificate on instance for because that would mean going into
+
+94
+00:06:43.590 --> 00:06:49.440
+the instance and having to upload the cert files but outside of the scope of the course.
+
+95
+00:06:49.500 --> 00:06:55.170
+But I just want to show you that you can have 80 on the front unsecure and then secure on the back end
+
+96
+00:06:55.560 --> 00:06:57.300
+or the reverse combination.
+
+97
+00:06:57.420 --> 00:07:00.470
+So let's get into the console now and we're going to set this up.
+
+98
+00:07:00.510 --> 00:07:03.700
+First thing I need to do is just create my other target groups.
+
+99
+00:07:03.780 --> 00:07:07.680
+So let's create C.G. to first thing we need to do is create our target groups.
+
+100
+00:07:07.950 --> 00:07:12.930
+So we're going to create T2 and this is going to listen on port 80 again healthy fresh I was going gonna
+
+101
+00:07:12.930 --> 00:07:15.720
+be 2 and then this target group free.
+
+102
+00:07:15.720 --> 00:07:22.830
+So it's cool that C G free and in this case what we want to do is listen on port four for free the hasty
+
+103
+00:07:22.840 --> 00:07:24.460
+TPA secure port.
+
+104
+00:07:24.540 --> 00:07:28.670
+Now of course what this means is you need a certificate on the actual instance itself.
+
+105
+00:07:28.680 --> 00:07:34.260
+So we're not gonna do that we're just I'm just showing you how we can figure this out click on Create
+
+106
+00:07:35.540 --> 00:07:37.470
+and that's our free target groups.
+
+107
+00:07:37.500 --> 00:07:40.590
+We now need to add our instances to our target groups.
+
+108
+00:07:40.590 --> 00:07:42.240
+So let's go into target group 1.
+
+109
+00:07:42.750 --> 00:07:50.820
+And we want to add instance one and instance to the target group to we're going to add instance to an
+
+110
+00:07:50.820 --> 00:07:53.940
+instance free and the target group free.
+
+111
+00:07:53.970 --> 00:07:56.950
+We're just going to add instance four.
+
+112
+00:07:57.000 --> 00:08:01.130
+So there we've got all our instances registered to our target groups.
+
+113
+00:08:01.140 --> 00:08:05.650
+Now what we need to do is go to the load balancer and set up the listeners.
+
+114
+00:08:05.700 --> 00:08:12.100
+If I try to add an additional listener on port 80 it tells me that I can't have duplicate load balance
+
+115
+00:08:12.100 --> 00:08:16.320
+supports the same for hasty CPS but we could then change it.
+
+116
+00:08:16.320 --> 00:08:21.510
+So for instance we could have another listener in port 81 and that would be fine but we've got our two
+
+117
+00:08:21.930 --> 00:08:28.080
+listeners what I need to do is edit them so that they reflect the diagram that we saw before in our
+
+118
+00:08:28.080 --> 00:08:34.740
+diagram we have a secure listener which is forwarding to target group 1 and target group 2.
+
+119
+00:08:35.100 --> 00:08:41.600
+So you got shocked DCT lamps dot com here and we've got DCT nabs dot com going through the default rule.
+
+120
+00:08:41.760 --> 00:08:43.590
+So let's see how we can set this up.
+
+121
+00:08:43.590 --> 00:08:49.800
+The first thing I want to do is add an additional cert so if you go view edit certificates you'll see
+
+122
+00:08:49.800 --> 00:08:55.770
+that you have the option to add additional certificates so I can click the plus here and it shows me
+
+123
+00:08:55.770 --> 00:08:56.990
+the available certificates.
+
+124
+00:08:57.000 --> 00:09:00.600
+So I'm going to select the DCT lapsed dot com certificate and click add.
+
+125
+00:09:00.720 --> 00:09:06.050
+Now what this means is we've got two certificates and they have different DNS names.
+
+126
+00:09:06.210 --> 00:09:11.040
+So an application load balancer can use what's called server name indication.
+
+127
+00:09:11.040 --> 00:09:17.010
+And that means that it can select a certificate based on the name that is presented as part of the url.
+
+128
+00:09:17.010 --> 00:09:23.520
+So it will know to use DCT lapsed dot com or shopped or DCT labs dot com depending what the host name
+
+129
+00:09:23.520 --> 00:09:25.020
+is in the URL.
+
+130
+00:09:25.020 --> 00:09:29.370
+Now the other thing I want to do is I actually should have my DC labs dot com as the default rather
+
+131
+00:09:29.370 --> 00:09:31.740
+than shopped at DCT labs dot com.
+
+132
+00:09:31.740 --> 00:09:38.670
+So let's just go back and what we can do is edit the listener and I'm just going to change to DCT labs
+
+133
+00:09:38.670 --> 00:09:40.700
+dot com and click update.
+
+134
+00:09:40.710 --> 00:09:42.570
+So now that's my default.
+
+135
+00:09:42.570 --> 00:09:47.970
+Let's head back and just go into view edit certificates and we've now got these t labs dot com as the
+
+136
+00:09:47.970 --> 00:09:53.280
+default and I need to go back in and just add shocked that these steel labs dot com again.
+
+137
+00:09:53.280 --> 00:09:59.010
+So we've now got both fast difficult selected what we need to do next is edit the actual rules so we
+
+138
+00:09:59.010 --> 00:10:05.340
+can go to view edit rules and we can see here that requests will be forwarded to target group 1 but
+
+139
+00:10:05.340 --> 00:10:12.530
+what we want to do is add a rule with a host had a condition that says if the host header is shop dot
+
+140
+00:10:12.540 --> 00:10:17.800
+DCT lamps dot com and wanting to forward it to target group 2.
+
+141
+00:10:17.880 --> 00:10:25.080
+So that's that what we should have now is a single secure listener running on port four for free.
+
+142
+00:10:25.080 --> 00:10:29.880
+We've got two rules we've got the default rule and we've got the default certificate which are both
+
+143
+00:10:29.880 --> 00:10:36.360
+going to take anyone that tries to go to DCC labs dot com to target group 1 if they try to go to shop
+
+144
+00:10:36.360 --> 00:10:43.200
+of these t labs dot com the conditional host based rule will forward them to target group to where we
+
+145
+00:10:43.200 --> 00:10:44.990
+have instance to an instance free.
+
+146
+00:10:45.030 --> 00:10:49.650
+The only other thing we need to do is just edit our rule for target group free.
+
+147
+00:10:50.040 --> 00:10:54.030
+So let's have a look at our other listener and we just need to change the rule in here.
+
+148
+00:10:54.090 --> 00:10:59.250
+We need to collect the pen icon here to edit and then the pen here as well.
+
+149
+00:10:59.460 --> 00:11:06.270
+And then we can just go and remove that option and add another action to forward to target group free.
+
+150
+00:11:06.420 --> 00:11:10.330
+So we should now be set up exactly as in this diagram.
+
+151
+00:11:10.410 --> 00:11:14.760
+Now as I mentioned we're not going to be able to connect a target group free because we don't have a
+
+152
+00:11:14.760 --> 00:11:20.940
+certificate on the back end and we configured HDTV yes but we will be able to connect to target group
+
+153
+00:11:20.940 --> 00:11:22.740
+1 and target group 2.
+
+154
+00:11:23.040 --> 00:11:28.800
+And if we put in DCC labs dot com we'll go to target group 1 and if we put in shopped these t labs dot
+
+155
+00:11:28.790 --> 00:11:30.440
+com we'll go to target group 2.
+
+156
+00:11:30.450 --> 00:11:36.330
+Now of course there's one more important thing we need to do we need to go across to Route 53 and we
+
+157
+00:11:36.330 --> 00:11:38.790
+need to set up our DNS records.
+
+158
+00:11:38.790 --> 00:11:46.180
+So let's go and find Ralph 50 free and I'm going to go into my DC livestock on hosted zone and try to
+
+159
+00:11:46.200 --> 00:11:47.610
+couple of record sets.
+
+160
+00:11:47.640 --> 00:11:52.990
+So the first one is going to be the DCT labs dot com and this is going to be the zone apex.
+
+161
+00:11:53.010 --> 00:12:00.060
+So there's nothing to write in the name you choose alias and then we choose our MLP and create and then
+
+162
+00:12:00.060 --> 00:12:01.410
+we create another record set.
+
+163
+00:12:01.710 --> 00:12:05.000
+And this one is gonna be for shop that DEA labs dot com.
+
+164
+00:12:05.100 --> 00:12:06.360
+It's also an alias.
+
+165
+00:12:06.360 --> 00:12:08.190
+And it also goes to the B.
+
+166
+00:12:08.250 --> 00:12:13.860
+So that's set we're set up now and let's try and go to DCT labs dot com and we need to do so with a
+
+167
+00:12:13.860 --> 00:12:17.930
+secure connection and there we go.
+
+168
+00:12:17.930 --> 00:12:25.090
+So we get a response and the name of the instance is called Resa and if we try and cycle we're going
+
+169
+00:12:25.090 --> 00:12:26.890
+to hit Bonita and Rita.
+
+170
+00:12:26.900 --> 00:12:32.410
+So we've got two instances and they should be instance one an instance two in our diagram.
+
+171
+00:12:32.570 --> 00:12:40.680
+Let's now try and go to shop dot DCT labs dot com and this time we get Marietta and if we now cycle
+
+172
+00:12:40.740 --> 00:12:48.210
+we get Marietta and Benita remember Benita was in Target group 1 and target group 2 whereas Marietta
+
+173
+00:12:48.210 --> 00:12:50.370
+is just in target group 2.
+
+174
+00:12:50.370 --> 00:12:54.190
+So this is behaving exactly as we expected to in this diagram.
+
+175
+00:12:54.240 --> 00:12:58.550
+We've got Risa and Benita and then we've got Marietta.
+
+176
+00:12:58.620 --> 00:13:02.340
+I hope you had a lot of fun in this lab guys and everything worked okay for you.
+
+177
+00:13:02.340 --> 00:13:07.460
+Let me know if it didn't or reach out on the forums we're finished with this configuration for now.
+
+178
+00:13:07.470 --> 00:13:09.930
+So we can go back in and remove everything.
+
+179
+00:13:09.990 --> 00:13:11.760
+So I'll just show you how to go and clean up.
+
+180
+00:13:11.760 --> 00:13:17.550
+Remember to remove your records from Route 53 and this is important if you're going to be running other
+
+181
+00:13:17.550 --> 00:13:23.430
+labs because it means that your records deleted and they get removed from your cash.
+
+182
+00:13:23.430 --> 00:13:27.300
+And then next time you try and create a record you shouldn't have any problems with actually getting
+
+183
+00:13:27.300 --> 00:13:29.150
+resolution working straight away.
+
+184
+00:13:29.160 --> 00:13:31.940
+Now we need to go and delete our load balancer.
+
+185
+00:13:32.010 --> 00:13:34.130
+We can get rid of all of these target groups.
+
+186
+00:13:34.200 --> 00:13:40.350
+We can delete our auto scaling group and our launch configuration and that should mean that our senses
+
+187
+00:13:40.350 --> 00:13:41.160
+are shutting down.
+
+188
+00:13:41.550 --> 00:13:46.830
+But if not just go in there and terminate your instances.
+
+189
+00:13:46.830 --> 00:13:52.200
+And I said for this lab guys in the next lab I'm going to show you a common use case where we have a
+
+190
+00:13:52.200 --> 00:13:55.010
+public facing application load balancer.
+
+191
+00:13:55.020 --> 00:14:01.020
+So in Internet facing application load balancer but we have instances in a private subnet I'll show
+
+192
+00:14:01.020 --> 00:14:01.820
+you how to set that up.
+

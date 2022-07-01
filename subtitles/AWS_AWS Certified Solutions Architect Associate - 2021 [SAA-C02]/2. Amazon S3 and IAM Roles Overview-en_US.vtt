@@ -1,0 +1,545 @@
+WEBVTT
+1
+00:00:02.390 --> 00:00:06.340
+Hi guys and welcome to the first lap of Section 4.
+
+2
+00:00:06.350 --> 00:00:13.790
+So what we're going to do in this lab is we're actually going to go through Amazon S3 and IAM roles.
+
+3
+00:00:13.810 --> 00:00:19.580
+So the reason that this is at the front of the Elastic Load Balancing section is we're going to be using
+
+4
+00:00:19.580 --> 00:00:25.970
+the Amazon Simple Storage Service (s3) for storing and retrieving some files that we're going to
+
+5
+00:00:25.970 --> 00:00:29.290
+use with our EC2 instances.
+
+6
+00:00:29.300 --> 00:00:34.970
+So what I want to do and this is part of the theme of this course is to introduce something to you get
+
+7
+00:00:34.970 --> 00:00:38.210
+you to use it and then build on that knowledge.
+
+8
+00:00:38.240 --> 00:00:43.070
+So rather than just having an S3 section which we do we have a very detailed deep dive section
+
+9
+00:00:43.070 --> 00:00:44.690
+on S3 later in the course.
+
+10
+00:00:44.690 --> 00:00:50.930
+But I want to start introducing you to S3 and to IAM Roles which are identity and access management
+
+11
+00:00:50.930 --> 00:00:55.790
+roles right now because you need to use them for Elastic Load Balancing and then we'll keep using those
+
+12
+00:00:55.790 --> 00:00:57.920
+skills throughout the course so you'll build upon them.
+
+13
+00:00:58.010 --> 00:00:59.840
+So what is Amazon S3.
+
+14
+00:00:59.840 --> 00:01:04.350
+So it's the Simple Storage Service and it's an object based storage system.
+
+15
+00:01:04.370 --> 00:01:10.910
+So what you do is you upload objects which are files to S3 Buckets.
+
+16
+00:01:11.000 --> 00:01:15.470
+A bit more information on this slide than you actually need at this stage but you just need to understand
+
+17
+00:01:15.470 --> 00:01:23.390
+that you access S3 using a URL, it's a public service so it's available directly via the public internet
+
+18
+00:01:23.810 --> 00:01:28.590
+so it sits outside your VPC and you'll access it through an Internet gateway.
+
+19
+00:01:28.610 --> 00:01:33.800
+There is another method to access S3 directly from a VPC but that's not for this section we'll do that
+
+20
+00:01:33.800 --> 00:01:36.050
+in the S3 section of the course.
+
+21
+00:01:36.110 --> 00:01:42.650
+So anyone on the Internet can then use the URL to access the objects in the bucket as long as the permissions
+
+22
+00:01:42.650 --> 00:01:47.250
+are set to share those objects to those people.
+
+23
+00:01:47.570 --> 00:01:48.940
+So that's what S3 is
+
+24
+00:01:48.950 --> 00:01:50.520
+It's just a way of storing files.
+
+25
+00:01:50.540 --> 00:01:54.770
+And what we're going to do in this section of the course is we're going to create some buckets which
+
+26
+00:01:54.770 --> 00:01:57.470
+are the containers in which your objects reside.
+
+27
+00:01:57.470 --> 00:02:03.110
+And we're going to put some objects and files within those buckets and then our EC2 instances are
+
+28
+00:02:03.110 --> 00:02:08.030
+going to pull those files down when they launch and we're going to use those as part of the demonstration
+
+29
+00:02:08.030 --> 00:02:09.600
+of elastic load balancing.
+
+30
+00:02:09.680 --> 00:02:13.430
+So that's just a quick overview S3 we're going to go into the console in a minute and have a look
+
+31
+00:02:13.430 --> 00:02:15.430
+at it. Before we get there.
+
+32
+00:02:15.440 --> 00:02:17.950
+Let's just have a quick look at IAM roles.
+
+33
+00:02:18.620 --> 00:02:25.940
+So identity and access management is the service that allows you to create users, groups, and roles and specify
+
+34
+00:02:25.940 --> 00:02:28.400
+policies and password policies and that kind of thing.
+
+35
+00:02:28.400 --> 00:02:31.870
+Now we did go over a brief overview of IAM earlier in the course.
+
+36
+00:02:32.060 --> 00:02:39.650
+But right now we're talking about roles. What a role is is it's an identity to which you can assign permissions
+
+37
+00:02:39.650 --> 00:02:44.500
+through a policy and then you're able to assume that role.
+
+38
+00:02:44.510 --> 00:02:50.660
+So what that means is rather than your EC2 instance or user account directly having the permissions
+
+39
+00:02:50.660 --> 00:02:57.710
+to access an S3 bucket you specify the permissions in a policy, attach the policy to a role, and
+
+40
+00:02:57.710 --> 00:03:04.580
+then that EC2 instance can assume the role temporarily and it gives it some short lived credentials
+
+41
+00:03:04.580 --> 00:03:10.040
+to allow it to access the data in the bucket according to the permissions policy.
+
+42
+00:03:10.040 --> 00:03:16.640
+So this is a way of not storing the access key and secret ID that you would need to access the bucket
+
+43
+00:03:16.640 --> 00:03:19.760
+for programmatically on the EC2 instance.
+
+44
+00:03:19.760 --> 00:03:24.530
+So we'll see in the console we're actually going to do this we're going to set up an EC2 instance
+
+45
+00:03:24.590 --> 00:03:29.560
+and you're going to see how we can access an S3 bucket without storing some credentials.
+
+46
+00:03:29.560 --> 00:03:37.490
+So that means we're more secure because we're not storing those access key IDs and secret keys within
+
+47
+00:03:37.590 --> 00:03:42.510
+the EC2 instance which is definitely a no no from a security perspective.
+
+48
+00:03:42.560 --> 00:03:44.200
+So that's just a quick overview.
+
+49
+00:03:44.240 --> 00:03:47.280
+Let's go into the console and we're going to look at how this works.
+
+50
+00:03:47.300 --> 00:03:53.240
+So I'm in the Amazon S3 console and you can see that I already have some buckets here.
+
+51
+00:03:53.450 --> 00:03:58.620
+And so a couple of things about these the name of the bucket needs to be unique.
+
+52
+00:03:58.700 --> 00:04:04.820
+So you remember from the URL here that this portion here is the bucket name.
+
+53
+00:04:04.820 --> 00:04:11.120
+So it's even a here bucket.s3.aws-region and that would be the actual region name or it's on the
+
+54
+00:04:11.120 --> 00:04:12.740
+end here slash bucket name.
+
+55
+00:04:12.770 --> 00:04:14.480
+So that would be the name of your bucket.
+
+56
+00:04:14.480 --> 00:04:18.170
+So it's a public DNS name and therefore it must be unique globally.
+
+57
+00:04:18.170 --> 00:04:22.780
+However you might notice here as well that the region is specified.
+
+58
+00:04:23.030 --> 00:04:30.320
+So that means that though the namespace is global you actually store your data within a region so you
+
+59
+00:04:30.320 --> 00:04:32.560
+can see up here that this is a global service.
+
+60
+00:04:32.600 --> 00:04:38.640
+You don't choose a region but when you create a bucket you specify where you want your data to be stored.
+
+61
+00:04:38.660 --> 00:04:40.710
+So that's something important to remember.
+
+62
+00:04:40.730 --> 00:04:46.550
+So what we can do also is make up objects public or we can secure them with policies.
+
+63
+00:04:46.550 --> 00:04:49.970
+Now what we're going to do now is I'm just going to show you how to create a bucket so let's just call
+
+64
+00:04:49.970 --> 00:04:56.840
+this DCT labs test and I can specify the region I want to place these files in and choose Sydney and
+
+65
+00:04:57.110 --> 00:05:01.160
+you can then just click Create there's some more stuff in the wizard you can go through and you can
+
+66
+00:05:01.160 --> 00:05:07.090
+specify by some information around versioning and object logging and encryption.
+
+67
+00:05:07.090 --> 00:05:11.740
+You can also configure your public settings and you then just create your bucket.
+
+68
+00:05:11.740 --> 00:05:13.120
+So that's how you create a bucket.
+
+69
+00:05:13.120 --> 00:05:14.540
+It's as simple as that.
+
+70
+00:05:14.590 --> 00:05:19.540
+I don't need this one because I'm actually going to use this DCT labs bucket for the exercises in this
+
+71
+00:05:19.540 --> 00:05:20.130
+course.
+
+72
+00:05:20.260 --> 00:05:24.770
+So I can delete now when you delete you have to copy the bucket nine so you can take that from here.
+
+73
+00:05:24.820 --> 00:05:30.100
+Copy paste and then you can confirm deletion and that's gone.
+
+74
+00:05:30.100 --> 00:05:30.880
+So that's S3.
+
+75
+00:05:30.880 --> 00:05:35.590
+That's what it looks like and what we're going to do now is we're going to go too EC2 and I'm going
+
+76
+00:05:35.590 --> 00:05:38.080
+to show you how you can access an S3 bucket.
+
+77
+00:05:38.080 --> 00:05:44.140
+So I'm in the EC2 management console and I'm going to choose launch an instance I'm just going to use
+
+78
+00:05:44.230 --> 00:05:51.730
+a Amazon Linux to my T2 micro and I'm going to leave all these settings as default, all I need to do
+
+79
+00:05:51.730 --> 00:05:56.560
+is go through and I'm going to select my web access security group so I can access the instance over
+
+80
+00:05:56.810 --> 00:05:58.210
+SSH port 22.
+
+81
+00:05:58.240 --> 00:06:01.780
+So I'll just give that instance a minute to launch and then we'll get started again.
+
+82
+00:06:01.780 --> 00:06:02.200
+Hi guys.
+
+83
+00:06:02.200 --> 00:06:08.470
+I'm now logged into the instance that we started and what I want to do is run an AWS CLI command
+
+84
+00:06:08.510 --> 00:06:10.650
+aws s3 ls.
+
+85
+00:06:10.660 --> 00:06:18.070
+So this should list the buckets in my NWS account and assess unable to locate credentials you can configure
+
+86
+00:06:18.070 --> 00:06:20.950
+credentials by running aws configure.
+
+87
+00:06:20.950 --> 00:06:23.230
+So let's have a look at aws configure.
+
+88
+00:06:23.230 --> 00:06:28.790
+So this tool allows you to specify your access key I.D. and your secret access key.
+
+89
+00:06:28.960 --> 00:06:32.980
+But what I need to do is just generate a new one for this test.
+
+90
+00:06:33.070 --> 00:06:34.820
+So of course normally you wouldn't want to share that.
+
+91
+00:06:34.840 --> 00:06:37.030
+So I'm just going to use it and then delete it.
+
+92
+00:06:37.750 --> 00:06:44.440
+But let's just grab an access key I.D. paste that in it will ask for the secret access key.
+
+93
+00:06:44.490 --> 00:06:48.480
+Remember this only gets shown once so you can only access it at this stage.
+
+94
+00:06:48.600 --> 00:06:50.610
+I'm gonna go back paste that in.
+
+95
+00:06:50.910 --> 00:06:57.920
+It asked me for the default region I'm gonna use AP southeast-2 and I can just hit enter.
+
+96
+00:06:57.930 --> 00:07:02.960
+So now let's try rerunning that command and that's great.
+
+97
+00:07:02.960 --> 00:07:13.440
+So now I can actually see the buckets I have access to as free using my access key I.D. and secret access
+
+98
+00:07:13.440 --> 00:07:13.800
+key.
+
+99
+00:07:14.340 --> 00:07:18.170
+But the problem is the credentials are stored on this machine.
+
+100
+00:07:18.240 --> 00:07:23.680
+So if we run ls .aws/credentials.
+
+101
+00:07:23.670 --> 00:07:29.460
+There's a file here and actually if I run the tool cat so I can actually look inside this file.
+
+102
+00:07:29.460 --> 00:07:36.120
+You can see that the access key I.D. and secret access key are stored on the easy to instance.
+
+103
+00:07:36.150 --> 00:07:37.440
+So this is very insecure.
+
+104
+00:07:37.440 --> 00:07:38.790
+We don't want to do this.
+
+105
+00:07:38.790 --> 00:07:41.280
+So what I'm gonna do is I'm just going to remove
+
+106
+00:07:44.350 --> 00:07:54.960
+the file and I should now I've lost access so if I rerun that command I'm no no longer able to access
+
+107
+00:07:54.960 --> 00:07:55.620
+S3
+
+108
+00:07:55.620 --> 00:07:56.160
+That's fine.
+
+109
+00:07:56.160 --> 00:07:58.440
+What we're gonna use now is an IAM role.
+
+110
+00:07:58.440 --> 00:08:00.740
+So if you remember with an IAM role.
+
+111
+00:08:00.780 --> 00:08:08.190
+What we're going to do is get the EC2 instance to use the role or assume the role in order to access
+
+112
+00:08:08.190 --> 00:08:13.500
+the bucket and we give the IAM role certain permissions through a permissions policy.
+
+113
+00:08:13.530 --> 00:08:18.140
+So this is a secure way because we don't end up storing those credentials on the instance.
+
+114
+00:08:18.240 --> 00:08:20.580
+So let's go to IAM and set up a role.
+
+115
+00:08:20.580 --> 00:08:24.180
+So I'm in IAM and I'm going to create a role.
+
+116
+00:08:24.360 --> 00:08:28.440
+And what we need to do is choose the service that we use the role we're going to choose EC2.
+
+117
+00:08:28.440 --> 00:08:33.400
+Which means that EC2 instances are able to call aws services.
+
+118
+00:08:33.600 --> 00:08:40.570
+So we'll use that choose next and you can now choose from some predefined permissions policy.
+
+119
+00:08:40.710 --> 00:08:46.200
+And I'm gonna choose this one S3 full access and I'm going to call it S3 dash admin and we choose
+
+120
+00:08:46.200 --> 00:08:53.280
+create role and if we go down and have a look at that role now we'll see that's under trust relationships.
+
+121
+00:08:53.280 --> 00:09:00.900
+Edit trust relationship we can see a policy here and what it says is it allows the service Ec2.
+
+122
+00:09:00.930 --> 00:09:04.230
+Amazon.aws.com to assume role.
+
+123
+00:09:04.230 --> 00:09:11.440
+So that's the trust relationship that we allowed and then if we actually have a look at the policy we
+
+124
+00:09:11.440 --> 00:09:18.550
+can see the JSON code here and it says the effect is allow S3* so wild card and any resource.
+
+125
+00:09:18.550 --> 00:09:20.940
+So it's given us full access to S3 free.
+
+126
+00:09:20.980 --> 00:09:22.090
+So that's what it looks like.
+
+127
+00:09:22.090 --> 00:09:25.780
+What we need to do now is attach it to our EC2 instance.
+
+128
+00:09:25.780 --> 00:09:34.580
+So we go into instance settings and then we go attach replace IAM role and we can choose our role from
+
+129
+00:09:34.580 --> 00:09:38.090
+the list and click apply and that's it.
+
+130
+00:09:38.100 --> 00:09:44.910
+We should now head back to the console and rerun our command to see our S3 Buckets so let's
+
+131
+00:09:44.910 --> 00:09:48.300
+run that command again and this time we've got the buckets.
+
+132
+00:09:48.300 --> 00:09:51.430
+But there's no credentials stored on the EC2 instance.
+
+133
+00:09:51.480 --> 00:09:53.100
+So we're much more secure now.
+
+134
+00:09:53.130 --> 00:09:54.510
+So that's it for this lab guys.
+
+135
+00:09:54.530 --> 00:09:58.710
+We're gonna get straight onto Elastic Load Balancing now and you're gonna use some of the skills you've
+
+136
+00:09:58.710 --> 00:10:01.830
+just learned multiple times throughout the rest of this section.
+
