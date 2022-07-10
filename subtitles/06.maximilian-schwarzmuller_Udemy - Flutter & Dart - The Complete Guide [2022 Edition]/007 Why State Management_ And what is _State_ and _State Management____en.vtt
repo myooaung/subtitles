@@ -1,0 +1,325 @@
+WEBVTT
+1
+00:00:02.160 --> 00:00:07.030
+So to make this really clear again, what's our problem here?
+
+2
+00:00:07.080 --> 00:00:12.450
+The problem is that in bigger apps where we have a lot of widgets and of course, potentially way more
+
+3
+00:00:12.450 --> 00:00:15.360
+widgets than I have here on the slide,
+
+4
+00:00:15.360 --> 00:00:22.960
+when some child widget needs some data, we typically have to manage the data in our topmost widget, in
+
+5
+00:00:23.010 --> 00:00:27.840
+the MyApp widget here because different places of the app need the data and therefore, we have to use
+
+6
+00:00:27.840 --> 00:00:33.690
+the common denominator so that we can pass data through the constructors of widgets because that is
+
+7
+00:00:33.690 --> 00:00:36.090
+how we typically distribute values or data
+
+8
+00:00:36.090 --> 00:00:42.620
+right now. We pass them as arguments to other widgets and that can lead to very long chains of here's
+
+9
+00:00:42.660 --> 00:00:48.660
+an argument, please forward it, here's an argument, please forward it where we pass data through widgets
+
+10
+00:00:48.660 --> 00:00:54.760
+that don't care about it just because some child widget cares and that's a problem we want to fix
+
+11
+00:00:54.760 --> 00:01:00.520
+with state management because it can be cumbersome and difficult to pass data through constructors
+
+12
+00:01:00.660 --> 00:01:07.710
+and besides that extra hassle as a developer which we don't want to have, it can also impact our application
+
+13
+00:01:07.710 --> 00:01:13.710
+performance because if we manage everything in the main.dart file and there in our main widget or in
+
+14
+00:01:13.710 --> 00:01:19.600
+a couple of root widgets, then these widgets rebuild whenever anything and that data changes and therefore
+
+15
+00:01:19.600 --> 00:01:26.070
+the entire widget tree rebuilds even if only one small child widget somewhere in the tree is really
+
+16
+00:01:26.070 --> 00:01:33.690
+interested in the updated data. Take our navigation example from the previous sections where we built
+
+17
+00:01:33.990 --> 00:01:41.100
+our meals app with some extra navigation in there. We're managing all our meals data and that includes
+
+18
+00:01:41.190 --> 00:01:47.940
+things like which are the favorites of the user and which filters that the user set, all that data is
+
+19
+00:01:47.940 --> 00:01:53.010
+managed here in the main.dart file and the downside is that
+
+20
+00:01:53.010 --> 00:01:58.770
+in here, we basically rebuild all widgets which we render here,
+
+21
+00:01:58.770 --> 00:02:05.640
+so all the widgets we routed to, we loaded as screens, we rebuild these widgets whenever anything changes
+
+22
+00:02:05.640 --> 00:02:06.190
+here.
+
+23
+00:02:06.330 --> 00:02:12.240
+If you add a meal as a favorite or if you change your filters, then the entire app rebuilds, even the
+
+24
+00:02:12.240 --> 00:02:14.790
+parts that are not affected by this.
+
+25
+00:02:14.880 --> 00:02:20.550
+If you for example add a meal as a favorite, that doesn't impact your filters and still, that part of
+
+26
+00:02:20.550 --> 00:02:22.490
+the app would also rebuild.
+
+27
+00:02:22.530 --> 00:02:27.230
+So the constant rebuilding of everything is of course not great for performance,
+
+28
+00:02:27.300 --> 00:02:33.480
+you only want to run the build method in the widgets that really depend on the data that changed
+
+29
+00:02:33.630 --> 00:02:38.250
+and you don't want to rebuild the entire app just because you changed some data which is required
+
+30
+00:02:38.250 --> 00:02:39.660
+in some parts of your app.
+
+31
+00:02:40.590 --> 00:02:41.880
+So that's one annoying part,
+
+32
+00:02:41.880 --> 00:02:44.240
+the other annoying part is what you see down there.
+
+33
+00:02:44.430 --> 00:02:51.270
+We're passing all the data as arguments to other widgets, here I'm passing the favorite meals to the
+
+34
+00:02:51.300 --> 00:02:56.010
+TabsScreen. The TabsScreen itself does not need the favorite meals,
+
+35
+00:02:56.010 --> 00:03:01.860
+we only need the favorite meals in the TabsScreen here because we then forward them to the favorites
+
+36
+00:03:01.890 --> 00:03:06.970
+screen and that's exactly what I also meant. Besides the performance thing and so on,
+
+37
+00:03:06.960 --> 00:03:13.350
+we're forwarding data through widgets and that means that whenever we add a new widget in between, then
+
+38
+00:03:13.350 --> 00:03:16.320
+we also have to accept the data there and forward it,
+
+39
+00:03:16.320 --> 00:03:19.450
+if we change something, we have to change the arguments we receive,
+
+40
+00:03:19.560 --> 00:03:24.860
+it's really cumbersome to manage this and it's not really efficient or the way we want to do that.
+
+41
+00:03:25.780 --> 00:03:28.830
+Hence, we need a better way of managing our state
+
+42
+00:03:29.020 --> 00:03:35.680
+and for that let me first clarify what state and state management really means. In Flutter applications
+
+43
+00:03:35.950 --> 00:03:42.970
+and in front-end applications in general, it's always about managing data and the user interface that
+
+44
+00:03:42.970 --> 00:03:44.340
+reflects that data.
+
+45
+00:03:44.440 --> 00:03:49.750
+When your data changes, something typically changes on the user interface because your user interface
+
+46
+00:03:49.960 --> 00:03:54.420
+really just reflects your data in the end but data is a broad term here,
+
+47
+00:03:54.430 --> 00:03:55.670
+data can be anything.
+
+48
+00:03:55.720 --> 00:03:57.850
+It can be the products you show in your app,
+
+49
+00:03:57.850 --> 00:04:01.330
+it can be something like is this product a favorite of the user
+
+50
+00:04:01.360 --> 00:04:04.120
+or is this user logged in
+
+51
+00:04:04.120 --> 00:04:10.840
+and it's this data we also refer to as state. State is simply data which affects the user interface and which
+
+52
+00:04:10.840 --> 00:04:12.630
+also might change over time,
+
+53
+00:04:12.730 --> 00:04:15.920
+so something like are we currently loading new data?
+
+54
+00:04:16.149 --> 00:04:21.820
+Well if that changes, you probably want to show a loading spinner on the user interface. So that information
+
+55
+00:04:21.820 --> 00:04:29.050
+is also a piece of data that affects your app, your UI and which therefore would be labeled as state.
+
+56
+00:04:29.440 --> 00:04:33.870
+The user interface in the end is just a function of your data or of your state,
+
+57
+00:04:33.970 --> 00:04:37.930
+which means if your data, if your state changes, the user interface changes.
+
+58
+00:04:38.380 --> 00:04:43.900
+Now for state, you have a couple of different kinds of state and that's not a hard separation you have
+
+59
+00:04:43.900 --> 00:04:44.590
+to learn,
+
+60
+00:04:44.620 --> 00:04:50.920
+it's just helpful for understanding what I mean when I say state. We have application-wide state and
+
+61
+00:04:50.920 --> 00:04:58.150
+we have widget or local state. Now app-wide state as the name suggests affects the entire application
+
+62
+00:04:58.300 --> 00:05:01.310
+or at least large chunks of the app
+
+63
+00:05:01.510 --> 00:05:06.520
+and examples here would be the authentication status of a user, is the user authenticated.
+
+64
+00:05:06.520 --> 00:05:10.390
+If the user is not authenticated, we typically want to show a totally different app,
+
+65
+00:05:10.390 --> 00:05:15.820
+we want to show a login screen instead of our products but the loaded products themselves could be
+
+66
+00:05:16.570 --> 00:05:19.790
+data that is required in many parts of your app,
+
+67
+00:05:19.810 --> 00:05:25.440
+maybe not in every part but you need the loaded products in the ProductsOverview, in the product detail
+
+68
+00:05:25.440 --> 00:05:26.090
+screen,
+
+69
+00:05:26.120 --> 00:05:29.230
+also maybe in parts of your shopping cart screens.
+
+70
+00:05:29.290 --> 00:05:35.980
+So these are pieces of data which you need in many places of your app or which have an impact on the
+
+71
+00:05:35.980 --> 00:05:42.340
+entire app or on large chunks of the app. And widget or local state on the other hand is really just
+
+72
+00:05:42.340 --> 00:05:47.130
+states that affects only a widget on its own and does not affect other widgets
+
+73
+00:05:47.300 --> 00:05:50.050
+and a typical example here would be a loading spinner,
+
+74
+00:05:50.050 --> 00:05:52.480
+should I display a loading spinner in this widget?
+
+75
+00:05:52.480 --> 00:05:57.340
+This piece of information does probably not affect any other widget but it's important for this widget
+
+76
+00:05:57.490 --> 00:06:04.300
+and what you display in there or when you manage form input, so text input the user enters, things like
+
+77
+00:06:04.540 --> 00:06:10.960
+is the data the user entered valid or are there errors in the data the user entered.
+
+78
+00:06:10.960 --> 00:06:15.340
+That's really only relevant to this widget because you might want to show an error message there,
+
+79
+00:06:15.490 --> 00:06:18.630
+it's not relevant to a totally different part of your app.
+
+80
+00:06:18.880 --> 00:06:23.630
+So these are roughly the categories of state which you can differentiate and state in general is really
+
+81
+00:06:23.630 --> 00:06:26.710
+just data in your app which changes and affects your UI.
+

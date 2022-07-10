@@ -1,0 +1,605 @@
+WEBVTT
+1
+00:00:02.520 --> 00:00:09.660
+To save the place here not just in memory where it's lost when we restart the app but instead in a database,
+
+2
+00:00:10.350 --> 00:00:13.020
+we need to get access to an on-device database.
+
+3
+00:00:13.020 --> 00:00:20.310
+Now the good thing is there is a database system, an engine which is supported by both iOS and Android and
+
+4
+00:00:20.320 --> 00:00:27.360
+that's SQLite. As the name suggests, this uses the SQL query language basically,
+
+5
+00:00:27.480 --> 00:00:33.930
+so the SQL approach of structuring and saving data and in case that doesn't tell you anything, attached
+
+6
+00:00:33.930 --> 00:00:39.720
+you find a link to a video where I dive into that and where I compare SQL to NoSQL as well
+
+7
+00:00:40.560 --> 00:00:46.770
+and SQL, SQLite specifically is supported on both Android and iOS, to work with such database,
+
+8
+00:00:46.770 --> 00:00:54.450
+we need a special package though. So let's search for SQL here on pub.dev and what you should
+
+9
+00:00:54.450 --> 00:00:58.610
+find is the SQFLite package here,
+
+10
+00:00:58.710 --> 00:01:06.060
+the SQFLite package helps you work with the SQL database on both Android and iOS. You
+
+11
+00:01:06.060 --> 00:01:11.610
+install it as always by grabbing this dependency and going to your pubspec.yaml file and adding
+
+12
+00:01:11.610 --> 00:01:20.300
+it there, like this and once you do this, you can also already quit the running process where this is
+
+13
+00:01:20.300 --> 00:01:25.670
+running on your real device or whatever it was because we need to rebuild and restart this anyways since
+
+14
+00:01:25.670 --> 00:01:30.590
+we again add a package that taps into native device features.
+
+15
+00:01:30.620 --> 00:01:37.310
+Now I want to store a new place in a database here in add place and later, I also want to add a fetch
+
+16
+00:01:37.310 --> 00:01:40.490
+place method to fetch data from the database.
+
+17
+00:01:40.730 --> 00:01:46.430
+We could have all the logic for working with the database in this file but I want to keep that file
+
+18
+00:01:46.430 --> 00:01:50.820
+focused on creating and storing places and the database access,
+
+19
+00:01:50.840 --> 00:01:56.090
+I'll put this into a separate folder, in the lib folder here and I'll name this helpers and in there, I want
+
+20
+00:01:56.090 --> 00:02:01.040
+to have a db_helper.dart file and in the end, that's just a file which will have
+
+21
+00:02:01.040 --> 00:02:03.580
+all the functionality to interact with the database.
+
+22
+00:02:03.740 --> 00:02:06.120
+Using that extra file is totally optional,
+
+23
+00:02:06.200 --> 00:02:11.080
+it's just keeping that other file leaner and more focused.
+
+24
+00:02:11.120 --> 00:02:17.270
+So here in db_helper, we can import that package which we just added, the SQFLite package and there
+
+25
+00:02:17.270 --> 00:02:24.410
+the sqflite.dart file and also, because we'll also need that, add the path package,
+
+26
+00:02:24.410 --> 00:02:27.500
+the path.dart file which we added earlier already.
+
+27
+00:02:27.620 --> 00:02:37.490
+I'll give this a prefix of path and this here, a prefix of SQL and using these prefixes as always
+
+28
+00:02:37.490 --> 00:02:38.980
+is totally optional.
+
+29
+00:02:38.990 --> 00:02:45.000
+Now my helper file here should include a class which I'll name db helper like this
+
+30
+00:02:45.320 --> 00:02:47.740
+and in there, I'll have static methods
+
+31
+00:02:47.780 --> 00:02:52.670
+so that we never need to instantiate that class but that we can simply work with these static methods
+
+32
+00:02:52.880 --> 00:02:57.440
+and the class therefore simply acts as a group around all these methods.
+
+33
+00:02:57.440 --> 00:03:01.910
+We could also just define a couple of functions in that file and therefore use these functions
+
+34
+00:03:02.150 --> 00:03:07.940
+in any other file which imports this file but I'm a fan of having a class as a wrapper around that.
+
+35
+00:03:08.970 --> 00:03:15.540
+Now in here, we'll need a function that allows us to insert something into the database, so I'll name
+
+36
+00:03:15.540 --> 00:03:17.340
+that insert but the name is up to you,
+
+37
+00:03:17.490 --> 00:03:24.840
+it's a static method so it should be available without the need to instantiate that class first and
+
+38
+00:03:24.900 --> 00:03:30.330
+it will actually return a future which in the end will yield nothing, a future because as you can imagine
+
+39
+00:03:30.330 --> 00:03:37.320
+such a database operation can take a bit longer and therefore is asynchronous. So in here,
+
+40
+00:03:37.320 --> 00:03:42.610
+I expect to get a couple of pieces of information, two pieces of information to be precise,
+
+41
+00:03:42.990 --> 00:03:48.450
+I want to get a string which is the table in the database where this should be added to, so that this
+
+42
+00:03:48.450 --> 00:03:54.930
+is actually a pretty flexible insert method, not really just aimed at inserting places but inserting
+
+43
+00:03:54.990 --> 00:03:56.760
+anything into any table.
+
+44
+00:03:56.760 --> 00:04:00.880
+Of course you could also write this in a less generic way, in a more specific way therefore
+
+45
+00:04:00.960 --> 00:04:04.950
+but here I'll make this really flexible and I'll get to the table to which I want to write as the first
+
+46
+00:04:04.950 --> 00:04:10.440
+argument and the second argument should be the data we want to write into the table and that should be a map
+
+47
+00:04:10.470 --> 00:04:16.480
+with string keys and then object value, so different kinds of values possibly.
+
+48
+00:04:16.890 --> 00:04:22.019
+Then I'll use async await because as I already mentioned, we'll work with futures in there because writing
+
+49
+00:04:22.019 --> 00:04:28.400
+to the database takes a while and now to write to the database, we need to get access to the database
+
+50
+00:04:28.710 --> 00:04:30.690
+and for that, we 
+
+51
+00:04:30.710 --> 00:04:33.310
+first of all need to create a database
+
+52
+00:04:33.330 --> 00:04:41.750
+if we don't have one. The first step for that actually is to use the SQL package, so that SQL prefix
+
+53
+00:04:41.750 --> 00:04:44.390
+up there and then call get database path,
+
+54
+00:04:44.390 --> 00:04:50.060
+that's the path where you may store your database which you're about to create because that database
+
+55
+00:04:50.090 --> 00:04:51.920
+doesn't come together with your app,
+
+56
+00:04:51.950 --> 00:04:58.760
+you have to create such a database basically in your app folder or on the hard drive in a folder reserved
+
+57
+00:04:58.760 --> 00:05:03.620
+for your app and the SQL package gives you this convenience method which gives you the right path
+
+58
+00:05:03.710 --> 00:05:06.290
+for both iOS and Android.
+
+59
+00:05:06.290 --> 00:05:13.430
+So here, we'll get the db path and we have to await this because get database path returns a future which
+
+60
+00:05:13.430 --> 00:05:15.460
+then yields a string which is that path
+
+61
+00:05:15.470 --> 00:05:23.540
+in the end. So now we know where to store that, the next step is to actually call sql.openDatabase,
+
+62
+00:05:23.670 --> 00:05:29.090
+another method provided by that SQFLite package which allows us to open the database and it
+
+63
+00:05:29.180 --> 00:05:36.290
+either opens an existing one if it finds one in that path we specify here or it creates a new one.
+
+64
+00:05:36.290 --> 00:05:41.990
+Now the path is not just the db path because that's just a folder where we should store the database, it
+
+65
+00:05:41.990 --> 00:05:47.150
+instead has to be the path which includes the database name and for that, I'll use something from the path
+
+66
+00:05:47.180 --> 00:05:54.350
+package here because there, I can use the join method to create a new path made up of the db path and
+
+67
+00:05:54.350 --> 00:06:00.650
+then the second segment here should be places.db, .db is the extension of our database file. 
+
+68
+00:06:01.250 --> 00:06:06.920
+So I'll create a new file which is named places and has the db extension in that path which we may use
+
+69
+00:06:06.920 --> 00:06:08.550
+to store our database.
+
+70
+00:06:08.690 --> 00:06:13.970
+Now when open database finds a database here, it will open that so that we can read and write to it.
+
+71
+00:06:14.180 --> 00:06:20.390
+If it doesn't find that file, which is the case when we execute the code for the first time ever in the
+
+72
+00:06:20.390 --> 00:06:21.600
+lifetime of our app,
+
+73
+00:06:21.680 --> 00:06:27.080
+so when it doesn't find that file, it will create the database and therefore, open database gives us
+
+74
+00:06:27.080 --> 00:06:32.210
+another argument which we can specify, the onCreate argument.
+
+75
+00:06:32.210 --> 00:06:38.450
+This takes a function and you can use a named or an anonymous function, a function which will execute
+
+76
+00:06:38.510 --> 00:06:43.670
+when SQL, so SQFLite tries to open the database and doesn't find the file.
+
+77
+00:06:43.670 --> 00:06:46.100
+Then it goes ahead and creates the file
+
+78
+00:06:46.220 --> 00:06:50.980
+and now you can run some code to initialize to database when it's created the first time.
+
+79
+00:06:51.410 --> 00:06:57.770
+Here, you get access to your database which was created for you by SQFLite and to the current
+
+80
+00:06:57.770 --> 00:07:03.880
+version of the database because that's already a third argument which we can pass to open database,
+
+81
+00:07:03.980 --> 00:07:10.520
+you can specify a version there to make clear that you want to open the file with that version and you
+
+82
+00:07:10.520 --> 00:07:16.760
+could theoretically change that version to override the existing database in the future if you want
+
+83
+00:07:16.760 --> 00:07:20.310
+to open that in a different version than it currently exists. Here,
+
+84
+00:07:20.390 --> 00:07:25.220
+I'll always work with the same version because I only want to have one database and we'll add and fetch
+
+85
+00:07:25.220 --> 00:07:26.800
+data to and from there
+
+86
+00:07:26.930 --> 00:07:31.820
+and when this is first created, I get access to the database here in this anonymous function we pass
+
+87
+00:07:31.820 --> 00:07:41.280
+to onCreate and in there, we now can call db.execute to run SQL query against our database. Now
+
+88
+00:07:41.290 --> 00:07:46.520
+actually, we should return the result of that, so that SQFLite knows when this is done because
+
+89
+00:07:46.520 --> 00:07:52.220
+this returns a future which basically tells SQFLite that it is done but for SQFLite to
+
+90
+00:07:52.220 --> 00:07:55.590
+digest that information, we need to return that future
+
+91
+00:07:55.590 --> 00:07:58.910
+and in there, you pass in a SQL statement.
+
+92
+00:07:58.910 --> 00:08:04.640
+Now if you're not fluent with SQL, the official docs here are a great place to learn more about the
+
+93
+00:08:04.640 --> 00:08:06.810
+basic commands and how it generally works
+
+94
+00:08:06.860 --> 00:08:10.090
+and there, you can also learn more than what I cover here in this course,
+
+95
+00:08:10.100 --> 00:08:16.160
+so definitely dive into that if you want to work with SQLite in your app and in general, you can
+
+96
+00:08:16.160 --> 00:08:22.220
+take any SQL course to learn a lot about how SQL works because SQLite basically works like
+
+97
+00:08:22.220 --> 00:08:23.870
+MySQL for example
+
+98
+00:08:23.930 --> 00:08:30.950
+regarding most of the queries at least. So here, you can now run create table which is a command to create
+
+99
+00:08:30.950 --> 00:08:36.110
+a new table in that database which you can give any name you want, like user_places for example
+
+100
+00:08:36.770 --> 00:08:41.380
+and then between brackets, between parentheses, you define which fields you want to have in the table
+
+101
+00:08:42.600 --> 00:08:47.820
+and there, I want to have an ID which will be of type text and which is the primary key,
+
+102
+00:08:47.830 --> 00:08:53.190
+that's a special instruction here, of that table and then separated with a comma, the next
+
+103
+00:08:53.190 --> 00:08:58.770
+field you want to specify which could be the title here which is also of type text but which of course
+
+104
+00:08:58.770 --> 00:09:00.240
+now is not our primary key.
+
+105
+00:09:00.240 --> 00:09:04.570
+You can have only one primary key, one primary identifier per table,
+
+106
+00:09:04.770 --> 00:09:09.210
+so here, the title and then maybe the image which here should be text and not a file because here, I
+
+107
+00:09:09.210 --> 00:09:16.650
+want to store the path to the image on our device and now with that, we get all the setup we need for
+
+108
+00:09:16.710 --> 00:09:21.020
+the moment. So let's save this here and
+
+109
+00:09:21.130 --> 00:09:23.720
+with that, we have an insert method which we should be able to use.
+
+110
+00:09:23.780 --> 00:09:25.410
+So in great_places.dart,
+
+111
+00:09:25.430 --> 00:09:27.170
+we can now import our helper,
+
+112
+00:09:27.170 --> 00:09:33.830
+so let's go to the helpers folder and import the db_helper.dart file there and in add place, I now want
+
+113
+00:09:33.830 --> 00:09:39.050
+to call that after adding it here in memory because we can certainly show the place in our app before
+
+114
+00:09:39.050 --> 00:09:42.230
+we reach out to the database and do the stuff there
+
+115
+00:09:42.230 --> 00:09:48.140
+and now we can use the db helper class here because we imported the db_helper.dart file, call insert
+
+116
+00:09:48.370 --> 00:09:54.320
+and I want to insert something in a table and the table name is totally up to you, I'll simply name it
+
+117
+00:09:55.010 --> 00:10:02.450
+places but again, up to you. The data here should be a map though and in the map, you want to have your
+
+118
+00:10:02.450 --> 00:10:04.730
+key-value pairs and there,
+
+119
+00:10:04.730 --> 00:10:08.870
+I'll have my ID which is of course the ID of my new place.
+
+120
+00:10:08.870 --> 00:10:15.110
+So here, I'll use newPlace.id, then I'll have the title and that's of course 
+
+121
+00:10:15.110 --> 00:10:15.570
+newPlace.title
+
+122
+00:10:15.570 --> 00:10:23.600
+and I also want to have my image here and that's now a newPlace.image.path and the
+
+123
+00:10:23.600 --> 00:10:29.630
+.path of course is important because you want to store the path to the image on your local hard drive
+
+124
+00:10:29.660 --> 00:10:31.940
+in the device so to say and not the image file,
+
+125
+00:10:31.940 --> 00:10:34.790
+you can't store the image file in the database.
+
+126
+00:10:34.790 --> 00:10:40.670
+Now one thing we're not doing right now though is if you go back to the db helper, there we are certainly
+
+127
+00:10:40.730 --> 00:10:44.180
+opening the database but we're not inserting anything there,
+
+128
+00:10:44.180 --> 00:10:52.460
+instead we're just executing this command to create our database. Well indeed, open database returns a
+
+129
+00:10:52.460 --> 00:11:00.690
+future which yields you a handle to the database, so access to the database. So you can store that in
+
+130
+00:11:00.690 --> 00:11:06.180
+a new variable or a constant, maybe named sqlDB for SQL database
+
+131
+00:11:06.180 --> 00:11:10.980
+and of course here, we need to add await so that we wait for this future which open database yields
+
+132
+00:11:10.980 --> 00:11:13.200
+to resolve
+
+133
+00:11:13.230 --> 00:11:15.000
+which then gives us this database
+
+134
+00:11:15.180 --> 00:11:21.400
+and now we can use sqlDB here to run commands against it, for example the insert command. This now 
+
+135
+00:11:21.400 --> 00:11:25.560
+takes a table where it should insert something and that's the table argument we're getting here,
+
+136
+00:11:25.560 --> 00:11:31.410
+so I'll use that in here and the values which we want to enter and the values that should be entered
+
+137
+00:11:31.410 --> 00:11:32.110
+here,
+
+138
+00:11:32.130 --> 00:11:36.030
+well that should be a map. Now we're getting such a map here,
+
+139
+00:11:36.030 --> 00:11:41.430
+so here I'll simply forward the data I'm getting as argument. Now I'll pass the third argument and that's
+
+140
+00:11:41.610 --> 00:11:49.400
+the conflictAlgorithm named argument and I'll set this to conflictAlgorithm.replace and this means
+
+141
+00:11:49.400 --> 00:11:55.580
+that if we're trying to insert data for an ID which already is in the database table, then we'll override
+
+142
+00:11:55.580 --> 00:12:01.340
+the existing entry, the existing record with the new data. Shouldn't really happen but that is how we
+
+143
+00:12:01.340 --> 00:12:02.480
+would do that.
+
+144
+00:12:02.540 --> 00:12:09.260
+With that, we're now really inserting something here and if we await that, then we make sure that this
+
+145
+00:12:09.260 --> 00:12:15.320
+overall method only finishes. So resolves void in the end because I'm not returning anything then thereafter,
+
+146
+00:12:15.620 --> 00:12:16.940
+so resolves void
+
+147
+00:12:16.940 --> 00:12:18.430
+once this is done.
+
+148
+00:12:18.740 --> 00:12:24.590
+So now we're actually also inserting something and now create places insert can fully do its job.
+
+149
+00:12:24.740 --> 00:12:25.930
+So with that, we're inserting
+
+150
+00:12:25.940 --> 00:12:30.500
+but of course it would also be interesting to fetch data from there and that's the next thing we'll
+
+151
+00:12:30.500 --> 00:12:30.770
+do.
+
