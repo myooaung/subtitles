@@ -1,0 +1,601 @@
+WEBVTT
+
+0
+00:03.030 --> 00:09.940
+So in the last lecture we added a new custom field here. And then we handled this field by hooking into the save_post
+
+1
+00:09.950 --> 00:13.690
+action and save_post action will run every time you save a post.
+
+2
+00:13.710 --> 00:18.970
+So when you save a post your custom field will be available in the super global $_POST.
+
+3
+00:19.050 --> 00:25.030
+So we received the value of the field that we added. And then we use update_post_meta() to add it in the post_meta
+
+4
+00:25.080 --> 00:26.930
+table using this key.
+
+5
+00:27.180 --> 00:34.070
+And so to retrieve this value in, let's say one of our templates, maybe in the content here we will use a get_post_meta().
+
+6
+00:34.470 --> 00:39.960
+And then we will give it the key that we defined here. And you've already done that when we needed
+
+7
+00:39.960 --> 00:42.700
+to retrieve the value to put it in the input.
+
+8
+00:42.780 --> 00:44.370
+But now we have some security issues.
+
+9
+00:44.370 --> 00:50.220
+We're not checking for user capabilities before updating the post meta. So we need to check first that
+
+10
+00:50.340 --> 00:56.850
+this user can edit posts or in fact edit this specific post. And we've already done something like that
+
+11
+00:56.880 --> 00:59.310
+in the last lecture. So let's add an if condition.
+
+12
+01:02.700 --> 01:07.840
+And here we will check if the current_user_can(), sorry current.
+
+13
+01:11.210 --> 01:19.450
+And we will need to use the same capability that we used in the last lecture which is "edit_post" and then pass
+
+14
+01:19.450 --> 01:21.160
+$post_id here.
+
+15
+01:23.650 --> 01:28.340
+And then if not we will return.
+
+16
+01:28.970 --> 01:33.350
+But what we've done now might not be 100% accurate.
+
+17
+01:33.510 --> 01:41.520
+So this will work if you are editing a post. But imagine this metabox was included in post and pages
+
+18
+01:41.550 --> 01:43.470
+and maybe other custom fields as well.
+
+19
+01:43.470 --> 01:50.040
+We mentioned the first lecture in the section that this could be an array. And this same metabox can be in
+
+20
+01:50.040 --> 01:51.800
+posts and pages.
+
+21
+01:52.020 --> 01:57.690
+So if you check for edit_ post" here if you are on a page this condition wont be suitable.
+
+22
+01:57.810 --> 02:00.270
+The condition in this case will be "edit_page".
+
+23
+02:00.300 --> 02:08.720
+So we need to get this capability name dynamically. And to do that we can create a new variable. Let's call it,
+
+24
+02:08.980 --> 02:21.860
+sorry, $edit_cap and we'll call a function called get_post_type_object(). So give this function
+
+25
+02:21.860 --> 02:27.770
+a "post_type" and it will return an object that contains all the information about this post type.
+
+26
+02:27.890 --> 02:30.460
+So we need to know the post that you are saving,
+
+27
+02:30.470 --> 02:33.300
+is it a post or a page or a custom post type
+
+28
+02:33.300 --> 02:40.500
+maybe? So to do that we have the post object here in the argument. So we can get the post type from it.
+
+29
+02:40.640 --> 02:43.880
+So post type of post.
+
+30
+02:47.410 --> 02:51.920
+So this will return a string and this will be post or page or etc.
+
+31
+02:52.150 --> 02:57.370
+And then this will return an object that contains information about this "post_type". And this object
+
+32
+02:57.430 --> 03:04.630
+will contain a key called "cap" or "capability". And this "cap" is an object and it contains all the capabilities
+
+33
+03:04.780 --> 03:10.040
+and their names. So we can access the "edit_post" capability
+
+34
+03:12.820 --> 03:18.700
+and if the "post_type" is a page the "edit_post" capability will be in "edit_page" and so on.
+
+35
+03:18.880 --> 03:23.420
+So this variable will now dynamically create the capability name.
+
+36
+03:23.680 --> 03:32.790
+So in case you're confused why don't we var_dump() this. Maybe inside the metabox.
+
+37
+03:36.890 --> 03:40.320
+Let's "echo '<pre>'" tags here.
+
+38
+03:40.620 --> 03:43.020
+In order to see this clearly.
+
+39
+03:49.110 --> 03:52.230
+So as you can see now this is the "post_type" object.
+
+40
+03:52.410 --> 03:56.190
+It's of type WP_post_type. And our post type
+
+41
+03:56.190 --> 04:01.750
+in this case is post and if you were editing a page this would be a page. And then we have the
+
+42
+04:04.510 --> 04:11.770
+capability key which is an object that contains all the capabilities so the "edit_post" capability for
+
+43
+04:11.770 --> 04:13.300
+the post is called "edit_post".
+
+44
+04:13.480 --> 04:17.240
+But the "edit_post" capability for another post type will be another thing.
+
+45
+04:17.500 --> 04:22.710
+So this way we are getting the capability name according to the "post_type".
+
+46
+04:22.880 --> 04:33.140
+So let's carry on. And now we will need to use this as the capability name.
+
+47
+04:33.640 --> 04:35.140
+So I hope this is clear.
+
+48
+04:35.220 --> 04:37.250
+Let's now do the nonce.
+
+49
+04:37.600 --> 04:42.610
+So when you are submitting this form we need to submit a nonce field in order to verify it
+
+50
+04:42.610 --> 04:48.560
+when we handle the data, right? So we know how to add this in a URL, in a GET requests, but in a form
+
+51
+04:49.390 --> 04:50.650
+it will be a little different.
+
+52
+04:50.650 --> 04:59.110
+So we will call a function called wp_nonce_field(). And this will take an "action".
+
+53
+04:59.130 --> 05:08.220
+So in our case we are saving the metabox. So let's call it "update_post_meta_box". And let's ignore
+
+54
+05:08.230 --> 05:18.210
+the other two arguments. And the name is the name of the field that you will retrieve in the $_POST super global.
+
+55
+05:19.810 --> 05:29.600
+So let's add this and you'll know what I mean in a moment. So let's call it "_themename_update_post_nonce".
+
+56
+05:30.580 --> 05:37.590
+So what this function will do is that it will create a hidden field with the generated nonce.
+
+57
+05:38.020 --> 05:39.910
+So let's inspect our form here.
+
+58
+05:41.500 --> 05:47.370
+And as you can see we have a hidden field which is called "_themename_update_post_nonce" and the value is a
+
+59
+05:47.370 --> 05:55.260
+nonce. So this information will now be sent in the post request. And we will have it here. So we can verify
+
+60
+05:55.260 --> 05:56.050
+the nonce
+
+61
+05:56.340 --> 05:59.170
+exactly like we did in the last lecture.
+
+62
+05:59.250 --> 06:11.320
+So if it's not set, this time it's $_POST  instead of $_GET, and the name which is this one.
+
+63
+06:14.990 --> 06:19.950
+Or if it's set and it's not a valid nonce field.
+
+64
+06:20.440 --> 06:21.890
+So "wp_verify_nonce".
+
+65
+06:22.990 --> 06:29.620
+And it will receive the "nonc"e field and the "action". we call the action
+
+66
+06:29.800 --> 06:30.960
+the first argument in the
+
+67
+06:31.030 --> 06:35.640
+wp_nonce_field() function.
+
+68
+06:35.780 --> 06:42.550
+So if it does not exist or it's not verified we will also return.
+
+69
+06:43.050 --> 06:46.450
+So this is how we secure saving of metaboxes.
+
+70
+06:46.720 --> 06:47.500
+Let's now create 
+
+71
+06:47.520 --> 06:51.330
+one final thing for this lecture. Let's create a new field.
+
+72
+06:51.660 --> 06:59.250
+But this time let's create a dropdown field. And we'll use this field when we are building our single.php file
+
+73
+06:59.310 --> 07:01.370
+which will be used for the single blog.
+
+74
+07:01.440 --> 07:06.570
+So we need to add an option for the single blog. For every post we need the user to have the ability
+
+75
+07:06.660 --> 07:11.790
+to choose whether the layout should be a full screen layout or the post content with a sidebar.
+
+76
+07:11.790 --> 07:19.670
+So let's add a dropdown that will contain these two options. So let's add a LABEL. Let's
+
+77
+07:20.980 --> 07:23.430
+escape and translate and echo.
+
+78
+07:26.470 --> 07:31.690
+Let's call it "Layout" and our test domain.
+
+79
+07:35.820 --> 07:37.730
+And close the LABEL.
+
+80
+07:41.720 --> 07:43.650
+Let's give it a "for" here.
+
+81
+07:44.090 --> 07:51.970
+So this will be also the field name so let's call it "_themename_post_layout_field".
+
+82
+07:54.780 --> 07:57.620
+Let's copy this we'll use it now in the dropdown.
+
+83
+07:57.610 --> 07:58.680
+So let's create a SELECT
+
+84
+08:01.470 --> 08:08.140
+with the name of our field and the "id".
+
+85
+08:08.230 --> 08:11.000
+So let's give it a class "widefat".
+
+86
+08:13.790 --> 08:19.950
+And let's close it. And we will now have to create the OPTIONS for the SELECT.
+
+87
+08:20.070 --> 08:27.070
+So lets create an OPTION and this one will be the full screen
+
+88
+08:27.150 --> 08:27.610
+blog.
+
+89
+08:34.380 --> 08:40.260
+And let's copy one of these just to save some time. And we need to add a text for the OPTION.
+
+90
+08:40.260 --> 08:49.030
+So let's call it "Full Width". And let's duplicate this. And this one will be a post with a sidebar.
+
+91
+08:49.050 --> 08:52.400
+So let's call it  "sidebar" as a value and here.
+
+92
+09:00.150 --> 09:02.720
+And we need now to handle this field.
+
+93
+09:02.850 --> 09:06.800
+So let's copy this and modify it
+
+94
+09:10.130 --> 09:22.260
+So we have our field name is now this one. So let's paste it here and here. And let's call this key "post_layout".
+
+95
+09:25.140 --> 09:31.650
+And sanitize_text_field() can also work for the dropdown. You can create a custom function like with did in the 
+
+96
+09:31.650 --> 09:31.850
+Customizer.
+
+97
+09:31.860 --> 09:40.300
+But you know you get the idea. So let's use sanitize_text_field() for now. And finally we'll have to retrieve the field.
+
+98
+09:41.320 --> 09:43.930
+And add it as the value for the dropdown.
+
+99
+09:44.020 --> 09:48.490
+So let's duplicate this and call it $layout.
+
+100
+09:49.110 --> 09:57.520
+And we have the meta key here. Make sure you don't mix it up with the field name.
+
+101
+10:01.060 --> 10:07.420
+So this $layout will now hold the value. And we now need to add selected attributes for the selected
+
+102
+10:07.420 --> 10:08.440
+value, right?
+
+103
+10:08.500 --> 10:13.180
+So you can do this using the if conditions and echo selected attribute
+
+104
+10:13.180 --> 10:18.840
+if the value is "full" here and stuff like that. But actually WordPress provides a nice function called selected().
+
+105
+10:19.030 --> 10:29.320
+So we can open PHP and call selected(). And this will take the "selected" value which will be the value that we got
+
+106
+10:29.320 --> 10:32.990
+from the database. And the "current" option value which will be "full".
+
+107
+10:36.100 --> 10:40.540
+And it will output the selected attribute
+
+108
+10:40.610 --> 10:45.340
+if the layout is equals to "full". So let's copy this.
+
+109
+10:45.580 --> 10:55.050
+And we'll have to edit in every option. And let's change the value.
+
+110
+10:55.250 --> 10:57.910
+And I think this should be fine.
+
+111
+10:58.010 --> 10:59.520
+So let's go back to the posts.
+
+112
+10:59.550 --> 11:04.380
+Now we have this option. Let's change it and save it.
+
+113
+11:07.180 --> 11:12.430
+And it's saved and everything is looking fine. 
+
+114
+11:12.700 --> 11:22.780
+So as you can see every time you create a field you have to write the HTML for it. And then for each field
+
+115
+11:22.780 --> 11:25.040
+you should handle its submission.
+
+116
+11:25.120 --> 11:27.440
+And update_post_meta() and stuff like that.
+
+117
+11:27.460 --> 11:33.580
+So if you are having a lot of fields you'll end up with a lot of HTML here and a lot of if conditions
+
+118
+11:33.580 --> 11:38.530
+here. And this could be too much coding. We can do better than that.
+
+119
+11:38.530 --> 11:48.990
+So what I was thinking is maybe creating an array. Lets call $fields or whatever and this array will hold
+
+120
+11:49.560 --> 11:59.830
+other arrays. And each array here will represent a field. So it will for example have a "type" of "text"
+
+121
+12:04.040 --> 12:05.270
+and may be a "label"
+
+122
+12:08.830 --> 12:10.350
+and so on.
+
+123
+12:11.400 --> 12:18.090
+And then when we need to add another text field you just have to add another array in this field array.
+
+124
+12:18.660 --> 12:25.740
+And then instead of generating our HTML like so, we can just loop through this array and then check the
+
+125
+12:25.740 --> 12:32.040
+type of the field and generate this HTML automatically. And then we could also create some custom field
+
+126
+12:32.040 --> 12:36.750
+types like a color picker and write some JavaScript for it and stuff like that.
+
+127
+12:36.790 --> 12:39.660
+But then I thought that would be too much for this cause.
+
+128
+12:39.780 --> 12:45.090
+So maybe I could create a separate course for it. Just let me know if you'll be interested in something
+
+129
+12:45.090 --> 12:45.910
+like that.
+
+130
+12:45.920 --> 12:49.970
+What we'll be creating is basically like a mini advanced custom fields plugin.
+
+131
+12:50.220 --> 12:52.680
+But for now let's leave it like that.
+
+132
+12:53.310 --> 13:00.330
+And according to your feedback I might create this course. And let's now address another problem.
+
+133
+13:00.330 --> 13:03.240
+Now imagine we are defining these fields in our theme.
+
+134
+13:03.270 --> 13:10.940
+So we have the Post Subtitle. And let's assume the user decided to change your theme but he still needs
+
+135
+13:11.070 --> 13:15.370
+these fields. He still need the subtitle to use it in his new theme.
+
+136
+13:15.540 --> 13:19.700
+So defining this fields in your theme like we did now is not a best practice.
+
+137
+13:20.530 --> 13:26.770
+Instead we should define these fields in a plugin. So plugin in WordPress is the same as writing some
+
+138
+13:27.310 --> 13:29.320
+functions in functions.php.
+
+139
+13:29.390 --> 13:34.600
+Instead we write it in a separate folder in a plugin. So that it will not be dependent on the active
+
+140
+13:34.600 --> 13:35.300
+theme.
+
+141
+13:35.380 --> 13:40.600
+So we need to do that for our metaboxes in order for them to be available even if the user decided
+
+142
+13:40.600 --> 13:42.510
+to change your theme.
+
+143
+13:42.640 --> 13:49.600
+And before going to the next lecture I want to quickly show you what the custom fields look like if you activate
+
+144
+13:49.690 --> 13:52.450
+the Gutenberg plugin. Let's refresh.
+
+145
+13:55.770 --> 13:58.450
+As you can see it's still exists and it's working fine.
+
+146
+13:58.450 --> 14:02.910
+However now you cannot add this metabox in the side bar.
+
+147
+14:03.370 --> 14:04.770
+So this is not a big deal.
+
+148
+14:04.870 --> 14:08.300
+And this might actually change by the time Gutenberg is not released yet.
+
+149
+14:08.320 --> 14:11.010
+So let's now move our custom fields to a separate plugin.

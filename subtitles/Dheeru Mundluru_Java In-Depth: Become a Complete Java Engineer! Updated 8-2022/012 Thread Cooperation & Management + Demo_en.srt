@@ -1,0 +1,864 @@
+1
+00:00:02,290 --> 00:00:03,210
+Hi there.
+
+2
+00:00:03,220 --> 00:00:04,450
+This is Lou.
+
+3
+00:00:04,450 --> 00:00:05,470
+And welcome back.
+
+4
+00:00:05,890 --> 00:00:09,190
+I would say we are not done with part one of the concurrency chapter.
+
+5
+00:00:09,250 --> 00:00:15,370
+And in the remaining part of the chapter, we will mainly explore about threat cooperation and management.
+
+6
+00:00:16,930 --> 00:00:19,570
+These are a couple of concerns that we addressed so far.
+
+7
+00:00:20,640 --> 00:00:22,070
+To address race condition.
+
+8
+00:00:22,080 --> 00:00:28,740
+What we needed was a city that is a threat has to atomically perform some operations.
+
+9
+00:00:28,980 --> 00:00:33,030
+We saw that both synchronization and atomic variables help with that.
+
+10
+00:00:34,730 --> 00:00:39,920
+And with regards to memory visibility, in addition to synchronization and atomic variables, we could
+
+11
+00:00:39,920 --> 00:00:41,480
+use volatile variables.
+
+12
+00:00:43,170 --> 00:00:46,470
+And here are a couple of new requirements that are yet to be addressed.
+
+13
+00:00:47,050 --> 00:00:50,650
+First one is threat cooperation with synchronization.
+
+14
+00:00:50,670 --> 00:00:52,980
+We saw a form of threat cooperation.
+
+15
+00:00:53,610 --> 00:00:56,490
+That is when one threat is inside a synchronized region.
+
+16
+00:00:56,580 --> 00:01:03,150
+Then other threats have to wait and cannot enter either same or another synchronized region that is
+
+17
+00:01:03,150 --> 00:01:04,620
+guarded by the same lock.
+
+18
+00:01:05,250 --> 00:01:09,360
+So the cooperation helps with threats not interfering with each other.
+
+19
+00:01:10,240 --> 00:01:14,620
+However, in certain scenarios, we need more than this simple cooperation.
+
+20
+00:01:15,130 --> 00:01:22,060
+For instance, if one thread is inside synchronize region, it may not be able to perform its task unless
+
+21
+00:01:22,060 --> 00:01:25,390
+some other thread performs some other relevant task.
+
+22
+00:01:26,050 --> 00:01:32,020
+And for that, the first thread has to let the other thread take over and perform its task before the
+
+23
+00:01:32,020 --> 00:01:33,400
+first thread can continue.
+
+24
+00:01:34,440 --> 00:01:35,130
+Not that here.
+
+25
+00:01:35,130 --> 00:01:41,130
+Foster needs to know whether or not the other thread has performed the relevant task.
+
+26
+00:01:41,250 --> 00:01:41,670
+Right.
+
+27
+00:01:41,790 --> 00:01:45,780
+And this information is captured via some shared state.
+
+28
+00:01:46,140 --> 00:01:53,220
+And if the shared state meet certain criteria, which is nothing but a condition only, then the first
+
+29
+00:01:53,220 --> 00:01:55,260
+thread will continue its actions.
+
+30
+00:01:55,890 --> 00:01:59,280
+So there is also a condition involved that plays a part here.
+
+31
+00:02:00,060 --> 00:02:02,160
+Shortly we will look at an example of this.
+
+32
+00:02:02,520 --> 00:02:06,750
+So what we are going to see next is some real interaction between threats.
+
+33
+00:02:08,130 --> 00:02:09,870
+And for this, we will look at three approaches.
+
+34
+00:02:10,169 --> 00:02:16,350
+First one is something I would refer to as a naive approach, which would rely on volatile variables.
+
+35
+00:02:16,830 --> 00:02:23,490
+Second approach is wait notify approach, which uses methods called wait and notify for interacting.
+
+36
+00:02:24,280 --> 00:02:29,920
+And the last approach would involve some concurrency utilities which were introduced in Java five,
+
+37
+00:02:30,010 --> 00:02:33,850
+and they represent the best approach for threat cooperation.
+
+38
+00:02:35,390 --> 00:02:40,460
+And second equipment is about threat management, which is important when we are dealing with large
+
+39
+00:02:40,460 --> 00:02:44,990
+scale systems where we would have lots and lots of threats running concurrently.
+
+40
+00:02:45,410 --> 00:02:52,040
+In such scenarios, we need to have a good threat creation and management facility in place that is
+
+41
+00:02:52,040 --> 00:02:52,990
+creating threats.
+
+42
+00:02:53,000 --> 00:02:56,300
+The way we have seen so far will not be of much help.
+
+43
+00:02:56,300 --> 00:03:00,590
+From a practical standpoint, they are only good for small applications.
+
+44
+00:03:01,530 --> 00:03:07,050
+Concurrency utilities that come with Java file includes something called Executable Framework, which
+
+45
+00:03:07,050 --> 00:03:08,070
+would help with this.
+
+46
+00:03:08,850 --> 00:03:14,670
+Later, we will look at this executable framework and you will notice how easy it is to use that framework.
+
+47
+00:03:16,470 --> 00:03:18,780
+Not to understand that cooperation and management.
+
+48
+00:03:18,780 --> 00:03:22,620
+We will use Web page indexing process as our example.
+
+49
+00:03:23,280 --> 00:03:28,920
+Web page indexing is a process that is done by search engines like Google and Web page indexing is a
+
+50
+00:03:28,920 --> 00:03:30,270
+very complex process.
+
+51
+00:03:30,840 --> 00:03:35,700
+The first step would be to download Web pages, and this is done by a Web crawler.
+
+52
+00:03:35,700 --> 00:03:40,560
+We already discussed a little bit about Web Crawler, given a URL of a web page.
+
+53
+00:03:40,590 --> 00:03:47,280
+A Web crawler would first download that web page and would then recursively download all the web pages
+
+54
+00:03:47,280 --> 00:03:50,100
+that are referenced from that particular web page.
+
+55
+00:03:50,340 --> 00:03:53,370
+And this process continues with the downloaded web pages.
+
+56
+00:03:53,370 --> 00:03:59,280
+To that is the download of web pages will also have certain links, and we need to download all those
+
+57
+00:03:59,280 --> 00:04:00,030
+web pages.
+
+58
+00:04:00,720 --> 00:04:04,050
+Once the web pages are downloaded, they need to be indexed.
+
+59
+00:04:04,890 --> 00:04:11,310
+For this search engines build something called an inverted index, which is a data structure that allows
+
+60
+00:04:11,310 --> 00:04:14,490
+us to search those documents in a very efficient way.
+
+61
+00:04:15,170 --> 00:04:20,300
+So if you need fast text search, then inverted index is what you would be building.
+
+62
+00:04:21,019 --> 00:04:26,270
+The field of information retrieval is all about web crawling and indexing process.
+
+63
+00:04:26,420 --> 00:04:28,160
+It's a very interesting field.
+
+64
+00:04:28,940 --> 00:04:32,120
+So that the most that we will do will simulate this process.
+
+65
+00:04:32,390 --> 00:04:39,050
+And each demo incorporates a new feature which we will learn and would typically improvise on the previous
+
+66
+00:04:39,050 --> 00:04:40,520
+feature that was learned.
+
+67
+00:04:41,240 --> 00:04:45,080
+So it's going to be really cool and I hope you will like the approach taken here.
+
+68
+00:04:46,840 --> 00:04:49,500
+And this is what we would have in our demo programs.
+
+69
+00:04:49,510 --> 00:04:53,590
+We would have three classes Downloader, Indexer and web link.
+
+70
+00:04:54,160 --> 00:05:01,570
+An instance of web link represents a URL of a web page, and this web link object is shared between
+
+71
+00:05:01,600 --> 00:05:05,860
+downloader and indexer objects, which are nothing but two threads.
+
+72
+00:05:06,710 --> 00:05:13,490
+So for each weblink we are basically creating downloader and indexer threads and they share the same
+
+73
+00:05:13,490 --> 00:05:14,030
+web link.
+
+74
+00:05:14,030 --> 00:05:21,770
+Object Downloader thread is responsible for downloading the web page referenced by web link and indexer
+
+75
+00:05:21,770 --> 00:05:25,970
+thread is responsible for indexing the downloaded web page.
+
+76
+00:05:26,690 --> 00:05:33,890
+So there would be threat cooperation here as the indexer should be able to index only after the downloaded
+
+77
+00:05:33,890 --> 00:05:36,110
+thread can download the webpage.
+
+78
+00:05:36,620 --> 00:05:41,930
+That is, even if the indexer thread is ready to index and the downloader has not yet downloaded the
+
+79
+00:05:41,930 --> 00:05:48,200
+web page, then indexer needs to somehow wait until downloader completes downloading the web page.
+
+80
+00:05:48,970 --> 00:05:55,540
+So the condition here for indexer to proceed would be the availability of downloaded web page.
+
+81
+00:05:56,480 --> 00:06:00,200
+The demo programs will also involve more than one web link.
+
+82
+00:06:00,710 --> 00:06:03,260
+And for each web link we would create two threads.
+
+83
+00:06:03,410 --> 00:06:07,940
+So at any given point of time, we will have many threads working concurrently.
+
+84
+00:06:08,850 --> 00:06:14,880
+Now let's go ahead and do our first demo and we will look at the new approach that I mentioned earlier
+
+85
+00:06:14,880 --> 00:06:16,230
+for threat cooperation.
+
+86
+00:06:18,820 --> 00:06:25,510
+For this demo, I created a new sub package called comm dot semantics squared dot concurrency dot indexer.
+
+87
+00:06:25,870 --> 00:06:29,410
+So it's created under com dot semantics concurrency.
+
+88
+00:06:29,800 --> 00:06:34,780
+And within this sub package indexer, I created a new class called Naive Indexer.
+
+89
+00:06:35,530 --> 00:06:37,290
+So the entire code has been written.
+
+90
+00:06:37,300 --> 00:06:41,740
+So we are just going to look at this code and we are not going to write any new code in this class because
+
+91
+00:06:41,740 --> 00:06:43,000
+there is a lot of code here.
+
+92
+00:06:43,300 --> 00:06:45,820
+And in subsequent demos we will be writing some code.
+
+93
+00:06:46,090 --> 00:06:49,180
+So this class now indexer, it has three.
+
+94
+00:06:50,480 --> 00:06:51,290
+Nested classes.
+
+95
+00:06:51,290 --> 00:06:52,670
+One of them is Web link.
+
+96
+00:06:52,700 --> 00:06:58,290
+This is Web Link and the two other classes are indexer and downloader.
+
+97
+00:06:58,310 --> 00:07:00,620
+We already discussed that in the lecture.
+
+98
+00:07:00,770 --> 00:07:10,250
+So in the weblink class we have these fields ID, title, URL and host and also the HTML page, the
+
+99
+00:07:10,250 --> 00:07:10,910
+web page.
+
+100
+00:07:10,910 --> 00:07:14,180
+So that will be stored in this variable called HTML page.
+
+101
+00:07:14,330 --> 00:07:17,190
+And we are using a volatile variable here.
+
+102
+00:07:17,420 --> 00:07:22,790
+So it's a volatile modifier and we need that because we have two different threads which are trying
+
+103
+00:07:22,790 --> 00:07:27,410
+to interact with each other and they need to see the the value of this variable.
+
+104
+00:07:27,620 --> 00:07:29,150
+So this is a shared variable.
+
+105
+00:07:29,870 --> 00:07:36,140
+And other than that, we just have some getters and setters here and this is the Downloader class and
+
+106
+00:07:36,140 --> 00:07:37,400
+it implements Learnable.
+
+107
+00:07:37,490 --> 00:07:41,520
+So we said that both the downloader and the indexer.
+
+108
+00:07:41,540 --> 00:07:43,880
+They share the same web link object.
+
+109
+00:07:43,880 --> 00:07:48,500
+And so we have the constructor here where the web link is being initialized.
+
+110
+00:07:48,890 --> 00:07:55,220
+And here is the run method because we are implementing run double and similarly we have the indexer.
+
+111
+00:07:55,310 --> 00:08:00,830
+So just like downloader, it also has the constructor and web link object is being initialized here
+
+112
+00:08:01,040 --> 00:08:03,080
+and we also have the run method here.
+
+113
+00:08:03,770 --> 00:08:09,280
+And so those are the three classes and the new indexer class itself.
+
+114
+00:08:09,290 --> 00:08:14,330
+It has three methods go add and create web link and also the main method.
+
+115
+00:08:14,510 --> 00:08:21,290
+So in the main method we are instantiating now indexer and we are creating four web links here.
+
+116
+00:08:21,530 --> 00:08:28,460
+So the create web link method is mainly responsible for creating the web link and we are passing all
+
+117
+00:08:28,460 --> 00:08:29,690
+the values needed.
+
+118
+00:08:29,690 --> 00:08:37,100
+So we are passing four different links here, links to web pages and we are passing all the necessary
+
+119
+00:08:37,100 --> 00:08:37,909
+information.
+
+120
+00:08:38,360 --> 00:08:44,540
+And all these for web links will be stored here in order, will be stored in a data structure.
+
+121
+00:08:44,540 --> 00:08:47,240
+And for that we have created this add method.
+
+122
+00:08:47,250 --> 00:08:53,480
+So ADD method is here and the data structure that we are using is an array deck here.
+
+123
+00:08:53,480 --> 00:08:59,990
+So at the top we are creating an array deck and it will store items of type web link.
+
+124
+00:09:00,350 --> 00:09:06,740
+So and we are naming it as Q and they are all added into the queue using the ADD method.
+
+125
+00:09:08,000 --> 00:09:08,310
+Okay.
+
+126
+00:09:08,330 --> 00:09:10,490
+And finally, we are invoking the method.
+
+127
+00:09:10,490 --> 00:09:15,170
+Go here and here is the method go and the method go.
+
+128
+00:09:15,170 --> 00:09:19,520
+Basically iterates over the queue, which has the four lengths.
+
+129
+00:09:19,760 --> 00:09:26,750
+And in each iteration it is, it is extracting the web link, a web link by, by invoking the remote
+
+130
+00:09:26,750 --> 00:09:28,520
+method on the queue.
+
+131
+00:09:28,700 --> 00:09:36,140
+And it is creating two threads, the downloader thread and the indexer thread and it is passing, it
+
+132
+00:09:36,140 --> 00:09:41,060
+is passing the weblink and it is also instantiating both downloader and indexer.
+
+133
+00:09:41,270 --> 00:09:46,890
+So those are the tasks and those tasks are initialized with the common object web link.
+
+134
+00:09:47,030 --> 00:09:47,160
+Right.
+
+135
+00:09:47,240 --> 00:09:48,980
+And then we are starting the threads.
+
+136
+00:09:49,310 --> 00:09:52,460
+Now let's go ahead and look at these threads.
+
+137
+00:09:55,240 --> 00:09:55,670
+Okay.
+
+138
+00:09:55,720 --> 00:10:00,430
+So here is the run method and inside of download class.
+
+139
+00:10:00,430 --> 00:10:04,270
+And here basically we are downloading the web page.
+
+140
+00:10:04,270 --> 00:10:09,550
+So we are invoking the get URL method and we are downloading and for downloading.
+
+141
+00:10:09,550 --> 00:10:15,370
+So we have this utility class called HTTP, connect, download and that would actually download the
+
+142
+00:10:15,370 --> 00:10:16,000
+web page.
+
+143
+00:10:16,300 --> 00:10:21,310
+So this will also be provided in the resources section and you can take a look at it.
+
+144
+00:10:21,760 --> 00:10:24,880
+And so that we will get the HTML page here.
+
+145
+00:10:25,180 --> 00:10:30,790
+And the web link class has the has the HTML page variable also.
+
+146
+00:10:30,790 --> 00:10:34,300
+And the way we set it is by invoking the setter method for that.
+
+147
+00:10:34,360 --> 00:10:37,450
+So if we invoke it, so we'll have the setter method.
+
+148
+00:10:38,140 --> 00:10:39,790
+So that's what we are doing here.
+
+149
+00:10:40,030 --> 00:10:44,890
+And just note that all the three nested classes are static member classes.
+
+150
+00:10:44,980 --> 00:10:50,740
+So we are not using non static member classes because non static member classes will store a hidden
+
+151
+00:10:50,740 --> 00:10:54,100
+reference to the end closing class, which is the new indexer.
+
+152
+00:10:54,100 --> 00:10:58,960
+And we don't need that because we don't need to access any of its members, any of its member instance
+
+153
+00:10:58,960 --> 00:10:59,590
+members.
+
+154
+00:10:59,800 --> 00:11:06,010
+So we are going to save that and that's the reason why we are using static nested classes.
+
+155
+00:11:06,520 --> 00:11:07,300
+So that's it.
+
+156
+00:11:07,300 --> 00:11:13,300
+So we are going to set the HTML page here and in the indexer we have the run method.
+
+157
+00:11:14,170 --> 00:11:21,220
+Now both the threads have to communicate, right, because the indexer thread should not index the document
+
+158
+00:11:21,370 --> 00:11:22,990
+before the download happens.
+
+159
+00:11:22,990 --> 00:11:26,710
+It needs the downloaded web page in order to index the document.
+
+160
+00:11:26,710 --> 00:11:30,340
+And for index we just use this method called index.
+
+161
+00:11:30,340 --> 00:11:36,790
+It's defined within the indexer class and all it does is it takes the text and it simply says that that
+
+162
+00:11:36,790 --> 00:11:38,560
+particular text has been indexed.
+
+163
+00:11:38,770 --> 00:11:40,090
+So it's just printing the ID.
+
+164
+00:11:40,090 --> 00:11:45,610
+So we're not going we are not doing anything, anything special over here with regards to indexing.
+
+165
+00:11:46,030 --> 00:11:52,660
+So here so this thread, basically the way it is working is so it is downloading the HTML page, but
+
+166
+00:11:52,660 --> 00:11:57,220
+if the HTML page is not equal to null only then we are indexing it.
+
+167
+00:11:57,640 --> 00:12:02,470
+But if it is equal to null, then we should not index then this particular thread.
+
+168
+00:12:02,650 --> 00:12:09,100
+The index thread has to wait for the downloader thread to complete downloading the web page.
+
+169
+00:12:09,120 --> 00:12:09,650
+Right.
+
+170
+00:12:09,670 --> 00:12:12,730
+And for that reason we have this infinite loop here.
+
+171
+00:12:12,970 --> 00:12:19,180
+So if if the HTML page is equal to null, then we go into the loop and we just say that the web page
+
+172
+00:12:19,180 --> 00:12:20,590
+is not yet downloaded.
+
+173
+00:12:21,460 --> 00:12:26,470
+So among the two threads, the indexer thread is started first and it is running first.
+
+174
+00:12:26,470 --> 00:12:32,050
+It is in the running state, so it is in the running state before the downloader downloader thread and
+
+175
+00:12:32,050 --> 00:12:36,070
+hence we are getting into this loop and HTML page is equal to null.
+
+176
+00:12:36,070 --> 00:12:43,090
+And so we are going into this else condition here and then we are iterating it until the thread scheduler
+
+177
+00:12:43,090 --> 00:12:48,280
+what schedule the other thread, the downloader thread and whenever the other thread downloads a web
+
+178
+00:12:48,280 --> 00:12:55,330
+page, then in one of the iterations the HTML page would be equal to not null but would be not null.
+
+179
+00:12:55,360 --> 00:12:58,750
+And in that case, we index the page and we break out of the loop.
+
+180
+00:12:59,260 --> 00:13:00,190
+So that's it.
+
+181
+00:13:00,190 --> 00:13:03,130
+And let me just go ahead and run this.
+
+182
+00:13:05,220 --> 00:13:07,220
+So you can see it is not yet downloaded.
+
+183
+00:13:07,230 --> 00:13:08,430
+Not yet downloaded.
+
+184
+00:13:09,270 --> 00:13:11,370
+So it's just working forever.
+
+185
+00:13:13,370 --> 00:13:13,480
+Okay.
+
+186
+00:13:13,580 --> 00:13:14,660
+Now it is done.
+
+187
+00:13:15,260 --> 00:13:16,370
+So here.
+
+188
+00:13:16,400 --> 00:13:23,180
+The ID, the document, the webpage with ID 2000 has been indexed and it is once again printing 2002
+
+189
+00:13:23,180 --> 00:13:24,380
+not yet downloaded.
+
+190
+00:13:24,710 --> 00:13:28,820
+And then once it was downloaded, then we are indexing it.
+
+191
+00:13:28,850 --> 00:13:30,680
+The indexed thread is indexing it.
+
+192
+00:13:32,180 --> 00:13:35,330
+And the other threads might have been indexed at the top.
+
+193
+00:13:35,330 --> 00:13:36,140
+Definitely.
+
+194
+00:13:37,010 --> 00:13:38,910
+So we cannot view them here.
+
+195
+00:13:38,930 --> 00:13:40,640
+So that's how it is working.
+
+196
+00:13:40,640 --> 00:13:42,380
+So that's how we are cooperating.
+
+197
+00:13:42,530 --> 00:13:44,180
+The threads are cooperating.
+
+198
+00:13:44,540 --> 00:13:46,010
+So it is the second thread.
+
+199
+00:13:46,010 --> 00:13:49,940
+Indexer thread is waiting using a while loop here in finite loop.
+
+200
+00:13:50,360 --> 00:13:54,170
+And here I have some, some some little bit of notes here.
+
+201
+00:13:54,440 --> 00:13:58,430
+So here HTML page is declared as volatile in web link.
+
+202
+00:13:58,610 --> 00:14:03,620
+And if there are any web links, this approach is creating twice the number of threads.
+
+203
+00:14:03,620 --> 00:14:04,010
+Right?
+
+204
+00:14:04,010 --> 00:14:06,440
+Because for each web link we are creating two threads.
+
+205
+00:14:06,590 --> 00:14:13,910
+But the limitation here is that the CPU cycles are wasted and indexer as it is waiting for the page
+
+206
+00:14:13,910 --> 00:14:14,660
+to be downloaded.
+
+207
+00:14:14,660 --> 00:14:15,150
+Right.
+
+208
+00:14:15,170 --> 00:14:18,710
+So as it is waiting, we have this infinite loop going on.
+
+209
+00:14:18,710 --> 00:14:21,060
+So that would base the CPU cycles.
+
+210
+00:14:21,080 --> 00:14:24,360
+And that's the reason why we call it as a naive indexer.
+
+211
+00:14:24,380 --> 00:14:29,930
+And this is what we will try to improve, improve on with the subsequent demos.
+
+212
+00:14:29,960 --> 00:14:35,960
+And the next demo is about using the wait and notify approach, which actually improves on this approach.
+
+213
+00:14:36,230 --> 00:14:37,250
+And we will see that.
+
+214
+00:14:37,340 --> 00:14:38,360
+So that's about it.
+
+215
+00:14:38,360 --> 00:14:42,110
+And this code is available and the resources section and thank you.
+
+216
+00:14:42,110 --> 00:14:43,430
+I'll see you in the next lecture.
+

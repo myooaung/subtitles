@@ -1,0 +1,1128 @@
+WEBVTT
+1
+00:00:01.610 --> 00:00:04.100
+Hello and welcome to another tutorial.
+
+2
+00:00:05.000 --> 00:00:12.140
+Previously we saw that when using Reflection API, a static analyzer of the native image can succeed
+
+3
+00:00:12.140 --> 00:00:19.760
+in most of the time unless we are basically dynamically loading a class and the string or the fully
+
+4
+00:00:19.760 --> 00:00:24.350
+qualified name of that class, for example, is not provided at compile time.
+
+5
+00:00:24.350 --> 00:00:31.790
+So there is some information missing that makes it impossible for for the Native Image aesthetic analyzer
+
+6
+00:00:31.790 --> 00:00:34.340
+to really look at your source code and figure out what's going on.
+
+7
+00:00:34.340 --> 00:00:39.580
+So if it's not possible to figure out at compile time, what else can we do?
+
+8
+00:00:39.590 --> 00:00:40.280
+Is there a solution?
+
+9
+00:00:40.280 --> 00:00:41.330
+The answer is yes.
+
+10
+00:00:41.540 --> 00:00:43.370
+And Dancer.
+
+11
+00:00:43.370 --> 00:00:49.610
+Basically the solution that the graph VM in general provides for this kind of static compilation is
+
+12
+00:00:49.610 --> 00:00:50.960
+a tracing agent.
+
+13
+00:00:50.990 --> 00:00:57.840
+As I mentioned before, Google VM comes with a build of open JDK, so it already has the EVM there,
+
+14
+00:00:58.730 --> 00:01:03.350
+other parts of the JDK like Java, C, etc. now.
+
+15
+00:01:03.350 --> 00:01:05.480
+So it has the EVM, so it has the wrong time.
+
+16
+00:01:05.480 --> 00:01:08.870
+So which means that it has a Java Command.
+
+17
+00:01:08.870 --> 00:01:16.100
+So if you recall, when we run our terminal, as I mentioned, I already have installed a various JDK
+
+18
+00:01:16.580 --> 00:01:22.730
+and right now my job at home is looking, pointing to the JDK 17 from Oracle JDK.
+
+19
+00:01:22.730 --> 00:01:23.210
+Right?
+
+20
+00:01:23.450 --> 00:01:32.420
+So if I say Java Home Bean and in Java, which means I'm launching the JVM from this Oracle JDK, and
+
+21
+00:01:32.420 --> 00:01:34.070
+then let's look at hyphen hyphen version.
+
+22
+00:01:34.070 --> 00:01:36.590
+This is the hottest part version right now.
+
+23
+00:01:36.590 --> 00:01:43.250
+I've already also set up my Google home to point to the latest installation that I did right 22.1 And
+
+24
+00:01:43.250 --> 00:01:51.410
+if I look at the gvm that comes with this installation of Google VM, so Java hyphen hyphen version
+
+25
+00:01:51.410 --> 00:01:55.490
+from Google Home, now it comes from the open JDK build, right?
+
+26
+00:01:56.330 --> 00:02:02.690
+So open JDK 1703 And so these are two different VMs.
+
+27
+00:02:02.690 --> 00:02:09.950
+And the good thing about including the JVs with the VM is that they could add more capabilities to it.
+
+28
+00:02:09.950 --> 00:02:18.080
+And one of them is a tracing agent, some plugin to the JVM that monitors your application at runtime.
+
+29
+00:02:18.950 --> 00:02:24.800
+So if you go to this address, VM 2.1 reference manual, native image and then agent.
+
+30
+00:02:24.800 --> 00:02:31.710
+So Native Image also has an agent command, but the gvm that also comes with the beam has an agent command.
+
+31
+00:02:31.820 --> 00:02:38.570
+And this agent is basically tracks the interactions or basically what your application does.
+
+32
+00:02:38.570 --> 00:02:44.570
+And then it can log them, it can create a configuration file because last time when we compiled the
+
+33
+00:02:44.570 --> 00:02:48.440
+third version, native image said, Hey, I don't know what to do.
+
+34
+00:02:48.830 --> 00:02:51.500
+This is not possible for me to figure out at compile time.
+
+35
+00:02:51.500 --> 00:02:56.720
+So but if you provide me a configuration file, then I look at that and then understand what you're
+
+36
+00:02:56.720 --> 00:02:57.440
+trying to do.
+
+37
+00:02:57.440 --> 00:03:06.620
+And this tracing agent that comes with the JV team that is included in the VM, it can facilitate the
+
+38
+00:03:06.650 --> 00:03:11.120
+job, it can facilitate generating these configuration files.
+
+39
+00:03:11.330 --> 00:03:18.170
+So native images are built ahead of runtime, a static compilation, and their build relies on a static
+
+40
+00:03:18.230 --> 00:03:20.720
+analysis of which code will be reachable.
+
+41
+00:03:20.720 --> 00:03:21.290
+Right.
+
+42
+00:03:21.290 --> 00:03:24.020
+So retrieval means which classes are on the class path.
+
+43
+00:03:24.020 --> 00:03:25.880
+Not only that, but native image.
+
+44
+00:03:25.880 --> 00:03:27.380
+As I mentioned before, it's smart.
+
+45
+00:03:27.380 --> 00:03:33.020
+Realizes that if there are some classes on the class path that your application never uses, or basically
+
+46
+00:03:33.020 --> 00:03:38.780
+JVM never has to load those class files into memory, then there is no point of compiling those and
+
+47
+00:03:38.780 --> 00:03:41.660
+adding them to your application because your application doesn't use them.
+
+48
+00:03:41.660 --> 00:03:42.020
+Right?
+
+49
+00:03:42.020 --> 00:03:47.540
+So reachable code in this sense means which method of classes are called.
+
+50
+00:03:47.540 --> 00:03:52.100
+Sometimes you have multiple methods in the class, but then some of them are never called.
+
+51
+00:03:52.100 --> 00:03:57.800
+Then there is no point of compiling those methods to the executable binaries because they are never
+
+52
+00:03:57.800 --> 00:03:58.190
+used.
+
+53
+00:03:58.340 --> 00:04:04.880
+However, this analysis cannot always completely predict all usages of the Java Native Image Java Native
+
+54
+00:04:04.880 --> 00:04:07.220
+interface, which we will look in the future.
+
+55
+00:04:07.250 --> 00:04:08.240
+Java Reflection.
+
+56
+00:04:08.240 --> 00:04:09.320
+This is our main topic.
+
+57
+00:04:09.320 --> 00:04:15.350
+We saw this before Dynamic Praxis Objects and this is a more like advanced topic and we will discuss
+
+58
+00:04:15.350 --> 00:04:16.040
+this in the future.
+
+59
+00:04:16.040 --> 00:04:18.050
+Lectures and class path resources.
+
+60
+00:04:18.050 --> 00:04:23.030
+And again, this is something we will definitely look at when we also look at the Native Java native
+
+61
+00:04:23.030 --> 00:04:23.450
+interface.
+
+62
+00:04:24.320 --> 00:04:29.660
+So resources are like, let's say your application using some resources, there is a CSV file, a comma
+
+63
+00:04:29.660 --> 00:04:35.570
+separated file and it has some data that your application at runtime needs to load those data.
+
+64
+00:04:35.570 --> 00:04:40.550
+So the question is what happens when we compile our Java application to native executable binary?
+
+65
+00:04:40.550 --> 00:04:40.940
+Right.
+
+66
+00:04:40.940 --> 00:04:41.810
+So what happens?
+
+67
+00:04:41.810 --> 00:04:43.280
+Do we still need to provide those?
+
+68
+00:04:45.940 --> 00:04:49.600
+Those a CSV file separately or something else.
+
+69
+00:04:49.720 --> 00:04:52.420
+Undetected usage of these dynamic features.
+
+70
+00:04:52.420 --> 00:04:56.860
+And again, the keyword is dynamic, which means something that happens at runtime.
+
+71
+00:04:56.860 --> 00:05:03.220
+And the way that the static analyzer cannot figure out, cannot figure it out by just looking at your
+
+72
+00:05:03.220 --> 00:05:03.820
+source code.
+
+73
+00:05:04.750 --> 00:05:11.170
+So undetected usages of these dynamic features need to be provided to the native image tool in the form
+
+74
+00:05:11.170 --> 00:05:12.310
+of configuration files.
+
+75
+00:05:12.310 --> 00:05:18.370
+And that's what exactly what we saw previously that native image was telling us, Hey, for this third
+
+76
+00:05:18.370 --> 00:05:22.450
+version of the reflection, give me a configuration file so that I understand what's going on.
+
+77
+00:05:22.450 --> 00:05:29.290
+I cannot figure it out on my own configuration files in order to make preparing these configuration
+
+78
+00:05:29.290 --> 00:05:31.570
+files easier and more convenient.
+
+79
+00:05:31.570 --> 00:05:38.590
+Google Vim provides an agent that tracks all usages of dynamic features of an execution on a regular
+
+80
+00:05:38.590 --> 00:05:39.310
+Java VM.
+
+81
+00:05:39.490 --> 00:05:43.210
+So this Java VM is the one that comes with the Google VM, right?
+
+82
+00:05:43.210 --> 00:05:48.250
+So this agent figure is not something that is, for example, present in Oracle VM.
+
+83
+00:05:48.250 --> 00:05:54.130
+This is something that only was added to this JVM that comes with the VM.
+
+84
+00:05:54.430 --> 00:05:58.930
+It can be enabled on the command line of the VM Java command.
+
+85
+00:05:59.710 --> 00:06:05.110
+So if you like to use the Java Command from the Google VM, so I'm using the Google home environment
+
+86
+00:06:05.110 --> 00:06:05.980
+variable being.
+
+87
+00:06:05.980 --> 00:06:12.640
+And in Java you use this particular flag and obviously after that you provide the main class, the fully
+
+88
+00:06:12.640 --> 00:06:17.350
+qualified name of the class that has the has the main method.
+
+89
+00:06:17.350 --> 00:06:25.620
+So hyphen agent Lieb call in native image agent, which means, hey, we want to activate the agent
+
+90
+00:06:25.660 --> 00:06:30.700
+tracing agent for the JVM and the use case is for native image building.
+
+91
+00:06:30.700 --> 00:06:31.150
+Right.
+
+92
+00:06:31.540 --> 00:06:34.660
+And then equals config output directory.
+
+93
+00:06:35.430 --> 00:06:42.810
+Which means that we want to use the tracing agent that monitors all the information that is related
+
+94
+00:06:42.810 --> 00:06:44.160
+to building a native image.
+
+95
+00:06:44.160 --> 00:06:47.140
+And we want to create those configuration files.
+
+96
+00:06:47.170 --> 00:06:52.590
+We want the native, the agent to create those and put them in this address, in this path for this
+
+97
+00:06:52.590 --> 00:06:54.810
+configuration output directory.
+
+98
+00:06:54.810 --> 00:06:55.260
+Right.
+
+99
+00:06:55.470 --> 00:07:01.410
+So again, the first part, hyphen agent lib, which tells the JVM, we want to activate the agent what
+
+100
+00:07:01.410 --> 00:07:02.580
+kind of agent it is.
+
+101
+00:07:02.580 --> 00:07:04.590
+It is native image agent, right.
+
+102
+00:07:04.590 --> 00:07:10.980
+Which means we want to activate the agent that monitors everything that could be related to a native
+
+103
+00:07:10.980 --> 00:07:11.760
+image build.
+
+104
+00:07:12.030 --> 00:07:15.830
+And this option is config output deer.
+
+105
+00:07:15.840 --> 00:07:23.040
+So we want to also specify an output directory that after the execution of the JVM terminates, we want
+
+106
+00:07:23.040 --> 00:07:24.840
+to save all the configuration files.
+
+107
+00:07:24.840 --> 00:07:28.290
+And here is the path to the configuration node.
+
+108
+00:07:28.290 --> 00:07:32.120
+That hyphen agent lib must be specified before a jar option.
+
+109
+00:07:32.130 --> 00:07:40.200
+Obviously we know that we can use java hyphen jar and give it a jar file and this has to be provided
+
+110
+00:07:40.200 --> 00:07:43.830
+before using hyphen jar or a class name.
+
+111
+00:07:43.830 --> 00:07:49.770
+So this three dot means either you pass a jar or a class name that has the main method or any application
+
+112
+00:07:49.770 --> 00:07:51.270
+parameters in the Java command line.
+
+113
+00:07:51.270 --> 00:07:57.960
+So this has to come first right after the JVM or the Java Command, you have to provide it.
+
+114
+00:07:57.960 --> 00:08:00.480
+This has to be right after the Java Command.
+
+115
+00:08:01.850 --> 00:08:07.370
+Use Native Image Agent option to trace all the requirements for Native Image compiler.
+
+116
+00:08:07.370 --> 00:08:08.840
+So this is the key here.
+
+117
+00:08:08.960 --> 00:08:17.840
+Now, before going to the next slide, let's head to Eclipse and let's configure the let's run our previous
+
+118
+00:08:18.050 --> 00:08:24.050
+Java application which was using reflection and then enabled this tracing agent.
+
+119
+00:08:24.050 --> 00:08:32.300
+And again, this only works with the Java that comes with VM and then let's give it an output directory
+
+120
+00:08:32.300 --> 00:08:36.020
+and see what kind of configuration files it's going to generate for us.
+
+121
+00:08:36.290 --> 00:08:37.970
+So here's our eclipse.
+
+122
+00:08:37.970 --> 00:08:44.010
+I have the direct creation of this complex number and then I also have this reflective.
+
+123
+00:08:44.060 --> 00:08:49.700
+And if you recall, when we run this in eclipse, eclipse creates a run configuration.
+
+124
+00:08:49.700 --> 00:08:50.960
+So let me run this again.
+
+125
+00:08:51.960 --> 00:08:56.760
+And in order for the run to succeed, obviously in the run configuration of Eclipse, we have to provide
+
+126
+00:08:56.760 --> 00:08:58.470
+the value for this argument.
+
+127
+00:08:58.830 --> 00:09:05.730
+So run configuration arguments and as you can see, we are providing this argument which is passed to
+
+128
+00:09:05.730 --> 00:09:06.770
+the string array.
+
+129
+00:09:06.780 --> 00:09:07.320
+Right.
+
+130
+00:09:08.370 --> 00:09:08.730
+All right.
+
+131
+00:09:08.730 --> 00:09:17.490
+So now note that here I'm using I configured my workspace, Java workspace to by default use the JDK
+
+132
+00:09:17.490 --> 00:09:20.750
+17 that comes from Oracle JDK.
+
+133
+00:09:20.760 --> 00:09:21.870
+So how do I run?
+
+134
+00:09:21.900 --> 00:09:28.770
+So whenever I right click and then say Run as it's going to use the Oracle JDK, how do I run this application
+
+135
+00:09:28.770 --> 00:09:30.660
+with the Google VM JVM?
+
+136
+00:09:30.720 --> 00:09:32.190
+There are different options.
+
+137
+00:09:32.790 --> 00:09:39.300
+The easiest one is we want to create a external tool configuration, which we already discussed.
+
+138
+00:09:39.300 --> 00:09:41.040
+I have this Java trace.
+
+139
+00:09:42.460 --> 00:09:49.140
+And this is pointing to the being directory being Java from the VM and then working directory.
+
+140
+00:09:49.150 --> 00:09:51.340
+I'm setting it to the project location.
+
+141
+00:09:52.170 --> 00:09:54.330
+And now this is what's happening.
+
+142
+00:09:54.330 --> 00:10:02.340
+Hyphen CP and project class path again for JV team, we have to provide the class path first and then
+
+143
+00:10:02.340 --> 00:10:03.870
+hyphen agent lib.
+
+144
+00:10:03.960 --> 00:10:09.960
+This has to come right after that, right hyphen agent lib and we can even put it before providing the
+
+145
+00:10:09.960 --> 00:10:10.800
+class path.
+
+146
+00:10:10.930 --> 00:10:11.640
+So.
+
+147
+00:10:13.000 --> 00:10:14.290
+Let's put this here.
+
+148
+00:10:14.290 --> 00:10:18.630
+So we're telling it hyphen agent lib which agent we want to activate?
+
+149
+00:10:18.640 --> 00:10:21.400
+We want to activate the native image agent.
+
+150
+00:10:21.400 --> 00:10:22.870
+What's the parameter.
+
+151
+00:10:22.870 --> 00:10:26.950
+It's the config output directory that we want to set and where do we want to set it.
+
+152
+00:10:26.950 --> 00:10:31.000
+We want to set it on the current working directory, which is the project location.
+
+153
+00:10:31.000 --> 00:10:38.950
+We want to create a meta hyphen INF directory and then we want to put a native image directory inside
+
+154
+00:10:38.950 --> 00:10:43.750
+that and all the configuration files are going to be stored in this native image directory.
+
+155
+00:10:43.750 --> 00:10:50.680
+So this is the recommended way that the official documentation suggests because meta inf and the native
+
+156
+00:10:50.680 --> 00:10:55.420
+image to this will be automatically picked up by the native image compiler.
+
+157
+00:10:55.420 --> 00:10:57.730
+So you don't need to do anything extra right.
+
+158
+00:10:58.270 --> 00:11:03.040
+But there is no need to basically put it in the meta inf.
+
+159
+00:11:04.750 --> 00:11:08.620
+But I recommend to do this for now.
+
+160
+00:11:08.620 --> 00:11:09.790
+Maybe we can also change it.
+
+161
+00:11:09.790 --> 00:11:17.770
+Let's say in the current directory puts them in the native directory which we typically put our or let's
+
+162
+00:11:17.770 --> 00:11:25.000
+say just create a directory configuration configuration, right, put them inside this directory and
+
+163
+00:11:25.000 --> 00:11:30.880
+then hyphen classic path is we're using eclipse and then what is the main class is Java type name and
+
+164
+00:11:30.880 --> 00:11:32.860
+we are providing command line arguments.
+
+165
+00:11:32.860 --> 00:11:36.280
+Remember that this application requires command line arguments.
+
+166
+00:11:36.280 --> 00:11:41.860
+And after we said that when we launched the JVM from terminal after the name of the main class, anything
+
+167
+00:11:41.860 --> 00:11:47.230
+that comes after that, any string becomes the command line arguments and it's going to be passed as
+
+168
+00:11:47.500 --> 00:11:48.730
+to that string array.
+
+169
+00:11:48.760 --> 00:11:50.170
+So this all looks good.
+
+170
+00:11:50.530 --> 00:11:55.930
+Let's select our source in the tree and then run our Java Trace.
+
+171
+00:11:56.560 --> 00:11:59.920
+Now, as you can see, the execution succeeded.
+
+172
+00:11:59.920 --> 00:12:05.770
+We have this configuration directory and now the JV team.
+
+173
+00:12:07.980 --> 00:12:10.260
+Basically that comes with a growl.
+
+174
+00:12:10.260 --> 00:12:19.420
+VM activated the agent that is associated for creating the configuration files for a native image build.
+
+175
+00:12:19.440 --> 00:12:21.420
+And you see, all of these are JSON files.
+
+176
+00:12:21.420 --> 00:12:30.720
+JSON are object models in a textual format which are very easy to understand and interpret.
+
+177
+00:12:30.720 --> 00:12:37.170
+So JNI config predefined classes, config proxy config reflection config resource config and serialization
+
+178
+00:12:37.170 --> 00:12:37.740
+config.
+
+179
+00:12:37.740 --> 00:12:45.510
+And we just saw that these four were directly mentioned in the PowerPoint slide JNI config proxy config
+
+180
+00:12:45.510 --> 00:12:47.400
+reflect config and resource config.
+
+181
+00:12:47.430 --> 00:12:55.920
+Right now, right now we're not using any JNI, so it's going to by default use the main ones that are
+
+182
+00:12:55.920 --> 00:12:57.570
+associated with them.
+
+183
+00:12:59.640 --> 00:13:08.190
+We did JDK and interestingly enough, it's also registering the main method of our main class as a resource
+
+184
+00:13:08.190 --> 00:13:09.030
+just in case.
+
+185
+00:13:09.030 --> 00:13:09.540
+Right.
+
+186
+00:13:09.930 --> 00:13:13.080
+And then the proxy config, nothing reflect config.
+
+187
+00:13:13.080 --> 00:13:13.890
+We have something.
+
+188
+00:13:13.890 --> 00:13:14.370
+Right.
+
+189
+00:13:14.520 --> 00:13:16.410
+So this is where exactly it comes from.
+
+190
+00:13:16.410 --> 00:13:21.060
+It says util forge complex, complex number name of raid double double.
+
+191
+00:13:21.060 --> 00:13:24.000
+So it's telling, it's creating a configuration files.
+
+192
+00:13:24.000 --> 00:13:32.010
+Hey, this class is being loaded reflectively and this method is being accessed reflectively.
+
+193
+00:13:32.010 --> 00:13:33.810
+Resource config nothing.
+
+194
+00:13:33.840 --> 00:13:36.090
+Serialization config, nothing.
+
+195
+00:13:36.090 --> 00:13:36.570
+Right.
+
+196
+00:13:36.570 --> 00:13:39.120
+So the main idea here is that the.
+
+197
+00:13:40.400 --> 00:13:47.470
+This line of code when we run it with on the JVM that comes with the VM, we run it on the with the
+
+198
+00:13:47.480 --> 00:13:49.070
+native agent.
+
+199
+00:13:49.190 --> 00:13:56.150
+Native agent enabled tracing agent eight figures out that there is some reflection going on right now.
+
+200
+00:13:56.150 --> 00:13:58.430
+If we basically
+
+201
+00:14:00.800 --> 00:14:05.270
+if we come in this out and I'm going to clean up this directory.
+
+202
+00:14:06.980 --> 00:14:14.060
+And then run my application with the Java VM, JVM with VM, which has enabled the tracing agent.
+
+203
+00:14:14.100 --> 00:14:15.680
+So if I run it, it works fine.
+
+204
+00:14:15.680 --> 00:14:22.060
+But if now if we look at the reflect configuration, there is nothing there because this part is commented.
+
+205
+00:14:22.070 --> 00:14:27.690
+So this part doesn't use any reflections.
+
+206
+00:14:27.710 --> 00:14:32.180
+What about, for example, here, this version too.
+
+207
+00:14:33.440 --> 00:14:34.550
+Let's clean up.
+
+208
+00:14:35.660 --> 00:14:38.990
+We don't need to clean up because the files get overwritten.
+
+209
+00:14:38.990 --> 00:14:40.940
+But here I'm just going to clean it up.
+
+210
+00:14:40.940 --> 00:14:43.440
+So Java Trace again, it succeeds.
+
+211
+00:14:43.460 --> 00:14:45.010
+Let's look at the reflect config.
+
+212
+00:14:45.020 --> 00:14:51.590
+It is still tells the native image compiler that there is some reflection going on, but we saw that
+
+213
+00:14:51.590 --> 00:15:01.040
+even in this case before, without any configuration, native image compiler had no problem compiling.
+
+214
+00:15:01.040 --> 00:15:01.670
+So.
+
+215
+00:15:02.180 --> 00:15:07.790
+So I'm going to recommend these uncommon these let's run the let's clean this up.
+
+216
+00:15:11.120 --> 00:15:11.750
+And then.
+
+217
+00:15:14.370 --> 00:15:16.320
+Let's run our Java.
+
+218
+00:15:16.800 --> 00:15:20.280
+Basically, let's select our class and then Java trace.
+
+219
+00:15:20.610 --> 00:15:21.050
+All right.
+
+220
+00:15:21.060 --> 00:15:21.960
+It creates that.
+
+221
+00:15:21.960 --> 00:15:25.950
+And then now we have to feed this to a native image builder.
+
+222
+00:15:25.950 --> 00:15:31.650
+And the best, the recommended way is to actually create a directory.
+
+223
+00:15:31.650 --> 00:15:33.600
+So I'm going to delete this actually.
+
+224
+00:15:34.310 --> 00:15:35.150
+And then.
+
+225
+00:15:37.850 --> 00:15:45.530
+They recommended way is to or the default way is to create a put the configuration files in a meta inf
+
+226
+00:15:45.530 --> 00:15:46.370
+directory.
+
+227
+00:15:48.770 --> 00:15:49.820
+I close that.
+
+228
+00:15:52.800 --> 00:15:53.940
+This latest.
+
+229
+00:15:55.920 --> 00:15:58.460
+So external tool Java Trace.
+
+230
+00:15:58.470 --> 00:15:59.250
+Let's zoom in.
+
+231
+00:15:59.250 --> 00:16:04.440
+So meter dash enough and inside that native dash image.
+
+232
+00:16:04.440 --> 00:16:12.690
+Right and then once we put this in the matter, if the recommended way is to then make this directory
+
+233
+00:16:12.690 --> 00:16:18.300
+be available on the class path, this meeting directory or basically the directory that is containing
+
+234
+00:16:18.300 --> 00:16:23.940
+this method enough to be available and the reason they chose this convention by default because of the
+
+235
+00:16:23.940 --> 00:16:24.960
+JAR files, right.
+
+236
+00:16:24.960 --> 00:16:29.940
+Because you can also run native image on a jar file and there is always a method inside the jar file.
+
+237
+00:16:29.940 --> 00:16:35.520
+So that's why this is this default way is compatible with the jar files.
+
+238
+00:16:35.670 --> 00:16:38.490
+So what we're going to do, we're going to now select our
+
+239
+00:16:41.100 --> 00:16:47.250
+basically Java file that has the main method and we're going to jump to our native image.
+
+240
+00:16:47.250 --> 00:16:53.880
+And then here, I'm not activating any agent, but then what I'm going to do if I run this, this is
+
+241
+00:16:53.880 --> 00:16:59.280
+going to fail because the class path is set to the project class path and it's just pointing to the
+
+242
+00:16:59.280 --> 00:16:59.940
+bean directory.
+
+243
+00:16:59.940 --> 00:17:05.610
+Whereas my method is not in the bean directory, but because my working directory is project location,
+
+244
+00:17:05.610 --> 00:17:09.570
+I'm just going to append dot to my class path.
+
+245
+00:17:09.570 --> 00:17:15.420
+This automatically puts the project location which is this Java native image top directory and therefore
+
+246
+00:17:15.420 --> 00:17:18.810
+my method directory here is is also on the class path.
+
+247
+00:17:18.840 --> 00:17:25.950
+Now if we run this, hopefully our Native Image compilation succeeds because Native Image by default
+
+248
+00:17:25.950 --> 00:17:32.280
+picks up this meta native image picks up all these configuration, it has this configuration or extra
+
+249
+00:17:32.280 --> 00:17:35.730
+information about the reflection use in our Java code.
+
+250
+00:17:35.730 --> 00:17:42.030
+So native image is probably not going to complain anything and then it just by default picks up all
+
+251
+00:17:42.030 --> 00:17:43.830
+those configuration files from meta.
+
+252
+00:17:44.100 --> 00:17:50.100
+Now you don't have to create follow this convention of the meta directory and in native image inside
+
+253
+00:17:50.100 --> 00:17:50.310
+that.
+
+254
+00:17:50.310 --> 00:17:52.110
+But that's the default way.
+
+255
+00:17:52.110 --> 00:17:59.130
+If you do that and put it on the class path, then you don't need to add extra flags to the native image
+
+256
+00:17:59.130 --> 00:18:03.120
+telling it, hey, activate the agent and then this is the configuration directory.
+
+257
+00:18:03.900 --> 00:18:05.340
+So everything succeeded.
+
+258
+00:18:05.340 --> 00:18:10.770
+Native Image didn't complain about the use of reflection here because it automatically picked up all
+
+259
+00:18:10.770 --> 00:18:13.590
+the configuration files in this native image directory.
+
+260
+00:18:13.620 --> 00:18:18.180
+Remember, the requirement was that this meta inf be on the class path.
+
+261
+00:18:18.180 --> 00:18:20.400
+So if we open up a terminal here.
+
+262
+00:18:23.010 --> 00:18:25.680
+And then run our application.
+
+263
+00:18:26.970 --> 00:18:30.960
+So we have to basically provide that command line arguments.
+
+264
+00:18:30.960 --> 00:18:36.210
+Our application required that and obviously it has to be exactly this, right?
+
+265
+00:18:36.210 --> 00:18:39.810
+Because after we load the class, we are accessing its method.
+
+266
+00:18:39.810 --> 00:18:43.770
+So if it's another class, we're going to fail, but now it succeeds.
+
+267
+00:18:43.770 --> 00:18:51.090
+Whereas previously, when we compiled this application without the configuration files, this compilation
+
+268
+00:18:51.090 --> 00:18:51.390
+fail.
+
+269
+00:18:51.390 --> 00:18:52.380
+But now it's succeed.
+
+270
+00:18:52.410 --> 00:18:58.560
+Obviously, if you provide any other class, then this class, this is going to fail because we don't
+
+271
+00:18:58.560 --> 00:19:01.200
+have any other class with this name on the class path.
+
+272
+00:19:01.440 --> 00:19:10.350
+If we provide something that is already on the class path, for example, Java lang a string and then
+
+273
+00:19:10.350 --> 00:19:14.070
+it's going to this line of code class for name is going to succeed.
+
+274
+00:19:14.070 --> 00:19:18.360
+But then there is a method of rate which is obviously not available in the string, right?
+
+275
+00:19:18.480 --> 00:19:25.190
+So this application has a very limited use case because you have to provide an exact argument.
+
+276
+00:19:25.200 --> 00:19:25.820
+I suppose.
+
+277
+00:19:26.010 --> 00:19:35.070
+Now sometimes you want to make sure that different inputs are basically okay and in order to do that
+
+278
+00:19:35.070 --> 00:19:42.480
+you have to run your application with the JV that comes with LLVM multiple times so that you accumulate
+
+279
+00:19:42.480 --> 00:19:47.250
+configurations more and more right, depending on the inputs that the user provides to the application.
+
+280
+00:19:47.280 --> 00:19:51.540
+This is very important topic and we will discuss it in the future lectures.
+
+281
+00:19:51.540 --> 00:19:52.890
+So I hope you enjoyed this one.
+
+282
+00:19:52.890 --> 00:19:55.230
+Please stay tuned and I'll see the next one.

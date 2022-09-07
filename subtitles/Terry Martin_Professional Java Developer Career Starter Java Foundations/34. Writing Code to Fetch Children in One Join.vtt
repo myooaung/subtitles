@@ -1,0 +1,1912 @@
+WEBVTT
+1
+00:00:00.480 --> 00:00:08.550
+All right, so in the last lesson, we learned how to modify our SQL query to do a left outer join back
+
+2
+00:00:08.550 --> 00:00:14.640
+on to the same people table so that we could retrieve all the data and a one to many relationship all
+
+3
+00:00:14.640 --> 00:00:15.430
+in one go.
+
+4
+00:00:15.450 --> 00:00:20.850
+And what we basically learned is that when you do a one to many join, you're going to get back as many
+
+5
+00:00:20.850 --> 00:00:24.080
+records as there are on the many side of that relationship.
+
+6
+00:00:24.090 --> 00:00:29.100
+So in other words, in a one two many or a parent child relationship, if you're trying to get a parent
+
+7
+00:00:29.100 --> 00:00:34.680
+with all their children, what you'll get back are all the children, with the one parent just duplicated
+
+8
+00:00:34.680 --> 00:00:36.420
+as many times as there are children.
+
+9
+00:00:36.510 --> 00:00:36.930
+OK.
+
+10
+00:00:37.170 --> 00:00:39.570
+And then we can still join all of the rest of the stuff.
+
+11
+00:00:39.570 --> 00:00:41.880
+So we joined the two addresses as well.
+
+12
+00:00:42.570 --> 00:00:44.820
+All right, so fairly straightforward.
+
+13
+00:00:44.820 --> 00:00:49.860
+And it really just builds on the basic joining patterns that we've already been playing with for the
+
+14
+00:00:49.860 --> 00:00:51.060
+last several lessons.
+
+15
+00:00:51.210 --> 00:00:54.360
+So now we're going to implement this in Java code.
+
+16
+00:00:54.780 --> 00:01:03.240
+OK, so here we are back in the IDP and what we are going to want to do is to presumably modify this
+
+17
+00:01:03.240 --> 00:01:06.420
+sequel again to just pull back everything.
+
+18
+00:01:06.510 --> 00:01:12.990
+And actually, maybe what I will do in this case is just start with the sequel that we have over there
+
+19
+00:01:12.990 --> 00:01:13.860
+in Squirrel.
+
+20
+00:01:14.130 --> 00:01:20.130
+So let me just jump back over here and I'm going to start by just grabbing all of that and copying it.
+
+21
+00:01:20.370 --> 00:01:24.870
+And I will come back over here and I think I'm just going to paste it all in.
+
+22
+00:01:25.380 --> 00:01:32.340
+In fact, hold on a minute, let me get myself a new line there and paste all of this in like so and
+
+23
+00:01:32.340 --> 00:01:34.320
+then let me fix my indentation.
+
+24
+00:01:35.220 --> 00:01:40.200
+I'm going to get rid of this backslash s which the idea kind of inserted in there.
+
+25
+00:01:40.200 --> 00:01:42.660
+For me, I guess it was just trying to help me or something.
+
+26
+00:01:44.540 --> 00:01:46.070
+Here's another one here.
+
+27
+00:01:46.520 --> 00:01:48.650
+Let me get rid of that also.
+
+28
+00:01:49.340 --> 00:01:50.030
+All right.
+
+29
+00:01:50.210 --> 00:01:55.280
+And then let me parameter rise this bit again, like so all right.
+
+30
+00:01:55.280 --> 00:01:57.050
+So I think that's a good start.
+
+31
+00:01:57.280 --> 00:01:58.640
+Now, couple of things.
+
+32
+00:01:58.970 --> 00:02:02.930
+In the previous version of this query, I was not spelling out the word parent.
+
+33
+00:02:02.930 --> 00:02:06.560
+I just had Piedad ID, although that part's not the important part.
+
+34
+00:02:06.560 --> 00:02:09.900
+The the important part is the alias here parent underscore ID.
+
+35
+00:02:10.280 --> 00:02:18.590
+So let me just go double check what I was referring to these columns as wherever we are currently retrieving
+
+36
+00:02:18.590 --> 00:02:21.260
+the person for the find by ID method.
+
+37
+00:02:22.520 --> 00:02:31.010
+OK, so currently, I'm referring to those fields with no prefix on them, and I can already pretty
+
+38
+00:02:31.010 --> 00:02:38.930
+much guess that just as we needed to use a dynamic prefix to get the addresses, we're going to need
+
+39
+00:02:38.930 --> 00:02:44.300
+to do the same type of thing now to get all of the fields of a person as well.
+
+40
+00:02:44.330 --> 00:02:49.490
+So let's just keep that in mind as we're implementing the changes that we need to make here.
+
+41
+00:02:49.820 --> 00:02:56.690
+Now, another thing that we need to consider is currently this extract entity from results set method
+
+42
+00:02:56.690 --> 00:03:02.870
+was really written with the expectation that we would just be getting back one row of a result set and
+
+43
+00:03:02.870 --> 00:03:09.950
+converting that one row into ultimately one entity, which in this case is the person and then returning
+
+44
+00:03:09.950 --> 00:03:10.190
+that.
+
+45
+00:03:10.370 --> 00:03:17.840
+However, as you see here, if we execute this query, we're going to get back a result set with three
+
+46
+00:03:17.840 --> 00:03:18.680
+rows in it.
+
+47
+00:03:18.950 --> 00:03:24.080
+And so we're going to have to think now of what do we do with these three rows in this context?
+
+48
+00:03:24.530 --> 00:03:26.150
+And let me show you something here.
+
+49
+00:03:26.150 --> 00:03:32.420
+If we jump up into the crud repository, which is actually calling this and passing us a result set,
+
+50
+00:03:32.600 --> 00:03:35.780
+let's just remind ourselves of what's actually there.
+
+51
+00:03:36.050 --> 00:03:36.440
+OK.
+
+52
+00:03:36.530 --> 00:03:42.680
+So this is the actual find by ID method, most of which we don't need to see because it's up in the
+
+53
+00:03:42.680 --> 00:03:44.060
+credit repository, right?
+
+54
+00:03:44.390 --> 00:03:49.010
+But here's the main thing I want to do to see what's actually happening here is we're executing the
+
+55
+00:03:49.010 --> 00:03:54.200
+query, getting back this result set and then this guy is calling Dot next.
+
+56
+00:03:54.470 --> 00:04:01.670
+Now, up until now, when we call fine by ID, this R-Sport next is only happening one time because
+
+57
+00:04:01.670 --> 00:04:03.500
+there's only ever one row, right?
+
+58
+00:04:03.620 --> 00:04:09.470
+Every time we call next, that's that's sending a cursor, if you will, down to the next row of data
+
+59
+00:04:09.470 --> 00:04:10.730
+in our results set.
+
+60
+00:04:11.030 --> 00:04:15.710
+And you can think of the results set as what everything that you're seeing down here in this area.
+
+61
+00:04:15.740 --> 00:04:16.190
+OK.
+
+62
+00:04:16.370 --> 00:04:22.700
+So all of the find by ID queries that we've been doing thus far have only resulted in one row.
+
+63
+00:04:22.730 --> 00:04:23.100
+OK.
+
+64
+00:04:23.120 --> 00:04:27.920
+And so when asked next is called, it just goes to the one and only row.
+
+65
+00:04:28.070 --> 00:04:33.950
+And then we extract all of our values out and put them into objects and then return that object or whatever.
+
+66
+00:04:34.190 --> 00:04:40.070
+But this time we're actually going to have, in this particular case, three rows of data or however,
+
+67
+00:04:40.070 --> 00:04:42.170
+many rows right for the number of children.
+
+68
+00:04:42.200 --> 00:04:49.130
+So we need to figure out how do we want to handle the fact that we need to somehow extract all three
+
+69
+00:04:49.130 --> 00:04:51.350
+of the children for one parent?
+
+70
+00:04:51.740 --> 00:04:53.700
+So what I'm actually thinking here.
+
+71
+00:04:53.720 --> 00:04:56.450
+Let me jump back in to our people repository.
+
+72
+00:04:57.440 --> 00:05:05.000
+So what I'm actually thinking here is that we can actually loop over all of the children right here.
+
+73
+00:05:05.180 --> 00:05:10.130
+This result, set here, is the same results set that's up in the credit repository where we were doing
+
+74
+00:05:10.130 --> 00:05:10.730
+that right.
+
+75
+00:05:10.980 --> 00:05:18.590
+Next, we could do more, r-st next right down here as well for as many children as there are.
+
+76
+00:05:18.620 --> 00:05:19.080
+OK.
+
+77
+00:05:19.760 --> 00:05:22.280
+That might that might not quite make sense to you.
+
+78
+00:05:22.280 --> 00:05:29.510
+But basically what I'm sort of getting at is from the perspective of the parent KRudd repository.
+
+79
+00:05:30.500 --> 00:05:35.150
+We're going to let this guy kind of behave as though there's really only one row, but.
+
+80
+00:05:36.700 --> 00:05:44.950
+But down here, we will iterate over multiple rows of our results that if those rows are all for the
+
+81
+00:05:44.950 --> 00:05:47.770
+same parent, that's what I kind of have in mind.
+
+82
+00:05:47.800 --> 00:05:48.190
+OK.
+
+83
+00:05:48.340 --> 00:05:48.640
+All right.
+
+84
+00:05:48.650 --> 00:05:50.140
+So how are we going to do this?
+
+85
+00:05:50.320 --> 00:05:58.420
+Well, the first thing I'm thinking is maybe we want to create a method out of these lines here or maybe
+
+86
+00:05:58.420 --> 00:05:59.170
+these lines here.
+
+87
+00:05:59.170 --> 00:06:05.500
+I'm not sure exactly where where I want to stop but extract the method here, and that method will take
+
+88
+00:06:05.500 --> 00:06:06.550
+a few parameters.
+
+89
+00:06:06.670 --> 00:06:13.450
+And one of those parameters, just like here, will be the ability to pass in a prefix so that it will
+
+90
+00:06:13.450 --> 00:06:19.150
+know how to retrieve the columns for the parent versus the columns for the child.
+
+91
+00:06:20.140 --> 00:06:25.300
+If we jump back over here again, you see that the only difference is the prefix of the word parent
+
+92
+00:06:25.540 --> 00:06:31.720
+for the parent columns versus the prefix of child for the child columns, right?
+
+93
+00:06:32.380 --> 00:06:35.920
+So just as we did that here, we can do something similar here.
+
+94
+00:06:36.130 --> 00:06:37.630
+So let's give that a shot.
+
+95
+00:06:38.110 --> 00:06:46.330
+So I've already got these rows selected, so I'm going to do an option command em or control alt m unable
+
+96
+00:06:46.330 --> 00:06:47.520
+to extract method.
+
+97
+00:06:47.530 --> 00:06:50.560
+There are multiple variables to return.
+
+98
+00:06:51.070 --> 00:06:51.820
+Oh, OK.
+
+99
+00:06:52.090 --> 00:06:55.060
+So it's telling me that there are multiple variables to return.
+
+100
+00:06:55.060 --> 00:07:02.290
+And really, I guess what we'd want here is to have this newly extracted method just return a person
+
+101
+00:07:02.470 --> 00:07:04.480
+and that would be this person right here.
+
+102
+00:07:04.600 --> 00:07:11.890
+So let's see what this would look like if we were to move this line up to here, because I think that's
+
+103
+00:07:11.890 --> 00:07:12.370
+fine.
+
+104
+00:07:12.400 --> 00:07:17.500
+We're creating the person and then we're and then we're extracting these additional addresses and then
+
+105
+00:07:17.500 --> 00:07:17.950
+setting them.
+
+106
+00:07:17.950 --> 00:07:19.270
+So I think that's all fine.
+
+107
+00:07:19.510 --> 00:07:26.380
+So then if we select all of this and then do an option command m, yeah, there we go.
+
+108
+00:07:26.650 --> 00:07:28.630
+And it knows to return the person now.
+
+109
+00:07:28.840 --> 00:07:34.750
+And so we will call this method extract person.
+
+110
+00:07:34.990 --> 00:07:35.710
+There we go.
+
+111
+00:07:35.920 --> 00:07:36.360
+OK.
+
+112
+00:07:37.450 --> 00:07:42.030
+And actually, I'm liking this because now that just made this more generic extract entity from results
+
+113
+00:07:42.030 --> 00:07:43.360
+set method shorter.
+
+114
+00:07:43.380 --> 00:07:43.720
+Right?
+
+115
+00:07:44.470 --> 00:07:46.300
+OK, so that's step one.
+
+116
+00:07:46.690 --> 00:07:56.050
+Step two is we're going to now need a way to prepend these column alias names, if you will, with whatever
+
+117
+00:07:56.050 --> 00:07:59.260
+our column alias prefix is going to be.
+
+118
+00:07:59.440 --> 00:08:05.740
+And so just as we did before with the addresses, I will just do one manually and then I will convert
+
+119
+00:08:05.740 --> 00:08:06.940
+that into a parameter.
+
+120
+00:08:06.940 --> 00:08:15.340
+So I'm putting my cursor right here and I'm just going to hard code one of them to say parent underscore
+
+121
+00:08:15.940 --> 00:08:23.920
+plus just like that, then I will move my cursor back over here and select all of this and then do an
+
+122
+00:08:23.920 --> 00:08:28.330
+option command p to convert that into a parameter like so.
+
+123
+00:08:28.600 --> 00:08:31.860
+And then I will call this alias.
+
+124
+00:08:33.310 --> 00:08:36.760
+Prefix, which is what I called it for the address stuff as well.
+
+125
+00:08:36.970 --> 00:08:39.790
+All right, so that's looking OK.
+
+126
+00:08:40.690 --> 00:08:40.940
+All right.
+
+127
+00:08:40.960 --> 00:08:47.380
+And then I will just copy all of that, including the plus and even the space there into a command C
+
+128
+00:08:47.380 --> 00:08:48.340
+to copy that.
+
+129
+00:08:48.520 --> 00:08:54.970
+And then I will use a multi cursor on the rest of these lines, the one there, and I'm holding down
+
+130
+00:08:54.970 --> 00:09:02.200
+on the option and shift and one there and one here and here and here.
+
+131
+00:09:02.440 --> 00:09:03.730
+And then I will paste.
+
+132
+00:09:05.000 --> 00:09:05.630
+Like, sir.
+
+133
+00:09:06.230 --> 00:09:06.620
+All right.
+
+134
+00:09:06.740 --> 00:09:07.700
+We got that.
+
+135
+00:09:08.240 --> 00:09:11.750
+Oh, now one really important thing that I almost forgot.
+
+136
+00:09:12.050 --> 00:09:17.900
+I'm still just using a regular old RC get string method here, and that's not going to work with these
+
+137
+00:09:17.900 --> 00:09:22.070
+column aliases the way that we're currently establishing our connection and everything, right?
+
+138
+00:09:22.490 --> 00:09:28.520
+So just as we did down here, where I shifted everything over to use the get value by alias method,
+
+139
+00:09:28.700 --> 00:09:33.140
+I'm going to replace all of these with get value by alias as well.
+
+140
+00:09:33.500 --> 00:09:38.000
+Now this looks like it's a little more mixed than the other ones that we had before.
+
+141
+00:09:38.450 --> 00:09:46.280
+So maybe I'm going to do each of these manually get value by alias and then put my cursor over here
+
+142
+00:09:46.490 --> 00:09:54.980
+and pass in the result set and then the data type, which is Loncar class and then same thing again,
+
+143
+00:09:55.280 --> 00:09:57.080
+get value by alias.
+
+144
+00:09:59.110 --> 00:10:00.550
+Our strongest.
+
+145
+00:10:02.090 --> 00:10:02.920
+By Elias.
+
+146
+00:10:04.310 --> 00:10:04.570
+All right.
+
+147
+00:10:05.090 --> 00:10:06.200
+And this is also a stirring the class.
+
+148
+00:10:07.870 --> 00:10:11.400
+Now here, I'm not doing it there, I'm doing it in here, right?
+
+149
+00:10:12.310 --> 00:10:16.370
+I guess I'm pronouncing it.
+
+150
+00:10:18.060 --> 00:10:20.100
+Yes, I think that's a.
+
+151
+00:10:21.470 --> 00:10:22.060
+If you place.
+
+152
+00:10:23.250 --> 00:10:23.770
+And long.
+
+153
+00:10:25.130 --> 00:10:26.330
+All right, there we go.
+
+154
+00:10:27.500 --> 00:10:35.570
+And so now that we've got all of that, which was right up here, I think we can go ahead and and now
+
+155
+00:10:35.570 --> 00:10:37.580
+just duplicate this line once.
+
+156
+00:10:38.000 --> 00:10:39.920
+And now here will be one child.
+
+157
+00:10:40.430 --> 00:10:44.270
+And so I will call this person child.
+
+158
+00:10:45.460 --> 00:10:51.400
+And then we will change the prefix here, and I think we called that child, didn't we?
+
+159
+00:10:51.670 --> 00:10:53.440
+Yes, we called that child.
+
+160
+00:10:54.310 --> 00:10:57.910
+OK, so we will do so here as well, child underscore.
+
+161
+00:10:58.510 --> 00:11:04.480
+So you see what we're doing here, we're just teaching our code how to extract out the various columns
+
+162
+00:11:04.660 --> 00:11:06.490
+from our results set.
+
+163
+00:11:07.030 --> 00:11:10.210
+So let me let me walk us through this a little bit now.
+
+164
+00:11:10.240 --> 00:11:18.670
+So for one row of our results set, we will have a column called Parenting the parent, first name,
+
+165
+00:11:18.670 --> 00:11:21.350
+parent, last name, parent Dobby.
+
+166
+00:11:21.700 --> 00:11:29.380
+And over here we will do parent underscore ID, parent underscore, first name, parent, underscore,
+
+167
+00:11:29.410 --> 00:11:32.080
+last name, et cetera, et cetera, et cetera.
+
+168
+00:11:32.890 --> 00:11:39.910
+And then as we scroll farther down, we will also have child ID, child, first name, child, last
+
+169
+00:11:39.910 --> 00:11:40.270
+name.
+
+170
+00:11:40.450 --> 00:11:48.220
+And so this bit here will find those columns child underscore ID, child underscore, first name, child
+
+171
+00:11:48.220 --> 00:11:56.260
+underscore, last name, etc. and extract all the values from those and fill them in on a person and
+
+172
+00:11:56.260 --> 00:11:59.620
+then return that person right here.
+
+173
+00:11:59.740 --> 00:12:00.220
+OK.
+
+174
+00:12:00.700 --> 00:12:03.490
+So hopefully that will retrieve the children.
+
+175
+00:12:03.970 --> 00:12:05.660
+Now here's the next issue.
+
+176
+00:12:05.680 --> 00:12:11.380
+We know that for this particular example, we're going to have three children for the day unit test
+
+177
+00:12:11.380 --> 00:12:15.030
+that we're using to kind of drive this coding that we're doing.
+
+178
+00:12:15.040 --> 00:12:17.930
+So this will allow us to get the first child.
+
+179
+00:12:17.950 --> 00:12:20.060
+But how do we get the other two now?
+
+180
+00:12:20.080 --> 00:12:21.190
+That's the question.
+
+181
+00:12:21.580 --> 00:12:23.170
+So here's what I'm thinking.
+
+182
+00:12:23.290 --> 00:12:26.590
+And again, this is an example of where you have to be kind of creative.
+
+183
+00:12:26.770 --> 00:12:32.590
+I'm not basing what I'm doing here off of any template or any book where I learned how to do these things.
+
+184
+00:12:32.600 --> 00:12:36.070
+I'm making this up in front of you pretty much as I go.
+
+185
+00:12:36.220 --> 00:12:42.760
+Now one thing I will confess, though I did take about 20 minutes before I started recording this lesson
+
+186
+00:12:42.760 --> 00:12:45.150
+right now to kind of just stare at the code.
+
+187
+00:12:45.160 --> 00:12:46.780
+I didn't write any code at all.
+
+188
+00:12:46.780 --> 00:12:52.720
+I just stared at the code for about 20 minutes and in my head I was just kind of working out, OK,
+
+189
+00:12:52.750 --> 00:12:56.440
+how could we solve these problems that we are now encountering?
+
+190
+00:12:56.440 --> 00:13:00.370
+So I have taken about 20 minutes to kind of run through it all.
+
+191
+00:13:00.430 --> 00:13:01.930
+But I didn't write any code at all.
+
+192
+00:13:01.930 --> 00:13:05.890
+So all the code that you're seeing me right right now is the very first time I'm ever writing it.
+
+193
+00:13:06.100 --> 00:13:10.540
+If I make a really bad mistake that I'm afraid will confuse you, I'll probably edit that out.
+
+194
+00:13:10.810 --> 00:13:16.270
+But other than that, you're seeing the first ideas that popped in my head essentially well after 20
+
+195
+00:13:16.270 --> 00:13:17.440
+minutes of thinking about it.
+
+196
+00:13:19.060 --> 00:13:19.330
+All right.
+
+197
+00:13:19.360 --> 00:13:23.800
+So one of the things that I thought about in that 20 minutes, though, to solve the problem of how
+
+198
+00:13:23.800 --> 00:13:33.100
+to get the other children out of here was I considered maybe wrapping all of this, perhaps inside of
+
+199
+00:13:33.100 --> 00:13:38.350
+a do while loop, some selecting all of this, and I'll explain why in just a second here.
+
+200
+00:13:38.360 --> 00:13:44.620
+But so I've selected all of this, and then I'm going to do an optional command T and I'm going to choose
+
+201
+00:13:44.620 --> 00:13:46.420
+number four, do while loop.
+
+202
+00:13:46.630 --> 00:13:47.050
+All right.
+
+203
+00:13:47.260 --> 00:13:54.200
+Now I almost never use do I loops in real life, but this feels like it might be a good place to to
+
+204
+00:13:54.310 --> 00:13:55.420
+consider using one.
+
+205
+00:13:55.420 --> 00:14:00.220
+Because what I want to do here is I want to extract out.
+
+206
+00:14:00.340 --> 00:14:05.920
+In this case, all three children and I know that I need this loop to run at least one time because
+
+207
+00:14:05.920 --> 00:14:10.480
+that would simulate what we've already been doing with previous use cases like this.
+
+208
+00:14:10.630 --> 00:14:16.720
+You know, the repository calls this method, and we always end up having one record to pull out.
+
+209
+00:14:16.780 --> 00:14:19.660
+So we know we're always going to have the one record, at least.
+
+210
+00:14:19.660 --> 00:14:23.230
+I mean, we presume we're going to have at least one record to go grab.
+
+211
+00:14:23.260 --> 00:14:23.740
+OK.
+
+212
+00:14:24.310 --> 00:14:27.280
+But how do we get the subsequent records?
+
+213
+00:14:27.430 --> 00:14:36.310
+So let's just consider what would happen if, first off, we were to just do an arrest next right here
+
+214
+00:14:36.310 --> 00:14:42.340
+inside of this while loop, which is really what's happening in the crud repository method that's calling
+
+215
+00:14:42.340 --> 00:14:44.140
+this one if we jump back up there again.
+
+216
+00:14:44.710 --> 00:14:45.110
+Right?
+
+217
+00:14:45.130 --> 00:14:49.960
+We've got the rest next call inside of this wire loop, although it's not a do, while loop is just
+
+218
+00:14:49.960 --> 00:14:53.660
+a regular while loop, but basically the same thing here.
+
+219
+00:14:53.800 --> 00:14:54.130
+Right?
+
+220
+00:14:55.720 --> 00:15:01.510
+All right, so let's jump back over here, so here's the thing, though now with this approach, let's
+
+221
+00:15:01.510 --> 00:15:04.480
+look at the Squirrel sequel sample result set.
+
+222
+00:15:04.900 --> 00:15:10.510
+So looking again at our sample results set here in Squirrel sequel, we see that we're getting back
+
+223
+00:15:10.510 --> 00:15:15.790
+three records, which basically represent the three children of John Smith.
+
+224
+00:15:15.970 --> 00:15:17.170
+And we're also getting back.
+
+225
+00:15:17.170 --> 00:15:19.510
+John Smith duplicated three times, right?
+
+226
+00:15:19.720 --> 00:15:25.050
+So let's just walk through what this code would do as it currently is written more or less.
+
+227
+00:15:25.120 --> 00:15:29.020
+OK, so let's start off in the calling method real quick here.
+
+228
+00:15:29.230 --> 00:15:36.460
+OK, so we're in a while loop and R-Sport next is going to be called the first time that is called right
+
+229
+00:15:36.460 --> 00:15:36.970
+here.
+
+230
+00:15:37.000 --> 00:15:40.910
+That's going to essentially highlight this first row.
+
+231
+00:15:40.990 --> 00:15:41.470
+OK.
+
+232
+00:15:41.890 --> 00:15:47.980
+So just a quick reminder of the way that result sets work is that when you first get a result set for
+
+233
+00:15:47.980 --> 00:15:54.770
+results from a query, there's kind of like a row cursor that starts above the first row, OK?
+
+234
+00:15:54.790 --> 00:16:01.570
+And so you have to call R-Sport next at least one time to get that cursor on to the very first row.
+
+235
+00:16:01.600 --> 00:16:05.890
+OK, so here's that very first call to start next.
+
+236
+00:16:06.130 --> 00:16:09.940
+That's taking us taking our cursor down to the very first row.
+
+237
+00:16:10.360 --> 00:16:16.630
+Then our credit repository is calling the extract entity from results set method, which is then taking
+
+238
+00:16:16.630 --> 00:16:18.670
+us back to here.
+
+239
+00:16:19.240 --> 00:16:19.690
+OK.
+
+240
+00:16:19.870 --> 00:16:27.040
+And so now at this point, we start extracting all of the values from the parent columns of row one,
+
+241
+00:16:27.040 --> 00:16:27.250
+right?
+
+242
+00:16:27.250 --> 00:16:32.920
+So parent ID, the parent, first name, parent, last name, due date of birth, salary, email, et
+
+243
+00:16:32.920 --> 00:16:33.640
+cetera, right?
+
+244
+00:16:33.670 --> 00:16:33.940
+All right.
+
+245
+00:16:33.940 --> 00:16:36.550
+So that's what we're doing with this extract person.
+
+246
+00:16:36.550 --> 00:16:42.220
+Then we call extract person again and then we tell it now go find all of the columns that we care about,
+
+247
+00:16:42.220 --> 00:16:45.130
+at least that are presented with child, right?
+
+248
+00:16:45.400 --> 00:16:52.180
+So then that's going to get the ID, first name, last name, date of birth, etc., right?
+
+249
+00:16:52.420 --> 00:16:52.660
+All right.
+
+250
+00:16:52.660 --> 00:16:56.980
+So now we've extracted the parent, we might want to call this parent.
+
+251
+00:16:56.980 --> 00:17:00.640
+In fact, let me let me rename this shift of six parent.
+
+252
+00:17:01.270 --> 00:17:06.040
+OK, so we've extracted a parent and now we've extracted a child as well.
+
+253
+00:17:06.220 --> 00:17:11.050
+And then we extract the address fields that are presented with home and bills.
+
+254
+00:17:11.200 --> 00:17:12.420
+Let's see those.
+
+255
+00:17:12.430 --> 00:17:20.410
+Yeah, so home street address Home City and there's Buis Street address, busy city, etc. right?
+
+256
+00:17:20.620 --> 00:17:26.950
+So that's us extracting all these columns out of that one row and building objects from them.
+
+257
+00:17:27.100 --> 00:17:33.090
+And then we're setting the objects on to the parent, right set home address, said Business address.
+
+258
+00:17:33.160 --> 00:17:43.150
+Right now, I think what we'd also want to do here is set the child, parent and child something along
+
+259
+00:17:43.150 --> 00:17:45.150
+these lines right now.
+
+260
+00:17:45.160 --> 00:17:52.480
+Here's the problem, though, with as as this is currently written, then if we do and start next here,
+
+261
+00:17:52.630 --> 00:17:56.740
+that's going to make the road cursor go down to the second row, right?
+
+262
+00:17:56.890 --> 00:18:03.850
+However, as soon as that happens, because we're inside of a loop, what happens to this parent, right?
+
+263
+00:18:04.210 --> 00:18:11.440
+So as this is currently written, the parent from the first row would actually become garbage collected
+
+264
+00:18:11.770 --> 00:18:15.670
+and then we'd end up creating a new parent again.
+
+265
+00:18:16.030 --> 00:18:19.330
+Do you see that because we're going to loop back up here?
+
+266
+00:18:19.420 --> 00:18:24.070
+We're going to extract the second parent, which is a duplicate of the first parent, right?
+
+267
+00:18:24.700 --> 00:18:26.980
+This is the same parent three times, right?
+
+268
+00:18:27.070 --> 00:18:31.550
+But our code currently doesn't know that it's going to just say, Oh, here's another.
+
+269
+00:18:31.600 --> 00:18:32.620
+Here's a second parent.
+
+270
+00:18:32.650 --> 00:18:37.330
+Let me go create a new parent object with the exact same name as the first one.
+
+271
+00:18:37.810 --> 00:18:39.970
+Our code won't know that, though, right?
+
+272
+00:18:40.210 --> 00:18:45.970
+And so as this code is currently written, we end up just creating three parents each with one child.
+
+273
+00:18:46.120 --> 00:18:47.360
+That's not what we want.
+
+274
+00:18:47.380 --> 00:18:51.640
+We want one parent with three children inside of the parent.
+
+275
+00:18:52.210 --> 00:18:59.350
+So what I think we really want to do here is maybe somehow create the parent the very first time.
+
+276
+00:18:59.740 --> 00:19:07.510
+Then as long as the subsequent parents match the very first parent, don't keep recreating that parent.
+
+277
+00:19:07.630 --> 00:19:09.130
+I know I'm using the word parent a lot.
+
+278
+00:19:09.130 --> 00:19:10.900
+I hope you're you're sticking with me, right?
+
+279
+00:19:11.110 --> 00:19:12.550
+So let's just look at it from here.
+
+280
+00:19:13.030 --> 00:19:16.060
+The first time we create this parent, that's fine.
+
+281
+00:19:16.060 --> 00:19:17.770
+We're going to create a parent object.
+
+282
+00:19:17.770 --> 00:19:23.320
+OK, then we're going to come down to this next row and we're going to create another parent object
+
+283
+00:19:23.320 --> 00:19:23.680
+again.
+
+284
+00:19:23.680 --> 00:19:28.720
+But now I think maybe we want to compare this second parent object to the first one.
+
+285
+00:19:28.960 --> 00:19:37.810
+And if they are equal, then probably just ignore this second one and then create the second child and
+
+286
+00:19:37.810 --> 00:19:44.140
+then add the second child to the first parent, then come down to the third row and then do the same
+
+287
+00:19:44.140 --> 00:19:47.950
+thing again, temporarily create a third parent.
+
+288
+00:19:48.250 --> 00:19:51.670
+But compared this third parent to the first parent.
+
+289
+00:19:52.060 --> 00:19:54.940
+And if they are equal, then don't.
+
+290
+00:19:55.000 --> 00:20:00.930
+Use this third parent to let that third parent kick garbage collected and then create the child, the
+
+291
+00:20:00.930 --> 00:20:05.880
+third child, and add that third child to the first parent.
+
+292
+00:20:06.300 --> 00:20:13.620
+OK, so I think that's got to be our approach or our algorithm for how to convert the three rows of
+
+293
+00:20:13.620 --> 00:20:20.430
+duplicated parents but differentiated children into one parent with three children.
+
+294
+00:20:20.580 --> 00:20:23.190
+OK, so that's that's what we have to solve here.
+
+295
+00:20:23.550 --> 00:20:30.600
+So I'd like to encourage you to try to figure out how you can accomplish that in Java code.
+
+296
+00:20:30.630 --> 00:20:36.990
+This is an opportunity for you to really engage a lot of the concepts that you've learned throughout
+
+297
+00:20:36.990 --> 00:20:41.370
+this course and really try to solve a bit of a puzzle here.
+
+298
+00:20:41.400 --> 00:20:41.760
+OK.
+
+299
+00:20:42.240 --> 00:20:47.430
+So why don't you take a moment and see if you can work this out and then unpause and join back up with
+
+300
+00:20:47.430 --> 00:20:47.670
+me?
+
+301
+00:20:49.310 --> 00:20:52.580
+All right, so let's see how we can do this.
+
+302
+00:20:52.730 --> 00:21:02.960
+So what I'm thinking here is that I want one parent object outside of this loop who represents the one
+
+303
+00:21:02.960 --> 00:21:07.850
+and final, the final parent object who will collect all of the children.
+
+304
+00:21:07.880 --> 00:21:17.210
+OK, so maybe I'm going to actually call this parent right here, something like final parent, maybe,
+
+305
+00:21:17.570 --> 00:21:20.630
+and I'm going to go ahead and just initialize that to null as well.
+
+306
+00:21:20.870 --> 00:21:25.460
+And then this parent down here, maybe I'm going to call this one.
+
+307
+00:21:26.950 --> 00:21:33.100
+Person Shift six, I'm going to rename this to current parent.
+
+308
+00:21:33.430 --> 00:21:33.880
+OK.
+
+309
+00:21:34.270 --> 00:21:40.600
+And so then based on the little algorithm that I was saying a minute ago over here, go to the first
+
+310
+00:21:40.600 --> 00:21:47.620
+row, extract a current parent here and then maybe like compare the current parent to the final parent.
+
+311
+00:21:48.070 --> 00:21:53.190
+If they are equal, then discard the current parent.
+
+312
+00:21:53.200 --> 00:21:55.870
+Extract the current child.
+
+313
+00:21:56.200 --> 00:22:02.550
+Add the current child to the final parent and then advance to the next row.
+
+314
+00:22:02.560 --> 00:22:05.830
+Extract the current parent of the next row.
+
+315
+00:22:05.860 --> 00:22:09.100
+Compare that parent to the final parent.
+
+316
+00:22:09.730 --> 00:22:15.990
+If they are the same, then discard or ignore this current parent.
+
+317
+00:22:16.000 --> 00:22:18.460
+Extract this current child.
+
+318
+00:22:19.060 --> 00:22:25.120
+Add the current child to the final parent and then advance again to the next row.
+
+319
+00:22:25.270 --> 00:22:26.410
+Does that make sense?
+
+320
+00:22:27.130 --> 00:22:34.540
+Now, one thing I didn't state is what happens if, when comparing the current parent to the final parent,
+
+321
+00:22:34.810 --> 00:22:39.550
+the final parent isn't null and they aren't the same anymore.
+
+322
+00:22:40.120 --> 00:22:43.780
+So I think we'll save that use case for a little bit later.
+
+323
+00:22:43.990 --> 00:22:49.090
+We are going to have to tackle that also, but let's just see if we can codify what I just said here.
+
+324
+00:22:49.600 --> 00:22:49.840
+All right.
+
+325
+00:22:49.850 --> 00:22:52.630
+So we've got a final parent and then we've got a current parent.
+
+326
+00:22:53.050 --> 00:22:59.890
+So as soon as we've got this current parent, maybe we can test right here and say something like if
+
+327
+00:23:00.700 --> 00:23:09.730
+final parent is null, then final parent equals current parent.
+
+328
+00:23:09.850 --> 00:23:10.210
+Right?
+
+329
+00:23:10.630 --> 00:23:15.460
+So if this is the first time we're coming through here and final parent is null, go ahead and just
+
+330
+00:23:15.460 --> 00:23:17.670
+set the current parent to the final parent.
+
+331
+00:23:17.680 --> 00:23:22.600
+OK, so that essentially gives us two variables that are both pointing to the same object.
+
+332
+00:23:22.660 --> 00:23:23.100
+OK.
+
+333
+00:23:23.320 --> 00:23:25.730
+And that would be this first row in the database.
+
+334
+00:23:25.780 --> 00:23:26.200
+OK.
+
+335
+00:23:26.470 --> 00:23:26.770
+All right.
+
+336
+00:23:26.770 --> 00:23:28.780
+So now we've got our final parent.
+
+337
+00:23:29.170 --> 00:23:33.760
+Then we go ahead and extract the child and the addresses.
+
+338
+00:23:33.940 --> 00:23:41.890
+And so then what I'm thinking here is maybe we just go ahead and set all of these things home address,
+
+339
+00:23:41.890 --> 00:23:45.160
+business address and child on the final parent.
+
+340
+00:23:45.370 --> 00:23:46.900
+So let's see what that looks like.
+
+341
+00:23:47.050 --> 00:23:50.530
+Final parent and I'll I'll just copy and paste.
+
+342
+00:23:51.570 --> 00:23:53.760
+All of these like so.
+
+343
+00:23:54.000 --> 00:23:59.460
+All right, so then we advanced to the next row, so now we're on this row.
+
+344
+00:23:59.520 --> 00:24:01.980
+Then we come back up here to the top of the loop again.
+
+345
+00:24:02.130 --> 00:24:03.420
+We extract the parent.
+
+346
+00:24:03.600 --> 00:24:07.170
+So now at this point, final parent will not be null.
+
+347
+00:24:07.530 --> 00:24:16.350
+So I think we want to test, though, if final parent equals current parent.
+
+348
+00:24:17.880 --> 00:24:22.320
+So what should we do now if final parent equals the current parent?
+
+349
+00:24:23.430 --> 00:24:27.570
+Which is to say that we're still on John Smith, right, that's what that would mean.
+
+350
+00:24:28.350 --> 00:24:31.360
+We're seeing a duplicate of John Smith.
+
+351
+00:24:31.890 --> 00:24:35.760
+So in that case, I think just do nothing.
+
+352
+00:24:37.060 --> 00:24:38.950
+Which is what we have right here, do nothing.
+
+353
+00:24:38.980 --> 00:24:40.240
+Don't do anything here.
+
+354
+00:24:40.900 --> 00:24:48.220
+So in that case, we proceed to extract the child and the addresses, and then we would just add the
+
+355
+00:24:48.220 --> 00:24:49.840
+child to the final parent.
+
+356
+00:24:49.840 --> 00:24:55.300
+Now we would be unnecessarily setting this home address in business address again.
+
+357
+00:24:55.480 --> 00:24:59.410
+It is true that we would be doing that, but maybe we don't worry about that right now.
+
+358
+00:24:59.410 --> 00:25:00.660
+It's not going to hurt anything.
+
+359
+00:25:00.670 --> 00:25:05.620
+It's just kind of a waste of processing a small waste of processing time.
+
+360
+00:25:06.130 --> 00:25:14.080
+But we add this second child to the final parent and then we would proceed to the third row and then
+
+361
+00:25:14.080 --> 00:25:15.700
+same thing is going to happen again.
+
+362
+00:25:15.940 --> 00:25:22.000
+We jump back up to the top extract the parent parent and then the final parents, not Knowles, who
+
+363
+00:25:22.000 --> 00:25:27.850
+would jump down here if final parent equals current parent, which should be true again, then do nothing
+
+364
+00:25:27.850 --> 00:25:35.980
+and then extract the third child and then eventually add that third child right here and now there are
+
+365
+00:25:35.980 --> 00:25:36.850
+no more rows.
+
+366
+00:25:36.850 --> 00:25:44.170
+So this that next will return a false and then we need to just return the final parent.
+
+367
+00:25:44.290 --> 00:25:46.170
+So I think this should work.
+
+368
+00:25:46.180 --> 00:25:52.450
+And actually, with the way this is written, I guess we really don't even need this test right here
+
+369
+00:25:52.810 --> 00:25:54.890
+because currently it's not doing anything.
+
+370
+00:25:54.910 --> 00:26:01.390
+Now what about the third case where the current parent does not equal the final parent?
+
+371
+00:26:01.630 --> 00:26:06.550
+First off, let us consider, under what circumstance would we even see that situation happening?
+
+372
+00:26:07.270 --> 00:26:14.740
+So with this particular use case where we have searched for a parent by IED, I don't think we would
+
+373
+00:26:14.740 --> 00:26:15.580
+ever see that.
+
+374
+00:26:15.940 --> 00:26:22.990
+But keep in mind, this extract entity from results set method here is used for more than just finding
+
+375
+00:26:22.990 --> 00:26:23.440
+by ID.
+
+376
+00:26:23.860 --> 00:26:29.590
+It's also used for find all, and in that case, you wouldn't get duplicate rows of parents here.
+
+377
+00:26:29.600 --> 00:26:35.650
+Each row would be a unique parent, and unless we go update the find all school query that we're currently
+
+378
+00:26:35.650 --> 00:26:39.130
+using, there wouldn't be any children in that at present.
+
+379
+00:26:39.160 --> 00:26:39.520
+Right?
+
+380
+00:26:40.000 --> 00:26:48.340
+So for that situation, each time you iterated through here and then compared the current parent to
+
+381
+00:26:48.340 --> 00:26:52.090
+the final parent, they would be different each time.
+
+382
+00:26:52.210 --> 00:26:55.960
+So I think in that case, what we might want to do here.
+
+383
+00:26:56.440 --> 00:26:58.180
+Let's go ahead and just code this up.
+
+384
+00:26:58.600 --> 00:27:04.090
+So if Final Parent does not equal notice, I put the exclamation here.
+
+385
+00:27:04.450 --> 00:27:09.910
+If final parent not equals current parent, then what should we do?
+
+386
+00:27:10.180 --> 00:27:12.500
+So let's just run through that scenario real quick.
+
+387
+00:27:12.500 --> 00:27:13.930
+Click on a find all.
+
+388
+00:27:14.500 --> 00:27:22.930
+So again, we start before the first row and the rest start next, which is here gets called one time
+
+389
+00:27:22.960 --> 00:27:23.320
+right.
+
+390
+00:27:23.530 --> 00:27:25.510
+And so that takes us to row one.
+
+391
+00:27:26.050 --> 00:27:31.150
+Now we're pretending like we're walking through a situation where we did a fine doll and each of these
+
+392
+00:27:31.150 --> 00:27:32.620
+rows is a different parent.
+
+393
+00:27:32.650 --> 00:27:33.010
+OK.
+
+394
+00:27:33.190 --> 00:27:35.620
+That's the scenario that we're kind of running through real quick here.
+
+395
+00:27:35.950 --> 00:27:36.310
+All right.
+
+396
+00:27:37.960 --> 00:27:40.150
+All right, so we jump into here.
+
+397
+00:27:40.180 --> 00:27:41.380
+We're on row one.
+
+398
+00:27:41.530 --> 00:27:45.060
+We extract a parent the very first time we go through here.
+
+399
+00:27:45.070 --> 00:27:46.780
+Final parent is going to be null.
+
+400
+00:27:47.080 --> 00:27:49.690
+And so we set the current parent to the final parent.
+
+401
+00:27:50.350 --> 00:27:52.480
+Then we attempt to extract the child.
+
+402
+00:27:52.780 --> 00:27:55.880
+Probably there's not going to be one in this particular case.
+
+403
+00:27:56.050 --> 00:28:01.390
+And depending on what we'd had for the final query, there may or may not be addresses.
+
+404
+00:28:01.390 --> 00:28:02.110
+That's fine.
+
+405
+00:28:02.320 --> 00:28:04.780
+So these might be null or empty or whatever.
+
+406
+00:28:05.320 --> 00:28:10.900
+So in that situation, these may just be set to empty, optional or something like that.
+
+407
+00:28:11.170 --> 00:28:12.340
+I think that's fine.
+
+408
+00:28:12.760 --> 00:28:14.860
+Then we proceed to the next row.
+
+409
+00:28:15.730 --> 00:28:16.900
+So now we're on a next row.
+
+410
+00:28:16.900 --> 00:28:19.230
+So let's pretend like this isn't John Smith anymore.
+
+411
+00:28:19.250 --> 00:28:22.930
+Let's pretend like it's Harry Smith now and it's not a child.
+
+412
+00:28:23.230 --> 00:28:28.750
+So then we come back up here on this loop again and we extract the next parent.
+
+413
+00:28:28.870 --> 00:28:31.210
+This final parent is no longer null.
+
+414
+00:28:31.720 --> 00:28:32.650
+Then we get down here.
+
+415
+00:28:32.650 --> 00:28:36.190
+If final parent is not equal to current parent, that will be true.
+
+416
+00:28:36.880 --> 00:28:37.260
+All right.
+
+417
+00:28:37.270 --> 00:28:43.450
+So I think for right now, we're not going to address what happens when these two don't match.
+
+418
+00:28:43.750 --> 00:28:46.720
+We'll do that a little later or in a follow up lesson, OK?
+
+419
+00:28:46.750 --> 00:28:51.240
+But I think this looks like it might more or less work.
+
+420
+00:28:51.250 --> 00:28:53.440
+So let's see if we can find a test to run here.
+
+421
+00:28:53.680 --> 00:28:53.860
+Yeah.
+
+422
+00:28:53.860 --> 00:28:55.030
+OK, so here's our method.
+
+423
+00:28:55.030 --> 00:28:59.470
+I think our test can find person by ID with children.
+
+424
+00:28:59.770 --> 00:29:01.120
+So let's try running this.
+
+425
+00:29:01.120 --> 00:29:05.740
+By the way, this is green here because I tried a few things out before I started recording this, but
+
+426
+00:29:06.070 --> 00:29:08.410
+I honestly don't know how this is going to work currently.
+
+427
+00:29:08.410 --> 00:29:09.100
+So let's see.
+
+428
+00:29:09.520 --> 00:29:10.600
+So I'm going to run this.
+
+429
+00:29:11.410 --> 00:29:12.640
+All right, that failed.
+
+430
+00:29:13.930 --> 00:29:15.430
+And we're getting a message here.
+
+431
+00:29:15.580 --> 00:29:22.390
+An error column not found for alias, parent, home address, parent, OK, parent home address.
+
+432
+00:29:22.390 --> 00:29:32.800
+So we are adding the prefix of parent on to the retrieval of the home address somehow.
+
+433
+00:29:32.830 --> 00:29:38.590
+Let's see where that's happening, so I will start here at the top of the stack trace line 151.
+
+434
+00:29:40.480 --> 00:29:47.530
+And then so that's a call being made to the get value by Alias, let's see what's calling that.
+
+435
+00:29:47.780 --> 00:29:49.280
+Oh, OK, OK.
+
+436
+00:29:49.420 --> 00:29:58.690
+So we're trying to retrieve the home address IED, and we're referring to it as parent underscore home
+
+437
+00:29:58.690 --> 00:29:59.770
+underscore address.
+
+438
+00:29:59.770 --> 00:30:07.570
+But I bet I bet that's not what we called the alias in our sequel here.
+
+439
+00:30:07.660 --> 00:30:09.040
+So let's see here.
+
+440
+00:30:09.250 --> 00:30:17.110
+Home street address is what we actually should be looking for, and we're getting a parent home address.
+
+441
+00:30:17.110 --> 00:30:21.760
+So I think that's just the mistake I must have made in how I coded that.
+
+442
+00:30:22.000 --> 00:30:24.280
+So let's jump back down here.
+
+443
+00:30:24.550 --> 00:30:27.860
+So we don't want that to be called parent home address.
+
+444
+00:30:27.860 --> 00:30:30.730
+This should just be called home street address.
+
+445
+00:30:30.910 --> 00:30:31.270
+Right?
+
+446
+00:30:31.630 --> 00:30:34.750
+That should just be called home street address.
+
+447
+00:30:34.990 --> 00:30:38.770
+OK, home street address and no prefix.
+
+448
+00:30:38.980 --> 00:30:45.040
+So we can, I think, just get rid of that prefix there, and I'm just going to hard code.
+
+449
+00:30:47.350 --> 00:30:49.090
+Street address.
+
+450
+00:30:49.540 --> 00:30:56.020
+And actually, I guess I forgot to add in the retrieval of the business address as well.
+
+451
+00:30:56.140 --> 00:31:03.430
+And actually, for that matter, I'm not even doing anything with this home street address presently.
+
+452
+00:31:03.730 --> 00:31:08.560
+So actually, I think this line here probably isn't needed.
+
+453
+00:31:08.610 --> 00:31:10.690
+Let me let's see what happens if we just delete that.
+
+454
+00:31:11.030 --> 00:31:17.290
+Yeah, I don't even think we need that line because this is part of extracting the person and we will
+
+455
+00:31:17.290 --> 00:31:23.340
+get those home addresses and all of that stuff when we call the extract address for home and business.
+
+456
+00:31:23.350 --> 00:31:25.240
+So I think we didn't even need that here.
+
+457
+00:31:25.450 --> 00:31:32.200
+I probably just went a little too far with grabbing various values and things, so let's try that again.
+
+458
+00:31:32.920 --> 00:31:34.270
+Hey, that worked.
+
+459
+00:31:34.360 --> 00:31:34.720
+Yeah.
+
+460
+00:31:34.750 --> 00:31:36.220
+I think we're good right there.
+
+461
+00:31:36.550 --> 00:31:36.990
+All right.
+
+462
+00:31:37.000 --> 00:31:39.730
+So let me make some room here.
+
+463
+00:31:40.060 --> 00:31:43.120
+OK, so looks like we've got something that's working now.
+
+464
+00:31:43.270 --> 00:31:45.670
+If any of this was a little confusing for you.
+
+465
+00:31:45.850 --> 00:31:52.720
+I think you should really try to re-implement this on your own and then go back into this lesson and
+
+466
+00:31:52.720 --> 00:31:58.570
+review my explanation of the algorithm, the steps that we're taking to work this out, where I was
+
+467
+00:31:58.570 --> 00:32:02.470
+showing the rows in the database result set.
+
+468
+00:32:02.500 --> 00:32:02.950
+OK.
+
+469
+00:32:03.280 --> 00:32:07.330
+So I don't want to repeat that because this lesson is already quite long, and I don't think I'm going
+
+470
+00:32:07.330 --> 00:32:11.170
+to do a better job than what I already did earlier in just explaining those steps.
+
+471
+00:32:11.200 --> 00:32:14.320
+OK, but do make sure you go back and watch that again.
+
+472
+00:32:14.980 --> 00:32:21.280
+And I think in the next lesson, we will run all of the tests because I'm pretty certain several tests
+
+473
+00:32:21.280 --> 00:32:24.430
+or at least the find all tests will fail now.
+
+474
+00:32:24.730 --> 00:32:30.100
+And I think that'll be because we need to implement this conditional situation right here.
+
+475
+00:32:30.130 --> 00:32:30.490
+OK.
+
+476
+00:32:30.700 --> 00:32:36.370
+So I'm going to stop this here and then we'll pick right back up at this point and run all those tests
+
+477
+00:32:36.370 --> 00:32:38.650
+and then probably be forced to do something here.
+
+478
+00:32:38.770 --> 00:32:40.060
+So I'll see you in the next one.

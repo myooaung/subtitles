@@ -1,0 +1,961 @@
+WEBVTT
+
+0
+00:01.680 --> 00:10.560
+In the lecture we created a slider shortcode but then we had this weird problem where WordPress added
+
+1
+00:10.610 --> 00:16.620
+some empty P tags here inside the slider. And therefore Slick Slider converted these P tags into
+
+2
+00:16.620 --> 00:17.200
+slides.
+
+3
+00:17.280 --> 00:21.980
+So we're having some empty slides here and then our images, right?
+
+4
+00:22.410 --> 00:26.100
+So first I just discovered a problem with our gulpfile.
+
+5
+00:26.460 --> 00:36.840
+So if we go to slider.js or  button.scss and save. I'm clicking save now, our scripts task will
+
+6
+00:36.840 --> 00:37.830
+not run.
+
+7
+00:38.070 --> 00:45.150
+And that's because in the gulpfile, in the gulpfile in the plugin not in the theme, we are watching
+
+8
+00:45.150 --> 00:47.250
+for changes only inside
+
+9
+00:47.310 --> 00:48.880
+the src/assets/scss
+
+10
+00:48.960 --> 00:55.210
+and so on. But now we scss files and JavaScript files inside the includes folder.
+
+11
+00:55.500 --> 01:01.200
+So let's just change this to an array and also watch for changes
+
+12
+01:01.240 --> 01:11.640
+inside includes. And any scss files inside of this folder or any of its subfolders. And same for the js.
+
+13
+01:12.900 --> 01:17.460
+And let's save and now if we stop this task and then rerun it again.
+
+14
+01:21.230 --> 01:28.550
+And let's try now and save slider.js. And now the "scripts" task ran.
+
+15
+01:28.610 --> 01:31.290
+Right?
+
+16
+01:31.310 --> 01:33.650
+So let's go back now to our main problem.
+
+17
+01:33.650 --> 01:37.970
+So let's remove the slick initialization here.
+
+18
+01:39.290 --> 01:40.190
+And let's refresh.
+
+19
+01:43.800 --> 01:51.420
+So now we've our shortcode, the "_theme_slider" and inside of it we have an empty P tag before and after each slide,
+
+20
+01:51.540 --> 01:52.690
+ok?
+
+21
+01:52.880 --> 01:58.600
+So to understand why this problem happens, we should first be aware that.
+
+22
+01:59.030 --> 02:05.360
+Let's go to content, the page content or any content actually.
+
+23
+02:05.390 --> 02:12.350
+And when we call the_content() function WordPress will not just get whatever inside of here and display it,
+
+24
+02:12.530 --> 02:14.800
+it will actually run some filters on it.
+
+25
+02:15.230 --> 02:20.260
+So let's go to the our
+
+26
+02:20.270 --> 02:24.280
+WordPress folder which contains the wp-includes folder.
+
+27
+02:24.680 --> 02:30.660
+And let's find the file called "default-filters".
+
+28
+02:31.610 --> 02:36.890
+And inside of this file we will find all the filters that our content passes through before appearing
+
+29
+02:36.890 --> 02:38.900
+in the frontend.
+
+30
+02:39.140 --> 02:44.270
+So let's doCmd+F and "the content".
+
+31
+02:47.570 --> 02:51.540
+So here we have "add_filter( 'the_content', 'wptexturize')".
+
+32
+02:51.560 --> 02:57.530
+So this filter for example will go through your content and convert some characters to symbols.
+
+33
+02:57.530 --> 03:02.990
+For example it will convert, if right write "TM" in a certain way it will convert it to the TM symbol,
+
+34
+03:03.110 --> 03:08.990
+the trademark symbol. And it also converts ' and " to smart quotes and stuff like
+
+35
+03:08.990 --> 03:10.020
+that.
+
+36
+03:10.170 --> 03:16.940
+We also have a filter called "convert_smilies" and this will go through content and find any " :) "
+
+37
+03:17.030 --> 03:19.870
+and convert it to a smiley face and so on.
+
+38
+03:20.180 --> 03:24.410
+So these kind of filters are not causing any problem for us.
+
+39
+03:24.530 --> 03:28.530
+We have some other filters that are responsible for adding the P tags.
+
+40
+03:28.580 --> 03:31.500
+So we have a filter called "wpautop".
+
+41
+03:31.670 --> 03:33.960
+And we have "shortcode_unautop" .
+
+42
+03:34.100 --> 03:42.950
+And we also, let's do Cmd+D, and we've filter called "do_shortcode" and it's run after "wp_autop"
+
+43
+03:42.960 --> 03:45.230
+as mentioned in this comment.
+
+44
+03:45.290 --> 03:46.240
+Right?
+
+45
+03:46.310 --> 03:53.010
+So why don't we go to the content and let's comment this.
+
+46
+03:53.620 --> 03:57.210
+And now in our page we shouldn't have any content now.
+
+47
+04:00.740 --> 04:03.250
+Oh sorry, this is the blank page template.
+
+48
+04:03.660 --> 04:05.340
+So let's go to page-templates
+
+49
+04:08.340 --> 04:14.350
+and this. Let's comment this. So now I don't have any content.
+
+50
+04:14.530 --> 04:20.650
+And what we'd like to do now, we would like to get the content without any filters. So we can use,
+
+51
+04:20.760 --> 04:29.570
+let's open PHP. And let's create a new variable and let's use the function get_the_content(). get_the_content() will get the
+
+52
+04:29.570 --> 04:30.280
+content.
+
+53
+04:30.440 --> 04:32.840
+But without any filters applied to it.
+
+54
+04:33.060 --> 04:34.920
+So let's echo this.
+
+55
+04:36.650 --> 04:42.950
+And let's create another page and let's close this.
+
+56
+04:43.130 --> 04:48.490
+And let's copy our slider and button. And let's create a new page.
+
+57
+04:52.250 --> 04:55.730
+And we just, we need to do some testing inside of this page.
+
+58
+04:55.760 --> 04:56.300
+Right?
+
+59
+04:56.360 --> 05:07.440
+So let's type "test". But let's go and edit it using the classic editor. And let's paste our shortcodes.
+
+60
+05:08.130 --> 05:08.920
+Let's view this page
+
+61
+05:08.930 --> 05:09.940
+now.
+
+62
+05:12.100 --> 05:18.660
+And let's use the blank template.
+
+63
+05:18.820 --> 05:23.880
+So now we have our content without any filters applied to.
+
+64
+05:23.940 --> 05:24.910
+Right?
+
+65
+05:24.970 --> 05:30.430
+So let's start applying these filters to the $c variable which contains the contents one by one. And see
+
+66
+05:30.430 --> 05:32.380
+what happens after each step.
+
+67
+05:32.590 --> 05:36.830
+And then this way we can debug why this problem happens, right?
+
+68
+05:36.890 --> 05:42.250
+We won't run all of these filters we will only run the ones that are causing the problems. So we have
+
+69
+05:42.250 --> 05:43.320
+wpautop.
+
+70
+05:43.530 --> 05:48.580
+So let's just echo a title here to know which one is which. So let's type "Initial"
+
+71
+05:51.470 --> 05:53.170
+and BR tag.
+
+72
+05:56.220 --> 06:00.220
+And also let's echo some BR tags after.
+
+73
+06:00.540 --> 06:08.420
+And now apply to the $c variable the wpautop() filter or function.
+
+74
+06:10.020 --> 06:12.920
+And let's also echo the output of this.
+
+75
+06:13.010 --> 06:15.740
+Let's "echo 'wpautop'".
+
+76
+06:19.750 --> 06:34.740
+And then echo the $c variable after the wpautop() is applied. And echo some BR tags for the next one.
+
+77
+06:34.980 --> 06:37.130
+So as you can see let's inspect.
+
+78
+06:37.500 --> 06:40.050
+So as you can see WordPress edits some
+
+79
+06:40.860 --> 06:45.420
+P tags after the wpautop() function.
+
+80
+06:45.480 --> 06:53.010
+So let's actually instead of echoing the $c directly let's "esc_html($c)" in order to see P tags on the
+
+81
+06:53.010 --> 06:53.470
+screen.
+
+82
+06:53.510 --> 06:53.920
+All right.
+
+83
+06:58.680 --> 07:02.070
+So what the wpautop() filter will do?
+
+84
+07:02.070 --> 07:06.430
+It will find each paragraph in your content and wrap it inside of P tags.
+
+85
+07:06.510 --> 07:15.520
+And also if we have an empty paragraph, so let's update it will add empty P tags.
+
+86
+07:15.600 --> 07:22.860
+So as you can see here the first line in all content is the button and now the button is wrapped in P tags.
+
+87
+07:23.090 --> 07:24.680
+And then we have an empty line.
+
+88
+07:24.740 --> 07:30.910
+So we have an empty P tags. And then we have the opening line for the slider,
+
+89
+07:30.950 --> 07:37.570
+this one wrapped in P tags. And each line here will be outputted wrapped in P tags.
+
+90
+07:37.580 --> 07:38.670
+All right?
+
+91
+07:38.940 --> 07:42.840
+So now I'm gonna add the other filters. I'm gonna paste them
+
+92
+07:42.950 --> 07:49.710
+instead of typing on screen. So we now, we next will have a shortcode_unautop().
+
+93
+07:50.150 --> 07:52.760
+And then the do_shortcode() filters.
+
+94
+07:52.760 --> 08:02.390
+So let's see now. The shortcode_unautop(), what this filter will do is that it will remove the P tags arround the shortcodes. And
+
+95
+08:02.390 --> 08:08.980
+WordPress adds this filter because when you're typing in the editor you only want to wrap text P tags.
+
+96
+08:08.990 --> 08:11.690
+You don't want to wrap shortcodes in P tags, right?
+
+97
+08:11.690 --> 08:16.670
+Otherwise your shortcode output will be wrapped in P tags. So if you output a DIV it will be a DIV wrapped
+
+98
+08:16.670 --> 08:17.680
+in P tags.
+
+99
+08:17.870 --> 08:25.130
+So to make sure P tag only wraps text WordPress will run the shortcode_unautop() filter and this
+
+100
+08:25.130 --> 08:28.190
+will remove the P tags from around shortcodes.
+
+101
+08:28.190 --> 08:30.970
+So in this step a problem happens.
+
+102
+08:31.200 --> 08:38.100
+So WordPress will see the "_themename_button" shortcode which is wrapped in P tags here and it will remove the
+
+103
+08:38.140 --> 08:40.070
+P tags and that's fine.
+
+104
+08:41.730 --> 08:48.390
+And then next we have the empty P tags for the empty line which are these ones and then we have our slider
+
+105
+08:48.600 --> 08:52.300
+shortcode which is this one, right?
+
+106
+08:52.410 --> 08:53.670
+It's a shortcode inside of it
+
+107
+08:53.670 --> 08:55.330
+some other shortcodes.
+
+108
+08:55.380 --> 08:59.270
+So when WordPress wrapped this shortcode in P tags, it wrapped
+
+109
+08:59.300 --> 09:06.180
+the opening tag in P tags as you can see here and it also wrapped the closing of the shortcode.
+
+110
+09:06.600 --> 09:09.620
+And it also wrapped every line inside of this shortcode.
+
+111
+09:09.660 --> 09:13.110
+So it wrapped every slide in P tags.
+
+112
+09:13.530 --> 09:20.090
+But when WordPress removes them, it will only find the top level shortcode which is the "_themename_slider".
+
+113
+09:20.280 --> 09:25.080
+So it'll find this and it will remove the P tags around it.
+
+114
+09:25.080 --> 09:28.250
+So it will only remove this one and this one.
+
+115
+09:29.010 --> 09:35.760
+So that's why as you can see here, we have this closing P tag that was supposed to be closing this
+
+116
+09:35.760 --> 09:36.290
+one.
+
+117
+09:36.600 --> 09:38.170
+But now this one is gone here.
+
+118
+09:38.640 --> 09:41.810
+And also we have the P tags around each slide.
+
+119
+09:41.900 --> 09:47.870
+WordPress did not remove these because the shortcode_unautop() will run only on the top level shortcode,
+
+120
+09:48.010 --> 09:51.390
+the slider, it will not run on the children.
+
+121
+09:51.390 --> 09:56.760
+And also we have the opening P tag here which was closed here, but now since WordPress removed
+
+122
+09:56.810 --> 09:59.650
+the P tags around this whole shortcode.
+
+123
+09:59.850 --> 10:07.320
+So it removed this one but it did not remove this one. So I'm not sure if this is sounding confusing
+
+124
+10:07.320 --> 10:14.480
+but I really recommend you do what I did and trace these filters. But anyways
+
+125
+10:15.030 --> 10:17.800
+the last filter we'll have is the do_shortcode().
+
+126
+10:17.910 --> 10:23.480
+And this will just convert your shortcodes into the HTML. So this will be converted to the opening tag for
+
+127
+10:23.490 --> 10:27.530
+the slider and each one of these will be converted to a slide DIV.
+
+128
+10:27.750 --> 10:31.790
+But then we will have a closing P tag here that is not opened.
+
+129
+10:32.010 --> 10:38.220
+So your browser will try to balance this and it will add an open P tag. And here also it will find the P tag
+
+130
+10:38.220 --> 10:41.090
+that is not closed, it will add a closing P tag.
+
+131
+10:41.100 --> 10:46.310
+And that's why you see two empty P tags before each slide.
+
+132
+10:46.830 --> 10:50.770
+So let's go back now and display the content.
+
+133
+10:57.710 --> 10:59.430
+And let's inspect.
+
+134
+11:00.480 --> 11:06.800
+And let's try to map what we're seeing here in the inspector with what we are seeing in this line.
+
+135
+11:06.840 --> 11:07.690
+Ok?
+
+136
+11:07.770 --> 11:16.100
+So we have the "_themename-slider" DIV which will be displayed using this shortcode.
+
+137
+11:16.320 --> 11:23.640
+And then we have this closing P tag and the browser will add opening P tag. And also for this one the
+
+138
+11:23.640 --> 11:25.140
+browser will find this
+
+139
+11:25.280 --> 11:32.420
+P tag, it will add a closing P tag for it. And then we will display the "_themename_slide" shortcode,
+
+140
+11:32.640 --> 11:37.730
+this one, with the image inside of it. And then the same problem,
+
+141
+11:37.920 --> 11:42.040
+closing P tag without an opening and an opening P tag without a closing.
+
+142
+11:42.180 --> 11:44.270
+This will add two empty P tags here.
+
+143
+11:45.170 --> 11:47.930
+And so on.
+
+144
+11:47.940 --> 11:54.370
+So how to tackle this problem? First let's do something that will remove the P tags around the shortcodes here,
+
+145
+11:54.630 --> 11:57.990
+around each "themename_slide".
+
+146
+11:58.350 --> 12:02.650
+And to do that we will do the same thing WordPress did. When WordPress wanted to remove P tags from around
+
+147
+12:02.650 --> 12:11.400
+shortcodes, from around the bottom. And the slider, the top level shortcodes, it ran shortcode_unautop().
+
+148
+12:11.400 --> 12:14.730
+So we'll do the same thing for the content of the slider.
+
+149
+12:15.510 --> 12:24.340
+So let's go to slider.php. And we have the content of the shortcode.
+
+150
+12:24.360 --> 12:29.190
+So this will be, let's get.
+
+151
+12:29.460 --> 12:37.260
+So this $content will be this, everything inside the "_themename_slider" shortcodecode.
+
+152
+12:37.280 --> 12:42.800
+So what we need to do we want to run the shortcode_unautop() function to remove the P tags around the
+
+153
+12:42.800 --> 12:43.530
+shortcodes,
+
+154
+12:43.550 --> 12:43.880
+right?
+
+155
+12:43.890 --> 12:50.360
+So "shortcode_unautop($content)" and let's see now. Let's refresh.
+
+156
+12:53.160 --> 12:54.220
+And maybe you don't see it,
+
+157
+12:54.240 --> 12:59.890
+but here we don't have a P tag before the "_themename_slide" any more.
+
+158
+12:59.940 --> 13:06.010
+So let's undo and and see it again.
+
+159
+13:08.150 --> 13:12.810
+So here before the DIV for the "_themename_slide" we had a P tag which is also closed
+
+160
+13:12.830 --> 13:17.330
+after the DIV. So probably here or something.
+
+161
+13:17.500 --> 13:23.310
+And now after the shortcode_unautop() function we won't have that, right?
+
+162
+13:25.220 --> 13:30.250
+So great, so let's see the slider now.
+
+163
+13:30.290 --> 13:38.860
+So it's looking much better now. But we're still having one P tag as a first slide and one P tag as a last
+
+164
+13:38.870 --> 13:39.750
+slide.
+
+165
+13:40.370 --> 13:43.530
+And that's because we removed the P tags around
+
+166
+13:43.570 --> 13:44.730
+wach shortcode,
+
+167
+13:45.080 --> 13:46.960
+but we still have this problem.
+
+168
+13:46.970 --> 13:52.180
+We still have a closing P tag here and an opening P tag here.
+
+169
+13:52.280 --> 13:59.480
+And so when the browser sees this it will open it here and close it here. And we will still have extra
+
+170
+13:59.480 --> 14:00.160
+P tags.
+
+171
+14:00.200 --> 14:01.340
+Right?
+
+172
+14:01.370 --> 14:09.250
+And also we still have an empty P tag here, after the button. Wwe added a new line,
+
+173
+14:09.570 --> 14:11.620
+so WordPress added an empty  P tag. 
+
+174
+14:12.230 --> 14:14.070
+So maybe also we would like to remove these.
+
+175
+14:14.090 --> 14:19.340
+Maybe we would like to keep them but most probably we would like to remove them, because they would add extra
+
+176
+14:19.340 --> 14:22.540
+spacing and maybe you don't need that.
+
+177
+14:23.280 --> 14:30.620
+So if you search for this problem on google, you'll find a famous solution and the solution is to run
+
+178
+14:30.740 --> 14:36.980
+another filter for the content of all these filters that will find any empty P tags and replace them with
+
+179
+14:36.980 --> 14:37.520
+nothing.
+
+180
+14:37.520 --> 14:38.400
+So let's do that.
+
+181
+14:38.460 --> 14:40.290
+It's add a new filter.
+
+182
+14:40.340 --> 14:43.220
+Let's do it in index for the plugin.
+
+183
+14:43.610 --> 14:46.880
+So we need to add a filter for "the_content."
+
+184
+14:51.580 --> 14:59.120
+Sorry. And let's call it "__themename__pluginname__
+
+185
+14:59.210 --> 15:03.350
+"__themename__pluginname__clean_p_tags". 
+
+186
+15:04.460 --> 15:06.590
+And we need to run this as late as possible.
+
+187
+15:06.590 --> 15:12.580
+We want to run it after all the other filters. So let's give it a priority of 20 and we'll also have one argument.
+
+188
+15:13.990 --> 15:19.670
+And let's create this function. And this filter will receive the $content and then we will modify and
+
+189
+15:19.670 --> 15:20.850
+return it.
+
+190
+15:21.470 --> 15:28.750
+So what do we want to do? We want to replace all the empty P tags with nothing. So "return"  and we can use preg_replace().
+
+191
+15:29.030 --> 15:33.550
+So we want a regular expression that will find all empty P tags.
+
+192
+15:33.770 --> 15:37.990
+And I found this on Google on Stack Ovewflow. I willput a link to it.
+
+193
+15:38.070 --> 15:40.060
+But I'm just gonna paste it here.
+
+194
+15:40.370 --> 15:46.280
+So this regular expression will find all P tags, empty P tags or a P tag with BR tag inside of it
+
+195
+15:46.420 --> 15:51.310
+or just a space inside of it or in other words any P tag with no actual content inside of it.
+
+196
+15:51.800 --> 15:54.530
+And we will have to replace it with nothing.
+
+197
+15:54.980 --> 15:56.800
+And then it takes the $content.
+
+198
+16:01.810 --> 16:05.960
+And let's see now.
+
+199
+16:06.280 --> 16:15.040
+So we've managed to remove the P tag after the button which was created by this space. But let's go to
+
+200
+16:15.040 --> 16:20.470
+the slider and we still have these P tags.
+
+201
+16:20.740 --> 16:26.050
+So why do we still have these is because what we've done is we're giving this content to the new filter
+
+202
+16:26.050 --> 16:32.010
+that we created. And preg_replace() will find P tags and replace them with nothing.
+
+203
+16:32.230 --> 16:40.490
+So it will find this one because this is an empty P tag but then it will go and find this closing P tag
+
+204
+16:41.270 --> 16:45.490
+with no opening. It will not match this regular expression.
+
+205
+16:45.620 --> 16:47.000
+Right?
+
+206
+16:47.030 --> 16:51.650
+So we still have the same problem where the browser will find a closing P tag and it will add an opening
+
+207
+16:51.650 --> 16:52.360
+for it.
+
+208
+16:53.150 --> 16:56.410
+And same also for the P tag here.
+
+209
+16:56.450 --> 17:02.580
+So let's actually log this in the content.
+
+210
+17:02.660 --> 17:08.200
+I'm also gonna paste this one. What we're doing after the shortcode, we we're running
+
+211
+17:08.330 --> 17:10.100
+preg_replace(). So let's save this.
+
+212
+17:12.930 --> 17:22.410
+And as you can see after preg_replace() this empty P tags is remove here, but this closing P tag is not removed.
+
+213
+17:22.560 --> 17:23.190
+Right?
+
+214
+17:23.220 --> 17:26.070
+So what do we have to do in order to remove these ones as well?
+
+215
+17:26.070 --> 17:29.070
+I found a function called force_balance_tags().
+
+216
+17:29.070 --> 17:31.340
+So I'm gonna paste something.
+
+217
+17:32.430 --> 17:37.770
+So before going to the preg_replace() we're gonna parse the content first through a function called
+
+218
+17:37.770 --> 17:44.700
+force_balance_tags(). And this function as it's name might suggest will find all unbalanced tags and it will
+
+219
+17:44.700 --> 17:46.140
+force them to be balanced.
+
+220
+17:46.140 --> 17:49.990
+So let's see what will be the output of this function.
+
+221
+17:50.010 --> 17:52.220
+So here it is.
+
+222
+17:52.260 --> 17:54.780
+So we have the closing P tag here.
+
+223
+17:54.780 --> 17:59.150
+And as you can see the force_balance_tag() function removed it because it has no opening.
+
+224
+18:00.120 --> 18:06.400
+And also we have the opening tag here and the force_balance_tag() function found an opening tag without
+
+225
+18:06.410 --> 18:07.210
+a closing.
+
+226
+18:07.350 --> 18:09.750
+So it added a closing tag for it.
+
+227
+18:09.750 --> 18:16.580
+And then when we pass through the preg_replace() this will be replaced with nothing as you can see here.
+
+228
+18:16.680 --> 18:20.820
+And this way we got rid of all the P tags in the final content.
+
+229
+18:21.650 --> 18:28.830
+So let's copy this function. And in index.php in our filter,
+
+230
+18:28.870 --> 18:37.120
+let's first run the contents through this function before the preg_replace(). And let's see the actual content
+
+231
+18:37.130 --> 18:46.180
+now. And as you can see you have the slider with only the slides.
+
+232
+18:46.210 --> 18:55.400
+So now let's initialize the slider again. And it's now working fine.
+
+233
+18:56.440 --> 19:00.400
+So that was a longer lecture but I think we've learned a lot in it.
+
+234
+19:00.700 --> 19:05.870
+And I think you now know a little bit more of how WordPress works behind the scenes.
+
+235
+19:05.890 --> 19:10.820
+Also this lecture is one of these lectures that might be a bit confusing for some of you.
+
+236
+19:10.870 --> 19:15.430
+So I think watching this lecture again might make things a bit more clear.
+
+237
+19:15.550 --> 19:16.670
+I think that's it for shortcodes now.
+
+238
+19:16.710 --> 19:22.810
+You now have all the basics and you can do whatever you want inside of short codes functions.
+
+239
+19:22.840 --> 19:26.300
+So let's move on to another topic in the next section.

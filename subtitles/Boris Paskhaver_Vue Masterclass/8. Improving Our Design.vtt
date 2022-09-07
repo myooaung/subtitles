@@ -1,0 +1,604 @@
+WEBVTT
+1
+00:00:00.440 --> 00:00:01.400
+All right.
+
+2
+00:00:01.400 --> 00:00:06.200
+So hopefully by now we have a decent sense of how we can emit events in view.
+
+3
+00:00:06.470 --> 00:00:11.960
+This is how we allow our child components to communicate that something has happened to their parent
+
+4
+00:00:11.960 --> 00:00:12.500
+components.
+
+5
+00:00:12.950 --> 00:00:17.960
+Now, as I'm looking at our current design, it does work, but I do have some issues with it.
+
+6
+00:00:18.170 --> 00:00:23.000
+And I'm curious if we can build out a better implementation to solve those issues.
+
+7
+00:00:23.300 --> 00:00:26.810
+So here are three problems that I see with our current design.
+
+8
+00:00:27.230 --> 00:00:33.740
+The first problem is that we are duplicating data across both our job search form component and each
+
+9
+00:00:33.770 --> 00:00:34.880
+text input component.
+
+10
+00:00:35.180 --> 00:00:40.520
+So of course, the way we built it out, our text input component keeps track of the changes through
+
+11
+00:00:40.520 --> 00:00:46.640
+its own data property and then it emits that handle input event to the parent where the parent updates
+
+12
+00:00:46.640 --> 00:00:50.870
+the appropriate property, whether it be a role up here or location up here.
+
+13
+00:00:51.170 --> 00:00:56.690
+So that keeps the data or the values in sync between the two components.
+
+14
+00:00:56.930 --> 00:01:01.340
+But it still creates two sources of truth, even if those two values are equal.
+
+15
+00:01:01.460 --> 00:01:06.110
+It begs the question Do we need to have two places where we are storing this data?
+
+16
+00:01:06.140 --> 00:01:11.890
+Can we just have one location, one component that knows the value of the role and the location input?
+
+17
+00:01:11.900 --> 00:01:13.550
+Do we need to duplicate this data?
+
+18
+00:01:13.730 --> 00:01:14.750
+What is the benefit?
+
+19
+00:01:14.750 --> 00:01:20.810
+Because if for some reason our data gets out of sync, if our text input stores one value and our job
+
+20
+00:01:20.810 --> 00:01:23.620
+search form holds another while, then who do we trust?
+
+21
+00:01:23.630 --> 00:01:23.900
+Right.
+
+22
+00:01:24.080 --> 00:01:28.490
+So data duplication is generally not a good thing because we're trying to keep track of just one piece
+
+23
+00:01:28.490 --> 00:01:31.010
+of information, just the role or just the location.
+
+24
+00:01:31.040 --> 00:01:33.290
+So that's the first issue I have with the current design.
+
+25
+00:01:33.620 --> 00:01:40.100
+The second issue I have is with our current input code or our handle input event handler right here.
+
+26
+00:01:40.340 --> 00:01:44.720
+As I mentioned, the syntax works, but it's a little bit imperative versus declarative.
+
+27
+00:01:45.410 --> 00:01:50.900
+So if you haven't heard of those two terms before, declarative code is where we describe what should
+
+28
+00:01:50.900 --> 00:01:55.430
+happen and imperative code is where we describe how something should happen.
+
+29
+00:01:55.640 --> 00:02:01.580
+And generally the how is considered a worser way to build the software programs because it's a lot more
+
+30
+00:02:01.580 --> 00:02:02.900
+manual and verbose.
+
+31
+00:02:03.200 --> 00:02:11.120
+So in this scenario, we have to know the details of how the handle input event is going to be relayed
+
+32
+00:02:11.120 --> 00:02:11.870
+from the child.
+
+33
+00:02:11.870 --> 00:02:13.010
+We have to know the syntax.
+
+34
+00:02:13.160 --> 00:02:17.060
+We have to know that we're going to receive the payload in that dollar sign event object.
+
+35
+00:02:17.330 --> 00:02:22.400
+Of course, it's not that complex to understand, but when you compare it to something like V model
+
+36
+00:02:22.400 --> 00:02:28.010
+where it's a lot more declarative and Vue handles a lot of that logic behind the scenes, for us, this
+
+37
+00:02:28.010 --> 00:02:29.640
+approach is a little bit more imperative.
+
+38
+00:02:29.660 --> 00:02:35.030
+It's a little bit more verbose, specific, explicit with us having to write out this code and know
+
+39
+00:02:35.030 --> 00:02:36.950
+some details about Vue to make it happen.
+
+40
+00:02:36.950 --> 00:02:38.210
+So this is okay.
+
+41
+00:02:38.210 --> 00:02:41.410
+But again, I'm curious, can we do a little bit better than this?
+
+42
+00:02:41.420 --> 00:02:41.810
+Right.
+
+43
+00:02:42.380 --> 00:02:48.230
+Finally, my third problem is that our text input component offers no way to customize the starting
+
+44
+00:02:48.230 --> 00:02:53.180
+value of the text input, because whenever we render a text input, we're always going to have this
+
+45
+00:02:53.180 --> 00:02:54.440
+value data property.
+
+46
+00:02:54.590 --> 00:02:59.720
+It's always going to start out as an empty string and thus the input is going to render with no text
+
+47
+00:02:59.720 --> 00:02:59.990
+in it.
+
+48
+00:03:00.230 --> 00:03:04.970
+And sometimes you do want to be able to render a text input that starts out with some pre-configured
+
+49
+00:03:04.970 --> 00:03:05.360
+value.
+
+50
+00:03:05.630 --> 00:03:11.630
+For example, if the user is updating a form and you want to pre fill some of those form fields out
+
+51
+00:03:11.630 --> 00:03:13.190
+so they don't have to enter them again.
+
+52
+00:03:13.460 --> 00:03:13.730
+Right.
+
+53
+00:03:13.730 --> 00:03:18.290
+For example, you may fetch a record from the database that has some information and you may want to
+
+54
+00:03:18.290 --> 00:03:21.620
+populate the form fields automatically so the user doesn't have to type it out.
+
+55
+00:03:21.860 --> 00:03:27.710
+In those situations, it'd be great if our text input component was flexible enough to support starting
+
+56
+00:03:27.710 --> 00:03:31.940
+out with any starting value, perhaps an empty string or perhaps a preconfigured string.
+
+57
+00:03:32.090 --> 00:03:32.360
+Right.
+
+58
+00:03:32.660 --> 00:03:38.030
+So those are three problems that I can identify right now duplication of data, an imperative approach
+
+59
+00:03:38.030 --> 00:03:42.590
+to reacting to events, and no way to customize the starting value of our text.
+
+60
+00:03:42.830 --> 00:03:47.330
+There's probably more issues to be found, but those are the kind of issues that I think we can fix
+
+61
+00:03:47.480 --> 00:03:51.170
+by coming up with a better solution for how we design our text input.
+
+62
+00:03:51.170 --> 00:03:52.010
+Reusable Components.
+
+63
+00:03:52.730 --> 00:03:55.730
+So let's start with our data duplication problem.
+
+64
+00:03:56.000 --> 00:04:02.420
+And what I propose we do is instead of creating separate data on each text input component, I propose
+
+65
+00:04:02.420 --> 00:04:04.760
+that we feed in the data via a prop.
+
+66
+00:04:05.300 --> 00:04:11.060
+So what that means as our parent component in this case job search form, can provide a new prop, and
+
+67
+00:04:11.060 --> 00:04:16.040
+that prop will represent the current value that is within the component.
+
+68
+00:04:16.640 --> 00:04:16.850
+All right.
+
+69
+00:04:16.850 --> 00:04:21.020
+It's a little bit complicated because we're still going to need to have an interaction between our parent
+
+70
+00:04:21.020 --> 00:04:21.860
+and our child.
+
+71
+00:04:22.040 --> 00:04:26.750
+But I propose the parent will be the one that's always going to know what the current value of the data
+
+72
+00:04:26.750 --> 00:04:31.070
+should be, the current value of the input field, and it's going to feed it in as a prop.
+
+73
+00:04:32.000 --> 00:04:32.270
+All right.
+
+74
+00:04:32.270 --> 00:04:33.410
+Let me show you how this is going to work.
+
+75
+00:04:33.410 --> 00:04:40.550
+So let's stick with our text input component right here and let's go ahead and remove our entire data
+
+76
+00:04:40.550 --> 00:04:41.480
+object right here.
+
+77
+00:04:42.020 --> 00:04:42.440
+Okay.
+
+78
+00:04:42.860 --> 00:04:46.850
+So we're no longer going to have any data belonging to this text input component.
+
+79
+00:04:47.060 --> 00:04:52.730
+And as I mentioned, let's say we're going to get the value that should be rendered within the input
+
+80
+00:04:52.730 --> 00:04:54.140
+component from a prop.
+
+81
+00:04:54.440 --> 00:04:56.030
+And let's call that prop value.
+
+82
+00:04:57.310 --> 00:04:57.670
+All right.
+
+83
+00:04:57.670 --> 00:04:59.500
+So again, I'm going to configure a prop.
+
+84
+00:04:59.500 --> 00:05:02.020
+So I'm going to provide a new property in our prop object.
+
+85
+00:05:02.230 --> 00:05:05.230
+The parent component will give me a prop called the value.
+
+86
+00:05:05.590 --> 00:05:07.330
+That props type will be a string.
+
+87
+00:05:07.630 --> 00:05:10.000
+And I'm going to say that it is going to be required.
+
+88
+00:05:10.120 --> 00:05:15.940
+So whenever we render a text input component, whatever parent renders, it has to give me a value prop.
+
+89
+00:05:16.570 --> 00:05:22.270
+Okay, so here in my methods, you'll notice that we are overwriting a value property and that value
+
+90
+00:05:22.270 --> 00:05:25.180
+property is a data property that no longer exists.
+
+91
+00:05:25.450 --> 00:05:27.280
+So for now, let's delete this line.
+
+92
+00:05:27.280 --> 00:05:30.430
+We don't need any local data, so I'm going to delete this line.
+
+93
+00:05:30.580 --> 00:05:35.560
+And here, instead of providing this that value which no longer exists, well, to be fair, it does
+
+94
+00:05:35.560 --> 00:05:37.540
+actually exist, but it now exists as a prop.
+
+95
+00:05:37.870 --> 00:05:42.730
+But I of course want the latest entry into the form or the input that is.
+
+96
+00:05:42.880 --> 00:05:48.640
+And of course I can always get that by talking to my event object and getting its target property and
+
+97
+00:05:48.640 --> 00:05:50.410
+then its value property on that object.
+
+98
+00:05:50.620 --> 00:05:55.360
+So whatever the users just typed in, I'm still going to emit upwards via the handle input event.
+
+99
+00:05:55.660 --> 00:06:00.340
+However, I'm going to get it not from the local data property but just from whatever is on the event
+
+100
+00:06:00.340 --> 00:06:00.850
+object.
+
+101
+00:06:01.270 --> 00:06:04.420
+Now, a few things worth noting here before we proceed.
+
+102
+00:06:05.230 --> 00:06:10.780
+The first thing is you'll notice that we were previously using V Bind to bind to the valid value data
+
+103
+00:06:10.780 --> 00:06:11.230
+property.
+
+104
+00:06:11.410 --> 00:06:16.450
+So whenever the value data property changes we would update the corresponding value attributes.
+
+105
+00:06:16.450 --> 00:06:18.610
+So the input field would reflect that new text.
+
+106
+00:06:18.940 --> 00:06:20.920
+This syntax is still going to work.
+
+107
+00:06:21.070 --> 00:06:24.370
+We are still binding to something dynamic, something that is changing.
+
+108
+00:06:24.520 --> 00:06:31.240
+But now this value reference is not going to be a value data property, but to our value prop and that
+
+109
+00:06:31.240 --> 00:06:32.140
+is totally fine.
+
+110
+00:06:32.140 --> 00:06:33.580
+We use the exact same syntax.
+
+111
+00:06:33.790 --> 00:06:39.010
+If we get a prop from our parent or we have a data property or we have a computed property for that
+
+112
+00:06:39.010 --> 00:06:42.910
+matter, we can still reference any of them in our template using this syntax.
+
+113
+00:06:43.120 --> 00:06:47.920
+So this value is now referencing this value prop that the parent will provide.
+
+114
+00:06:48.250 --> 00:06:55.810
+And if for some reason the parent gives us a different value for the value prop, not a problem because
+
+115
+00:06:55.810 --> 00:07:01.210
+we bind as dynamic, it will automatically sense that change and re render the text input component
+
+116
+00:07:01.420 --> 00:07:05.380
+when the parent provides a different value for the value prop.
+
+117
+00:07:06.320 --> 00:07:06.770
+Okay.
+
+118
+00:07:07.070 --> 00:07:12.740
+Another side note that I'd like to mention is we are getting this prop called value and the general
+
+119
+00:07:12.740 --> 00:07:18.530
+best practice is you should never overwrite props in your child component, so you should never do something
+
+120
+00:07:18.530 --> 00:07:20.510
+like this that value equals.
+
+121
+00:07:21.110 --> 00:07:25.550
+And the reason you don't want to do that is because you're creating a data mismatch between the parent
+
+122
+00:07:25.790 --> 00:07:26.930
+and the child.
+
+123
+00:07:27.560 --> 00:07:32.960
+So props represent another component, the parent components data flowing into the child.
+
+124
+00:07:33.110 --> 00:07:38.810
+And if we overwrite that data, that prop in the child, but the parent still has the original value
+
+125
+00:07:38.960 --> 00:07:41.150
+that creates a potential problem and a mismatch.
+
+126
+00:07:41.150 --> 00:07:46.790
+We want to keep a single source of truth, so props should ideally only flow down.
+
+127
+00:07:47.240 --> 00:07:51.530
+The parent provides a prop value to the child and the child should never modify it.
+
+128
+00:07:51.680 --> 00:07:53.120
+It should just do something with it.
+
+129
+00:07:53.750 --> 00:07:59.300
+Now what happens if you need to use props to, for example, formulate a piece of data, right?
+
+130
+00:07:59.600 --> 00:08:04.910
+In that case, you should copy the prop that you're receiving in the child, and then you should modify
+
+131
+00:08:04.910 --> 00:08:05.420
+the copy.
+
+132
+00:08:05.570 --> 00:08:11.870
+You should never affect the parents prop that flows in because that is data that you do not control.
+
+133
+00:08:12.440 --> 00:08:12.740
+Right?
+
+134
+00:08:12.740 --> 00:08:17.240
+So you're always want to separate yourself from the prop data that is flowing in from the parent.
+
+135
+00:08:17.420 --> 00:08:17.630
+Right.
+
+136
+00:08:17.630 --> 00:08:19.250
+It's not really relevant in this scenario.
+
+137
+00:08:19.430 --> 00:08:23.330
+But just as a heads up, we have a value prop that is available under this thing.
+
+138
+00:08:23.420 --> 00:08:27.620
+And you never want to do something like this because we're overwriting a prop that is supposed to be
+
+139
+00:08:27.620 --> 00:08:30.410
+basically like read only data coming down from the parent.
+
+140
+00:08:30.920 --> 00:08:31.370
+All right.
+
+141
+00:08:32.150 --> 00:08:37.160
+You'll even see an error right here where it says from a slant, unexpected mutation, a value prop.
+
+142
+00:08:37.340 --> 00:08:39.500
+So it's a good practice to never mutate.
+
+143
+00:08:39.500 --> 00:08:40.760
+Props only use them.
+
+144
+00:08:40.910 --> 00:08:46.310
+And if you need to use them for some kind of custom data in our text input component and create a copy
+
+145
+00:08:46.310 --> 00:08:51.050
+of that prop or just use it separately from the original this that value reference.
+
+146
+00:08:51.590 --> 00:08:51.920
+Okay.
+
+147
+00:08:52.670 --> 00:08:55.970
+So with that, we now are depending on a value prop.
+
+148
+00:08:56.300 --> 00:09:01.880
+We are still emitting a handle input event with the current value from the event generated from the
+
+149
+00:09:01.880 --> 00:09:03.740
+browser whenever the user types letter n.
+
+150
+00:09:04.010 --> 00:09:08.300
+And so in the very next lesson, we're going to react to that event and see how our implementation changes
+
+151
+00:09:08.510 --> 00:09:09.590
+in job search form.

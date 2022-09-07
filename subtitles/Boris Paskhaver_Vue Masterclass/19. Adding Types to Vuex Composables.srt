@@ -1,0 +1,543 @@
+1
+00:00:00,450 --> 00:00:01,200
+Okay.
+
+2
+00:00:01,200 --> 00:00:06,270
+So we are making lots of progress in converting all of our UCS logic to be in TypeScript.
+
+3
+00:00:06,570 --> 00:00:12,420
+So the next file that I want to focus on is composable gotchas in our source store directory.
+
+4
+00:00:12,630 --> 00:00:15,390
+Here is where we have a whole bunch of composable functions.
+
+5
+00:00:15,630 --> 00:00:20,910
+The first three right here deal with talking with specific getters from the View Store and then this
+
+6
+00:00:20,910 --> 00:00:22,770
+final composable function right here.
+
+7
+00:00:22,770 --> 00:00:27,070
+Dispatches and action, the fetch jobs action to view X.
+
+8
+00:00:27,510 --> 00:00:29,570
+All right, so let's go ahead and change this file.
+
+9
+00:00:29,580 --> 00:00:32,130
+So right here, let's right click, choose rename.
+
+10
+00:00:32,130 --> 00:00:35,280
+And I'm going to change the extension from J.S. to T.S..
+
+11
+00:00:36,320 --> 00:00:36,620
+All right.
+
+12
+00:00:36,620 --> 00:00:41,750
+So after a quick second, we can see the initial bit of good news is that it doesn't look like we have
+
+13
+00:00:41,750 --> 00:00:43,770
+any errors, which is a good sign.
+
+14
+00:00:44,000 --> 00:00:49,490
+However, we're going to discover that the type inference is, in other words, what TypeScript thinks
+
+15
+00:00:49,490 --> 00:00:53,720
+are the proper return values from these proposals is not going to be quite right.
+
+16
+00:00:54,050 --> 00:00:55,440
+So let me give you an example here.
+
+17
+00:00:56,330 --> 00:01:02,300
+If, for example, I start with use filter jobs, this is going to return a computed function called
+
+18
+00:01:02,300 --> 00:01:05,090
+return value, which remember is a reactive object.
+
+19
+00:01:05,360 --> 00:01:10,970
+But more specifically, it's going to be a reactive object that wraps this return value of the getters
+
+20
+00:01:11,090 --> 00:01:12,260
+and it's filter jobs.
+
+21
+00:01:12,470 --> 00:01:18,140
+And as a quick reminder, what filter jobs represents is an array of job objects.
+
+22
+00:01:18,140 --> 00:01:18,440
+Right?
+
+23
+00:01:18,770 --> 00:01:24,680
+So in other words, what we're returning here is a reactive view object that's internally storing an
+
+24
+00:01:24,680 --> 00:01:25,910
+array of job objects.
+
+25
+00:01:26,120 --> 00:01:31,340
+And if I hover my mouse over use filter jobs, we can see the return value on the right is computed.
+
+26
+00:01:31,340 --> 00:01:38,150
+RAF And that is kind of the parent category or parent type that is representing that view reactive object.
+
+27
+00:01:38,420 --> 00:01:44,180
+But you can see in the generic syntax that it thinks that the internal value that the reactive object
+
+28
+00:01:44,180 --> 00:01:46,100
+is kind of wrapping is any.
+
+29
+00:01:46,430 --> 00:01:51,740
+In other words, TypeScript doesn't understand or can't infer that what we're returning here is a reactive
+
+30
+00:01:51,740 --> 00:01:54,230
+object, wrapping an array of job objects.
+
+31
+00:01:54,440 --> 00:01:58,670
+It doesn't understand that internal part, that internal value.
+
+32
+00:01:58,940 --> 00:02:00,860
+So what we need to be here is more specific.
+
+33
+00:02:00,870 --> 00:02:04,220
+We need to tell TypeScript that we are using computed.
+
+34
+00:02:04,340 --> 00:02:08,780
+So you are correct that it's going to be a computed ref or in other words, a reactive object, but
+
+35
+00:02:08,780 --> 00:02:13,610
+it's going to be a reactive object, wrapping a more specific value, which we will now provide to you
+
+36
+00:02:13,610 --> 00:02:14,330
+explicitly.
+
+37
+00:02:14,690 --> 00:02:14,930
+All right.
+
+38
+00:02:14,930 --> 00:02:20,840
+So in order to tell it that we're going to have a job array, we need to, of course, import our job
+
+39
+00:02:20,840 --> 00:02:21,440
+interface.
+
+40
+00:02:21,740 --> 00:02:26,690
+So what I'm going to do right here is I'm going to import my job interface.
+
+41
+00:02:28,010 --> 00:02:33,710
+And that's going to come from our source directory API and the types test file in there.
+
+42
+00:02:34,190 --> 00:02:39,620
+And then let me just show you if I click into this computed function and I go directly to the type definition
+
+43
+00:02:39,620 --> 00:02:45,710
+from my view library, we can see that the computed function accepts a generic, which means it accepts
+
+44
+00:02:45,710 --> 00:02:47,060
+a type as an argument.
+
+45
+00:02:47,300 --> 00:02:53,060
+In other words, whenever we use computed anywhere in a typescript file, we can use this bracket syntax
+
+46
+00:02:53,060 --> 00:02:55,580
+and provide the type that we want to represent.
+
+47
+00:02:55,910 --> 00:03:03,110
+And what that type will represent is the type of the value that the reactive object will wrap.
+
+48
+00:03:03,770 --> 00:03:08,270
+So we do not have to specify the reactive object that's kind of the outer layer, right?
+
+49
+00:03:08,510 --> 00:03:14,660
+But using a generic, we can specify the type of the internal value that that reactive object will wrap.
+
+50
+00:03:15,230 --> 00:03:21,980
+So in other words, using a generic is how I want to specify that this computed object will wrap an
+
+51
+00:03:21,980 --> 00:03:22,730
+array of jobs.
+
+52
+00:03:22,940 --> 00:03:29,000
+So right here where I use computed before I use my parentheses, I'm going to provide the opening and
+
+53
+00:03:29,000 --> 00:03:34,730
+closing curly brackets or whatever you call them, less than sine, greater than sine.
+
+54
+00:03:34,970 --> 00:03:38,210
+And remember, the argument here for these generics always has to be a type.
+
+55
+00:03:38,420 --> 00:03:39,980
+So it's not an actual implementation.
+
+56
+00:03:39,980 --> 00:03:40,640
+It's a type.
+
+57
+00:03:40,910 --> 00:03:47,960
+And again, this type represents what the reactive object will hold as its internal value, the type
+
+58
+00:03:47,960 --> 00:03:48,590
+of that thing.
+
+59
+00:03:48,800 --> 00:03:52,010
+So once again, we're going to have a job array.
+
+60
+00:03:52,460 --> 00:03:55,070
+It's not just a job, so make sure you don't just write job.
+
+61
+00:03:55,070 --> 00:03:57,380
+It's going to be a job followed by these square brackets.
+
+62
+00:03:57,380 --> 00:03:58,940
+That means a job, right?
+
+63
+00:03:59,330 --> 00:04:02,160
+So now we can see if I hover my mouse over use filter jobs.
+
+64
+00:04:02,360 --> 00:04:06,020
+It understands that computed that it's going to be a computed reactive object.
+
+65
+00:04:06,120 --> 00:04:07,910
+The type of that is computed rest.
+
+66
+00:04:08,150 --> 00:04:13,430
+And more specifically, it's going to be a computed reactive object that wraps an array of job objects,
+
+67
+00:04:13,550 --> 00:04:16,790
+and each one of those job objects will implement the job interface.
+
+68
+00:04:17,660 --> 00:04:18,050
+All right.
+
+69
+00:04:18,380 --> 00:04:20,360
+Let's move on to the next couple of examples.
+
+70
+00:04:20,690 --> 00:04:25,100
+So right here, similarly, use unique job types and use unique organizations.
+
+71
+00:04:25,400 --> 00:04:30,890
+Think that the composable is returning a computed reactive object, which is great, but unfortunately
+
+72
+00:04:30,890 --> 00:04:35,540
+it thinks it can be any internal value or any type within that object.
+
+73
+00:04:35,660 --> 00:04:36,680
+And that's not true.
+
+74
+00:04:36,890 --> 00:04:42,350
+These two getters, as a reminder, are going to return set objects and more specifically, sets of
+
+75
+00:04:42,350 --> 00:04:43,030
+strings.
+
+76
+00:04:43,040 --> 00:04:43,290
+Right.
+
+77
+00:04:43,310 --> 00:04:49,910
+If I go into my getters test file as a reminder, these two getters right here, let me see what they
+
+78
+00:04:49,910 --> 00:04:50,510
+are right here.
+
+79
+00:04:50,690 --> 00:04:54,830
+They create sets of strings and then they return those sets of strings.
+
+80
+00:04:55,070 --> 00:05:01,580
+And we are going to be returning here in our composable, a reactive object, wrapping a set of strings.
+
+81
+00:05:01,820 --> 00:05:02,150
+All right.
+
+82
+00:05:02,360 --> 00:05:05,240
+So once again, we're going to apply the exact same syntax after computed.
+
+83
+00:05:05,240 --> 00:05:09,680
+I'm going to put my less than sign in my greater than sign my brackets.
+
+84
+00:05:09,800 --> 00:05:12,440
+And then in here, I'm going to specify that I'm going to have a set.
+
+85
+00:05:12,890 --> 00:05:15,200
+But as we're going to see, this is not going to be enough.
+
+86
+00:05:15,200 --> 00:05:22,310
+If I hover my mouse over this, we're going to see generic type set t requires one type argument, right?
+
+87
+00:05:22,640 --> 00:05:28,100
+So in addition to telling TypeScript that we're going to have a set, we need to be even more specific
+
+88
+00:05:28,100 --> 00:05:32,690
+and tell it what is going to be the type of value that that set is going to hold.
+
+89
+00:05:33,080 --> 00:05:33,440
+Right.
+
+90
+00:05:33,710 --> 00:05:39,800
+So right here, we need to put another pair of brackets so that we provide the generic type argument
+
+91
+00:05:39,800 --> 00:05:40,730
+for this set.
+
+92
+00:05:41,060 --> 00:05:45,590
+So right here, I'm going to provide less than and greater then and right here, I'm going to say that
+
+93
+00:05:45,590 --> 00:05:48,260
+this is going to be a set with type shrink.
+
+94
+00:05:48,830 --> 00:05:54,560
+So it's going to be a set consisting of string values or string types.
+
+95
+00:05:54,920 --> 00:06:02,000
+And then the computed function is going to return a reactive object that is storing that set of string
+
+96
+00:06:02,000 --> 00:06:02,390
+types.
+
+97
+00:06:03,000 --> 00:06:05,960
+There's almost three different levels of type definition.
+
+98
+00:06:06,140 --> 00:06:08,570
+One is the most highest level.
+
+99
+00:06:08,570 --> 00:06:10,730
+The return value is a computed object.
+
+100
+00:06:10,880 --> 00:06:12,020
+Okay, that is a type.
+
+101
+00:06:12,260 --> 00:06:13,430
+But can we be more specific?
+
+102
+00:06:13,440 --> 00:06:15,590
+Yes, it is a computed reactive object.
+
+103
+00:06:15,590 --> 00:06:16,400
+Storing a set.
+
+104
+00:06:16,640 --> 00:06:17,030
+Great.
+
+105
+00:06:17,030 --> 00:06:18,500
+Can we be even more specific?
+
+106
+00:06:18,650 --> 00:06:19,070
+Yes.
+
+107
+00:06:19,190 --> 00:06:20,990
+It's a computed reactive object.
+
+108
+00:06:21,080 --> 00:06:23,390
+Storing a set of string values.
+
+109
+00:06:23,690 --> 00:06:26,060
+That's how deep and nested we can get with TypeScript.
+
+110
+00:06:26,270 --> 00:06:31,850
+And now if I hover my mouse over the composable, you can see it finally understands that the use unique
+
+111
+00:06:31,850 --> 00:06:36,860
+job types composable function returns a computed graph object and inside it's going to be holding a
+
+112
+00:06:36,860 --> 00:06:38,900
+set of string types.
+
+113
+00:06:39,680 --> 00:06:44,180
+Luckily for the use unique organizations composable, it's going to be the exact same thing.
+
+114
+00:06:44,450 --> 00:06:49,700
+So right here, after the computed function, before the parentheses will provide our brackets, this
+
+115
+00:06:49,700 --> 00:06:52,790
+is going to be a set and then TypeScript is going to be unhappy.
+
+116
+00:06:52,790 --> 00:06:56,780
+It's going to say, okay, I understand you're going to give me a set, but I need to know a set of
+
+117
+00:06:56,780 --> 00:06:58,070
+what is right here.
+
+118
+00:06:58,070 --> 00:07:03,650
+I'm going to write another pair of brackets for my set declaration and I'm going to provide a generic
+
+119
+00:07:03,860 --> 00:07:04,820
+type here as well.
+
+120
+00:07:05,030 --> 00:07:11,030
+String is my generic type for my set, and set with string is my generic type argument for computed.
+
+121
+00:07:11,570 --> 00:07:16,460
+So computed accepts a generic type argument and set accepts a generic type argument.
+
+122
+00:07:16,550 --> 00:07:22,460
+And now we're combining all of them together in one right now as far as use fetch jobs dispatch, I
+
+123
+00:07:22,460 --> 00:07:24,320
+don't think there's anything we're going to have to do here.
+
+124
+00:07:24,500 --> 00:07:27,470
+This function doesn't take any parameters, and it also doesn't.
+
+125
+00:07:27,500 --> 00:07:28,360
+Return anything?
+
+126
+00:07:28,360 --> 00:07:29,770
+There's no return, he would write here.
+
+127
+00:07:29,950 --> 00:07:34,240
+It simply dispatches an action to the store to start the API call to fetch two jobs.
+
+128
+00:07:34,610 --> 00:07:39,640
+So you'll notice if I hover my mouse over this, you can see it has the word void and all that void
+
+129
+00:07:39,640 --> 00:07:45,490
+means it's it's a type that signifies that the a function does not have a return value.
+
+130
+00:07:45,520 --> 00:07:46,510
+That's what void means.
+
+131
+00:07:46,690 --> 00:07:51,550
+The function is void or does not have an actual return value, and that is correct.
+
+132
+00:07:51,790 --> 00:07:53,440
+So the inference here is correct.
+
+133
+00:07:53,440 --> 00:07:57,070
+So there's nothing more that I need to provide because TypeScript has figured it out correctly.
+
+134
+00:07:57,460 --> 00:07:57,760
+All right.
+
+135
+00:07:57,760 --> 00:08:02,770
+And with that, we have completed typing out our types for our new composable to asphalt.
+
+136
+00:08:03,010 --> 00:08:04,300
+I'll see you in the next lesson.

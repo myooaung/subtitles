@@ -1,0 +1,341 @@
+WEBVTT
+1
+00:00:02.160 --> 00:00:02.940
+Hi there.
+
+2
+00:00:02.969 --> 00:00:04.220
+This is the De La Rue.
+
+3
+00:00:04.470 --> 00:00:08.970
+Now it's time to look at concurrency utilities, which were introduced in Java five.
+
+4
+00:00:10.330 --> 00:00:12.120
+Earlier we saw threat cooperation.
+
+5
+00:00:12.130 --> 00:00:15.400
+We are wait and notify, but with way to notify.
+
+6
+00:00:15.430 --> 00:00:17.890
+There's a lot of low level handshaking going on.
+
+7
+00:00:19.360 --> 00:00:25.630
+For example, we had the downloader and indexer threads with this code snippet on the indexer end and
+
+8
+00:00:25.630 --> 00:00:29.080
+the low level communication part is emphasized in red font.
+
+9
+00:00:29.890 --> 00:00:32.650
+As you can see, we had to write a synchronised block.
+
+10
+00:00:32.860 --> 00:00:35.050
+Then we had a condition predicate.
+
+11
+00:00:35.080 --> 00:00:36.880
+Each HTML page is equal to null.
+
+12
+00:00:37.180 --> 00:00:42.430
+Then we have the weight invocation, which is followed by invoking the get HTML page method.
+
+13
+00:00:43.900 --> 00:00:49.840
+Now similarly on the downloader end, we once again have the synchronize block and we also had the notify
+
+14
+00:00:49.840 --> 00:00:51.220
+all method invocation.
+
+15
+00:00:51.820 --> 00:00:57.490
+Such low level communication is not only confusing but can lead to errors that may not be obvious.
+
+16
+00:00:58.030 --> 00:01:03.670
+In fact, we actually made one such error in our demo of Wait and Notify and let me just show you what
+
+17
+00:01:03.670 --> 00:01:04.300
+it was.
+
+18
+00:01:07.080 --> 00:01:10.980
+This is a great Notify Indexer program which we have seen earlier.
+
+19
+00:01:11.340 --> 00:01:14.730
+So we have the indexer thread here and the downloader thread.
+
+20
+00:01:14.940 --> 00:01:20.250
+Now let's assume that the downloader thread kicks in first and it enters the synchronize block here
+
+21
+00:01:20.250 --> 00:01:26.340
+and then it downloads the web page and assigns the downloaded content to this variable HTML page.
+
+22
+00:01:26.760 --> 00:01:32.430
+But let's say before it invokes the set HTML page in order to set the HTML page here.
+
+23
+00:01:32.640 --> 00:01:38.310
+Let's say the thread scheduler sends this thread into reasonable state and brings the other thread the
+
+24
+00:01:38.310 --> 00:01:40.110
+indexer thread into running state.
+
+25
+00:01:40.380 --> 00:01:46.500
+So here, what I want to emphasize is one thing I want to emphasize is if a thread is inside the synchronize
+
+26
+00:01:46.500 --> 00:01:52.050
+block like the downloaded thread, it can still be context switched, which means that it can move this
+
+27
+00:01:52.050 --> 00:01:55.860
+thread into vulnerable state and it can bring some other thread into running state.
+
+28
+00:01:56.160 --> 00:01:57.600
+That's entirely possible.
+
+29
+00:01:57.630 --> 00:01:58.230
+Probably.
+
+30
+00:01:58.230 --> 00:02:04.300
+I did not specify that in one in the earlier lectures, so just wanted to highlight that that's possible.
+
+31
+00:02:04.320 --> 00:02:09.810
+So here we are saying that after this statement is executed, after the HTML page is downloaded.
+
+32
+00:02:09.960 --> 00:02:16.980
+But before this statement where we are invoking the set HTML page before the statement is executed,
+
+33
+00:02:17.160 --> 00:02:23.400
+there is a context which that is happening and let's say the indexer thread will kick in and it will
+
+34
+00:02:23.400 --> 00:02:29.970
+invoke this get HTML page and this will return a null because the downloaded thread did not invoke the
+
+35
+00:02:29.970 --> 00:02:32.460
+set HTML page at this instance of time.
+
+36
+00:02:32.580 --> 00:02:34.500
+So HTML page would be null.
+
+37
+00:02:34.920 --> 00:02:40.710
+And then the downloaded thread, the indexer thread will try to enter the synchronized block, but it
+
+38
+00:02:40.710 --> 00:02:42.660
+does not have the lock right.
+
+39
+00:02:42.660 --> 00:02:45.750
+Because the lock is still with the downloaded thread and it will wait here.
+
+40
+00:02:45.870 --> 00:02:52.740
+Now let's say that the the downloader thread gets back into running state and then it sets the HTML
+
+41
+00:02:52.740 --> 00:02:57.150
+page and then it invokes the notifier all method and then it releases the lock.
+
+42
+00:02:57.360 --> 00:03:02.550
+And once the lock is released, the downloaded thread here, the indexer thread here acquires the lock
+
+43
+00:03:02.550 --> 00:03:03.900
+and it enters here.
+
+44
+00:03:03.960 --> 00:03:07.410
+But for it, the HTML page is still equal to null.
+
+45
+00:03:07.590 --> 00:03:07.980
+Right.
+
+46
+00:03:07.980 --> 00:03:12.120
+Because when it invoked the HTML page method, it was null.
+
+47
+00:03:12.510 --> 00:03:17.880
+So it goes here and it invokes the bait method and it suspends itself.
+
+48
+00:03:18.300 --> 00:03:24.330
+And the problem with that is, is that the notify method here, notify all method has already been invoked
+
+49
+00:03:24.330 --> 00:03:32.280
+by the other thread and so it will wait indefinitely over here or on unless a spurious wakeup happens,
+
+50
+00:03:32.280 --> 00:03:35.970
+or we terminate this thread in an explicit way.
+
+51
+00:03:36.330 --> 00:03:38.340
+So it's going to wait here indefinitely.
+
+52
+00:03:38.730 --> 00:03:40.650
+So that's the problem here.
+
+53
+00:03:40.770 --> 00:03:43.320
+And that was because of this coding error.
+
+54
+00:03:43.650 --> 00:03:49.500
+So this should have been inside inside the synchronize block.
+
+55
+00:03:50.310 --> 00:03:54.450
+And that's because the condition predicate is using this variable.
+
+56
+00:03:54.450 --> 00:03:58.320
+So it's a state variable and the condition predicate is using it.
+
+57
+00:03:58.350 --> 00:04:03.570
+So we need to guard it using the, using the lock of this particular object.
+
+58
+00:04:04.080 --> 00:04:05.340
+So that needs to happen.
+
+59
+00:04:05.340 --> 00:04:07.010
+So that was a coding error.
+
+60
+00:04:07.020 --> 00:04:13.080
+And this is all because of the low level handshaking that we are doing with wait and notify.
+
+61
+00:04:13.530 --> 00:04:15.270
+So that should be avoided.
+
+62
+00:04:15.630 --> 00:04:18.630
+So we need to make sure that we are not making any coding errors.
+
+63
+00:04:18.630 --> 00:04:24.150
+So that's very confusing and it's all because of the low level handshaking that we are doing with Way
+
+64
+00:04:24.150 --> 00:04:25.050
+to Notify.
+
+65
+00:04:25.290 --> 00:04:31.560
+So just wanted to highlight that and this in the resources section of the way to notify demo lecture.
+
+66
+00:04:31.920 --> 00:04:34.620
+So we have this program and it has already been corrected.
+
+67
+00:04:34.620 --> 00:04:36.510
+So this statement has been moved here.
+
+68
+00:04:37.110 --> 00:04:43.290
+So that's also one reason why concurrent programming is is more complicated than sequential programming.
+
+69
+00:04:43.860 --> 00:04:45.810
+Now, let's head back to our slides.
+
+70
+00:04:47.970 --> 00:04:50.430
+Here is what an item in effective Java recommends.
+
+71
+00:04:50.760 --> 00:04:55.590
+It recommends using concurrency utilities for threat cooperation instead of greater notify.
+
+72
+00:04:56.130 --> 00:04:58.650
+And these utilities were introduced in Java file.
+
+73
+00:04:59.930 --> 00:05:02.030
+And here are the different concurrency utilities.
+
+74
+00:05:02.330 --> 00:05:08.180
+They allow much simpler and implicit threat cooperation without any low level handshaking.
+
+75
+00:05:08.840 --> 00:05:13.880
+In the follow up lessons, we will first look at the executed framework, and it is a framework for
+
+76
+00:05:13.880 --> 00:05:16.970
+both threat management as well as threat cooperation.
+
+77
+00:05:17.720 --> 00:05:22.710
+And for this, it uses types like execute a service, callable and future.
+
+78
+00:05:22.730 --> 00:05:24.770
+And we are going to learn about all of them.
+
+79
+00:05:25.670 --> 00:05:30.650
+Next we will look at synchronize hours and they allow threads to cooperate in a very simple way.
+
+80
+00:05:31.190 --> 00:05:33.350
+We will look at at least one synchronization.
+
+81
+00:05:34.190 --> 00:05:40.010
+Finally, we will look at concurrent collections and one of them is blocking cue, which also accesses
+
+82
+00:05:40.010 --> 00:05:42.650
+synchronization, allowing threads to cooperate.
+
+83
+00:05:43.280 --> 00:05:44.210
+That's about it.
+
+84
+00:05:44.210 --> 00:05:46.710
+And we will next look at these concurrency utilities.
+
+85
+00:05:46.730 --> 00:05:47.360
+Thank you.
+

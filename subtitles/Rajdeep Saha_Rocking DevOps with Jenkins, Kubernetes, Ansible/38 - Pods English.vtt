@@ -1,0 +1,232 @@
+WEBVTT
+
+00:00.090 --> 00:02.010
+Welcome, guys and gals, to this lecture.
+
+00:02.160 --> 00:09.350
+In this lecture, we're going to learn about a very important Kubernetes object called Pods.
+
+00:09.360 --> 00:12.540
+They are like the atom of Kubernetes.
+
+00:12.750 --> 00:17.010
+They are like the heart of atom, man that keeps things running.
+
+00:17.340 --> 00:19.320
+All right, let's jump into it.
+
+00:20.550 --> 00:22.440
+So let's look at the big picture first.
+
+00:22.440 --> 00:23.010
+Right.
+
+00:23.370 --> 00:29.070
+So the ultimate goal for you is to run your application in a container.
+
+00:29.490 --> 00:35.400
+So basically you have your app, then you tokenize your app, create a Docker image, then you save
+
+00:35.400 --> 00:40.470
+that image into a repository such as Docker hub or elastic container registry.
+
+00:40.830 --> 00:46.020
+Then you want to deploy your application running as a container.
+
+00:46.230 --> 00:51.780
+But we cannot deploy our containers directly into our Kubernetes cluster.
+
+00:52.140 --> 00:58.530
+Containers are encapsulated in a Kubernetes object called the pod.
+
+00:58.530 --> 01:06.870
+Pods are the smallest deployable units of computing that can be created and managed in Kubernetes.
+
+01:07.170 --> 01:14.550
+And you can deploy your container within a pod, and this pod runs within the node.
+
+01:14.700 --> 01:20.740
+And the nodes are the easy to workers working as the data plane of Kubernetes.
+
+01:20.760 --> 01:24.900
+When I started learning Kubernetes, I always used to get confused.
+
+01:24.900 --> 01:26.160
+What's running inside?
+
+01:26.160 --> 01:26.760
+What?
+
+01:26.790 --> 01:34.560
+The way I remember it is I remember this term NPC, you know, those non playable characters in those
+
+01:34.560 --> 01:38.810
+RPG games that just stand around and give you a bunch of stuff to do.
+
+01:38.820 --> 01:40.140
+So NPC.
+
+01:40.170 --> 01:46.910
+So basically Node is the higher level within node runs pod and within pod runs container.
+
+01:46.920 --> 01:51.830
+So let's say we have a node running and within this node we have a pod running.
+
+01:51.840 --> 02:00.870
+Now each pod will have a unique IP address and other pods within the same Kubernetes cluster can talk
+
+02:00.870 --> 02:03.630
+to this pod using this IP address.
+
+02:03.870 --> 02:09.210
+Now, let's say within this pod we have a application container running and maybe your application is
+
+02:09.210 --> 02:10.860
+written in Java.
+
+02:10.950 --> 02:18.120
+So generally in one part you only run one application container.
+
+02:18.330 --> 02:19.800
+Don't get confused though.
+
+02:19.830 --> 02:23.580
+In one part you can run more than one container.
+
+02:23.610 --> 02:29.610
+However, generally you run one copy of application container in one pod.
+
+02:30.270 --> 02:31.400
+Why is that?
+
+02:31.410 --> 02:37.770
+Because we have this pod with the IP address and let's say you have another container called a helper
+
+02:37.770 --> 02:44.370
+container or a sidecar container, which is doing some specific tasks, let's say traffic monitoring,
+
+02:44.370 --> 02:46.380
+circuit breaking or something like that.
+
+02:46.380 --> 02:51.510
+And we're going to take a deeper look at the sidecar containers at a later lecture.
+
+02:51.510 --> 02:59.610
+But since all these containers are within this port and this port has one IP address, your app container
+
+02:59.610 --> 03:05.670
+has to expose itself using a particular port, let's say port 80.
+
+03:05.670 --> 03:10.320
+And the sidecar container cannot expose itself using the same port.
+
+03:10.320 --> 03:10.800
+Right.
+
+03:10.800 --> 03:16.860
+So let's say the sidecar container is exposing itself by port 2025.
+
+03:16.950 --> 03:24.510
+So if from outside someone wants to access your application container, they will use this IP address
+
+03:24.510 --> 03:28.440
+and then the port 80 and it will reach this application container.
+
+03:28.440 --> 03:36.180
+So if you have to deploy another application container in the same port, you cannot really expose it
+
+03:36.180 --> 03:37.460
+using port 80, right?
+
+03:37.470 --> 03:42.300
+Because then there is a conflict and you don't want to expose your same application using different
+
+03:42.300 --> 03:42.930
+ports.
+
+03:43.410 --> 03:48.680
+So in general, you will only deploy one application container in one pot.
+
+03:48.690 --> 03:51.900
+And let's for now, let's say there is no sidecar container running.
+
+03:51.900 --> 03:54.360
+Let's remove all the port stuff for now.
+
+03:54.360 --> 03:59.730
+So how are you going to scale, let's say the traffic increases and you want to scale.
+
+03:59.730 --> 04:06.420
+So when you have to scale, you never spin up more than one application container in one pot.
+
+04:06.660 --> 04:12.510
+You spin up another pot with another application container.
+
+04:12.510 --> 04:17.460
+And I'm kind of showing that this part has a different IP address as well.
+
+04:17.550 --> 04:21.000
+So we are going to look at scaling in detail in a future lecture.
+
+04:21.000 --> 04:28.170
+But remember this basic theory that you deploy one application container in one pot, and when you have
+
+04:28.170 --> 04:32.910
+to scale your application, you spin up more parts in the same node.
+
+04:32.910 --> 04:39.660
+And then when this node is full, then you spin up additional nodes with additional pods running your
+
+04:39.660 --> 04:40.740
+application container.
+
+04:40.740 --> 04:48.330
+So generally how it looks is let's say you running a web server and then maybe you are using Enjin X
+
+04:48.330 --> 04:50.040
+as your container image.
+
+04:50.040 --> 04:54.420
+So you deploy engine X container image in a pod.
+
+04:54.480 --> 05:00.330
+So you have two pods running in the same node and each of these pod has different IP address and this
+
+05:00.330 --> 05:02.280
+node also has a IP address.
+
+05:02.460 --> 05:05.990
+And then this node is basically an Amazon issue.
+
+05:06.030 --> 05:11.130
+If you have like a multi tier application, let's say you have a web server here where you are running
+
+05:11.130 --> 05:14.520
+engine X and then you have a database here running Redis.
+
+05:14.820 --> 05:19.890
+So they will be running inside a pod and this web server here will be talking to this data.
+
+05:20.240 --> 05:28.240
+Here just for the diagram I showed the database pods and the web server pods running in separate nodes.
+
+05:28.250 --> 05:34.640
+But in reality, all these pods can mix and match and run in same easy nodes.
+
+05:34.910 --> 05:40.670
+If you have questions about how does this actual communication happens, how does it load balance,
+
+05:40.670 --> 05:41.810
+how does it scale?
+
+05:42.050 --> 05:45.370
+We are going to know all about it in later lectures.
+
+05:45.380 --> 05:50.120
+All right, guys and girls, now that we understand theoretically, what is a pod?
+
+05:50.450 --> 05:55.010
+Let's look at a pod using a manifest file and a demo.
+
+05:55.040 --> 05:57.400
+All right, guys and girls join me in the next lecture.

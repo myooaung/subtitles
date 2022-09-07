@@ -1,0 +1,219 @@
+1
+00:00:00,590 --> 00:00:07,880
+In the previous lecture, we created the user aggregate, we are commands were handled and after our
+
+2
+00:00:07,880 --> 00:00:12,410
+commands were actioned, we raised events and published them to the event.
+
+3
+00:00:12,410 --> 00:00:20,600
+But by invoking Aggregate Life-cycle to reply, we also created event sourcing, handling methods that
+
+4
+00:00:20,600 --> 00:00:22,590
+altered the state of the aggregate.
+
+5
+00:00:23,060 --> 00:00:29,630
+What I haven't told you yet is that when the event sourcing methods are raised, the events are also
+
+6
+00:00:29,630 --> 00:00:34,490
+stored by Exxon in the event store or write database.
+
+7
+00:00:35,000 --> 00:00:37,440
+I will show you this in a later lecture.
+
+8
+00:00:38,030 --> 00:00:44,750
+Now, in this lecture, we are going to implement the user event handler with methods that subscribe
+
+9
+00:00:44,750 --> 00:00:52,790
+to the event for to consume the user events, which is required to populate and alter the read database.
+
+10
+00:00:54,010 --> 00:01:02,680
+We are also going to implement the initial user repository now repositories encapsulate the logic that
+
+11
+00:01:02,680 --> 00:01:05,250
+is required to access data sources.
+
+12
+00:01:05,680 --> 00:01:13,630
+They centralize common data access functionality by providing better maintainability and decoupling
+
+13
+00:01:13,630 --> 00:01:20,050
+the infrastructure or technology used to access databases from the domain model layer.
+
+14
+00:01:22,040 --> 00:01:27,770
+Navigate to the handlers package under the user query API project.
+
+15
+00:01:30,590 --> 00:01:38,300
+Let's create a new interface and call it user event handler.
+
+16
+00:01:41,480 --> 00:01:48,560
+Now we are going to define three methods, one that handles the user register event.
+
+17
+00:01:53,400 --> 00:01:56,610
+Another that handles the user updated event.
+
+18
+00:02:03,060 --> 00:02:08,190
+And yet another one that handles the user removed event.
+
+19
+00:02:14,940 --> 00:02:22,050
+OK, let's add a new class and call it user event handler impact
+
+20
+00:02:26,100 --> 00:02:31,740
+that is going to implement the user event handler interface.
+
+21
+00:02:41,010 --> 00:02:48,750
+Now, you will recall that I mentioned we will implement the initial user repository.
+
+22
+00:02:51,170 --> 00:02:59,870
+So let's create a new field for a private final user repository field.
+
+23
+00:03:00,680 --> 00:03:03,050
+Now we will create it just now.
+
+24
+00:03:08,690 --> 00:03:16,520
+Let's create it under the repositories package, a new interface that we will call user repository.
+
+25
+00:03:21,530 --> 00:03:37,940
+And it is going to extend the Mongo repository, the Mongar repository expects a type for the domain
+
+26
+00:03:37,940 --> 00:03:43,230
+model, which is a user model and for the Eyedea string.
+
+27
+00:03:44,150 --> 00:03:49,550
+Now, that's all we have to do because we are extending the Mongar repository.
+
+28
+00:03:49,550 --> 00:03:58,910
+We get access to the default methods such as save, find by ID, the lead by Idy, etc..
+
+29
+00:04:09,000 --> 00:04:16,110
+Now, let's go ahead and create a public constructor with a single parameter
+
+30
+00:04:19,920 --> 00:04:22,560
+we will pass in the user repository
+
+31
+00:04:30,420 --> 00:04:35,850
+and we will assign our private user repository field.
+
+32
+00:04:40,660 --> 00:04:48,640
+Let's place the auto wide annotation on our constructor so that the spring IOC container can make it
+
+33
+00:04:48,640 --> 00:04:55,570
+available through dependency injection, the auto wide annotation can be placed directly on a field
+
+34
+00:04:55,570 --> 00:04:59,020
+like we've done before or on a constructor.
+
+35
+00:04:59,630 --> 00:05:05,730
+Now, we also need to add the service annotation to the user event handler implementation.
+
+36
+00:05:06,160 --> 00:05:10,340
+It is used to mark the class as a service or service provider.
+
+37
+00:05:10,720 --> 00:05:18,220
+It is a domain driven design term and is defined as an operation, offered as an interface that stands
+
+38
+00:05:18,220 --> 00:05:22,150
+alone in the model with no encapsulated state.
+
+39
+00:05:22,840 --> 00:05:25,960
+Let's also add a processing group annotation.
+
+40
+00:05:26,680 --> 00:05:34,300
+A processing group is similar to a consumer group, which basically means that when a consumer event
+
+41
+00:05:34,300 --> 00:05:42,430
+handler in our case consumes an event, Xol will track the offset to make sure that within a given processing
+
+42
+00:05:42,430 --> 00:05:46,060
+group that you will always consume the latest event.
+
+43
+00:05:46,660 --> 00:05:52,180
+Exon basically manages the consumed offset for each processing group separately.
+
+44
+00:05:53,260 --> 00:06:01,540
+Then let's at the event had an annotation event handlers basically defined the business logic to be
+
+45
+00:06:01,540 --> 00:06:05,890
+performed when an event is received or consumed from the event plus.
+
+46
+00:06:11,160 --> 00:06:11,380
+Well.
+
+47
+00:06:15,200 --> 00:06:23,160
+Now let's implement the user register event handler method, we will invoke user repository, dot,
+
+48
+00:06:23,180 --> 00:06:28,550
+save and obtain the user object from the user registered event.
+
+49
+00:06:29,150 --> 00:06:39,620
+Now, the safe method of the Mongo DB repository can be used for both inserting data and updating data.
+
+50
+00:06:40,100 --> 00:06:47,050
+If the data already exists, it would simply update the document rather than create it.
+
+51
+00:06:47,570 --> 00:06:50,510
+And then finally, let's implement the user.
+
+52
+00:06:50,510 --> 00:06:57,980
+Remove the event handler method by invoking user repository data lead by Idy.
+
+53
+00:06:58,580 --> 00:07:03,530
+And once again we can get the idea from the user removed event.
+
+54
+00:07:04,340 --> 00:07:06,620
+Now let's build our solution.
+
+55
+00:07:26,590 --> 00:07:29,740
+And it seems like everything built successfully.

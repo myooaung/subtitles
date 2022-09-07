@@ -1,0 +1,1160 @@
+WEBVTT
+1
+00:00:01.040 --> 00:00:07.380
+Hello and welcome to these series of lectures on Grand VM Java Native Image.
+
+2
+00:00:07.400 --> 00:00:14.960
+This is one of the exciting topics for me personally because that allows you to write your Java application,
+
+3
+00:00:14.960 --> 00:00:16.250
+develop it very quickly.
+
+4
+00:00:16.250 --> 00:00:21.650
+Developing a Java application is much faster than developing, for example, a C++ application.
+
+5
+00:00:21.650 --> 00:00:28.520
+And then with the press of one button, you compile your Java application to an executable native binary
+
+6
+00:00:28.520 --> 00:00:35.510
+of your platform, like 64 bit CPU architecture and macOS or Windows and Linux, right?
+
+7
+00:00:35.510 --> 00:00:36.890
+So this is very exciting.
+
+8
+00:00:36.890 --> 00:00:44.000
+You get all the benefits of the Java, all the benefits that the Java programming provides, and then
+
+9
+00:00:44.000 --> 00:00:51.320
+eventually your runtime becomes as fast as a C++ program because you compile to native binary.
+
+10
+00:00:51.320 --> 00:00:53.390
+Now there are some pros and cons.
+
+11
+00:00:53.390 --> 00:00:57.740
+Obviously the pros for me personally are much better than the cons.
+
+12
+00:00:57.740 --> 00:01:04.790
+One of the cons you probably can guess if you're familiar with how Java works is that Java emphasizes
+
+13
+00:01:04.790 --> 00:01:11.300
+on the the dynamic compilation of your program, which means when you launch your job application,
+
+14
+00:01:11.300 --> 00:01:18.590
+the GVM or the Java virtual machine runs in an interpreted mode, which means each line of code gets
+
+15
+00:01:18.590 --> 00:01:20.630
+executed one by one, right?
+
+16
+00:01:20.870 --> 00:01:27.620
+And then after a while the gvm and the runtime analyzes your code, how it behaves, and which methods
+
+17
+00:01:27.620 --> 00:01:29.870
+are called more often than others.
+
+18
+00:01:29.870 --> 00:01:37.220
+And if some methods really do call to some methods, that passes a particular threshold which you can
+
+19
+00:01:37.220 --> 00:01:43.070
+configure at runtime when you launch your Java, then that method, that particular piece of code gets
+
+20
+00:01:43.070 --> 00:01:46.580
+compiled to the native binary, which is optimized for your platform.
+
+21
+00:01:46.760 --> 00:01:55.340
+Whereas in this case we're trying to directly compile your Java application to a native executable,
+
+22
+00:01:55.370 --> 00:01:58.370
+which means we don't get the benefit of dynamic compilation.
+
+23
+00:01:58.370 --> 00:02:05.450
+So all the compilation, all the analysis of the code appears at compile time instead of at runtime.
+
+24
+00:02:05.450 --> 00:02:10.910
+So this means you end up with something called a static compilation instead of dynamic compilation.
+
+25
+00:02:10.910 --> 00:02:12.950
+So I'm going to write it down here.
+
+26
+00:02:12.950 --> 00:02:17.810
+It's more like a static compilation of your code.
+
+27
+00:02:19.710 --> 00:02:25.680
+And then what happens then is that, you know, that Java provides some dynamic class loading in Java
+
+28
+00:02:25.680 --> 00:02:30.030
+reflection, which means intersecting your classes objects at runtime.
+
+29
+00:02:30.030 --> 00:02:34.380
+So then the question is usually this kind of stuff like reflection.
+
+30
+00:02:35.430 --> 00:02:42.300
+They're not very compatible with a static compilation because they rely on some sort of extra meta information
+
+31
+00:02:42.300 --> 00:02:42.840
+at runtime.
+
+32
+00:02:42.840 --> 00:02:49.020
+That's why the Java, when you launch your job application on Java, it has a particular piece of memory
+
+33
+00:02:49.020 --> 00:02:56.490
+called the meta space, which is reserved for basically storing information, meta information about
+
+34
+00:02:56.490 --> 00:03:04.830
+your classes and objects so that you can retrospect or basically use the reflection to see what properties
+
+35
+00:03:04.830 --> 00:03:05.970
+a class has or not.
+
+36
+00:03:05.970 --> 00:03:06.420
+Right.
+
+37
+00:03:06.690 --> 00:03:13.770
+But again, we will see that what we aim at at the current point of time, it's reached a very good
+
+38
+00:03:13.770 --> 00:03:19.650
+maturity with the release of Java 17, which was a long time support to support.
+
+39
+00:03:19.680 --> 00:03:30.060
+They also released a VM version that supports Java 17, and in this course I'm going to basically focus
+
+40
+00:03:30.060 --> 00:03:35.040
+on the Native Image tool that comes with the VM for Java 17.
+
+41
+00:03:35.040 --> 00:03:35.910
+I've tested it.
+
+42
+00:03:35.910 --> 00:03:37.350
+It's really working fine.
+
+43
+00:03:37.350 --> 00:03:43.230
+We will look at all the details, how to compile your job application, for example, if it has dependencies
+
+44
+00:03:43.230 --> 00:03:48.480
+on some other Java files on some other libraries, what if you have dependence?
+
+45
+00:03:48.630 --> 00:03:51.600
+What if your application actually uses Java Reflection API?
+
+46
+00:03:51.600 --> 00:03:52.950
+Is it supported or not?
+
+47
+00:03:52.980 --> 00:03:55.620
+What if you're using Java Native Interface?
+
+48
+00:03:55.620 --> 00:03:57.780
+Your classes have some native methods.
+
+49
+00:03:57.780 --> 00:04:01.020
+I will show you how to basically do that eventually.
+
+50
+00:04:01.020 --> 00:04:09.690
+The goal is we were going to write our job application developer application in Java instead of C++
+
+51
+00:04:09.690 --> 00:04:15.330
+and then we don't worry about memory management whether or not use raw point is a smart port and pointers
+
+52
+00:04:15.330 --> 00:04:21.960
+Java doesn't have any any of those concepts and you can kind of guess what happens with this kind of
+
+53
+00:04:22.470 --> 00:04:29.670
+static compilation is that the way the VM works in a general sense is that they provide something called
+
+54
+00:04:29.740 --> 00:04:32.790
+SVM, subsystem VM or subsystem virtual machine.
+
+55
+00:04:32.790 --> 00:04:36.360
+It's a dense version of the GM Java virtual machine.
+
+56
+00:04:36.600 --> 00:04:43.380
+And what they do is that not only they compile your application to the native binary, it also provides
+
+57
+00:04:43.380 --> 00:04:50.340
+a dense or compact compilation of their, for example, the garbage collector that comes with the JVM
+
+58
+00:04:50.340 --> 00:04:52.770
+and then or for example, the JVM itself.
+
+59
+00:04:52.770 --> 00:04:55.200
+It has components like class loaders, right?
+
+60
+00:04:55.200 --> 00:05:04.710
+So everything gets compiled and the sub sub VM, the SVM provides that infrastructure so that eventually
+
+61
+00:05:04.710 --> 00:05:06.270
+your code gets compiled.
+
+62
+00:05:06.300 --> 00:05:14.460
+One drawback you will see that is if you write the same application in C++ and in Java, write in C++,
+
+63
+00:05:14.460 --> 00:05:18.210
+you directly write your application, compile it to the executable binary.
+
+64
+00:05:18.360 --> 00:05:25.260
+In Java, you write your application and then compile it with native image and it creates an executive
+
+65
+00:05:25.260 --> 00:05:26.730
+executable binary.
+
+66
+00:05:26.760 --> 00:05:32.490
+You see, you will see that the difference in the size of the files in C++ executable is very small,
+
+67
+00:05:32.490 --> 00:05:32.730
+right?
+
+68
+00:05:32.730 --> 00:05:34.470
+It could be just a few kilobytes.
+
+69
+00:05:34.470 --> 00:05:39.960
+But in Java, when you use a native image, it becomes, let's say, at least ten megabytes or so.
+
+70
+00:05:39.960 --> 00:05:43.320
+Now obviously ten megabytes these days is basically nothing.
+
+71
+00:05:43.320 --> 00:05:48.110
+So compiling your application to native binary is very well worth it, right?
+
+72
+00:05:48.120 --> 00:05:50.910
+Ten megabytes compared to a few kilobytes.
+
+73
+00:05:50.910 --> 00:05:53.400
+Both of them are still very much acceptable.
+
+74
+00:05:53.400 --> 00:05:53.820
+Right.
+
+75
+00:05:54.870 --> 00:05:56.910
+And the reason for Java native image.
+
+76
+00:05:56.910 --> 00:06:01.770
+The reason it becomes large is because not only it has to compile your application, it has to provide
+
+77
+00:06:01.770 --> 00:06:07.710
+the infrastructure, which is the JVM itself in the binary, the garbage collector or the class loader,
+
+78
+00:06:08.010 --> 00:06:09.090
+all this stuff, right?
+
+79
+00:06:09.090 --> 00:06:15.750
+But one thing that we will see is that once you compile your application to native image, the startup
+
+80
+00:06:15.750 --> 00:06:17.880
+of your application becomes very fast.
+
+81
+00:06:18.180 --> 00:06:18.690
+Why?
+
+82
+00:06:18.690 --> 00:06:23.550
+Because now there is really no we know that when you launch your JVM, there is a warmup period.
+
+83
+00:06:23.550 --> 00:06:30.420
+When you launch your JVM, JVM has to first load all the class files that come by default with the JDK,
+
+84
+00:06:30.420 --> 00:06:30.630
+right?
+
+85
+00:06:30.630 --> 00:06:33.000
+Because your application might depend on them.
+
+86
+00:06:33.090 --> 00:06:36.090
+So JVM has to load all those class files into memory.
+
+87
+00:06:36.090 --> 00:06:36.810
+That takes time.
+
+88
+00:06:36.810 --> 00:06:42.480
+That's why sometimes people say that the JVM has a slow start up time, and then obviously the next
+
+89
+00:06:42.480 --> 00:06:47.340
+step is warm up time, whether or not the compiler dynamic compilation happens or not.
+
+90
+00:06:47.340 --> 00:06:53.610
+So in general, a static compilation allows your application to start up much faster.
+
+91
+00:06:53.700 --> 00:07:00.150
+And in the course of these lectures, I'm going to focus on developing command line applications, which
+
+92
+00:07:00.150 --> 00:07:03.480
+means you write your Java classes.
+
+93
+00:07:03.480 --> 00:07:10.650
+The entry point to your job application is the main method of a class, and then that main method accepts
+
+94
+00:07:10.650 --> 00:07:14.250
+some arguments and a string array of args.
+
+95
+00:07:14.250 --> 00:07:19.770
+And then those are the command line parameters that you pass to your application when you launch your
+
+96
+00:07:19.770 --> 00:07:20.520
+application.
+
+97
+00:07:20.520 --> 00:07:25.500
+So we will set when we will see that when you launch your when you compile two native executable binaries,
+
+98
+00:07:25.500 --> 00:07:29.250
+those command line API arguments become very useful.
+
+99
+00:07:29.250 --> 00:07:35.760
+Now they are the way that you interact or pass parameters your to your native executable binary.
+
+100
+00:07:36.150 --> 00:07:40.590
+Now let's start with first of all, how do we run a normal Java application?
+
+101
+00:07:41.310 --> 00:07:47.040
+Now obviously in order to develop a Java application, you have to write source files and then compile
+
+102
+00:07:47.040 --> 00:07:48.150
+them to the class files.
+
+103
+00:07:48.150 --> 00:07:51.660
+Class files are basically a compact version of your source file.
+
+104
+00:07:51.690 --> 00:07:56.880
+Those are the binaries that the Java virtual machine understands and converting the.
+
+105
+00:07:57.060 --> 00:08:01.620
+In order to do that, first you have to get a development kit or Java development kit, right.
+
+106
+00:08:01.620 --> 00:08:03.600
+So this is different from Java runtime.
+
+107
+00:08:03.600 --> 00:08:07.170
+Java runtime is basically the Java virtual machine.
+
+108
+00:08:07.170 --> 00:08:14.880
+So Java virtual machine is the runtime, which means once you develop your application now you want
+
+109
+00:08:14.880 --> 00:08:15.870
+to run it.
+
+110
+00:08:15.870 --> 00:08:21.450
+In order to run it, you have to load those class files into memory because class files are the blueprint
+
+111
+00:08:21.450 --> 00:08:23.550
+of how you're organizing the data.
+
+112
+00:08:23.550 --> 00:08:24.120
+Right.
+
+113
+00:08:27.610 --> 00:08:32.640
+So you're going to need a JDK or Java development kit.
+
+114
+00:08:32.650 --> 00:08:36.850
+And then right now I recommend you download JDK 17.
+
+115
+00:08:36.850 --> 00:08:43.360
+I believe Java 18 was also released, but it's not a long term support, so it's best to develop your
+
+116
+00:08:43.360 --> 00:08:48.910
+application, especially if it's a large application with a long time support version, right?
+
+117
+00:08:48.910 --> 00:08:55.360
+So JDK 17 is an Ltsc version and then you can use it.
+
+118
+00:08:55.360 --> 00:08:57.760
+And I believe they change the licensing also.
+
+119
+00:08:57.760 --> 00:09:02.650
+So that from JDK 17, you can in fact use it in your commercial production.
+
+120
+00:09:02.650 --> 00:09:08.230
+But the goal of these lectures that I'm presenting are not about commercial use.
+
+121
+00:09:08.230 --> 00:09:12.100
+It's just for spreading the knowledge of knowledge of Java.
+
+122
+00:09:12.100 --> 00:09:12.580
+All right.
+
+123
+00:09:12.580 --> 00:09:20.470
+So first you need a JDK and in the JDK, Java development kit comes with some applications and those
+
+124
+00:09:20.470 --> 00:09:25.270
+are applications are called the command line binaries or executable binaries.
+
+125
+00:09:25.270 --> 00:09:27.490
+So on Mac OS, here's a screenshot.
+
+126
+00:09:28.540 --> 00:09:32.950
+You, you install the JDK, you get a folder JDK, some version 17.
+
+127
+00:09:32.950 --> 00:09:35.800
+And inside that there is a folder called contents.
+
+128
+00:09:35.800 --> 00:09:36.790
+And then home.
+
+129
+00:09:36.910 --> 00:09:40.450
+This folder home is usually referred to as the Java home.
+
+130
+00:09:40.450 --> 00:09:45.670
+And inside the home directory there's always a directory being means binary, which means there are
+
+131
+00:09:45.670 --> 00:09:49.420
+command line applications that are the form of binary.
+
+132
+00:09:49.420 --> 00:09:51.130
+These are executable files.
+
+133
+00:09:51.130 --> 00:09:51.700
+All right.
+
+134
+00:09:52.480 --> 00:10:00.070
+And then you see there are a lot of command line tools or executable binaries that come with JDK.
+
+135
+00:10:00.100 --> 00:10:03.970
+They allow you to Java C is the Java compiler.
+
+136
+00:10:03.970 --> 00:10:11.350
+It allows you to compile your source file, which is a dot Java file into a class file, which is what
+
+137
+00:10:11.350 --> 00:10:13.990
+your JVM or runtime understands.
+
+138
+00:10:13.990 --> 00:10:17.710
+And then we also have the Java Virtual Machine or Java command line.
+
+139
+00:10:17.710 --> 00:10:24.070
+And this is basically what actually loads your class files into memory and launches your job application.
+
+140
+00:10:24.070 --> 00:10:30.280
+I will show you an example of how to actually write a class that has a main method and then how to launch
+
+141
+00:10:30.280 --> 00:10:34.360
+your Java application using this binary executable binary, which is Java.
+
+142
+00:10:35.320 --> 00:10:39.820
+So if you want to launch your Java application, you have to have an entry point.
+
+143
+00:10:40.930 --> 00:10:45.850
+So again, if you're familiar with Java, you know that you can develop your job application in two
+
+144
+00:10:45.850 --> 00:10:46.180
+ways.
+
+145
+00:10:46.180 --> 00:10:51.610
+One is an application that has a main method, which means it's an executable application.
+
+146
+00:10:51.970 --> 00:10:56.860
+You can run it or you package your project into a library.
+
+147
+00:10:56.890 --> 00:10:58.660
+It becomes it acts as a library.
+
+148
+00:10:58.660 --> 00:11:06.790
+It just has a it's a basically collection of class files that are just some that act as a library.
+
+149
+00:11:06.790 --> 00:11:10.690
+So you add them to other projects and you build upon them, right?
+
+150
+00:11:10.690 --> 00:11:17.380
+And as you can see in the bean directory there is a executable binary called Jar Jar means it allows
+
+151
+00:11:17.380 --> 00:11:23.410
+you to basically package your library as a archive file, which is a compressed version.
+
+152
+00:11:23.410 --> 00:11:24.910
+It has only the class files.
+
+153
+00:11:24.940 --> 00:11:26.860
+It usually doesn't include the source files.
+
+154
+00:11:27.310 --> 00:11:32.320
+And then a jar stands for Java Archive, which means it's a compressed version.
+
+155
+00:11:32.410 --> 00:11:36.520
+So Java Archive or Java file is a format of the zip file.
+
+156
+00:11:36.520 --> 00:11:37.720
+So it's very compressed.
+
+157
+00:11:37.960 --> 00:11:42.520
+The size is very small and we know that the Java is platform independence.
+
+158
+00:11:42.520 --> 00:11:48.130
+That's why you can use jar file on one platform to another and that's a very nice benefit on Java.
+
+159
+00:11:48.130 --> 00:11:48.640
+Right.
+
+160
+00:11:48.730 --> 00:11:55.660
+And by the way, when you use a static compilation and compile your job application to a native executable,
+
+161
+00:11:55.750 --> 00:12:01.720
+obviously these executables are not compatible on different platforms, which means if you compile for
+
+162
+00:12:01.720 --> 00:12:04.300
+the MAC OS, you cannot run it on Windows.
+
+163
+00:12:04.300 --> 00:12:09.820
+That's why I'm going to have separate lectures on how to compile your application on macros, how to
+
+164
+00:12:09.820 --> 00:12:17.080
+set up your tools in Windows, and then compile your Java application to the native binary in Windows.
+
+165
+00:12:17.080 --> 00:12:18.040
+Same with Linux.
+
+166
+00:12:18.040 --> 00:12:23.320
+Mac OS and Linux are much easier to deal with because they have a much nicer terminal interface.
+
+167
+00:12:23.320 --> 00:12:25.810
+Windows is a little bit tricky.
+
+168
+00:12:25.810 --> 00:12:30.820
+You have to do more work, but I will show you how to automate the process.
+
+169
+00:12:30.820 --> 00:12:31.360
+All right.
+
+170
+00:12:32.380 --> 00:12:39.820
+So you can launch your Java application if you want to build a basically executable Java application.
+
+171
+00:12:39.820 --> 00:12:42.250
+And the entry point is the main method of a class.
+
+172
+00:12:42.250 --> 00:12:48.340
+And we know that the main method is a static method, which means that the JV team has to be able to
+
+173
+00:12:48.340 --> 00:12:53.720
+access and run this method without even instantiating an object of your class.
+
+174
+00:12:53.740 --> 00:12:55.890
+That's the meaning of a static method, right?
+
+175
+00:12:55.900 --> 00:13:02.440
+And then the way you run, the way you compile your source file into or basically the way you compile
+
+176
+00:13:02.440 --> 00:13:08.230
+your source file into a class file so that you will be able to load them into JVM and launch your application
+
+177
+00:13:08.230 --> 00:13:10.000
+is using the Java compiler.
+
+178
+00:13:10.000 --> 00:13:13.960
+And then the way you launch your Java application is with this command line.
+
+179
+00:13:13.970 --> 00:13:18.440
+So you have the Java binary tool that comes with your JDK hyphen.
+
+180
+00:13:18.490 --> 00:13:19.870
+CPP means class path.
+
+181
+00:13:19.870 --> 00:13:26.560
+You have to provide the directories that include all the classes necessary for your application to perform.
+
+182
+00:13:26.560 --> 00:13:32.570
+If your classes have dependencies on other classes, you have to provide all these into a variable called
+
+183
+00:13:32.570 --> 00:13:33.640
+the class path.
+
+184
+00:13:33.640 --> 00:13:39.730
+And therefore the JVM is know basically is aware of which directory to search if it needs to load a
+
+185
+00:13:39.730 --> 00:13:40.780
+particular type.
+
+186
+00:13:40.780 --> 00:13:46.900
+Because each type, when the Java compiler compiles your source files, each type gets compile to a
+
+187
+00:13:46.900 --> 00:13:47.770
+separate class file.
+
+188
+00:13:47.770 --> 00:13:51.790
+And those are the blueprints for the JV team to understand what you're talking about.
+
+189
+00:13:52.150 --> 00:13:58.180
+And then you have to specify the main method of a class or basically the fully qualified name of a class,
+
+190
+00:13:58.180 --> 00:14:03.250
+that fully qualified name of the class that has a main method.
+
+191
+00:14:03.250 --> 00:14:03.760
+Right?
+
+192
+00:14:03.760 --> 00:14:09.700
+And then the Java JVM looks at these class searches in the class path in these directories to see if
+
+193
+00:14:09.700 --> 00:14:12.400
+we can find a classify that has this name.
+
+194
+00:14:12.400 --> 00:14:15.760
+If it does, JVM looks at it to see if it has the main method.
+
+195
+00:14:15.760 --> 00:14:22.810
+If it does, then it starts by running that main method and then continuing executing all the lines
+
+196
+00:14:22.810 --> 00:14:25.030
+of code in the main method of your class.
+
+197
+00:14:25.660 --> 00:14:35.440
+So you see in the binary failure of the JDK 17, there are lots of different basically binaries.
+
+198
+00:14:35.440 --> 00:14:38.680
+One of them, for example, JDB, is the Java debugger.
+
+199
+00:14:38.680 --> 00:14:46.900
+It helps you debug your code, scan it, it scans your application to see if it uses any deprecated
+
+200
+00:14:46.900 --> 00:14:48.630
+API jobs.
+
+201
+00:14:48.670 --> 00:14:54.820
+It also scans your application, tells you whether you're using what kind of modules you're using because
+
+202
+00:14:54.820 --> 00:14:59.800
+from Java nine JDK became modular, so they introduced the module system.
+
+203
+00:14:59.800 --> 00:15:05.140
+So if you want to see what kind of dependencies you have, JFR Java Flight Recorder, it's more like
+
+204
+00:15:05.500 --> 00:15:11.320
+inspecting the internals of the gvm to see what happens when your application launches.
+
+205
+00:15:11.320 --> 00:15:16.060
+Obviously when you compile to native executed binary, you don't have any of this, right?
+
+206
+00:15:16.060 --> 00:15:22.420
+There is no concept of the Java runtime, it's just binaries, operating system executes them and then
+
+207
+00:15:22.420 --> 00:15:26.350
+that binary only contains the CPU instructions.
+
+208
+00:15:26.350 --> 00:15:26.530
+Right.
+
+209
+00:15:26.530 --> 00:15:28.990
+That's how you compile to native binaries.
+
+210
+00:15:30.790 --> 00:15:34.930
+J package allows you to kind of package your Java applications in nicer format.
+
+211
+00:15:34.930 --> 00:15:41.140
+JS Shell is an interactive shell that they introduced from JDK nine, and it's more like a rappelle.
+
+212
+00:15:41.140 --> 00:15:44.890
+Read a print, evaluate something like that.
+
+213
+00:15:45.830 --> 00:15:49.070
+And then there are lots of other things.
+
+214
+00:15:49.070 --> 00:15:54.440
+I will have separate lectures to go into the depth about each one of these tools and how to use them.
+
+215
+00:15:55.370 --> 00:16:00.620
+In this series of lectures, we're going to just look at Java, C, Java, and again, at some point
+
+216
+00:16:00.620 --> 00:16:07.430
+we will switch to an ID and IDs, hide a lot of the details of the compilation, organizing your codes,
+
+217
+00:16:07.430 --> 00:16:10.550
+class path, etc. So you don't need to worry about things.
+
+218
+00:16:10.550 --> 00:16:12.950
+But right now I'm showing you this is JDK 17.
+
+219
+00:16:12.950 --> 00:16:20.060
+In order to get the Native Image tool, we have to download the graph LLVM, which it also provides
+
+220
+00:16:20.900 --> 00:16:23.570
+all the tools that come with the JDK right?
+
+221
+00:16:23.570 --> 00:16:30.410
+Your Java Java C, but Gradle VM comes with additional tools like the sub VM, SVM and the native image
+
+222
+00:16:30.410 --> 00:16:30.800
+tool.
+
+223
+00:16:31.250 --> 00:16:34.400
+So Grow VM is a separate thing that we need to download.
+
+224
+00:16:35.600 --> 00:16:41.360
+Now what happens when you launch your JV team or Java application through the Java binary tool, which
+
+225
+00:16:41.360 --> 00:16:48.380
+means you are creating a virtual machine, a runtime, and then that runtime already manages the memory
+
+226
+00:16:48.380 --> 00:16:54.260
+and then how to allocate the allocate object, etc. so you don't worry about those in the step one June
+
+227
+00:16:54.260 --> 00:16:56.540
+1st loads all the g class files.
+
+228
+00:16:56.540 --> 00:17:01.040
+These are the basically the API, the Java API that comes with the JDK.
+
+229
+00:17:01.040 --> 00:17:03.470
+So I'm going to type JDK API.
+
+230
+00:17:03.740 --> 00:17:04.310
+Right.
+
+231
+00:17:04.460 --> 00:17:13.040
+These are and the reason the JVM has to load all these into memory because your application may use
+
+232
+00:17:13.040 --> 00:17:15.230
+any of the classes that are in the API.
+
+233
+00:17:15.230 --> 00:17:17.510
+So JVM has to load all of them into memory.
+
+234
+00:17:17.510 --> 00:17:21.710
+And that's why some people say that the JVM has a slow start up time.
+
+235
+00:17:21.710 --> 00:17:28.640
+Obviously in the recent releases, with every release of JDK, they improve the performance of the Java
+
+236
+00:17:28.640 --> 00:17:30.590
+or the JVM Java virtual machine.
+
+237
+00:17:30.590 --> 00:17:36.530
+So the startup becomes faster, the classes become more compact, they have less footprint, the gvm
+
+238
+00:17:36.740 --> 00:17:39.380
+has a consumes much less memory.
+
+239
+00:17:39.380 --> 00:17:41.300
+And we will see that when you.
+
+240
+00:17:42.210 --> 00:17:45.450
+Compile your Java application to native executable binary.
+
+241
+00:17:45.480 --> 00:17:51.780
+The memory footprint becomes significantly smaller, which means now your native bind, your java application
+
+242
+00:17:51.780 --> 00:17:56.340
+in the format of the native binary consumes much less memory.
+
+243
+00:17:56.370 --> 00:18:02.340
+That's another complaint that people usually have when compare, for example, C++ applications to Java
+
+244
+00:18:02.340 --> 00:18:03.090
+application.
+
+245
+00:18:03.120 --> 00:18:10.020
+They usually say that job applications are a memory consumer, which means the Java applications consume
+
+246
+00:18:10.020 --> 00:18:12.780
+more memory than an equivalent C++.
+
+247
+00:18:13.140 --> 00:18:17.460
+But that's the way that but with the memory, you can always configure your Java.
+
+248
+00:18:18.750 --> 00:18:24.870
+So when the JVM loads the class files from JDK into memory, JVM compiles some of the classes.
+
+249
+00:18:24.870 --> 00:18:26.670
+So it's not just loading them into memory.
+
+250
+00:18:26.700 --> 00:18:34.500
+JVM has a year of compilation and because obviously running all loading them and in executing all of
+
+251
+00:18:34.500 --> 00:18:40.200
+these JDK APIs, the classes in the interpreted mode is not very efficient.
+
+252
+00:18:40.440 --> 00:18:46.920
+That's why Java as as soon as it loads them into memory, it also tries to compile a few of them, not
+
+253
+00:18:46.920 --> 00:18:54.260
+a full optimised way, but in a in one of the tiers of compilation so that it's easier to work with
+
+254
+00:18:54.300 --> 00:18:55.260
+is faster.
+
+255
+00:18:55.890 --> 00:19:03.000
+And clearly these compilations and loading of all these JDK API takes time, hence a slow start of time.
+
+256
+00:19:03.000 --> 00:19:08.610
+I'm going to put this low in the double code, which means it depends on which version of the JDK you
+
+257
+00:19:08.610 --> 00:19:09.120
+use, right?
+
+258
+00:19:09.120 --> 00:19:15.150
+So the newer version of the JDK is everything improves, the performance improves, the application
+
+259
+00:19:15.150 --> 00:19:16.260
+becomes faster.
+
+260
+00:19:17.250 --> 00:19:25.800
+So once the JVM is done with all the JDK classes and then it just reaches your application class files,
+
+261
+00:19:25.800 --> 00:19:31.290
+so JVM loads them, let's say the class file from your application that has the main method.
+
+262
+00:19:32.070 --> 00:19:33.330
+And then launches it.
+
+263
+00:19:33.370 --> 00:19:40.260
+It starts executing all the codes in the main method and after a while the JV team profiles your application.
+
+264
+00:19:40.260 --> 00:19:46.830
+So JVM comes with a profiler that looks at your code and see which parts of the code are executed or
+
+265
+00:19:46.830 --> 00:19:49.050
+called more frequently than another.
+
+266
+00:19:49.230 --> 00:19:55.440
+And if there is a threshold and some of some pieces of the code in your application, pass that threshold.
+
+267
+00:19:55.440 --> 00:20:02.250
+Then the JIT compiler Java just in time compiler, which is basically dynamic compiler, may compile
+
+268
+00:20:02.250 --> 00:20:08.850
+some of the classes and there is a flag actually at runtime that you can pass to your JVM that shows
+
+269
+00:20:08.850 --> 00:20:10.710
+which methods are getting compiled.
+
+270
+00:20:11.610 --> 00:20:13.830
+So this still also takes time, right?
+
+271
+00:20:13.830 --> 00:20:16.520
+This is called Dynamic Compilation and it takes time.
+
+272
+00:20:16.530 --> 00:20:18.840
+This depends on how long the application is running.
+
+273
+00:20:18.840 --> 00:20:25.800
+So again, it goes into the warm up period of your application because the JVM profiler has to look
+
+274
+00:20:25.800 --> 00:20:27.480
+at your code for some time.
+
+275
+00:20:27.480 --> 00:20:34.290
+Right, to decide which parts of the code are being executed more frequently, and therefore to decide
+
+276
+00:20:35.310 --> 00:20:38.700
+whether or not to compile them to a native executable.
+
+277
+00:20:39.150 --> 00:20:45.330
+But then if we say that, okay, so this is great, Java is great because its API is much easier than
+
+278
+00:20:45.330 --> 00:20:46.440
+C++.
+
+279
+00:20:47.010 --> 00:20:49.920
+You don't need to worry about memory management, any of those.
+
+280
+00:20:50.040 --> 00:20:53.790
+But then the problem is the slowest startup time.
+
+281
+00:20:53.790 --> 00:21:04.230
+And then, um, and then one way to solve that is to execute compile your application to a native binary
+
+282
+00:21:04.440 --> 00:21:09.800
+and that completely solves the as low as startup time because everything has been already compiled.
+
+283
+00:21:09.810 --> 00:21:14.940
+There is no extra compilation at runtime, everything has already been compiled to native binary.
+
+284
+00:21:14.940 --> 00:21:20.520
+You just launch your application after it's been compiled and then the operating system and the hardware
+
+285
+00:21:20.520 --> 00:21:22.320
+just runs your code, right?
+
+286
+00:21:22.320 --> 00:21:30.420
+So this called a static compilation and I hope in these series of lectures you learn very well how to
+
+287
+00:21:30.900 --> 00:21:32.040
+how to do this.
+
+288
+00:21:32.040 --> 00:21:33.780
+So I hope you enjoyed this lecture.
+
+289
+00:21:34.020 --> 00:21:34.890
+Please stay tuned.
+
+290
+00:21:34.890 --> 00:21:36.090
+I'll see the next one.

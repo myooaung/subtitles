@@ -1,0 +1,1287 @@
+1
+00:00:01,020 --> 00:00:03,390
+Hello and welcome to another tutorial.
+
+2
+00:00:03,390 --> 00:00:09,870
+We're going to continue our discussion on how to use JNI in combination with a native image.
+
+3
+00:00:09,870 --> 00:00:16,530
+We saw that we can just quickly set up a simple class that has a static method which is native, say
+
+4
+00:00:16,530 --> 00:00:18,480
+hi and then we got the header file.
+
+5
+00:00:18,480 --> 00:00:25,950
+We implemented it in C++, we compile the C++ to a dynamic library and we use system that load to load
+
+6
+00:00:25,950 --> 00:00:28,110
+that dynamic library using the absolute path.
+
+7
+00:00:28,260 --> 00:00:31,380
+But now obviously if we run the native image, we're going to fail.
+
+8
+00:00:32,070 --> 00:00:37,500
+But what we can do is, first of all, that dynamic library has just some binaries, right?
+
+9
+00:00:37,500 --> 00:00:44,400
+So what we can do, Native Image Compiler allows us to define any file as a resource and then it picks
+
+10
+00:00:44,400 --> 00:00:49,170
+up all the binaries, zeros and ones and embed them into the final executable file.
+
+11
+00:00:49,290 --> 00:00:50,790
+So that's what we're going to do.
+
+12
+00:00:51,540 --> 00:00:57,570
+But because this generate this dynamic library for our JNI calls is some file and operating system,
+
+13
+00:00:57,570 --> 00:01:02,610
+we have to tell the native image that, hey, we are using some resources outside the JDK, which means
+
+14
+00:01:02,610 --> 00:01:11,700
+we have to run the JDM that comes with the beam and activate the agent so that it can peaks, it can
+
+15
+00:01:11,700 --> 00:01:17,100
+pick up on all the resources and generate calls, and it automatically creates this meta in forward
+
+16
+00:01:17,100 --> 00:01:18,270
+slash native image.
+
+17
+00:01:18,480 --> 00:01:23,480
+We just have to make sure that wherever we put this directories and all the files that are inside this
+
+18
+00:01:23,490 --> 00:01:29,310
+directory are on the class path so that the Native Image compiler automatically picks up on these extra
+
+19
+00:01:29,310 --> 00:01:30,120
+configurations.
+
+20
+00:01:30,120 --> 00:01:30,390
+Right.
+
+21
+00:01:30,390 --> 00:01:33,570
+So and we saw these in the past how to correctly do this.
+
+22
+00:01:34,020 --> 00:01:42,210
+So after the development of the JNI getting a dynamic library, the next step is to make sure that we
+
+23
+00:01:42,210 --> 00:01:46,230
+run the Java and agent and get these configurations.
+
+24
+00:01:46,440 --> 00:01:52,650
+And then the other thing is that so far we saw that we just use system that load and use the absolute
+
+25
+00:01:52,650 --> 00:01:53,640
+path to the file.
+
+26
+00:01:54,750 --> 00:01:59,700
+When we are compiling to native binaries, we can embed the dynamic library in the form of binaries
+
+27
+00:01:59,700 --> 00:02:00,930
+in our executable file.
+
+28
+00:02:00,960 --> 00:02:06,390
+Native image can do that, but then this absolute path to the file is not going to work anymore.
+
+29
+00:02:06,390 --> 00:02:06,600
+Right?
+
+30
+00:02:06,600 --> 00:02:13,440
+Systemd load does not support loading binaries as input stream because we saw that in the previous lectures
+
+31
+00:02:13,440 --> 00:02:19,050
+where we talk about resources and embedding them in the native image in the executable, we saw that
+
+32
+00:02:19,710 --> 00:02:28,530
+we can always open up a an input, a binary input or input, a stream, a byte, the stream to the resources
+
+33
+00:02:28,530 --> 00:02:30,540
+that are embedded in the native image.
+
+34
+00:02:30,540 --> 00:02:35,100
+But then we cannot pass a input as stream directly to the system that load.
+
+35
+00:02:35,100 --> 00:02:35,430
+Right?
+
+36
+00:02:35,430 --> 00:02:38,280
+We can't even pass, let's say even a file input, a stream there.
+
+37
+00:02:38,280 --> 00:02:42,300
+So you have to give it just some file that already exists.
+
+38
+00:02:42,300 --> 00:02:44,190
+And so how do we do this?
+
+39
+00:02:44,430 --> 00:02:52,590
+We put the dynamic library on the class path as a resource at compile time and then we do we load this
+
+40
+00:02:52,590 --> 00:02:58,920
+or we search for this resource at runtime using a platform independent method which reside we use the
+
+41
+00:02:58,920 --> 00:03:03,960
+class loader and then the class loader is part of the JVM at runtime.
+
+42
+00:03:03,960 --> 00:03:07,260
+JVM knows what the directories are included in the class path.
+
+43
+00:03:07,260 --> 00:03:12,960
+So this makes the whole stuff independent of file system of the host that runs our application.
+
+44
+00:03:13,980 --> 00:03:18,840
+And then we open a binary input stream to dynamically that is embedded in the native image.
+
+45
+00:03:18,840 --> 00:03:24,690
+Now we have to pull out all those binaries and put them together as a file and the host operating system,
+
+46
+00:03:24,690 --> 00:03:25,350
+that's the whole point.
+
+47
+00:03:25,350 --> 00:03:25,590
+Right.
+
+48
+00:03:25,590 --> 00:03:29,400
+Copy the binaries into an actual file on the file system of the host.
+
+49
+00:03:29,580 --> 00:03:34,830
+And after we do that and it's very easy to do it in Java, Java already has very nice APIs and after
+
+50
+00:03:34,830 --> 00:03:42,120
+we copy or pull out all those binaries as a separate file, now we can create a file object and pass
+
+51
+00:03:42,120 --> 00:03:44,850
+it or give it to this system that load.
+
+52
+00:03:45,120 --> 00:03:52,570
+And optionally, we can also ask the JVM to delete the copied file when the Java process or the the
+
+53
+00:03:52,590 --> 00:03:53,550
+application terminates.
+
+54
+00:03:53,550 --> 00:03:53,910
+Right.
+
+55
+00:03:53,910 --> 00:04:01,500
+So if you look at here, we we said that the platform independent way of loading a resource at runtime
+
+56
+00:04:01,770 --> 00:04:05,310
+is to make sure that it's part of our class path.
+
+57
+00:04:05,310 --> 00:04:09,150
+It's inside a directory that is on the class path.
+
+58
+00:04:09,150 --> 00:04:15,840
+And then we ask the class loader to get a system resource, or you can ask it to directly search for
+
+59
+00:04:15,840 --> 00:04:19,500
+the resource and give you an input stream or a byte stream to that.
+
+60
+00:04:19,500 --> 00:04:22,020
+Right now we're just asking you to get the system resource.
+
+61
+00:04:22,020 --> 00:04:28,050
+Let's say this is our dynamic library and then we get a URL to it, right?
+
+62
+00:04:28,050 --> 00:04:33,840
+And then what we're going to do, we're going to ask this URL to open a stream which gives us an input
+
+63
+00:04:33,850 --> 00:04:39,210
+stream, which we can read all the bytes from that, and then we use the files class, which is a utility
+
+64
+00:04:39,210 --> 00:04:41,700
+class in Java, and I go and do a copy.
+
+65
+00:04:41,940 --> 00:04:47,220
+So if we read all the bytes and we get a path, so we decide where to put this copy.
+
+66
+00:04:47,220 --> 00:04:53,820
+So let's say we want to wherever the native executable file is running the wherever the working directory
+
+67
+00:04:53,820 --> 00:04:59,640
+is, we want to copy or pull out all those binaries of that dynamic library and put it in the same directory.
+
+68
+00:05:00,140 --> 00:05:01,160
+With this name, right?
+
+69
+00:05:01,160 --> 00:05:01,880
+Whatever name.
+
+70
+00:05:02,270 --> 00:05:08,840
+And after these copies, we know that now we have a file on the file system of the host with whatever
+
+71
+00:05:08,840 --> 00:05:11,190
+name we decided in the current working director.
+
+72
+00:05:11,210 --> 00:05:15,440
+So we can create a file object, which is our dynamic library and the system that load.
+
+73
+00:05:15,440 --> 00:05:17,410
+We get the absolute path to it, right?
+
+74
+00:05:17,420 --> 00:05:21,380
+Because remember system does load, you have to give it the absolute path to the file.
+
+75
+00:05:21,770 --> 00:05:28,640
+And then we can also optionally ask the JVM to delete this file that we created by pulling out all the
+
+76
+00:05:28,640 --> 00:05:31,070
+binaries that were inside our native image.
+
+77
+00:05:32,600 --> 00:05:33,950
+Normally, we don't want to do that.
+
+78
+00:05:33,950 --> 00:05:39,650
+I mean, because you can either ask the user at some point when at the beginning of running the application
+
+79
+00:05:39,650 --> 00:05:45,710
+to decide where to, for example, save these files, let's say most likely we want to put it somewhere
+
+80
+00:05:45,710 --> 00:05:52,190
+in a directory on the user's home directory, but there's also an option to just delete on exit.
+
+81
+00:05:52,190 --> 00:05:57,050
+So every time the user runs the application, we pull the binaries out.
+
+82
+00:05:57,050 --> 00:06:02,450
+We create and copy the dynamic library, load it, and after that it terminates.
+
+83
+00:06:02,450 --> 00:06:08,780
+Now we see if the Dynamic Library is a very large file, this, this path, this approach is not very
+
+84
+00:06:08,780 --> 00:06:09,200
+efficient.
+
+85
+00:06:09,200 --> 00:06:14,180
+So ideally you want to pull the binaries only the very first time that somebody runs the application
+
+86
+00:06:14,180 --> 00:06:15,350
+and then cache this file.
+
+87
+00:06:15,350 --> 00:06:20,570
+Right, because this file obviously inside the native image, so its contents are not going to change,
+
+88
+00:06:20,570 --> 00:06:22,730
+the user is just going to run the application.
+
+89
+00:06:22,730 --> 00:06:26,180
+So eventually we want to ideally cache this file.
+
+90
+00:06:26,180 --> 00:06:30,800
+The very first time somebody runs the application, we pull out all the binaries, save it as a file
+
+91
+00:06:31,070 --> 00:06:33,020
+and then cache it for future use.
+
+92
+00:06:33,020 --> 00:06:33,470
+Right.
+
+93
+00:06:33,740 --> 00:06:34,100
+All right.
+
+94
+00:06:34,100 --> 00:06:35,660
+So this is the entire concept.
+
+95
+00:06:35,660 --> 00:06:42,650
+And once you get a grasp on how this works, we saw that same story happens for Java resources like
+
+96
+00:06:42,650 --> 00:06:43,550
+text file, right?
+
+97
+00:06:43,550 --> 00:06:49,970
+We embed everything as Canada was a very nice class because you could directly give it a input, a stream
+
+98
+00:06:50,180 --> 00:06:54,860
+so that there is no problem with embedding for the system that load.
+
+99
+00:06:54,860 --> 00:06:55,730
+We cannot do that.
+
+100
+00:06:55,730 --> 00:06:57,140
+We cannot give it an input stream.
+
+101
+00:06:57,140 --> 00:07:02,930
+So you have to pull the binaries out manually, copy them, create a file on the host operating system
+
+102
+00:07:02,930 --> 00:07:05,750
+and then give it to the system that load.
+
+103
+00:07:05,750 --> 00:07:08,150
+So let's head to eclipse and try to look at it.
+
+104
+00:07:08,150 --> 00:07:14,360
+So this was our example and if you recall, we create, we create our C++ project, we compile it,
+
+105
+00:07:14,360 --> 00:07:19,040
+we got the dynamic library, we put it on the SRC directory, which is on a class path.
+
+106
+00:07:19,040 --> 00:07:22,130
+So it gets copied into the beam directory as well.
+
+107
+00:07:22,250 --> 00:07:28,340
+Any file that is inside the Z is a resource that will be copied by Eclipse into the beam directory as
+
+108
+00:07:28,340 --> 00:07:28,850
+well.
+
+109
+00:07:29,910 --> 00:07:32,100
+And we saw that in this general demo.
+
+110
+00:07:32,280 --> 00:07:34,680
+If we run this, everything looks fine.
+
+111
+00:07:35,760 --> 00:07:36,480
+Yes.
+
+112
+00:07:36,480 --> 00:07:40,440
+And instead of doing system that load what we're going to do.
+
+113
+00:07:41,920 --> 00:07:46,300
+Uh, we're going to comment this out and do a platform independent way.
+
+114
+00:07:46,330 --> 00:07:46,660
+Right.
+
+115
+00:07:46,660 --> 00:07:52,570
+So what we're going to do, first of all, if I just get this code and compile it to the native executable
+
+116
+00:07:52,570 --> 00:07:53,230
+file.
+
+117
+00:07:53,260 --> 00:07:57,410
+Let's say we run our Java trace on this and we get the meta inf.
+
+118
+00:07:57,430 --> 00:08:05,110
+If you look at it, let's say an icon fee or resource config, we're not getting anything.
+
+119
+00:08:05,110 --> 00:08:12,910
+So the fact that we're using sys load with an absolute file, the Java agent for VM cannot pick up on
+
+120
+00:08:12,910 --> 00:08:17,050
+the fact that we are using an external dynamic library as a resource.
+
+121
+00:08:17,050 --> 00:08:17,560
+Right.
+
+122
+00:08:17,740 --> 00:08:23,380
+So if I run the in my native image to generate demo and then run the native image.
+
+123
+00:08:25,060 --> 00:08:29,740
+It's going to pick up on this matter, but there is no information about the resources, so it's not
+
+124
+00:08:29,740 --> 00:08:33,500
+going to the native image compiler is not going to embed any extra binaries.
+
+125
+00:08:33,500 --> 00:08:36,910
+Write this file, this dynamic library, it's binary content.
+
+126
+00:08:36,910 --> 00:08:43,330
+It's not going to be embedded in the in the final executable file.
+
+127
+00:08:43,600 --> 00:08:46,630
+So let's wait until we get the native files.
+
+128
+00:08:46,630 --> 00:08:48,430
+The compiler is almost done.
+
+129
+00:08:48,430 --> 00:08:49,510
+It's enlightening.
+
+130
+00:08:49,510 --> 00:08:54,910
+And then the final compilation and then the linking so that we get the final executable file.
+
+131
+00:08:57,840 --> 00:08:59,340
+So almost done.
+
+132
+00:08:59,880 --> 00:09:00,240
+Yeah.
+
+133
+00:09:00,750 --> 00:09:05,070
+So if you refresh this and then open up a terminal here.
+
+134
+00:09:07,940 --> 00:09:14,960
+What we will see is that if I say Java native image the general demo, now it works.
+
+135
+00:09:15,680 --> 00:09:17,090
+Let's see, that's because.
+
+136
+00:09:17,090 --> 00:09:17,390
+All right.
+
+137
+00:09:17,390 --> 00:09:23,750
+So the reason is that obviously it now works only on the host operating system where this file exists.
+
+138
+00:09:23,750 --> 00:09:23,960
+Right.
+
+139
+00:09:23,960 --> 00:09:27,980
+So this works only because this file exists, right?
+
+140
+00:09:28,010 --> 00:09:34,490
+If I delete this, it's not going to work anymore because obviously this path, the absolute path,
+
+141
+00:09:34,490 --> 00:09:37,130
+has been hardcoded in our executable file.
+
+142
+00:09:37,340 --> 00:09:43,130
+So if I now run it again, it's going to say that I couldn't find this absolute file.
+
+143
+00:09:43,130 --> 00:09:43,670
+Right?
+
+144
+00:09:44,120 --> 00:09:47,060
+User's desktop and this because I deleted this.
+
+145
+00:09:47,060 --> 00:09:55,460
+So that was not the platform independent way of including these JNI calls this dynamic library into
+
+146
+00:09:55,500 --> 00:09:57,530
+our native executable file.
+
+147
+00:09:57,560 --> 00:10:06,410
+Just because if this is directly tied to my like host where I develop this application and therefore
+
+148
+00:10:06,410 --> 00:10:11,120
+if I give this executable to somebody else, they're going to run into this exception because they're
+
+149
+00:10:11,120 --> 00:10:15,020
+not going to have that exact directory hierarchy.
+
+150
+00:10:15,050 --> 00:10:15,590
+Right.
+
+151
+00:10:15,860 --> 00:10:24,080
+So what we want to do ideally so let me say edit or copy and paste that dynamic library again into our
+
+152
+00:10:24,090 --> 00:10:24,950
+Z.
+
+153
+00:10:25,780 --> 00:10:26,620
+To have it.
+
+154
+00:10:27,400 --> 00:10:30,790
+And again, now that this file is there, the absolute path is valid.
+
+155
+00:10:30,790 --> 00:10:33,250
+If we run our job application, it's going to work, right?
+
+156
+00:10:33,580 --> 00:10:34,630
+So this works fine.
+
+157
+00:10:34,630 --> 00:10:42,970
+But again, what this means is that the application just looks searches for this absolute path and searches
+
+158
+00:10:42,970 --> 00:10:44,380
+to see if there is a file there.
+
+159
+00:10:44,620 --> 00:10:47,050
+So this is not a portable application.
+
+160
+00:10:47,050 --> 00:10:49,870
+It's directly tied to my personal computer for now.
+
+161
+00:10:49,960 --> 00:10:51,520
+So what are we going to do for this?
+
+162
+00:10:52,180 --> 00:10:56,470
+What we're going to do, we are going to first of all, let's delete the matter.
+
+163
+00:10:56,470 --> 00:11:04,780
+If we are going to recreate it and empty this native directory, we're going to do a platform in the
+
+164
+00:11:04,790 --> 00:11:10,490
+event independent way of loading this resource because we put it this resource which is dynamic library
+
+165
+00:11:10,510 --> 00:11:15,970
+in our CRC, which is on the class path or basically the bin directory is on the class path, not the
+
+166
+00:11:15,970 --> 00:11:22,060
+Z, but whatever we put in the Z, the eclipse will copy it also in the bin directory.
+
+167
+00:11:22,060 --> 00:11:25,450
+So these are in the bin directory and the directory is on the class path.
+
+168
+00:11:25,450 --> 00:11:34,300
+So we're going to ask the class loader to get sys resource and the name is going to be the name of our
+
+169
+00:11:34,300 --> 00:11:35,170
+dynamic library.
+
+170
+00:11:35,170 --> 00:11:42,310
+So it's like a live Java underscore native image, underscore the daily, right?
+
+171
+00:11:42,310 --> 00:11:50,440
+Remember, this is at the top level of our being directory, so we just give it the name and this returns.
+
+172
+00:11:53,110 --> 00:11:59,470
+This returns a basically you are l let's call it X, right or resource.
+
+173
+00:12:00,700 --> 00:12:09,700
+And after that, what we're going to do, we're going to tell it to first of all, we can if you look
+
+174
+00:12:09,700 --> 00:12:18,370
+at the basically all the methods that this you are l provides get content right or get file so we can
+
+175
+00:12:18,370 --> 00:12:24,490
+also say system dot load x dot gate file.
+
+176
+00:12:25,360 --> 00:12:28,210
+This is still works and this returns the absolute path.
+
+177
+00:12:28,210 --> 00:12:30,160
+So if we run this, this should work fine.
+
+178
+00:12:30,160 --> 00:12:31,480
+Yes, no problem.
+
+179
+00:12:31,480 --> 00:12:37,720
+But then again, if we compile to native executable, it's not going to work because when we embed so
+
+180
+00:12:37,720 --> 00:12:45,050
+this line of code loading using the class loader will embed the binary content of this dynamic library
+
+181
+00:12:45,070 --> 00:12:46,510
+into our native executable file.
+
+182
+00:12:46,510 --> 00:12:53,560
+So if we try to run this with our Java agent, Java Trace agent from Google VM and look at the meta
+
+183
+00:12:53,560 --> 00:12:55,780
+INF resource config.
+
+184
+00:12:55,780 --> 00:13:00,970
+Now it picks up on this dynamic library because we are searching something on the class path.
+
+185
+00:13:00,970 --> 00:13:05,440
+So the JVM is aware of we are loading some extra resource.
+
+186
+00:13:06,910 --> 00:13:09,820
+So the native image picks up on that.
+
+187
+00:13:09,820 --> 00:13:16,360
+Now that the meta inf has this resource config, if we compile this application with the native image,
+
+188
+00:13:16,360 --> 00:13:19,810
+the binary contents of this dynamic library will be included.
+
+189
+00:13:19,810 --> 00:13:25,690
+But then this line, the second line x, the gate file will fail because once the contents are included
+
+190
+00:13:25,690 --> 00:13:32,860
+in the executable binary, this doesn't reach the absolute path that this returns is not going to be
+
+191
+00:13:32,860 --> 00:13:33,190
+correct.
+
+192
+00:13:33,190 --> 00:13:34,570
+So we cannot do this.
+
+193
+00:13:34,900 --> 00:13:36,040
+What do we do?
+
+194
+00:13:36,730 --> 00:13:40,810
+We go and try to extract the binary out of it.
+
+195
+00:13:40,810 --> 00:13:43,510
+So let me just maybe also compile this.
+
+196
+00:13:43,510 --> 00:13:46,630
+And so we have the method if the resource is configured.
+
+197
+00:13:46,630 --> 00:13:51,520
+So let's do run compile again and see if it's going to work or not.
+
+198
+00:13:54,620 --> 00:14:01,670
+So this time again, the binary contents of the dynamic library will be included in the final executable
+
+199
+00:14:01,670 --> 00:14:02,060
+file.
+
+200
+00:14:02,600 --> 00:14:05,840
+But the way that we dislike the way we tell it.
+
+201
+00:14:05,870 --> 00:14:06,140
+Okay.
+
+202
+00:14:06,140 --> 00:14:13,450
+You are ll get filed is going to fail because once the contents are in the executable file, this target
+
+203
+00:14:13,460 --> 00:14:20,240
+file will not return a valid path or valid file that is valid on the operating system.
+
+204
+00:14:20,240 --> 00:14:21,320
+The host operating system.
+
+205
+00:14:21,320 --> 00:14:21,710
+Right.
+
+206
+00:14:22,220 --> 00:14:24,020
+So the competition is finished.
+
+207
+00:14:24,020 --> 00:14:25,280
+Let's refresh this.
+
+208
+00:14:27,090 --> 00:14:34,390
+Let's open our terminal here and let's run this and now it's going to can't load library and no notice
+
+209
+00:14:34,390 --> 00:14:40,770
+that that exact gate file says from the root go this and remember this root is actually referring to
+
+210
+00:14:40,770 --> 00:14:46,350
+the native image the file but to the operating system system that load maps to a file.
+
+211
+00:14:46,350 --> 00:14:49,230
+Under operating system it means from the root of the host operating system.
+
+212
+00:14:49,230 --> 00:14:50,430
+So this is not correct, right?
+
+213
+00:14:50,790 --> 00:14:54,450
+So this doesn't work even though we already have the binary contents.
+
+214
+00:14:54,450 --> 00:14:57,900
+So we have to pull out that binary content.
+
+215
+00:14:59,240 --> 00:15:07,250
+So what we're going to say that we're going to say let's say file file is or let's call this Dileep
+
+216
+00:15:07,280 --> 00:15:13,610
+is new file and we're going to give it exactly this name or whatever name that we wish.
+
+217
+00:15:13,610 --> 00:15:14,180
+Right.
+
+218
+00:15:14,870 --> 00:15:19,280
+And we're going to say that we try to see if it's been cached or not.
+
+219
+00:15:19,280 --> 00:15:25,070
+So let's say we want to cache it in the same working directory that we run our executable file.
+
+220
+00:15:25,100 --> 00:15:30,740
+So if Dileep dot exists, we're not going to do something.
+
+221
+00:15:30,740 --> 00:15:33,500
+And if it doesn't exist, we're going to nathi it.
+
+222
+00:15:33,500 --> 00:15:37,850
+Then we're going to say that files dot copy from the source.
+
+223
+00:15:37,850 --> 00:15:38,900
+What is our source?
+
+224
+00:15:39,260 --> 00:15:46,220
+We're going to actually use the copy method that takes the input stream because now that all the binaries
+
+225
+00:15:46,220 --> 00:15:49,610
+are inside our executable file, we can open up an input stream.
+
+226
+00:15:49,610 --> 00:15:50,000
+Right?
+
+227
+00:15:50,000 --> 00:15:55,340
+So the open stream target is the directory.
+
+228
+00:15:55,340 --> 00:15:56,600
+We have to give it a path.
+
+229
+00:15:56,600 --> 00:16:03,590
+So Pat's the gate and the directory is going to be I guess the current directory.
+
+230
+00:16:05,440 --> 00:16:06,880
+And then options.
+
+231
+00:16:08,230 --> 00:16:13,510
+We're just going to say that there is the default option and then we have to import this also parts
+
+232
+00:16:13,510 --> 00:16:17,350
+from Java and IO and this is going to throw exception.
+
+233
+00:16:17,360 --> 00:16:19,270
+So let's round it with try catch.
+
+234
+00:16:19,810 --> 00:16:26,200
+So if dynamic dynamic library already exists, we're not going to do anything because it's already been
+
+235
+00:16:26,200 --> 00:16:30,040
+cached if it doesn't exist.
+
+236
+00:16:30,040 --> 00:16:39,820
+So let's also print some comments if dynamic library doesn't exist, out extracting the JNI Dynamic
+
+237
+00:16:39,820 --> 00:16:41,020
+Library, right?
+
+238
+00:16:41,320 --> 00:16:52,510
+And if else, if the dynamic library already exists, we're going to see this out using cached JNI dynamic
+
+239
+00:16:52,510 --> 00:16:53,260
+library.
+
+240
+00:16:55,330 --> 00:17:06,490
+And if the file already exists, we're going to just say that system dot load and then die lib get absolute
+
+241
+00:17:06,490 --> 00:17:06,790
+path.
+
+242
+00:17:06,790 --> 00:17:08,350
+Right, so we just feed it.
+
+243
+00:17:09,430 --> 00:17:15,730
+And if it doesn't exist, then we're going to extract the binaries, copy them into.
+
+244
+00:17:16,150 --> 00:17:17,740
+So we have to tell it.
+
+245
+00:17:17,770 --> 00:17:19,180
+We also have to give it the name.
+
+246
+00:17:19,180 --> 00:17:21,790
+So a copy with some name.
+
+247
+00:17:23,410 --> 00:17:24,370
+We're using the same name.
+
+248
+00:17:24,370 --> 00:17:28,890
+You don't have to use the same name when when you're extracting the file.
+
+249
+00:17:28,900 --> 00:17:29,860
+So let's say.
+
+250
+00:17:30,960 --> 00:17:37,710
+We're going to say that my lib dad, Dileep, I just want to show that this name doesn't have to be
+
+251
+00:17:37,710 --> 00:17:41,460
+the name of the original file that was embedded in our binary.
+
+252
+00:17:41,470 --> 00:17:45,660
+So we're just going to rename these.
+
+253
+00:17:46,920 --> 00:17:47,520
+All right.
+
+254
+00:17:48,210 --> 00:17:50,970
+Or we can also do, for example, a relative pass here.
+
+255
+00:17:50,970 --> 00:17:51,810
+That's fine.
+
+256
+00:17:55,340 --> 00:18:02,210
+So once we copy this, we're going to basically.
+
+257
+00:18:06,010 --> 00:18:06,490
+That's it.
+
+258
+00:18:06,490 --> 00:18:13,750
+So we actually can put because after copying, we're also going to load it so we can eventually either
+
+259
+00:18:13,750 --> 00:18:15,280
+the file doesn't exist.
+
+260
+00:18:15,310 --> 00:18:18,580
+In that case, we extract the binaries as a file, right?
+
+261
+00:18:18,820 --> 00:18:21,640
+Or if it exists, we just tell it that the file exists.
+
+262
+00:18:21,640 --> 00:18:22,690
+We're going to use cache it.
+
+263
+00:18:22,690 --> 00:18:27,640
+And in both ways we're going to get the absolute path of the dynamic library.
+
+264
+00:18:27,640 --> 00:18:28,810
+So let's see if this works.
+
+265
+00:18:28,810 --> 00:18:30,070
+So let's run this.
+
+266
+00:18:31,290 --> 00:18:35,510
+So extracting the Jrny Dynamic Library Helloworld from C++.
+
+267
+00:18:35,520 --> 00:18:35,820
+Right.
+
+268
+00:18:35,820 --> 00:18:42,750
+And you see my lab that delivered what was extracted and this is exactly the binaries that are inside
+
+269
+00:18:42,750 --> 00:18:44,610
+our right now.
+
+270
+00:18:44,610 --> 00:18:50,040
+We're running the Java so we haven't compiled yet, but the code is still works because this is a completely
+
+271
+00:18:50,040 --> 00:18:51,540
+platform independent way.
+
+272
+00:18:51,570 --> 00:18:53,550
+Even you run it on top of the Java.
+
+273
+00:18:54,150 --> 00:18:56,820
+We read this original dynamic library copy.
+
+274
+00:18:56,820 --> 00:18:59,310
+All is content to the working directory.
+
+275
+00:18:59,310 --> 00:19:00,540
+What is the working directory?
+
+276
+00:19:00,540 --> 00:19:05,370
+When I run with Java, when I run the Java application inside the eclipse, it automatically sets it
+
+277
+00:19:05,370 --> 00:19:08,490
+to the root director of the Java project.
+
+278
+00:19:08,670 --> 00:19:13,290
+So I expect to see a mileage daily file inside exactly.
+
+279
+00:19:13,290 --> 00:19:14,820
+In the Java project.
+
+280
+00:19:15,210 --> 00:19:16,200
+So let's run this.
+
+281
+00:19:17,380 --> 00:19:21,040
+It works fine and my lib lib here and it was already there.
+
+282
+00:19:21,040 --> 00:19:25,900
+So in the second run it says using the cache Cheney Dynamic Library because we already copied the files
+
+283
+00:19:25,900 --> 00:19:28,300
+out, copied all the binary apps.
+
+284
+00:19:28,300 --> 00:19:30,730
+Right, so we can actually so this works fine.
+
+285
+00:19:30,730 --> 00:19:39,880
+So what we need to do now, we are going to first of all run our Java Trace again so that it knows what's
+
+286
+00:19:39,880 --> 00:19:40,750
+going on.
+
+287
+00:19:42,100 --> 00:19:49,810
+So maintain native image resource config and it is still only picks up on this lib java native image
+
+288
+00:19:49,810 --> 00:19:50,830
+delete, which is correct.
+
+289
+00:19:50,830 --> 00:19:53,710
+That's where we are actually loading a resource into the java.
+
+290
+00:19:54,490 --> 00:20:00,460
+The rest is not something that is related to resource loading because we already loaded the resource
+
+291
+00:20:00,460 --> 00:20:02,380
+and now we're doing something with it, right?
+
+292
+00:20:03,460 --> 00:20:12,340
+So now if I go ahead and compile my native application, native image, hopefully this time everything
+
+293
+00:20:12,340 --> 00:20:12,970
+works fine.
+
+294
+00:20:12,970 --> 00:20:18,160
+We get a executable file that has all the contents of this dynamic library and it's fully portable.
+
+295
+00:20:18,160 --> 00:20:22,180
+It's not reliant on any host operating system.
+
+296
+00:20:22,180 --> 00:20:28,360
+Know that this is only portable as long as you're not linking to a specific dynamic library and the
+
+297
+00:20:28,360 --> 00:20:29,740
+host operating system.
+
+298
+00:20:29,740 --> 00:20:36,760
+In this simple Helloworld C++ application, I didn't link against any particular dynamic library that
+
+299
+00:20:36,760 --> 00:20:37,750
+is on my operating system.
+
+300
+00:20:37,750 --> 00:20:43,330
+It's a very simple thing that only relies on the standard library that comes with C++.
+
+301
+00:20:44,860 --> 00:20:46,750
+All right, this finished?
+
+302
+00:20:46,750 --> 00:20:47,770
+Let's refresh.
+
+303
+00:20:48,130 --> 00:20:52,930
+Let's open up our terminal and hopefully this time everything works fine.
+
+304
+00:20:52,930 --> 00:20:58,480
+Extracting the general dynamic library and we get the output call from C++.
+
+305
+00:20:58,480 --> 00:21:02,440
+If we do an LZ, you see that my lib dot di lib is there, right.
+
+306
+00:21:02,440 --> 00:21:06,490
+If I run the application again, it says using cached JNI dynamic library.
+
+307
+00:21:06,490 --> 00:21:09,340
+It doesn't do the copying again because it doesn't make sense.
+
+308
+00:21:09,340 --> 00:21:09,470
+Right.
+
+309
+00:21:09,490 --> 00:21:14,470
+We want to extract the binaries the very first time, cache it and later on we want to use it again.
+
+310
+00:21:14,470 --> 00:21:21,730
+Right now, ideally, normally what you see is that usually the applications create a dot directory
+
+311
+00:21:21,730 --> 00:21:31,630
+or hidden directories inside the home directory of the user and copy these cache files into those directories.
+
+312
+00:21:31,630 --> 00:21:33,400
+So we could also set it up to do it.
+
+313
+00:21:33,400 --> 00:21:39,820
+But right now we're just copying or extracting these binaries and cache them in whatever working directory
+
+314
+00:21:39,820 --> 00:21:41,920
+that the user is running this application from.
+
+315
+00:21:41,920 --> 00:21:47,350
+And that's that's obviously not ideal because if the user copies this executable to any other directory
+
+316
+00:21:47,350 --> 00:21:51,130
+and run it, we have to do the caching again, which is not ideal.
+
+317
+00:21:51,130 --> 00:21:56,440
+So the best approach is always create a hidden directory in the home directory of the user and then
+
+318
+00:21:56,440 --> 00:22:02,680
+cache the files inside that directory so that whenever the user runs the application from any other
+
+319
+00:22:02,680 --> 00:22:05,860
+directory, you always refer to that home directory.
+
+320
+00:22:05,860 --> 00:22:11,500
+So I hope you enjoyed this lecture and now have a very solid understanding of how to extract binaries
+
+321
+00:22:11,500 --> 00:22:15,310
+from the final executable file and deal with them.
+
+322
+00:22:15,310 --> 00:22:17,890
+So please stay tuned and I'll see the next one.

@@ -1,0 +1,349 @@
+WEBVTT
+
+0
+00:02.350 --> 00:09.680
+So in the last lecture we had this problem where we had to save the Customizer twice in order for the portfolio
+
+1
+00:09.690 --> 00:12.880
+slug to reflect here.
+
+2
+00:13.770 --> 00:17.390
+So if you still don't understand why the problem happens.
+
+3
+00:17.450 --> 00:23.720
+Please rewatch the last lecture and make sure you understand it before watching this lecture.
+
+4
+00:23.760 --> 00:29.180
+So the problem that we run the flush_rewrite_rules() after we save the Customizer.
+
+5
+00:29.520 --> 00:34.710
+But after we save the Customizer, the custom post type will not reregister,
+
+6
+00:34.710 --> 00:41.340
+it's actually already registered in the "init" action. And it's registered using the old name.
+
+7
+00:41.430 --> 00:46.570
+So the flush_rewrite_rules() will not see that you have a new name at this point, right?
+
+8
+00:46.650 --> 00:53.590
+So what we want to do is we want to run the flush_rewrite_rules() the next time we refresh our browser.
+
+9
+00:53.750 --> 00:59.210
+That way the "init" action will fire again and the "args_filter" will fire again and that's where we can see
+
+10
+00:59.210 --> 01:01.190
+the new value.
+
+11
+01:01.970 --> 01:07.510
+So how can we do that? We can still use the "after_save" but we will use it differently.
+
+12
+01:07.580 --> 01:13.620
+So what we need to do is after saving the Customizer we need to set like a $flag to "true".
+
+13
+01:13.670 --> 01:15.270
+And then in the "init" action,
+
+14
+01:15.920 --> 01:20.350
+and after registering the post type, we need to see this $flag.
+
+15
+01:20.480 --> 01:24.680
+And if this $flag is "true" that means that the Customizer has been saved.
+
+16
+01:24.890 --> 01:28.780
+So we need to run the flush_rewrite_rules() function.
+
+17
+01:29.210 --> 01:36.410
+So how can we run some code in the "init" action but also make sure that it runs after the custom post type
+
+18
+01:36.410 --> 01:38.190
+registration function?
+
+19
+01:38.270 --> 01:48.480
+We can simply add a new action and hook into the "init". And then create a new function, let's call it
+
+20
+01:48.470 --> 01:57.200
+"_themename_flush_rewrite". And then to make sure this function will run after the post type has been registered
+
+21
+01:58.130 --> 02:00.220
+is by simply providing a priority.
+
+22
+02:00.380 --> 02:06.450
+So you can type a large number, so we can make sure this function will run after this one.
+
+23
+02:06.710 --> 02:13.130
+Ok? So let's create this function.
+
+24
+02:13.230 --> 02:14.910
+And what do we need to do in this function?
+
+25
+02:15.030 --> 02:20.330
+We will need to check if the $flag is "true". And if the $flas is true
+
+26
+02:20.330 --> 02:27.340
+that means that before refreshing the page before running the "init" action we saved something in the
+
+27
+02:27.340 --> 02:34.240
+Customizer. So the $flag is "true". So if $flag is "true" we need to run the flush_rewrite_rules().
+
+28
+02:34.520 --> 02:40.340
+And this time we are sure that the flush_rewrite_rules() will run after registering the custom post type
+
+29
+02:40.790 --> 02:47.220
+with a new name because are using a high priority here. And then finally we'll have to set the flag back
+
+30
+02:47.220 --> 02:52.120
+to false so that flush_rewrite_rules won't rerun again when you refresh.
+
+31
+02:52.120 --> 02:53.440
+Right?
+
+32
+02:53.860 --> 02:56.210
+So the question now is how to set this flag?
+
+33
+02:56.650 --> 03:01.450
+What we need to do is we need a value that would persist when we refresh the page.
+
+34
+03:01.570 --> 03:06.580
+So what we can do is we can save a value to the database when we save in the Customizer.
+
+35
+03:06.880 --> 03:13.840
+And then when we refresh the page, when the "init" function fires and this function runs, here we will retrieve
+
+36
+03:13.960 --> 03:15.640
+this value from the database.
+
+37
+03:15.640 --> 03:17.740
+So how do we save a value to the database?
+
+38
+03:17.740 --> 03:26.530
+We can simply use a function called set_theme_mod(). And set_theme_mod() will add an option to our theme.
+
+39
+03:26.650 --> 03:31.660
+So its value will be saved to the database but this option will actually not appear anywhere in the
+
+40
+03:31.660 --> 03:35.260
+Customizer for example or in any settings page.
+
+41
+03:35.560 --> 03:38.150
+So this will just be used internally.
+
+42
+03:38.770 --> 03:50.140
+So let's call this option "_themename_flush_ flag" maybe and we need to set this value to "true". And then here
+
+43
+03:50.320 --> 03:57.960
+we will get_theme_mod() and the name of the option. And let's default it to "false".
+
+44
+03:58.600 --> 04:07.150
+So if this is "true" we will flush_rewrite_rules() and then we need to set the $flag back for to $false. So we can use this function
+
+45
+04:07.150 --> 04:13.060
+again but this time "false".
+
+46
+04:13.080 --> 04:16.620
+So let's try this.
+
+47
+04:16.620 --> 04:17.750
+So in the Customizer,
+
+48
+04:20.650 --> 04:26.710
+in the general options let's type "hey" for example. And now let's trace what will happen.
+
+49
+04:26.720 --> 04:34.540
+And we will hit publish. What will happen now is the "customize_save after" will run and this function
+
+50
+04:34.540 --> 04:42.780
+will run. And now we'll have in the database a value "_themename_flush_flag" that is equal to "true", right?
+
+51
+04:43.410 --> 04:49.760
+And now if we go here and type "hey" and hit enter what will happen
+
+52
+04:49.760 --> 04:55.190
+is the "init" action will fire and all the functions attached to the "init" action will fire, so 
+
+53
+04:55.190 --> 04:56.120
+this one
+
+54
+04:56.420 --> 05:02.400
+where we define our post type. So this will run first and then this, because it has a higher priority,
+
+55
+05:02.450 --> 05:07.540
+will run after. And when this run it will check the $flag.
+
+56
+05:07.680 --> 05:12.580
+And if the $flag is "true" it will flush_rewrite_rules() and set the $flag back to "false".
+
+57
+05:12.600 --> 05:20.330
+So let's hit enter and as you can see it's working without having to save twice.
+
+58
+05:20.550 --> 05:24.510
+We still have one final problem.
+
+59
+05:25.050 --> 05:30.940
+We're now running the "customize_save_after" action and setting this $flag to "true" every time you save the
+
+60
+05:30.950 --> 05:31.630
+Customizer.
+
+61
+05:31.830 --> 05:36.930
+But actually you can save the Customizer without changing the portfolio so we don't need to flush
+
+62
+05:37.000 --> 05:41.750
+the rewrite rules every time we change something that may not be the portfolio slug.
+
+63
+05:41.880 --> 05:42.560
+Right?
+
+64
+05:42.600 --> 05:48.900
+So what we can do is inside the "customer_save_after" function we can get the value of the slug, of
+
+65
+05:48.900 --> 05:50.470
+the post type.
+
+66
+05:50.550 --> 05:58.660
+So let's call this $old and let's use a function called get_post_type_object(), this one.
+
+67
+05:59.700 --> 06:01.150
+And it takes a "post_type".
+
+68
+06:01.170 --> 06:05.850
+So ours is called "_themename_portfolio".
+
+69
+06:05.910 --> 06:11.760
+So this function will return an object that contains all the information about this post type.
+
+70
+06:11.760 --> 06:12.940
+So what do we need to retrieve?
+
+71
+06:12.990 --> 06:19.230
+We need to retrieve the "rewrite" and the "slug" inside the "rewrite".
+
+72
+06:19.250 --> 06:19.700
+Right?
+
+73
+06:20.600 --> 06:22.960
+So this one will contain the old slug.
+
+74
+06:23.180 --> 06:29.210
+Because as we mentioned the post type has already been registered with the old name. And the new one
+
+75
+06:29.360 --> 06:31.210
+will be inside the settings, inside 
+
+76
+06:31.220 --> 06:36.100
+the get_theme_mod() and then the name of the setting.
+
+77
+06:36.650 --> 06:52.260
+So the name of the setting was this one. And the "default" is "portfolio". And we just have to simply check if the old is
+
+78
+06:52.260 --> 06:54.650
+not equals to the new.
+
+79
+06:54.660 --> 06:57.140
+We will set the $flag, right?
+
+80
+06:57.660 --> 07:04.960
+So $old.
+
+81
+07:05.160 --> 07:07.390
+So let's just make sure it's still working.
+
+82
+07:07.710 --> 07:11.600
+So let's set this to "portfolio" again.
+
+83
+07:14.320 --> 07:23.300
+Aand publish. And let's go to "/portfolio" and it's working.
+
+84
+07:24.000 --> 07:26.730
+I think that will be it for the custom post types.
+
+85
+07:26.820 --> 07:31.270
+I know the last couple of lectures may not be very straightforward.
+
+86
+07:31.280 --> 07:35.190
+So let me know if you have any questions and see you in the next section.

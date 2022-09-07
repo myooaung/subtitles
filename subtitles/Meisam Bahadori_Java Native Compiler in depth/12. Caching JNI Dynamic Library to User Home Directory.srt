@@ -1,0 +1,1187 @@
+1
+00:00:01,290 --> 00:00:04,380
+Hello and welcome to another tutorial.
+
+2
+00:00:04,380 --> 00:00:11,970
+We are going to finish our discussion on how to use JNI when we are compiling our job application to
+
+3
+00:00:11,970 --> 00:00:13,680
+native executable binary.
+
+4
+00:00:13,830 --> 00:00:22,050
+And we saw that the way to do it is to add the compiler to input our resource, which is a dynamic library
+
+5
+00:00:22,050 --> 00:00:30,690
+that has bindings to basically Java native methods and then put it on the class path and make sure that
+
+6
+00:00:30,690 --> 00:00:36,000
+we load it in a platform independent way using the class loader.
+
+7
+00:00:36,000 --> 00:00:39,330
+So we asked class loader, hey, search for a system resource.
+
+8
+00:00:39,330 --> 00:00:47,250
+And then we said that once we get this, we can open a platform independent, a stream to read the binary
+
+9
+00:00:47,250 --> 00:00:48,960
+contents of that, right?
+
+10
+00:00:49,110 --> 00:00:56,880
+And then we set that unfortunately system that load the method doesn't accept a binary stream, so we
+
+11
+00:00:56,880 --> 00:01:02,130
+have to give it a file that already exists on the host operating system, the file system.
+
+12
+00:01:02,130 --> 00:01:08,760
+So we kind of need to grab all those binaries that the native image already includes in the final file
+
+13
+00:01:08,940 --> 00:01:15,990
+and then copy the or basically extract them out using the copy method that the files provides and then
+
+14
+00:01:16,530 --> 00:01:19,200
+put them back as a new file.
+
+15
+00:01:19,230 --> 00:01:19,770
+Right?
+
+16
+00:01:20,250 --> 00:01:27,210
+And then after that we can just get the absolute path of that and then load it.
+
+17
+00:01:27,210 --> 00:01:29,940
+And this approach worked and we set it optionally.
+
+18
+00:01:29,940 --> 00:01:35,910
+We can also ask the JV team to delete that on exit and we said that this is not very efficient.
+
+19
+00:01:35,940 --> 00:01:43,770
+If every time the user runs the program we extract the binaries, create a new file, and then after
+
+20
+00:01:43,770 --> 00:01:45,360
+the program terminates, we delete it.
+
+21
+00:01:45,360 --> 00:01:47,880
+This is not definitely not a efficient way.
+
+22
+00:01:47,880 --> 00:01:55,140
+So if I go back to my eclipse, what we did eventually was to first create an abstract file here and
+
+23
+00:01:55,140 --> 00:02:02,250
+then check if it's already exists, which means the very first time that the user runs the application,
+
+24
+00:02:02,250 --> 00:02:05,130
+we want to grab the binaries and extract it.
+
+25
+00:02:05,670 --> 00:02:11,790
+And then the second time or the later times when the application is run, we check that if this file
+
+26
+00:02:11,790 --> 00:02:15,060
+already has been extracted means it's already been cached.
+
+27
+00:02:15,060 --> 00:02:17,760
+So we don't need to like extract the binaries again.
+
+28
+00:02:17,760 --> 00:02:21,900
+We just go ahead and use the cached version which has been already extracted.
+
+29
+00:02:21,900 --> 00:02:22,440
+Right.
+
+30
+00:02:22,440 --> 00:02:26,040
+And we said that this approach works even in the Java.
+
+31
+00:02:26,040 --> 00:02:30,960
+If you run your application with JVM, it still works fine just because it just grabs the binary.
+
+32
+00:02:30,960 --> 00:02:36,030
+It's here on my I just have to be careful about the working directory when I run it inside eclipse.
+
+33
+00:02:36,030 --> 00:02:38,940
+The working directory is the project folder.
+
+34
+00:02:38,940 --> 00:02:41,340
+That's why it extracts this file.
+
+35
+00:02:41,340 --> 00:02:49,050
+My leave the die lib here and then the second time it just checks if the file already exists in my working
+
+36
+00:02:49,050 --> 00:02:54,600
+directory and the name of the file my lib that w if it is it just goes ahead and load.
+
+37
+00:02:54,870 --> 00:02:56,430
+Get the absolute path and load it.
+
+38
+00:02:57,480 --> 00:03:03,570
+This JVM loads that dynamic library and then our native method, this dynamic library has already binding
+
+39
+00:03:03,570 --> 00:03:06,330
+so and then the native method works just fine.
+
+40
+00:03:06,510 --> 00:03:12,600
+Now one thing that I would like to mention is that usually when we develop, we have dynamic libraries
+
+41
+00:03:12,600 --> 00:03:16,920
+that provide bindings for native methods to C++ functions.
+
+42
+00:03:17,190 --> 00:03:22,290
+The extension is, first of all, the extension doesn't matter because it's just the JVM only cares
+
+43
+00:03:22,290 --> 00:03:27,210
+about the binary actual binaries of this file which instructs the CPU what to do.
+
+44
+00:03:27,210 --> 00:03:27,720
+Right?
+
+45
+00:03:27,990 --> 00:03:34,920
+So normally the convention is to rename or set the extension to JNI lib.
+
+46
+00:03:35,190 --> 00:03:40,020
+So that's the convention for JNI dynamic libraries.
+
+47
+00:03:40,020 --> 00:03:46,020
+Obviously Platforms Macros prefers the convention of that DI lib Linux prefix, the convention of that.
+
+48
+00:03:46,080 --> 00:03:51,480
+So and Windows prefers the convention of that DLL.
+
+49
+00:03:51,480 --> 00:03:58,170
+But at the end of the day for JNI, JVM doesn't care about that because it just cares about the binary
+
+50
+00:03:58,170 --> 00:03:59,220
+content of this file.
+
+51
+00:03:59,250 --> 00:04:04,620
+And normally when you look at the professional Java projects that use JNI bindings, you see that there
+
+52
+00:04:04,620 --> 00:04:07,440
+are some dynamic libraries that are called JNI lib.
+
+53
+00:04:07,860 --> 00:04:10,320
+So that's one convention.
+
+54
+00:04:10,320 --> 00:04:16,890
+So I'm going to rename this and then obviously we want to also rename this file and maybe we can also
+
+55
+00:04:17,760 --> 00:04:18,720
+rename this.
+
+56
+00:04:20,400 --> 00:04:21,210
+Okay.
+
+57
+00:04:21,390 --> 00:04:29,340
+Again, the code works fine because whatever this file is, we ask it to get us the absolute path and
+
+58
+00:04:29,340 --> 00:04:31,770
+let's delete the previous file that we extracted.
+
+59
+00:04:31,770 --> 00:04:33,750
+If we run this, this is still going to work.
+
+60
+00:04:33,750 --> 00:04:34,380
+Fine.
+
+61
+00:04:34,410 --> 00:04:38,130
+The first time we call it, it's going to extract the JNI dynamic library.
+
+62
+00:04:38,160 --> 00:04:39,810
+My lib jane lib.
+
+63
+00:04:39,840 --> 00:04:44,700
+The second time that we run it is going to realize that it's already been cached extracted.
+
+64
+00:04:44,700 --> 00:04:49,100
+So we're not going to go through the copying again and just we use the cache version.
+
+65
+00:04:49,350 --> 00:04:55,200
+And then the last thing that I would like to mention is that as I mentioned, typically we don't want
+
+66
+00:04:55,200 --> 00:04:59,220
+to we we don't want to cache.
+
+67
+00:05:00,480 --> 00:05:06,710
+In the current working directory, we want to cash in a very specific location.
+
+68
+00:05:06,720 --> 00:05:12,120
+That's because if we compile our application to native binary, which we already did right.
+
+69
+00:05:12,120 --> 00:05:14,580
+This one, let's let me open up a terminal here.
+
+70
+00:05:16,140 --> 00:05:18,690
+And if we run the application.
+
+71
+00:05:19,170 --> 00:05:24,870
+Last time we ran it, it extracted the binaries in this current working directory so it realises that
+
+72
+00:05:24,870 --> 00:05:27,360
+the file already exists and just loads them into memory.
+
+73
+00:05:27,360 --> 00:05:33,960
+But then the problem is that if somebody moves this executable file to another directory and the operating
+
+74
+00:05:33,960 --> 00:05:39,480
+system, then because the file doesn't exist in that particular directory, then we have to extract
+
+75
+00:05:39,480 --> 00:05:40,650
+the file again.
+
+76
+00:05:40,650 --> 00:05:48,150
+So this is not an ideal case and what we prefer to do is to cache it for a particular directory and
+
+77
+00:05:48,150 --> 00:05:49,980
+that's a user's home directory.
+
+78
+00:05:50,070 --> 00:05:51,990
+User's home directory, right.
+
+79
+00:05:52,230 --> 00:06:00,540
+And normally on Mac OS and UNIX, the caching happens in hidden directories.
+
+80
+00:06:02,340 --> 00:06:04,590
+Usually they start with dot something.
+
+81
+00:06:04,590 --> 00:06:11,940
+So if I open up my home directory on my mac OS, you see these are non hidden folders.
+
+82
+00:06:11,940 --> 00:06:17,760
+If I show up there, if I show the hidden directories, you see there are a lot of directories related
+
+83
+00:06:17,760 --> 00:06:19,850
+to the applications that are installed.
+
+84
+00:06:19,860 --> 00:06:27,150
+For example, Anaconda for Python management, Eclipse also has some caching going on or some log files,
+
+85
+00:06:27,150 --> 00:06:28,650
+etc. is stability.
+
+86
+00:06:28,650 --> 00:06:32,080
+For example, as you can see, this is for stability.
+
+87
+00:06:32,310 --> 00:06:40,530
+We programming Java and you see it has obviously a stability has some platform dependent um calls right.
+
+88
+00:06:40,530 --> 00:06:46,590
+Because it's a window tool, gooey right graphical interface and you see the way they extract it in
+
+89
+00:06:46,590 --> 00:06:48,330
+this hidden directory stability.
+
+90
+00:06:48,330 --> 00:06:54,120
+But then cache or extract is JNI libs which are basically dynamic leaves that have the bindings to the
+
+91
+00:06:54,120 --> 00:07:02,100
+native methods that stability uses and they use this convention lib and then the name of the platform,
+
+92
+00:07:02,460 --> 00:07:03,540
+what's the architecture?
+
+93
+00:07:03,540 --> 00:07:07,260
+And then eventually the name which ends with and I'll write again.
+
+94
+00:07:07,380 --> 00:07:14,790
+The extension generally doesn't really matter for JVM as long as this is a binary that has been properly
+
+95
+00:07:16,080 --> 00:07:19,260
+compiled for this platform and for this CPU architecture.
+
+96
+00:07:19,260 --> 00:07:21,150
+So we're going to use the same convention.
+
+97
+00:07:21,210 --> 00:07:30,990
+So we're going to use the same convention, and our convention is going to be we're going to say Dot
+
+98
+00:07:31,140 --> 00:07:33,210
+my Java app, right?
+
+99
+00:07:33,300 --> 00:07:37,080
+And then inside of this, we're going to have Lib directory.
+
+100
+00:07:37,080 --> 00:07:42,150
+And inside of this we're going to have basically.
+
+101
+00:07:44,270 --> 00:07:47,630
+Basically our platform or OS.
+
+102
+00:07:48,080 --> 00:07:55,880
+And inside of this we're going to have a CPU architecture and then inside of this we're going to extract
+
+103
+00:07:55,880 --> 00:07:58,100
+the dynamic library.
+
+104
+00:07:58,820 --> 00:07:59,420
+Right?
+
+105
+00:07:59,570 --> 00:08:04,150
+And this applies to the current user for each user has a different home directory.
+
+106
+00:08:04,160 --> 00:08:10,250
+So with this approach, putting in the user home directory obviously means if multiple user is using
+
+107
+00:08:10,250 --> 00:08:16,040
+it, then if everyone needs to run it so that the cache happens and sometimes you don't want this,
+
+108
+00:08:16,040 --> 00:08:20,600
+you want to install it for all users or cache the file for all the users.
+
+109
+00:08:20,600 --> 00:08:26,660
+So you put it somewhere outside the home directory, more like in the root or some somewhere else for
+
+110
+00:08:26,660 --> 00:08:29,210
+example, being depends on the filesystem, right?
+
+111
+00:08:29,210 --> 00:08:35,540
+So for now we are limiting ourselves to each user and the way we're going to do this.
+
+112
+00:08:37,130 --> 00:08:38,420
+So we create the file.
+
+113
+00:08:38,420 --> 00:08:46,250
+But instead of saying working directory first, we have to we have to get the user a home directory.
+
+114
+00:08:46,250 --> 00:08:46,490
+Right.
+
+115
+00:08:46,490 --> 00:08:47,600
+How do we do it in Java?
+
+116
+00:08:47,600 --> 00:08:48,440
+It's very simple.
+
+117
+00:08:48,440 --> 00:08:51,050
+Again, it's it's a system property.
+
+118
+00:08:51,050 --> 00:09:03,320
+So we say a string home is a system that get property and then we're going to say user dot home.
+
+119
+00:09:03,650 --> 00:09:04,280
+All right.
+
+120
+00:09:04,580 --> 00:09:06,260
+So let's start with this.
+
+121
+00:09:06,500 --> 00:09:10,130
+I'm going to copy these basic commands out.
+
+122
+00:09:10,160 --> 00:09:13,580
+Let's do a C out, make sure that our home directory is correct.
+
+123
+00:09:14,990 --> 00:09:16,190
+Let's go here.
+
+124
+00:09:16,190 --> 00:09:19,370
+And it says users and then the name of the user.
+
+125
+00:09:19,370 --> 00:09:20,480
+Everything looks good.
+
+126
+00:09:22,370 --> 00:09:26,810
+So the name, the next thing that we want to check is the OS, right?
+
+127
+00:09:26,810 --> 00:09:34,010
+So we're going to say that a string OS name is or just OS is.
+
+128
+00:09:36,230 --> 00:09:45,020
+Um, uh, we're going to, uh, say, see to get property and we're going to say that, uh, always
+
+129
+00:09:45,020 --> 00:09:48,790
+start name and do excel on the OS.
+
+130
+00:09:48,800 --> 00:09:50,420
+Let's also check this one.
+
+131
+00:09:52,280 --> 00:09:53,420
+Says Mac OS.
+
+132
+00:09:55,220 --> 00:10:02,520
+Obviously we prefer to do it to lowercase and then we're going to remove the white spaces.
+
+133
+00:10:02,520 --> 00:10:04,070
+So replace all.
+
+134
+00:10:04,430 --> 00:10:08,450
+And we're going to say any white space, replace it with underscore.
+
+135
+00:10:09,260 --> 00:10:12,890
+So let's run this again and Mac OS.
+
+136
+00:10:13,460 --> 00:10:15,260
+So now this works fine.
+
+137
+00:10:16,590 --> 00:10:17,780
+And then a.
+
+138
+00:10:19,990 --> 00:10:24,490
+The other thing is the next one is the architecture, right?
+
+139
+00:10:24,490 --> 00:10:30,460
+So a string architecture is systems that get property.
+
+140
+00:10:30,460 --> 00:10:37,570
+And the property we're going to look at and look at is a believe OS dot arch.
+
+141
+00:10:37,900 --> 00:10:39,970
+So let's see out arch.
+
+142
+00:10:43,430 --> 00:10:45,770
+And he says 86, 64.
+
+143
+00:10:45,800 --> 00:10:46,400
+Right.
+
+144
+00:10:46,400 --> 00:10:51,770
+So now we have all these three properties and what we're going to do, we're going to create the directory
+
+145
+00:10:51,770 --> 00:10:52,640
+hierarchy.
+
+146
+00:10:52,680 --> 00:11:00,360
+My, my Java app, Lieb OCP architecture and none of this, my java app doesn't exist.
+
+147
+00:11:00,420 --> 00:11:01,610
+LEAP Directory doesn't exist.
+
+148
+00:11:01,610 --> 00:11:03,480
+The OS name CPU architecture.
+
+149
+00:11:03,500 --> 00:11:07,310
+So we're going to say path path.
+
+150
+00:11:07,310 --> 00:11:14,210
+We're going to use Java IO and we're going to say paths, use the paths, the utility class and get.
+
+151
+00:11:14,780 --> 00:11:21,110
+And in the gate we're going to say that it's going to be percent s and then
+
+152
+00:11:23,840 --> 00:11:25,040
+basically.
+
+153
+00:11:27,140 --> 00:11:28,630
+We can say that.
+
+154
+00:11:30,640 --> 00:11:35,740
+We can either put them with forward slash or use past that file separator.
+
+155
+00:11:35,740 --> 00:11:42,070
+So let's say a string CEP is file dot separator.
+
+156
+00:11:42,910 --> 00:11:43,870
+Let's get it.
+
+157
+00:11:43,870 --> 00:11:55,570
+And then we're going to say that person is for home percent as for separator and then um, or we can
+
+158
+00:11:55,570 --> 00:12:05,470
+just say, um, home plus CIP plus, um, OS plus plus, uh, arch.
+
+159
+00:12:06,740 --> 00:12:10,900
+Uh, we actually need to have the lib also there.
+
+160
+00:12:10,900 --> 00:12:14,950
+So lib plus CEP plus something like that.
+
+161
+00:12:15,670 --> 00:12:19,570
+So this happens and then we're going to create all these things.
+
+162
+00:12:19,570 --> 00:12:21,850
+So first of all, let me look at the home directory right now.
+
+163
+00:12:21,850 --> 00:12:25,480
+I don't, uh, so let's, uh, remove this previous one here.
+
+164
+00:12:26,020 --> 00:12:28,540
+So right now I don't have any my job app here.
+
+165
+00:12:28,540 --> 00:12:36,040
+So let's, uh, do a see out on P and then we're going to say files, this is a utility class and then
+
+166
+00:12:36,040 --> 00:12:40,540
+create directories and we don't want, we want to use the default attributes.
+
+167
+00:12:40,540 --> 00:12:48,250
+And here we're going to just put p so this and this throws IO exception obviously.
+
+168
+00:12:48,250 --> 00:12:55,960
+So we have these and note that we cannot throw this IO exception in a static block declaration.
+
+169
+00:12:55,960 --> 00:12:57,970
+We cannot say a static and throw something.
+
+170
+00:12:57,970 --> 00:13:00,970
+So we kind of need to handle it here directly.
+
+171
+00:13:01,810 --> 00:13:10,420
+And then so we create directories and if already exists, if already exists, it doesn't do anything.
+
+172
+00:13:10,420 --> 00:13:12,340
+It doesn't do anything, which is good.
+
+173
+00:13:12,340 --> 00:13:18,520
+I mean, if we don't need to check if these directories exist, if they exist, this just doesn't do
+
+174
+00:13:18,520 --> 00:13:19,150
+anything right.
+
+175
+00:13:19,390 --> 00:13:21,760
+It doesn't delete them and then recreate them.
+
+176
+00:13:21,760 --> 00:13:24,910
+So if you run this, hopefully everything goes fine.
+
+177
+00:13:24,910 --> 00:13:30,910
+So we're creating these directories, lib macros and then x 84, 86, 64 in the user home.
+
+178
+00:13:32,380 --> 00:13:32,650
+Okay.
+
+179
+00:13:32,680 --> 00:13:33,850
+Actually, we made a mistake.
+
+180
+00:13:33,850 --> 00:13:42,640
+We want to say, um, um, uh, home and then dot my Java app.
+
+181
+00:13:43,420 --> 00:13:54,010
+Okay, my Java app, for example or my, my app, something like that or my Java app and then plus zip
+
+182
+00:13:54,130 --> 00:13:57,730
+plus lib plus plus OS plus app.
+
+183
+00:13:57,760 --> 00:14:00,370
+So now this grace is hidden directory.
+
+184
+00:14:00,370 --> 00:14:01,600
+So let's run these.
+
+185
+00:14:03,000 --> 00:14:05,960
+And this is our directory that we are created.
+
+186
+00:14:05,970 --> 00:14:11,130
+If I look at my home directory, I should see a my Java app here.
+
+187
+00:14:11,130 --> 00:14:18,150
+Yes, lib is there mac os x x 8664 and this is fully automatic.
+
+188
+00:14:18,150 --> 00:14:24,840
+If I compile my application, give it to somebody else, they run it on Windows, for example.
+
+189
+00:14:24,840 --> 00:14:26,310
+This changes to Windows.
+
+190
+00:14:26,490 --> 00:14:32,700
+Maybe they may run it on a some other machine, linux machine that has arm then
+
+191
+00:14:35,460 --> 00:14:42,660
+then they have to basically this directory hierarchy will change know that obviously the problem is
+
+192
+00:14:42,660 --> 00:14:51,660
+that because we are compiling to native executable then then obviously we have to compile on each separate
+
+193
+00:14:51,660 --> 00:14:52,170
+platform.
+
+194
+00:14:52,170 --> 00:14:57,690
+So I'm right now compiling a mac OS, I cannot give it to somebody to run it on Linux, for example.
+
+195
+00:14:57,840 --> 00:15:04,770
+So that thing, this has to happen basically on decomposition has to happen on separate platforms,
+
+196
+00:15:04,770 --> 00:15:07,770
+but the Java code remains the same, this code remains the same.
+
+197
+00:15:07,770 --> 00:15:10,710
+We just grab it and compile it on different platforms.
+
+198
+00:15:10,710 --> 00:15:17,850
+So after we create these directories, we kind of go through a basically all the other stuff.
+
+199
+00:15:17,850 --> 00:15:20,310
+Right now we need to cache the.
+
+200
+00:15:22,830 --> 00:15:24,820
+I'm casetify.
+
+201
+00:15:24,830 --> 00:15:25,880
+So when you file.
+
+202
+00:15:25,880 --> 00:15:27,950
+But then now the name of the file.
+
+203
+00:15:29,210 --> 00:15:30,860
+We already have this path, right?
+
+204
+00:15:30,860 --> 00:15:35,960
+We just say maybe P.
+
+205
+00:15:37,540 --> 00:15:42,640
+Plus we just and then we already have the separator separator plus.
+
+206
+00:15:43,960 --> 00:15:45,430
+So this should work fine.
+
+207
+00:15:45,460 --> 00:15:46,870
+This is the name of the file.
+
+208
+00:15:46,870 --> 00:15:50,170
+And then hopefully everything works fine.
+
+209
+00:15:50,170 --> 00:15:52,930
+So let's run this and.
+
+210
+00:15:55,440 --> 00:16:01,110
+So we run into this exception because we forgot to change the file here.
+
+211
+00:16:01,440 --> 00:16:03,360
+So obviously we has to change.
+
+212
+00:16:03,420 --> 00:16:04,340
+We have to change it.
+
+213
+00:16:04,350 --> 00:16:07,290
+We just say delete the gate, absolute path.
+
+214
+00:16:07,830 --> 00:16:08,460
+That's it.
+
+215
+00:16:08,460 --> 00:16:10,020
+So we grab it.
+
+216
+00:16:10,020 --> 00:16:16,140
+We create the file based on that path that we created that directory hierarchy in the user home directory.
+
+217
+00:16:16,140 --> 00:16:19,110
+And then we give the name that we want to extract.
+
+218
+00:16:19,440 --> 00:16:26,730
+And then we're saying that if it doesn't exist, then we go ahead and open a stream binary stream from
+
+219
+00:16:26,730 --> 00:16:34,380
+our native file, native image and to this path which is the user home directory all the way to this
+
+220
+00:16:34,380 --> 00:16:34,910
+file name.
+
+221
+00:16:34,940 --> 00:16:39,150
+Remember, this path has to include the name of the file also.
+
+222
+00:16:39,660 --> 00:16:46,620
+And then if it does, if already exists, we don't do anything, we just try to load it into memory.
+
+223
+00:16:46,620 --> 00:16:47,910
+So if you run this.
+
+224
+00:16:49,820 --> 00:16:50,690
+Everything works fine.
+
+225
+00:16:50,690 --> 00:16:56,330
+And he says extracting the Jrny dynamic library, which means it didn't exist and we extracted it and
+
+226
+00:16:56,330 --> 00:16:58,490
+now we're going to run it one more time.
+
+227
+00:16:58,490 --> 00:17:01,490
+Now it says Using cache to generate dynamic library.
+
+228
+00:17:01,490 --> 00:17:08,660
+All right, now what I'm going to do, I'm going to obviously delete the previous ones that we compiled
+
+229
+00:17:08,660 --> 00:17:12,140
+and then we're going to also delete this one.
+
+230
+00:17:12,770 --> 00:17:22,610
+And what we're going to do is I'm going to select these and let's also delete our metal and quickly
+
+231
+00:17:22,610 --> 00:17:26,270
+run with Java Trace agent to recreate everything.
+
+232
+00:17:26,960 --> 00:17:28,310
+It looks fine.
+
+233
+00:17:28,400 --> 00:17:36,500
+And then what I'm going to do is just compile to the native binary for my platform for macros and then
+
+234
+00:17:36,500 --> 00:17:37,520
+we're going to run it.
+
+235
+00:17:37,790 --> 00:17:44,060
+The other thing is we're going to try to do after we compile, we run it and then we move it to different
+
+236
+00:17:44,060 --> 00:17:44,750
+directories.
+
+237
+00:17:44,750 --> 00:17:50,540
+We run it again to make sure that regardless of which working directory we run our application, it
+
+238
+00:17:50,540 --> 00:17:54,650
+always grabs the same cache file which is in the user's home directory.
+
+239
+00:17:55,130 --> 00:17:57,560
+So the compilation is going quickly.
+
+240
+00:17:57,590 --> 00:18:02,960
+It probably ends very in a few seconds.
+
+241
+00:18:05,770 --> 00:18:07,300
+And what I'm going to do.
+
+242
+00:18:07,300 --> 00:18:13,120
+I'm going to go back to my home directory and I'm going to delete this directory hierarchy that we already
+
+243
+00:18:13,120 --> 00:18:13,990
+created.
+
+244
+00:18:14,530 --> 00:18:16,900
+And this is our application.
+
+245
+00:18:17,620 --> 00:18:18,830
+Let's see if there was an auto.
+
+246
+00:18:18,880 --> 00:18:20,140
+No, there is no terminal.
+
+247
+00:18:20,140 --> 00:18:21,940
+So you open a terminal here.
+
+248
+00:18:24,580 --> 00:18:25,300
+All right.
+
+249
+00:18:25,300 --> 00:18:27,370
+And let's run our application.
+
+250
+00:18:27,580 --> 00:18:28,990
+Everything works fine.
+
+251
+00:18:29,020 --> 00:18:31,110
+It detects our CPU.
+
+252
+00:18:31,120 --> 00:18:32,920
+Now it says AMD 64.
+
+253
+00:18:32,950 --> 00:18:33,490
+Right.
+
+254
+00:18:33,730 --> 00:18:36,310
+And then it actually don't.
+
+255
+00:18:36,460 --> 00:18:42,130
+When we run with JVM, it the naming was Xe 8664.
+
+256
+00:18:42,130 --> 00:18:47,720
+But when we run with a native image which uses JVM, it uses this naming.
+
+257
+00:18:47,740 --> 00:18:53,770
+AMD 64 and then extract the JNI Dynamic Library and then Hello World from C++.
+
+258
+00:18:53,770 --> 00:18:54,810
+So everything worked fine.
+
+259
+00:18:54,820 --> 00:19:03,670
+If we look at our home directory, we have this my Java app dot my Java app live Mac OS X and then AMD
+
+260
+00:19:03,670 --> 00:19:06,090
+64 and then my leap generally.
+
+261
+00:19:06,130 --> 00:19:13,120
+So if I run this again it now it's using the cache dynamic library which is this one from the home directory.
+
+262
+00:19:13,120 --> 00:19:13,630
+Right.
+
+263
+00:19:13,810 --> 00:19:17,620
+That my Java app live mac OS AMD Mail.
+
+264
+00:19:17,650 --> 00:19:25,630
+Now what I'm going to do, I'm going to actually let's move this to another directory.
+
+265
+00:19:25,630 --> 00:19:27,900
+Let's say move it to this example directory.
+
+266
+00:19:27,910 --> 00:19:28,480
+All right.
+
+267
+00:19:28,750 --> 00:19:34,540
+And then let's go back to our terminal and then we do see the and n example.
+
+268
+00:19:34,960 --> 00:19:39,320
+So we have our executable right here and in Java.
+
+269
+00:19:39,340 --> 00:19:45,850
+Now previously before caching in the user home directory, we were caching the dynamic library in the
+
+270
+00:19:45,850 --> 00:19:50,590
+current working directive, which means if we move the application from one directory to another, a
+
+271
+00:19:50,590 --> 00:19:54,730
+new copy of that dynamic library would have been generated.
+
+272
+00:19:54,730 --> 00:20:00,520
+But now if we run this, it is still says using cache change dynamic library because we cached it in
+
+273
+00:20:00,520 --> 00:20:04,510
+a place that is kind of like a central place.
+
+274
+00:20:04,510 --> 00:20:09,700
+Regardless when the user logs in they have their home directory.
+
+275
+00:20:10,530 --> 00:20:16,320
+And regardless of where they run our Java app or compiled application from it, the cached file, the
+
+276
+00:20:16,320 --> 00:20:22,320
+cache dynamic library is always in the home directory, so pretty much only the very first time they
+
+277
+00:20:22,320 --> 00:20:30,420
+run the application from some directory, it gets cached in the user home directory and after that basically
+
+278
+00:20:31,140 --> 00:20:33,030
+the cached version is used.
+
+279
+00:20:33,060 --> 00:20:39,330
+Now sometimes you're developing application, obviously the newer versions, then you have to update
+
+280
+00:20:39,330 --> 00:20:44,490
+maybe the dynamic library, you add more native methods to your job application.
+
+281
+00:20:44,790 --> 00:20:47,520
+So the question is how do we deal with that, right?
+
+282
+00:20:47,520 --> 00:20:57,840
+Because right now we we assume that if the file exists, then we're not going to extract the file again.
+
+283
+00:20:57,840 --> 00:20:58,380
+Right?
+
+284
+00:20:58,380 --> 00:21:04,710
+So what we can do, we can simply put a flag or something for checking the version, like a static flag
+
+285
+00:21:04,710 --> 00:21:05,970
+in our application.
+
+286
+00:21:05,970 --> 00:21:12,150
+And then every time we release a new version, not only we check if the file exists, we also check
+
+287
+00:21:12,150 --> 00:21:15,870
+whether the the application version has changed.
+
+288
+00:21:15,870 --> 00:21:23,280
+If it hasn't, then basically we don't need to extract the dynamic library again.
+
+289
+00:21:23,730 --> 00:21:28,560
+So I hope you enjoyed this lecture and now have a really solid understanding what actually happens.
+
+290
+00:21:28,680 --> 00:21:30,600
+We compiled a native binary.
+
+291
+00:21:30,720 --> 00:21:37,680
+We write a platform independent code in such a way that we can extract the binaries from our native
+
+292
+00:21:37,680 --> 00:21:45,840
+file and cache the dynamic library somewhere so that wherever the user runs, the application from that
+
+293
+00:21:45,840 --> 00:21:47,520
+cached file is accessible.
+
+294
+00:21:47,520 --> 00:21:54,870
+And then eventually we have to get the path to that cache file and pass it to system that load to be
+
+295
+00:21:54,870 --> 00:21:57,780
+able to successfully load that dynamic library.
+
+296
+00:21:57,780 --> 00:22:03,750
+And the JVM can use those to binding use those bindings for native methods.
+
+297
+00:22:03,750 --> 00:22:06,690
+So please stay tuned and I'll see the next one.

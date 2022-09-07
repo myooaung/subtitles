@@ -1,0 +1,771 @@
+1
+00:00:01,020 --> 00:00:01,950
+All right.
+
+2
+00:00:01,950 --> 00:00:07,680
+So in this lesson will introduce a new feature, a view router called lazy loading.
+
+3
+00:00:07,920 --> 00:00:13,680
+But before we get there, I'd like to introduce you to the problem that lazy loading is trying to solve.
+
+4
+00:00:14,040 --> 00:00:17,790
+So what I'd like to do here in Chrome is to open up my developer tools.
+
+5
+00:00:17,970 --> 00:00:22,800
+And the way you can access this panel, of course, is by clicking this little icon here.
+
+6
+00:00:22,800 --> 00:00:25,110
+It's the little hamburger, three dots.
+
+7
+00:00:25,320 --> 00:00:28,920
+And then here you can go to more tools and developer tools.
+
+8
+00:00:29,130 --> 00:00:33,510
+And this, of course, is where we have things like the elements, inspector and the console, etc..
+
+9
+00:00:33,870 --> 00:00:36,000
+So here there is a tab called Network.
+
+10
+00:00:36,270 --> 00:00:41,580
+And the cool thing about the network tab is you can see all of the files that your browser receives
+
+11
+00:00:41,580 --> 00:00:44,250
+and loads as the page renders.
+
+12
+00:00:44,490 --> 00:00:49,590
+So what I'm going to do is refresh my homepage and we're going to see a whole bunch of files show up.
+
+13
+00:00:49,950 --> 00:00:53,910
+And the one that I'd like you to focus on is this app gorgeous file.
+
+14
+00:00:54,150 --> 00:00:58,890
+So this is actually the JavaScript code that holds our entire view app.
+
+15
+00:00:59,100 --> 00:01:05,160
+It holds all of the code for view as well as the component code for our homepage and our job results
+
+16
+00:01:05,160 --> 00:01:10,770
+page and our individual job page, etc. And I can prove this to you if I go to this preview tab.
+
+17
+00:01:10,770 --> 00:01:15,960
+We're going to have this weird collection of JavaScript, and this is all what Web Pack creates for
+
+18
+00:01:15,960 --> 00:01:19,710
+us whenever it takes our view code, which the browser does not understand.
+
+19
+00:01:20,040 --> 00:01:26,670
+When Webpack takes that code and converts it into HTML, CSS and JavaScript that the browser can understand,
+
+20
+00:01:26,850 --> 00:01:28,650
+it ends up looking like this file.
+
+21
+00:01:28,950 --> 00:01:31,920
+So it's not important for us to understand what all of these lines mean.
+
+22
+00:01:31,920 --> 00:01:38,070
+However, I can search in this file using command F and I can search for something to prove that we're
+
+23
+00:01:38,070 --> 00:01:40,050
+loading every component in this file.
+
+24
+00:01:40,380 --> 00:01:45,360
+So for example, here on this page we have this text Find your next job at Bobo Corp.
+
+25
+00:01:45,630 --> 00:01:47,010
+So I'm just going to look for the text.
+
+26
+00:01:47,010 --> 00:01:48,630
+Find your next job.
+
+27
+00:01:49,650 --> 00:01:51,000
+We're going to see there is a match.
+
+28
+00:01:51,270 --> 00:01:56,790
+And if I scroll to the right here, you can see somewhere in that JavaScript source code we do have
+
+29
+00:01:56,790 --> 00:01:57,480
+that text.
+
+30
+00:01:57,780 --> 00:02:04,500
+And similarly if I go to my job page for example, and there is this job results view header, if I
+
+31
+00:02:04,500 --> 00:02:10,380
+search for job results view once again, we're going to find a match and here it is.
+
+32
+00:02:10,500 --> 00:02:16,470
+So somewhere deep in this big chunk of JavaScript, we have all of our components and their logic nestled
+
+33
+00:02:16,530 --> 00:02:16,980
+together.
+
+34
+00:02:17,460 --> 00:02:20,160
+So what are the advantages and disadvantages of this approach?
+
+35
+00:02:20,430 --> 00:02:26,250
+Well, because we are putting everything together into one file, obviously the size of the file increases.
+
+36
+00:02:26,250 --> 00:02:28,710
+It has to store all the logic for all components.
+
+37
+00:02:28,710 --> 00:02:28,980
+Right?
+
+38
+00:02:29,340 --> 00:02:35,190
+The advantage is that the user gets everything at once, but the file size can make the file much larger
+
+39
+00:02:35,190 --> 00:02:41,820
+and the user may be much slower to receive it, especially if they are on a mobile connection or a slow
+
+40
+00:02:41,820 --> 00:02:42,720
+internet connection.
+
+41
+00:02:43,080 --> 00:02:49,290
+So for that reason, we always want to generally keep our file sizes as small as possible, given what
+
+42
+00:02:49,290 --> 00:02:50,820
+the user needs to use.
+
+43
+00:02:51,630 --> 00:02:56,640
+So here's a potential proposal for what we could do to shrink this file size down significantly.
+
+44
+00:02:56,970 --> 00:03:01,860
+What if we only load the JavaScript that the user needed for a given page?
+
+45
+00:03:02,100 --> 00:03:07,560
+So for example, when the user would load the front page, we would give them the code for view and
+
+46
+00:03:07,560 --> 00:03:10,200
+any components that they need to see right here.
+
+47
+00:03:10,710 --> 00:03:14,970
+And we would not yet give them the code for the job results page.
+
+48
+00:03:15,240 --> 00:03:21,060
+However, when the user would navigate to that page, we would send them a smaller JavaScript file that
+
+49
+00:03:21,060 --> 00:03:24,270
+would include the code that is needed to render this component.
+
+50
+00:03:24,510 --> 00:03:28,110
+And we would apply the exact same logic for the individual job page.
+
+51
+00:03:28,260 --> 00:03:30,960
+We would just give them the JavaScript for that page.
+
+52
+00:03:31,260 --> 00:03:36,750
+Well, this feature is called Lazy Loading and its name is kind of funny, but it actually makes sense
+
+53
+00:03:36,750 --> 00:03:41,400
+because if you think about what it means to be lazy, if you think about your lazy friends, for example,
+
+54
+00:03:41,670 --> 00:03:46,080
+to be lazy means you don't want to do any work until it's absolutely necessary.
+
+55
+00:03:46,080 --> 00:03:46,410
+Right.
+
+56
+00:03:46,650 --> 00:03:49,260
+And it's sort of how our loading logic here works.
+
+57
+00:03:49,500 --> 00:03:54,960
+We're going to tell you, don't load anything until it's absolutely critical to have it in order to
+
+58
+00:03:54,960 --> 00:03:56,280
+give the user what they want.
+
+59
+00:03:56,610 --> 00:04:00,480
+So again, on the front page, the user doesn't need the job's results page.
+
+60
+00:04:00,480 --> 00:04:01,530
+They don't need that code.
+
+61
+00:04:01,530 --> 00:04:04,200
+They don't need that HTML or that system or the JavaScript.
+
+62
+00:04:04,440 --> 00:04:05,580
+So we're not going to load it.
+
+63
+00:04:05,760 --> 00:04:10,320
+It's only when we absolutely must fetch it in order for the user to see their view.
+
+64
+00:04:10,980 --> 00:04:12,540
+Will we load that content?
+
+65
+00:04:12,540 --> 00:04:13,800
+That is what lazy loading is.
+
+66
+00:04:13,920 --> 00:04:18,150
+It waits until the last second possible to load the content that the user needs to see.
+
+67
+00:04:18,420 --> 00:04:22,620
+And of course the advantage is much smaller files and distributed over time.
+
+68
+00:04:22,620 --> 00:04:26,910
+And if the user doesn't visit this page, then we never give them this file.
+
+69
+00:04:27,060 --> 00:04:30,660
+And so the total amount of content they have to download ends up being smaller.
+
+70
+00:04:30,660 --> 00:04:35,370
+We don't need to give them the whole app, we just give them small bits of JavaScript as they navigate
+
+71
+00:04:35,370 --> 00:04:37,560
+to relevant components and relevant pages.
+
+72
+00:04:38,040 --> 00:04:42,240
+So it's kind of optimized to scale to whatever they actually need it to see.
+
+73
+00:04:42,600 --> 00:04:42,960
+All right.
+
+74
+00:04:43,200 --> 00:04:47,130
+So let me show you how we can implement this feature in the editor, and then we'll come back and see
+
+75
+00:04:47,130 --> 00:04:48,600
+how it affects our network tab.
+
+76
+00:04:48,930 --> 00:04:55,320
+So what I'd like to do is head back to this code and here I have my router file open router slash index
+
+77
+00:04:55,320 --> 00:04:55,590
+notch.
+
+78
+00:04:55,590 --> 00:04:55,860
+Yes.
+
+79
+00:04:56,610 --> 00:04:57,750
+And here's what we're going to do.
+
+80
+00:04:57,750 --> 00:04:59,670
+It's actually going to be kind of cool and.
+
+81
+00:04:59,720 --> 00:05:00,110
+Interesting.
+
+82
+00:05:00,110 --> 00:05:01,580
+It's not going to require a lot of code.
+
+83
+00:05:01,970 --> 00:05:05,150
+So what I'm going to do is comment out my imports right here.
+
+84
+00:05:05,840 --> 00:05:10,760
+And instead of importing those components, I'm going to create constants to represent those components.
+
+85
+00:05:10,970 --> 00:05:17,300
+And each constant is going to have the same name as a view, and I'm going to set each constant equal
+
+86
+00:05:17,300 --> 00:05:18,770
+to an arrow function.
+
+87
+00:05:19,010 --> 00:05:24,290
+So what I mean by that is I'll have a concept called home view, and home view will be an arrow function.
+
+88
+00:05:24,290 --> 00:05:26,240
+So right here, arrow function.
+
+89
+00:05:26,660 --> 00:05:29,360
+And we can we can of course, right our code like this.
+
+90
+00:05:29,360 --> 00:05:36,200
+But we also know that in iOS six we can provide implicit imports or implicit return values simply by
+
+91
+00:05:36,200 --> 00:05:37,370
+putting a value here.
+
+92
+00:05:37,400 --> 00:05:42,590
+So whatever I want this arrow function to return, I can simply write in line here without curly braces.
+
+93
+00:05:42,890 --> 00:05:48,800
+And what I'm actually going to put is the import keyword from JavaScript, and then I'm going to invoke
+
+94
+00:05:48,830 --> 00:05:52,160
+the import keyword and I'm going to provide the name of my file.
+
+95
+00:05:52,160 --> 00:05:56,630
+So in this case, I'm going to copy this string right here and place it like so.
+
+96
+00:05:57,320 --> 00:05:58,400
+So what have I done here?
+
+97
+00:05:58,640 --> 00:06:06,410
+I have created a function that uses the import function to load a component in, but because it is a
+
+98
+00:06:06,410 --> 00:06:10,190
+function, it's a block of logic that is not yet executed.
+
+99
+00:06:10,250 --> 00:06:10,550
+Right?
+
+100
+00:06:10,550 --> 00:06:12,140
+A function is like a recipe.
+
+101
+00:06:12,140 --> 00:06:15,440
+It's a repeatable procedure, but it doesn't mean that it has run yet.
+
+102
+00:06:15,440 --> 00:06:21,200
+I've just wired up some logic that can run at a point in the future when that function is invoked.
+
+103
+00:06:21,500 --> 00:06:25,250
+All right, so let's do this exact same logic for our other two views.
+
+104
+00:06:25,490 --> 00:06:28,940
+So below I'll create a job results view constant.
+
+105
+00:06:28,940 --> 00:06:34,370
+I will set it equal to a function and that functions responsibility will be to import a component and
+
+106
+00:06:34,370 --> 00:06:36,170
+return that component implicitly.
+
+107
+00:06:36,470 --> 00:06:41,480
+So once again, we can invoke the import function and what we do is we give it a string argument representing
+
+108
+00:06:41,480 --> 00:06:44,510
+the file or the view component that we would like to import.
+
+109
+00:06:44,870 --> 00:06:50,210
+So I'm going to copy this code right here and put it right here and then repeat the exact same logic
+
+110
+00:06:50,210 --> 00:06:51,170
+for our job view.
+
+111
+00:06:51,170 --> 00:06:57,080
+So constant job u is a constant that is going to point to an arrow function and that arrow function
+
+112
+00:06:57,080 --> 00:07:02,180
+is going to invoke the import function from JavaScript, same one we use here, but a different syntax
+
+113
+00:07:02,510 --> 00:07:06,440
+and we're going to provide the location of the file that we want to import.
+
+114
+00:07:06,830 --> 00:07:10,490
+Now, with all of this code written out, we can remove our former imports.
+
+115
+00:07:10,490 --> 00:07:15,320
+And now what we have is three functions, each of which important component.
+
+116
+00:07:15,620 --> 00:07:21,410
+Well, as it turns out, that's all we need to do in this file because view and it's router configuration
+
+117
+00:07:21,410 --> 00:07:27,020
+is going to understand the now component is not just equal to an actual view component, it is equal
+
+118
+00:07:27,020 --> 00:07:29,780
+to a function that loads a component.
+
+119
+00:07:30,020 --> 00:07:34,370
+And that is all we need to do because view is going to say, okay, you're giving me a function.
+
+120
+00:07:34,520 --> 00:07:40,910
+What I'm going to do is wait until the user accesses that path, that root, and only when they access
+
+121
+00:07:40,910 --> 00:07:44,900
+that root will I actually load the corresponding function.
+
+122
+00:07:45,020 --> 00:07:51,980
+Or in other words, will I invoke that function to import that component to generate a corresponding
+
+123
+00:07:51,980 --> 00:07:54,260
+JavaScript file and then give it to the user?
+
+124
+00:07:54,770 --> 00:07:59,420
+So now what's going to happen in our browser is when we go to the root, root we're only going to activate
+
+125
+00:07:59,420 --> 00:08:00,050
+this root.
+
+126
+00:08:00,230 --> 00:08:06,800
+So what viewers going to do is just import the home view component, figure out the corresponding JavaScript
+
+127
+00:08:06,800 --> 00:08:11,210
+in its own file, and just give us that file and that section of the app.
+
+128
+00:08:11,570 --> 00:08:16,580
+These two are not going to be imported until we actually navigate to those respective paths.
+
+129
+00:08:16,910 --> 00:08:18,500
+So let's take a look at this in our browser.
+
+130
+00:08:18,500 --> 00:08:22,100
+I'm going to navigate back and it's going to go to our home page and let me.
+
+131
+00:08:23,250 --> 00:08:25,440
+Bring this up and refresh so we can see.
+
+132
+00:08:25,920 --> 00:08:27,780
+So let's refresh.
+
+133
+00:08:27,780 --> 00:08:28,410
+Wait a second.
+
+134
+00:08:28,410 --> 00:08:29,250
+And here we go.
+
+135
+00:08:29,460 --> 00:08:31,710
+So we're actually going to get to JavaScript files.
+
+136
+00:08:31,710 --> 00:08:33,360
+We're still going to have app tags.
+
+137
+00:08:33,540 --> 00:08:36,540
+And what that is, is the core view app itself.
+
+138
+00:08:36,540 --> 00:08:42,320
+So the common view logic, the common view JavaScript code that we need irrespective of component,
+
+139
+00:08:42,330 --> 00:08:44,460
+that's what this file is going to include, right?
+
+140
+00:08:44,460 --> 00:08:49,530
+It's no longer going to include everything else, but you'll notice there is now a secondary JavaScript
+
+141
+00:08:49,530 --> 00:08:53,460
+file here and it's called Source View's Home View View Dogs.
+
+142
+00:08:53,700 --> 00:08:59,610
+So this is now the JavaScript file that holds the logic for all the components that this view needs
+
+143
+00:08:59,610 --> 00:09:00,090
+to render.
+
+144
+00:09:00,300 --> 00:09:05,040
+And again, I can prove this by going into a preview tab and looking for some sample text like Find
+
+145
+00:09:05,040 --> 00:09:09,060
+your next job and there you can find it here.
+
+146
+00:09:09,060 --> 00:09:13,350
+Right here is where the text is in our JavaScript and here is where it is in our page.
+
+147
+00:09:13,710 --> 00:09:19,860
+But most importantly, we have not yet loaded the view components for the job results page or the individual
+
+148
+00:09:19,860 --> 00:09:20,400
+job page.
+
+149
+00:09:20,670 --> 00:09:23,160
+So let me clear this output right here.
+
+150
+00:09:23,160 --> 00:09:28,170
+I'm going to click this little icon here to wipe that content clean, and now I'm going to navigate
+
+151
+00:09:28,170 --> 00:09:29,790
+to the jobs page.
+
+152
+00:09:30,390 --> 00:09:34,440
+So notice what's going to happen is Vue is going to give us a brand new Jaz file.
+
+153
+00:09:34,440 --> 00:09:37,140
+This one is called Source View's Job Results View.
+
+154
+00:09:37,410 --> 00:09:42,930
+So what it's done is it's now invoke that function that we configured in the router file to load in
+
+155
+00:09:42,930 --> 00:09:48,330
+that component and all of its dependencies as well because it is a tree of hierarchy, right, all the
+
+156
+00:09:48,330 --> 00:09:53,040
+child components, etc. It's going to load those in, it's going to package those up in a brand new
+
+157
+00:09:53,040 --> 00:09:55,140
+JavaScript file and then give that to us.
+
+158
+00:09:55,290 --> 00:09:59,790
+So this is the code that enables our job results page to work the way it does.
+
+159
+00:10:00,450 --> 00:10:07,710
+Now, the cool thing here is if I go back to my main page, we don't need to have a fresh file generated
+
+160
+00:10:07,710 --> 00:10:11,910
+because we already have that code from the very first time that we access this page.
+
+161
+00:10:12,090 --> 00:10:17,040
+This feature is called caching, and what caching basically means is the browser says I have the JavaScript,
+
+162
+00:10:17,040 --> 00:10:21,540
+I need to render this page so I don't need to make a fresh request to the server to get the original
+
+163
+00:10:21,720 --> 00:10:22,590
+JavaScript file.
+
+164
+00:10:22,770 --> 00:10:23,430
+Same deal.
+
+165
+00:10:23,430 --> 00:10:28,710
+If I go back to my job results view, you're going to notice we don't reload this file because we already
+
+166
+00:10:28,710 --> 00:10:29,070
+have it.
+
+167
+00:10:29,070 --> 00:10:33,150
+So that is a smart part of view because it's never going to request more than it needs.
+
+168
+00:10:33,210 --> 00:10:33,570
+Right?
+
+169
+00:10:33,780 --> 00:10:38,610
+And again, the advantages, if I start out on this page and don't do anything on this website and leave,
+
+170
+00:10:38,790 --> 00:10:45,060
+I can give the user a smaller file to just load this content without having to load the job page content
+
+171
+00:10:45,060 --> 00:10:47,130
+until the user actually requests it.
+
+172
+00:10:47,670 --> 00:10:53,190
+So we've split up a huge file from the beginning into lots of smaller files at the user, just gets
+
+173
+00:10:53,190 --> 00:10:54,660
+sequentially if they need them.
+
+174
+00:10:54,660 --> 00:10:56,100
+That is what lazy loading is.
+
+175
+00:10:56,250 --> 00:10:59,940
+It means waiting until the very last moment to load the required imports.
+
+176
+00:11:00,150 --> 00:11:05,160
+It's lazy because just like a real person who's lazy, it doesn't want to do any work unless it absolutely
+
+177
+00:11:05,160 --> 00:11:05,430
+has.
+
+178
+00:11:05,580 --> 00:11:05,820
+Right.
+
+179
+00:11:06,120 --> 00:11:11,370
+And again, the way we can figure out, going back to our editor is we create arrow functions for our
+
+180
+00:11:11,370 --> 00:11:11,880
+components.
+
+181
+00:11:11,880 --> 00:11:16,890
+And the arrow function uses the import keyword to specify the component that it wants to import.
+
+182
+00:11:17,070 --> 00:11:21,210
+And typically what you're going to see here is the component it's going to import is going to be a view
+
+183
+00:11:21,210 --> 00:11:21,690
+component.
+
+184
+00:11:21,870 --> 00:11:25,890
+And when I use the word view, I'm not talking about the library, I'm talking about the page level
+
+185
+00:11:25,890 --> 00:11:28,020
+component because that's where it makes sense, right?
+
+186
+00:11:28,020 --> 00:11:33,810
+It makes sense to to dynamically load JavaScript file for a page as the user accesses that page.
+
+187
+00:11:34,020 --> 00:11:38,430
+And Vue will take care of the responsibility of understanding everything in that child hierarchy that
+
+188
+00:11:38,430 --> 00:11:41,940
+it needs to bundle up and give to the user so they see the page render.
+
+189
+00:11:42,240 --> 00:11:42,600
+All right.
+
+190
+00:11:42,900 --> 00:11:44,430
+That's all there is to cover in this lesson.
+
+191
+00:11:44,430 --> 00:11:48,540
+In the very next lesson, we'll see how we can customize a little bit of this lazy load import logic,
+
+192
+00:11:48,720 --> 00:11:50,940
+but that is the core crux of the content.
+
+193
+00:11:50,940 --> 00:11:51,810
+So I will see you there.

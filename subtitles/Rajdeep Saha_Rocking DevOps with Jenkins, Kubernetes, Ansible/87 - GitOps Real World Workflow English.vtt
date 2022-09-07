@@ -1,0 +1,160 @@
+WEBVTT
+
+00:01.460 --> 00:03.790
+Let's start with the gitops flow.
+
+00:03.800 --> 00:11.040
+So you, the almighty developer, is working on a code API and then you push this code to a repository
+
+00:11.040 --> 00:13.520
+in GitHub named Kubernetes code.
+
+00:13.880 --> 00:21.190
+As soon as you push the code, a Jenkins job gets triggered, which builds the Docker container image.
+
+00:21.200 --> 00:24.020
+The name of these Jenkins jobs is Build Image.
+
+00:24.080 --> 00:26.610
+It sends the image in a container registry.
+
+00:26.630 --> 00:32.570
+In this case, we are using Docker Hub and the name of the container image is Test Colon ten.
+
+00:32.570 --> 00:35.820
+This colon ten is the tag for the container image.
+
+00:35.840 --> 00:37.300
+This part is important.
+
+00:37.310 --> 00:43.790
+Every time your code is changed, a new Docker container image will be created with the updated tag
+
+00:43.820 --> 00:45.350
+coming back to the GitHub.
+
+00:45.350 --> 00:49.520
+You also have another repo for Kubernetes manifest files.
+
+00:49.520 --> 00:56.510
+The name of this repo is Kubernetes Manifest and we have deployment that YAML file in this repository.
+
+00:56.510 --> 01:01.730
+This deployment YAML file should reference this newly created container image.
+
+01:01.730 --> 01:02.990
+How does that happen?
+
+01:02.990 --> 01:10.160
+So after these Jenkins job created this Docker container image, it will trigger another Jenkins job
+
+01:10.190 --> 01:15.410
+update manifest which will update the image in the deployment html.
+
+01:15.410 --> 01:19.220
+So now this deployment file references test colon ten.
+
+01:19.220 --> 01:21.380
+Now comes the gitops part.
+
+01:21.380 --> 01:27.410
+We are using Argo CD as the Gitops tool, but this approach will work with flux as well.
+
+01:27.410 --> 01:35.630
+So Gitops continuously monitors this Kubernetes manifest repo and if the state in the Kubernetes cluster
+
+01:35.630 --> 01:42.410
+deviates from the manifest files in the repo, Gitops will grab those changes from the GitHub repository
+
+01:42.410 --> 01:44.630
+and deploy it to the Kubernetes cluster.
+
+01:44.630 --> 01:49.040
+There is no container running in the Kubernetes cluster and the GitHub sees that.
+
+01:49.040 --> 01:53.510
+So it is going to deploy the deployment YAML file into the Kubernetes cluster.
+
+01:53.510 --> 01:57.860
+So in the cluster we have the container with the tag ten running.
+
+01:57.860 --> 01:59.510
+So this is for the first time.
+
+01:59.510 --> 02:04.760
+What if the application code API gets changed and pushed again?
+
+02:04.970 --> 02:12.170
+So in this case the job build image will build a new container image and save the container image with
+
+02:12.170 --> 02:14.870
+the new tag test colon elephant.
+
+02:14.900 --> 02:21.830
+Then this Jenkins job will trigger the update manifest Jenkins job which will go and update the image
+
+02:21.830 --> 02:24.500
+reference in the deployment YAML file.
+
+02:24.590 --> 02:30.500
+So now the Kubernetes cluster is running the container image with the tag ten, but the deployment of
+
+02:30.500 --> 02:34.520
+the YAML file is referencing to the image with tag 11.
+
+02:34.640 --> 02:41.720
+So Argo CD will detect that and then it will terminate the container with the older tag and then create
+
+02:41.720 --> 02:46.760
+the container with the newest tag, the Jenkins jobs that is building the Docker container image and
+
+02:46.760 --> 02:51.260
+updating the manifest file is the CI or continuous integration.
+
+02:51.260 --> 02:57.710
+And the GITOPS that is deploying the deployment file into Kubernetes cluster is the CD or continuous
+
+02:57.710 --> 02:58.580
+deployment part.
+
+02:58.580 --> 03:04.520
+So this is how a guitar flow look like, but how will this look like with traditional DevOps, without
+
+03:04.520 --> 03:05.330
+gitops?
+
+03:05.450 --> 03:09.650
+With traditional DevOps, it is more of a push model.
+
+03:09.650 --> 03:16.670
+So the job which is updating the manifest, can run capacity commands to deploy those containers into
+
+03:16.670 --> 03:18.500
+the Kubernetes cluster directly.
+
+03:18.500 --> 03:20.750
+But what is the disadvantage of this?
+
+03:20.750 --> 03:27.170
+Well, let's say if someone goes and deletes the deployment in the Kubernetes cluster, it is not going
+
+03:27.170 --> 03:28.880
+to remediate automatically.
+
+03:28.880 --> 03:33.800
+You need to somehow get alerted and then you need to rerun this update.
+
+03:33.800 --> 03:38.540
+Manifest Jenkins job to push the changes back to the Kubernetes cluster.
+
+03:38.660 --> 03:45.830
+Whereas with Gitops, as soon as something changes in the cluster, Gitops will immediately detect that
+
+03:45.830 --> 03:51.860
+the cluster is out of sync with the GitHub repository and it will immediately bring up the deployment.
+
+03:51.860 --> 03:53.210
+All right, enough theory.
+
+03:53.210 --> 03:54.830
+Let's jump into the demo.

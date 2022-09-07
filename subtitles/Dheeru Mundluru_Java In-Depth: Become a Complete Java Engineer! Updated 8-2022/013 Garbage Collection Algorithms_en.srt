@@ -1,0 +1,384 @@
+1
+00:00:02,910 --> 00:00:03,780
+Hi there.
+
+2
+00:00:03,810 --> 00:00:05,090
+This is the De La Rue.
+
+3
+00:00:05,460 --> 00:00:08,550
+We now understand the benefit of garbage collection.
+
+4
+00:00:09,060 --> 00:00:12,750
+Let's now spend some time understanding GC algorithms itself.
+
+5
+00:00:14,480 --> 00:00:17,090
+There are two main challenges that need to be addressed.
+
+6
+00:00:18,180 --> 00:00:22,440
+First one is how would garbage collector identify dead objects?
+
+7
+00:00:23,190 --> 00:00:28,770
+But when such identification is being done, there's a good chance that some new objects get created
+
+8
+00:00:28,770 --> 00:00:31,410
+while some old objects get abandoned.
+
+9
+00:00:31,920 --> 00:00:37,410
+In such a scenario, the newly abandoned objects would also have to be reclaimed, and that would be
+
+10
+00:00:37,410 --> 00:00:38,640
+very difficult to do.
+
+11
+00:00:39,240 --> 00:00:45,450
+So to avoid this complexity, one thing to do would be is to pass the application for some time until
+
+12
+00:00:45,450 --> 00:00:46,530
+GC is performed.
+
+13
+00:00:47,100 --> 00:00:50,940
+But if we pause for too long, then it could affect the user experience.
+
+14
+00:00:51,450 --> 00:00:55,740
+And in case it's a web application, then website may not be responsive.
+
+15
+00:00:56,040 --> 00:00:58,260
+And that means we could lose customers.
+
+16
+00:00:59,490 --> 00:01:04,379
+So second challenge is to ensure that the application pass time is minimal.
+
+17
+00:01:05,040 --> 00:01:09,360
+So these are the two challenges, and let's see how our designers address them.
+
+18
+00:01:11,000 --> 00:01:16,400
+Let's look at the first challenge, which is about identifying the objects and, of course, reclaiming
+
+19
+00:01:16,400 --> 00:01:17,180
+their space to.
+
+20
+00:01:18,480 --> 00:01:25,530
+One algorithm for doing this is called us Mark and Sweep, which has two phases, Mark and Sweep.
+
+21
+00:01:26,380 --> 00:01:27,460
+Going by the name.
+
+22
+00:01:27,460 --> 00:01:32,200
+You may assume that Mark Face would involve identifying dead objects.
+
+23
+00:01:33,260 --> 00:01:37,580
+But it actually does the opposite, which is to identify all the live objects.
+
+24
+00:01:38,210 --> 00:01:44,660
+And the way it does this is it keeps track of some specific objects called as garbage collection routes.
+
+25
+00:01:45,260 --> 00:01:50,630
+And the garbage collection route could be something like a local variable and one of the currently executing
+
+26
+00:01:50,630 --> 00:01:51,200
+methods.
+
+27
+00:01:51,440 --> 00:01:55,280
+Or it could be a static field in a class that has been loaded.
+
+28
+00:01:56,040 --> 00:01:59,670
+On this GC route would be an object reference and not a primitive.
+
+29
+00:02:00,240 --> 00:02:07,260
+And during mach phase GC would traverse the object graph from each of the GC routes to identify all
+
+30
+00:02:07,260 --> 00:02:08,190
+live objects.
+
+31
+00:02:09,870 --> 00:02:12,420
+For example, let's consider this illustration.
+
+32
+00:02:12,720 --> 00:02:18,390
+Here there is a GC route which is referencing an object, and that object is referencing two or more
+
+33
+00:02:18,390 --> 00:02:19,020
+objects.
+
+34
+00:02:19,020 --> 00:02:23,100
+And those objects are referencing other objects, thus forming an object graph.
+
+35
+00:02:23,610 --> 00:02:28,470
+The ones emphasized in blue are reachable, while the ones in gray are no longer reachable.
+
+36
+00:02:28,950 --> 00:02:33,690
+That is, they were reachable at some point, but at this point of time they are out of scope.
+
+37
+00:02:34,290 --> 00:02:37,380
+So those unreachable objects are dead objects.
+
+38
+00:02:37,380 --> 00:02:39,960
+That is, they do not have any active references.
+
+39
+00:02:40,440 --> 00:02:46,110
+So in the mark phase, GC would traverse this object graph and would mark all the reachable objects
+
+40
+00:02:46,110 --> 00:02:47,040
+as live.
+
+41
+00:02:47,830 --> 00:02:54,430
+Next in the sweep phase, a sweep over the entire heap is performed to keep track of the heap areas
+
+42
+00:02:54,430 --> 00:02:55,930
+that are not marked as.
+
+43
+00:02:56,930 --> 00:03:03,650
+So that would be areas that are free and were unreachable by Marquis and so can be relocated.
+
+44
+00:03:04,540 --> 00:03:11,440
+Now earlier we said that when GC is performing its job, we need to post the application and here we
+
+45
+00:03:11,440 --> 00:03:13,060
+can see why that is needed.
+
+46
+00:03:13,480 --> 00:03:20,020
+For instance, if we do not pause the application, then after the mark phase, there may be some new
+
+47
+00:03:20,020 --> 00:03:25,510
+objects that get created and these new objects will obviously not be tagged as.
+
+48
+00:03:26,780 --> 00:03:33,080
+So in the swift face, GSA might wrongly assume that they are also unreachable and may reclaim space
+
+49
+00:03:33,080 --> 00:03:34,130
+occupied by them.
+
+50
+00:03:34,700 --> 00:03:37,100
+So life objects are being reclaimed here.
+
+51
+00:03:37,640 --> 00:03:41,780
+So the easiest way to fix this would be to pause the application.
+
+52
+00:03:43,570 --> 00:03:46,060
+Let's also look at another simple illustration.
+
+53
+00:03:46,540 --> 00:03:52,240
+Consider this hip area where the block shown in blue is considered allocated while the grey area is
+
+54
+00:03:52,240 --> 00:03:53,080
+considered free.
+
+55
+00:03:54,530 --> 00:03:57,740
+Now after performing GC, we may have something like this.
+
+56
+00:03:58,160 --> 00:04:05,240
+Now the blue areas indicate live objects that are marked as live by the Marquis and whatever is remaining
+
+57
+00:04:05,240 --> 00:04:07,100
+would be considered as garbage.
+
+58
+00:04:07,340 --> 00:04:10,400
+That is, it is free to be allocated to new objects.
+
+59
+00:04:10,970 --> 00:04:16,459
+So in the sweep phase, all the grey areas would be recorded in some way as free areas.
+
+60
+00:04:17,240 --> 00:04:23,750
+The problem with this algorithm is that memory is fragmented, that is free area is split across the
+
+61
+00:04:23,750 --> 00:04:24,200
+heap.
+
+62
+00:04:24,830 --> 00:04:31,130
+So if a new object has to be allocated space and none of the free areas are large enough to accommodate
+
+63
+00:04:31,130 --> 00:04:37,460
+it, then JVM simply cannot allocate space and would generate an out of memory error.
+
+64
+00:04:38,340 --> 00:04:44,010
+So to address this, there is another algorithm called Mark Sweep Compact.
+
+65
+00:04:45,520 --> 00:04:49,270
+And here the first two steps are identical to Marcus Veep.
+
+66
+00:04:50,110 --> 00:04:56,830
+But there's an additional compact step which moves all life objects to the beginning of the memory region.
+
+67
+00:04:57,460 --> 00:05:03,700
+So with this, there is no fragmentation issue and there's a greater chance of successfully allocating
+
+68
+00:05:03,700 --> 00:05:04,720
+large objects.
+
+69
+00:05:05,350 --> 00:05:12,490
+However, downside to this is that there would be an increase in past time for moving the live objects
+
+70
+00:05:12,490 --> 00:05:19,060
+and also updating all the corresponding object references that are referencing those live objects as
+
+71
+00:05:19,060 --> 00:05:22,630
+their memory addresses are now updated due to this relocation.
+
+72
+00:05:23,490 --> 00:05:26,580
+So that's the Mark Sweep compact algorithm.
+
+73
+00:05:28,300 --> 00:05:35,080
+There is also a third algorithm called Mark and Copy, which is very similar to Mark's compact approach
+
+74
+00:05:35,110 --> 00:05:38,240
+as they also relocate live objects.
+
+75
+00:05:38,260 --> 00:05:39,700
+And here's how it works.
+
+76
+00:05:41,060 --> 00:05:48,890
+This algorithm involves maintaining two memory regions, in this case A and B, A has some used memory
+
+77
+00:05:48,890 --> 00:05:52,190
+and also some free memory, and B is completely free.
+
+78
+00:05:53,830 --> 00:05:57,280
+Now after GC is performed, this is how it would be.
+
+79
+00:05:57,970 --> 00:06:00,190
+Basically, there are two things happening here.
+
+80
+00:06:00,520 --> 00:06:04,690
+First, after the mark phase, all live objects are marked as before.
+
+81
+00:06:05,230 --> 00:06:07,060
+So you would have fragmentation.
+
+82
+00:06:07,360 --> 00:06:10,390
+It is just that it is not shown here due to space constraints.
+
+83
+00:06:11,150 --> 00:06:16,150
+Now, during the copy phase, live objects are relocated to Region B.
+
+84
+00:06:16,720 --> 00:06:23,710
+A nice thing is they are all continuously allocated in Region B, so no fragmentation like in the case
+
+85
+00:06:23,710 --> 00:06:25,240
+of the second algorithm.
+
+86
+00:06:25,810 --> 00:06:33,070
+But an added advantage of mark on copy is that copy phase can happen simultaneously with the mark face,
+
+87
+00:06:33,610 --> 00:06:36,080
+that is as live objects are being marked.
+
+88
+00:06:36,100 --> 00:06:38,890
+They can also be moved to the second region.
+
+89
+00:06:39,430 --> 00:06:45,520
+So due to this, the application post time is shortened and in the next lesson we will see a very nice
+
+90
+00:06:45,520 --> 00:06:49,780
+example of Mark and copy, which involves a lot more details.
+
+91
+00:06:50,380 --> 00:06:52,650
+So those are the three algorithms.
+
+92
+00:06:52,660 --> 00:06:58,000
+And to address the second challenge, which is to reduce the past time, there is another algorithm
+
+93
+00:06:58,000 --> 00:07:03,220
+called generational collection, which would actually employ these core algorithms.
+
+94
+00:07:03,580 --> 00:07:08,320
+So it's another technique, but it would be using one or more of these algorithms.
+
+95
+00:07:08,850 --> 00:07:12,160
+And next, we will look at how generational collection works.
+
+96
+00:07:12,370 --> 00:07:13,120
+Thank you.
+

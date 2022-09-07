@@ -1,0 +1,236 @@
+WEBVTT
+1
+00:00:01.290 --> 00:00:06.960
+Now, let's look at the schema changes that we will have to do in order to move to Cassandra DB from
+
+2
+00:00:06.960 --> 00:00:08.750
+an IBM is like has.
+
+3
+00:00:09.900 --> 00:00:13.430
+So there's this schema that we use in Postgres as database.
+
+4
+00:00:13.440 --> 00:00:20.490
+There's a typical Ardbeg schema where we have normalized schema, which means that that's in order.
+
+5
+00:00:20.490 --> 00:00:27.540
+Data is represented in two tables order table and order line table or a line basically represents the
+
+6
+00:00:27.540 --> 00:00:30.000
+line items that you buy as part of an order.
+
+7
+00:00:30.390 --> 00:00:36.240
+So there can be multiple products that we buy in in order so they are stored separately in order lined
+
+8
+00:00:36.240 --> 00:00:36.600
+table.
+
+9
+00:00:36.900 --> 00:00:42.600
+And the master information, which is common to all these order lengths, is stored in order table.
+
+10
+00:00:43.470 --> 00:00:47.220
+So that way, this is a very compact representation of data.
+
+11
+00:00:47.880 --> 00:00:54.450
+The other way of representation of such data is being normalized representation, which is what we are
+
+12
+00:00:54.450 --> 00:00:56.850
+going to see in Cassandra Debbie.
+
+13
+00:00:56.850 --> 00:01:03.150
+So in Cassandra, debate table definition is pretty much same as what is there, and I'd be here also.
+
+14
+00:01:03.150 --> 00:01:07.170
+We have table and columns and each column has got data type.
+
+15
+00:01:08.280 --> 00:01:13.950
+Unlike IBM's, here we have these tables in d normalized format.
+
+16
+00:01:14.340 --> 00:01:21.150
+The reason is that we cannot do a joins and Cassandra Debbie for that matter, any nor secretly.
+
+17
+00:01:21.280 --> 00:01:24.420
+So we keep daytime D normalized format.
+
+18
+00:01:25.470 --> 00:01:32.070
+The other very visible differences that in our schema, we had all these foreign key constraints.
+
+19
+00:01:33.000 --> 00:01:41.370
+We do not have those foreign key constraints over here in Cassandra TV, and that is understandable.
+
+20
+00:01:41.490 --> 00:01:50.760
+Even if we go to this kind of partitioning where we have separate databases for order and separate databases
+
+21
+00:01:50.760 --> 00:01:53.970
+for product because data resides in two different databases.
+
+22
+00:01:54.450 --> 00:02:00.150
+So we can't have integrity constraints on foreign key constraints between two separate databases.
+
+23
+00:02:00.600 --> 00:02:07.740
+So because no single data is partitioned at the record level, so we cannot have those kind of foreign
+
+24
+00:02:07.740 --> 00:02:08.370
+key constraint.
+
+25
+00:02:08.370 --> 00:02:09.900
+So that's a trade off anyway.
+
+26
+00:02:09.960 --> 00:02:13.680
+We are willing to make as part of a large scale system.
+
+27
+00:02:13.680 --> 00:02:17.610
+So this is something that we have already accepted.
+
+28
+00:02:18.710 --> 00:02:24.410
+Now, the other side and friends over here is that here also we have a notion of primary care.
+
+29
+00:02:25.130 --> 00:02:33.290
+So let's say a product has a primary key as ID and we have similar primary care in IDB image schema
+
+30
+00:02:33.290 --> 00:02:33.710
+as well.
+
+31
+00:02:34.160 --> 00:02:37.430
+The only difference is here we call it as partitioned key.
+
+32
+00:02:37.790 --> 00:02:46.130
+The reason is that this partition key decides in which note this particular record will reside in.
+
+33
+00:02:46.130 --> 00:02:50.030
+So let's say we have Ben Nord's and Cassandra Debbie.
+
+34
+00:02:50.420 --> 00:02:57.080
+Then by looking at this ICD, the system will compute hash of this ID and will decide one out of one
+
+35
+00:02:57.080 --> 00:03:02.900
+of those standards which node will be responsible for this particular record.
+
+36
+00:03:02.900 --> 00:03:06.400
+So that's where this partitioned key plays a role.
+
+37
+00:03:06.410 --> 00:03:14.030
+It's like primary hiebert primary key definition actually in Cassandra has little extended meaning it
+
+38
+00:03:14.030 --> 00:03:18.860
+not only has partitioned key, but it also has sarki along with that.
+
+39
+00:03:18.860 --> 00:03:26.270
+So primary key is actually partition key plus or key Nozaki as part of primary key, but it does not
+
+40
+00:03:26.270 --> 00:03:32.900
+decide your partition partition is solely decided by partition key only.
+
+41
+00:03:33.770 --> 00:03:41.300
+So what that means is depending upon partition key, the database records for a given partition key
+
+42
+00:03:41.300 --> 00:03:43.520
+will go to a certain node only.
+
+43
+00:03:43.940 --> 00:03:44.440
+So let's it.
+
+44
+00:03:44.630 --> 00:03:51.590
+What we have done over here is in this autoline table because we generally would like to fetch orders
+
+45
+00:03:51.860 --> 00:03:54.470
+for a user ID for a particular user.
+
+46
+00:03:54.860 --> 00:04:02.990
+So we have made user ID is the partition key so that all the orders of a user, they go to one single
+
+47
+00:04:03.140 --> 00:04:07.310
+so that whenever we run this query, get orders for a particular user.
+
+48
+00:04:07.580 --> 00:04:16.830
+We don't have to search all different machines where a user order can be there, because if a user ID
+
+49
+00:04:16.880 --> 00:04:23.270
+is no partition key and order IDs the partition key, then different orders for the same user can go
+
+50
+00:04:23.270 --> 00:04:24.560
+to different, different nodes.
+
+51
+00:04:25.190 --> 00:04:31.900
+So those are the kind of things that we need to worry about when we create schema for a new secretively.
+
+52
+00:04:31.910 --> 00:04:33.580
+And this is for Cassandra Deb.
+
+53
+00:04:34.250 --> 00:04:43.280
+One last thing that this sarki it is called as aki or clustering because within a partition, this will
+
+54
+00:04:43.280 --> 00:04:46.960
+decide where, how the records will be sorted.
+
+55
+00:04:46.970 --> 00:04:54.920
+So for a given user ID, the records will be sorted for by ID and automated.
+
+56
+00:04:55.010 --> 00:05:03.140
+So User ID and Order ID will together determine these sort order of records in a node.
+
+57
+00:05:03.620 --> 00:05:06.020
+So that's a schema in brief.
+
+58
+00:05:06.230 --> 00:05:12.920
+This will give you a good idea of how the schema structure, at least it will get you started with this.
+
+59
+00:05:13.550 --> 00:05:20.330
+Now, let's see what are the different chord changes that will have to do to work with Cassandra Debbie.

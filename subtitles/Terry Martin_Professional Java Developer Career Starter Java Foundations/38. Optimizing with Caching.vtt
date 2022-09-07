@@ -1,0 +1,1540 @@
+WEBVTT
+1
+00:00:00.060 --> 00:00:05.130
+So we're getting close to the end of what I want to show you with the database module here.
+
+2
+00:00:05.550 --> 00:00:10.500
+But before we completely close it out, I wanted to discuss a few other techniques briefly.
+
+3
+00:00:10.890 --> 00:00:16.170
+One of these techniques that I want to discuss now is about optimizing our database code.
+
+4
+00:00:16.470 --> 00:00:21.720
+I've intentionally avoided addressing optimization until now because everything else that we've done
+
+5
+00:00:21.720 --> 00:00:22.920
+was complicated enough.
+
+6
+00:00:23.070 --> 00:00:26.800
+And our primary focus has been to just get basic things working.
+
+7
+00:00:26.820 --> 00:00:32.760
+However, once you've got the basic functionality working, it can sometimes make sense to come back
+
+8
+00:00:32.760 --> 00:00:37.950
+through the code and look for places to optimize or, in my case, here.
+
+9
+00:00:38.130 --> 00:00:42.930
+I knew that there were certain things that could be optimized right from the start, but it's usually
+
+10
+00:00:42.930 --> 00:00:49.170
+recommended not to optimize code until you know you need it or until you have the time to do it after
+
+11
+00:00:49.170 --> 00:00:53.280
+you've prioritized just getting the core functionality actually working.
+
+12
+00:00:53.430 --> 00:00:56.520
+This is a big mistake that a lot of developers tend to make, in fact.
+
+13
+00:00:56.850 --> 00:00:59.010
+However, I do want to show you a couple of things.
+
+14
+00:00:59.370 --> 00:01:05.910
+So for the first item that I want to show you, we can start back here in the extract entity from results
+
+15
+00:01:05.910 --> 00:01:06.780
+set method.
+
+16
+00:01:06.900 --> 00:01:12.870
+And let me just remind you, this method is getting called whenever we are retrieving people from the
+
+17
+00:01:12.870 --> 00:01:13.590
+database.
+
+18
+00:01:13.830 --> 00:01:20.640
+Those people records that are in the results that have to be converted from a result set back into actual
+
+19
+00:01:20.640 --> 00:01:21.820
+Java objects.
+
+20
+00:01:21.840 --> 00:01:26.580
+And this is the method that is primarily responsible for making that happen, right?
+
+21
+00:01:26.940 --> 00:01:32.220
+So as you see here, when we need to extract people, we're calling this method and then passing in
+
+22
+00:01:32.220 --> 00:01:34.710
+the prefix of the column names there.
+
+23
+00:01:34.980 --> 00:01:40.950
+When we need to extract children, it calls the same method extract person, but simply passes in a
+
+24
+00:01:40.950 --> 00:01:44.970
+different prefix so that it knows which columns to look for in that case.
+
+25
+00:01:45.150 --> 00:01:47.910
+And then same goes for extracting addresses, right?
+
+26
+00:01:48.570 --> 00:01:53.580
+So what I want to do here is dig into this method extract person.
+
+27
+00:01:54.030 --> 00:02:01.830
+And you may recall that part of what we do here for the extracting of a person is we call this utility
+
+28
+00:02:01.830 --> 00:02:04.800
+method that we wrote called Get Value by Alias.
+
+29
+00:02:05.040 --> 00:02:12.600
+And what this method is doing is it searches for columns by alias name and then it returns a value for
+
+30
+00:02:12.600 --> 00:02:13.210
+that column.
+
+31
+00:02:13.230 --> 00:02:18.840
+So if we jump back over here to Squirrel sequel, just as a reminder, you can see here that for this
+
+32
+00:02:18.840 --> 00:02:23.880
+result, set that we've got, we've got all these columns parent, ID, parent, first name, parent,
+
+33
+00:02:23.880 --> 00:02:30.150
+last name, etc. These column names are actually the alias column names, right, which we added in
+
+34
+00:02:30.150 --> 00:02:32.460
+by using the as keyword right.
+
+35
+00:02:32.730 --> 00:02:39.900
+And by default, JTBC wasn't able to see these column aliases unless we either reestablished our connection
+
+36
+00:02:39.900 --> 00:02:47.310
+to the database to tell H2 database to make those column aliases visible as column names or as we chose
+
+37
+00:02:47.310 --> 00:02:48.030
+to do here.
+
+38
+00:02:48.210 --> 00:02:53.820
+We created a utility method that could find those column aliases and return their values.
+
+39
+00:02:54.150 --> 00:02:59.460
+So what I really wanted to look at, though, is how this was implemented because there's room for improvement
+
+40
+00:02:59.460 --> 00:02:59.790
+here.
+
+41
+00:03:00.090 --> 00:03:06.090
+So jumping into the get value by alias method, let me just give a quick reminder that basically what
+
+42
+00:03:06.090 --> 00:03:11.250
+we're doing here is first getting the metadata that's associated with the results set.
+
+43
+00:03:11.250 --> 00:03:17.650
+And I suggest that we could think of the metadata partially as the data in these first two rows.
+
+44
+00:03:17.670 --> 00:03:18.830
+It's more than that.
+
+45
+00:03:18.990 --> 00:03:23.070
+But for our purposes, maybe we can kind of think of it as the data in these first two rows.
+
+46
+00:03:23.070 --> 00:03:27.540
+So we've got this top row that I was using to depict our column aliases.
+
+47
+00:03:27.690 --> 00:03:31.410
+And then the second row here, which is the actual column names.
+
+48
+00:03:31.800 --> 00:03:35.970
+So this is that get metadata can give us information like that.
+
+49
+00:03:36.330 --> 00:03:41.400
+And then we're asking it to give us the column count of the particular results set that we got.
+
+50
+00:03:41.520 --> 00:03:43.200
+OK, so we're getting that column count.
+
+51
+00:03:43.440 --> 00:03:49.140
+Then we're setting up a for loop to start looping over those columns, starting at column one, which
+
+52
+00:03:49.380 --> 00:03:51.540
+will always be this first column.
+
+53
+00:03:52.500 --> 00:03:57.960
+And what we're essentially trying to do is we're looping over each of the columns, accessing them by
+
+54
+00:03:57.960 --> 00:04:04.080
+a column index or by the number, by the column number essentially, and then determining whether that
+
+55
+00:04:04.080 --> 00:04:09.270
+columns label, which is what JBC calls the column alias, if you will.
+
+56
+00:04:09.480 --> 00:04:15.060
+Whether that label matches an alias that we're looking for, remember that we're passing in this alias
+
+57
+00:04:15.060 --> 00:04:15.420
+here.
+
+58
+00:04:15.870 --> 00:04:16.260
+OK.
+
+59
+00:04:16.290 --> 00:04:17.760
+So that's this alias.
+
+60
+00:04:18.060 --> 00:04:24.660
+So we're just looking for the column with any given alias that we might be looking for, such as parent
+
+61
+00:04:24.660 --> 00:04:28.350
+underscore first underscore name, for example.
+
+62
+00:04:28.380 --> 00:04:34.230
+Also depicted here parent underscore, first underscore name or any other column alias, for that matter.
+
+63
+00:04:34.530 --> 00:04:40.920
+So we're looking for those aliases, and if we find a column that matches a particular column alias
+
+64
+00:04:40.920 --> 00:04:46.590
+that we've passed into this method, we take the column index or the number of the column that has that
+
+65
+00:04:46.590 --> 00:04:52.210
+alias, and we use that number to retrieve the actual value that is in that particular row.
+
+66
+00:04:52.230 --> 00:04:53.780
+That's what this method is doing.
+
+67
+00:04:53.790 --> 00:04:59.640
+So if I state that in another way, let's pretend like we're on the third row of this result set.
+
+68
+00:05:00.000 --> 00:05:06.150
+And we pass into that method parent first name, then our loop will start on column one and say, is
+
+69
+00:05:06.150 --> 00:05:11.220
+the column label or column alias for column one parent first name.
+
+70
+00:05:11.460 --> 00:05:14.130
+If no, then go on to the next column.
+
+71
+00:05:14.460 --> 00:05:18.310
+So then we get to the next column, which is now Column Index two.
+
+72
+00:05:18.330 --> 00:05:25.020
+And the question is asked again Is this columns label or column alias equal to parent first name?
+
+73
+00:05:25.530 --> 00:05:27.670
+In this case, the answer would be yes.
+
+74
+00:05:27.690 --> 00:05:33.510
+And so then we call that get object and we pass in the current column index, which would be two in
+
+75
+00:05:33.510 --> 00:05:34.260
+this case.
+
+76
+00:05:34.260 --> 00:05:41.580
+And the get object method will return the value pointed to in this second column on the current row,
+
+77
+00:05:41.580 --> 00:05:42.600
+which is John.
+
+78
+00:05:42.900 --> 00:05:43.350
+OK.
+
+79
+00:05:43.380 --> 00:05:46.950
+So that's just a quick reminder of what this method was doing.
+
+80
+00:05:47.250 --> 00:05:49.680
+Now here's the part that can be optimized.
+
+81
+00:05:49.890 --> 00:05:57.150
+This method is being called for every single column of every single row that we need to convert back
+
+82
+00:05:57.150 --> 00:05:58.650
+into a Java object.
+
+83
+00:05:58.860 --> 00:06:03.690
+So if we call, find all and it returns one thousand rows of people.
+
+84
+00:06:04.110 --> 00:06:10.470
+This get value by alias method is getting called for every single column of every single one of those
+
+85
+00:06:10.470 --> 00:06:17.790
+rows, and it has to loop over every single column in a particular table until it finds the right column
+
+86
+00:06:17.790 --> 00:06:21.000
+that we happen to be looking for every single time.
+
+87
+00:06:21.090 --> 00:06:28.860
+That's kind of inefficient because really, what this loop is primarily doing is it's taking the alias
+
+88
+00:06:28.860 --> 00:06:34.020
+name and then determining what the column indexes for that particular alias.
+
+89
+00:06:34.050 --> 00:06:34.450
+OK.
+
+90
+00:06:34.530 --> 00:06:39.630
+So if we pass in parent last name, we need to determine that parent last name.
+
+91
+00:06:39.630 --> 00:06:46.710
+If that's the column alias we're looking for, that happens to be the third column or the fifth column
+
+92
+00:06:46.710 --> 00:06:47.430
+or whatever.
+
+93
+00:06:47.820 --> 00:06:54.210
+Then once we have the column index, we can call Start, get object pass in that index and then get
+
+94
+00:06:54.210 --> 00:06:54.810
+the value.
+
+95
+00:06:54.840 --> 00:07:01.800
+OK, so the primary thing we're doing is we're converting from alias to column index and then from column
+
+96
+00:07:01.800 --> 00:07:03.330
+index to a value.
+
+97
+00:07:03.360 --> 00:07:03.840
+OK.
+
+98
+00:07:03.870 --> 00:07:06.330
+So it's kind of a two step process there.
+
+99
+00:07:06.360 --> 00:07:12.450
+The thing is, though, for each of these column aliases that we're passing in, once we determine the
+
+100
+00:07:12.450 --> 00:07:17.700
+column index for that alias, that's never going to change for as long as the program is running.
+
+101
+00:07:17.970 --> 00:07:23.670
+So wouldn't it be nice if we could simply teach the program to remember, Hey, every time you see an
+
+102
+00:07:23.670 --> 00:07:32.310
+alias like parent first name and you learn that parent first name is column index to just remember that
+
+103
+00:07:32.610 --> 00:07:38.070
+so that the next time you see parent first name, you don't need to do all of this looping anymore.
+
+104
+00:07:38.190 --> 00:07:43.470
+You can just jump straight to column index two and get the value for the current row.
+
+105
+00:07:43.740 --> 00:07:47.430
+That's the potential optimization that I want to show you how to do.
+
+106
+00:07:47.610 --> 00:07:49.800
+So the question is, how can we do that?
+
+107
+00:07:50.250 --> 00:07:55.290
+Well, first, there's a programming pattern that we need to recognize what we're trying to figure out.
+
+108
+00:07:55.290 --> 00:08:03.930
+How to do here is how we can basically associate a column alias with a column index so that we no longer
+
+109
+00:08:03.930 --> 00:08:05.160
+have to do this loop.
+
+110
+00:08:05.280 --> 00:08:11.370
+We'll have to do the loop one time in order to initially make the association between column alias and
+
+111
+00:08:11.370 --> 00:08:12.240
+column index.
+
+112
+00:08:12.420 --> 00:08:19.200
+But after that association has been made, maybe we can just look up the column index subsequently and
+
+113
+00:08:19.200 --> 00:08:20.130
+keep using that.
+
+114
+00:08:20.220 --> 00:08:25.710
+So can you think of a technique that we have learned throughout this course that would allow us to store
+
+115
+00:08:25.740 --> 00:08:28.920
+that kind of information and look it up later on?
+
+116
+00:08:29.310 --> 00:08:30.630
+Very simple technique.
+
+117
+00:08:30.750 --> 00:08:32.160
+Can you think of what that might be?
+
+118
+00:08:33.090 --> 00:08:33.390
+All right.
+
+119
+00:08:33.420 --> 00:08:34.230
+Did you think of it?
+
+120
+00:08:34.650 --> 00:08:39.480
+OK, so obviously there are a number of ways that you could do this, but probably the most appropriate
+
+121
+00:08:39.480 --> 00:08:46.260
+way would be to simply use a map, some type of a map, a collection, a map, because maps are designed
+
+122
+00:08:46.260 --> 00:08:51.840
+to allow us to make associations from key to values, key value pairs, right?
+
+123
+00:08:52.080 --> 00:08:54.720
+In this case, our key would be the alias.
+
+124
+00:08:54.810 --> 00:08:57.900
+And then the value could be the column index.
+
+125
+00:08:57.990 --> 00:09:04.920
+So beyond that, what I really am wanting to show you here is a general technique called caching, where
+
+126
+00:09:04.920 --> 00:09:11.370
+we can initialize data by executing some type of process that might be rather expensive to do just one
+
+127
+00:09:11.370 --> 00:09:11.910
+time.
+
+128
+00:09:12.210 --> 00:09:18.000
+Then we store the result of that process and then subsequently, every time we need to obtain the same
+
+129
+00:09:18.000 --> 00:09:23.820
+output for the same input, rather than doing that processing again, we can simply look up the data
+
+130
+00:09:23.820 --> 00:09:25.320
+from, in this case, a map.
+
+131
+00:09:25.620 --> 00:09:30.960
+Now there are different ways to implement caching, but usually one of the simplest ways is by simply
+
+132
+00:09:30.960 --> 00:09:31.680
+using a map.
+
+133
+00:09:31.920 --> 00:09:33.510
+So that's what we're going to do here.
+
+134
+00:09:33.870 --> 00:09:34.140
+All right.
+
+135
+00:09:34.150 --> 00:09:35.520
+So here's the thing.
+
+136
+00:09:35.820 --> 00:09:41.610
+The part of this that's most expensive is this for loop here, and we've got to do that at least one
+
+137
+00:09:41.610 --> 00:09:42.150
+time.
+
+138
+00:09:42.330 --> 00:09:50.100
+However, we've embedded the call to get the value by this R-Squared object within the four loop.
+
+139
+00:09:50.100 --> 00:09:56.160
+And because of the way our stack get object works, this part cannot be cached.
+
+140
+00:09:56.280 --> 00:09:59.510
+Let me remind you why when we call R-Squared up.
+
+141
+00:09:59.620 --> 00:10:06.130
+Checked, we're getting the current value for the current column of the current row.
+
+142
+00:10:06.310 --> 00:10:14.620
+OK, so that can't be cashed, but what we can cash is simply the relationship between a column alias
+
+143
+00:10:14.620 --> 00:10:16.060
+and the column index.
+
+144
+00:10:16.210 --> 00:10:22.720
+That part won't ever change, so the values change, but the mapping of column alias to column index
+
+145
+00:10:22.720 --> 00:10:23.470
+does not.
+
+146
+00:10:23.800 --> 00:10:29.800
+OK, so that means we need to separate out the retrieval of the value, which is this bit right here
+
+147
+00:10:29.950 --> 00:10:31.790
+from the rest of this loop.
+
+148
+00:10:32.230 --> 00:10:37.240
+And let me just be really clear here, this for Loop is doing two things.
+
+149
+00:10:37.240 --> 00:10:45.550
+Currently, it's allowing us to essentially translate from a column alias to a column index, and then
+
+150
+00:10:45.550 --> 00:10:51.460
+it's going from the column index to retrieving the actual value of the current row.
+
+151
+00:10:51.580 --> 00:10:53.440
+So it's kind of combining two things.
+
+152
+00:10:53.920 --> 00:10:56.800
+So by removing the rest, get object.
+
+153
+00:10:56.800 --> 00:11:03.910
+Call out of this for loop, we allow the for loop to concentrate on just doing one thing which is translating
+
+154
+00:11:03.910 --> 00:11:06.430
+from column alias to column index.
+
+155
+00:11:06.580 --> 00:11:12.250
+And that's the part that is perfect for us to cache because for a given column alias, we will always
+
+156
+00:11:12.250 --> 00:11:17.890
+get the same column index and so caching can be highly beneficial there.
+
+157
+00:11:18.010 --> 00:11:21.730
+So do you want to take a moment to see if you can figure out a way to do that?
+
+158
+00:11:23.230 --> 00:11:23.570
+OK.
+
+159
+00:11:23.590 --> 00:11:25.030
+Did you did you try it?
+
+160
+00:11:25.480 --> 00:11:28.120
+All right, so let's see how we can do this together now.
+
+161
+00:11:28.570 --> 00:11:30.820
+So here's what I'm thinking we could do.
+
+162
+00:11:30.850 --> 00:11:33.670
+Perhaps we can introduce another integer.
+
+163
+00:11:34.210 --> 00:11:40.840
+I'm just going to make up a name here, something like found index, and I'm going to initialize it
+
+164
+00:11:40.840 --> 00:11:43.630
+to maybe zero sum number.
+
+165
+00:11:43.630 --> 00:11:48.580
+That represents a value that isn't going to be contained within the existing columns.
+
+166
+00:11:48.760 --> 00:11:52.240
+Recall that results that column indexes start with one.
+
+167
+00:11:52.450 --> 00:11:55.000
+So zero would be a non-existent column.
+
+168
+00:11:55.030 --> 00:11:57.280
+OK, so that's the reason why I chose zero.
+
+169
+00:11:57.460 --> 00:11:57.730
+All right.
+
+170
+00:11:57.730 --> 00:11:59.780
+So found index of zero.
+
+171
+00:12:00.160 --> 00:12:03.460
+And then maybe what we can do is something like this.
+
+172
+00:12:03.670 --> 00:12:10.160
+If we find a match, then we will set found index equal to column index like that.
+
+173
+00:12:10.930 --> 00:12:19.060
+And then I think we want to remove this return line 156 out of the loop because we've already established
+
+174
+00:12:19.060 --> 00:12:21.910
+that we don't want that to occur within this loop anymore.
+
+175
+00:12:22.150 --> 00:12:28.350
+Now, by doing so, it no longer has access to this column index variable because that is out of scope.
+
+176
+00:12:28.360 --> 00:12:33.730
+Remember, variables that are declared within a for loop only have scope within that loop.
+
+177
+00:12:34.120 --> 00:12:39.790
+So this column index is no longer existing, and that's one of the reasons why I suggested that we create
+
+178
+00:12:39.790 --> 00:12:41.920
+another integer called Found Index.
+
+179
+00:12:42.070 --> 00:12:49.540
+Now, we maybe could also have just declared this column index outside, but I think we would have run
+
+180
+00:12:49.540 --> 00:12:54.840
+into a couple of other little issues that are more easily solved by just introducing another integer.
+
+181
+00:12:54.850 --> 00:12:59.290
+Here, I leave it as an exercise to you if you want to see what would happen if you didn't introduce
+
+182
+00:12:59.290 --> 00:13:05.230
+found index and you just tried to declare the column index outside of the for loop and you just carry
+
+183
+00:13:05.410 --> 00:13:06.610
+with that line of coding.
+
+184
+00:13:07.120 --> 00:13:11.560
+So I would just change this to found index like so.
+
+185
+00:13:11.620 --> 00:13:16.900
+Now let us consider, though, what would happen if there was no alias found.
+
+186
+00:13:17.290 --> 00:13:21.850
+Currently, when we don't find an alias or a match, we return null.
+
+187
+00:13:22.150 --> 00:13:23.950
+We still need that to happen.
+
+188
+00:13:24.100 --> 00:13:27.850
+So how can we allow that to happen under this circumstance?
+
+189
+00:13:28.180 --> 00:13:35.530
+Well, currently, if no alias is found, then when we get down here to Line 158, found index should
+
+190
+00:13:35.530 --> 00:13:36.990
+still equal zero, right?
+
+191
+00:13:37.000 --> 00:13:43.120
+Because the only way found index isn't going to equal zero is if we found a match and we set found index
+
+192
+00:13:43.120 --> 00:13:44.710
+to something other than zero.
+
+193
+00:13:44.860 --> 00:13:48.880
+So a found index is zero, then that should return a null.
+
+194
+00:13:49.030 --> 00:13:54.280
+So I think I just said the code right there, if found index equals zero, then return a null right.
+
+195
+00:13:54.640 --> 00:14:01.030
+So I think what we can do is just say that programmatically and a little bit more concisely, probably
+
+196
+00:14:01.030 --> 00:14:03.300
+by simply using a ternary.
+
+197
+00:14:03.310 --> 00:14:04.600
+So let's see what that would look like.
+
+198
+00:14:04.610 --> 00:14:14.530
+So if found index equals zero, and here's my if ripe for the ternary, then return null.
+
+199
+00:14:14.950 --> 00:14:17.150
+Else, return this object.
+
+200
+00:14:17.170 --> 00:14:20.500
+See how I did that by using a very concise ternary.
+
+201
+00:14:20.890 --> 00:14:26.110
+All right now, you're probably wondering that's all well and good, but where's this caching thing
+
+202
+00:14:26.110 --> 00:14:27.160
+going to come into play?
+
+203
+00:14:27.820 --> 00:14:35.230
+Well, as I said at the beginning, we first needed to get this R-Squared object out of this loop so
+
+204
+00:14:35.230 --> 00:14:42.460
+that we could then treat this loop as one cohesive block of code that we can now establish some caching
+
+205
+00:14:42.460 --> 00:14:43.240
+around.
+
+206
+00:14:43.690 --> 00:14:51.220
+And so I think the first thing I want to try doing here is to extract a method for just this block of
+
+207
+00:14:51.220 --> 00:14:51.910
+code now.
+
+208
+00:14:52.270 --> 00:15:01.030
+So I will do an option command M and maybe I will call this method get index for Alias.
+
+209
+00:15:01.240 --> 00:15:01.630
+All right.
+
+210
+00:15:02.290 --> 00:15:02.530
+All right.
+
+211
+00:15:02.530 --> 00:15:08.950
+So now we've got a nice, easy method here that takes an alias, plus all this other stuff and returns
+
+212
+00:15:08.950 --> 00:15:09.550
+an index.
+
+213
+00:15:09.670 --> 00:15:14.170
+Now it happens to be taking an input of this found index, and I don't think that's appropriate.
+
+214
+00:15:14.180 --> 00:15:19.870
+So in order to get rid of this, I think what we can simply do here is just to inline this parameter.
+
+215
+00:15:20.230 --> 00:15:25.480
+In other words, we're creating this integer up here, setting it to zero, then passing it in down
+
+216
+00:15:25.480 --> 00:15:27.700
+here and then passing it into this call.
+
+217
+00:15:27.880 --> 00:15:33.160
+But really, this integer is fine simply to be declared down in this method here.
+
+218
+00:15:33.430 --> 00:15:40.720
+So if we simply put our cursor right here, we can inline this method, which means the idea will analyze
+
+219
+00:15:40.720 --> 00:15:45.910
+this code and see that we are declaring an initializing this variable right here.
+
+220
+00:15:46.210 --> 00:15:51.120
+And it will determine because we're enlightening it, that it can do all the same things in this method.
+
+221
+00:15:51.130 --> 00:15:51.780
+So watch this.
+
+222
+00:15:51.790 --> 00:15:58.300
+I'll put my cursor right here and then do an option command in for inline and then it asks me if I want
+
+223
+00:15:58.300 --> 00:16:03.940
+to perform a refactoring, which I do, and then let me resize this so that you can see what's going
+
+224
+00:16:03.940 --> 00:16:04.630
+on here.
+
+225
+00:16:04.960 --> 00:16:10.630
+And it gives me a warning about some problems being found parameter initialize or depends on value,
+
+226
+00:16:10.630 --> 00:16:13.810
+which is not available inside method and cannot be inclined.
+
+227
+00:16:14.050 --> 00:16:15.690
+Do I want to ignore those problems?
+
+228
+00:16:15.700 --> 00:16:16.300
+Yes, I do.
+
+229
+00:16:16.300 --> 00:16:17.620
+So I'm going to click Continue.
+
+230
+00:16:17.860 --> 00:16:18.580
+And so look what?
+
+231
+00:16:18.580 --> 00:16:22.140
+It did it remove that last parameter and then it copied.
+
+232
+00:16:22.250 --> 00:16:27.080
+Is declaration and initialization of the found index down to this method?
+
+233
+00:16:27.320 --> 00:16:34.790
+Now left this one here, but I'm going to delete that and then I will just really clear in line right
+
+234
+00:16:34.790 --> 00:16:37.430
+here where we're actually using it like so.
+
+235
+00:16:37.460 --> 00:16:37.810
+All right.
+
+236
+00:16:37.820 --> 00:16:41.300
+And now we finally get to do the caching magic here.
+
+237
+00:16:41.330 --> 00:16:47.450
+So to implement a basic caching mechanism for a simple method that maps an input to an output, in this
+
+238
+00:16:47.450 --> 00:16:49.760
+case, the word alias to the integer.
+
+239
+00:16:49.940 --> 00:16:52.340
+All we need to do is simply use a map.
+
+240
+00:16:52.640 --> 00:16:58.850
+Now here's the thing, though this map cannot be local to this method because any data that we put in
+
+241
+00:16:58.850 --> 00:17:02.090
+the map would get lost after this method was done.
+
+242
+00:17:02.360 --> 00:17:06.980
+So the map has to be declared and live beyond this method.
+
+243
+00:17:06.980 --> 00:17:13.070
+And the other thing is that the basic formula for implementing this caching mechanism would be when
+
+244
+00:17:13.070 --> 00:17:18.970
+you first enter the method or soon after you enter the method, you want to first ask the map.
+
+245
+00:17:19.130 --> 00:17:21.980
+Hey, map, do you have a value for alias?
+
+246
+00:17:22.430 --> 00:17:29.840
+If yes, then get that value and then return it immediately, thereby bypassing whatever more expensive
+
+247
+00:17:29.840 --> 00:17:31.970
+processing you would have normally done.
+
+248
+00:17:32.120 --> 00:17:34.280
+Which in our case is looping over all of this.
+
+249
+00:17:34.280 --> 00:17:35.090
+So we would just skip.
+
+250
+00:17:35.090 --> 00:17:41.030
+I'll skip over all of this if our map already has an integer associated with this alias.
+
+251
+00:17:41.720 --> 00:17:46.670
+If, on the other hand, the map does not already have a value and integer associated with the alias,
+
+252
+00:17:46.880 --> 00:17:50.210
+then we go ahead and run our code like normal.
+
+253
+00:17:50.270 --> 00:17:56.480
+But when we're done looping over all of this, we store that value in the map and then we return it.
+
+254
+00:17:56.750 --> 00:17:57.950
+And that's basically it.
+
+255
+00:17:58.310 --> 00:17:59.960
+So let's see what this will look like.
+
+256
+00:18:00.290 --> 00:18:09.110
+So the first thing I will do is just go up to the top of this method here and find where our fields
+
+257
+00:18:09.110 --> 00:18:10.220
+are declared.
+
+258
+00:18:10.220 --> 00:18:19.190
+And maybe, I don't know, maybe after after these static fields, here I am going to declare a private
+
+259
+00:18:19.880 --> 00:18:27.950
+map of string because our aliases are strings and those will be the keys to integer.
+
+260
+00:18:28.100 --> 00:18:31.180
+Now notice I have to use a wrapper integer class.
+
+261
+00:18:31.190 --> 00:18:34.880
+I can't use end because maps don't allow primitives.
+
+262
+00:18:35.330 --> 00:18:35.780
+OK.
+
+263
+00:18:36.140 --> 00:18:40.700
+And let me import the map class and then give this field the name.
+
+264
+00:18:40.700 --> 00:18:49.510
+And I don't know, maybe alias column index map and I'm going to go ahead and initialize it right here,
+
+265
+00:18:49.670 --> 00:18:51.710
+and I'm going to use a hash map for this.
+
+266
+00:18:51.920 --> 00:18:58.520
+Because, as you may recall, the hash map is generally speaking, the fastest type of map for doing
+
+267
+00:18:58.520 --> 00:19:03.340
+lookups, and we don't care about storing the entries into this map in any particular order.
+
+268
+00:19:03.350 --> 00:19:04.970
+None of that's going to matter for us.
+
+269
+00:19:05.300 --> 00:19:11.240
+So hash map is the most typical map implementation that would be used, especially in this case, but
+
+270
+00:19:11.240 --> 00:19:12.560
+in most cases, really.
+
+271
+00:19:12.710 --> 00:19:13.040
+All right.
+
+272
+00:19:13.050 --> 00:19:16.340
+So then we'll come back down here to our new method.
+
+273
+00:19:16.700 --> 00:19:20.660
+OK, so now that we've got that map, let's see what this might look like.
+
+274
+00:19:20.660 --> 00:19:25.580
+So I said the first thing you would typically do is to perform a lookup with the map.
+
+275
+00:19:26.090 --> 00:19:27.800
+So let's see what that might look like.
+
+276
+00:19:27.830 --> 00:19:33.620
+So what did I call that alias column index map dot get?
+
+277
+00:19:34.610 --> 00:19:39.380
+And then pass in the alias and then let's capture the output of that.
+
+278
+00:19:39.500 --> 00:19:43.310
+And I guess let's go ahead and call it found index.
+
+279
+00:19:43.790 --> 00:19:49.140
+Now I know that we already have this one down here, so I guess I'm going to delete that one now.
+
+280
+00:19:49.310 --> 00:19:53.390
+And so now maybe we can just surround this entire for loop with a conditional.
+
+281
+00:19:54.020 --> 00:19:59.900
+So I'll do an option command T and surrounded with a conditional like.
+
+282
+00:19:59.900 --> 00:20:09.410
+So and say something like if found index is null, because that's what it would be if there was no value
+
+283
+00:20:09.410 --> 00:20:15.050
+stored in this map mapping alias to a number, then we would get a null value out.
+
+284
+00:20:15.500 --> 00:20:19.280
+So if it's null, then we're going to go ahead and do all of this.
+
+285
+00:20:19.700 --> 00:20:25.990
+Oh, and one more thing that I see here, if we do find a match, we can go ahead and stop the loop,
+
+286
+00:20:26.000 --> 00:20:26.320
+right?
+
+287
+00:20:26.330 --> 00:20:27.800
+So we can just do a break.
+
+288
+00:20:28.010 --> 00:20:29.360
+We don't need to keep looping.
+
+289
+00:20:29.360 --> 00:20:31.040
+Once we find a positive match.
+
+290
+00:20:31.040 --> 00:20:34.010
+We can stop this loop from occurring at that point.
+
+291
+00:20:34.010 --> 00:20:41.990
+So we can do that with break right then will want to store the found index back inside of the map so
+
+292
+00:20:41.990 --> 00:20:44.330
+we can do that on the very next line.
+
+293
+00:20:44.510 --> 00:20:54.080
+So we'll do a Alias Column Index map that put Alias Comma Found Index.
+
+294
+00:20:54.500 --> 00:20:54.830
+All right.
+
+295
+00:20:54.830 --> 00:21:00.890
+So once we find that match, we're going to store it back into the map so that the next time we come
+
+296
+00:21:00.890 --> 00:21:07.490
+in to this method, if we're passing in that same alias, we'll get the index for that alias right away.
+
+297
+00:21:07.790 --> 00:21:11.060
+And then finally, we will return the found index.
+
+298
+00:21:11.630 --> 00:21:18.590
+So now consider the next time we need to do a look up for an alias that we already stored in this map,
+
+299
+00:21:19.010 --> 00:21:22.010
+such as parent underscore first underscore name.
+
+300
+00:21:22.220 --> 00:21:26.690
+If that was already stored in here, then we would get the found index for it.
+
+301
+00:21:26.720 --> 00:21:28.880
+Therefore, the found index would not be null.
+
+302
+00:21:29.060 --> 00:21:35.240
+Therefore, we would skip over all of this and then we'd just return the value so we'd bypass all this
+
+303
+00:21:35.240 --> 00:21:37.370
+looping that's currently going on.
+
+304
+00:21:37.490 --> 00:21:39.050
+So I think that should be it.
+
+305
+00:21:39.440 --> 00:21:43.250
+So let's go ahead and rerun all of our test and see if we broke anything.
+
+306
+00:21:43.520 --> 00:21:46.910
+Now let me remember to get out of the database, which I always forget to do.
+
+307
+00:21:49.140 --> 00:21:49.740
+All right.
+
+308
+00:21:49.950 --> 00:21:56.430
+And jump over to the tests and jump up to the top and just run all the tests.
+
+309
+00:22:00.210 --> 00:22:04.320
+All right, we've got one failed test can find all.
+
+310
+00:22:04.530 --> 00:22:11.310
+Oh, interesting, cannot invoke integers and value because found index is null.
+
+311
+00:22:12.420 --> 00:22:19.530
+Let's see what led us to that, so I'm going to click here at the top of the Stack Trace Return Found
+
+312
+00:22:19.530 --> 00:22:20.190
+Index.
+
+313
+00:22:20.610 --> 00:22:22.140
+So this is our new method.
+
+314
+00:22:22.830 --> 00:22:23.280
+OK.
+
+315
+00:22:23.550 --> 00:22:32.010
+And the problem here is simply that our signature for this newly created method of get indexed for Alias
+
+316
+00:22:32.310 --> 00:22:35.040
+is expecting to return a primitive.
+
+317
+00:22:35.370 --> 00:22:41.250
+And we do have the possibility of simply returning a null which cannot be expressed with a primitive.
+
+318
+00:22:41.280 --> 00:22:46.380
+So we just need to change this return type from a primitive integer to a wrapper integer.
+
+319
+00:22:46.410 --> 00:22:46.800
+OK.
+
+320
+00:22:48.400 --> 00:22:51.940
+Like so and so now, let's rerun the tests again.
+
+321
+00:22:53.200 --> 00:22:57.340
+Oh, wow, and we still have one failed test, let's see, still with the find all.
+
+322
+00:22:58.690 --> 00:23:08.410
+Let's see, so can't invoke in value, because the return value of jet index for Alias is null, the
+
+323
+00:23:08.410 --> 00:23:13.000
+return value forget index for Alias is null.
+
+324
+00:23:13.390 --> 00:23:18.700
+So I'm going to click here on the top of the stack trace line 156.
+
+325
+00:23:19.120 --> 00:23:21.640
+OK, so we have the same problem up here now.
+
+326
+00:23:21.760 --> 00:23:24.010
+We're returning a null from this method.
+
+327
+00:23:24.160 --> 00:23:28.210
+However, this value here is still primitive and we can't do that.
+
+328
+00:23:28.630 --> 00:23:28.990
+Yes.
+
+329
+00:23:28.990 --> 00:23:35.350
+So I actually forgot that the way that I was going to interpret null appear was to say that if the found
+
+330
+00:23:35.350 --> 00:23:38.200
+index was zero, then return a null.
+
+331
+00:23:38.350 --> 00:23:43.810
+But now down in the actual method, I'm simply returning a null so we could do this in either way.
+
+332
+00:23:44.050 --> 00:23:48.880
+We could have this method return zero if it doesn't find anything in which case we don't need to change
+
+333
+00:23:48.880 --> 00:23:50.500
+anything here and this would all work.
+
+334
+00:23:50.680 --> 00:23:55.960
+Or we can let this method go ahead and return null as it is currently doing.
+
+335
+00:23:56.050 --> 00:24:01.540
+In which case we would need to change this to a wrapper integer and then change what we're testing for.
+
+336
+00:24:01.840 --> 00:24:10.000
+So actually, I'll tell you what I think what we can do is we can actually put this back to end and
+
+337
+00:24:10.000 --> 00:24:14.020
+then we can use a slightly different method here to get the value.
+
+338
+00:24:14.560 --> 00:24:17.020
+So there's an alternative method here.
+
+339
+00:24:17.200 --> 00:24:24.910
+Instead of get, we could call, get or default, which allows us to pass in a default value.
+
+340
+00:24:25.390 --> 00:24:29.740
+So let's see if we use that method getter default.
+
+341
+00:24:29.950 --> 00:24:37.300
+And now we can say if there wasn't anything found, then we'll return a zero like so and we did learn
+
+342
+00:24:37.300 --> 00:24:40.510
+this when we were learning about maps in the collections module.
+
+343
+00:24:41.110 --> 00:24:45.670
+Now that means we need to change what we're testing for down here because now found index will never
+
+344
+00:24:45.670 --> 00:24:46.420
+be null.
+
+345
+00:24:46.630 --> 00:24:48.280
+Instead, it will be zero.
+
+346
+00:24:48.370 --> 00:24:53.080
+So we just want to test if found index zero, then do all of these things.
+
+347
+00:24:53.620 --> 00:24:58.070
+And then if we still don't find a match, we will return a zero.
+
+348
+00:24:58.090 --> 00:25:02.390
+And now this will work because we won't ever be returning a null from this method.
+
+349
+00:25:02.410 --> 00:25:04.900
+It'll be a zero and everything else is good.
+
+350
+00:25:05.110 --> 00:25:10.030
+And for that matter, actually, now with that change that we just made, I didn't actually even need
+
+351
+00:25:10.030 --> 00:25:11.830
+to change this to a primitive.
+
+352
+00:25:11.830 --> 00:25:14.230
+I could have left it as a wrapper, but it doesn't matter, really.
+
+353
+00:25:14.470 --> 00:25:16.210
+All right, so let's try that one more time.
+
+354
+00:25:18.210 --> 00:25:23.640
+There we go, and now we have everything passing, and I just want to take this moment to underscore
+
+355
+00:25:23.640 --> 00:25:24.450
+yet again.
+
+356
+00:25:24.750 --> 00:25:29.850
+Do you guys appreciate and see the power of having these tests that we can run?
+
+357
+00:25:30.390 --> 00:25:36.060
+They are really saving us from these kinds of small, simple mistakes that even I as a professional
+
+358
+00:25:36.060 --> 00:25:37.770
+developer can easily make.
+
+359
+00:25:38.040 --> 00:25:41.160
+Any any developer will make these mistakes from time to time.
+
+360
+00:25:41.310 --> 00:25:47.220
+And these are the kinds of mistakes, though, where bugs come from in in professional code, and a
+
+361
+00:25:47.220 --> 00:25:51.450
+lot of them can be cut if you have a decent set of tests.
+
+362
+00:25:51.540 --> 00:25:57.300
+And honestly, I've left out still a lot of tests that I knew we could have written in the interest
+
+363
+00:25:57.300 --> 00:25:57.960
+of time.
+
+364
+00:25:58.260 --> 00:26:05.100
+But even just this set of tests that we have now have already cut so many issues throughout this module.
+
+365
+00:26:05.220 --> 00:26:11.730
+So I hope you can really appreciate just how powerful a technique it is to use TDD and have a decent
+
+366
+00:26:11.730 --> 00:26:16.210
+set of tests that we can run to kind of provide a safety net for us.
+
+367
+00:26:16.230 --> 00:26:17.910
+Really, that's that's what they're doing.
+
+368
+00:26:18.120 --> 00:26:18.420
+All right.
+
+369
+00:26:18.420 --> 00:26:19.800
+So we got that working.
+
+370
+00:26:19.860 --> 00:26:25.020
+And so now just to recap what's going to happen from this point forward?
+
+371
+00:26:26.170 --> 00:26:29.990
+Is that this code will run a little bit faster now?
+
+372
+00:26:30.010 --> 00:26:34.570
+Unfortunately, we don't have any benchmarks, but I mean, I think you can just intellectually see
+
+373
+00:26:34.570 --> 00:26:35.180
+that now.
+
+374
+00:26:35.440 --> 00:26:41.200
+We only need to run these loops for the very first time that we ever are trying to retrieve a value
+
+375
+00:26:41.200 --> 00:26:42.130
+for an alias.
+
+376
+00:26:42.220 --> 00:26:48.520
+And after we've retrieved that value for that particular alias, the subsequent times that we have to
+
+377
+00:26:48.520 --> 00:26:53.890
+look that up, which would be for every subsequent row, any time we're doing any kind of look up will
+
+378
+00:26:53.890 --> 00:26:55.630
+run considerably faster.
+
+379
+00:26:55.690 --> 00:26:59.230
+So this is one really nice optimization where we're caching.
+
+380
+00:26:59.590 --> 00:26:59.950
+All right.
+
+381
+00:26:59.980 --> 00:27:02.650
+So I'm going to go ahead and close this lesson.
+
+382
+00:27:02.650 --> 00:27:07.600
+And in the next lesson, I want to talk about at least one other optimization that we could make to
+
+383
+00:27:07.600 --> 00:27:08.600
+this code as well.
+
+384
+00:27:08.620 --> 00:27:09.010
+OK.
+
+385
+00:27:09.340 --> 00:27:10.930
+So I will see you in the next one.

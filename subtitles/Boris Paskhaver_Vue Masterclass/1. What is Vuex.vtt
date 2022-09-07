@@ -1,0 +1,692 @@
+WEBVTT
+1
+00:00:00.390 --> 00:00:01.370
+All right.
+
+2
+00:00:01.380 --> 00:00:05.610
+Welcome to the next section of the course, which is called View X.
+
+3
+00:00:06.000 --> 00:00:09.540
+View X is a library for managing global state.
+
+4
+00:00:09.540 --> 00:00:16.500
+In view, it is a separate NPM library, so it's not to be confused with the core view library, but
+
+5
+00:00:16.500 --> 00:00:23.880
+View X is still a part of the larger view ecosystem and is an important tool in your toolbox as a view
+
+6
+00:00:23.910 --> 00:00:24.450
+developer.
+
+7
+00:00:24.810 --> 00:00:29.880
+So before we dive into the details of what this library does for us, I first want to introduce the
+
+8
+00:00:29.880 --> 00:00:32.520
+problem that this library is trying to solve.
+
+9
+00:00:32.970 --> 00:00:34.890
+So why do we need View X?
+
+10
+00:00:34.890 --> 00:00:39.150
+Let's review some of the basics that we've learned about so far in this course view.
+
+11
+00:00:39.150 --> 00:00:45.090
+Applications consist of state, and state is simply the data that our components rely upon.
+
+12
+00:00:45.090 --> 00:00:45.390
+Right?
+
+13
+00:00:45.660 --> 00:00:47.670
+We've seen all kinds of examples of data.
+
+14
+00:00:48.090 --> 00:00:53.880
+Data can be booleans, strings, arrays, etc. and primarily it's data that changes over time.
+
+15
+00:00:54.180 --> 00:01:00.210
+And the whole point of state and that data is that we exploit vue's reactivity system, which means
+
+16
+00:01:00.210 --> 00:01:05.580
+when the state changes view updates, they view the corresponding HTML template.
+
+17
+00:01:05.820 --> 00:01:11.250
+A perfect example from the last section is we had an empty array of jobs, so we rendered no job listings.
+
+18
+00:01:11.460 --> 00:01:17.490
+Then as soon as we received the listings from the back end view interpreted that change to the components
+
+19
+00:01:17.490 --> 00:01:22.650
+state and it re rendered the component and then forced the rendering of those job listings.
+
+20
+00:01:22.650 --> 00:01:22.860
+Right.
+
+21
+00:01:23.080 --> 00:01:25.230
+That's the whole idea behind how view works.
+
+22
+00:01:25.530 --> 00:01:29.910
+Our view, our template is connected to the data, right?
+
+23
+00:01:30.570 --> 00:01:32.370
+Here's where we start to run into some problems.
+
+24
+00:01:32.610 --> 00:01:38.220
+Complexity creeps into an application when multiple components share a common state.
+
+25
+00:01:38.610 --> 00:01:39.990
+So let me give you a few examples.
+
+26
+00:01:40.140 --> 00:01:44.370
+One very common high level example that is cited is something like dark mode.
+
+27
+00:01:44.580 --> 00:01:49.050
+You may see a lot of modern apps where you can flick a button and the app goes into dark mode.
+
+28
+00:01:49.050 --> 00:01:52.200
+So it changes the entire look and feel of the app in just a second.
+
+29
+00:01:52.200 --> 00:01:52.440
+Right.
+
+30
+00:01:52.860 --> 00:01:56.460
+That's the kind of data that doesn't really belong to a single component.
+
+31
+00:01:56.700 --> 00:02:00.000
+It's much more higher level, it's much more global.
+
+32
+00:02:00.570 --> 00:02:06.420
+It has the opportunity to impact a lot of different components throughout the app, and thus it just
+
+33
+00:02:06.420 --> 00:02:11.610
+doesn't feel right that that piece of data should live in some random component somewhere in the app
+
+34
+00:02:11.610 --> 00:02:15.180
+that tries to communicate it elsewhere, it feels higher than that.
+
+35
+00:02:15.570 --> 00:02:18.360
+Another example is something like the app's language.
+
+36
+00:02:18.540 --> 00:02:23.940
+Let's say you are conditionally rendering text in a specific language depending on some kind of user
+
+37
+00:02:23.940 --> 00:02:27.840
+setting like the app may be in English or may be in Spanish or maybe in German.
+
+38
+00:02:28.140 --> 00:02:29.790
+Well, it feels weird, right?
+
+39
+00:02:29.790 --> 00:02:36.480
+If a single component like Imagine or main now stores a piece of state like user language, right?
+
+40
+00:02:36.630 --> 00:02:42.690
+It doesn't feel like the right place to store that kind of important detail because it's the kind of
+
+41
+00:02:42.690 --> 00:02:46.410
+details, the kind of state that may affect many different components throughout the app.
+
+42
+00:02:46.860 --> 00:02:51.900
+A third example that I can give you and one that is pertinent to our app, is you may remember that
+
+43
+00:02:51.900 --> 00:02:57.810
+when we were building out the main nav component, we built a piece of state called is logged in and
+
+44
+00:02:57.810 --> 00:03:04.020
+that reflects whether the user profile image appears on the top right of our app and of course our app.
+
+45
+00:03:04.290 --> 00:03:08.250
+And the idea of being logged in was only limited to that individual change.
+
+46
+00:03:08.520 --> 00:03:14.070
+But as you might imagine, in the real world, the user being logged in or not logged in is a pretty
+
+47
+00:03:14.070 --> 00:03:20.340
+significant piece of data that's probably going to affect a lot of different components and what renders
+
+48
+00:03:20.340 --> 00:03:21.210
+throughout the app.
+
+49
+00:03:21.390 --> 00:03:26.940
+It kind of feels weird to hold that piece of data in the main nav component.
+
+50
+00:03:26.940 --> 00:03:29.250
+The main nav is supposed to show you the navigation items.
+
+51
+00:03:29.430 --> 00:03:33.600
+Why does it know this big piece of information about the user's log in status?
+
+52
+00:03:33.600 --> 00:03:33.810
+Right.
+
+53
+00:03:34.170 --> 00:03:40.140
+So we have this problem where many different components need some kind of information that may also
+
+54
+00:03:40.140 --> 00:03:41.280
+be updating over time.
+
+55
+00:03:41.580 --> 00:03:47.550
+But neither of those components really feels like the right place to store that important, pertinent,
+
+56
+00:03:47.550 --> 00:03:50.670
+higher level, more global piece of information.
+
+57
+00:03:51.060 --> 00:03:54.150
+So the solution there is Vue X, what is Vue X?
+
+58
+00:03:54.390 --> 00:03:59.730
+View X is a state management library for Vue applications, which I know when you first hear it might
+
+59
+00:03:59.730 --> 00:04:04.380
+be a little bit complex, but the simple way to describe it is it's basically a library that's going
+
+60
+00:04:04.380 --> 00:04:10.410
+to be responsible for storing that higher level state, for storing that higher level data.
+
+61
+00:04:10.680 --> 00:04:15.450
+So let me give you the official definition from the View X documentation and then I'm going to show
+
+62
+00:04:15.450 --> 00:04:20.160
+you a visual that that hopefully will give you a better understanding, because a lot of this jargon
+
+63
+00:04:20.160 --> 00:04:21.210
+can be pretty technical.
+
+64
+00:04:21.210 --> 00:04:27.570
+So Vue Access Documentation states that the UX serves as a centralized store for the components in an
+
+65
+00:04:27.570 --> 00:04:33.630
+application with rules ensuring that the state can only be mutated in a predictable fashion.
+
+66
+00:04:33.870 --> 00:04:37.380
+And the first part I'd like you to focus on here is this centralized store.
+
+67
+00:04:37.770 --> 00:04:39.240
+So let me take you to a visual.
+
+68
+00:04:39.990 --> 00:04:43.200
+And this is the best way that I can sort of describe Vue to somebody.
+
+69
+00:04:43.710 --> 00:04:50.130
+I like to think of you as almost like a cloud of global data that is hovering or floating above our
+
+70
+00:04:50.130 --> 00:04:51.240
+view application.
+
+71
+00:04:51.390 --> 00:04:51.650
+All right.
+
+72
+00:04:51.660 --> 00:04:55.740
+And I don't want you to be confused with the idea of a cloud application, like I'm not talking about
+
+73
+00:04:55.740 --> 00:04:57.810
+AWP or Google Cloud or anything.
+
+74
+00:04:57.810 --> 00:04:59.550
+I'm just talking more in a poetic sense.
+
+75
+00:04:59.920 --> 00:05:04.240
+Just imagine this kind of cloud of data that is floating above our view application.
+
+76
+00:05:04.240 --> 00:05:04.480
+Right?
+
+77
+00:05:04.870 --> 00:05:10.900
+And any component that wants to get data or set data simply talks to that cloud.
+
+78
+00:05:11.290 --> 00:05:14.410
+Now, that doesn't mean that you can't use local state in a component.
+
+79
+00:05:14.410 --> 00:05:15.370
+You certainly can.
+
+80
+00:05:15.610 --> 00:05:18.870
+But that local state should really be limited to just that component.
+
+81
+00:05:18.880 --> 00:05:23.470
+If it's something pertinent to how that component operates and it doesn't affect anything else in the
+
+82
+00:05:23.470 --> 00:05:23.680
+app.
+
+83
+00:05:23.880 --> 00:05:28.450
+You can still use local components state, you can still use data, you can still use computed properties,
+
+84
+00:05:28.450 --> 00:05:33.790
+etc. But whenever you have data that is more higher level, that is, you know, more global, that
+
+85
+00:05:33.790 --> 00:05:39.760
+has the ability to impact multiple components, you sort of extract it to this cloud, this view X blob
+
+86
+00:05:39.760 --> 00:05:42.700
+of data, and then you connect components to it.
+
+87
+00:05:43.540 --> 00:05:48.250
+If you think about it, it's almost the simplest way to solve this problem right in this diagram.
+
+88
+00:05:48.370 --> 00:05:54.190
+Imagine that component and component D both need the same piece of data when that piece of data updates
+
+89
+00:05:54.310 --> 00:05:57.010
+both component and component D need to update.
+
+90
+00:05:57.280 --> 00:06:03.460
+Well, it's kind of silly to store the data just in component eight or just in component D or to duplicate
+
+91
+00:06:03.460 --> 00:06:06.370
+it, which is the worst idea, because then you create multiple sources of truth.
+
+92
+00:06:06.640 --> 00:06:12.610
+The simple solution when you when you have the dependency is to extract it outwards and just allow one
+
+93
+00:06:12.610 --> 00:06:16.660
+single source of truth that is independent and separate from those components.
+
+94
+00:06:16.990 --> 00:06:18.670
+And that's exactly what view is.
+
+95
+00:06:18.880 --> 00:06:24.040
+So you can almost imagine view X like you can almost think of it like a simple JavaScript object with
+
+96
+00:06:24.040 --> 00:06:24.460
+data.
+
+97
+00:06:25.270 --> 00:06:30.880
+And whenever that the data in that object updates and let's say the components are dependent on it,
+
+98
+00:06:31.060 --> 00:06:33.910
+all components are alerted of that change.
+
+99
+00:06:34.150 --> 00:06:38.620
+So if component A and rely on a piece of you x data, the changes that you access.
+
+100
+00:06:38.620 --> 00:06:40.410
+Component A My date has changed.
+
+101
+00:06:40.420 --> 00:06:41.470
+Please update yourself.
+
+102
+00:06:41.680 --> 00:06:44.320
+Component D My component my data has changed.
+
+103
+00:06:44.320 --> 00:06:45.540
+Please update yourself.
+
+104
+00:06:45.550 --> 00:06:45.880
+Right.
+
+105
+00:06:46.240 --> 00:06:49.960
+Component B can be relying on the cloud for something totally different.
+
+106
+00:06:49.960 --> 00:06:50.160
+Right?
+
+107
+00:06:50.170 --> 00:06:55.660
+You may need some other piece of data for view X and component C in this example may not need any global
+
+108
+00:06:55.660 --> 00:06:55.990
+data.
+
+109
+00:06:55.990 --> 00:07:01.180
+Maybe it doesn't care about that global information like let's say the dark mode or the user's log in
+
+110
+00:07:01.180 --> 00:07:01.570
+status.
+
+111
+00:07:01.570 --> 00:07:03.760
+Maybe it's something simple like a button and it doesn't care.
+
+112
+00:07:04.030 --> 00:07:09.280
+So not every component has to connect to view X, not every component has to read or write from you
+
+113
+00:07:09.300 --> 00:07:10.420
+x, some can.
+
+114
+00:07:10.570 --> 00:07:14.020
+Some can get all of the information from The View Store.
+
+115
+00:07:14.200 --> 00:07:15.940
+Some can get partial information.
+
+116
+00:07:16.090 --> 00:07:21.730
+The point is, we've just extracted that global information to another separate entity in our app,
+
+117
+00:07:21.730 --> 00:07:26.890
+in our ecosystem, and then components talk to it in order to get that global data that it cares about.
+
+118
+00:07:27.100 --> 00:07:31.930
+Now as far as the other part of the definition, which is a the state can only be mutated in a predictable
+
+119
+00:07:31.930 --> 00:07:39.010
+fashion, all that basically means is that we put constraints as far as how we can change the data within
+
+120
+00:07:39.010 --> 00:07:40.950
+the View X Store, right?
+
+121
+00:07:41.170 --> 00:07:43.540
+So that we can't just update it however we want.
+
+122
+00:07:43.540 --> 00:07:46.120
+We can't just say add this property, delete this property.
+
+123
+00:07:46.210 --> 00:07:51.490
+We have to define the possible operations as far as how we can write the data.
+
+124
+00:07:52.060 --> 00:07:57.940
+And the benefit of that is that it allows us to have predictable changes so that components can know
+
+125
+00:07:57.940 --> 00:08:01.540
+that there is a subset of actions that can happen that can update them.
+
+126
+00:08:01.540 --> 00:08:05.350
+Basically, we're just putting constraints and boundaries on what can happen to the data in our app
+
+127
+00:08:05.620 --> 00:08:11.050
+to ensure that there's no errors encountered by accidentally deleting properties, adding properties,
+
+128
+00:08:11.050 --> 00:08:13.540
+changing them to something that they can't be, etc..
+
+129
+00:08:13.540 --> 00:08:14.860
+We'll talk more about that later.
+
+130
+00:08:15.190 --> 00:08:20.040
+But that's basically that definition is trying to say, so what are the benefits of UCS?
+
+131
+00:08:20.080 --> 00:08:23.770
+Well, one benefit is that we separate the data manipulation from the view.
+
+132
+00:08:23.950 --> 00:08:29.920
+So a lot of times a lot of those complex data manipulations, operations, filters, etc., we can move
+
+133
+00:08:29.920 --> 00:08:35.440
+that to the View store and the components will simply receive the final data and do something with it.
+
+134
+00:08:35.440 --> 00:08:38.350
+So the components become what are called dumb components.
+
+135
+00:08:38.530 --> 00:08:41.890
+They don't really care about where they're getting the data from or how it's calculated.
+
+136
+00:08:42.040 --> 00:08:45.280
+They just know how to render it visually in the HTML.
+
+137
+00:08:45.280 --> 00:08:49.690
+And that is a good component because it's simpler, it's lightweight, it's easier to test.
+
+138
+00:08:50.080 --> 00:08:52.870
+So view exists independently of the components.
+
+139
+00:08:52.870 --> 00:08:56.800
+It's a separate data store, so it can also be unit tested by itself.
+
+140
+00:08:56.920 --> 00:08:58.330
+It doesn't need components.
+
+141
+00:08:58.480 --> 00:09:03.070
+It doesn't have to know which components it is connected to or how many components it is connected to.
+
+142
+00:09:03.190 --> 00:09:09.130
+It's just its own blob of state, blob of data and with certain methods available that are going to
+
+143
+00:09:09.130 --> 00:09:10.990
+update that data in predictable ways.
+
+144
+00:09:10.990 --> 00:09:11.260
+Right?
+
+145
+00:09:11.530 --> 00:09:17.380
+We don't actually even need a view app technically in order to test view X because it's just a library
+
+146
+00:09:17.380 --> 00:09:21.170
+for managing a piece of state and updating it over time, right?
+
+147
+00:09:21.220 --> 00:09:21.820
+That's all it is.
+
+148
+00:09:21.940 --> 00:09:28.480
+We're just connecting components to it so that they can react to those changes in their own components.
+
+149
+00:09:28.480 --> 00:09:28.900
+Right.
+
+150
+00:09:29.770 --> 00:09:30.820
+So who makes view X?
+
+151
+00:09:31.030 --> 00:09:33.400
+View X is maintained by the Core View team.
+
+152
+00:09:33.400 --> 00:09:38.050
+That's one of my favorite features about it, because it integrates well with view, because it's built
+
+153
+00:09:38.050 --> 00:09:39.850
+specifically for view applications.
+
+154
+00:09:40.120 --> 00:09:45.670
+So in other ecosystems like React, for example, I love React, don't get me wrong, but there's no
+
+155
+00:09:45.670 --> 00:09:51.490
+official recommendation for what state management library you're supposed to use with with React.
+
+156
+00:09:51.490 --> 00:09:56.540
+So a common choice in that community is Redux, which follows very similar principles to view X.
+
+157
+00:09:56.770 --> 00:09:59.440
+But Redux is still not developed by the core react.
+
+158
+00:10:00.010 --> 00:10:05.620
+In comparison, the View team says, hey, state management is a common problem in modern single page
+
+159
+00:10:05.620 --> 00:10:06.190
+applications.
+
+160
+00:10:06.190 --> 00:10:09.130
+So we're going to give you this tool that works really well with view.
+
+161
+00:10:09.400 --> 00:10:13.600
+You don't have to use view checks at all if you don't want global state management.
+
+162
+00:10:13.720 --> 00:10:20.200
+There are still other solutions in the ecosystem or in the NPM marketplace if you want to try something
+
+163
+00:10:20.200 --> 00:10:20.440
+else.
+
+164
+00:10:20.680 --> 00:10:24.820
+But View X is still a really good solution with the support of the core of your team.
+
+165
+00:10:24.970 --> 00:10:29.350
+And of course, because it's being made by the same people, it just syncs up and works really well
+
+166
+00:10:29.560 --> 00:10:29.920
+together.
+
+167
+00:10:30.070 --> 00:10:30.340
+All right.
+
+168
+00:10:30.580 --> 00:10:32.950
+So I'm going to show you all the benefits of UX over time.
+
+169
+00:10:32.950 --> 00:10:37.240
+And we're going to start out by just using it in isolation separate from many components so you can
+
+170
+00:10:37.240 --> 00:10:39.650
+get to get a sense of how exactly it's supposed to work.
+
+171
+00:10:39.670 --> 00:10:40.810
+So I'm really excited.
+
+172
+00:10:40.810 --> 00:10:44.230
+I know slide decks are pretty boring, but we're going to get back to the code in the very next section
+
+173
+00:10:44.470 --> 00:10:46.480
+and we're going to see what makes Vue so special.

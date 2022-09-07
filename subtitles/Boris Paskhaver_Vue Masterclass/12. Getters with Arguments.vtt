@@ -1,0 +1,880 @@
+WEBVTT
+1
+00:00:00.470 --> 00:00:01.300
+Okay.
+
+2
+00:00:01.310 --> 00:00:05.000
+So our filter jobs getter is working effectively in the browser.
+
+3
+00:00:05.180 --> 00:00:07.850
+And this, I think, is a great first solution.
+
+4
+00:00:07.970 --> 00:00:13.250
+It's a great initial implementation, but I argue we can do a little bit better.
+
+5
+00:00:13.580 --> 00:00:17.630
+So first, let's talk about what I don't like within this getter method.
+
+6
+00:00:17.960 --> 00:00:23.450
+The primary thing that I don't like is that this getter method I think, knows a bit too much.
+
+7
+00:00:23.660 --> 00:00:28.880
+It's combining a lot of different concepts and filters together, and that is increasing the scope,
+
+8
+00:00:28.880 --> 00:00:31.460
+the size and the complexity of this getter.
+
+9
+00:00:31.850 --> 00:00:37.160
+So this getter needs to know about multiple properties of the View Store, like selected organizations
+
+10
+00:00:37.160 --> 00:00:38.300
+and selected job types.
+
+11
+00:00:38.570 --> 00:00:44.030
+It needs to know about different properties on the job object, such as organized organization and job
+
+12
+00:00:44.030 --> 00:00:44.300
+type.
+
+13
+00:00:44.660 --> 00:00:49.940
+And you can imagine that if we were to allow the user to filter by more criteria, that would result
+
+14
+00:00:49.940 --> 00:00:54.200
+in us adding more filter method calls and the method would continue to grow in size.
+
+15
+00:00:55.010 --> 00:01:00.110
+Another way that I can sort of make this argument or try to prove this to you is to ask you to consider
+
+16
+00:01:00.320 --> 00:01:03.800
+what a test suite would look like for this filter jobs getter.
+
+17
+00:01:04.130 --> 00:01:07.850
+When we were starting out, I initially skipped writing tests for this getter.
+
+18
+00:01:08.030 --> 00:01:13.610
+So this getter is currently untested and I would ask you to consider all of the different pathways of
+
+19
+00:01:13.610 --> 00:01:19.520
+logic, all of the different branches and all of the different permutations and combinations of ways
+
+20
+00:01:19.640 --> 00:01:22.760
+that this method could work and thus be tested right.
+
+21
+00:01:23.030 --> 00:01:28.310
+In our tests, we would have to cover a scenario where there are no selected organizations and where
+
+22
+00:01:28.310 --> 00:01:28.850
+there are.
+
+23
+00:01:29.150 --> 00:01:33.140
+I would need to cover a scenario where there are selected job types and where there are not.
+
+24
+00:01:33.470 --> 00:01:39.080
+Then scenarios where the selected organization's array does include the jobs organization and where
+
+25
+00:01:39.080 --> 00:01:39.740
+it does not.
+
+26
+00:01:40.040 --> 00:01:44.120
+Scenarios where the selected job types does include the jobs, job type and not.
+
+27
+00:01:44.360 --> 00:01:49.100
+And if you start mixing all those scenarios, that's a lot of different permutations and combinations.
+
+28
+00:01:49.400 --> 00:01:54.080
+There's actually multiple responsibilities in this getter, if you think about it, right, in order
+
+29
+00:01:54.080 --> 00:01:57.170
+to figure out whether a job should be included by its organization.
+
+30
+00:01:57.290 --> 00:02:02.030
+We do need to know that it has an organization property and we do need to know about these selected
+
+31
+00:02:02.030 --> 00:02:03.950
+organizations, part of the bookstore.
+
+32
+00:02:04.160 --> 00:02:08.870
+But we don't really care about the job types or the job type property on the job.
+
+33
+00:02:09.080 --> 00:02:12.020
+So these two filter pieces of logic are kind of separate.
+
+34
+00:02:12.020 --> 00:02:15.380
+They're kind of independent, but yet we've packed them into this method.
+
+35
+00:02:16.100 --> 00:02:19.220
+And that was fine initially because that was our original goal.
+
+36
+00:02:19.220 --> 00:02:24.800
+We had two separate independent getters and we're trying to combine them into one and we succeeded.
+
+37
+00:02:24.980 --> 00:02:30.260
+But now we sort of have this own kind of new problem of increasing complexity.
+
+38
+00:02:30.680 --> 00:02:35.270
+The basic takeaway here is I think there's a way we can build this to be a little bit leaner and meaner
+
+39
+00:02:35.450 --> 00:02:41.450
+and to keep the best of all worlds, to have smaller getter methods that focus on one responsibility,
+
+40
+00:02:41.570 --> 00:02:47.810
+such as just organizations or just job types, but then combine them into a larger getter like filter
+
+41
+00:02:47.810 --> 00:02:48.230
+jobs.
+
+42
+00:02:48.680 --> 00:02:54.140
+So the first key takeaway that I have for you is that in a getter method in Vue X, we can actually
+
+43
+00:02:54.140 --> 00:02:57.470
+invoke or call other getter methods.
+
+44
+00:02:57.800 --> 00:03:03.380
+We have not done this yet because all of our getters so far have been single independent operations.
+
+45
+00:03:03.560 --> 00:03:06.560
+But we can actually transfer control to another getter.
+
+46
+00:03:06.680 --> 00:03:11.510
+We can call another getter just like we call another method within a single method in JavaScript.
+
+47
+00:03:12.260 --> 00:03:15.290
+So knowing that we can create smaller getter methods.
+
+48
+00:03:15.470 --> 00:03:18.770
+The next question is what kind of getter method do we want to create?
+
+49
+00:03:19.100 --> 00:03:22.580
+Well, I'm going to propose a solution to you right now, and then we're going to implement it.
+
+50
+00:03:22.790 --> 00:03:27.470
+And it may not seem readily apparent at the beginning how it's going to help, but I promise you it's
+
+51
+00:03:27.470 --> 00:03:30.170
+going to slim down the complexity of this implementation.
+
+52
+00:03:30.680 --> 00:03:37.730
+So what I propose we do is to create a getter whose responsibility it will be to tell us whether a single
+
+53
+00:03:37.730 --> 00:03:43.460
+job should be included based on its organization being present in this selected organization.
+
+54
+00:03:43.460 --> 00:03:45.170
+Slice of the View Store.
+
+55
+00:03:45.440 --> 00:03:48.200
+That will be the first small getter that we're going to write.
+
+56
+00:03:48.920 --> 00:03:55.010
+Then I also want to write a second smaller getter method, and its responsibility will be to tell me
+
+57
+00:03:55.010 --> 00:04:02.270
+whether a single job should be included in the filter jobs based on that jobs job type being present
+
+58
+00:04:02.270 --> 00:04:04.130
+in selected job types.
+
+59
+00:04:04.670 --> 00:04:10.430
+So currently all of our getters are relying on the view extra state and they're getting all of the jobs
+
+60
+00:04:10.430 --> 00:04:11.450
+from state jobs.
+
+61
+00:04:11.750 --> 00:04:16.550
+However, imagine that we had a getter that only focused on one job at a time.
+
+62
+00:04:16.820 --> 00:04:21.320
+It would still get the View Store state and it would get one job at a time and it would simply give
+
+63
+00:04:21.320 --> 00:04:28.490
+me back a boolean, true or false, whether that job should or should not be included based on its correct
+
+64
+00:04:28.490 --> 00:04:32.270
+validation within the right property in the view X Store State.
+
+65
+00:04:32.960 --> 00:04:37.100
+So I know it's a little bit complex, but let's start building out and hopefully it'll all come together
+
+66
+00:04:37.100 --> 00:04:39.650
+as we make our solution over the next couple lessons.
+
+67
+00:04:40.010 --> 00:04:46.010
+So the first thing I'm going to do is go to my constant status farm and here I'm going to define two
+
+68
+00:04:46.010 --> 00:04:50.180
+new constants for the two new getter methods that we're going to eventually write.
+
+69
+00:04:50.360 --> 00:04:54.380
+And we're going to invoke those getter methods in our filter jobs getter eventually.
+
+70
+00:04:54.590 --> 00:04:55.850
+For now, we're just going to write them out.
+
+71
+00:04:56.180 --> 00:04:59.740
+So my first getter that I'm going to write is going to be called in.
+
+72
+00:05:00.320 --> 00:05:02.570
+Job by organization.
+
+73
+00:05:02.960 --> 00:05:09.800
+My goal with this name is to say this letter will tell me whether or not I should or should not include
+
+74
+00:05:09.800 --> 00:05:11.810
+a job by its organization.
+
+75
+00:05:12.020 --> 00:05:16.880
+So this getter will be responsible for using the jobs organization and checking with these selected
+
+76
+00:05:16.880 --> 00:05:17.600
+organizations.
+
+77
+00:05:17.600 --> 00:05:18.920
+Slice of the View Store.
+
+78
+00:05:19.640 --> 00:05:25.130
+So I'm going to call this constant like so and I'm going to give it my texture of include job by organization.
+
+79
+00:05:25.580 --> 00:05:30.350
+The name here isn't perfect, but I'm saying I include job by its organization.
+
+80
+00:05:31.040 --> 00:05:36.800
+Similarly here, I'm going to have another constant called include job by job type.
+
+81
+00:05:37.780 --> 00:05:41.290
+So this is going to be eventually a getter that's going to tell me whether I should include a single
+
+82
+00:05:41.290 --> 00:05:43.300
+job by its job type.
+
+83
+00:05:43.570 --> 00:05:46.750
+So I'm going to say include job by job type.
+
+84
+00:05:48.560 --> 00:05:48.980
+All right.
+
+85
+00:05:49.370 --> 00:05:51.740
+So I'm going to close my concerns file.
+
+86
+00:05:52.010 --> 00:05:57.330
+And here we are on getters and we can start by importing our two getter constants above.
+
+87
+00:05:57.350 --> 00:06:01.160
+So our two new ones are called include job by organization.
+
+88
+00:06:02.190 --> 00:06:04.110
+And include job by job type.
+
+89
+00:06:04.500 --> 00:06:04.860
+All right.
+
+90
+00:06:05.280 --> 00:06:08.250
+So I'm going to start writing those get our methods in just a second.
+
+91
+00:06:08.250 --> 00:06:13.500
+But first, I want to take you to the official view X documentation in the browser, because the syntax
+
+92
+00:06:13.500 --> 00:06:18.690
+for writing a getter that's going to accept an additional argument is a little bit different from what
+
+93
+00:06:18.690 --> 00:06:22.710
+you might expect and certainly different from what we've done before with things like mutations.
+
+94
+00:06:23.160 --> 00:06:26.370
+So let me transition immediately to the View X documentation.
+
+95
+00:06:27.270 --> 00:06:28.530
+And here we have an example.
+
+96
+00:06:28.890 --> 00:06:34.650
+You can see here it says you can pass arguments to getters by returning a function from the getter.
+
+97
+00:06:35.100 --> 00:06:35.400
+Okay?
+
+98
+00:06:35.640 --> 00:06:41.250
+So typically the getters that we've written so far have returned data structures like sets or arrays
+
+99
+00:06:41.250 --> 00:06:46.830
+or objects, but we can also return functions from our getters and view.
+
+100
+00:06:46.830 --> 00:06:53.040
+X knows that whenever we return a function, it needs to invoke that function with whatever arguments
+
+101
+00:06:53.040 --> 00:06:55.620
+we pass to the original getter method.
+
+102
+00:06:56.510 --> 00:06:56.730
+Okay.
+
+103
+00:06:56.750 --> 00:07:00.800
+It's a little bit confusing, but let's take a look at this example right here and the syntax and then
+
+104
+00:07:00.800 --> 00:07:03.230
+we'll implemented in a relevant example in our code.
+
+105
+00:07:03.620 --> 00:07:06.950
+So in this example in the docs, we have a getter called get to do by ID.
+
+106
+00:07:07.700 --> 00:07:11.470
+And what we're doing here is actually using ES6 arrow syntax to define a method.
+
+107
+00:07:11.480 --> 00:07:14.570
+This is still a method for using an alternate syntax to define it.
+
+108
+00:07:14.840 --> 00:07:20.630
+So here you can see, just like any getter method, this getter would receive the state as the very
+
+109
+00:07:20.630 --> 00:07:22.520
+first parameter to that getter method.
+
+110
+00:07:23.030 --> 00:07:28.940
+However, what we're doing here or what the documentation is doing is it's implicitly returning a function.
+
+111
+00:07:29.780 --> 00:07:30.230
+All right.
+
+112
+00:07:30.380 --> 00:07:35.840
+So right here, what I have here with this arrow selected and this idea, this is a single arrow function
+
+113
+00:07:36.020 --> 00:07:37.910
+that accepts an IED parameter.
+
+114
+00:07:38.030 --> 00:07:39.760
+And then here is the function body.
+
+115
+00:07:40.630 --> 00:07:48.610
+So to reiterate, get to do buy ID is a getter method whose return value is a function that accepts
+
+116
+00:07:48.610 --> 00:07:49.960
+an ID parameter.
+
+117
+00:07:50.320 --> 00:07:55.090
+So this function body right here is the body of the function that is returned.
+
+118
+00:07:55.450 --> 00:07:58.630
+It is not in itself the body of the getter method.
+
+119
+00:07:58.960 --> 00:08:03.070
+The getter method returns the function that has this body.
+
+120
+00:08:04.320 --> 00:08:04.680
+Okay.
+
+121
+00:08:04.830 --> 00:08:09.900
+And it is in the returned function that we returned from the getter method that we can define whatever
+
+122
+00:08:09.900 --> 00:08:10.770
+parameter we want.
+
+123
+00:08:10.950 --> 00:08:13.830
+In this case, the developers define a parameter called ID.
+
+124
+00:08:14.430 --> 00:08:20.460
+And due to a JavaScript feature called closures in the nested function body, here we are able to use
+
+125
+00:08:20.460 --> 00:08:25.050
+parameters from any functions, either at this scope or any functions at a scope above.
+
+126
+00:08:25.320 --> 00:08:30.330
+So in the body of the return function, we're going to have access to the view or state parameter from
+
+127
+00:08:30.330 --> 00:08:36.000
+our original getter method and also to the ID parameter from the returned function, from the getter
+
+128
+00:08:36.000 --> 00:08:36.360
+method.
+
+129
+00:08:36.880 --> 00:08:41.520
+As you can see here, we're using ID right here that's coming from here and we're using state which
+
+130
+00:08:41.520 --> 00:08:42.270
+is coming from here.
+
+131
+00:08:43.180 --> 00:08:46.690
+So down below we have an example of an invocation of the letter.
+
+132
+00:08:46.870 --> 00:08:48.910
+We're accessing the getters property in our store.
+
+133
+00:08:49.060 --> 00:08:54.940
+We're invoking the get to do by I'd getter notice that we do not have to pass in the view X or state
+
+134
+00:08:54.940 --> 00:08:57.550
+because view X does that for us automatically.
+
+135
+00:08:57.730 --> 00:09:02.470
+Instead, what we pass in is the arguments to the returned function from the getter.
+
+136
+00:09:02.740 --> 00:09:06.940
+So this two represents the argument for the i d parameter.
+
+137
+00:09:07.300 --> 00:09:12.670
+Basically, the way that view x works is it looks at your getter method and says, okay, you're returning
+
+138
+00:09:12.670 --> 00:09:13.330
+a function.
+
+139
+00:09:13.540 --> 00:09:18.850
+So I'm going to treat that function as the function I have to invoke to get the effective return value.
+
+140
+00:09:19.000 --> 00:09:22.750
+And that's the function to which I'm going to pass the arguments that you're going to give me.
+
+141
+00:09:23.110 --> 00:09:25.720
+So behind the scenes, View X is still going to run the getter.
+
+142
+00:09:25.930 --> 00:09:29.890
+It's going to give the state automatically the View X Store as it is.
+
+143
+00:09:30.010 --> 00:09:32.680
+It's going to get back a return value of a function.
+
+144
+00:09:32.890 --> 00:09:37.570
+And then to that function is what it's going to pass the arguments that are provided in line here.
+
+145
+00:09:37.690 --> 00:09:41.500
+In this case, the number two is going to go to ID, right?
+
+146
+00:09:41.710 --> 00:09:46.900
+So the key takeaway here is if we define a getter that is a method that returns a function, that is
+
+147
+00:09:46.900 --> 00:09:49.390
+how we can incorporate arguments into getters.
+
+148
+00:09:49.690 --> 00:09:55.510
+And what we want to do in this code is allow our getter to receive a single job as an argument.
+
+149
+00:09:55.870 --> 00:09:57.850
+So let's transition back to this code.
+
+150
+00:10:00.250 --> 00:10:05.020
+And let's say right here above filter jobs, I can write the first of my two getters.
+
+151
+00:10:05.260 --> 00:10:07.540
+So my first getter is called include Job.
+
+152
+00:10:08.580 --> 00:10:13.560
+My organization, and I'm going to use that special syntax, which is the colon, and then I'm going
+
+153
+00:10:13.560 --> 00:10:14.760
+to define my arrow function.
+
+154
+00:10:14.940 --> 00:10:20.190
+So here I am defining my first parameter, which is always going to be the View Store State.
+
+155
+00:10:20.460 --> 00:10:25.350
+And if I wanted to, I can do a regular function body like so and treat this like a regular getter.
+
+156
+00:10:25.350 --> 00:10:28.590
+I could return, you know, a basic data structure here, like an array.
+
+157
+00:10:28.650 --> 00:10:30.150
+This is totally valid syntax.
+
+158
+00:10:30.300 --> 00:10:34.140
+This is just to demonstrate the alternative way that we can define a method compared to the one that
+
+159
+00:10:34.140 --> 00:10:37.350
+we did above or below where we do not have arrow function syntax.
+
+160
+00:10:37.650 --> 00:10:41.850
+So this is totally valid, but we don't want this getter to return an array.
+
+161
+00:10:41.970 --> 00:10:45.900
+We want it to return a function that's going to return something else.
+
+162
+00:10:46.740 --> 00:10:50.790
+So we're going to make our getter method return a function with a body.
+
+163
+00:10:50.940 --> 00:10:54.990
+And in this arrow function, we're going to define a single parameter called job.
+
+164
+00:10:55.680 --> 00:11:00.480
+So in the body here of that return function, we can assume that we're going to have access to the View
+
+165
+00:11:00.480 --> 00:11:05.040
+X Store state via the name state and to a single job, via the name job.
+
+166
+00:11:05.520 --> 00:11:09.450
+We haven't talked yet about how we're going to invoke this getter and feed it a job.
+
+167
+00:11:09.450 --> 00:11:10.500
+We'll talk more about that later.
+
+168
+00:11:10.680 --> 00:11:15.000
+But let's assume now that we're going to have a single job object and we have the View Store State,
+
+169
+00:11:15.210 --> 00:11:20.310
+which means we have everything we need to determine whether or not we should include that job or not.
+
+170
+00:11:20.610 --> 00:11:23.640
+So I'm going to have this getter return a boolean, either true or false.
+
+171
+00:11:23.790 --> 00:11:28.110
+And the logic is basically going to be a copy of the organization logic right here.
+
+172
+00:11:28.470 --> 00:11:34.080
+So the first thing I'm going to do is on my state, I'm going to look at these selected organizations,
+
+173
+00:11:34.100 --> 00:11:34.440
+right?
+
+174
+00:11:34.710 --> 00:11:37.710
+I'm going to check its length and I'm going to see if it's zero.
+
+175
+00:11:38.130 --> 00:11:41.820
+If it's zero, then the user has not selected any organizations.
+
+176
+00:11:41.970 --> 00:11:43.740
+So I always want to include this job.
+
+177
+00:11:43.740 --> 00:11:45.540
+I don't want to accidentally leave it out.
+
+178
+00:11:45.540 --> 00:11:47.640
+I want to say this job should always be included.
+
+179
+00:11:47.760 --> 00:11:50.640
+I don't even care about its property of organization.
+
+180
+00:11:50.760 --> 00:11:54.510
+I always want to include it because the user is not filtered by any specific organizations.
+
+181
+00:11:54.780 --> 00:11:55.650
+So I'm going to return.
+
+182
+00:11:55.650 --> 00:11:56.040
+True.
+
+183
+00:11:57.300 --> 00:12:03.750
+Basically what we're doing here is the exact same logic that we implemented right here in line 49.
+
+184
+00:12:03.840 --> 00:12:06.720
+We're just moving it to a separate function up above a separate getter.
+
+185
+00:12:07.110 --> 00:12:11.910
+Then what I want to do is repeat this exact same logic I have in line FIFO, so I'm just going to copy
+
+186
+00:12:11.910 --> 00:12:12.810
+and paste it right here.
+
+187
+00:12:13.950 --> 00:12:20.100
+So what I'm going to do is for the individual single job that I get excuse me, for the individual job
+
+188
+00:12:20.100 --> 00:12:24.150
+that I'm going to get, I'm going to look at it's organization property, and I'm going to see if that
+
+189
+00:12:24.150 --> 00:12:28.620
+is found within selected organizations, which I have access to because I have the View Store State.
+
+190
+00:12:29.040 --> 00:12:34.260
+So this getter is going to return a true or a false, and that's the entire responsibility of the getter.
+
+191
+00:12:35.010 --> 00:12:35.340
+All right.
+
+192
+00:12:35.700 --> 00:12:43.590
+I'm going to repeat this process by running a similar getter for my include job by job type getter or
+
+193
+00:12:43.590 --> 00:12:44.070
+constant.
+
+194
+00:12:44.370 --> 00:12:47.040
+So once again, this is going to be a getter that's going to receive state.
+
+195
+00:12:47.890 --> 00:12:50.200
+And it's going to return a function.
+
+196
+00:12:51.210 --> 00:12:51.510
+All right.
+
+197
+00:12:51.510 --> 00:12:54.840
+And that function's going to accept the single job as a parameter.
+
+198
+00:12:55.530 --> 00:13:00.210
+And the responsibility of this function will be to return a boolean that reflects whether or not the
+
+199
+00:13:00.210 --> 00:13:02.700
+job should be included by its job type.
+
+200
+00:13:03.060 --> 00:13:06.240
+So once again, it's going to be very similar to what we have above where first going to check.
+
+201
+00:13:07.660 --> 00:13:11.980
+If these selected job types array on my view x store state is empty.
+
+202
+00:13:12.220 --> 00:13:17.020
+If that is the case, then I want to return true because I don't care about the specifics of the job.
+
+203
+00:13:17.170 --> 00:13:22.540
+I always want to return true to make sure I include that job in the event in the eventual array of filter
+
+204
+00:13:22.540 --> 00:13:22.870
+jobs.
+
+205
+00:13:23.200 --> 00:13:26.050
+And then I'm just going to copy this line right here on line 58.
+
+206
+00:13:27.220 --> 00:13:33.580
+Otherwise, if the user has selected job types or to be more technical, if our view store state selected
+
+207
+00:13:33.580 --> 00:13:38.290
+job types property has values, check whether the current job's job type is found.
+
+208
+00:13:38.410 --> 00:13:40.030
+And so this will return true or false.
+
+209
+00:13:40.270 --> 00:13:45.040
+So no matter which line we end on, I'm always going to produce a boolean, either true or false for
+
+210
+00:13:45.040 --> 00:13:46.270
+both of these getters.
+
+211
+00:13:46.810 --> 00:13:47.140
+All right.
+
+212
+00:13:47.320 --> 00:13:53.800
+So we have started to slowly extract the logic from here into smaller getters that take care of a single
+
+213
+00:13:53.830 --> 00:13:54.280
+job.
+
+214
+00:13:54.460 --> 00:13:59.710
+We haven't actually used these getters yet, but hopefully the basic beginning of the picture is starting
+
+215
+00:13:59.710 --> 00:14:05.050
+to become clearer in the sense that we're starting to isolate the logic that we have here in much smaller
+
+216
+00:14:05.050 --> 00:14:10.090
+getters that we're eventually going to utilize in our filter jobs getter method.
+
+217
+00:14:10.570 --> 00:14:10.810
+All right.
+
+218
+00:14:10.810 --> 00:14:13.300
+So we're going to chip away more at this approach in upcoming lessons.
+
+219
+00:14:13.480 --> 00:14:17.290
+But first, let's write some tests for our brand new getter methods.
+
+220
+00:14:17.530 --> 00:14:18.790
+I'll see you in the next lesson.

@@ -1,0 +1,1332 @@
+1
+00:00:01,620 --> 00:00:02,440
+Hi there.
+
+2
+00:00:02,460 --> 00:00:03,670
+This is Lulu.
+
+3
+00:00:04,019 --> 00:00:09,420
+Now, let's take a look at threat interruption, which is also related to threat cooperation.
+
+4
+00:00:10,390 --> 00:00:14,710
+So for the threads that we looked at stopped because they ran to completion.
+
+5
+00:00:15,040 --> 00:00:20,890
+But sometimes we would like to stop a particular task or a thread before they run to completion.
+
+6
+00:00:22,200 --> 00:00:27,780
+For instance, in our indexing program, if the web page is taking too long to download, then we may
+
+7
+00:00:27,780 --> 00:00:29,640
+like to stop that particular thread.
+
+8
+00:00:30,210 --> 00:00:36,150
+You may recall from one of our earlier demos that one of the downloaded threads was blocked as it could
+
+9
+00:00:36,150 --> 00:00:42,330
+not download the page due to some issue on the web server and we had to manually stop the program instead
+
+10
+00:00:42,330 --> 00:00:44,340
+of stopping that thread explicitly.
+
+11
+00:00:46,060 --> 00:00:51,100
+Similarly, when a user clicks on a cancel button in the user interface, then the corresponding thread
+
+12
+00:00:51,100 --> 00:00:52,450
+may have to be stopped.
+
+13
+00:00:54,010 --> 00:00:59,170
+Yet another reason could be that an application needs to be shut down quickly due to some performance
+
+14
+00:00:59,170 --> 00:00:59,770
+reasons.
+
+15
+00:01:00,250 --> 00:01:05,290
+Say there was some memory leak and we are running out of memory which is causing the slowness in the
+
+16
+00:01:05,290 --> 00:01:07,120
+response time of the application.
+
+17
+00:01:07,660 --> 00:01:13,120
+In this case, we may want to restart the web server and in the process stop any background threads
+
+18
+00:01:13,120 --> 00:01:14,590
+that are running on the server.
+
+19
+00:01:15,310 --> 00:01:20,260
+For instance, we may have background threads doing some important computation and we might want to
+
+20
+00:01:20,260 --> 00:01:26,890
+stop them explicitly so that the thread could terminate in a graceful way rather than terminate them
+
+21
+00:01:26,890 --> 00:01:29,800
+abruptly during the middle of the computation.
+
+22
+00:01:31,320 --> 00:01:34,920
+Java does not provide a mechanism for forcing a threat to stop.
+
+23
+00:01:36,280 --> 00:01:42,490
+The third class has a method named Stop for forcibly stopping a thread, but it has been deprecated
+
+24
+00:01:42,490 --> 00:01:46,000
+along with a few other methods like suspend and resume.
+
+25
+00:01:46,450 --> 00:01:50,500
+You can look at the thread class's API for information on these methods.
+
+26
+00:01:51,850 --> 00:01:58,060
+So Java instead provides interruption, which is a cooperative mechanism for requesting a thread to
+
+27
+00:01:58,060 --> 00:01:59,320
+stop what it is doing.
+
+28
+00:02:01,060 --> 00:02:07,600
+So the next question would be why Georgia allows a cooperative mechanism rather than forcing it to stop.
+
+29
+00:02:09,020 --> 00:02:14,960
+Forcing a terror to stop immediately can leave any shared objects in an inconsistent state.
+
+30
+00:02:16,200 --> 00:02:22,620
+So a cooperative way would allow the target thread to perform any cleanup operation before termination.
+
+31
+00:02:23,160 --> 00:02:26,370
+So it would allow the target thread to terminate in a graceful way.
+
+32
+00:02:26,940 --> 00:02:32,340
+Generally, such cleanup operations are often ignored, which can lead to serious problems.
+
+33
+00:02:34,140 --> 00:02:40,020
+You may recall this example from our lecture on volatile variables where we used a volatile boolean
+
+34
+00:02:40,020 --> 00:02:41,730
+variable to stop a threat.
+
+35
+00:02:42,610 --> 00:02:42,850
+Here.
+
+36
+00:02:42,850 --> 00:02:47,950
+Within the main method, we are creating a new thread which simply prints some text in a loop.
+
+37
+00:02:48,430 --> 00:02:55,540
+The loop stops iterating when stop is set to true by the main thread, which is done after about 1/2.
+
+38
+00:02:55,660 --> 00:02:59,020
+And with that, the thread terminates as it runs to completion.
+
+39
+00:02:59,980 --> 00:03:01,780
+So this is one way to stop a threat.
+
+40
+00:03:01,840 --> 00:03:04,810
+However, this may not be applicable in certain scenarios.
+
+41
+00:03:05,140 --> 00:03:12,100
+For instance, if a threat gets into states like waiting or time waiting or blocked due to invocation
+
+42
+00:03:12,100 --> 00:03:18,850
+of blocking methods such as weight, sleep or joint, then we really do not know when they would get
+
+43
+00:03:18,850 --> 00:03:23,680
+back into the running state and check the stop flag for such scenarios.
+
+44
+00:03:23,710 --> 00:03:25,240
+Interruption is the solution.
+
+45
+00:03:26,910 --> 00:03:28,590
+And now let's look at interruption.
+
+46
+00:03:29,040 --> 00:03:34,320
+Every thread has a bullion interrupted status, which is by default, false.
+
+47
+00:03:35,500 --> 00:03:41,290
+And the threat class has this method called us interrupt and if we invoke this method on a thread,
+
+48
+00:03:41,320 --> 00:03:45,280
+then the interrupted status of that thread would be set to true.
+
+49
+00:03:46,000 --> 00:03:51,580
+And it is basically a signal to the thread to stop what it is doing at its own convenience.
+
+50
+00:03:52,060 --> 00:03:55,960
+That is, it is up to the thread on how it responds to this request.
+
+51
+00:03:57,630 --> 00:04:04,080
+No blocking methods like sleep or weight try to detect when a threat has been interrupted and they try
+
+52
+00:04:04,080 --> 00:04:05,070
+to return early.
+
+53
+00:04:05,940 --> 00:04:12,360
+Essentially, they respond by clearing the interrupter status that is, resetting the interrupted status
+
+54
+00:04:12,360 --> 00:04:15,510
+to false and also throwing an interrupted exception.
+
+55
+00:04:16,399 --> 00:04:22,830
+You may recall that in our demos we enclosed blocking method calls like Sleep or weight with try catch
+
+56
+00:04:22,850 --> 00:04:27,440
+blocks with the exception handling code involved an interrupted exception.
+
+57
+00:04:28,440 --> 00:04:34,080
+Such interrupted status has been set to true and target method executed a blocking method.
+
+58
+00:04:34,080 --> 00:04:39,270
+Then it would throw an interrupted exception after resetting the status flag to false.
+
+59
+00:04:39,630 --> 00:04:46,110
+Similarly, even if a thread is already in states like waiting or time waiting or blocked, it will
+
+60
+00:04:46,110 --> 00:04:51,810
+respond by resetting the status flag and throwing the interrupted exception, indicating that it has
+
+61
+00:04:51,810 --> 00:04:52,830
+been interrupted.
+
+62
+00:04:53,550 --> 00:04:57,960
+On the catch block, handling the interrupted exception can include any cleanup code.
+
+63
+00:04:58,860 --> 00:05:05,130
+Just note that there is no guarantee on how quickly a thread detects interruption, although in practice
+
+64
+00:05:05,130 --> 00:05:06,690
+it happens pretty fast.
+
+65
+00:05:08,500 --> 00:05:13,660
+Now, if the path that your program takes does not involve a blocking operation, then you could do
+
+66
+00:05:13,660 --> 00:05:15,790
+something like this in order to terminate.
+
+67
+00:05:16,150 --> 00:05:21,670
+The while condition would invoke is interrupted method, which is also from the threat class and it
+
+68
+00:05:21,670 --> 00:05:25,000
+would return it true if the interrupted status is set to true.
+
+69
+00:05:26,680 --> 00:05:32,530
+And here's an alternative way is interpret method is just replaced with interrupted, which is also
+
+70
+00:05:32,530 --> 00:05:34,450
+another method from the thread class.
+
+71
+00:05:35,560 --> 00:05:41,530
+And this month it clears the interrupter status and it would return the previous value of the status
+
+72
+00:05:41,530 --> 00:05:41,800
+flag.
+
+73
+00:05:42,730 --> 00:05:45,550
+If the method returns true, then the loop would terminate.
+
+74
+00:05:46,330 --> 00:05:52,480
+Not that interrupted is the only method that can be used for resetting the interrupted status flag.
+
+75
+00:05:54,330 --> 00:06:00,720
+Finally note that if a threat is blocked due to the use of stream war, then that particular threat
+
+76
+00:06:00,720 --> 00:06:02,190
+is uninterruptible.
+
+77
+00:06:02,960 --> 00:06:10,100
+What it means is if the thread is waiting for some data from the source, then the thread is uninterruptible.
+
+78
+00:06:11,520 --> 00:06:17,340
+However, there is a workaround for this, and the workaround is that we need to close the stream and
+
+79
+00:06:17,340 --> 00:06:19,650
+that would cause an exception to be thrown.
+
+80
+00:06:20,500 --> 00:06:22,990
+So that's how we would interrupt the thread.
+
+81
+00:06:23,290 --> 00:06:25,480
+Soon we will look at this through a demo.
+
+82
+00:06:27,930 --> 00:06:33,780
+Similarly, if a threat is blocked due to an intrinsic lock that is either a synchronised method or
+
+83
+00:06:33,780 --> 00:06:38,010
+a synchronised block, then once again, the threat is uninterruptible.
+
+84
+00:06:39,540 --> 00:06:40,380
+There's an alternative.
+
+85
+00:06:40,410 --> 00:06:44,010
+You can use something called explicit locks and threats.
+
+86
+00:06:44,010 --> 00:06:46,220
+Waiting on them can be interruptible.
+
+87
+00:06:46,710 --> 00:06:48,750
+We will look at explicit locks to.
+
+88
+00:06:50,620 --> 00:06:56,830
+Finally, if a threat is blocked due to the use of an IWO rather than stream IWO, then the threat is
+
+89
+00:06:56,830 --> 00:06:57,790
+interruptible.
+
+90
+00:06:58,960 --> 00:07:02,470
+Now let's go ahead and look at threat interruption in action.
+
+91
+00:07:04,760 --> 00:07:04,880
+Okay.
+
+92
+00:07:05,010 --> 00:07:10,590
+For this demo, let's start off by looking at a very simple example of using the interrupt method.
+
+93
+00:07:11,010 --> 00:07:12,470
+So we will look at two programs.
+
+94
+00:07:12,480 --> 00:07:17,280
+First, one would be a very simple program, and the second one would be a slightly more complicated
+
+95
+00:07:17,280 --> 00:07:17,940
+example.
+
+96
+00:07:18,120 --> 00:07:22,880
+So for the first program, we are just looking at the same example that we have seen earlier.
+
+97
+00:07:22,890 --> 00:07:27,900
+It's called the My First Threat Class, which is one of the first classes that we wrote here.
+
+98
+00:07:28,260 --> 00:07:32,430
+And this particular class, all it is doing is it has the main method.
+
+99
+00:07:32,430 --> 00:07:38,160
+And within the main method we are spawning a new thread and the variable is named as thread itself and
+
+100
+00:07:38,160 --> 00:07:39,420
+we are starting that thread.
+
+101
+00:07:39,720 --> 00:07:44,730
+And in that thread all we are doing is we are invoking the go method, a method called go, which is
+
+102
+00:07:44,730 --> 00:07:46,680
+in turn invoking a method called more.
+
+103
+00:07:46,680 --> 00:07:49,140
+But that is not relevant here for this demo.
+
+104
+00:07:49,560 --> 00:07:55,080
+And the main method would then sleep for 3 seconds and would print this message called Inside Main.
+
+105
+00:07:55,710 --> 00:08:02,010
+So what we will do is we will we will copy this code where we are sleeping for 3 seconds and we will
+
+106
+00:08:02,010 --> 00:08:05,520
+make the other thread sleep for around 9 seconds.
+
+107
+00:08:05,850 --> 00:08:09,960
+So the main thread is sleeping for 3 seconds, the other thread is sleeping for 9 seconds.
+
+108
+00:08:10,320 --> 00:08:15,690
+And then from the main thread we will invoke the interrupt method on this variable thread.
+
+109
+00:08:15,870 --> 00:08:21,240
+So that way that sleeping the thread is an sleeping state that is the timed underscore waiting state.
+
+110
+00:08:21,240 --> 00:08:26,160
+And when we invoke the interrupt method, it should interrupt that particular thread, it should interrupt
+
+111
+00:08:26,160 --> 00:08:26,700
+this thread.
+
+112
+00:08:26,850 --> 00:08:28,200
+So let's go ahead and do that.
+
+113
+00:08:28,200 --> 00:08:29,580
+So let me just copy this.
+
+114
+00:08:31,210 --> 00:08:34,240
+And let's insert it here in the run method.
+
+115
+00:08:35,630 --> 00:08:36,890
+It's made this nine.
+
+116
+00:08:42,000 --> 00:08:44,940
+So in the catch block, let's just print this statement interrupt.
+
+117
+00:08:45,900 --> 00:08:47,970
+Now let's head over to the main method.
+
+118
+00:08:48,720 --> 00:08:52,920
+So after it slips for 3 seconds, let's invoke thread.
+
+119
+00:08:52,920 --> 00:08:54,420
+Thread is the variable name here.
+
+120
+00:08:56,190 --> 00:09:01,640
+And let's invoke the interrupt method and you can also see the other methods interrupted and is interrupted.
+
+121
+00:09:01,650 --> 00:09:06,450
+But this is the method that we invoke and that would set the interrupted status to true.
+
+122
+00:09:07,980 --> 00:09:10,350
+And so let's go ahead and run this.
+
+123
+00:09:16,080 --> 00:09:22,140
+So as you can see, after about 3 seconds, the main thread is invoking this interrupt and the second
+
+124
+00:09:22,140 --> 00:09:23,880
+thread is being interrupted.
+
+125
+00:09:24,150 --> 00:09:26,220
+So we are printing the message interrupted.
+
+126
+00:09:26,730 --> 00:09:28,420
+So that's the interrupt method.
+
+127
+00:09:28,440 --> 00:09:30,240
+So that's the first program.
+
+128
+00:09:30,450 --> 00:09:33,240
+Now, let's look at another program here.
+
+129
+00:09:33,900 --> 00:09:34,950
+It's called us.
+
+130
+00:09:35,130 --> 00:09:38,700
+Wait, notify with incomplete interruption.
+
+131
+00:09:38,880 --> 00:09:46,710
+So it's basically an extension of the wait notify indexer method, which we have seen earlier and we
+
+132
+00:09:46,710 --> 00:09:47,910
+have interruption here.
+
+133
+00:09:47,910 --> 00:09:54,450
+So we incorporated interruption, but I call it as incomplete because there is some limitation here.
+
+134
+00:09:55,110 --> 00:09:57,770
+Because of that, I call it as incomplete.
+
+135
+00:09:57,780 --> 00:10:04,340
+And in order to fix that, we may have to look at explicit locks, which is the subject of next lecture.
+
+136
+00:10:04,350 --> 00:10:06,500
+So that's why it's called us incomplete.
+
+137
+00:10:06,510 --> 00:10:12,750
+And most likely we can also have an assignment on that on this where you can actually fix that.
+
+138
+00:10:12,750 --> 00:10:14,130
+But we will look at that later.
+
+139
+00:10:14,130 --> 00:10:17,370
+For now, it's just called us with incomplete interruption.
+
+140
+00:10:17,910 --> 00:10:22,830
+So let's go ahead and look at what changes have been made in this program, which was originally very
+
+141
+00:10:22,830 --> 00:10:24,660
+notify indexer program itself.
+
+142
+00:10:27,360 --> 00:10:34,200
+As discussed in the lecture, we want to stop that thread if it is taking too long to download a page.
+
+143
+00:10:34,710 --> 00:10:39,290
+If you recall, that was one of the examples that we stated why we want to stop a thread.
+
+144
+00:10:39,300 --> 00:10:43,740
+And if you recall, we have the downloader thread which is responsible for downloading the web page
+
+145
+00:10:43,740 --> 00:10:49,140
+and we also have the indexer thread, which is for indexing the downloaded web page.
+
+146
+00:10:49,170 --> 00:10:49,680
+Right.
+
+147
+00:10:50,440 --> 00:10:52,150
+So that's what we have.
+
+148
+00:10:52,330 --> 00:10:56,350
+And we have the main method which is invoking this method called Let's Go.
+
+149
+00:10:56,710 --> 00:11:02,320
+And in the in the go method, if you recall, we were creating the downloader thread, the indexer thread,
+
+150
+00:11:02,320 --> 00:11:08,260
+and we were iterating through all the web links and we were creating for each of the web links.
+
+151
+00:11:08,260 --> 00:11:10,390
+We are creating these two threads now.
+
+152
+00:11:10,390 --> 00:11:18,310
+Additionally, what we are doing is we want to store these threads so that we can later invoke the interrupt
+
+153
+00:11:18,310 --> 00:11:18,790
+method.
+
+154
+00:11:18,790 --> 00:11:23,080
+So for storing we want to store them in a data structure so we have an array list.
+
+155
+00:11:23,080 --> 00:11:25,060
+So I created two or less.
+
+156
+00:11:25,420 --> 00:11:30,010
+One is called a downloader thread list and the other one is indexer thread list.
+
+157
+00:11:30,010 --> 00:11:31,450
+So these are our lists.
+
+158
+00:11:31,450 --> 00:11:36,010
+Basically they just store downloaded threads and indexer threads.
+
+159
+00:11:36,010 --> 00:11:38,650
+Indexer thread list will store only indexer threads.
+
+160
+00:11:38,890 --> 00:11:42,610
+And here each of these threats are also given a name.
+
+161
+00:11:42,610 --> 00:11:46,780
+We are just saying download a thread with ID for the download or thread.
+
+162
+00:11:46,780 --> 00:11:52,760
+We are saying download the thread with ID and we are simply giving the name of the web link here get.
+
+163
+00:11:53,020 --> 00:11:58,450
+We are invoking the get ID method, so that would be the name of the download or thread and we are doing
+
+164
+00:11:58,450 --> 00:12:00,110
+the same with the indexer thread too.
+
+165
+00:12:00,700 --> 00:12:02,260
+So those are the two threads.
+
+166
+00:12:02,890 --> 00:12:06,580
+So just pay attention because this is a lot of code has been added.
+
+167
+00:12:06,580 --> 00:12:08,620
+So just pay more attention here.
+
+168
+00:12:09,220 --> 00:12:16,510
+So all we are doing is we are adding this threads to some URLs and after the wild loop we are sleeping
+
+169
+00:12:16,510 --> 00:12:22,450
+for 1/2 and within 1/2 we are expecting the thread to finish the downloading job.
+
+170
+00:12:23,020 --> 00:12:28,060
+Now if it doesn't download, if a particular thread doesn't download, then we need to interrupt it.
+
+171
+00:12:28,060 --> 00:12:30,880
+And that particular piece of code is written here.
+
+172
+00:12:30,880 --> 00:12:37,390
+So we are iterating through the download thread list and then we are fetching a thread and in a given
+
+173
+00:12:37,390 --> 00:12:40,690
+iteration and we are checking if it is alive.
+
+174
+00:12:41,110 --> 00:12:47,500
+So there is this is a line method and it would return true if the web page has not yet finished its
+
+175
+00:12:47,500 --> 00:12:47,980
+task.
+
+176
+00:12:48,310 --> 00:12:51,310
+If it has not run to completion, then it would return true.
+
+177
+00:12:51,340 --> 00:12:54,190
+So in that case we want to interrupt the thread.
+
+178
+00:12:54,340 --> 00:13:00,040
+However, instead of interrupting the download of thread, we would actually interrupt the corresponding
+
+179
+00:13:00,040 --> 00:13:05,860
+indexer thread and that would actually take care of of interrupting the other thread.
+
+180
+00:13:06,400 --> 00:13:12,550
+Now the download or thread, we know that we cannot interrupt it because if you recall from the lecture
+
+181
+00:13:12,550 --> 00:13:19,900
+we said that if the thread is using stream Ivo it is uninterruptible and the only way we can interrupt
+
+182
+00:13:19,900 --> 00:13:22,330
+it is by closing the stream.
+
+183
+00:13:22,330 --> 00:13:28,750
+And that's what is happening here because we are using stream Ivo actually to download the page and
+
+184
+00:13:28,750 --> 00:13:32,650
+so we cannot interrupt it unless we close the stream itself.
+
+185
+00:13:32,890 --> 00:13:35,350
+So that's what we are trying to do here.
+
+186
+00:13:35,470 --> 00:13:44,020
+So, so the indexer thread is being interrupted, but in the download thread we have some changes here.
+
+187
+00:13:44,740 --> 00:13:50,260
+So earlier we had this method called htp, connect, dot download and we were passing a URL.
+
+188
+00:13:50,620 --> 00:13:53,470
+Now we need access to the input stream.
+
+189
+00:13:53,740 --> 00:13:59,530
+So this is the downloader method, the downloader thread and we need access to the input stream so that
+
+190
+00:13:59,530 --> 00:14:00,910
+we can actually close it.
+
+191
+00:14:01,330 --> 00:14:03,700
+So that's why a new method has been written.
+
+192
+00:14:03,700 --> 00:14:09,010
+It's called us get input stream in the IP Connect class and that's already available in the resources
+
+193
+00:14:09,010 --> 00:14:09,640
+section.
+
+194
+00:14:09,880 --> 00:14:17,110
+So the input stream is here and then we need to close this input stream and for that we need to use
+
+195
+00:14:17,110 --> 00:14:18,220
+a different thread.
+
+196
+00:14:18,850 --> 00:14:20,680
+So we need to spawn a new thread.
+
+197
+00:14:20,680 --> 00:14:28,090
+So within this download thread what we are doing is here we are creating a new thread and this is mainly
+
+198
+00:14:28,090 --> 00:14:31,270
+responsible for closing the input string.
+
+199
+00:14:31,270 --> 00:14:33,280
+So we are spawning a new thread here.
+
+200
+00:14:33,310 --> 00:14:40,750
+Here it is and we are naming it as BG thread because it's a background thread and within the run method
+
+201
+00:14:41,020 --> 00:14:46,360
+we want to close that particular input stream based on some condition.
+
+202
+00:14:46,630 --> 00:14:53,830
+So we have a cancellation policy here and the policy is that after about 1/2, you know, this particular
+
+203
+00:14:53,980 --> 00:14:57,640
+thread, if it doesn't finish the task, the downloader that we need to close it.
+
+204
+00:14:58,030 --> 00:14:59,470
+So that's the policy.
+
+205
+00:14:59,500 --> 00:15:04,120
+Now after once again, we need to somehow make this thread.
+
+206
+00:15:04,150 --> 00:15:10,390
+If it is still if the downloading is not yet complete, then the thread should terminate and during
+
+207
+00:15:10,390 --> 00:15:14,620
+the process it needs to invoke the closed method on the input stream.
+
+208
+00:15:14,890 --> 00:15:16,690
+Input stream is basically iron.
+
+209
+00:15:17,110 --> 00:15:24,160
+So for that we also have this introduced a new variable inside the weblink object.
+
+210
+00:15:24,640 --> 00:15:27,010
+You can go here, here it is.
+
+211
+00:15:27,010 --> 00:15:32,860
+So it's basically a volatile variable stop and it will if we set the stop to true.
+
+212
+00:15:32,980 --> 00:15:39,280
+It means that the background thread don't know the thread has to be stopped and that is done by closing
+
+213
+00:15:39,280 --> 00:15:40,330
+the input string.
+
+214
+00:15:40,900 --> 00:15:44,350
+So this is a signal to the thread to stop.
+
+215
+00:15:44,350 --> 00:15:46,150
+So that's the main intention here.
+
+216
+00:15:46,750 --> 00:15:49,060
+Now if the E stop, if it returns.
+
+217
+00:15:49,220 --> 00:15:49,770
+False.
+
+218
+00:15:50,060 --> 00:15:55,220
+Then what, what this thread background thread does is it just leaps for 1/2 and then it wakes up and
+
+219
+00:15:55,220 --> 00:15:56,780
+once again it keeps checking this.
+
+220
+00:15:57,140 --> 00:16:03,590
+Now, if this variable is set to true stop variable is set to true, then it would exit this loop and
+
+221
+00:16:03,590 --> 00:16:05,270
+it would close the input string.
+
+222
+00:16:05,720 --> 00:16:07,880
+Now let's go down in this method.
+
+223
+00:16:08,540 --> 00:16:13,190
+So this is still the downloader class and here we have the download method.
+
+224
+00:16:13,190 --> 00:16:19,430
+So earlier we had the download method which was taking a URL of the web page, but now it is taking
+
+225
+00:16:19,430 --> 00:16:20,990
+an input stream.
+
+226
+00:16:21,410 --> 00:16:23,000
+So it's an overloaded method.
+
+227
+00:16:23,000 --> 00:16:25,070
+And so we have that.
+
+228
+00:16:25,310 --> 00:16:28,790
+And once it downloads, it sets the HTML page here.
+
+229
+00:16:29,780 --> 00:16:35,750
+Now, if the download completes in a normal way, but in that even in that case, we want to interrupt
+
+230
+00:16:35,750 --> 00:16:36,850
+the big thread, right?
+
+231
+00:16:36,890 --> 00:16:40,250
+Otherwise this big thread would still be running in the background.
+
+232
+00:16:40,250 --> 00:16:41,660
+And we want to close that.
+
+233
+00:16:41,990 --> 00:16:45,170
+And this is just the notify all method in the downloader.
+
+234
+00:16:45,530 --> 00:16:50,450
+And we also have the indexer method and in the indexer we are also waiting here.
+
+235
+00:16:51,140 --> 00:16:52,880
+So in the indexer method.
+
+236
+00:16:53,980 --> 00:16:59,980
+Now we have this catch block called interrupted exception because if you recall if here in the go method
+
+237
+00:16:59,980 --> 00:17:08,500
+we are actually invoking the interrupt method on if the downloader thread is alive after 1/2, then
+
+238
+00:17:08,500 --> 00:17:11,950
+we are invoking the interrupt method on the interrupted.
+
+239
+00:17:12,190 --> 00:17:17,770
+We are not doing it on downloader thread but the interrupted and in the interrupt thread because interrupt
+
+240
+00:17:17,770 --> 00:17:19,690
+and downloader thread are connected.
+
+241
+00:17:19,690 --> 00:17:19,940
+Right.
+
+242
+00:17:19,960 --> 00:17:25,750
+They are cooperating threads and the interrupt thread will actually be interrupted.
+
+243
+00:17:25,750 --> 00:17:31,870
+And if it is interrupted then this is the catch block of the interrupted thread.
+
+244
+00:17:31,870 --> 00:17:37,600
+And within the catch block we are doing some cleanup operation and the cleanup operation is nothing,
+
+245
+00:17:37,600 --> 00:17:41,290
+but it's nothing but setting this stop status to true.
+
+246
+00:17:41,650 --> 00:17:47,950
+And if we set the status to true then in the downloader thread we have the background thread and that
+
+247
+00:17:47,950 --> 00:17:54,580
+will check if the status if the stop flag is true and that will close the input stream and as soon as
+
+248
+00:17:54,580 --> 00:18:00,730
+it closes the input stream then the main, then the downloader thread which is actually.
+
+249
+00:18:03,000 --> 00:18:04,650
+Invoking the download method.
+
+250
+00:18:05,010 --> 00:18:12,690
+It is waiting there for the data that will throw an IO exception, and the IO exception is here and
+
+251
+00:18:12,690 --> 00:18:18,570
+we are printing this message saying that the webpage could not be downloaded and so we are terminating
+
+252
+00:18:18,570 --> 00:18:20,430
+as the stream is closed.
+
+253
+00:18:20,700 --> 00:18:23,280
+So it is being indirectly interrupted.
+
+254
+00:18:23,880 --> 00:18:26,820
+So that's that now.
+
+255
+00:18:26,820 --> 00:18:30,690
+So I think we can just go ahead and run it on this method.
+
+256
+00:18:34,290 --> 00:18:35,430
+So we are done with that.
+
+257
+00:18:35,430 --> 00:18:37,860
+So let's just look at this output here.
+
+258
+00:18:37,860 --> 00:18:44,610
+So the downloaded thread is trying to download these pages and one of the pages is actually completed
+
+259
+00:18:44,610 --> 00:18:47,730
+to 2003 and it's been indexed also.
+
+260
+00:18:48,820 --> 00:18:49,050
+Okay.
+
+261
+00:18:49,090 --> 00:18:56,110
+Then the big threat, because even after the the big threat is also interrupted, because even though
+
+262
+00:18:56,110 --> 00:19:00,340
+we are we have finished downloading the page, we are still calling.
+
+263
+00:19:00,370 --> 00:19:05,620
+After downloading it successfully, we are still invoking the interrupt method because we also want
+
+264
+00:19:05,650 --> 00:19:08,080
+this thread to be terminated.
+
+265
+00:19:08,320 --> 00:19:13,420
+We don't need this anymore so we can terminate it even on successfully downloading the webpage within
+
+266
+00:19:13,420 --> 00:19:14,170
+1/2.
+
+267
+00:19:14,200 --> 00:19:20,260
+Then here we are saying the time is up, which means that 1/2 has passed and there are some threats
+
+268
+00:19:20,260 --> 00:19:23,140
+which are which are still active.
+
+269
+00:19:23,560 --> 00:19:28,150
+So what it means is these three threats, 2000, 2001 and 2002.
+
+270
+00:19:28,150 --> 00:19:30,640
+So they are actually here.
+
+271
+00:19:30,880 --> 00:19:34,270
+They could not even enter in the indexer threat.
+
+272
+00:19:34,270 --> 00:19:38,470
+They are waiting here on the synchronized block, which is an intrinsic lock.
+
+273
+00:19:38,470 --> 00:19:45,160
+And even though the interrupt has been invoked, we know that in the lecture, if you recall, we said
+
+274
+00:19:45,160 --> 00:19:53,410
+that any threat waiting on an intrinsic log, which would be such synchronized blocks, in that case,
+
+275
+00:19:53,410 --> 00:19:55,510
+they would they will be uninterruptible.
+
+276
+00:19:55,780 --> 00:19:57,850
+They would still be waiting here.
+
+277
+00:19:57,850 --> 00:20:00,670
+And the block state itself, they're uninterruptible.
+
+278
+00:20:00,880 --> 00:20:06,760
+So there are three threats which are three indexer threats which are waiting here, but their corresponding
+
+279
+00:20:06,760 --> 00:20:10,030
+interrupt methods have already been invoked, but we are still waiting here.
+
+280
+00:20:10,030 --> 00:20:13,000
+So that's the limitation of this approach.
+
+281
+00:20:13,240 --> 00:20:14,140
+They are waiting here.
+
+282
+00:20:14,440 --> 00:20:20,830
+So even after that, the down their downloaded threats are still continuing to execute for these three
+
+283
+00:20:20,830 --> 00:20:21,400
+threats.
+
+284
+00:20:21,400 --> 00:20:28,660
+And we are seeing that 21 download is complete and then it is interrupted and then it is indexed here
+
+285
+00:20:28,660 --> 00:20:35,440
+because of this, because it would invoke the notify all and it would exit this loop and.
+
+286
+00:20:37,440 --> 00:20:39,900
+Yeah, because it would download the page.
+
+287
+00:20:39,900 --> 00:20:46,830
+And here in the indexer thread the we are having this file condition and if the HTML page is not equal
+
+288
+00:20:46,830 --> 00:20:50,220
+to null and then we are going to index this page.
+
+289
+00:20:50,220 --> 00:20:57,270
+So it just even though the time has passed, the 1/2 has passed, we are still downloading all the three
+
+290
+00:20:57,270 --> 00:20:58,170
+pages here.
+
+291
+00:20:59,280 --> 00:21:04,230
+So that's the problem with this, because all the three threads were actually waiting here itself.
+
+292
+00:21:06,440 --> 00:21:06,550
+Okay.
+
+293
+00:21:06,650 --> 00:21:10,690
+So that is the 1/2 limitation is not having any effect here.
+
+294
+00:21:10,700 --> 00:21:12,410
+Let me just run it one more time.
+
+295
+00:21:13,710 --> 00:21:14,220
+Yeah.
+
+296
+00:21:14,250 --> 00:21:15,760
+Now, this example is good.
+
+297
+00:21:15,780 --> 00:21:19,350
+I think this one is much better because here we are downloading.
+
+298
+00:21:19,350 --> 00:21:25,200
+But but if you can see here, here we are saying these two threats are actually these statements are
+
+299
+00:21:25,200 --> 00:21:27,180
+getting printed from the indexer thread.
+
+300
+00:21:27,180 --> 00:21:30,660
+And here we are saying 2000 not yet downloaded and it is waiting.
+
+301
+00:21:31,110 --> 00:21:36,750
+So these two threads, 2000 and 2002, they kicked in before the corresponding download threads.
+
+302
+00:21:37,350 --> 00:21:43,770
+So they came inside the synchronized and 2004 2000 and 2002 we are saying not yet downloaded.
+
+303
+00:21:43,770 --> 00:21:45,870
+And they go into the waiting state here.
+
+304
+00:21:46,140 --> 00:21:47,970
+Now let's go back here.
+
+305
+00:21:49,570 --> 00:21:53,320
+At the time is up and one of them was 2000.
+
+306
+00:21:53,860 --> 00:21:58,600
+So for 2000 the download has been complete.
+
+307
+00:21:58,840 --> 00:22:05,410
+But before invoking the notify all itself because interrupt method has already been called and under
+
+308
+00:22:05,410 --> 00:22:10,930
+to the the document with the ID 2000 is inside this weight method is waiting there.
+
+309
+00:22:11,440 --> 00:22:15,640
+So because and so the thread scheduler will actually interrupt this thread.
+
+310
+00:22:16,030 --> 00:22:23,140
+And because of that, so this page, this statement will not get executed and it will go into this interrupted
+
+311
+00:22:23,140 --> 00:22:26,160
+exception and it is performing this cleanup operation.
+
+312
+00:22:26,950 --> 00:22:30,010
+That's why it says Indexer interrupted here.
+
+313
+00:22:30,280 --> 00:22:37,420
+And it is the cleanup operation is to call this stop method set stop and it is setting the true.
+
+314
+00:22:37,600 --> 00:22:43,750
+So by doing so it will actually close the the other thread to the input stream.
+
+315
+00:22:43,960 --> 00:22:45,220
+So that's what is happening.
+
+316
+00:22:45,220 --> 00:22:46,120
+But for.
+
+317
+00:22:46,960 --> 00:22:53,740
+But what is happening here is after 1/2 the downloader thread is also downloading, has also finished
+
+318
+00:22:54,280 --> 00:22:56,560
+downloading the page concurrently.
+
+319
+00:22:57,100 --> 00:22:59,430
+So it's just a little bit difficult to simulate this.
+
+320
+00:22:59,440 --> 00:23:06,190
+If it was if the thread was waiting, if the the corresponding thread for 2000 for this ID 2000 if it
+
+321
+00:23:06,190 --> 00:23:12,430
+was waiting for for a few more seconds then we could have seen that where the input stream is closed
+
+322
+00:23:12,430 --> 00:23:14,980
+and that would force the thread to terminate.
+
+323
+00:23:15,310 --> 00:23:20,890
+So we are it's just a little bit difficult to show that here because these are all web pages and we
+
+324
+00:23:20,890 --> 00:23:24,910
+don't have control on how how they are going to respond.
+
+325
+00:23:25,150 --> 00:23:28,030
+So anyway, I think you might have got an idea about this.
+
+326
+00:23:28,030 --> 00:23:29,860
+You can also take a look at this program.
+
+327
+00:23:30,670 --> 00:23:32,150
+It will be in the resources section.
+
+328
+00:23:32,170 --> 00:23:36,850
+So the problem that we saw earlier was that the threads were actually waiting here.
+
+329
+00:23:36,850 --> 00:23:41,590
+And when they were waiting here, the indexer threads, we are unable to interrupt them.
+
+330
+00:23:42,070 --> 00:23:45,550
+So if we want to do that, then we need to use explicit locks.
+
+331
+00:23:45,550 --> 00:23:47,680
+And that way we'll see in the next lecture.
+
+332
+00:23:48,130 --> 00:23:49,120
+That's all for now.
+
+333
+00:23:49,150 --> 00:23:50,950
+Thank you and happy coding.
+

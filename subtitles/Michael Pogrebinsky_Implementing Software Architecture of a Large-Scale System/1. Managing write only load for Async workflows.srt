@@ -1,0 +1,203 @@
+1
+00:00:01,340 --> 00:00:06,590
+After taking care of Lead Lord by removing some Reed Lord from our database.
+
+2
+00:00:06,980 --> 00:00:09,860
+Now let's turn our attention to Right Lord.
+
+3
+00:00:10,490 --> 00:00:17,360
+So is there any way we can reduce the load on our database by taking care of the right look?
+
+4
+00:00:17,960 --> 00:00:23,450
+So asynchronous processing is one way we can therefore the Lord on the database.
+
+5
+00:00:23,900 --> 00:00:31,610
+What we can do is we can defer some of the transactions by putting transaction requests in a message
+
+6
+00:00:31,610 --> 00:00:38,030
+queue and performing those transactions when the database is not under heavy load.
+
+7
+00:00:38,600 --> 00:00:42,050
+So if you have something in message queue, we can defer its processing.
+
+8
+00:00:42,050 --> 00:00:48,590
+So that's the way asynchronous processing can help us in reducing load on the database.
+
+9
+00:00:49,850 --> 00:00:55,310
+So in order to do that, the first thing that we need to do is we need to identify those APIs which
+
+10
+00:00:55,310 --> 00:01:00,800
+are right oriented and hence we can execute them asynchronously.
+
+11
+00:01:01,460 --> 00:01:08,450
+So those APIs, which are right oriented in our system, they are ATA service and inventory service.
+
+12
+00:01:08,660 --> 00:01:10,220
+So that's when we create an audit.
+
+13
+00:01:10,670 --> 00:01:14,960
+We need to write that order and its line items to the database.
+
+14
+00:01:15,740 --> 00:01:23,210
+We also need to do that inventory from inventory database or whatever stuff the user is buying.
+
+15
+00:01:23,210 --> 00:01:28,460
+Whatever items the user is buying will have to dig that that inventory from the database.
+
+16
+00:01:29,030 --> 00:01:37,870
+So these are the two APIs which are used as part of Single Creator API, which do a lot of right related.
+
+17
+00:01:38,820 --> 00:01:47,300
+Now there is a read part to it, which is where user will send the request and we need to notify the
+
+18
+00:01:47,330 --> 00:01:52,940
+user that the order has been accepted or the order in their execution.
+
+19
+00:01:53,360 --> 00:01:59,870
+And then we again is synchronously processed the right part, which is basically execution of the create
+
+20
+00:01:59,870 --> 00:02:00,740
+order transaction.
+
+21
+00:02:01,580 --> 00:02:08,930
+So Create Order is one such example which we can decouple from the three part the query part, which
+
+22
+00:02:08,930 --> 00:02:15,800
+is where we just need to let users know that the order is being accepted and we will let users know
+
+23
+00:02:15,800 --> 00:02:22,400
+that the order has been accepted when we serve that order or possess that order in a messaging user
+
+24
+00:02:22,400 --> 00:02:23,180
+sent any order.
+
+25
+00:02:23,660 --> 00:02:30,140
+We will validated and we will put it into the messaging queue and we will acknowledge the user that
+
+26
+00:02:30,140 --> 00:02:38,240
+the order has been captured and we can associate that order with some status, which is that the order
+
+27
+00:02:38,240 --> 00:02:41,720
+processing is in progress and it is not yet confirmed.
+
+28
+00:02:43,250 --> 00:02:49,400
+So later on, what we can do is the order processing service, which is right now the part of the service
+
+29
+00:02:49,400 --> 00:02:57,440
+itself can pull these messages that we have saved in the message queue and can process these messages,
+
+30
+00:02:57,440 --> 00:03:01,070
+which doesn't have anything else but the order that needs to be processed.
+
+31
+00:03:01,880 --> 00:03:05,720
+So it will pull out those order messages and it will processed them.
+
+32
+00:03:05,720 --> 00:03:08,600
+And then it went right to the database.
+
+33
+00:03:08,960 --> 00:03:15,920
+Once it is done processing the order, it can use a notification service to notify the user that the
+
+34
+00:03:15,920 --> 00:03:17,300
+order has been processed.
+
+35
+00:03:18,470 --> 00:03:25,430
+So this is a typical create a workflow that we can break into two parts, read part and write part and
+
+36
+00:03:25,430 --> 00:03:28,040
+write part we can do asynchronously.
+
+37
+00:03:28,490 --> 00:03:36,380
+So the benefit of this approach is that the user part wherein user submits the order that finishes pretty
+
+38
+00:03:36,380 --> 00:03:40,430
+quickly with very low latency and that improves user experience.
+
+39
+00:03:41,030 --> 00:03:46,340
+The other thing that that is happening over here is because we are not doing the right part as part
+
+40
+00:03:46,340 --> 00:03:54,140
+of the user order capture transaction, the transaction or transaction time reduces or the failure rate
+
+41
+00:03:54,140 --> 00:03:56,210
+of this transaction will come down.
+
+42
+00:03:56,810 --> 00:03:58,970
+So that also improves the user experience.
+
+43
+00:03:59,720 --> 00:04:05,660
+Now, the part where we need to actually process the order that we will do is in going to sleep and
+
+44
+00:04:05,900 --> 00:04:14,750
+in case if system our databases and that high-stress, then we have this ability in our system that
+
+45
+00:04:14,750 --> 00:04:22,940
+we can process the order from message queue only when the system has some capacity.
+
+46
+00:04:23,240 --> 00:04:29,000
+So the orders which are coming from the user, we have no choice but to capture that.
+
+47
+00:04:29,010 --> 00:04:32,900
+We must have capacity to at least capture them and put the messaging queue.
+
+48
+00:04:33,440 --> 00:04:40,550
+But once these orders are in messaging queue, we can pull them out at our own pace that our system
+
+49
+00:04:40,550 --> 00:04:43,220
+capacity allows and accordingly, we can process them.
+
+50
+00:04:44,180 --> 00:04:49,610
+Now, the next thing that we need to look into once we decide that which API we need to make is synchronous.
+
+51
+00:04:50,270 --> 00:04:55,400
+We need to decide which queue or messaging queue we are going to use.

@@ -1,0 +1,348 @@
+1
+00:00:02,160 --> 00:00:02,980
+Hello there.
+
+2
+00:00:03,000 --> 00:00:04,290
+This is the De La Rue.
+
+3
+00:00:04,770 --> 00:00:11,130
+Earlier I mentioned that a jour program can also have memory leaks, despite all the efforts from GC.
+
+4
+00:00:11,700 --> 00:00:18,960
+Item six from effective Java is about avoiding memory leaks and it says that eliminate obsolete object
+
+5
+00:00:18,960 --> 00:00:19,770
+references.
+
+6
+00:00:20,220 --> 00:00:23,880
+So let's go ahead and see what an obsolete object references.
+
+7
+00:00:25,750 --> 00:00:29,650
+Let's consider this example from item six, which represents a stack.
+
+8
+00:00:30,040 --> 00:00:34,090
+And for the sake of brevity, I included only the relevant parts of the code.
+
+9
+00:00:34,630 --> 00:00:41,590
+And if you do not know what a stack is, it is simply a last in first out data structure and it supports
+
+10
+00:00:41,590 --> 00:00:43,690
+two main operations push and pop.
+
+11
+00:00:44,140 --> 00:00:51,430
+Using push, you can add an element to the stack and pop would allow you to remove and return the last
+
+12
+00:00:51,430 --> 00:00:53,140
+element inserted into the stack.
+
+13
+00:00:53,710 --> 00:00:57,790
+And that's the reason it is called as last in, first out.
+
+14
+00:00:58,240 --> 00:01:01,690
+So basically Stack represents a collection of elements.
+
+15
+00:01:02,380 --> 00:01:08,710
+Now in our example here, you can see both push and pop operations and elements in the stack are stored
+
+16
+00:01:08,710 --> 00:01:13,330
+in an array of objects and the array is also named as elements.
+
+17
+00:01:14,080 --> 00:01:21,010
+The variable size represents the current size of the array, and it also acts as an array index and
+
+18
+00:01:21,010 --> 00:01:26,980
+its value will be one greater than the index of the last inserted element into the array.
+
+19
+00:01:27,640 --> 00:01:30,100
+It would be zero whenever stack is empty.
+
+20
+00:01:30,920 --> 00:01:31,130
+Here.
+
+21
+00:01:31,160 --> 00:01:38,060
+The push method first invokes a method called ensure capacity, which ensures that there is enough space
+
+22
+00:01:38,060 --> 00:01:40,010
+in the stack to add a new element.
+
+23
+00:01:40,430 --> 00:01:43,100
+That is, there is enough space in the elements array.
+
+24
+00:01:43,930 --> 00:01:49,540
+So if the elements array is already full, then it would roughly double the size of the array.
+
+25
+00:01:50,470 --> 00:01:56,410
+Next, the push method would add the element into the stack at the index position size and it would
+
+26
+00:01:56,410 --> 00:01:57,940
+then increment the size.
+
+27
+00:01:58,810 --> 00:02:04,600
+Similarly, Pop ensures that an element is returned only when stack is not empty.
+
+28
+00:02:05,320 --> 00:02:11,590
+As you can see here, pop is first incrementing the size and is then returning the element at that index.
+
+29
+00:02:12,160 --> 00:02:15,250
+But here we have a memory leak here.
+
+30
+00:02:15,250 --> 00:02:21,100
+Even after the method returns, the element at that index is still referencing the object which was
+
+31
+00:02:21,100 --> 00:02:21,880
+just returned.
+
+32
+00:02:22,660 --> 00:02:26,290
+So if we keep popping elements, then we are returning objects.
+
+33
+00:02:26,290 --> 00:02:29,950
+But the references are still being retained in the stack.
+
+34
+00:02:30,580 --> 00:02:34,810
+So those references are being referred to as obsolete references.
+
+35
+00:02:35,410 --> 00:02:38,290
+And the objects they are referring to are memory leaks.
+
+36
+00:02:39,170 --> 00:02:45,410
+Even when those objects do not have any references in the code that is invoking the pop method, garbage
+
+37
+00:02:45,410 --> 00:02:51,560
+collector will still not collect those objects as it considers them to be alive due to these obsolete
+
+38
+00:02:51,560 --> 00:02:52,700
+object references.
+
+39
+00:02:54,570 --> 00:03:01,980
+So if you recall, we said that a memory leak is basically an unused object that is never freed, which
+
+40
+00:03:01,980 --> 00:03:03,990
+is what happened in our stack example.
+
+41
+00:03:04,530 --> 00:03:10,110
+So GC is simply unable to recognize them as abandoned objects, as dead objects.
+
+42
+00:03:10,710 --> 00:03:15,270
+Note that each of these unused objects might be referencing other objects too.
+
+43
+00:03:15,660 --> 00:03:18,000
+And so those objects are not collected to.
+
+44
+00:03:18,540 --> 00:03:20,100
+So that's really bad.
+
+45
+00:03:21,460 --> 00:03:24,940
+So memory leaks will result in increased memory footprint.
+
+46
+00:03:26,170 --> 00:03:29,430
+Which would in turn imply increased GC activity.
+
+47
+00:03:29,440 --> 00:03:33,340
+And if there is a lot of GC activity, we know that there will be stop.
+
+48
+00:03:33,340 --> 00:03:37,960
+The world pauses and that means application, performance degradation.
+
+49
+00:03:38,500 --> 00:03:43,960
+And in worst case, if we are not lucky, then we may run into out of memory error.
+
+50
+00:03:45,680 --> 00:03:49,700
+And the solution for this is to null out obsolete references.
+
+51
+00:03:50,270 --> 00:03:56,720
+So here is the correct version of the pop method, and it sets the element in the stack to null and
+
+52
+00:03:56,720 --> 00:03:59,060
+uses another variable to return the object.
+
+53
+00:03:59,480 --> 00:04:01,760
+So no more obsolete references.
+
+54
+00:04:02,500 --> 00:04:07,960
+Now that you know about this, you shouldn't go about nailing every object reference, and that would
+
+55
+00:04:07,960 --> 00:04:09,370
+lead to unclean code.
+
+56
+00:04:10,060 --> 00:04:14,740
+Almost always you would let objects go out of scope and become dead.
+
+57
+00:04:14,890 --> 00:04:18,250
+That way they are garbage collected, nothing, not object.
+
+58
+00:04:18,250 --> 00:04:20,950
+References should be an exception rather than norm.
+
+59
+00:04:21,490 --> 00:04:25,780
+So the next question would be when should we be nailing out references?
+
+60
+00:04:26,650 --> 00:04:31,300
+Generally, you should be alert when your program is managing its own memory.
+
+61
+00:04:31,300 --> 00:04:37,240
+Like in the case of Stack example here, in such cases, there is a potential for you to end up with
+
+62
+00:04:37,240 --> 00:04:38,530
+obsolete references.
+
+63
+00:04:38,920 --> 00:04:41,800
+So just be alert when you're writing such kind of code.
+
+64
+00:04:42,660 --> 00:04:48,570
+In general, sometimes your program may be running for a very long time with memory leaks, and if you
+
+65
+00:04:48,570 --> 00:04:54,060
+are lucky, you may never get out of memory errors or you may not even see noticeable degradation in
+
+66
+00:04:54,060 --> 00:04:54,870
+performance.
+
+67
+00:04:55,290 --> 00:05:00,390
+But if you're not lucky, you may get out of memory error or your application might slow down.
+
+68
+00:05:00,990 --> 00:05:06,690
+In that case, you can use performance monitoring tools which can help you in detecting memory leaks.
+
+69
+00:05:07,350 --> 00:05:12,630
+In the resources section, I will include a list of a few performance monitoring tools and you can take
+
+70
+00:05:12,630 --> 00:05:13,410
+a look at them.
+
+71
+00:05:13,980 --> 00:05:19,680
+Sometimes you may not have any memory leaks at all, but your application might still be using a lot
+
+72
+00:05:19,680 --> 00:05:20,340
+of memory.
+
+73
+00:05:20,910 --> 00:05:26,190
+And if you don't see any issues in your code, which is highlighted by the performance monitoring tool,
+
+74
+00:05:26,310 --> 00:05:33,090
+then the only thing you can do is to allocate more heap space via the XMM X Command, which we saw earlier.
+
+75
+00:05:33,540 --> 00:05:39,000
+Or you can allocate more resources, like more CPUs or more memory.
+
+76
+00:05:40,520 --> 00:05:46,160
+So just to summarize this entire series on GC, there are two main things you should remember about
+
+77
+00:05:46,160 --> 00:05:47,090
+GC is that.
+
+78
+00:05:48,060 --> 00:05:54,900
+First garbage collectors employ market sweep kind of algorithms to identify and reclaim dead objects.
+
+79
+00:05:55,350 --> 00:05:59,400
+And these algorithms would require pausing the application completely.
+
+80
+00:06:00,710 --> 00:06:02,300
+And to reduce the times.
+
+81
+00:06:02,330 --> 00:06:05,570
+Garbage collectors use generational collection approach.
+
+82
+00:06:06,110 --> 00:06:10,640
+Certain garbage collectors use features like Multithreading to further reduce the pastimes.
+
+83
+00:06:11,300 --> 00:06:18,110
+Now keep in mind that from what we saw, Marcus copy algorithm was being used in young collection.
+
+84
+00:06:18,590 --> 00:06:19,730
+So just keep that in mind.
+
+85
+00:06:20,090 --> 00:06:21,200
+So that's about it.
+
+86
+00:06:21,200 --> 00:06:24,020
+And I hope you enjoyed learning about garbage collection.
+
+87
+00:06:24,170 --> 00:06:24,920
+Thank you.
+

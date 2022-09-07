@@ -1,0 +1,199 @@
+1
+00:00:02,390 --> 00:00:08,150
+The first thing that we're going to do is in order to manage high amount of data loads, we will try
+
+2
+00:00:08,150 --> 00:00:14,120
+to manage lead load at services level itself by caching the data.
+
+3
+00:00:15,140 --> 00:00:21,650
+So if there is some data which is not frequently modified, but it is frequently read, then that kind
+
+4
+00:00:21,650 --> 00:00:24,470
+of data we can store it in a cache.
+
+5
+00:00:24,830 --> 00:00:30,260
+And each time a request comes to our services for such kind of data, we can serve that data to the
+
+6
+00:00:30,260 --> 00:00:33,290
+cache instead of going to the database.
+
+7
+00:00:33,680 --> 00:00:39,130
+So what that does is it frees up that database from those read requests.
+
+8
+00:00:39,130 --> 00:00:45,170
+So not only increases the performance of those requests because we are directly fulfilling those requests
+
+9
+00:00:45,170 --> 00:00:51,740
+from the cache, but it also frees up the capacity of the IDMs, which can be utilized for taking up
+
+10
+00:00:52,190 --> 00:00:54,240
+more write requests load.
+
+11
+00:00:55,280 --> 00:00:58,820
+So that's the dual benefit of doing caching.
+
+12
+00:00:59,920 --> 00:01:05,980
+Now, I'm forgetting one thing that we need to figure out is in our system, which are those services
+
+13
+00:01:05,980 --> 00:01:12,610
+where we can do coaching and among these four services inventory service in order service, there are
+
+14
+00:01:12,610 --> 00:01:13,670
+highly transactional.
+
+15
+00:01:13,690 --> 00:01:16,270
+They need the most current information.
+
+16
+00:01:16,270 --> 00:01:21,340
+They cannot work on stale information, so they are not candidates for caching.
+
+17
+00:01:22,000 --> 00:01:30,010
+But let's say this product data or let's say, user information data that is a kind of data, which
+
+18
+00:01:30,010 --> 00:01:33,940
+is, if, let's say, stale by a few seconds or by a minute.
+
+19
+00:01:34,360 --> 00:01:36,100
+It doesn't hurt us that much.
+
+20
+00:01:36,100 --> 00:01:39,100
+So this becomes a natural candidate for creation.
+
+21
+00:01:40,240 --> 00:01:44,770
+And this is the kind of data which isn't modified very often.
+
+22
+00:01:44,770 --> 00:01:51,850
+But any user who logs in into the system and tries to buy anything will go to these services will try
+
+23
+00:01:51,850 --> 00:01:52,750
+to fetch the data.
+
+24
+00:01:52,750 --> 00:01:54,400
+So there's the ideal data.
+
+25
+00:01:54,910 --> 00:01:57,940
+These are the services which are ideal candidates for caching.
+
+26
+00:01:58,980 --> 00:02:07,560
+The challenge with caching is that we need to get the data from the main source in this case, that
+
+27
+00:02:07,560 --> 00:02:13,050
+means sources ICBMs, we can often call it as an origin, basically origin of the information.
+
+28
+00:02:13,050 --> 00:02:14,640
+So in this case it is.
+
+29
+00:02:14,640 --> 00:02:17,490
+The database is the primary source of information.
+
+30
+00:02:18,120 --> 00:02:25,380
+So our challenge is when we put this data into the cache and then this data is modified in the database.
+
+31
+00:02:25,740 --> 00:02:29,010
+How do we refresh the cache?
+
+32
+00:02:29,580 --> 00:02:32,730
+There are various ways of dealing with stale data.
+
+33
+00:02:33,240 --> 00:02:41,640
+One way of dealing with the data is that venue modify the data in the database at that time.
+
+34
+00:02:42,000 --> 00:02:43,980
+You can repopulate decay.
+
+35
+00:02:44,010 --> 00:02:45,770
+So that is called dynamic update.
+
+36
+00:02:45,780 --> 00:02:52,610
+You can update the cache as in when we are adding or updating or deleting the data in the database.
+
+37
+00:02:52,620 --> 00:02:57,540
+So that is something we are going to follow in our case, which is the most suitable thing for us.
+
+38
+00:02:57,870 --> 00:03:03,040
+But there are other approaches also, so let's hope we can add time to live values.
+
+39
+00:03:03,040 --> 00:03:10,620
+So data later, if time truly value is five minutes for product data, then that data becomes still
+
+40
+00:03:10,620 --> 00:03:11,370
+in the cache.
+
+41
+00:03:11,370 --> 00:03:17,030
+It expires in the cache, and the cache will not solve that data after five minutes.
+
+42
+00:03:17,040 --> 00:03:22,530
+So his service has been fetch that data from the database and then repopulate the cache.
+
+43
+00:03:23,400 --> 00:03:25,320
+So that's how TTL values can be used.
+
+44
+00:03:25,710 --> 00:03:31,440
+And the other there is that we can run a batch process which can periodically look for changes in the
+
+45
+00:03:31,440 --> 00:03:34,920
+main source of data and can update the cache.
+
+46
+00:03:35,340 --> 00:03:39,360
+The different situations will require different approaches.
+
+47
+00:03:39,360 --> 00:03:46,860
+In our case, we will follow this dynamic data update approach, wherein every time we are modifying
+
+48
+00:03:46,860 --> 00:03:54,450
+or adding some data and database, we will refresh our cache so we will incrementally build Aakash and
+
+49
+00:03:54,450 --> 00:03:58,440
+we will update is, as in when our databases updated.
+
+50
+00:03:58,440 --> 00:04:00,570
+So that's the approach we are going to follow.

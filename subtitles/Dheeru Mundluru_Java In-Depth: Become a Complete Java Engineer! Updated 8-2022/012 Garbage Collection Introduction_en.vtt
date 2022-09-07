@@ -1,0 +1,453 @@
+WEBVTT
+1
+00:00:02.090 --> 00:00:02.990
+Hi there.
+
+2
+00:00:03.020 --> 00:00:04.250
+This is the Motley Crew.
+
+3
+00:00:04.250 --> 00:00:05.300
+And welcome back.
+
+4
+00:00:05.630 --> 00:00:07.700
+Let's now look at garbage collection.
+
+5
+00:00:08.420 --> 00:00:14.630
+When we create an object using the new keyword, JVM determines the amount of heap memory needed for
+
+6
+00:00:14.630 --> 00:00:18.350
+storing that object, and it allocates that much amount of memory.
+
+7
+00:00:18.860 --> 00:00:23.540
+But as more and more objects get created, then it would also result in allocating more memory.
+
+8
+00:00:24.320 --> 00:00:30.380
+If we keep creating objects this way, eventually we may run out of memory and we will get errors like
+
+9
+00:00:30.380 --> 00:00:31.460
+out of memory error.
+
+10
+00:00:32.200 --> 00:00:37.930
+So there's a need to also release or reclaim memory when objects are no longer required.
+
+11
+00:00:38.560 --> 00:00:41.410
+That's a very important aspect of memory management.
+
+12
+00:00:41.440 --> 00:00:45.730
+And in Java, it is taken care of automatically by the garbage collector.
+
+13
+00:00:46.390 --> 00:00:52.180
+Since we are talking about objects which we know are stored on heap, our focus for the next few lectures
+
+14
+00:00:52.180 --> 00:00:56.920
+will be on heap memory and how garbage collector manipulates this area.
+
+15
+00:00:57.520 --> 00:01:03.910
+Garbage collection is one of the most important benefits of Java and we will look at the different garbage
+
+16
+00:01:03.910 --> 00:01:06.040
+collection algorithms that can be used.
+
+17
+00:01:06.860 --> 00:01:11.150
+At the end, we will also see how we can tune heap memory size.
+
+18
+00:01:11.950 --> 00:01:17.260
+So it's going to be an interesting set of lectures and we will try to get a solid understanding of how
+
+19
+00:01:17.260 --> 00:01:18.550
+garbage collection works.
+
+20
+00:01:20.330 --> 00:01:26.990
+In languages like C or C++, a programmer has to explicitly allocate memory when creating objects.
+
+21
+00:01:27.560 --> 00:01:33.590
+And similarly, when those objects are not needed anymore, they have to explicitly free up the space
+
+22
+00:01:33.590 --> 00:01:35.000
+taken by those objects.
+
+23
+00:01:35.630 --> 00:01:38.420
+So programmers are explicitly manipulating memory.
+
+24
+00:01:39.510 --> 00:01:42.900
+That would certainly help in developing efficient applications.
+
+25
+00:01:43.650 --> 00:01:50.040
+But in large projects, if such memory manipulation is not done right, then it could result in serious
+
+26
+00:01:50.040 --> 00:01:54.330
+issues like crushing the program or programs working incorrectly.
+
+27
+00:01:54.870 --> 00:02:00.270
+When we say memory manipulation is not done right, it means that memory is corrupted in some way.
+
+28
+00:02:00.960 --> 00:02:07.260
+It seems that nearly 10% of application crashes on Windows Systems are due to memory corruption.
+
+29
+00:02:08.840 --> 00:02:11.870
+Let's now look at a couple of ways in which memory can be corrupted.
+
+30
+00:02:12.230 --> 00:02:16.370
+We will look at two of them, although there can be more ways of corrupting memory.
+
+31
+00:02:18.260 --> 00:02:19.610
+First one is memory leak.
+
+32
+00:02:19.940 --> 00:02:23.990
+Memory leaks happen when unused objects are never freed.
+
+33
+00:02:24.860 --> 00:02:31.580
+For example, you may have an object reference pointing to an object and that reference is later assigned
+
+34
+00:02:31.580 --> 00:02:32.450
+a new object.
+
+35
+00:02:32.810 --> 00:02:38.540
+So the old object does not have an active reference and we can refer to it as a dead or an abandoned
+
+36
+00:02:38.540 --> 00:02:39.050
+object.
+
+37
+00:02:39.770 --> 00:02:45.470
+Now, if the space occupied by this abandoned object is not freed, then that would be a memory leak.
+
+38
+00:02:46.250 --> 00:02:52.220
+And if such memory leaks happen regularly, then we know that we may eventually run out of memory and
+
+39
+00:02:52.220 --> 00:02:54.440
+our program would then simply stop working.
+
+40
+00:02:55.100 --> 00:03:00.080
+If our program runs only for a short while with few memory leaks, then we may be fine.
+
+41
+00:03:00.290 --> 00:03:02.990
+And we may never even know that there is a memory leak.
+
+42
+00:03:03.470 --> 00:03:09.080
+But for long running programs like web applications, it could turn out to be a very serious issue.
+
+43
+00:03:10.710 --> 00:03:16.890
+Another type of error is dangling reference, which is basically a reference to an area of memory that
+
+44
+00:03:16.890 --> 00:03:18.660
+has already been reclaimed.
+
+45
+00:03:19.140 --> 00:03:24.330
+For example, let's consider two separate components which are sharing the same object.
+
+46
+00:03:24.990 --> 00:03:30.570
+Now, if one of the components is done using that object, then it may free up the memory occupied by
+
+47
+00:03:30.570 --> 00:03:31.380
+that object.
+
+48
+00:03:31.560 --> 00:03:35.340
+And that piece of memory might get allocated to a new object.
+
+49
+00:03:36.200 --> 00:03:41.150
+But the second component would still be referencing the same memory location, assuming that the dead
+
+50
+00:03:41.210 --> 00:03:42.440
+object is still there.
+
+51
+00:03:43.130 --> 00:03:46.430
+Since it is now a different object which is occupying that space.
+
+52
+00:03:46.610 --> 00:03:51.230
+The second component will most certainly behave in an unpredictable manner.
+
+53
+00:03:51.960 --> 00:03:54.060
+So that's a dangling reference.
+
+54
+00:03:55.750 --> 00:04:01.270
+One way to avoid such memory corruption errors is by restricting programmers from manipulating memory.
+
+55
+00:04:01.900 --> 00:04:07.890
+And Java achieves this through automatic or implicit memory management, which is one of its main benefits
+
+56
+00:04:07.900 --> 00:04:15.490
+or a language like C++ on Java does this through a process called Garbage Collection, which is performed
+
+57
+00:04:15.490 --> 00:04:18.459
+by a giant component called Garbage Collector.
+
+58
+00:04:20.149 --> 00:04:26.990
+Instead of programmers, garbage collector or GC, in short, basically reclaims memory occupied by
+
+59
+00:04:26.990 --> 00:04:27.980
+dead objects.
+
+60
+00:04:28.370 --> 00:04:34.640
+By doing so, it is ensuring that there are no memory leaks, so that dead objects basically represent
+
+61
+00:04:34.640 --> 00:04:36.890
+garbage which needs to be reclaimed.
+
+62
+00:04:38.490 --> 00:04:43.050
+But it also needs to make sure that a dead object is really a dead object.
+
+63
+00:04:43.680 --> 00:04:49.470
+That is, it needs to be 100% sure that there are no active references to that particular object.
+
+64
+00:04:50.130 --> 00:04:52.980
+Otherwise, we could end up with a dangling reference situation.
+
+65
+00:04:53.650 --> 00:05:00.100
+So JSI ensures that there are no dangling references to or in other words, it ensures that an object
+
+66
+00:05:00.100 --> 00:05:03.190
+with at least one reference is never reclaimed.
+
+67
+00:05:03.880 --> 00:05:09.190
+So Garbage Collector automatically prevents both types of errors that can cut up memory.
+
+68
+00:05:09.610 --> 00:05:15.010
+So programmer doesn't have to deal with such things, thus improving his or her productivity.
+
+69
+00:05:15.760 --> 00:05:18.040
+So in Java, programmers create objects.
+
+70
+00:05:18.040 --> 00:05:22.060
+We are the new keyword on JVM allocates the necessary memory.
+
+71
+00:05:22.270 --> 00:05:25.780
+But reclaiming objects will be done by garbage collector.
+
+72
+00:05:27.500 --> 00:05:33.980
+Just not referencing an object anymore qualifies that object as an abandoned object, making it eligible
+
+73
+00:05:33.980 --> 00:05:35.240
+for garbage collection.
+
+74
+00:05:35.840 --> 00:05:40.190
+Of course, we are assuming that the object has no other active references to.
+
+75
+00:05:41.120 --> 00:05:44.030
+Let's look at few ways in which objects become abandoned.
+
+76
+00:05:45.390 --> 00:05:48.540
+An object would be considered abandoned if it goes out of scope.
+
+77
+00:05:49.490 --> 00:05:49.790
+Here.
+
+78
+00:05:49.790 --> 00:05:55.550
+As soon as the method returns, the book object is considered abandoned and will be eligible for garbage
+
+79
+00:05:55.550 --> 00:05:56.210
+collection.
+
+80
+00:05:56.720 --> 00:06:01.130
+That is, it would still be on the heap until GC actually reclaims it.
+
+81
+00:06:02.960 --> 00:06:07.130
+An object would be abandoned if its reference is assigned some other object.
+
+82
+00:06:08.390 --> 00:06:11.330
+Or if the reference is assigned a null value.
+
+83
+00:06:12.290 --> 00:06:16.490
+So these are three ways in which an object becomes eligible for garbage collection.
+
+84
+00:06:17.650 --> 00:06:22.750
+Not that even a class object that is an instance of Java class.
+
+85
+00:06:23.020 --> 00:06:27.940
+If it does not have any active references, it will also be eligible for garbage collection.
+
+86
+00:06:29.550 --> 00:06:31.890
+Let's now look at a few specifics about Jesse.
+
+87
+00:06:33.230 --> 00:06:39.470
+GC may be implemented as part of the language itself, as in the case of Java, or it may be an add
+
+88
+00:06:39.470 --> 00:06:45.590
+on library too, which would be the case for other languages which rely on manual memory management.
+
+89
+00:06:47.490 --> 00:06:54.690
+It also runs in background in a low priority thread, so it is always there alive and gets into action
+
+90
+00:06:54.690 --> 00:06:56.670
+whenever there is a shortage of memory.
+
+91
+00:06:58.270 --> 00:07:03.910
+And there's also no guarantee when GC runs on, programmers have little control on when it would run.
+
+92
+00:07:04.540 --> 00:07:09.700
+It usually runs when there is limited memory, but the exact timing is unpredictable.
+
+93
+00:07:11.540 --> 00:07:16.850
+Now we can give a hint to GM that it may run GC by either of these approaches.
+
+94
+00:07:17.390 --> 00:07:25.070
+One is by invoking GC method in the system class or by invoking GC method via the get runtime method
+
+95
+00:07:25.070 --> 00:07:26.510
+in the runtime class.
+
+96
+00:07:27.110 --> 00:07:33.500
+Both system and runtime belong to Java Lang package and goal of both these approaches is just the same.
+
+97
+00:07:33.650 --> 00:07:37.700
+It is just that system point GC provides a more convenient way to do it.
+
+98
+00:07:38.520 --> 00:07:39.990
+But this is simply a hint.
+
+99
+00:07:39.990 --> 00:07:42.180
+And GM may ignore the signal too.
+
+100
+00:07:42.690 --> 00:07:48.360
+So you should never rely on this manual approach to invoke the GC and you should let GM take care of
+
+101
+00:07:48.360 --> 00:07:48.690
+it.
+
+102
+00:07:50.380 --> 00:07:57.190
+GC basically is a pretty complex task and every time it runs, it does take time and resources of its
+
+103
+00:07:57.190 --> 00:07:57.610
+own.
+
+104
+00:07:58.270 --> 00:08:03.490
+Each run is referred to as a GC cycle and it can cause pauses in the application.
+
+105
+00:08:04.150 --> 00:08:09.580
+And these pauses can be of varying duration, depending on the GC algorithm being used.
+
+106
+00:08:10.550 --> 00:08:15.470
+If application comes to a complete pause, then it would be called as Stop the World Boss.
+
+107
+00:08:16.350 --> 00:08:22.050
+Later we will see a technique called generational collection, which is used by GC to reduce POS times.
+
+108
+00:08:22.840 --> 00:08:25.540
+So that's a very brief introduction to garbage collection.
+
+109
+00:08:25.840 --> 00:08:28.990
+It basically ensures that memory is not corrupted.
+
+110
+00:08:29.650 --> 00:08:36.039
+It relieves the programmer from explicitly manipulating memory, and so it improves programmers productivity.
+
+111
+00:08:36.610 --> 00:08:43.000
+So automatic memory management is a huge benefit that comes with Java and it makes programming in Java
+
+112
+00:08:43.030 --> 00:08:44.710
+easier and safer too.
+
+113
+00:08:45.130 --> 00:08:45.820
+Thank you.
+

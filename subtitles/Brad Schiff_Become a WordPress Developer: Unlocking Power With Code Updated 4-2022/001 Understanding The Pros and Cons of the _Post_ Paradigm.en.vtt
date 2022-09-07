@@ -1,0 +1,1092 @@
+WEBVTT
+1
+00:00:02.300 --> 00:00:08.900
+Hello, everyone, in this lesson, we're starting a new chapter, so this is the third and final chapter
+
+2
+00:00:08.900 --> 00:00:15.230
+in the plugin development section of the course, and it's all about how we should store our plugins
+
+3
+00:00:15.230 --> 00:00:17.350
+data in the database.
+
+4
+00:00:17.630 --> 00:00:22.100
+Now, before we go any further and start to talk about the details of what we're going to learn in this
+
+5
+00:00:22.100 --> 00:00:22.650
+chapter.
+
+6
+00:00:22.910 --> 00:00:26.930
+I first want to keep us grounded in real world examples.
+
+7
+00:00:27.240 --> 00:00:29.240
+So let me begin by showing you this.
+
+8
+00:00:29.570 --> 00:00:35.840
+So here I have two different sites, two different tabs, and at first the two sites look identical.
+
+9
+00:00:36.200 --> 00:00:44.450
+So this is a pet adoption page and there are 100000 pets in the collection of pets or the database of
+
+10
+00:00:44.450 --> 00:00:44.960
+pets.
+
+11
+00:00:45.200 --> 00:00:50.430
+And you can see each pet is just an item that has a name and six other pieces of data.
+
+12
+00:00:50.900 --> 00:00:56.600
+Now, while both versions of the site are identical in that sense, they both have 100000 pet records
+
+13
+00:00:56.960 --> 00:00:58.430
+with the same properties.
+
+14
+00:00:58.760 --> 00:00:59.990
+They're similar in that regard.
+
+15
+00:00:59.990 --> 00:01:07.130
+But the two sites are very different in the sense that this tab is using the WordPress way of handling
+
+16
+00:01:07.130 --> 00:01:07.610
+data.
+
+17
+00:01:07.880 --> 00:01:08.210
+Right.
+
+18
+00:01:08.210 --> 00:01:11.090
+Which is custom post types in WordPress.
+
+19
+00:01:11.300 --> 00:01:13.550
+Basically everything is just a post.
+
+20
+00:01:13.910 --> 00:01:18.260
+So each pet is a post, the pet's name is the title.
+
+21
+00:01:18.410 --> 00:01:20.660
+And then these six attributes.
+
+22
+00:01:20.960 --> 00:01:25.760
+Each one of these is just a piece of metadata associated to that post.
+
+23
+00:01:26.340 --> 00:01:30.440
+So this tab is the WordPress custom post type way of doing things.
+
+24
+00:01:30.950 --> 00:01:38.140
+This tab is using my own custom database table and my own sequel queries that I wrote.
+
+25
+00:01:38.630 --> 00:01:45.350
+Now, at first glance on this initial page that just pulls in the first 100 pets regardless of their
+
+26
+00:01:45.350 --> 00:01:51.760
+species or favorite color or favorite food, you can see that the speed is very similar.
+
+27
+00:01:52.010 --> 00:01:58.010
+So my custom database solution took a little bit less than a tenth of a second and the WordPress way
+
+28
+00:01:58.010 --> 00:02:01.790
+of doing things took a little bit under two tenths of a second.
+
+29
+00:02:02.150 --> 00:02:09.500
+However, what if we only wanted to see pets where the species is cat and maybe their favorite color
+
+30
+00:02:09.500 --> 00:02:10.370
+is green?
+
+31
+00:02:10.880 --> 00:02:20.570
+So, for example, if I go up into the address bar and add on questionmark species equals cat and fav
+
+32
+00:02:20.570 --> 00:02:24.140
+color equals green and press enter.
+
+33
+00:02:25.130 --> 00:02:30.680
+Well, you can see that the WordPress way of doing things took one point two seconds.
+
+34
+00:02:31.010 --> 00:02:38.180
+But if I try this exact same search or query in my custom database solution, so if I say questionmark
+
+35
+00:02:38.180 --> 00:02:46.510
+species equals cat and fav color equals green, you can see it took just barely over a tenth of a second.
+
+36
+00:02:46.520 --> 00:02:49.370
+So it's nearly ten times faster.
+
+37
+00:02:49.700 --> 00:02:52.180
+So the speed difference is night and day.
+
+38
+00:02:52.460 --> 00:02:59.600
+But before we start to learn about custom database tables, our first goal absolutely needs to be to
+
+39
+00:02:59.600 --> 00:03:06.420
+understand why the custom database table solution is so much faster in this situation.
+
+40
+00:03:06.770 --> 00:03:13.280
+The reason it's so important to understand why it's faster is because it's not always going to be the
+
+41
+00:03:13.280 --> 00:03:14.270
+right choice.
+
+42
+00:03:14.600 --> 00:03:21.020
+In fact, I would say that nine times out of ten, using the WordPress way of handling data, so custom
+
+43
+00:03:21.020 --> 00:03:24.700
+post types is actually the smarter or correct choice.
+
+44
+00:03:25.130 --> 00:03:31.910
+However, I want you to be able to identify these one out of 10 type of situations where your own custom
+
+45
+00:03:31.910 --> 00:03:38.180
+table is the right choice, because as we've seen, it can result in a site there's literally ten times
+
+46
+00:03:38.180 --> 00:03:38.810
+faster.
+
+47
+00:03:39.320 --> 00:03:40.610
+So big picture.
+
+48
+00:03:40.940 --> 00:03:47.270
+Our project for this chapter is to code the customer database table solution together.
+
+49
+00:03:47.540 --> 00:03:55.100
+But before we get to that, our goal for this lesson is to really understand the strengths and weaknesses
+
+50
+00:03:55.310 --> 00:03:57.750
+of storing data in posts.
+
+51
+00:03:58.220 --> 00:04:02.810
+Now, you and I have already worked with custom post types a lot in this course.
+
+52
+00:04:03.170 --> 00:04:08.900
+In other words, there's no point in you and I coding this custom post type version together.
+
+53
+00:04:09.200 --> 00:04:16.190
+Instead, I want you to download the associated zip file with this lesson called pets' custom post type
+
+54
+00:04:16.190 --> 00:04:16.960
+dot zip.
+
+55
+00:04:17.660 --> 00:04:23.710
+Technically, you don't need to do this since this lesson is just about understanding the big picture,
+
+56
+00:04:23.730 --> 00:04:29.600
+not about actually coding yet, but a lot of people learn by doing and having a real breathing example
+
+57
+00:04:29.600 --> 00:04:30.740
+to experiment with.
+
+58
+00:04:31.160 --> 00:04:33.680
+So I encourage you to follow along in this lesson.
+
+59
+00:04:33.680 --> 00:04:40.520
+But essentially we're just going to take the finished product for the custom post type version and activate
+
+60
+00:04:40.520 --> 00:04:46.310
+it and inspect it and analyze it and even look at the database structure so we can really start to get
+
+61
+00:04:46.310 --> 00:04:52.550
+a feel for the strengths and weaknesses of custom post types, because ultimately we want to be able
+
+62
+00:04:52.550 --> 00:04:59.030
+to make smart decisions of whether a specific plugin should use custom post types or a custom database
+
+63
+00:04:59.030 --> 00:04:59.480
+table.
+
+64
+00:04:59.750 --> 00:05:01.610
+There is no one size fits all.
+
+65
+00:05:01.750 --> 00:05:08.080
+Correct answer, every plugin is different, and it just depends on the shape and quantity of your expected
+
+66
+00:05:08.080 --> 00:05:08.560
+data.
+
+67
+00:05:08.950 --> 00:05:14.200
+Having said that, let's start analyzing the custom post type finished solution.
+
+68
+00:05:14.530 --> 00:05:17.050
+So, again, I want you to download the zip file.
+
+69
+00:05:17.530 --> 00:05:23.530
+Go ahead and extract it so you should have pets custom post type folder directly inside it, you'll
+
+70
+00:05:23.530 --> 00:05:27.990
+see a file, a file and an ANC folder.
+
+71
+00:05:28.000 --> 00:05:33.270
+So we just want to move this folder into your WordPress installations plugins folder.
+
+72
+00:05:33.520 --> 00:05:39.010
+So we're just looking for the installation folder of WordPress where you'll see WP content.
+
+73
+00:05:39.010 --> 00:05:47.470
+If you go in there, you can go into plug ins and I'm just going to drag this new folder to live alongside
+
+74
+00:05:47.470 --> 00:05:49.900
+the other plug ins we've been creating so far.
+
+75
+00:05:50.720 --> 00:05:56.980
+OK, now back in this tab, I have not set up anything to do with pet adoption, so you and I are on
+
+76
+00:05:56.980 --> 00:05:58.030
+the same page.
+
+77
+00:05:58.300 --> 00:06:00.490
+So let's go activate that plug in.
+
+78
+00:06:00.490 --> 00:06:03.910
+We just added so under plug ins.
+
+79
+00:06:04.420 --> 00:06:09.970
+If I scroll down through this list, for me it's towards the bottom, but I see pet adoption custom
+
+80
+00:06:09.970 --> 00:06:14.700
+post types, so let's activate that, OK, and then do this with me.
+
+81
+00:06:14.710 --> 00:06:16.600
+We just want to create a page.
+
+82
+00:06:16.630 --> 00:06:19.270
+So not a post but a page.
+
+83
+00:06:20.120 --> 00:06:26.140
+So add a new page and give it the exact title of pet adoption.
+
+84
+00:06:26.350 --> 00:06:31.240
+We just want to make sure that the slug or permalink is Pet Dasch adoption.
+
+85
+00:06:31.240 --> 00:06:34.150
+So as soon as we publish or save this page.
+
+86
+00:06:34.510 --> 00:06:40.060
+Well, if you use The View page linked down here, well, thanks to that plug in, we just activated
+
+87
+00:06:40.060 --> 00:06:42.100
+it should be using this template.
+
+88
+00:06:42.100 --> 00:06:45.820
+So pet adoption, providing forever homes one search at a time.
+
+89
+00:06:46.090 --> 00:06:46.900
+Just a quick note.
+
+90
+00:06:46.900 --> 00:06:51.940
+This example plug in I created is assuming that you're using the fictional university theme.
+
+91
+00:06:52.330 --> 00:06:57.760
+So if you're using a different theme and this heter area doesn't align perfectly, that's why.
+
+92
+00:06:57.760 --> 00:07:01.390
+But really, that's not the topic at hand right now.
+
+93
+00:07:01.390 --> 00:07:08.380
+I want to show you how we can begin to populate the pet collection with a bit of data, because currently
+
+94
+00:07:08.380 --> 00:07:10.630
+we have a total of zero results.
+
+95
+00:07:10.930 --> 00:07:11.940
+So do this with me.
+
+96
+00:07:12.310 --> 00:07:15.400
+Let's open up that plug in folder in our text editor.
+
+97
+00:07:15.400 --> 00:07:19.060
+So in the plug ins folder, we just added pets custom post type.
+
+98
+00:07:19.060 --> 00:07:24.850
+I'm just going to drag this into V code, OK, and jump into the main file.
+
+99
+00:07:24.850 --> 00:07:31.690
+So pets custom post types B and if we scroll down towards the bottom, you'll see this comment.
+
+100
+00:07:32.230 --> 00:07:38.200
+Essentially, it's just telling you that if you uncommented this line, this add action around line
+
+101
+00:07:38.200 --> 00:07:44.680
+number forty nine, when you uncommented this out, then the next time you visit or refresh the admin
+
+102
+00:07:44.680 --> 00:07:50.380
+dashboard, WordPress is going to generate 10 randomly generated pets.
+
+103
+00:07:51.040 --> 00:07:54.040
+Now that number ten is defined here, but let's just start with ten.
+
+104
+00:07:54.040 --> 00:08:00.880
+So if I uncommented this click save now before you do this, do not set this to a very large number.
+
+105
+00:08:00.880 --> 00:08:06.400
+If you're on a real Web hosting account, if you're hosting WordPress locally on your personal development
+
+106
+00:08:06.400 --> 00:08:11.470
+computer and you have ten minutes to spare, sure, you can try entering a large number here.
+
+107
+00:08:11.740 --> 00:08:14.500
+But to begin, let's just start with the default ten.
+
+108
+00:08:14.920 --> 00:08:20.620
+And now if we go into the admin dashboard or if you were already on the dashboard, then refresh.
+
+109
+00:08:20.620 --> 00:08:25.960
+But since I wasn't already on the dashboard, just visiting it, this one time will create those 10
+
+110
+00:08:25.960 --> 00:08:26.560
+pets.
+
+111
+00:08:26.590 --> 00:08:29.710
+So you could already recommend out this line and save it.
+
+112
+00:08:29.710 --> 00:08:31.600
+If you don't want to create more pets right now.
+
+113
+00:08:31.600 --> 00:08:37.570
+But as soon as I look in the sidebar for pets here, we see pets with the custom pet icon.
+
+114
+00:08:37.570 --> 00:08:42.880
+If you click on that, you will see ten randomly generated pet posts.
+
+115
+00:08:43.420 --> 00:08:47.440
+So, for example, on this page, I could uncommented that line again.
+
+116
+00:08:47.920 --> 00:08:54.430
+And if I click save, if I refresh the page, well, now there's too many pets, so it's up to you.
+
+117
+00:08:54.430 --> 00:08:57.340
+How many pet records are pet posts you want to add?
+
+118
+00:08:57.790 --> 00:09:02.770
+Again, if you set this to a very large number, your Web hosting account will probably just time out
+
+119
+00:09:02.770 --> 00:09:03.910
+your entire website.
+
+120
+00:09:03.910 --> 00:09:10.240
+But if you're on your personal development computer, you could set this all the way up to one hundred
+
+121
+00:09:10.240 --> 00:09:16.570
+thousand and you will need to wait maybe five or ten or twenty minutes and it will work.
+
+122
+00:09:16.570 --> 00:09:22.840
+Now, obviously, WordPress is not optimized for creating 10000 or 100000 posts at once, so it's not
+
+123
+00:09:22.840 --> 00:09:24.730
+going to be the fastest operation.
+
+124
+00:09:25.090 --> 00:09:31.870
+But if you're someone who likes to have that full 100000 example site to experiment with, then you
+
+125
+00:09:31.870 --> 00:09:33.970
+can do that, but you don't need to.
+
+126
+00:09:34.450 --> 00:09:39.850
+So, for example, if I set this to just even one hundred, I'll let it load in real time.
+
+127
+00:09:39.850 --> 00:09:43.210
+So if I go back and refresh, you can see it doesn't happen immediately.
+
+128
+00:09:43.870 --> 00:09:48.700
+That took maybe one or two seconds, but now I have one hundred and twenty pets.
+
+129
+00:09:49.050 --> 00:09:51.520
+So let me comment out this line again.
+
+130
+00:09:52.330 --> 00:09:55.900
+So again, it's totally up to you how many pets you want to add.
+
+131
+00:09:56.410 --> 00:10:01.630
+But now if we view the front end of our website and at the end of the homepage, you if we visit PET.
+
+132
+00:10:02.220 --> 00:10:07.590
+Adoption pet, Dasch, adoption, well, perfect, we found one hundred and twenty results showing the
+
+133
+00:10:07.620 --> 00:10:11.140
+first 100 and here is the actual data.
+
+134
+00:10:11.520 --> 00:10:16.650
+Now, as we saw at the very beginning of the video, when you're just performing a base query like this
+
+135
+00:10:16.650 --> 00:10:22.290
+where you're not searching for a specific species or favorite color, the word press way of handling
+
+136
+00:10:22.290 --> 00:10:25.530
+data with post types is not very slow at all.
+
+137
+00:10:25.950 --> 00:10:32.160
+And even further, in defense of custom post types, even if you do want to query based on a piece of
+
+138
+00:10:32.160 --> 00:10:39.390
+metadata, even that is not going to be slow unless you have a lot and a lot and a lot of posts and
+
+139
+00:10:39.390 --> 00:10:40.110
+post Medda.
+
+140
+00:10:40.440 --> 00:10:41.370
+So let me explain.
+
+141
+00:10:41.760 --> 00:10:48.750
+If we go up into the address bar and at the end say Questionmark Species' equals dog and visit that
+
+142
+00:10:49.290 --> 00:10:49.680
+quote.
+
+143
+00:10:49.680 --> 00:10:53.510
+So you can see out of the 120 pets that I had, six of them are dogs.
+
+144
+00:10:53.910 --> 00:10:58.050
+But notice that the time it took to find that is not very long.
+
+145
+00:10:58.050 --> 00:10:59.670
+So that's not very slow.
+
+146
+00:11:00.120 --> 00:11:06.840
+However, as you continue to add more and more pet posts, it's just going to get dramatically slower
+
+147
+00:11:06.840 --> 00:11:07.710
+and slower.
+
+148
+00:11:08.070 --> 00:11:12.510
+To understand why, let's go actually look at our database.
+
+149
+00:11:12.870 --> 00:11:16.860
+If you're using the local WP app, you can just click on the current site you're running.
+
+150
+00:11:17.010 --> 00:11:21.210
+Click on the database tab and then click open add mynor.
+
+151
+00:11:21.600 --> 00:11:22.620
+Just a quick note.
+
+152
+00:11:22.620 --> 00:11:28.410
+If you have more than one WordPress site running at once, I have seen local get confused when you click
+
+153
+00:11:28.410 --> 00:11:33.870
+open admirer and it will show you the database, not for the current site that you think you're viewing.
+
+154
+00:11:33.870 --> 00:11:38.430
+So if it feels like you're not looking at the correct data for your site, you might just need to stop
+
+155
+00:11:38.430 --> 00:11:40.270
+any other currently running sites.
+
+156
+00:11:40.770 --> 00:11:42.930
+Let's start by looking at the posts table.
+
+157
+00:11:42.930 --> 00:11:47.840
+So in the left hand area, click on to the post table, then click select data.
+
+158
+00:11:48.420 --> 00:11:50.910
+Lets go to the very last page of results.
+
+159
+00:11:51.390 --> 00:11:55.710
+And as you scroll through this list, if you created any decent amount of pets, you'll notice that
+
+160
+00:11:56.010 --> 00:11:59.510
+each one of these posts is just a randomly generated pet.
+
+161
+00:12:00.000 --> 00:12:06.120
+However, really, the only piece of relevant pet data is the blog post title, right?
+
+162
+00:12:06.150 --> 00:12:07.140
+That's their name.
+
+163
+00:12:07.590 --> 00:12:12.390
+But as you scroll through this, you're not going to find their favorite color or their favorite food,
+
+164
+00:12:12.780 --> 00:12:17.690
+their favorite hobby, because all of that is post meta or metadata.
+
+165
+00:12:18.000 --> 00:12:23.010
+We need to remember that at its core, WordPress was originally just about creating blog posts.
+
+166
+00:12:23.190 --> 00:12:30.030
+So the shape of data or the shape of this table is designed with blog posts in mind.
+
+167
+00:12:30.240 --> 00:12:36.030
+If you want to store any type of information about something that isn't in the shape of a blog post,
+
+168
+00:12:36.240 --> 00:12:38.370
+that's where you have to use post meta.
+
+169
+00:12:38.580 --> 00:12:44.250
+And this is where we're getting into why this approach gets so slow in certain situations.
+
+170
+00:12:44.560 --> 00:12:45.450
+So check this out.
+
+171
+00:12:45.630 --> 00:12:52.380
+If we want to actually find any of their favorite colors or hobbies or foods, we need to go into post
+
+172
+00:12:52.380 --> 00:12:59.940
+meta the post metastable, click into that and click select data and go to our very last page.
+
+173
+00:13:00.360 --> 00:13:05.640
+And if we look through this notice, we see fave food, birth, your weight, fav color fave Hoby,
+
+174
+00:13:06.090 --> 00:13:07.770
+and then it already starts to repeat here.
+
+175
+00:13:07.770 --> 00:13:13.110
+So there's going to be those six or seven properties for each pet or for each post.
+
+176
+00:13:13.530 --> 00:13:13.870
+Right.
+
+177
+00:13:13.890 --> 00:13:17.620
+Notice that all of these they have the exact same post IDs.
+
+178
+00:13:17.640 --> 00:13:21.510
+They're all pointing towards that one pet object or pet post.
+
+179
+00:13:21.780 --> 00:13:27.840
+But each little piece of data is its own entry, its own record or row in the database.
+
+180
+00:13:28.230 --> 00:13:32.880
+And there are both pros and cons to this approach or to this database design.
+
+181
+00:13:33.120 --> 00:13:35.970
+So the big advantage is that it's super flexible.
+
+182
+00:13:36.270 --> 00:13:43.650
+This is what allows WordPress to store just about any type or shape of data we can think of while still
+
+183
+00:13:43.650 --> 00:13:46.670
+using that rather limited post table structure.
+
+184
+00:13:47.070 --> 00:13:50.190
+However, this flexibility comes at a price.
+
+185
+00:13:50.580 --> 00:13:57.750
+So to understand why and when this approach becomes very slow, let's walk through two examples or two
+
+186
+00:13:57.750 --> 00:13:58.500
+queries.
+
+187
+00:13:58.740 --> 00:14:00.720
+Let's go back to our site example.
+
+188
+00:14:00.720 --> 00:14:07.230
+Number one, let's talk about just this base query where you pull in the first one hundred results and
+
+189
+00:14:07.230 --> 00:14:08.280
+then query number two.
+
+190
+00:14:08.280 --> 00:14:11.610
+That will review is when you're searching only for dogs.
+
+191
+00:14:11.610 --> 00:14:11.970
+Right.
+
+192
+00:14:11.970 --> 00:14:15.030
+So based on a value from a piece of metadata.
+
+193
+00:14:15.900 --> 00:14:17.490
+So let's start with query number one.
+
+194
+00:14:17.490 --> 00:14:19.830
+Just this base query, right?
+
+195
+00:14:19.830 --> 00:14:20.730
+We're saying the word press.
+
+196
+00:14:20.880 --> 00:14:23.910
+Just give me the first one hundred pet posts.
+
+197
+00:14:24.300 --> 00:14:31.920
+So this type of query will always be relatively fast, even if we have a lot and a lot of pet posts.
+
+198
+00:14:32.250 --> 00:14:37.620
+This is because all WordPress has to do is look in its post database table.
+
+199
+00:14:38.130 --> 00:14:43.620
+And if you scroll over to the right, it just looks for any post whose post type is set to pet.
+
+200
+00:14:43.830 --> 00:14:50.640
+Now, once it finds one of those pet items, well, it's going to know it's post ID and then it just
+
+201
+00:14:50.640 --> 00:14:58.620
+needs to look in the post metastable for any entries where the Post ID column has a matching post ID
+
+202
+00:14:58.620 --> 00:15:01.500
+value so WordPress can even index.
+
+203
+00:15:01.530 --> 00:15:07.380
+This column for this table and that way, even if this metastable becomes very large, it's always going
+
+204
+00:15:07.380 --> 00:15:10.690
+to be at least reasonably quick to perform this query.
+
+205
+00:15:11.010 --> 00:15:13.520
+However, let's look at the slow query.
+
+206
+00:15:13.890 --> 00:15:19.680
+So the query, if I go forward where you're only looking for where Species' equals dog.
+
+207
+00:15:20.070 --> 00:15:23.730
+Now, again, it's not very slow because I only have one hundred and twenty pets.
+
+208
+00:15:24.090 --> 00:15:26.130
+But what if I had two thousand pets?
+
+209
+00:15:26.340 --> 00:15:29.170
+Ten thousand pets, a hundred thousand pets?
+
+210
+00:15:29.430 --> 00:15:34.960
+Well, let's talk about what WordPress needs to do to the database in order to find this data.
+
+211
+00:15:35.520 --> 00:15:42.570
+So now it's not just as simple as going into the post table and selecting the first one hundred results
+
+212
+00:15:42.570 --> 00:15:45.810
+where post type equals pet instead.
+
+213
+00:15:46.230 --> 00:15:53.400
+Now WordPress needs to look in the post metastable and it does not just get to look for a matching posted
+
+214
+00:15:53.400 --> 00:15:55.530
+where that value can be indexed.
+
+215
+00:15:55.530 --> 00:15:58.110
+So it's super quick to find it instead.
+
+216
+00:15:58.110 --> 00:15:58.860
+Think about this.
+
+217
+00:15:58.860 --> 00:16:05.490
+If we're only looking for dogs, sure, WordPress can index this meta key column and look for the rows
+
+218
+00:16:05.490 --> 00:16:12.140
+where it has a value of species and then look through all of those for ones where the value is dog.
+
+219
+00:16:12.150 --> 00:16:19.290
+But that's still not ideal, especially when we realize how quickly this table can become absolutely
+
+220
+00:16:19.290 --> 00:16:20.070
+huge.
+
+221
+00:16:20.430 --> 00:16:26.160
+Think about it for every one pet post that's adding six new rows to this table.
+
+222
+00:16:26.550 --> 00:16:30.090
+Imagine if you were working with some other type of data other than a pet post.
+
+223
+00:16:30.090 --> 00:16:35.610
+Imagine if you were working on an e-commerce website where a product can have all sorts of information
+
+224
+00:16:35.970 --> 00:16:41.130
+the shipping weight, the height, the width where it's produced, what it's made out of, who it's
+
+225
+00:16:41.130 --> 00:16:43.290
+produced by, all these different things.
+
+226
+00:16:43.500 --> 00:16:49.500
+What if every one of your posts is going to create 10, 20 or even 30 pieces of meta?
+
+227
+00:16:49.950 --> 00:16:55.290
+And then imagine what if you're going to have a thousand of those posts or ten thousand of those posts
+
+228
+00:16:55.530 --> 00:16:56.700
+or one hundred thousand.
+
+229
+00:16:57.000 --> 00:17:02.160
+So you can imagine how this post metastable can get very large very quickly.
+
+230
+00:17:02.670 --> 00:17:10.080
+Now, let's truly change gears and let's contrast this approach with what our own custom database table
+
+231
+00:17:10.080 --> 00:17:10.950
+could look like.
+
+232
+00:17:11.130 --> 00:17:14.580
+So off camera, I just switched to the custom database solution.
+
+233
+00:17:14.970 --> 00:17:17.100
+So you won't have this on your copy yet.
+
+234
+00:17:17.100 --> 00:17:24.930
+But notice I have a table called pets, and if I click on that and select data, each row is a pet and
+
+235
+00:17:24.930 --> 00:17:28.580
+there's no need to look up data anywhere else in any other metastable.
+
+236
+00:17:28.590 --> 00:17:33.070
+So if I scroll to the right, you can see there's a column for all of the relevant data.
+
+237
+00:17:33.630 --> 00:17:38.880
+So now if you're only looking for animals where the species is dog, it's as simple as the database.
+
+238
+00:17:38.880 --> 00:17:42.690
+Just looking in this one column, in this one table.
+
+239
+00:17:42.930 --> 00:17:47.550
+So not only is the table way smaller, there's less items and rows to have to look through.
+
+240
+00:17:47.880 --> 00:17:48.090
+Right.
+
+241
+00:17:48.120 --> 00:17:52.230
+Because each pet only takes up one row instead of each Medda taking a row.
+
+242
+00:17:52.530 --> 00:17:57.840
+But also now the database doesn't need to look for a specific row where meta name is Species'.
+
+243
+00:17:58.290 --> 00:18:01.260
+Instead, it just needs to look in this one column.
+
+244
+00:18:01.260 --> 00:18:04.110
+It knows exactly where to look and what to search for.
+
+245
+00:18:04.380 --> 00:18:10.290
+And this is why, like we saw at the very start of this video, this approach can be 10 or even 20 times
+
+246
+00:18:10.290 --> 00:18:13.170
+faster than the custom post type way.
+
+247
+00:18:13.530 --> 00:18:15.450
+So you might be thinking, this is great.
+
+248
+00:18:15.750 --> 00:18:19.500
+Why don't we just use our own custom database table like this for everything?
+
+249
+00:18:19.720 --> 00:18:26.760
+The answer is because we're giving up or forfeiting so many cool free features when we use a table like
+
+250
+00:18:26.760 --> 00:18:27.180
+this.
+
+251
+00:18:27.570 --> 00:18:33.330
+WordPress does so many things for us, whereas if we use a table like this, we're essentially going
+
+252
+00:18:33.330 --> 00:18:34.830
+back to the Stone Age.
+
+253
+00:18:35.280 --> 00:18:38.280
+We need to do everything ourselves.
+
+254
+00:18:38.280 --> 00:18:41.550
+We need to babysit every feature, every detail.
+
+255
+00:18:41.880 --> 00:18:45.920
+And so development time is just going to be exponentially slower.
+
+256
+00:18:46.410 --> 00:18:50.880
+For example, if you think about everything WordPress gives you with post types, it's giving you an
+
+257
+00:18:50.880 --> 00:18:54.330
+admin interface where it's easy to perform CRUD operations.
+
+258
+00:18:54.510 --> 00:18:58.140
+It's giving you rest API endpoints for CRUD operations.
+
+259
+00:18:58.140 --> 00:19:02.520
+It automatically ties your posts to permission groups or permission rolls.
+
+260
+00:19:02.760 --> 00:19:03.930
+The list goes on and on.
+
+261
+00:19:03.930 --> 00:19:10.980
+The point is that WordPress offers so many benefits when you use its post system that you should really
+
+262
+00:19:10.980 --> 00:19:16.500
+only use a custom database table if both of the following things are true.
+
+263
+00:19:16.950 --> 00:19:22.800
+Number one, you need to be able to query based on a piece of custom metadata.
+
+264
+00:19:23.070 --> 00:19:25.530
+So just storing the metadata is not the problem.
+
+265
+00:19:25.530 --> 00:19:27.960
+It's when you need to be able to search by it.
+
+266
+00:19:28.200 --> 00:19:29.820
+But even that isn't a problem.
+
+267
+00:19:29.820 --> 00:19:36.690
+If you're only going to have maybe a hundred posts or maybe a thousand or two thousand pets, it only
+
+268
+00:19:36.690 --> 00:19:43.560
+becomes slow if you need to search by the meta and you anticipate your users will have lots and lots
+
+269
+00:19:43.560 --> 00:19:44.700
+of those posts.
+
+270
+00:19:45.150 --> 00:19:49.980
+If both of those things are true, then I do think your plugin should use its own database table.
+
+271
+00:19:50.190 --> 00:19:55.140
+And learning how to set that up is exactly what we're going to learn about in the remainder of this
+
+272
+00:19:55.140 --> 00:19:55.740
+chapter.
+
+273
+00:19:56.040 --> 00:19:59.550
+Let's keep things rolling and I'll see you in the next lesson.

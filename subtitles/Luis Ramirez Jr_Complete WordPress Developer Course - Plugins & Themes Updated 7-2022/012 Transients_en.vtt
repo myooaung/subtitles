@@ -1,0 +1,405 @@
+WEBVTT
+1
+00:00:00.150 --> 00:00:06.360
+In this lecture, we are going to begin writing the query for a grabbing a random recipe before we get
+
+2
+00:00:06.360 --> 00:00:07.460
+into writing code.
+
+3
+00:00:07.470 --> 00:00:10.170
+There's an important concept we should cover.
+
+4
+00:00:10.200 --> 00:00:13.320
+WordPress has a feature called Transients.
+
+5
+00:00:13.320 --> 00:00:19.680
+In the resource section of this lecture, I provide a link to the documentation page for this feature.
+
+6
+00:00:19.800 --> 00:00:23.940
+Up until now, data stored in a database has been permanent.
+
+7
+00:00:23.970 --> 00:00:27.300
+It's possible to delete data, but it's not common.
+
+8
+00:00:27.300 --> 00:00:31.680
+Storing data in a database is a great way to persist data.
+
+9
+00:00:31.680 --> 00:00:35.310
+However, what if we want to store data temporarily?
+
+10
+00:00:35.310 --> 00:00:42.540
+We could use variables, but a variable is cleared from a system's memory after PHP is finished running.
+
+11
+00:00:42.810 --> 00:00:47.760
+Transients are the solution for storing data for longer than a few seconds.
+
+12
+00:00:47.790 --> 00:00:51.330
+A transient is a value stored in the database.
+
+13
+00:00:51.330 --> 00:00:55.470
+The record will be deleted after a specific expiration time.
+
+14
+00:00:55.470 --> 00:00:59.640
+Best of all, WordPress manages this process for us.
+
+15
+00:00:59.640 --> 00:01:03.480
+We never need to worry about deleting the record from the database.
+
+16
+00:01:03.480 --> 00:01:08.160
+WordPress automates the leading a record past an expiration time.
+
+17
+00:01:08.160 --> 00:01:11.540
+The question becomes Why do we need transients?
+
+18
+00:01:11.550 --> 00:01:14.340
+Our block will display the recipe of the day.
+
+19
+00:01:14.370 --> 00:01:17.610
+Every day we're going to refresh the recipe.
+
+20
+00:01:17.610 --> 00:01:23.250
+The ID of the current recipe will be stored in a database for 24 hours.
+
+21
+00:01:23.250 --> 00:01:26.880
+After 24 hours, the ID should be deleted.
+
+22
+00:01:26.880 --> 00:01:29.280
+A new ID will take its place.
+
+23
+00:01:29.400 --> 00:01:33.690
+Transients are the perfect solution for handling this scenario.
+
+24
+00:01:33.720 --> 00:01:39.000
+We are going to store the ID of the recipe with the Transients API.
+
+25
+00:01:39.030 --> 00:01:45.450
+If WordPress deletes the value from the database, we can safely query the database again for another
+
+26
+00:01:45.450 --> 00:01:46.230
+recipe.
+
+27
+00:01:46.230 --> 00:01:49.200
+It's a great API for caching data.
+
+28
+00:01:49.320 --> 00:01:54.810
+Let's get started by heading over to our editors in the includes directory.
+
+29
+00:01:54.840 --> 00:01:59.760
+Create a file called Generate Daily Recipe PHP.
+
+30
+00:02:02.070 --> 00:02:03.510
+Inside this file.
+
+31
+00:02:03.540 --> 00:02:07.380
+Define a function called up generate daily recipe.
+
+32
+00:02:09.639 --> 00:02:14.500
+This function will be responsible for querying the database for a recipe.
+
+33
+00:02:14.530 --> 00:02:19.270
+WordPress does not have a function for generating a randomized value.
+
+34
+00:02:19.300 --> 00:02:24.910
+Since that's the case, we will be writing a custom SQL query inside the function.
+
+35
+00:02:24.910 --> 00:02:28.510
+Let's grab the WP DB global variable.
+
+36
+00:02:30.660 --> 00:02:33.900
+Next, define a variable called ID.
+
+37
+00:02:33.930 --> 00:02:39.750
+The value for this variable will be the wp db get var function.
+
+38
+00:02:41.980 --> 00:02:45.190
+The goal of this query is to grab a single value.
+
+39
+00:02:45.220 --> 00:02:48.690
+We're not interested in the entire record of a post.
+
+40
+00:02:48.700 --> 00:02:56.210
+The VAR function is our best option for retrieving a single value from a query, unlike before.
+
+41
+00:02:56.230 --> 00:02:58.630
+We're not going to prepare the query.
+
+42
+00:02:58.660 --> 00:03:04.360
+Preparing the query is useful for sanitizing a query that has user input.
+
+43
+00:03:04.390 --> 00:03:08.860
+For this query, the query will not be created with user input.
+
+44
+00:03:08.890 --> 00:03:13.990
+It's going to be a hard coded query inside the get var function.
+
+45
+00:03:14.020 --> 00:03:15.640
+Type the following query.
+
+46
+00:03:15.640 --> 00:03:19.630
+Select ID from WP db posts.
+
+47
+00:03:21.930 --> 00:03:27.030
+The query we're building will select the ID column from the post table.
+
+48
+00:03:27.060 --> 00:03:29.730
+We're not hard coding the name of the table.
+
+49
+00:03:29.760 --> 00:03:34.140
+WordPress has a property for the WP post table.
+
+50
+00:03:34.170 --> 00:03:38.070
+I prefer dynamically inserting the name over hard coding.
+
+51
+00:03:38.070 --> 00:03:38.700
+The name.
+
+52
+00:03:38.700 --> 00:03:46.120
+The name of the table may change by relying on WordPress to set the name, we can safely avoid typos.
+
+53
+00:03:46.140 --> 00:03:56.250
+Next, let's add the following to the query where post status equals publish and post type equals recipe.
+
+54
+00:03:58.540 --> 00:04:01.660
+The results will be filtered by two conditions.
+
+55
+00:04:01.690 --> 00:04:04.200
+Not all posts are published immediately.
+
+56
+00:04:04.210 --> 00:04:07.600
+Some authors may want to create drafts of a recipe.
+
+57
+00:04:07.600 --> 00:04:09.700
+We're not interested in drafts.
+
+58
+00:04:09.700 --> 00:04:14.430
+The posts table can store drafted and published posts.
+
+59
+00:04:14.440 --> 00:04:18.760
+In this query, we're limiting the results to published posts.
+
+60
+00:04:18.880 --> 00:04:24.160
+The second condition will limit the posts further to the recipe post type.
+
+61
+00:04:24.190 --> 00:04:27.850
+All post types are stored in the post table.
+
+62
+00:04:27.850 --> 00:04:30.310
+This includes custom post types.
+
+63
+00:04:30.310 --> 00:04:35.050
+Once again, we're not interested in another post types besides recipes.
+
+64
+00:04:35.050 --> 00:04:42.460
+After these conditions, let's finalize the query with the following code order by random limit one.
+
+65
+00:04:44.690 --> 00:04:49.340
+By default, the database will order the results in descending order.
+
+66
+00:04:49.370 --> 00:04:52.100
+Our goal is to grab a random recipe.
+
+67
+00:04:52.370 --> 00:04:57.650
+SQL has a function called random for randomizing the records in a database.
+
+68
+00:04:57.680 --> 00:05:00.240
+This will not affect the database directly.
+
+69
+00:05:00.260 --> 00:05:02.640
+It will only affect the results.
+
+70
+00:05:02.660 --> 00:05:07.040
+We can sort the ordering by using the order by keywords.
+
+71
+00:05:07.070 --> 00:05:09.320
+The last keyword is called limits.
+
+72
+00:05:09.350 --> 00:05:13.190
+The limit keyword will limit the results returned by the query.
+
+73
+00:05:13.220 --> 00:05:16.320
+After this keyword, we can specify the limit.
+
+74
+00:05:16.340 --> 00:05:22.670
+Overall, this query will retrieve the ID from a random record in the post table.
+
+75
+00:05:22.700 --> 00:05:27.320
+Let's store the ID in our database after the ID variable.
+
+76
+00:05:27.320 --> 00:05:30.380
+Run a function called set transient.
+
+77
+00:05:32.540 --> 00:05:38.180
+The set's transient function will store the value in the database with an expiration date.
+
+78
+00:05:38.210 --> 00:05:42.800
+The first argument of this function is the custom name of the transient.
+
+79
+00:05:42.830 --> 00:05:47.270
+Let's set the name to up daily recipe ID.
+
+80
+00:05:49.600 --> 00:05:54.310
+The second argument is the value pass and the ID variable.
+
+81
+00:05:56.430 --> 00:06:00.390
+Lastly, we must provide the expiration in seconds.
+
+82
+00:06:00.420 --> 00:06:05.490
+Let's head back to the documentation page for the Transients API.
+
+83
+00:06:07.820 --> 00:06:12.230
+On the sidebar, there is a link called Using Time Constraints.
+
+84
+00:06:12.260 --> 00:06:13.280
+Click on it.
+
+85
+00:06:13.310 --> 00:06:18.700
+This link will take you to a section with a list of constraints defined by WordPress.
+
+86
+00:06:18.710 --> 00:06:21.020
+We can manually provide a time.
+
+87
+00:06:21.050 --> 00:06:26.590
+On the other hand, WordPress has constants for the most common expiration times.
+
+88
+00:06:26.600 --> 00:06:28.880
+I prefer to use these constants.
+
+89
+00:06:28.880 --> 00:06:31.370
+Let's grab the day in seconds.
+
+90
+00:06:31.370 --> 00:06:32.300
+Constant.
+
+91
+00:06:34.510 --> 00:06:41.380
+Next, let's update the set's transient function by passing in this constant as the value for the third
+
+92
+00:06:41.380 --> 00:06:42.220
+argument.
+
+93
+00:06:44.370 --> 00:06:48.120
+Lastly, let's return the ID from the function.
+
+94
+00:06:50.420 --> 00:06:54.600
+This function is not tied to a specific hook or request.
+
+95
+00:06:54.620 --> 00:06:56.840
+It's a plain PHP function.
+
+96
+00:06:56.870 --> 00:06:58.370
+The reason is simple.
+
+97
+00:06:58.370 --> 00:07:04.700
+It's because we'll be performing the action of grabbing a recipe from different locations in our app
+
+98
+00:07:04.730 --> 00:07:07.890
+to prevent our code base from becoming repetitive.
+
+99
+00:07:07.910 --> 00:07:11.360
+We've outsourced the logic into a separate function.
+
+100
+00:07:11.480 --> 00:07:16.460
+In the next lecture, we are going to call this function for grabbing a post.
+
+101
+00:07:16.490 --> 00:07:17.750
+I'll see you there.
+

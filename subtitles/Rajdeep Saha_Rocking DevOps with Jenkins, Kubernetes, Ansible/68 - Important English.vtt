@@ -1,0 +1,445 @@
+WEBVTT
+
+00:00.150 --> 00:05.280
+Until this point we have been using the default agent, which is the AC to head.
+
+00:05.280 --> 00:08.160
+The Jenkins is running for all our Jenkins file.
+
+00:08.550 --> 00:14.520
+So now let's venture a little bit further and use a Docker container as our agent.
+
+00:14.520 --> 00:20.580
+And even though I title the lecture as building python code with Docker because I'm going to show this
+
+00:20.580 --> 00:26.190
+demo with Python, but the same approach will work for any programming language, not just Python.
+
+00:26.520 --> 00:27.000
+All right.
+
+00:27.000 --> 00:27.990
+Let's get started.
+
+00:28.620 --> 00:33.840
+First, let's try to understand the high level flow and the advantage of using Docker container as the
+
+00:33.840 --> 00:34.420
+agent.
+
+00:34.440 --> 00:42.960
+So let's say you checked in your code such as API in your GitHub repository, and now you want to compile
+
+00:42.960 --> 00:46.470
+this code, create the byte code, and you want to run some unit test.
+
+00:46.590 --> 00:53.160
+So using what we have known so far, you will do a check out ACM which will bring this application,
+
+00:53.160 --> 01:00.630
+that Python code into that Jenkins agent, which is the Amazon to and then to do the build and unit
+
+01:00.630 --> 01:01.470
+test.
+
+01:01.710 --> 01:07.700
+This is how to needs to have the python installed and a py test installed.
+
+01:07.710 --> 01:15.390
+PY test is a tool that you can use to unit test your python code and at this point in your Jenkins file,
+
+01:15.390 --> 01:21.810
+you will run shell commands to compile the python code as well as running the command to run Python
+
+01:21.810 --> 01:22.410
+test.
+
+01:22.980 --> 01:25.470
+Also, this whole thing is very fashion sensitive.
+
+01:26.010 --> 01:33.060
+So maybe while coding in your local desktop you use a specific version of Python and your production
+
+01:33.060 --> 01:34.500
+runs that version.
+
+01:34.500 --> 01:39.720
+But maybe in this Amazon issue you have some other version of Python easy to install.
+
+01:40.260 --> 01:44.370
+So there could be some problem when you deploy your code to production.
+
+01:44.640 --> 01:47.700
+So using Docker container solves all that.
+
+01:47.700 --> 01:49.170
+So how would this look like?
+
+01:49.620 --> 01:58.500
+So instead of building a unit testing on the default Amazon EC2 agent, you will start running two different
+
+01:58.500 --> 02:04.500
+container inside the CC two and these containers will serve as agent.
+
+02:05.190 --> 02:12.180
+So for building you will grab a build container from container repository such as docker hub.
+
+02:12.360 --> 02:19.770
+This container image will have the appropriate python version installed and this version will match
+
+02:19.770 --> 02:20.940
+all your environment.
+
+02:21.600 --> 02:29.370
+Similarly, for unit testing, you will run this container image which has pi test installed.
+
+02:29.370 --> 02:30.810
+What about the ESI two?
+
+02:30.840 --> 02:33.150
+You don't have to worry about the AC two at all.
+
+02:33.180 --> 02:40.920
+You don't even need a python or pi test installed in this ESI to ESI two only needs the docker installed
+
+02:40.920 --> 02:43.320
+so that this container images can run.
+
+02:43.560 --> 02:49.710
+I am showing this with python, but the same approach will work for any programming, language or other
+
+02:49.710 --> 02:50.430
+tools.
+
+02:50.730 --> 02:52.140
+But first things first.
+
+02:52.140 --> 02:54.300
+Let's do a demo with the python code.
+
+02:54.690 --> 02:59.820
+All the artifacts for this demo is saved under this python code folder.
+
+02:59.970 --> 03:06.660
+So if I go inside, I have three python code, two for the actual code and one for you testing and the
+
+03:06.660 --> 03:09.600
+Jenkins file pretty straightforward.
+
+03:09.750 --> 03:18.660
+So this add to start py accepts two numbers and then returns the added value of those two numbers.
+
+03:18.660 --> 03:28.650
+And this add to false actually uses a function named calc and this calc has this add two function which
+
+03:28.650 --> 03:35.250
+takes argument one, argument two, and then it just returns the addition of that to let's go through
+
+03:35.250 --> 03:41.310
+the test underscore calc py python uses this assert equal statement.
+
+03:41.640 --> 03:48.930
+So what you do is you call the function such as result equal to calc dot add two.
+
+03:48.960 --> 03:56.970
+So add two is the function and then you pass in the two numbers one and two and the result should match
+
+03:56.970 --> 03:57.690
+three.
+
+03:58.530 --> 04:06.440
+Similarly, for the second test case, we are passing 10.5 and two and the result should match 12.5.
+
+04:06.810 --> 04:15.120
+If this does not match three or 12.5, then it is going to error out this line and the unit test will
+
+04:15.120 --> 04:15.720
+fail.
+
+04:15.840 --> 04:16.290
+All right.
+
+04:16.290 --> 04:20.370
+Now let's take a look at the important part, which is Jenkins file.
+
+04:20.370 --> 04:23.910
+So the big change in the Jenkins file, the agent is none.
+
+04:24.330 --> 04:29.250
+Generally, so far we have been using agent any so which will use the AC two.
+
+04:29.280 --> 04:33.870
+So what this means is every stage need to specify their own agent.
+
+04:34.350 --> 04:42.450
+So the first stage is build and the agent we are using is this image python and it's tagged with two
+
+04:42.450 --> 04:43.740
+dash alpine.
+
+04:44.310 --> 04:45.960
+So this is the Docker image.
+
+04:46.260 --> 04:50.700
+Unless otherwise specified, all the image will come from Docker Hub.
+
+04:51.090 --> 04:55.680
+So if I go to Docker Hub and then you search for Python.
+
+04:56.200 --> 04:58.350
+So the first one Python is the official image.
+
+04:58.350 --> 04:59.790
+That's what we are grabbing.
+
+05:00.410 --> 05:01.500
+And a two dash.
+
+05:01.520 --> 05:03.800
+Alpine is a tag.
+
+05:03.830 --> 05:07.300
+It's a pretty lightweight python image, pretty standard.
+
+05:07.310 --> 05:13.640
+And you can go take a look at the actual tag and see what version a python is running and all the other
+
+05:13.640 --> 05:14.540
+details.
+
+05:14.570 --> 05:14.950
+All right.
+
+05:14.960 --> 05:19.220
+Going back to Jenkins file, then we are running the actual steps.
+
+05:19.220 --> 05:26.660
+This step runs the Python command to compile the application into bytecode file, so bytecode files
+
+05:26.660 --> 05:36.710
+end with a dot PC extension and we are placing those bytecode files into Python code folder.
+
+05:37.070 --> 05:39.020
+So I want to show you folks that.
+
+05:39.020 --> 05:43.790
+So I'm also running LZ Dash L Python code to show you the byte code.
+
+05:44.090 --> 05:45.080
+I don't get confused.
+
+05:45.080 --> 05:49.220
+The python at the end of the day is still an interpreted language.
+
+05:49.730 --> 05:56.180
+Every time you run a python for the first time, it converts the code into the bytecode and then the
+
+05:56.180 --> 05:58.010
+interpreter goes through the byte code.
+
+05:58.370 --> 06:07.940
+So one interesting thing is the lifespan of your agent is limited to the stage it is bind to.
+
+06:08.540 --> 06:13.760
+So in this case they are this agent is only used in this stage build.
+
+06:13.760 --> 06:19.730
+So as soon as this build stage is finished, this agent is going to die.
+
+06:20.150 --> 06:22.760
+So which brings me to the next point.
+
+06:23.120 --> 06:30.500
+Whenever you are stashing the files or saving some files, these files are actually getting saved where
+
+06:30.500 --> 06:35.600
+the actual Jenkins is running, which is easy, too, so they are not going to go away.
+
+06:35.810 --> 06:36.290
+All right.
+
+06:36.290 --> 06:39.170
+So now let's take a look at the test stage.
+
+06:39.770 --> 06:44.510
+So for this, we are grabbing this CUNY slash PI test.
+
+06:44.510 --> 06:46.820
+You can go check it out in Docker Hub.
+
+06:47.090 --> 06:50.000
+This one is also a very popular container image.
+
+06:50.000 --> 06:59.240
+This has pi test installed and this S-H step executes PY tests by the test command on the test underscore
+
+06:59.240 --> 07:05.180
+calc dot py program which we went through, which runs a set of unit tests.
+
+07:05.510 --> 07:13.100
+And then whether passes or fails, that does does the unit does x html option max py test generate a
+
+07:13.370 --> 07:20.840
+unit XML report which we are saving inside a folder called test does reports in a results xml.
+
+07:21.170 --> 07:27.800
+So when you run this unit test, it's a standard practice to generate this unit test reports and then
+
+07:27.800 --> 07:29.310
+you can create dashboards.
+
+07:29.310 --> 07:32.120
+So how many tests pass failed all that stuff.
+
+07:32.240 --> 07:38.090
+And then just for fun, I'm also displaying the content of that results dot XML file.
+
+07:38.120 --> 07:47.300
+We also have post section under this test stage, this unit command archives, the unit XML report and
+
+07:47.300 --> 07:50.480
+exposes the results through the Jenkins interface.
+
+07:51.020 --> 07:54.020
+You will see how it looks in a minute when we run this.
+
+07:54.740 --> 07:55.220
+All right.
+
+07:55.220 --> 08:01.670
+On that note, let's jump into the Jenkins and point our job to this Jenkins file.
+
+08:01.700 --> 08:02.120
+All right.
+
+08:02.120 --> 08:04.010
+So we have a pipeline, Jenkins job.
+
+08:04.010 --> 08:07.880
+At this point, you all know how to create the Jenkins job.
+
+08:07.880 --> 08:09.470
+This is a pipeline job.
+
+08:09.470 --> 08:12.020
+I named this job build test with Docker.
+
+08:12.320 --> 08:18.980
+And the important part is I'm pointing this Jenkins job to the repository.
+
+08:19.580 --> 08:25.640
+The branch is main and I'm pointing to Python code slash Jenkins file to point it to the Jenkins file
+
+08:25.640 --> 08:26.930
+we just walked through.
+
+08:27.350 --> 08:31.370
+So let's save this and then click build now.
+
+08:31.790 --> 08:33.860
+All right, let's go to console output.
+
+08:33.860 --> 08:34.250
+All right.
+
+08:34.250 --> 08:38.720
+You can see it's running the Docker run with the image and everything.
+
+08:39.020 --> 08:42.410
+And then we ran the compile Python command.
+
+08:42.740 --> 08:50.350
+So then it stashed the five files and remember we ran a long listing so you could see it generated Atwell's
+
+08:50.600 --> 08:53.030
+PC and Calc PC.
+
+08:53.810 --> 08:56.540
+So now we are going to the unit testing.
+
+08:56.930 --> 09:03.770
+So now it's running the cube slash pi test and then it ran the python test.
+
+09:04.310 --> 09:05.570
+Everything went fine.
+
+09:05.570 --> 09:06.710
+No failure here.
+
+09:06.710 --> 09:10.190
+And I'm also showing the results dot XML.
+
+09:10.340 --> 09:13.520
+All right, so our job ran fine.
+
+09:13.940 --> 09:22.160
+So if we go back to the project, so see this test results trend failed skipped past.
+
+09:22.460 --> 09:26.510
+So the J unit on the post section is doing this.
+
+09:26.810 --> 09:28.670
+So this is the number one run.
+
+09:29.030 --> 09:32.900
+Everything is passed past five test cases.
+
+09:33.320 --> 09:37.400
+So as you run more stuff you will see more trends.
+
+09:37.400 --> 09:39.380
+So I just ran this job again.
+
+09:39.380 --> 09:40.670
+So now you could see number one.
+
+09:40.670 --> 09:41.450
+Number two.
+
+09:42.050 --> 09:47.330
+So let's just for fun, I'm just going to make one of the test cars fail, all right.
+
+09:47.330 --> 09:51.650
+In the GitHub, I'm just going to change one of the values.
+
+09:51.650 --> 09:58.010
+So even if we expect three, I'm going to change this to four.
+
+09:58.040 --> 09:58.520
+Okay.
+
+09:58.670 --> 09:59.780
+So the first one.
+
+09:59.900 --> 10:01.310
+Is going to fail.
+
+10:01.550 --> 10:04.100
+So scroll down, let's commit changes.
+
+10:04.520 --> 10:07.760
+Go back to our Jenkins job and click Build now.
+
+10:08.150 --> 10:15.260
+All right, so the test stage failed, but remember that in our Jenkins file, whether it's passed or
+
+10:15.260 --> 10:19.550
+fail, we will always post Jamie's reports.
+
+10:20.240 --> 10:24.650
+So if we go back to the job and refresh this page.
+
+10:25.610 --> 10:31.190
+All right, you could see for the number three, one failed and four passed.
+
+10:31.220 --> 10:38.810
+All right, folks, this is how you build and unit test your code using Docker container agent in Jenkins.
+
+10:38.810 --> 10:44.530
+Again, this is a pretty important concept, so I rewatch rerun as needed.
+
+10:44.540 --> 10:45.530
+That's it for this one.
+
+10:45.530 --> 10:47.960
+I'll see you guys and girls in the next lecture by.

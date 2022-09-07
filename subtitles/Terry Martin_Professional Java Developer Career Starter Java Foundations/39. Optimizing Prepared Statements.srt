@@ -1,0 +1,979 @@
+1
+00:00:00,330 --> 00:00:06,120
+All right, another optimization that I want to show you has to do with how we are creating our prepared
+
+2
+00:00:06,120 --> 00:00:06,930
+statements.
+
+3
+00:00:07,260 --> 00:00:08,690
+I don't know if you'll remember this.
+
+4
+00:00:08,700 --> 00:00:13,290
+It's been quite a while since I originally talked to you about the prepared statements, but I want
+
+5
+00:00:13,290 --> 00:00:19,290
+to remind you of the fact that one of the benefits of prepared statements is that they are prepared
+
+6
+00:00:19,560 --> 00:00:22,470
+in advance of when they are actually needed.
+
+7
+00:00:22,710 --> 00:00:29,910
+And what that really means is that when we create a prepared statement, JBC takes our skill that we
+
+8
+00:00:29,910 --> 00:00:35,760
+pass in to that prepared statement and it actually sends it to the database and allows the database
+
+9
+00:00:35,760 --> 00:00:43,530
+to compile that SQL statement or query into a lower level form that can execute more quickly.
+
+10
+00:00:43,680 --> 00:00:50,490
+Because normally when we create sequel that SQL has to be analyzed and parsed by the database to figure
+
+11
+00:00:50,490 --> 00:00:54,570
+out how it's going to actually execute that sequel, that takes time.
+
+12
+00:00:54,870 --> 00:01:00,420
+And if we were to just create a regular statement, not a prepared statement, but a regular statement
+
+13
+00:01:00,720 --> 00:01:06,120
+that analysis and planning and all of those things would have to be done each and every time we send
+
+14
+00:01:06,120 --> 00:01:09,660
+that sequel to the database and ask the database to execute it.
+
+15
+00:01:09,900 --> 00:01:15,720
+However, if we create a prepared statement, the database can do all of that up front.
+
+16
+00:01:15,750 --> 00:01:17,480
+One time potentially.
+
+17
+00:01:17,700 --> 00:01:23,490
+And then each subsequent time that we actually asked the database to execute that prepared statement,
+
+18
+00:01:23,670 --> 00:01:25,440
+it can execute much more quickly.
+
+19
+00:01:25,590 --> 00:01:31,350
+However, with the way that we've currently written our code, we're not getting the full benefit of
+
+20
+00:01:31,350 --> 00:01:33,000
+using this prepared statement.
+
+21
+00:01:33,240 --> 00:01:39,840
+The reason we're not getting the full benefit is because each time we call these crud operations, such
+
+22
+00:01:39,840 --> 00:01:46,200
+as save or find all and everything else, we're asking the database to recreate the prepared statement
+
+23
+00:01:46,200 --> 00:01:47,970
+for us at that moment.
+
+24
+00:01:48,000 --> 00:01:51,300
+OK, so we're not getting as much of the benefit now.
+
+25
+00:01:51,300 --> 00:01:57,090
+One benefit that we are still getting is the fact that we still get to use the by-nd parameters, which
+
+26
+00:01:57,090 --> 00:01:59,450
+protects us from SQL injection.
+
+27
+00:01:59,580 --> 00:02:04,540
+Go back and watch the old videos that I did on on SQL injection and things of that sort.
+
+28
+00:02:04,680 --> 00:02:07,740
+If you need a reminder on what I'm talking about there.
+
+29
+00:02:07,830 --> 00:02:14,130
+So we are still getting that benefit, but we could be getting even more benefit in terms of speed ups
+
+30
+00:02:14,490 --> 00:02:20,940
+if we were to create these prepared statements just one time for the entire running of the application
+
+31
+00:02:21,090 --> 00:02:24,150
+and not keep recreating them every single time.
+
+32
+00:02:24,150 --> 00:02:29,910
+We want to run one of these crud operations, such as save or find all or delete or whatever.
+
+33
+00:02:30,270 --> 00:02:37,320
+So I just want to show you quickly some ideas of what we could do to optimize this as well, and it's
+
+34
+00:02:37,320 --> 00:02:38,460
+actually pretty easy.
+
+35
+00:02:38,940 --> 00:02:43,830
+So here we are in the save method and we are creating a prepared statement.
+
+36
+00:02:43,920 --> 00:02:48,780
+And like I said, every time we call save, we're going to end up recreating the same prepared statement.
+
+37
+00:02:49,080 --> 00:02:55,710
+So the question is how could we just prepare this statement or create the statement one time for the
+
+38
+00:02:55,710 --> 00:02:59,760
+lifetime of our application and then just keep reusing it?
+
+39
+00:02:59,910 --> 00:03:01,590
+Can you think of a way to do that?
+
+40
+00:03:03,310 --> 00:03:03,610
+OK.
+
+41
+00:03:03,640 --> 00:03:05,470
+Did you come up with a with a solution?
+
+42
+00:03:05,650 --> 00:03:07,840
+It's really, really simple, really.
+
+43
+00:03:07,840 --> 00:03:13,720
+We can just convert this prepared statement into a field of the class, right?
+
+44
+00:03:13,870 --> 00:03:20,440
+And so we can initialize it one time, presumably like maybe when we first create the class and then
+
+45
+00:03:20,440 --> 00:03:22,360
+just keep reusing it after that.
+
+46
+00:03:22,780 --> 00:03:24,410
+So that's what we're going to do here.
+
+47
+00:03:24,430 --> 00:03:26,350
+So this is actually quite easy to do.
+
+48
+00:03:26,620 --> 00:03:33,880
+We can just select this prepared statement for our save and I can do an option command f to create a
+
+49
+00:03:33,880 --> 00:03:35,680
+field or introduce a field.
+
+50
+00:03:36,550 --> 00:03:37,000
+OK.
+
+51
+00:03:37,540 --> 00:03:38,320
+Just like that.
+
+52
+00:03:38,440 --> 00:03:43,420
+And now I'm going to want to rename this because throughout our code, throughout this class where we're
+
+53
+00:03:43,420 --> 00:03:47,260
+calling all of the local prepared statements piece.
+
+54
+00:03:47,380 --> 00:03:50,990
+And obviously, we won't be able to do that if we convert them all into fields.
+
+55
+00:03:51,010 --> 00:03:52,750
+They'll all conflict with each other.
+
+56
+00:03:52,900 --> 00:03:56,680
+So I'm going to rename this to something like save peace.
+
+57
+00:03:56,950 --> 00:04:01,060
+So this is the prepared statement for saving values.
+
+58
+00:04:01,210 --> 00:04:02,740
+And then I will hit return.
+
+59
+00:04:03,220 --> 00:04:03,640
+OK.
+
+60
+00:04:03,760 --> 00:04:05,110
+And so look what that did.
+
+61
+00:04:05,260 --> 00:04:10,240
+That changed the name of this particular variable from peace to save peace.
+
+62
+00:04:10,600 --> 00:04:16,620
+Then it moved the declaration of it up here as a private field of the abstract class.
+
+63
+00:04:16,660 --> 00:04:23,410
+OK, and now we haven't solved everything yet because we're still actually creating it down here in
+
+64
+00:04:23,410 --> 00:04:24,270
+the save method.
+
+65
+00:04:24,280 --> 00:04:26,710
+And that's exactly what we don't want to do, right?
+
+66
+00:04:26,890 --> 00:04:31,900
+We want to create this just one time for the entire lifetime of this class.
+
+67
+00:04:32,110 --> 00:04:38,800
+So what we can do here is actually just move this up to the constructor because the constructor is called
+
+68
+00:04:39,010 --> 00:04:42,880
+when we create an instance of this class anyway, right?
+
+69
+00:04:43,060 --> 00:04:49,330
+And so that is the perfect time and the perfect opportunity for us to create this prepared statement
+
+70
+00:04:49,330 --> 00:04:50,110
+one time.
+
+71
+00:04:50,320 --> 00:04:55,540
+So all I'm going to do here is just move it up with an option shift or, I think, alt shift.
+
+72
+00:04:56,790 --> 00:05:02,040
+And up, Arrow, and then I'm going to fix my indentation with the Shift tab.
+
+73
+00:05:02,640 --> 00:05:04,100
+And so that's almost done.
+
+74
+00:05:04,110 --> 00:05:09,900
+However, now we've got this error here, and that's simply because this prepared statement method does
+
+75
+00:05:09,900 --> 00:05:11,780
+throw a sequel exception.
+
+76
+00:05:11,790 --> 00:05:13,830
+And so I need to do one or two things.
+
+77
+00:05:13,830 --> 00:05:20,220
+I either need to wrap this call in a try catch or I need to declare that this constructor is capable
+
+78
+00:05:20,220 --> 00:05:23,190
+of throwing a sequel exception or some type of exception.
+
+79
+00:05:24,060 --> 00:05:31,680
+I've mentioned before that it's generally not good on public methods in our repository class to declare
+
+80
+00:05:31,680 --> 00:05:38,580
+that those methods can throw exceptions that are specific to database and GDC, such as SQL exception.
+
+81
+00:05:38,850 --> 00:05:45,150
+Because you'll learn, hopefully, probably in the next module about the fact that we have all of these
+
+82
+00:05:45,150 --> 00:05:50,790
+layers, these application layers, and we don't want SQL exceptions that are related to the database
+
+83
+00:05:50,790 --> 00:05:59,750
+stuff to leak out from our database layer of code into higher layers of code that would depend on them.
+
+84
+00:05:59,760 --> 00:06:00,540
+We don't want that.
+
+85
+00:06:00,900 --> 00:06:06,840
+So probably a better thing to do would be to just wrap this in a try catch block, and I'm going to
+
+86
+00:06:06,840 --> 00:06:09,630
+do that by just selecting everything here.
+
+87
+00:06:11,440 --> 00:06:18,610
+And then I will do an optional command tee and choose to surround with try catch, which is number six.
+
+88
+00:06:19,060 --> 00:06:19,400
+All right.
+
+89
+00:06:19,420 --> 00:06:23,380
+So that just took those two lines and surrounded them with this try catch block.
+
+90
+00:06:23,620 --> 00:06:29,050
+And it did the analysis to determine that the one exception that could be thrown from any of that code
+
+91
+00:06:29,170 --> 00:06:30,490
+was a sequel exception.
+
+92
+00:06:30,490 --> 00:06:33,760
+And so it's giving me the catch for the sequel exception right here.
+
+93
+00:06:34,660 --> 00:06:38,680
+Now, technically, I should be doing more than simply printing a stack trace.
+
+94
+00:06:38,680 --> 00:06:45,520
+What I really should be doing is probably be translating the sequel exception into a more custom business
+
+95
+00:06:45,520 --> 00:06:46,600
+level exception.
+
+96
+00:06:46,750 --> 00:06:52,210
+I'm not sure what that looks like shortly, but for now, let's stay just with this bit right here.
+
+97
+00:06:52,480 --> 00:06:57,310
+So now we've got our save prepared statement here and notice no errors down here.
+
+98
+00:06:57,320 --> 00:06:59,590
+This is all still being useful.
+
+99
+00:06:59,830 --> 00:07:05,680
+And so now I can actually rerun all of our tests, then we shouldn't have any problems.
+
+100
+00:07:06,070 --> 00:07:07,720
+So let's just see that real quick.
+
+101
+00:07:07,720 --> 00:07:11,110
+Let me open up everything and I will just run all the tests.
+
+102
+00:07:12,800 --> 00:07:14,700
+Yep, and everything's looking good.
+
+103
+00:07:14,720 --> 00:07:15,950
+No problems there.
+
+104
+00:07:16,310 --> 00:07:23,600
+But now we're only creating the prepared statement one time for the lifetime of this class, which is
+
+105
+00:07:23,600 --> 00:07:26,030
+generally the lifetime of the application.
+
+106
+00:07:26,270 --> 00:07:29,300
+And so I could go through and do the same thing down here.
+
+107
+00:07:29,300 --> 00:07:32,160
+And in fact, I will do at least one more just to show you.
+
+108
+00:07:32,180 --> 00:07:32,870
+So again, I will.
+
+109
+00:07:32,880 --> 00:07:35,060
+So now I'm in the Find My ID method.
+
+110
+00:07:35,240 --> 00:07:37,100
+I will select this prepared statement.
+
+111
+00:07:37,100 --> 00:07:39,380
+I will convert it into a field.
+
+112
+00:07:39,950 --> 00:07:44,300
+I will rename it to find by I.D..
+
+113
+00:07:44,570 --> 00:07:46,100
+P.S. Enter.
+
+114
+00:07:46,310 --> 00:07:46,910
+All right.
+
+115
+00:07:47,240 --> 00:07:50,000
+And then I will just move this line up.
+
+116
+00:07:51,360 --> 00:07:51,910
+There we go.
+
+117
+00:07:51,930 --> 00:07:57,960
+And I'll just put it right underneath the save piece and then I can rerun the tests again.
+
+118
+00:07:59,580 --> 00:08:01,140
+There we go and still looking good.
+
+119
+00:08:01,680 --> 00:08:03,570
+All right, so you get the basic idea, right?
+
+120
+00:08:04,350 --> 00:08:09,570
+And one of the other nice things about doing this in this way is that because we're in the constructor
+
+121
+00:08:09,570 --> 00:08:16,230
+here, I still can access and call all of these methods just like we needed to in order to in order
+
+122
+00:08:16,230 --> 00:08:21,450
+to find all of our annotations and find the sequel code that's associated with those annotations.
+
+123
+00:08:21,450 --> 00:08:23,520
+All of that still works, obviously, right?
+
+124
+00:08:23,730 --> 00:08:29,910
+But again, now we're only doing it one time for the entire class instead of every single time someone
+
+125
+00:08:29,910 --> 00:08:31,200
+calls these methods.
+
+126
+00:08:31,470 --> 00:08:35,250
+So this is quite useful and you really should be doing it this way.
+
+127
+00:08:35,250 --> 00:08:37,890
+If you're if you're going to create prepared statements.
+
+128
+00:08:37,890 --> 00:08:43,290
+So arguably, maybe I shouldn't have taught you to create prepared statements directly in these methods
+
+129
+00:08:43,290 --> 00:08:48,390
+that could be called multiple times, but we were learning so many things in this module that I just
+
+130
+00:08:48,390 --> 00:08:52,200
+didn't want to overwhelm you any further than I absolutely had to.
+
+131
+00:08:52,560 --> 00:08:56,250
+But now that we're learning about optimizations, this is an important one.
+
+132
+00:08:56,580 --> 00:09:01,020
+Don't put your prepared statements in methods that get called multiple times.
+
+133
+00:09:01,200 --> 00:09:06,120
+Only call your prepared statement ideally once for the lifetime of your application.
+
+134
+00:09:06,240 --> 00:09:10,770
+Let it do its thing and then store that prepared statement somewhere where you can just reuse it.
+
+135
+00:09:10,770 --> 00:09:12,780
+Lots of times like we're doing here.
+
+136
+00:09:12,810 --> 00:09:14,160
+Very, very beneficial.
+
+137
+00:09:14,370 --> 00:09:17,170
+And that's really all I wanted to show you about this.
+
+138
+00:09:17,820 --> 00:09:22,740
+And I guess before we close this out, because this was a pretty short one, let me go ahead and address
+
+139
+00:09:22,740 --> 00:09:25,170
+this stack trace business real quick here.
+
+140
+00:09:25,440 --> 00:09:32,580
+So what we could do and you'll see this from time to time in well architected Java applications, is
+
+141
+00:09:32,580 --> 00:09:38,190
+that, like I said earlier, instead of letting an exception like SQL exception or other exceptions
+
+142
+00:09:38,190 --> 00:09:46,110
+that are in this case related to talking with the database to bubble out beyond the repository layer
+
+143
+00:09:46,110 --> 00:09:53,790
+or our database layer of code, it would be better to introduce a custom exemption class that is more
+
+144
+00:09:53,790 --> 00:09:58,140
+appropriate to be used throughout multiple layers of our application.
+
+145
+00:09:58,290 --> 00:10:01,530
+So I'm going to show you what that looks like really quickly, and we'll talk.
+
+146
+00:10:01,530 --> 00:10:06,690
+We'll probably talk a little bit more about this pattern, either in the next module or in the next
+
+147
+00:10:06,690 --> 00:10:12,060
+course, where I go much more deeper into fully fledged application development.
+
+148
+00:10:12,330 --> 00:10:14,970
+But let me just show you quickly here what we could do.
+
+149
+00:10:14,980 --> 00:10:18,210
+So I'm going to open up the project view here.
+
+150
+00:10:18,540 --> 00:10:22,710
+And what I would typically do is I would create a new package.
+
+151
+00:10:24,460 --> 00:10:28,090
+And maybe I would call this package exception.
+
+152
+00:10:28,540 --> 00:10:33,820
+And then I can create a new class and because this is just a quick example.
+
+153
+00:10:34,000 --> 00:10:42,790
+Maybe I'm going to call this a data exception for right now, that might not be the best name, but
+
+154
+00:10:42,790 --> 00:10:46,600
+I don't want to take a lot of time here, so I'm creating a data exception.
+
+155
+00:10:46,780 --> 00:10:47,770
+Now here's the thing.
+
+156
+00:10:48,340 --> 00:10:51,340
+This data type is going to be a type of exception.
+
+157
+00:10:51,700 --> 00:10:59,290
+So what I'm going to do for now is I'm going to make this class extend runtime exception.
+
+158
+00:10:59,920 --> 00:11:05,950
+Now you may recall from our lessons on exceptions that we've generally got three types of exceptions,
+
+159
+00:11:05,950 --> 00:11:07,870
+but only two that we really focused on.
+
+160
+00:11:07,870 --> 00:11:12,610
+In this course, we've we have checked exceptions and unchecked exceptions.
+
+161
+00:11:12,820 --> 00:11:17,070
+Check the exceptions are exceptions that extend the exception class.
+
+162
+00:11:17,080 --> 00:11:24,400
+OK, unchecked are the ones that extend runtime exception like we're doing here, and unchecked exceptions
+
+163
+00:11:24,400 --> 00:11:32,440
+do not require you to wrap your code in try catch blocks if that code is capable of throwing an unchecked
+
+164
+00:11:32,440 --> 00:11:33,130
+exception.
+
+165
+00:11:33,790 --> 00:11:39,460
+On the other hand, checked exceptions do force us to wrap our code in try catch block.
+
+166
+00:11:39,470 --> 00:11:46,360
+So if we jump back over here again, this call to prepared statement can throw a sequel exception sequel
+
+167
+00:11:46,360 --> 00:11:48,580
+exception is a checked exception.
+
+168
+00:11:48,730 --> 00:11:56,410
+And so the fact that I'm calling prepared statement forced me to have to either wrap that call in a
+
+169
+00:11:56,410 --> 00:12:02,860
+try catch block, or I could have declared that this entire constructor throws SQL exception.
+
+170
+00:12:03,040 --> 00:12:10,060
+That's me kind of like passing the responsibility down to whoever calls this constructor so that they
+
+171
+00:12:10,060 --> 00:12:13,180
+have to deal with it instead of me in this code here.
+
+172
+00:12:13,480 --> 00:12:13,900
+OK.
+
+173
+00:12:14,410 --> 00:12:16,870
+And let me make some room here real quick.
+
+174
+00:12:17,140 --> 00:12:17,500
+OK.
+
+175
+00:12:18,010 --> 00:12:25,120
+So as a quick reminder, I mentioned before in this course that you should create checked exceptions
+
+176
+00:12:25,120 --> 00:12:32,620
+for situations that can be anticipated and handled in a reasonable way within your code.
+
+177
+00:12:33,040 --> 00:12:40,150
+Whereas unchecked exceptions are more like situations that either you could not anticipate or even if
+
+178
+00:12:40,150 --> 00:12:45,190
+you could anticipate it, there's not much that you could do about it if that exception were to occur.
+
+179
+00:12:45,670 --> 00:12:52,870
+So the reason for now that I'm choosing to create my new class here as a runtime exception is because
+
+180
+00:12:53,650 --> 00:13:00,310
+if a single exception occurs at this point in the code, there are probably only two reasonable reasons
+
+181
+00:13:00,310 --> 00:13:02,360
+why that would happen, either.
+
+182
+00:13:02,380 --> 00:13:10,810
+It would be because the database itself was no longer running or accessible to this code, or our skill
+
+183
+00:13:10,810 --> 00:13:17,020
+code has an error in it like it's poorly formed or, you know, has some kind of problem with the sequel
+
+184
+00:13:17,020 --> 00:13:22,450
+statements that we're trying to create the prepared statement from in either event.
+
+185
+00:13:22,840 --> 00:13:27,910
+There's nothing we can do programmatically to recover from either of those circumstances.
+
+186
+00:13:28,180 --> 00:13:35,320
+And as I said earlier, if you can't recover from the exception programmatically, then it's usually
+
+187
+00:13:35,320 --> 00:13:39,100
+recommended to just make that exception a runtime exception.
+
+188
+00:13:39,520 --> 00:13:43,710
+So now let me let me say what I'm going to do with this new exception.
+
+189
+00:13:43,720 --> 00:13:50,290
+What I'm going to do is in this catch block here, I'm going to basically translate this sequel exception
+
+190
+00:13:50,290 --> 00:13:51,820
+into the new exception.
+
+191
+00:13:51,820 --> 00:13:53,440
+In fact, let's go and do that first.
+
+192
+00:13:53,740 --> 00:13:53,980
+All right.
+
+193
+00:13:53,980 --> 00:13:56,950
+So we're creating this exception called data exception.
+
+194
+00:13:57,400 --> 00:14:08,200
+So what I could do is simply say something like throw new data exception like, so now that's really
+
+195
+00:14:08,230 --> 00:14:10,810
+a little inadequate for what we should be doing.
+
+196
+00:14:11,140 --> 00:14:17,830
+Ideally, we might at least want to associate a useful message with this exception, so that we could
+
+197
+00:14:17,830 --> 00:14:21,070
+have a better understanding of what has actually gone wrong.
+
+198
+00:14:21,280 --> 00:14:32,440
+So maybe we could say something in the constructor, like unable to create prepared statements for crud
+
+199
+00:14:33,190 --> 00:14:34,210
+repository.
+
+200
+00:14:34,450 --> 00:14:36,950
+Maybe we want to say something along those lines.
+
+201
+00:14:36,970 --> 00:14:39,290
+So at a minimum, we might want to do that.
+
+202
+00:14:39,310 --> 00:14:44,350
+Now I'm getting red squiggly because I have not actually defined a constructor that takes a message
+
+203
+00:14:44,350 --> 00:14:48,080
+like this, but obviously I can have the ADP help us out here.
+
+204
+00:14:48,400 --> 00:14:54,400
+I doing an option return and tell it to create that constructor like so.
+
+205
+00:14:54,610 --> 00:14:59,380
+And then I will call this parameter message or mzgee like so.
+
+206
+00:15:00,770 --> 00:15:08,030
+And then I can call super like so and then pass in that message right now, the reason I can call super
+
+207
+00:15:08,030 --> 00:15:15,300
+is because the runtime exception class itself defines a constructor that can take a message.
+
+208
+00:15:15,320 --> 00:15:19,970
+So it's a very common pattern that exceptions can take an input other message.
+
+209
+00:15:20,240 --> 00:15:25,400
+And in fact, there's another version of the constructor that takes both a message and something of
+
+210
+00:15:25,400 --> 00:15:25,670
+type.
+
+211
+00:15:25,670 --> 00:15:27,830
+Throw a ball, which is considered to be the cause.
+
+212
+00:15:28,010 --> 00:15:33,080
+Now, I didn't go into a lot of detail on this, but the trouble is really the parent class for all
+
+213
+00:15:33,080 --> 00:15:34,010
+exceptions.
+
+214
+00:15:34,310 --> 00:15:39,890
+And so that is to say that I could pass in both a message and the original exception that caused me
+
+215
+00:15:39,890 --> 00:15:42,080
+to have to throw another exception in the first place.
+
+216
+00:15:42,260 --> 00:15:43,910
+So let me show you what that looks like.
+
+217
+00:15:44,660 --> 00:15:50,840
+So that would mean that in addition to passing in this message here, I could also pass in E!
+
+218
+00:15:51,110 --> 00:15:57,110
+In this case, where E is the exception, the original sequel exception that we received in the first
+
+219
+00:15:57,110 --> 00:15:57,530
+place.
+
+220
+00:15:57,890 --> 00:16:00,370
+So that way, I'm not just like completely ignoring it.
+
+221
+00:16:00,380 --> 00:16:02,780
+I actually have access to that as well.
+
+222
+00:16:02,900 --> 00:16:08,270
+Now I got red squiggles again, though, because I don't have a constructor that can take both a message
+
+223
+00:16:08,270 --> 00:16:10,010
+of a string and a throw.
+
+224
+00:16:10,370 --> 00:16:14,030
+So again, I can let the edy create that constructor as well.
+
+225
+00:16:14,210 --> 00:16:16,970
+I could add this to the existing constructor.
+
+226
+00:16:16,970 --> 00:16:18,500
+I could create a new constructor.
+
+227
+00:16:18,500 --> 00:16:20,360
+Maybe for now, I will create a new one.
+
+228
+00:16:20,780 --> 00:16:26,330
+So again, something that takes a message, and here I will just say something that takes a throw a
+
+229
+00:16:26,330 --> 00:16:28,430
+ball and I'm OK to call that e.
+
+230
+00:16:28,430 --> 00:16:33,790
+And now I can do call super again and pass in the message and the E like setup.
+
+231
+00:16:34,010 --> 00:16:41,000
+OK, so now I've got two ways that I can use this new data exception class and the red squiggles go
+
+232
+00:16:41,000 --> 00:16:41,450
+away.
+
+233
+00:16:41,720 --> 00:16:47,960
+So what I wanted to show you here is that this is generally a better pattern in many cases for our business
+
+234
+00:16:47,960 --> 00:16:48,830
+applications.
+
+235
+00:16:49,010 --> 00:16:57,260
+Rather than allowing sequels ception to bubble up from our database code and into other classes that
+
+236
+00:16:57,260 --> 00:16:59,630
+have nothing at all to do with database access.
+
+237
+00:16:59,780 --> 00:17:07,280
+It is often better to kind of wrap those exceptions in a more customized exception where we can control
+
+238
+00:17:07,280 --> 00:17:08,840
+what's going on a little bit better.
+
+239
+00:17:08,930 --> 00:17:11,540
+And so this is like one of the simplest ways that we could do that.
+
+240
+00:17:11,660 --> 00:17:17,630
+And then ideally, we'd probably be going back through all of our code like here and we'd be doing the
+
+241
+00:17:17,630 --> 00:17:22,440
+same thing down here through new data exception or something like that.
+
+242
+00:17:22,460 --> 00:17:29,150
+OK, now I'm not going to take the time to do that, but that's a better pattern in many cases here.
+
+243
+00:17:29,210 --> 00:17:29,630
+OK.
+
+244
+00:17:30,020 --> 00:17:31,990
+So, all right, that's all I wanted to show you.
+
+245
+00:17:32,000 --> 00:17:35,600
+And with that, I'm going to wrap up this lesson and I'll see you in the next one.
