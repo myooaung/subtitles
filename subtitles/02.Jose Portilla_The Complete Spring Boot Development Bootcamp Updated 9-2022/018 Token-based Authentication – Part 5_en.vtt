@@ -1,0 +1,1857 @@
+WEBVTT
+1
+00:00:00.360 --> 00:00:06.570
+In Pathway number two, the user authenticates and the authentication filter processes their credentials
+
+2
+00:00:07.230 --> 00:00:11.610
+and it sends back a JWT token if their credentials are correct.
+
+3
+00:00:13.800 --> 00:00:16.290
+Which leads us to pathway number three.
+
+4
+00:00:17.580 --> 00:00:24.480
+This pathway validates a client's JWT token before it can authorize them to use any of our services.
+
+5
+00:00:25.570 --> 00:00:30.700
+So assuming that a user has already been logged in, they were granted a JWT token and they're going
+
+6
+00:00:30.700 --> 00:00:34.300
+to use that token as evidence that they've been authenticated.
+
+7
+00:00:34.600 --> 00:00:38.140
+Our job is to make sure that the token they're giving us is valid.
+
+8
+00:00:38.140 --> 00:00:39.700
+It hasn't been tampered with.
+
+9
+00:00:39.940 --> 00:00:44.350
+So a client is going to make a request to, let's say, retrieve a student with an ID of one.
+
+10
+00:00:44.350 --> 00:00:49.660
+And no matter what, the request is going to start off in the exception handling filter.
+
+11
+00:00:49.660 --> 00:00:55.150
+And it needs to start there because we want to catch any runtime exceptions that get thrown in subsequent
+
+12
+00:00:55.150 --> 00:00:55.780
+filters.
+
+13
+00:00:55.780 --> 00:00:57.310
+So the request is next.
+
+14
+00:00:57.310 --> 00:01:02.740
+Going to go to the authentication filter, but the authentication filters is attempt authentication
+
+15
+00:01:02.740 --> 00:01:06.730
+method is not going to get invoked because we're not authenticating.
+
+16
+00:01:06.730 --> 00:01:13.270
+So it's just going to go straight to the filter that follows, which is going to be the JWT authorization
+
+17
+00:01:13.270 --> 00:01:13.870
+filter.
+
+18
+00:01:14.230 --> 00:01:19.990
+The purpose of this filter is to authorize the client's request if and only if the token that they give
+
+19
+00:01:19.990 --> 00:01:21.250
+us is actually valid.
+
+20
+00:01:21.250 --> 00:01:25.650
+We're going to verify the signature inside the token and see if it's actually valid.
+
+21
+00:01:25.660 --> 00:01:32.470
+So the API takes this token and it says, okay, this is the header, this is the payload, and only
+
+22
+00:01:32.470 --> 00:01:34.450
+the API knows the secret.
+
+23
+00:01:35.990 --> 00:01:40.520
+And now it's going to use the same algorithm as before to produce a test signature.
+
+24
+00:01:40.550 --> 00:01:44.840
+However, will it produce the same signature as the one that's being provided?
+
+25
+00:01:46.500 --> 00:01:51.240
+If it does, then it's obvious that they're using a valid token that we gave them.
+
+26
+00:01:51.570 --> 00:01:54.180
+If it doesn't produce the same signature.
+
+27
+00:01:56.240 --> 00:01:58.970
+Then the token that they're giving us is not a valid.
+
+28
+00:02:00.400 --> 00:02:03.480
+Now let's assume that the validation process works.
+
+29
+00:02:03.490 --> 00:02:08.139
+We need to set the authentication object on the security context holder.
+
+30
+00:02:08.229 --> 00:02:13.810
+The security context holder is where spring security stores the details of who is authenticated.
+
+31
+00:02:13.810 --> 00:02:19.600
+Remember, the principle identifies the user credentials is usually the password and authorities we
+
+32
+00:02:19.600 --> 00:02:20.740
+haven't really dealt with.
+
+33
+00:02:21.100 --> 00:02:25.960
+Once we do that, once we set the authentication object, the user has been authenticated.
+
+34
+00:02:25.960 --> 00:02:31.900
+Now spring security will authorize their request in this case in order to retrieve a student.
+
+35
+00:02:33.370 --> 00:02:38.740
+So go to your filter folder and inside of JWT authorization filter.
+
+36
+00:02:38.740 --> 00:02:43.660
+Once again we're going to inherit from the abstract class once per request filter.
+
+37
+00:02:43.750 --> 00:02:49.090
+Once per request filter is normally used in spring security because well as it says, it guarantees
+
+38
+00:02:49.090 --> 00:02:51.460
+a single execution per request.
+
+39
+00:02:51.670 --> 00:02:56.620
+And so what we're going to do is we will override DU Filter internal.
+
+40
+00:02:57.310 --> 00:03:03.060
+And conveniently, when the request reaches here, this has already been typed consent to a HTTP servlet
+
+41
+00:03:03.070 --> 00:03:03.730
+request.
+
+42
+00:03:03.730 --> 00:03:06.880
+And before I forget, let me add this filter to my filter chain.
+
+43
+00:03:06.880 --> 00:03:10.150
+So we'll go to the security config.
+
+44
+00:03:10.150 --> 00:03:17.140
+And after we run the authentication filter, we're going to run the authorization filter.
+
+45
+00:03:17.140 --> 00:03:20.710
+So we'll say add filter after the last filter.
+
+46
+00:03:20.710 --> 00:03:27.880
+And our filter chain is going to be a new instance of JWT authorization filter and it's going to come
+
+47
+00:03:27.880 --> 00:03:28.660
+after.
+
+48
+00:03:29.730 --> 00:03:31.590
+The authentication filter.
+
+49
+00:03:31.650 --> 00:03:32.100
+All right.
+
+50
+00:03:32.100 --> 00:03:38.730
+So let's just say a user makes a request to access one of the courses, then it's going to go through
+
+51
+00:03:38.730 --> 00:03:40.620
+the exception handler filter first.
+
+52
+00:03:41.810 --> 00:03:45.440
+All that's going to do is trigger the next filter in the filter chain.
+
+53
+00:03:45.440 --> 00:03:51.170
+So the next filter is going to be the authentication filter because we're not actually authenticating.
+
+54
+00:03:51.170 --> 00:03:53.000
+This will never get invoked.
+
+55
+00:03:53.570 --> 00:03:56.750
+Let's just say that you happen to have a do filter right here.
+
+56
+00:03:56.750 --> 00:03:59.150
+This will actually get invoked.
+
+57
+00:03:59.180 --> 00:04:02.540
+It's the attempt authentication method that does not get called.
+
+58
+00:04:02.540 --> 00:04:04.790
+Please do not put a do filter over here.
+
+59
+00:04:04.790 --> 00:04:06.920
+It's going to mess up your authentication mechanism.
+
+60
+00:04:06.920 --> 00:04:09.470
+So again, just one thing to keep in mind.
+
+61
+00:04:09.470 --> 00:04:12.350
+So it's going to start at the exception handler filter.
+
+62
+00:04:12.380 --> 00:04:14.930
+Go here, nothing here is going to get called.
+
+63
+00:04:14.930 --> 00:04:21.220
+Then it's going to go to the JWT authorization filter where we have to validate their JWT token.
+
+64
+00:04:21.230 --> 00:04:26.500
+All right, I went a bit off course, but we just added this to our filter chain.
+
+65
+00:04:26.510 --> 00:04:31.070
+The next step is to verify the JWT that is inside their request.
+
+66
+00:04:31.100 --> 00:04:33.920
+Let me fix this up because it's going to ruin my indentation.
+
+67
+00:04:34.100 --> 00:04:35.270
+All right.
+
+68
+00:04:35.270 --> 00:04:40.550
+Inside the request, we know that it's going to have a header that's authorization.
+
+69
+00:04:40.550 --> 00:04:45.830
+And what follows the header is going to be bearer, followed by the JWT token.
+
+70
+00:04:46.640 --> 00:04:49.970
+What we're going to do is say string token.
+
+71
+00:04:50.970 --> 00:04:58.380
+Well, first we'll say string bearer token is equal to request dot get header authorization.
+
+72
+00:04:59.300 --> 00:05:02.780
+So this is going to return as bearer.
+
+73
+00:05:04.030 --> 00:05:04.920
+JWT.
+
+74
+00:05:04.930 --> 00:05:06.640
+But we just want the token.
+
+75
+00:05:06.640 --> 00:05:12.780
+We want to get rid of this bearer string, which conveniently happens to match one of our constants.
+
+76
+00:05:12.790 --> 00:05:16.600
+So over here we can say, Oh, sorry, wrong class.
+
+77
+00:05:16.690 --> 00:05:23.800
+Over here we can say string token is equal to barrier token replace.
+
+78
+00:05:25.270 --> 00:05:27.040
+And we're going to replace.
+
+79
+00:05:28.370 --> 00:05:29.810
+The bearer text.
+
+80
+00:05:31.670 --> 00:05:32.090
+Sorry.
+
+81
+00:05:32.090 --> 00:05:34.590
+Apparently, I can't spell security.
+
+82
+00:05:34.610 --> 00:05:36.200
+Constance.
+
+83
+00:05:37.500 --> 00:05:41.610
+We're going to replace the bearer string with nothing.
+
+84
+00:05:41.850 --> 00:05:45.500
+So now this equals our JWT token directly.
+
+85
+00:05:45.510 --> 00:05:50.790
+We could have done this in a single step, but I'm trying to make the code as descriptive as possible
+
+86
+00:05:50.790 --> 00:05:52.140
+so that it's clear to you.
+
+87
+00:05:52.170 --> 00:05:57.270
+All right, now that we have the token, we need to verify it and make sure that the token that they're
+
+88
+00:05:57.270 --> 00:05:59.280
+sending us is actually valid.
+
+89
+00:05:59.610 --> 00:06:05.720
+Well, there is a very, very handy function that we can extract from the JWT class.
+
+90
+00:06:05.730 --> 00:06:08.340
+We can say JWT require.
+
+91
+00:06:09.380 --> 00:06:14.930
+And here what we can do is specify the algorithm that we want to use to validate the signature of the
+
+92
+00:06:14.930 --> 00:06:16.250
+JWT token.
+
+93
+00:06:16.280 --> 00:06:21.930
+It has to be the exact same algorithm that was originally used to produce the JWT.
+
+94
+00:06:21.950 --> 00:06:27.500
+So we can go back over here the authentication filter and copy this over.
+
+95
+00:06:32.750 --> 00:06:33.320
+You know what?
+
+96
+00:06:33.320 --> 00:06:40.010
+Instead of saying import static over here, I bet I could just say algorithm dot the following.
+
+97
+00:06:40.340 --> 00:06:41.150
+All right, you know what?
+
+98
+00:06:41.150 --> 00:06:44.150
+For the sake of consistency, let me fix it up over here as well.
+
+99
+00:06:48.480 --> 00:06:50.850
+No need to import it as follows.
+
+100
+00:06:55.160 --> 00:06:55.430
+Okay.
+
+101
+00:06:55.430 --> 00:07:01.760
+So we're going to verify the incoming JWT token using the same algorithm and the same secret that we've
+
+102
+00:07:01.760 --> 00:07:04.850
+been using to sign the original tokens to begin with.
+
+103
+00:07:05.810 --> 00:07:09.720
+And the required method returns a verification builder.
+
+104
+00:07:09.740 --> 00:07:14.210
+So here we have to say dot build and I'll do this on a new line.
+
+105
+00:07:14.240 --> 00:07:16.280
+Now we can say verify.
+
+106
+00:07:16.280 --> 00:07:18.860
+We can verify the token in question.
+
+107
+00:07:22.180 --> 00:07:23.710
+And that's pretty much it.
+
+108
+00:07:24.010 --> 00:07:24.820
+Now, here's the thing.
+
+109
+00:07:24.820 --> 00:07:26.950
+The client, they don't know what the secret is.
+
+110
+00:07:26.950 --> 00:07:28.930
+All they're doing is sending us a token.
+
+111
+00:07:28.930 --> 00:07:33.580
+And then we take its header, we take its body and reassign it using the same algorithm that we would
+
+112
+00:07:33.580 --> 00:07:34.540
+have used before.
+
+113
+00:07:34.570 --> 00:07:40.210
+If the test signature matches what the client sent us, then we know they sent us a valid token.
+
+114
+00:07:41.890 --> 00:07:42.370
+Now.
+
+115
+00:07:42.370 --> 00:07:48.190
+If everything works out and no exceptions are thrown by the verify function, then this is going to
+
+116
+00:07:48.190 --> 00:07:53.970
+return a decoded JWT from which we can actually extract the subject.
+
+117
+00:07:53.980 --> 00:08:00.940
+So here I can say get subject which conveniently we know is going to store the username of our client.
+
+118
+00:08:00.940 --> 00:08:04.090
+So if we get to here, exceptions have not been thrown.
+
+119
+00:08:04.090 --> 00:08:05.950
+Their token has been verified.
+
+120
+00:08:05.950 --> 00:08:06.790
+They're good.
+
+121
+00:08:07.060 --> 00:08:12.520
+The final step, as this diagram shows, is to set the authentication object on the security context
+
+122
+00:08:12.520 --> 00:08:13.090
+holder.
+
+123
+00:08:13.360 --> 00:08:18.070
+The security context holder is where spring security stores the details of who is authenticated.
+
+124
+00:08:18.070 --> 00:08:23.080
+We can create an authentication object as follows We've done it countless times before.
+
+125
+00:08:23.260 --> 00:08:24.340
+Authentication.
+
+126
+00:08:24.340 --> 00:08:25.990
+Am I importing the right thing?
+
+127
+00:08:27.020 --> 00:08:28.790
+I'm not importing the right thing.
+
+128
+00:08:28.790 --> 00:08:31.070
+You have to be careful with what you import.
+
+129
+00:08:31.670 --> 00:08:37.730
+Authentication or Gadot Spring Framework much better authentication.
+
+130
+00:08:37.730 --> 00:08:41.929
+Authentication is equal to a new username password.
+
+131
+00:08:42.860 --> 00:08:47.420
+Authentication token, you'll remember that principal identifies the user.
+
+132
+00:08:47.420 --> 00:08:54.020
+So what I'm going to do is say string user is equal to whatever subject we get back from the decoded
+
+133
+00:08:54.020 --> 00:08:55.070
+JWT.
+
+134
+00:08:57.290 --> 00:09:02.540
+And the user itself is going to be identified by the user name because we know that's what the subject
+
+135
+00:09:02.540 --> 00:09:03.380
+is going to equal.
+
+136
+00:09:03.380 --> 00:09:05.990
+And credentials is most often a password.
+
+137
+00:09:05.990 --> 00:09:07.060
+Nothing to put here.
+
+138
+00:09:07.070 --> 00:09:08.270
+We're going to say no.
+
+139
+00:09:08.870 --> 00:09:13.700
+Our JWT token, we know, is not going to contain any sensitive data about the client.
+
+140
+00:09:13.850 --> 00:09:14.210
+All right.
+
+141
+00:09:14.210 --> 00:09:17.060
+And now we can say security context holder.
+
+142
+00:09:17.790 --> 00:09:22.560
+Dot get context set and here we can set the authentication object.
+
+143
+00:09:22.590 --> 00:09:28.050
+Now, I want to emphasize that it doesn't really matter how you populate the security context folder.
+
+144
+00:09:28.170 --> 00:09:32.760
+If it contains a value, any value than that is the current authenticated user.
+
+145
+00:09:32.760 --> 00:09:39.570
+And after we have indicated a successful authentication, we can now authorize the user to perform the
+
+146
+00:09:39.570 --> 00:09:44.100
+action that they wanted to perform so we can finalize our code by saying.
+
+147
+00:09:46.290 --> 00:09:46.680
+Filter.
+
+148
+00:09:46.680 --> 00:09:48.930
+Chain dot do filter.
+
+149
+00:09:53.470 --> 00:09:56.980
+But you might be wondering, Hey, Ryan, this is kind of odd.
+
+150
+00:09:57.010 --> 00:10:01.750
+Our JWT authorization filter is the last filter in our filter chain.
+
+151
+00:10:01.750 --> 00:10:04.810
+So why are we saying change to filter?
+
+152
+00:10:04.840 --> 00:10:08.940
+Well, remember, you have to guide your request every step of the way.
+
+153
+00:10:08.950 --> 00:10:13.800
+Once we finish validating the JWT token, then we tell the request.
+
+154
+00:10:13.810 --> 00:10:15.760
+Okay, go to the next filter.
+
+155
+00:10:15.760 --> 00:10:19.600
+But because this is the last filter in our filter chain.
+
+156
+00:10:21.930 --> 00:10:25.620
+Then it's just going to end up performing the operation that they requested.
+
+157
+00:10:26.360 --> 00:10:28.180
+And that's really it.
+
+158
+00:10:28.190 --> 00:10:29.840
+We're almost done.
+
+159
+00:10:29.900 --> 00:10:31.850
+We're going to see some bugs in just a second.
+
+160
+00:10:31.850 --> 00:10:35.960
+So let me just run the application and debug mode.
+
+161
+00:10:35.960 --> 00:10:40.280
+And for the sake of it, I'm going to put breakpoints on every single filter.
+
+162
+00:10:41.620 --> 00:10:45.940
+Um, we'll put some in the authentication filter as well.
+
+163
+00:10:47.470 --> 00:10:48.370
+No need here.
+
+164
+00:10:48.470 --> 00:10:52.300
+I just put it in the tri block and let's do this.
+
+165
+00:10:52.480 --> 00:10:54.340
+We're so close to being done.
+
+166
+00:11:06.250 --> 00:11:07.120
+All right.
+
+167
+00:11:08.810 --> 00:11:10.400
+Let's register.
+
+168
+00:11:13.080 --> 00:11:15.030
+It starts at the exception handler filter.
+
+169
+00:11:15.060 --> 00:11:16.260
+That's expected.
+
+170
+00:11:17.910 --> 00:11:22.700
+Uh, probably wouldn't have seen it, but it goes to the authentication filter.
+
+171
+00:11:22.700 --> 00:11:26.810
+But nothing here is going to get invoked because they're not authenticating.
+
+172
+00:11:26.810 --> 00:11:31.100
+But then it's going to go to the next filter, the JWT authorization filter.
+
+173
+00:11:31.100 --> 00:11:35.240
+But how do we stop that from happening when the user signs up?
+
+174
+00:11:35.240 --> 00:11:37.310
+It needs to follow pathway number one.
+
+175
+00:11:37.310 --> 00:11:40.550
+There is no need for them to pass in a JWT.
+
+176
+00:11:40.580 --> 00:11:44.270
+The register method should be publicly available to anybody.
+
+177
+00:11:45.430 --> 00:11:47.920
+And if you were to keep going, it would fail.
+
+178
+00:11:48.980 --> 00:11:54.050
+And this is a problem because now our users have no way of signing up.
+
+179
+00:11:54.080 --> 00:11:55.400
+Well, fear not.
+
+180
+00:11:55.400 --> 00:11:57.380
+There is always a solution.
+
+181
+00:11:57.710 --> 00:12:00.350
+So here, what we have to say is.
+
+182
+00:12:01.250 --> 00:12:02.180
+You know what?
+
+183
+00:12:02.390 --> 00:12:07.160
+And what I'm going to do is rename this to header because that makes a lot more sense.
+
+184
+00:12:08.730 --> 00:12:13.500
+Were retrieving the value from the authorisation header which is bearer JWT.
+
+185
+00:12:13.530 --> 00:12:14.670
+I'll remove this comment.
+
+186
+00:12:14.670 --> 00:12:15.720
+I'm assuming you're comfortable.
+
+187
+00:12:15.750 --> 00:12:16.700
+What's going on?
+
+188
+00:12:16.710 --> 00:12:17.970
+So now we can say.
+
+189
+00:12:19.210 --> 00:12:20.860
+If the header equals null.
+
+190
+00:12:21.280 --> 00:12:23.480
+And why am I checking for a null header?
+
+191
+00:12:23.500 --> 00:12:29.890
+Because if the user is just signing up then they do not need to pass in an authorization header, which
+
+192
+00:12:29.890 --> 00:12:34.110
+means us trying to get the header of authorization when they register.
+
+193
+00:12:34.120 --> 00:12:35.680
+We know it's going to be null.
+
+194
+00:12:35.680 --> 00:12:38.620
+But let's be even more specific if the header.
+
+195
+00:12:39.680 --> 00:12:43.010
+Dart starts with if it's not bearer.
+
+196
+00:12:43.310 --> 00:12:45.560
+So we'll go to security constants.
+
+197
+00:12:47.040 --> 00:12:50.970
+Dot barer if it doesn't start with this.
+
+198
+00:12:52.450 --> 00:12:55.270
+Then we know there is no JWT token to validate.
+
+199
+00:12:55.270 --> 00:12:57.000
+There is nothing to do over here.
+
+200
+00:12:57.010 --> 00:12:59.680
+Just go to the next filter chain.
+
+201
+00:13:00.490 --> 00:13:01.060
+Sorry.
+
+202
+00:13:01.150 --> 00:13:01.600
+Filter.
+
+203
+00:13:01.600 --> 00:13:02.200
+Chain.
+
+204
+00:13:02.560 --> 00:13:03.400
+Do filter.
+
+205
+00:13:04.810 --> 00:13:09.850
+And again, because the authorization filter is the last filter in the filter chain, all that's going
+
+206
+00:13:09.850 --> 00:13:13.300
+to do is cause the resource at the end of the chain to be invoked.
+
+207
+00:13:13.330 --> 00:13:15.880
+In this case, it's the registration method.
+
+208
+00:13:16.090 --> 00:13:18.120
+All right, let's try this out now.
+
+209
+00:13:18.130 --> 00:13:19.690
+We should have fixed our bug.
+
+210
+00:13:21.210 --> 00:13:24.540
+There are a few more bugs, but we'll do it one by one.
+
+211
+00:13:28.760 --> 00:13:30.770
+All right, we'll register.
+
+212
+00:13:32.210 --> 00:13:34.610
+Goes to the exception handling filter.
+
+213
+00:13:35.340 --> 00:13:36.450
+Goes here.
+
+214
+00:13:37.730 --> 00:13:44.870
+And because while both of these conditions are correct, it's just going to call filter change to filter
+
+215
+00:13:44.870 --> 00:13:48.770
+because this is the last filter in our security filter chain.
+
+216
+00:13:48.890 --> 00:13:52.910
+It's just going to end up invoking the resource that thereafter.
+
+217
+00:13:53.970 --> 00:13:54.990
+Beautiful.
+
+218
+00:13:55.440 --> 00:13:58.230
+So that's going to sign the user up.
+
+219
+00:13:58.680 --> 00:14:04.560
+And I screwed up because we're going to need a return keyword right here.
+
+220
+00:14:04.590 --> 00:14:07.690
+My bad guys, that was an oversight on my part.
+
+221
+00:14:07.710 --> 00:14:11.190
+After it processes the operation, we don't want it to keep going.
+
+222
+00:14:11.190 --> 00:14:11.540
+Right.
+
+223
+00:14:11.550 --> 00:14:14.070
+This is why it's important to trace the runtime step by step.
+
+224
+00:14:14.220 --> 00:14:17.250
+If I had just run this, I would have been thinking, Oh, man, what the heck happened?
+
+225
+00:14:17.250 --> 00:14:21.450
+But when you trace it step by step, it's very clear the silly mistakes that you make.
+
+226
+00:14:21.480 --> 00:14:23.850
+Anyways, thank you for coming to my TEDx Talk.
+
+227
+00:14:23.850 --> 00:14:29.940
+Now I'm going to sign up once again and we will perform the operation.
+
+228
+00:14:29.940 --> 00:14:33.870
+The return keyword gets invoked and we are done.
+
+229
+00:14:34.730 --> 00:14:40.130
+All right, so now we have authenticated a user.
+
+230
+00:14:40.610 --> 00:14:43.940
+Let's go to the H to console and make sure everything is going well.
+
+231
+00:14:46.660 --> 00:14:47.090
+Oh.
+
+232
+00:14:47.500 --> 00:14:51.730
+Trying to access the fps to console is also going to trigger the security filter chain.
+
+233
+00:14:51.730 --> 00:14:54.460
+Let me just skip all the breakpoints.
+
+234
+00:14:55.370 --> 00:14:56.160
+All right.
+
+235
+00:14:58.210 --> 00:15:00.460
+Because, you know, you're still making a get request, right?
+
+236
+00:15:01.150 --> 00:15:02.170
+All right.
+
+237
+00:15:03.580 --> 00:15:04.690
+Everything is good.
+
+238
+00:15:04.690 --> 00:15:08.830
+Now we're going to try signing in with these credentials.
+
+239
+00:15:10.270 --> 00:15:12.070
+Let's just do everything correctly.
+
+240
+00:15:16.500 --> 00:15:16.700
+Ah.
+
+241
+00:15:16.800 --> 00:15:20.520
+I forgot to put the breakpoints back.
+
+242
+00:15:23.020 --> 00:15:23.800
+All right.
+
+243
+00:15:23.920 --> 00:15:27.850
+So now it starts obviously at the exception handler filter.
+
+244
+00:15:29.140 --> 00:15:29.710
+All right.
+
+245
+00:15:29.710 --> 00:15:32.100
+It's going to attempt authentication.
+
+246
+00:15:32.410 --> 00:15:37.930
+Going to send the credentials to the authentication manager, where I obviously forgot to put breakpoints,
+
+247
+00:15:37.930 --> 00:15:39.160
+but whatever, it doesn't matter.
+
+248
+00:15:39.160 --> 00:15:40.600
+We've already seen this in the past.
+
+249
+00:15:40.600 --> 00:15:47.500
+Now we get a JWT token and now we can include this token in future requests and present it as evidence
+
+250
+00:15:47.500 --> 00:15:49.230
+that we have been authenticated.
+
+251
+00:15:49.240 --> 00:15:53.770
+That way the API can authorize us to use their services.
+
+252
+00:15:53.770 --> 00:15:59.230
+So what we're going to do actually is go to the user controller.
+
+253
+00:16:01.080 --> 00:16:04.860
+And we're finally going to set up the logic for the following method.
+
+254
+00:16:05.760 --> 00:16:13.680
+What I'm going to do is say user service, dot, get user, buy ID, whatever ID that gets passed in.
+
+255
+00:16:14.040 --> 00:16:19.890
+And we're not going to send back the entire user because we don't want to give them back their password.
+
+256
+00:16:19.890 --> 00:16:22.140
+We're just going to say Get username.
+
+257
+00:16:23.460 --> 00:16:25.320
+Well, change that to a string.
+
+258
+00:16:27.360 --> 00:16:28.500
+But not over here.
+
+259
+00:16:33.330 --> 00:16:35.970
+And because we did that, we're going to have to repopulate the database.
+
+260
+00:16:36.090 --> 00:16:39.100
+So let's go create another user.
+
+261
+00:16:39.120 --> 00:16:40.350
+Well, the same one.
+
+262
+00:16:41.130 --> 00:16:46.380
+Skipping all this press next will authenticate using the same credentials.
+
+263
+00:16:47.070 --> 00:16:47.670
+All right.
+
+264
+00:16:47.670 --> 00:16:51.240
+And now we're going to use this token to make our next request.
+
+265
+00:16:52.470 --> 00:16:54.560
+I'm going to add another request.
+
+266
+00:16:54.570 --> 00:16:55.560
+Call it.
+
+267
+00:16:57.470 --> 00:16:59.600
+Reed user.
+
+268
+00:16:59.720 --> 00:17:06.950
+It is going to be a get request and we're going to say local host, 80, 80 slash user and we want to
+
+269
+00:17:06.950 --> 00:17:08.900
+get the user with an ID of one.
+
+270
+00:17:10.770 --> 00:17:12.510
+Let me go to the user controller.
+
+271
+00:17:13.490 --> 00:17:13.730
+Yep.
+
+272
+00:17:13.760 --> 00:17:15.260
+We got the path right.
+
+273
+00:17:16.130 --> 00:17:20.000
+And in our header we're going to include a token.
+
+274
+00:17:21.040 --> 00:17:23.410
+The JWT token that we were given.
+
+275
+00:17:24.940 --> 00:17:26.339
+Make sure to copy it over.
+
+276
+00:17:26.349 --> 00:17:28.750
+And now let us visualize the runtime.
+
+277
+00:17:31.730 --> 00:17:38.330
+Re enabling the breakpoints and I'm going to add a breakpoint and the authentication manager and I will
+
+278
+00:17:38.330 --> 00:17:39.440
+tell you why in a bit.
+
+279
+00:17:39.710 --> 00:17:41.270
+Looks like I already added it.
+
+280
+00:17:41.780 --> 00:17:42.860
+And you might be wondering.
+
+281
+00:17:42.860 --> 00:17:48.530
+Wait, the authentication manager that's not involved in JWT authorization and it isn't.
+
+282
+00:17:48.530 --> 00:17:51.440
+But let us look at our next bug.
+
+283
+00:17:54.830 --> 00:17:58.790
+So it starts off in the exception handler filter and no surprise there.
+
+284
+00:17:58.820 --> 00:18:05.300
+Then it goes to the JWT authorization filter and it's going to extract the authorization header that
+
+285
+00:18:05.300 --> 00:18:06.380
+we have over here.
+
+286
+00:18:08.210 --> 00:18:10.610
+The token is going to equal the following token.
+
+287
+00:18:12.010 --> 00:18:15.430
+And now here it's going to verify if the token is valid.
+
+288
+00:18:15.460 --> 00:18:18.550
+Of course it is, because we got it from the API, right?
+
+289
+00:18:20.190 --> 00:18:22.560
+And here is our bug.
+
+290
+00:18:22.650 --> 00:18:24.330
+So if I press next.
+
+291
+00:18:26.050 --> 00:18:28.240
+Authenticated equals false.
+
+292
+00:18:28.660 --> 00:18:31.060
+That's because we're using the wrong constructor.
+
+293
+00:18:31.060 --> 00:18:36.280
+And I purposefully use the wrong constructor because it's a trap that I fell into in the past.
+
+294
+00:18:36.280 --> 00:18:42.070
+And I want to warn you of it, because authentication is deemed false, it's actually going to call
+
+295
+00:18:42.070 --> 00:18:48.310
+upon the authentication manager to try and authenticate, even though we've already done that in pathway
+
+296
+00:18:48.310 --> 00:18:49.120
+number two.
+
+297
+00:18:50.250 --> 00:18:56.580
+And unfortunately, we're going to get a null pointer exception or some type of exception.
+
+298
+00:19:01.250 --> 00:19:02.090
+Anyways.
+
+299
+00:19:02.090 --> 00:19:07.550
+This could have all been avoided if you just use the correct constructor and the correct one is the
+
+300
+00:19:07.550 --> 00:19:12.680
+one where you have to pass in a principal credentials and authorities will keep these the same.
+
+301
+00:19:13.010 --> 00:19:15.590
+And we haven't really assigned any authorities.
+
+302
+00:19:15.620 --> 00:19:22.910
+There isn't any authority data in the JWT token that would give one user more authority to perform certain
+
+303
+00:19:22.910 --> 00:19:24.550
+operations over another user.
+
+304
+00:19:24.560 --> 00:19:30.380
+So we're just going to pass in an empty array list, erase dot as list.
+
+305
+00:19:30.740 --> 00:19:35.990
+And the reason we want to use this constructor is because behind the scenes, it's going to set the
+
+306
+00:19:35.990 --> 00:19:37.910
+authenticated field to true.
+
+307
+00:19:38.180 --> 00:19:43.010
+Now, you might be wondering, hey, Ron, why don't we just say authentication set authenticated to
+
+308
+00:19:43.010 --> 00:19:43.550
+true.
+
+309
+00:19:43.640 --> 00:19:45.470
+It doesn't allow you to do it.
+
+310
+00:19:45.470 --> 00:19:47.780
+You're going to get an illegal argument exception.
+
+311
+00:19:47.780 --> 00:19:49.250
+You can feel free to try.
+
+312
+00:19:49.250 --> 00:19:51.640
+You have to use the correct constructor.
+
+313
+00:19:51.650 --> 00:19:56.210
+I wanted to make this mistake in front of you just because I don't want you to wonder, hey, why am
+
+314
+00:19:56.210 --> 00:20:00.010
+I getting a no pointer exception and some random part of my code?
+
+315
+00:20:00.020 --> 00:20:07.100
+Now you know that the authentication manager will get called if authenticated is false, so make sure
+
+316
+00:20:07.100 --> 00:20:08.390
+to set that up.
+
+317
+00:20:08.390 --> 00:20:13.730
+And now this authentication object is what we want to pass into our security contacts.
+
+318
+00:20:13.790 --> 00:20:14.360
+Holder.
+
+319
+00:20:14.630 --> 00:20:15.110
+All right.
+
+320
+00:20:15.110 --> 00:20:20.450
+Just a minor, minor thing, but that will have your head scratching for a lot of hours.
+
+321
+00:20:20.780 --> 00:20:21.400
+Okay.
+
+322
+00:20:22.310 --> 00:20:25.310
+Let's go back and create a user.
+
+323
+00:20:26.500 --> 00:20:28.390
+Skipping all this stuff.
+
+324
+00:20:29.120 --> 00:20:30.740
+I already know it's going to work.
+
+325
+00:20:31.560 --> 00:20:32.710
+Creates our user.
+
+326
+00:20:32.730 --> 00:20:36.060
+Now I'm going to log in using the same credentials.
+
+327
+00:20:37.890 --> 00:20:38.280
+All right.
+
+328
+00:20:38.280 --> 00:20:45.480
+We get back a JWT token that we're going to use in our next request as evidence that we've been authenticated.
+
+329
+00:20:46.240 --> 00:20:47.530
+I'll go here.
+
+330
+00:20:50.510 --> 00:20:56.630
+And what's beautiful about Postman is by saying Bearer Token, putting in my token, it automatically
+
+331
+00:20:56.630 --> 00:20:59.160
+passes it into my list of headers.
+
+332
+00:20:59.180 --> 00:21:00.350
+I love Postman.
+
+333
+00:21:00.620 --> 00:21:02.240
+All right, let's try this out now.
+
+334
+00:21:03.910 --> 00:21:04.200
+Uh.
+
+335
+00:21:04.360 --> 00:21:08.710
+Well, it worked, but we missed the best part, actually visualizing the runtime.
+
+336
+00:21:09.010 --> 00:21:13.720
+So it was able to retrieve a username based on the ID that we passed in.
+
+337
+00:21:14.570 --> 00:21:22.400
+So well now that the excitement has been spoiled starts at the exception handler and it skipped the
+
+338
+00:21:22.610 --> 00:21:26.060
+well it didn't actually skip it there's just nothing to be run over here.
+
+339
+00:21:26.060 --> 00:21:27.140
+We're not authenticating.
+
+340
+00:21:27.140 --> 00:21:31.400
+So it goes directly to the filter that comes after the authentication filter.
+
+341
+00:21:31.430 --> 00:21:35.480
+Here we extract the JWT token that they're passing in.
+
+342
+00:21:36.670 --> 00:21:41.260
+And then we're going to validate the token and make sure that they sent us one.
+
+343
+00:21:41.290 --> 00:21:42.460
+That is good.
+
+344
+00:21:44.100 --> 00:21:52.380
+Again, it validates the token by extracting the header, by extracting the payload, and in combination
+
+345
+00:21:52.380 --> 00:21:58.370
+with the secret key that it and only it knows about it will use this algorithm to produce a test signature
+
+346
+00:21:58.380 --> 00:22:00.970
+if that signature matches what they sent us.
+
+347
+00:22:00.990 --> 00:22:03.900
+We know they are using a correct token.
+
+348
+00:22:04.230 --> 00:22:04.760
+All right.
+
+349
+00:22:04.770 --> 00:22:07.890
+You can see this time authenticated equals true.
+
+350
+00:22:07.920 --> 00:22:11.800
+Passing this authentication object into the security context holder.
+
+351
+00:22:11.820 --> 00:22:15.520
+Now we're implying that the user ran slim three.
+
+352
+00:22:15.540 --> 00:22:17.790
+They are the ones that are authenticated.
+
+353
+00:22:17.910 --> 00:22:19.890
+Filter do filter.
+
+354
+00:22:19.890 --> 00:22:24.520
+Because this is the last filter in our filter chain.
+
+355
+00:22:24.540 --> 00:22:30.360
+Then what it's going to do is just end up invoking the operation that they're after, which is fine
+
+356
+00:22:30.360 --> 00:22:31.290
+by ID.
+
+357
+00:22:33.830 --> 00:22:40.130
+The user with an ID of one to have a username of Rand Slim and we're sending back the username only
+
+358
+00:22:40.130 --> 00:22:41.750
+for safety purposes.
+
+359
+00:22:42.380 --> 00:22:46.610
+Well, this stuff's not interesting, but anyways, we get back Rand Slim three.
+
+360
+00:22:46.640 --> 00:22:49.700
+All right, this is looking very, very good.
+
+361
+00:22:49.730 --> 00:22:52.930
+Now, what if the user tries to mess around?
+
+362
+00:22:52.940 --> 00:22:55.440
+Let's just say that they decide to cheat, right?
+
+363
+00:22:55.460 --> 00:22:58.850
+They go and they try to decode the payload.
+
+364
+00:22:58.880 --> 00:23:00.560
+Well, they can easily do that.
+
+365
+00:23:03.750 --> 00:23:05.100
+And then, you know what?
+
+366
+00:23:05.100 --> 00:23:08.580
+They want the expiration date to last longer than it should, right?
+
+367
+00:23:08.580 --> 00:23:16.560
+So they'll try to change this value and then they'll end up re encoding this back to base 64 and then
+
+368
+00:23:16.560 --> 00:23:19.050
+now they have a longer expiration date, right?
+
+369
+00:23:19.080 --> 00:23:24.060
+Again, this is just a hypothetical scenario that will never happen, but just for the sake of example.
+
+370
+00:23:24.090 --> 00:23:24.750
+All right.
+
+371
+00:23:24.750 --> 00:23:29.460
+So they change the payload and now they think, ah, the expiration date is now bigger.
+
+372
+00:23:29.550 --> 00:23:31.230
+But hold on a second.
+
+373
+00:23:31.260 --> 00:23:38.550
+The digital signature is a combination of the header and the payload and the secret that they don't
+
+374
+00:23:38.550 --> 00:23:42.360
+know about by virtue of changing the payload.
+
+375
+00:23:42.360 --> 00:23:47.460
+The signature should change as well, but they don't know what the secret key is, so they will never
+
+376
+00:23:47.460 --> 00:23:49.530
+know what the correct signature will be.
+
+377
+00:23:49.830 --> 00:23:51.420
+So what's going to happen is.
+
+378
+00:23:52.920 --> 00:23:54.450
+Going to hear.
+
+379
+00:23:55.110 --> 00:23:58.220
+It's going to get the header, it's going to get the payload.
+
+380
+00:23:58.230 --> 00:24:04.170
+It has the secret key that no one knows about it will use this algorithm to produce a digital signature.
+
+381
+00:24:04.170 --> 00:24:10.710
+That test signature is not going to match the signature that they sent us because it will change due
+
+382
+00:24:10.710 --> 00:24:16.230
+to the payload changing and as a result of them sending an invalid JWT.
+
+383
+00:24:16.260 --> 00:24:24.420
+This is going to throw a JWT verification exception which we are going to catch inside of our exception
+
+384
+00:24:24.420 --> 00:24:25.500
+handler filter.
+
+385
+00:24:26.100 --> 00:24:27.420
+So we'll go over here.
+
+386
+00:24:29.260 --> 00:24:31.380
+And I don't know why I have this.
+
+387
+00:24:31.390 --> 00:24:37.360
+No wonder why these have been getting thrown over here and not been getting caught by their one time
+
+388
+00:24:37.360 --> 00:24:38.350
+exception.
+
+389
+00:24:38.920 --> 00:24:39.940
+Catch block.
+
+390
+00:24:40.030 --> 00:24:42.120
+I must have done this by mistake.
+
+391
+00:24:42.130 --> 00:24:43.810
+So anyways, what should have happened?
+
+392
+00:24:43.960 --> 00:24:48.730
+You should have gotten back a 400 bad request because it should have been caught over here.
+
+393
+00:24:48.730 --> 00:24:49.300
+Right?
+
+394
+00:24:50.470 --> 00:24:51.700
+Let's skip all that.
+
+395
+00:24:52.750 --> 00:24:53.130
+Yeah.
+
+396
+00:24:53.140 --> 00:24:57.860
+400 bad requests makes a lot more sense, but we don't want it to send back a 400 bad request.
+
+397
+00:24:57.880 --> 00:24:59.710
+We wanted to send back a403.
+
+398
+00:24:59.710 --> 00:25:02.260
+You are forbidden from accessing the resource.
+
+399
+00:25:02.260 --> 00:25:03.790
+You have not been authorized.
+
+400
+00:25:03.790 --> 00:25:05.710
+So here we're going to catch.
+
+401
+00:25:07.430 --> 00:25:09.790
+The JWT.
+
+402
+00:25:09.800 --> 00:25:11.600
+I think it was a verification exception.
+
+403
+00:25:11.600 --> 00:25:12.080
+Yeah.
+
+404
+00:25:13.530 --> 00:25:16.750
+And then I should really make this into a function a.
+
+405
+00:25:17.740 --> 00:25:21.370
+So here we'll say servlet response dot.
+
+406
+00:25:22.410 --> 00:25:24.510
+As sea forbidden, I'm guessing.
+
+407
+00:25:25.140 --> 00:25:25.920
+There you go.
+
+408
+00:25:26.420 --> 00:25:27.200
+Um.
+
+409
+00:25:28.040 --> 00:25:30.680
+JWT not valid.
+
+410
+00:25:32.290 --> 00:25:32.750
+Okay.
+
+411
+00:25:32.770 --> 00:25:38.800
+Now, if you want to make this cleaner, definitely go ahead and create a function that accepts response
+
+412
+00:25:38.800 --> 00:25:40.340
+and argument.
+
+413
+00:25:40.360 --> 00:25:42.730
+This is ultimately an INT as well as a string.
+
+414
+00:25:42.760 --> 00:25:47.650
+Feel free to make a function, but I'm just going to stick with what we've got if the user passes in
+
+415
+00:25:47.800 --> 00:25:49.490
+an invalid JWT.
+
+416
+00:25:49.510 --> 00:25:53.740
+Well, in this case, no matter what they pass in, it's not going to work because there's nobody authenticated.
+
+417
+00:25:53.740 --> 00:25:55.840
+The database was reset anyway.
+
+418
+00:25:57.220 --> 00:25:59.230
+Passing in a bad JWT.
+
+419
+00:26:02.890 --> 00:26:04.490
+You get back 403 forbidden.
+
+420
+00:26:04.510 --> 00:26:06.220
+JWT not valid.
+
+421
+00:26:06.490 --> 00:26:10.750
+All right, so all of our bugs are pretty much gone.
+
+422
+00:26:10.750 --> 00:26:16.090
+But it wouldn't be fun if we didn't go back and start creating some students, some courses and some
+
+423
+00:26:16.090 --> 00:26:19.480
+grades, and have everything come full circle.
+
+424
+00:26:19.630 --> 00:26:26.440
+So let us reregister to use our app in the interest of time.
+
+425
+00:26:26.440 --> 00:26:30.010
+I will disable the breakpoints and we're just going to do this.
+
+426
+00:26:32.950 --> 00:26:36.530
+So let me go back to my great submission up.
+
+427
+00:26:36.550 --> 00:26:36.910
+All right.
+
+428
+00:26:36.910 --> 00:26:39.190
+We've got students, we've got courses.
+
+429
+00:26:39.190 --> 00:26:41.050
+We are good to go.
+
+430
+00:26:42.650 --> 00:26:44.370
+I'm going to read The Student Within.
+
+431
+00:26:44.390 --> 00:26:45.330
+Well, sorry.
+
+432
+00:26:45.350 --> 00:26:47.090
+First we have to authenticate.
+
+433
+00:26:47.130 --> 00:26:48.530
+Let's register.
+
+434
+00:26:49.700 --> 00:26:51.440
+Let's authenticate.
+
+435
+00:26:53.230 --> 00:26:54.790
+Grab that token.
+
+436
+00:26:56.980 --> 00:27:03.760
+And now we can include this token and all of our requests to provide evidence that we have been authenticated.
+
+437
+00:27:05.130 --> 00:27:07.140
+Let's grab the student with an idea of one.
+
+438
+00:27:08.030 --> 00:27:09.890
+It works beautifully.
+
+439
+00:27:10.160 --> 00:27:12.080
+Must read all of the courses.
+
+440
+00:27:13.150 --> 00:27:15.040
+Again, we'll say bearer token.
+
+441
+00:27:17.200 --> 00:27:20.560
+All right, let's read the course with an idea of one.
+
+442
+00:27:21.680 --> 00:27:25.040
+Not forgot to add my bearer token.
+
+443
+00:27:29.580 --> 00:27:30.900
+You know, let's set a variable.
+
+444
+00:27:30.900 --> 00:27:32.190
+We'll call it token.
+
+445
+00:27:36.020 --> 00:27:37.940
+And we'll give it the following value.
+
+446
+00:27:38.390 --> 00:27:41.090
+The scope will be global so that we can use it everywhere.
+
+447
+00:27:41.120 --> 00:27:44.390
+We will give it the proper JWT.
+
+448
+00:27:45.300 --> 00:27:47.310
+And now we can just reference token.
+
+449
+00:27:48.610 --> 00:27:50.230
+Looking good.
+
+450
+00:27:50.680 --> 00:27:52.210
+Read all the courses.
+
+451
+00:27:57.550 --> 00:27:58.930
+All right, beautiful.
+
+452
+00:28:03.980 --> 00:28:05.760
+And that's really it.
+
+453
+00:28:05.780 --> 00:28:07.440
+I hope you're proud of yourself.
+
+454
+00:28:07.460 --> 00:28:14.510
+You set up three different pathways, one where the user can just publicly register without going through
+
+455
+00:28:14.510 --> 00:28:20.990
+any of the security filters or any of the logic inside the security filters, you set up a pathway where
+
+456
+00:28:20.990 --> 00:28:24.530
+the user can authenticate the authentication.
+
+457
+00:28:24.530 --> 00:28:29.630
+Manager performs a one way hash on their password, compares it to what we have in the database.
+
+458
+00:28:29.630 --> 00:28:37.280
+If there is a match, it's going to return an authentication object, which in turn invokes successful
+
+459
+00:28:37.280 --> 00:28:40.640
+authentication, sending back a JWT token.
+
+460
+00:28:40.640 --> 00:28:46.760
+And now we can include this token in all of our requests and use it as evidence that we have been authenticated.
+
+461
+00:28:46.760 --> 00:28:55.370
+And as a result, the API or the authorization filter is going to authorize us to use its services and
+
+462
+00:28:55.370 --> 00:28:57.560
+invoke all of its operations.
+
+463
+00:28:57.710 --> 00:29:03.170
+That is all for JWT authentication and authorization.
+
+464
+00:29:03.170 --> 00:29:05.750
+I really hope you enjoyed this series.
+

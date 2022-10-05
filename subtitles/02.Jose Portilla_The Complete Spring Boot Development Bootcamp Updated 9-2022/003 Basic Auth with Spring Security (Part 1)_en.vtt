@@ -1,0 +1,1101 @@
+WEBVTT
+1
+00:00:00.150 --> 00:00:05.130
+Basic authentication involves two major steps authentication and authorization.
+
+2
+00:00:05.370 --> 00:00:10.860
+Authentication validates the identity of the client, and after the client has been authenticated,
+
+3
+00:00:10.890 --> 00:00:14.940
+authorization determines if the client should be granted access.
+
+4
+00:00:15.510 --> 00:00:19.290
+In this lesson, you will start securing the contacts API.
+
+5
+00:00:21.490 --> 00:00:26.620
+Start by launching the starter project by following this path in your course resources.
+
+6
+00:00:31.680 --> 00:00:34.080
+One more thing inside of your resources folder.
+
+7
+00:00:34.080 --> 00:00:38.820
+There should be a JSON file that we're going to use to build a postman collection.
+
+8
+00:00:39.060 --> 00:00:42.420
+So once you download it, please import the JSON file.
+
+9
+00:00:50.690 --> 00:00:55.520
+Now, if I go over here, you should have a contact requests collection.
+
+10
+00:00:55.610 --> 00:01:00.740
+I did this just so we can save some time, and you don't have to recreate all of these requests from
+
+11
+00:01:00.740 --> 00:01:01.460
+scratch.
+
+12
+00:01:01.670 --> 00:01:06.530
+Anyways, assuming that you've launched your starter project, go ahead and run it.
+
+13
+00:01:06.560 --> 00:01:09.110
+Please pause the video until you have done so.
+
+14
+00:01:09.910 --> 00:01:13.300
+And you'll notice there is an issue from postmen.
+
+15
+00:01:13.330 --> 00:01:20.500
+I can make a request to any of these endpoints without passing in any credentials, and spring boot
+
+16
+00:01:20.500 --> 00:01:22.750
+will authorize every single request.
+
+17
+00:01:22.780 --> 00:01:25.660
+Here, I'm creating a contact named John Snow.
+
+18
+00:01:25.690 --> 00:01:29.060
+Here, I'm reading all of the contacts, so on and so forth.
+
+19
+00:01:29.080 --> 00:01:30.260
+This is not good.
+
+20
+00:01:30.280 --> 00:01:33.010
+We need to impose some security rules.
+
+21
+00:01:33.730 --> 00:01:37.240
+Here are the rules that we need to apply to our filter chain.
+
+22
+00:01:37.570 --> 00:01:41.590
+The delete contact ID path requires authentication.
+
+23
+00:01:42.070 --> 00:01:46.840
+Furthermore, we can only authorize admins to access the delete operation.
+
+24
+00:01:47.500 --> 00:01:50.800
+The post operation also requires authentication.
+
+25
+00:01:50.890 --> 00:01:56.140
+But this time we can authorize users and admins to access the post operation.
+
+26
+00:01:56.530 --> 00:02:01.090
+And finally, the gut operations can be accessed by anybody and everybody.
+
+27
+00:02:01.120 --> 00:02:03.370
+There is no authentication required.
+
+28
+00:02:03.550 --> 00:02:04.990
+Let's start with step one.
+
+29
+00:02:08.840 --> 00:02:11.810
+We will start by adding the spring boot security dependency.
+
+30
+00:02:11.810 --> 00:02:19.500
+If you're using VS code, just go to add starters and then add the spring boot security starter dependency.
+
+31
+00:02:19.520 --> 00:02:24.680
+Spring Security Select five dependencies and proceed.
+
+32
+00:02:24.800 --> 00:02:25.490
+All right.
+
+33
+00:02:25.490 --> 00:02:30.790
+And if you're using IntelliJ, just go to the Central Maven repo and grab it from there.
+
+34
+00:02:30.800 --> 00:02:35.210
+You won't need to include the version number as it will already be specified in the parent.
+
+35
+00:02:35.210 --> 00:02:42.890
+POM All right, and by adding this dependency we get access to all sorts of modules that provide authentication
+
+36
+00:02:42.890 --> 00:02:44.090
+or authorization.
+
+37
+00:02:44.090 --> 00:02:51.260
+And so actually by virtue of just adding this dependency, all of our operations are going to be blocked,
+
+38
+00:02:51.260 --> 00:02:58.280
+they're going to be protected, thus prompting the user to log in before they can make any requests.
+
+39
+00:02:58.850 --> 00:03:01.970
+So let's actually run the app again and see this in action.
+
+40
+00:03:03.030 --> 00:03:05.070
+And I will zoom in a little bit.
+
+41
+00:03:05.610 --> 00:03:07.040
+It looks a lot better now.
+
+42
+00:03:10.080 --> 00:03:10.380
+All right.
+
+43
+00:03:10.380 --> 00:03:17.010
+If I go to my browser and I'll say local host 8080, I will try to access the contact with an idea of
+
+44
+00:03:17.010 --> 00:03:17.490
+one.
+
+45
+00:03:19.930 --> 00:03:22.360
+Redirects me to a login page.
+
+46
+00:03:23.570 --> 00:03:28.070
+Now we do not expect browsers to be interacting with our API.
+
+47
+00:03:28.100 --> 00:03:33.800
+It would probably be some sort of client built using React or Angular or it could even be another API
+
+48
+00:03:33.830 --> 00:03:35.440
+that's calling this API.
+
+49
+00:03:35.450 --> 00:03:39.590
+Or in this case it's a mock front end client like Postman.
+
+50
+00:03:39.980 --> 00:03:46.430
+So we don't really care about browsers and this login page will disappear as soon as we override the
+
+51
+00:03:46.430 --> 00:03:49.910
+default config and add our own security filter chain.
+
+52
+00:03:49.940 --> 00:03:53.390
+That being said, what is the security filter chain?
+
+53
+00:03:53.420 --> 00:04:00.320
+A security filter chain is a bean that describes a chain of security rules, also known as filters.
+
+54
+00:04:00.920 --> 00:04:06.680
+The filters that you define inside the security filter chain is going to catch all of the HTTP requests
+
+55
+00:04:06.680 --> 00:04:07.420
+that are made.
+
+56
+00:04:07.670 --> 00:04:13.730
+The security chain, depending on how it's configured, it's going to filter out requests that it deems
+
+57
+00:04:13.730 --> 00:04:14.840
+are invalid.
+
+58
+00:04:17.160 --> 00:04:21.120
+And it's going to allow certain requests that it deems valid.
+
+59
+00:04:27.540 --> 00:04:30.150
+As we just mentioned, the filter train is a bean.
+
+60
+00:04:30.150 --> 00:04:35.580
+And as you know by now, we can define beans inside of classes marked with the configuration annotation.
+
+61
+00:04:35.580 --> 00:04:40.320
+So we'll go back here and create a new folder called Security.
+
+62
+00:04:42.100 --> 00:04:48.790
+And inside the folder create a new file called Security Config dot java.
+
+63
+00:04:50.130 --> 00:04:54.780
+And we're going to annotate the security config class as a source for being definitions.
+
+64
+00:04:54.780 --> 00:05:00.300
+So we give it the configuration annotation and now we're ready to define some beans.
+
+65
+00:05:00.630 --> 00:05:01.020
+All right.
+
+66
+00:05:01.020 --> 00:05:04.130
+Before we do so, I left you a link in the resources folder.
+
+67
+00:05:04.140 --> 00:05:06.360
+Pause the video and click on it.
+
+68
+00:05:11.830 --> 00:05:12.520
+All right.
+
+69
+00:05:12.520 --> 00:05:16.100
+If by the time you're watching this video, the link that I gave you doesn't work.
+
+70
+00:05:16.120 --> 00:05:17.080
+Don't worry about it.
+
+71
+00:05:17.080 --> 00:05:18.340
+Just follow along.
+
+72
+00:05:21.290 --> 00:05:27.620
+And the reason why I took you to this page is because if you do end up researching spring security codes
+
+73
+00:05:27.620 --> 00:05:29.560
+on your own, you're going to see this a lot.
+
+74
+00:05:29.570 --> 00:05:37.880
+Web security configure adapter, the configure adapter as a spring boot, 2.7.0 has been deprecated.
+
+75
+00:05:37.880 --> 00:05:44.330
+So before what you would do is inherit from this class and then override a method from which you can
+
+76
+00:05:44.330 --> 00:05:45.980
+set up a filter chain.
+
+77
+00:05:45.980 --> 00:05:49.040
+But we don't do that anymore going forward.
+
+78
+00:05:49.040 --> 00:05:53.000
+As it says, we define the security filter chain as a bean.
+
+79
+00:05:53.000 --> 00:05:55.850
+So we're going to go ahead and copy this over.
+
+80
+00:06:00.320 --> 00:06:03.740
+And for now, remove everything inside the bean definition.
+
+81
+00:06:03.740 --> 00:06:05.450
+We're going to start from scratch.
+
+82
+00:06:05.990 --> 00:06:10.550
+We'll say bean import the following security filter chain.
+
+83
+00:06:12.230 --> 00:06:13.710
+HTTP security.
+
+84
+00:06:17.080 --> 00:06:21.640
+And if you weren't able to access the website for whatever reason, just take some time to write this
+
+85
+00:06:21.640 --> 00:06:22.210
+down.
+
+86
+00:06:23.620 --> 00:06:24.290
+Beautiful.
+
+87
+00:06:24.310 --> 00:06:29.710
+Now we can finally start with step one, and that is our delete operation requires authentication.
+
+88
+00:06:32.740 --> 00:06:38.370
+To start, we're going to make sure that any HTTP request that goes through our security filter chain,
+
+89
+00:06:38.380 --> 00:06:42.800
+does it have the authority to perform whatever operation it's trying to perform?
+
+90
+00:06:42.820 --> 00:06:45.430
+So first we authorize requests.
+
+91
+00:06:45.430 --> 00:06:47.170
+How will we implement authorization?
+
+92
+00:06:47.170 --> 00:06:49.810
+How do we determine who has access to what?
+
+93
+00:06:49.840 --> 00:06:51.320
+We'll talk about that later.
+
+94
+00:06:51.340 --> 00:06:59.410
+For now, another rule we have to add to our security filter chain is that any request needs to be authenticated.
+
+95
+00:07:00.370 --> 00:07:01.150
+All right.
+
+96
+00:07:01.390 --> 00:07:03.760
+And and then we can say.
+
+97
+00:07:04.540 --> 00:07:08.740
+We're going to authenticate these requests using basic authentication.
+
+98
+00:07:10.390 --> 00:07:17.050
+And now I can return the security filter chain by saying Return a HTTP dot build.
+
+99
+00:07:18.550 --> 00:07:21.940
+Which builds our object, which is then registered as a bean.
+
+100
+00:07:22.000 --> 00:07:24.330
+Anyways, this pretty much reads like English.
+
+101
+00:07:24.340 --> 00:07:28.930
+Any request that gets caught in the filter chain will need to be authorized.
+
+102
+00:07:28.930 --> 00:07:35.260
+It will go through basic authentication in order for it to be deemed valid and build creates an object
+
+103
+00:07:35.260 --> 00:07:39.190
+from our config and that object will be saved as a bean.
+
+104
+00:07:39.340 --> 00:07:44.710
+Now we're not quite done setting up basic auth, but what I'm going to do is just rerun my code for
+
+105
+00:07:44.710 --> 00:07:45.340
+a second.
+
+106
+00:07:51.050 --> 00:07:56.030
+Only to show you that if I were to go back to the browser and make another request to get, I don't
+
+107
+00:07:56.030 --> 00:07:57.920
+know the contact with an idea of one.
+
+108
+00:07:58.850 --> 00:08:02.060
+The login UI would be gone, and rightfully so.
+
+109
+00:08:02.060 --> 00:08:04.700
+We don't really want a UI for our API.
+
+110
+00:08:04.730 --> 00:08:09.520
+Nevertheless, all of the paths inside of our application are now protected.
+
+111
+00:08:09.530 --> 00:08:14.960
+So if I wanna make a get request of any sort, it's going to prompt me to enter a username and password.
+
+112
+00:08:14.960 --> 00:08:17.830
+But we're not going to be doing that from our browser.
+
+113
+00:08:17.840 --> 00:08:19.790
+We'll be doing it from Postman.
+
+114
+00:08:21.780 --> 00:08:28.070
+But the thing is, even though we can figure it out, our security filter changed to require basic authentication.
+
+115
+00:08:28.080 --> 00:08:34.620
+We didn't provide any usernames or passwords, so it has no credentials to reference in order to authenticate
+
+116
+00:08:34.620 --> 00:08:35.490
+clients.
+
+117
+00:08:35.789 --> 00:08:42.510
+So what we need to do is register a user details service bin that contains user details.
+
+118
+00:08:42.510 --> 00:08:48.900
+Spring security is basic auth depends on this user information in order to authenticate credentials
+
+119
+00:08:48.900 --> 00:08:50.640
+from incoming clients.
+
+120
+00:08:54.400 --> 00:08:57.610
+So what we need to do is create a been.
+
+121
+00:08:58.560 --> 00:09:03.810
+Specifically a public user details service been.
+
+122
+00:09:05.770 --> 00:09:08.280
+And we'll just call the method users.
+
+123
+00:09:08.290 --> 00:09:09.400
+It doesn't really matter.
+
+124
+00:09:11.030 --> 00:09:15.050
+And what this is going to do is return a bunch of user details.
+
+125
+00:09:15.080 --> 00:09:18.110
+The first user is going to be an admin.
+
+126
+00:09:18.110 --> 00:09:19.370
+User details.
+
+127
+00:09:19.370 --> 00:09:21.920
+Admin is equal to user.
+
+128
+00:09:22.100 --> 00:09:26.460
+So when you're importing user, please import the one that comes from.
+
+129
+00:09:26.480 --> 00:09:28.370
+Org dot spring framework.
+
+130
+00:09:28.370 --> 00:09:29.540
+Dot Security.
+
+131
+00:09:30.610 --> 00:09:31.780
+Where is it?
+
+132
+00:09:33.660 --> 00:09:34.140
+Anyways.
+
+133
+00:09:34.140 --> 00:09:34.880
+You get the point.
+
+134
+00:09:34.890 --> 00:09:35.820
+I can't find it.
+
+135
+00:09:35.820 --> 00:09:42.510
+So User Builder, we're going to build a user that has a username of admin.
+
+136
+00:09:44.470 --> 00:09:47.080
+A password of admin pass.
+
+137
+00:09:47.500 --> 00:09:49.720
+You can choose whatever password you want.
+
+138
+00:09:49.840 --> 00:09:51.100
+Dot built.
+
+139
+00:09:52.110 --> 00:09:52.920
+All right.
+
+140
+00:09:53.400 --> 00:09:56.820
+And the users details are going to be stored in memory.
+
+141
+00:09:56.820 --> 00:10:00.720
+So what we can do is say return new in memory.
+
+142
+00:10:01.200 --> 00:10:03.060
+User Details Manager.
+
+143
+00:10:03.850 --> 00:10:04.960
+Saving.
+
+144
+00:10:06.000 --> 00:10:07.230
+The admin user.
+
+145
+00:10:09.290 --> 00:10:14.120
+And as a rule of thumb, you should never, ever let me stop the application.
+
+146
+00:10:15.120 --> 00:10:15.750
+All right.
+
+147
+00:10:15.750 --> 00:10:16.830
+Back to what I was saying.
+
+148
+00:10:16.830 --> 00:10:23.580
+As a rule of thumb, never, ever store passwords in plain text inside the main class.
+
+149
+00:10:24.750 --> 00:10:33.270
+There is code that defines a B crypt password encoder being uncommon -- and make the necessary imports.
+
+150
+00:10:34.560 --> 00:10:37.070
+Decrypt password encoder.
+
+151
+00:10:37.840 --> 00:10:39.190
+And we should be good.
+
+152
+00:10:41.750 --> 00:10:45.680
+Decrypt is a hashing algorithm that's used for password protection.
+
+153
+00:10:45.680 --> 00:10:52.010
+And when you perform a one way hash on a password, you can never get back the original input.
+
+154
+00:10:52.670 --> 00:10:56.420
+For example, what if we apply a one way hash on the password?
+
+155
+00:10:56.420 --> 00:10:56.990
+Hello.
+
+156
+00:11:00.450 --> 00:11:03.830
+After a one way hash, you cannot convert it back.
+
+157
+00:11:03.840 --> 00:11:04.650
+It's done.
+
+158
+00:11:05.370 --> 00:11:06.540
+But that's the thing.
+
+159
+00:11:06.690 --> 00:11:11.000
+From the server side, we do not care what the password is in plain text.
+
+160
+00:11:11.010 --> 00:11:13.980
+We only care that the client knows the password.
+
+161
+00:11:14.580 --> 00:11:20.100
+So here the client is passing in a username of riaan and a password of hello.
+
+162
+00:11:20.550 --> 00:11:24.030
+In real life there would be 64 encoded before being shipped off.
+
+163
+00:11:24.030 --> 00:11:26.960
+But for the sake of clarity, I didn't do that anyways.
+
+164
+00:11:26.970 --> 00:11:33.810
+The way that spring security can match the password in plain text against an encrypted password, keeping
+
+165
+00:11:33.810 --> 00:11:40.710
+in mind that it has no idea what this password translates to is it's smart enough to apply the same
+
+166
+00:11:40.710 --> 00:11:48.060
+hashing algorithm that we used here, apply the same number of rounds using the same salt values.
+
+167
+00:11:48.180 --> 00:11:53.820
+Overall, if it ends up producing the same hashed password, using the same algorithm, then you know
+
+168
+00:11:53.820 --> 00:11:55.350
+that you have a match.
+
+169
+00:11:56.700 --> 00:12:01.020
+The only thing that I want you to take away from this is that you should never save your passwords as
+
+170
+00:12:01.020 --> 00:12:01.870
+plain text.
+
+171
+00:12:01.890 --> 00:12:03.600
+You need to encode your passwords.
+
+172
+00:12:03.600 --> 00:12:04.830
+You need to encrypt them.
+
+173
+00:12:04.830 --> 00:12:07.110
+And spring boot security will take care of the rest.
+
+174
+00:12:07.110 --> 00:12:08.250
+Don't you worry.
+
+175
+00:12:08.460 --> 00:12:10.110
+So we'll go back to our code.
+
+176
+00:12:12.670 --> 00:12:15.880
+We're going to auto wire the bean that we just registered over here.
+
+177
+00:12:15.880 --> 00:12:22.690
+So we'll say Private B crypt password, encoder, password, encoder.
+
+178
+00:12:22.690 --> 00:12:25.330
+And I think we might have Lombok.
+
+179
+00:12:25.330 --> 00:12:26.080
+We do.
+
+180
+00:12:26.080 --> 00:12:29.050
+So we can just say all ARGs constructor.
+
+181
+00:12:30.690 --> 00:12:31.150
+Okay.
+
+182
+00:12:31.190 --> 00:12:33.740
+Automatically auto wiring the password encoder.
+
+183
+00:12:35.920 --> 00:12:41.470
+Now, obviously, you have to ignore the fact that we literally have the password hardcoded over here.
+
+184
+00:12:41.680 --> 00:12:46.540
+In a more realistic scenario, there would be some sort of sign up process anyways.
+
+185
+00:12:46.540 --> 00:12:49.240
+We'll be doing that once we implement JWT.
+
+186
+00:12:49.270 --> 00:12:57.880
+Right now all I want you to do is encode this password before saving it in memory, password and code.
+
+187
+00:12:59.550 --> 00:13:00.900
+And there you go.
+
+188
+00:13:02.480 --> 00:13:08.100
+We will not be saving the password in plain text will be saving the hashed password.
+
+189
+00:13:08.120 --> 00:13:08.600
+All right.
+
+190
+00:13:08.600 --> 00:13:15.470
+And before we start testing our app, let us create another user that basic auth can use for authentication.
+
+191
+00:13:16.650 --> 00:13:17.430
+Um.
+
+192
+00:13:18.030 --> 00:13:19.740
+Let me fix my indentation.
+
+193
+00:13:19.950 --> 00:13:26.940
+Let's call the variable user because the user name will be user and the password will be user pass.
+
+194
+00:13:28.020 --> 00:13:28.590
+All right.
+
+195
+00:13:28.590 --> 00:13:35.760
+And now, before we run our app, every user needs to be assigned a role for authorization purposes.
+
+196
+00:13:35.760 --> 00:13:40.560
+So anyone who logs in with the following credentials will be given a role of admin.
+
+197
+00:13:41.220 --> 00:13:46.710
+And anyone who logs in with these credentials will be given a role of user.
+
+198
+00:13:47.720 --> 00:13:50.810
+Let me just save the user in memory as well.
+
+199
+00:13:51.200 --> 00:13:52.170
+And all right.
+
+200
+00:13:52.170 --> 00:13:54.410
+I think we're ready to test this baby out.
+
+201
+00:13:54.440 --> 00:13:55.490
+Let's run our app.
+
+202
+00:14:10.030 --> 00:14:10.210
+Okay.
+
+203
+00:14:10.210 --> 00:14:13.750
+We'll go to postmen, and I'm going to try to make a gut request.
+
+204
+00:14:13.900 --> 00:14:18.550
+I'm going to try to access all of the contacts without including any credentials.
+
+205
+00:14:20.460 --> 00:14:29.550
+And we get back a401a401 means that it was not able to validate our identity authentication failed.
+
+206
+00:14:29.670 --> 00:14:34.260
+Remember from the last video http requests include a header.
+
+207
+00:14:36.210 --> 00:14:42.480
+So here, inside of authorization, what I want you to do is go to basic oath.
+
+208
+00:14:42.660 --> 00:14:49.050
+And conveniently, when we do this, the authorization header will be automatically generated when we
+
+209
+00:14:49.080 --> 00:14:50.360
+send the request.
+
+210
+00:14:50.370 --> 00:14:51.600
+That's awesome.
+
+211
+00:14:51.600 --> 00:14:56.740
+So here my admin username and my admin password that I had put in before.
+
+212
+00:14:56.760 --> 00:15:02.670
+You can see that they have been based 64 encoded and they have been automatically preceded by the basic
+
+213
+00:15:02.670 --> 00:15:03.450
+keyword.
+
+214
+00:15:03.480 --> 00:15:08.010
+If I were to copy this into any base 64 decoder.
+
+215
+00:15:08.870 --> 00:15:11.450
+You can see that it's admin admin pass.
+
+216
+00:15:11.450 --> 00:15:18.620
+Our username and our password are preceded by the basic keyword, as you saw in the last video when
+
+217
+00:15:18.620 --> 00:15:20.450
+we discussed the authorization header.
+
+218
+00:15:20.450 --> 00:15:25.540
+So we were able to define this header as part of our post request over here.
+
+219
+00:15:25.550 --> 00:15:26.300
+Looking good.
+
+220
+00:15:26.300 --> 00:15:28.700
+So we can go ahead and just send this request.
+
+221
+00:15:29.980 --> 00:15:31.450
+And beautiful.
+
+222
+00:15:32.940 --> 00:15:39.210
+We get back a status of 200, it allowed us to make the get request that retrieves all contacts.
+
+223
+00:15:39.210 --> 00:15:44.550
+And if we look at the response body, we can see that it gave us the correct payload.
+
+224
+00:15:45.800 --> 00:15:46.190
+All right.
+
+225
+00:15:46.190 --> 00:15:48.620
+Now we have a bit of an issue.
+
+226
+00:15:49.330 --> 00:15:52.570
+If I were to remove the auth credentials from the header.
+
+227
+00:15:52.570 --> 00:15:54.550
+So if I were to just say no auth.
+
+228
+00:15:55.320 --> 00:15:58.080
+Now you can see our authorization header is gone.
+
+229
+00:15:58.110 --> 00:16:04.300
+If I were to do that and now send our request, it somehow works.
+
+230
+00:16:04.320 --> 00:16:05.960
+Well, this is weird.
+
+231
+00:16:05.970 --> 00:16:09.460
+Before, when we made a request without credentials, it didn't work.
+
+232
+00:16:09.480 --> 00:16:11.320
+Then we did it with credentials.
+
+233
+00:16:11.340 --> 00:16:12.030
+It did work.
+
+234
+00:16:12.030 --> 00:16:14.470
+But then upon removing them, it still works.
+
+235
+00:16:14.490 --> 00:16:15.420
+That's kind of weird.
+
+236
+00:16:15.750 --> 00:16:22.230
+That's because after the previous user was authenticated, Spring Boot Security actually created an
+
+237
+00:16:22.230 --> 00:16:24.390
+HTTP session for them.
+
+238
+00:16:24.780 --> 00:16:29.130
+That session that was created is now stored inside of a cookie.
+
+239
+00:16:31.300 --> 00:16:37.780
+And now the request will still work through session based authentication, even if we don't provide
+
+240
+00:16:37.780 --> 00:16:38.810
+credentials.
+
+241
+00:16:38.830 --> 00:16:42.340
+So if I go here and I remove the cookie.
+
+242
+00:16:45.170 --> 00:16:47.390
+In turn, removing a recession.
+
+243
+00:16:47.420 --> 00:16:50.930
+Now we have no session, no authentication credentials.
+
+244
+00:16:50.930 --> 00:16:53.330
+So if I were to make that request again.
+
+245
+00:16:54.340 --> 00:16:56.680
+It would not work for one unauthorized.
+
+246
+00:16:56.680 --> 00:16:58.060
+You need to authenticate.
+
+247
+00:16:58.120 --> 00:17:03.640
+But the real issue is that when we make a request with a valid credentials.
+
+248
+00:17:04.490 --> 00:17:06.650
+And Spring Security authenticates.
+
+249
+00:17:06.650 --> 00:17:08.930
+We can then authenticate through a session.
+
+250
+00:17:08.930 --> 00:17:15.200
+We do not want to bring security to create a session that follow up requests can use for session based
+
+251
+00:17:15.200 --> 00:17:16.099
+authentication.
+
+252
+00:17:16.099 --> 00:17:20.089
+We want the entire request and response lifecycle to be stateless.
+
+253
+00:17:20.089 --> 00:17:24.050
+We don't want any sessions to be created for security purposes.
+
+254
+00:17:24.050 --> 00:17:28.220
+So at the end, what I'm going to do is say.
+
+255
+00:17:29.240 --> 00:17:30.530
+Dot and.
+
+256
+00:17:31.880 --> 00:17:32.840
+Dot.
+
+257
+00:17:33.690 --> 00:17:36.120
+Session management session.
+
+258
+00:17:36.120 --> 00:17:37.440
+Create policy.
+
+259
+00:17:39.770 --> 00:17:41.600
+Session creation policy.
+
+260
+00:17:42.020 --> 00:17:42.980
+Stateless.
+
+261
+00:17:48.440 --> 00:17:52.770
+This pretty much disables session creation on spring security.
+
+262
+00:17:52.790 --> 00:17:55.230
+You can actually read exactly what it does.
+
+263
+00:17:55.250 --> 00:17:58.710
+Spring security will never create an HTTP session.
+
+264
+00:17:58.730 --> 00:17:59.690
+Nice.
+
+265
+00:18:00.110 --> 00:18:02.810
+So now I can go back and try this out.
+
+266
+00:18:02.990 --> 00:18:05.270
+I'm going to give valid credentials.
+
+267
+00:18:05.270 --> 00:18:11.800
+We'll say admin and admin pass because we configured spring security to not create an HTTP session.
+
+268
+00:18:11.810 --> 00:18:13.760
+If I were to remove the credentials.
+
+269
+00:18:13.790 --> 00:18:14.720
+It doesn't work.
+
+270
+00:18:14.720 --> 00:18:20.380
+We're always going to need to authenticate every request using basic auth.
+
+271
+00:18:20.390 --> 00:18:24.350
+They need to always provide a username and password in the request.
+
+272
+00:18:24.350 --> 00:18:25.750
+And that is amazing.
+
+273
+00:18:25.760 --> 00:18:27.740
+We've already made so much progress.
+
+274
+00:18:27.770 --> 00:18:33.110
+Now, if you'll remember, there are actually four steps left, so let's pick up where we left off in
+
+275
+00:18:33.110 --> 00:18:34.070
+another video.
+

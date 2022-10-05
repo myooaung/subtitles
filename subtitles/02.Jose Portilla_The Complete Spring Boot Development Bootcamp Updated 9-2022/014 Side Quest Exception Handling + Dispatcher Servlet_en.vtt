@@ -1,0 +1,793 @@
+WEBVTT
+1
+00:00:00.300 --> 00:00:07.710
+We're facing an issue when a client makes a bad request such that the JSON fields couldn't possibly
+
+2
+00:00:07.710 --> 00:00:14.010
+map to the properties of our user object, then this object mapper is going to throw an exception as
+
+3
+00:00:14.010 --> 00:00:16.750
+it tries to perform the serialization process.
+
+4
+00:00:16.770 --> 00:00:21.180
+In turn, this exception is going to get caught and throw a runtime exception.
+
+5
+00:00:21.180 --> 00:00:28.650
+And now we want to handle this exception in order to then send back a status code of bad request indicating
+
+6
+00:00:28.650 --> 00:00:30.330
+that a bad request was made.
+
+7
+00:00:30.330 --> 00:00:33.270
+We could not understand what they were trying to send us.
+
+8
+00:00:33.300 --> 00:00:35.790
+The problem isn't that we couldn't authorize them.
+
+9
+00:00:35.790 --> 00:00:37.770
+They simply made a bad request.
+
+10
+00:00:37.770 --> 00:00:42.990
+And now some of you might be wondering why not just create an exception handler instead of controller
+
+11
+00:00:42.990 --> 00:00:46.210
+advice that handles this runtime exception?
+
+12
+00:00:46.230 --> 00:00:48.810
+Unfortunately, we cannot do that.
+
+13
+00:00:49.230 --> 00:00:55.260
+The dispatcher Servlet is at the center of receiving a request, invoking the controller's handler methods
+
+14
+00:00:55.260 --> 00:00:57.230
+and then sending back a response.
+
+15
+00:00:57.240 --> 00:01:02.490
+And then if something were to go wrong, the exception handler is inside of the controller advice would
+
+16
+00:01:02.490 --> 00:01:08.430
+handle the failed request and then send back a 400 of some sort which would then be forwarded back to
+
+17
+00:01:08.430 --> 00:01:09.210
+the client.
+
+18
+00:01:09.210 --> 00:01:15.510
+But the issue is, before the request can reach the dispatcher servlet, it has to go through our security
+
+19
+00:01:15.510 --> 00:01:16.350
+filters.
+
+20
+00:01:16.350 --> 00:01:23.550
+And because our filters are executed before the dispatcher servlet, we cannot catch exceptions thrown
+
+21
+00:01:23.550 --> 00:01:26.940
+from the filters inside of the exception handlers.
+
+22
+00:01:26.940 --> 00:01:29.190
+So how do we deal with this problem?
+
+23
+00:01:29.820 --> 00:01:31.830
+Well, we'll get to that in just a second.
+
+24
+00:01:31.830 --> 00:01:35.370
+But before doing so, I want to play around with filters a little.
+
+25
+00:01:35.820 --> 00:01:37.860
+We're going to set something like this up.
+
+26
+00:01:38.440 --> 00:01:44.320
+When a request is made to, let's say, authenticate first, it will go through a filter called filter
+
+27
+00:01:44.320 --> 00:01:46.960
+one, which is just going to print a random message.
+
+28
+00:01:46.960 --> 00:01:51.520
+Then it's going to go through the authentication filter, and then it's just going to go through another
+
+29
+00:01:51.520 --> 00:01:54.080
+filter that's just going to print a random message.
+
+30
+00:01:54.100 --> 00:01:57.930
+These filters will not do anything spring security related.
+
+31
+00:01:57.940 --> 00:02:00.430
+They're just there for us to practice on.
+
+32
+00:02:01.190 --> 00:02:07.700
+So inside the filter folder, what I'm going to do is create a new filter called Filter one.
+
+33
+00:02:09.340 --> 00:02:16.240
+And it's going to implement the filter interface that derives from Java DOT servlet.
+
+34
+00:02:17.410 --> 00:02:21.670
+And by doing so we are forced to override a due filter method.
+
+35
+00:02:22.240 --> 00:02:28.180
+So once a request reaches this filter, what's going to run is the due filter method.
+
+36
+00:02:28.210 --> 00:02:30.820
+For fun, we can access the data that's inside of it.
+
+37
+00:02:30.820 --> 00:02:38.950
+So what I'll do is I'm actually going to typecast this to an HTTP request, http servlet request.
+
+38
+00:02:41.870 --> 00:02:48.920
+Because an HTTP request is what will be expecting and from it I'm going to say get request URI which
+
+39
+00:02:48.920 --> 00:02:50.270
+gives us the path.
+
+40
+00:02:50.480 --> 00:02:56.810
+So if you were to hover over this, it tells you it returns the part of the request URL from the protocol.
+
+41
+00:02:56.840 --> 00:02:58.620
+Blah, blah, blah, the path.
+
+42
+00:02:58.640 --> 00:03:00.290
+Let's just print it up for fun.
+
+43
+00:03:08.160 --> 00:03:09.660
+For clarity purposes.
+
+44
+00:03:09.660 --> 00:03:11.280
+I'm also just going to print.
+
+45
+00:03:11.580 --> 00:03:15.870
+Hey, we are in filter one.
+
+46
+00:03:16.620 --> 00:03:23.190
+Per the diagram that I just showed you, we want this filter to run before the authentication filter.
+
+47
+00:03:23.760 --> 00:03:31.650
+So what we can do is inside of our filter chain, we're going to add a filter before the filter is going
+
+48
+00:03:31.650 --> 00:03:38.200
+to be a new instance of filter one and it's going to run before the authentication filter.
+
+49
+00:03:38.220 --> 00:03:39.220
+How do we do that?
+
+50
+00:03:39.240 --> 00:03:41.910
+Well, this function accepts a class type.
+
+51
+00:03:41.910 --> 00:03:49.690
+So by saying authentication filter class, it's going to know to run filter one before the auth filter.
+
+52
+00:03:49.710 --> 00:03:51.480
+Let's test this out.
+
+53
+00:03:51.480 --> 00:03:56.040
+I'm going to run the application in debug mode and add some breakpoints over here.
+
+54
+00:03:56.040 --> 00:03:58.470
+Some breakpoints over here.
+
+55
+00:03:59.420 --> 00:04:00.830
+Let the OP run.
+
+56
+00:04:04.270 --> 00:04:05.980
+All right, let's fix this up.
+
+57
+00:04:09.230 --> 00:04:10.330
+And beautiful.
+
+58
+00:04:10.340 --> 00:04:12.890
+The first thing that runs rightfully so.
+
+59
+00:04:12.890 --> 00:04:15.290
+The first filter in our filter chain.
+
+60
+00:04:15.920 --> 00:04:19.779
+If I step through this, it's going to print the path of the request.
+
+61
+00:04:19.790 --> 00:04:21.649
+So here you can do whatever you want with this.
+
+62
+00:04:21.649 --> 00:04:25.430
+You can say if the path is authenticate, then do this.
+
+63
+00:04:25.460 --> 00:04:27.100
+Otherwise do something else.
+
+64
+00:04:27.110 --> 00:04:29.120
+We're not going to be doing anything of that sort.
+
+65
+00:04:29.120 --> 00:04:30.560
+We're just playing around.
+
+66
+00:04:32.310 --> 00:04:33.460
+I'm going to press next.
+
+67
+00:04:33.480 --> 00:04:35.070
+Hey, we're in filter one.
+
+68
+00:04:35.070 --> 00:04:39.450
+And it should have gone to attempt authentication, but it didn't.
+
+69
+00:04:39.450 --> 00:04:41.770
+And this should make you wonder, why didn't it?
+
+70
+00:04:41.790 --> 00:04:46.140
+We clearly said in the security filter chain, this is the first filter.
+
+71
+00:04:46.140 --> 00:04:48.900
+And what follows is the authentication filter.
+
+72
+00:04:49.080 --> 00:04:54.870
+While the problem is when it reaches here, we're not telling it where to go after the request.
+
+73
+00:04:54.870 --> 00:05:01.020
+Doesn't just magically travel along the filter chain to eventually reach our dispatcher servlet and
+
+74
+00:05:01.020 --> 00:05:07.290
+then invoke whatever method you need to keep telling the request where to go at every step of the way.
+
+75
+00:05:07.290 --> 00:05:13.680
+So once you finish printing both of these messages, what we're going to say is chain.
+
+76
+00:05:13.680 --> 00:05:18.690
+We're going to reference the current filter chain that we're in and we'll say, do filter.
+
+77
+00:05:19.110 --> 00:05:25.200
+What do filter is going to do is run the next filter and the filter chain, and that's where the request
+
+78
+00:05:25.200 --> 00:05:26.490
+is going to go next.
+
+79
+00:05:26.490 --> 00:05:28.980
+It's going to reach the authentication filter.
+
+80
+00:05:28.980 --> 00:05:30.210
+Let's try that again.
+
+81
+00:05:31.490 --> 00:05:34.190
+Press send starts from filter one.
+
+82
+00:05:35.170 --> 00:05:40.840
+And then change DU filter triggers the next filter in our filter chain and now it's going to attempt
+
+83
+00:05:40.840 --> 00:05:41.860
+authentication.
+
+84
+00:05:42.280 --> 00:05:45.700
+And then just like before, it's going to go through the authentication filter.
+
+85
+00:05:46.450 --> 00:05:49.110
+And then we're going to get the expected 403.
+
+86
+00:05:49.120 --> 00:05:53.830
+And now, as it's about to send back the error response, we're going backwards in the filter chain.
+
+87
+00:05:55.330 --> 00:05:57.640
+Eventually sending the four three forbidden.
+
+88
+00:05:57.640 --> 00:06:05.110
+This was expected because every single request that we make to any path, unless that path is registered
+
+89
+00:06:05.110 --> 00:06:10.150
+or h to it's not going to get authorized unless we authenticate.
+
+90
+00:06:10.150 --> 00:06:14.820
+And before we do that in the next video, let's play around a little more with filters.
+
+91
+00:06:14.830 --> 00:06:21.130
+So after the auth filter, what I'm going to do is add a filter after it.
+
+92
+00:06:21.130 --> 00:06:28.150
+And before I'm able to set anything up, let me create a new filter called filter two dot Java.
+
+93
+00:06:29.860 --> 00:06:31.780
+We'll copy what we have over here.
+
+94
+00:06:36.310 --> 00:06:37.840
+Call this filter to.
+
+95
+00:06:39.180 --> 00:06:40.380
+And here for fun.
+
+96
+00:06:40.380 --> 00:06:51.690
+What I'm going to do is use the same object mapper as before to grab the payload from the request that
+
+97
+00:06:51.690 --> 00:06:53.730
+eventually gets passed into filter to.
+
+98
+00:06:57.660 --> 00:06:59.550
+So we can just put this over here.
+
+99
+00:07:01.090 --> 00:07:03.070
+An import user class.
+
+100
+00:07:05.090 --> 00:07:10.190
+So once the request reaches this filter, we are once again extracting its values.
+
+101
+00:07:11.570 --> 00:07:13.130
+And then we're just going to print them.
+
+102
+00:07:13.660 --> 00:07:15.920
+System.out.println.
+
+103
+00:07:16.280 --> 00:07:21.920
+User dot get username and then user dot get password.
+
+104
+00:07:22.400 --> 00:07:24.350
+For now remove this.
+
+105
+00:07:24.800 --> 00:07:29.540
+We seem to have an error and that is because we now have to add our filter to.
+
+106
+00:07:29.840 --> 00:07:33.650
+But this filter is going to get invoked after the authentication filter.
+
+107
+00:07:34.810 --> 00:07:39.400
+Think we're ready to add some breakpoints and try this out again.
+
+108
+00:07:40.410 --> 00:07:40.830
+All right.
+
+109
+00:07:40.830 --> 00:07:42.300
+And we're not done yet.
+
+110
+00:07:42.300 --> 00:07:48.000
+This filter will never get reached because we're not telling the authentication filter when to trigger
+
+111
+00:07:48.000 --> 00:07:50.130
+the next filter and the filter chain.
+
+112
+00:07:50.130 --> 00:07:58.260
+So what we can do here is actually override the filter and then just say chain, do filter.
+
+113
+00:07:58.860 --> 00:08:01.170
+All right, let's try this out.
+
+114
+00:08:03.030 --> 00:08:05.400
+Make sure to put your breakpoints.
+
+115
+00:08:07.060 --> 00:08:08.170
+Where needed.
+
+116
+00:08:09.460 --> 00:08:12.740
+Let's press send starts at the first filter.
+
+117
+00:08:12.760 --> 00:08:13.840
+Makes sense.
+
+118
+00:08:14.840 --> 00:08:19.300
+It seems that the authentication filter got skipped while it didn't.
+
+119
+00:08:19.310 --> 00:08:24.830
+I just forgot to put a breakpoint over here because when the filter runs, the first thing that gets
+
+120
+00:08:24.830 --> 00:08:29.000
+invoked is do filter and this is going to call chain do filter.
+
+121
+00:08:29.000 --> 00:08:33.990
+So it might seem like filter two was triggered before the authentication filter.
+
+122
+00:08:34.010 --> 00:08:36.230
+I just forgot to put a breakpoint over here.
+
+123
+00:08:36.230 --> 00:08:38.299
+So that's going to call filter two.
+
+124
+00:08:41.039 --> 00:08:43.919
+And then the socket hung up because I took too long.
+
+125
+00:08:43.950 --> 00:08:45.300
+Let me just try this again.
+
+126
+00:08:45.510 --> 00:08:51.300
+Anyways, now we have our breakpoint goes here, which is eventually just going to call the next filter
+
+127
+00:08:51.300 --> 00:08:54.690
+in the filter chain completely skipping everything else.
+
+128
+00:08:55.910 --> 00:09:01.280
+And all right, we get back a status of 200 because it didn't really try to authenticate and nothing
+
+129
+00:09:01.280 --> 00:09:03.180
+really happens after filter two.
+
+130
+00:09:03.200 --> 00:09:05.480
+So there's nothing to really report on.
+
+131
+00:09:05.840 --> 00:09:06.350
+All right.
+
+132
+00:09:06.350 --> 00:09:09.980
+And that's all the playing around with filters that I want to do.
+
+133
+00:09:10.550 --> 00:09:12.410
+I'm going to delete filter two.
+
+134
+00:09:14.530 --> 00:09:16.000
+Now in spring security.
+
+135
+00:09:16.000 --> 00:09:21.670
+Typically when you're setting up your custom filter you want to inherit from so we'll say extends you
+
+136
+00:09:21.670 --> 00:09:28.450
+want to inherit from the once per request filter class instead of implementing the generic filter interface
+
+137
+00:09:28.450 --> 00:09:34.270
+and the once per request filter is guaranteed to only run once per request.
+
+138
+00:09:34.630 --> 00:09:40.750
+And now here instead of do filter, we're going to say do filter internal, which is very convenient
+
+139
+00:09:40.750 --> 00:09:45.430
+because now our request is already type casted to a HTTP request.
+
+140
+00:09:45.430 --> 00:09:54.790
+Let's make sure to clean up over here and we're going to call this exception handler filter.
+
+141
+00:09:57.010 --> 00:09:58.840
+Rename this file accordingly.
+
+142
+00:09:59.680 --> 00:10:01.960
+Exception handler filter.
+
+143
+00:10:02.870 --> 00:10:06.740
+Dot Java, deleting all of the imports we don't need.
+
+144
+00:10:07.130 --> 00:10:08.510
+And so here's my plan.
+
+145
+00:10:08.510 --> 00:10:13.700
+What we're going to do is have an exception handler filter and that's going to be the first filter to
+
+146
+00:10:13.700 --> 00:10:16.130
+get invoked before any other filter.
+
+147
+00:10:16.460 --> 00:10:21.620
+The exception handler filter, it's going to be the first filter to receive a request and then it's
+
+148
+00:10:21.620 --> 00:10:23.780
+going to call change do filter.
+
+149
+00:10:24.140 --> 00:10:26.600
+We have no idea which filter is going to run next.
+
+150
+00:10:26.600 --> 00:10:31.580
+Depends on the scenario and we don't even have the JWT authorization filter set up yet.
+
+151
+00:10:31.580 --> 00:10:33.080
+But just bear with me.
+
+152
+00:10:33.080 --> 00:10:35.120
+Let's say we have two custom filters.
+
+153
+00:10:35.120 --> 00:10:39.290
+We're going to set up the exception handler filter to always be first.
+
+154
+00:10:39.290 --> 00:10:45.260
+And it doesn't matter which filter gets invoked next because we're going to wrap Chandu filter in a
+
+155
+00:10:45.260 --> 00:10:46.160
+try block.
+
+156
+00:10:46.160 --> 00:10:51.650
+And if any runtime exception is thrown in a follow up filter, then it's going to get caught in the
+
+157
+00:10:51.650 --> 00:10:52.700
+catch block.
+
+158
+00:10:52.700 --> 00:10:57.260
+And from the catch block, we can modify the response that we want to send back.
+
+159
+00:10:57.260 --> 00:11:03.050
+So basically we just created our own global exception handler for spring security filters.
+
+160
+00:11:06.730 --> 00:11:09.700
+So what I'm going to do here is say.
+
+161
+00:11:10.730 --> 00:11:13.820
+Try to run the next filter.
+
+162
+00:11:14.720 --> 00:11:15.680
+Now it's filter.
+
+163
+00:11:15.680 --> 00:11:16.000
+Change.
+
+164
+00:11:16.160 --> 00:11:16.970
+Do filter.
+
+165
+00:11:17.480 --> 00:11:20.450
+Try to run the next filter and the filter chain.
+
+166
+00:11:22.190 --> 00:11:25.490
+And catch whatever onetime exception that you get.
+
+167
+00:11:25.910 --> 00:11:31.130
+Now, let's say you had four types of exceptions that would get thrown, then back in your exception
+
+168
+00:11:31.130 --> 00:11:32.020
+handler filter.
+
+169
+00:11:32.030 --> 00:11:35.330
+You can have as many catch blocks as you want.
+
+170
+00:11:37.190 --> 00:11:42.590
+Each one handling its own type of exception, similar to what you would have in your global exception.
+
+171
+00:11:42.590 --> 00:11:46.880
+HANDLER But now we're handling exceptions for security filters.
+
+172
+00:11:46.880 --> 00:11:54.320
+And in the event of a runtime exception, what we're going to do is change the response status to a
+
+173
+00:11:54.350 --> 00:12:00.740
+400 bad request http server response dot SC.
+
+174
+00:12:01.480 --> 00:12:07.930
+Bond request, you can feel free to update the response body, give it some JSON, do whatever you want.
+
+175
+00:12:07.960 --> 00:12:09.850
+I'm happy with the setup.
+
+176
+00:12:09.850 --> 00:12:14.470
+So what I'm going to do is put a breakpoint on the exception handler filter.
+
+177
+00:12:14.500 --> 00:12:21.170
+I'll put a breakpoint over here because this is what I'm interested in and I will fix my security config.
+
+178
+00:12:21.190 --> 00:12:29.110
+The first filter that's going to run before anything is a new instance of the exception handler filter.
+
+179
+00:12:30.480 --> 00:12:31.340
+All right.
+
+180
+00:12:31.350 --> 00:12:32.780
+I think we're all done.
+
+181
+00:12:32.800 --> 00:12:34.180
+Let's try it out.
+
+182
+00:12:34.600 --> 00:12:36.490
+I seem to have some errors.
+
+183
+00:12:36.820 --> 00:12:38.320
+These don't exist anymore.
+
+184
+00:12:38.350 --> 00:12:39.820
+Let's try this again.
+
+185
+00:12:47.500 --> 00:12:50.800
+Um, let me disable the breakpoints for now.
+
+186
+00:12:51.620 --> 00:12:53.120
+Shouldn't even have these, actually.
+
+187
+00:12:58.340 --> 00:13:00.140
+Re-enable the breakpoints.
+
+188
+00:13:00.650 --> 00:13:01.520
+All right.
+
+189
+00:13:01.520 --> 00:13:06.800
+I am going to pass in some faulty JSON fields.
+
+190
+00:13:06.890 --> 00:13:08.300
+Press next.
+
+191
+00:13:08.630 --> 00:13:16.070
+Our object mapper fails to map these JSON fields into the properties of a user, so we catch the IO
+
+192
+00:13:16.070 --> 00:13:22.040
+exception that it throws in turn throwing a runtime exception which is going to be caught in our catch
+
+193
+00:13:22.040 --> 00:13:22.460
+block.
+
+194
+00:13:22.460 --> 00:13:24.080
+Isn't that beautiful?
+
+195
+00:13:24.080 --> 00:13:30.980
+And then we're setting the status of the response to be bad request instead of the default 403 forbidden.
+
+196
+00:13:31.460 --> 00:13:37.700
+And by virtue of sending back a bad request, we're telling the user, Hey, you messed up, please
+
+197
+00:13:37.700 --> 00:13:38.540
+fix it up.
+
+198
+00:13:38.570 --> 00:13:42.980
+Let's move on to part three where we implement our authentication manager.
+
