@@ -1,0 +1,634 @@
+WEBVTT
+X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:0
+
+00:00:00.000 --> 00:00:02.850
+How that let us take a look
+at how we can implement
+
+00:00:02.850 --> 00:00:06.570
+historic circuit breaker
+pattern inside our application.
+
+00:00:06.570 --> 00:00:08.400
+What I have here
+is the controller
+
+00:00:08.400 --> 00:00:09.854
+of the product service.
+
+00:00:09.854 --> 00:00:11.640
+And from within the controller,
+
+00:00:11.640 --> 00:00:14.250
+we're sending requests to
+both pricing service as well
+
+00:00:14.250 --> 00:00:17.520
+as the inventory service
+using rest template.
+
+00:00:17.520 --> 00:00:19.260
+I'm using rest
+template on purpose
+
+00:00:19.260 --> 00:00:22.770
+because this is what would
+lead to blocking operation.
+
+00:00:22.770 --> 00:00:26.400
+And I'm also using the gateway
+IP to send the request.
+
+00:00:26.400 --> 00:00:27.660
+Well, it doesn't really matter.
+
+00:00:27.660 --> 00:00:31.065
+You can just simply use
+service specific IP.
+
+00:00:31.065 --> 00:00:34.980
+What I'm going to do next
+is we'll try to simulate
+
+00:00:34.980 --> 00:00:37.290
+the behavior where the services
+
+00:00:37.290 --> 00:00:39.150
+taken a lot of time to respond.
+
+00:00:39.150 --> 00:00:42.215
+And I'm going to target the
+inventory service for that.
+
+00:00:42.215 --> 00:00:47.030
+I'm going to get inside the
+inventory service controller.
+
+00:00:47.400 --> 00:00:51.625
+I'm just simply going to add
+an instruction that says,
+
+00:00:51.625 --> 00:00:53.950
+hold the thread for ten seconds.
+
+00:00:53.950 --> 00:00:56.065
+That's thread dot.
+
+00:00:56.065 --> 00:00:57.980
+Sleep.
+
+00:00:58.740 --> 00:01:02.690
+We're going to go edit
+sleep for ten seconds.
+
+00:01:02.940 --> 00:01:07.910
+Wrap the code with try-catch
+block, save the file.
+
+00:01:08.220 --> 00:01:12.175
+By the way, I already have
+all these apps running.
+
+00:01:12.175 --> 00:01:16.189
+Let me just quickly demonstrate
+the current behavior.
+
+00:01:17.100 --> 00:01:20.635
+We received the
+response immediately.
+
+00:01:20.635 --> 00:01:23.990
+But after these changes,
+
+00:01:24.730 --> 00:01:30.240
+It's going to take about
+ten seconds to respond.
+
+00:01:39.160 --> 00:01:43.099
+Let's go to Postman
+and send the request.
+
+00:01:43.099 --> 00:01:45.470
+We have to wait for ten seconds
+
+00:01:45.470 --> 00:01:48.510
+before we see the response.
+
+00:01:57.070 --> 00:01:59.510
+In this case is ten seconds.
+
+00:01:59.510 --> 00:02:03.875
+But imagine if this goes
+forever, obviously,
+
+00:02:03.875 --> 00:02:07.160
+the threads will be
+blocked in product service
+
+00:02:07.160 --> 00:02:09.080
+and there wouldn't be
+any threats available
+
+00:02:09.080 --> 00:02:11.879
+to process other requests.
+
+00:02:11.980 --> 00:02:17.720
+Let's address this issue with
+Hystrix postings for us.
+
+00:02:17.720 --> 00:02:20.520
+Let's have the dependency.
+
+00:02:22.930 --> 00:02:28.770
+I'm going to put the grid
+location of the dependency.
+
+00:02:29.020 --> 00:02:31.655
+Go back to Eclipse,
+
+00:02:31.655 --> 00:02:36.545
+get inside the product
+service Gradle file.
+
+00:02:36.545 --> 00:02:40.140
+Have that dependency in place.
+
+00:02:44.500 --> 00:02:49.770
+The file, and let's
+refresh the project.
+
+00:02:52.600 --> 00:02:55.640
+Once it's done.
+
+00:02:55.640 --> 00:03:00.170
+Let's get inside the
+main class and add
+
+00:03:00.170 --> 00:03:01.430
+denotation that would actually
+
+00:03:01.430 --> 00:03:05.370
+enable the circuit
+breaker pattern.
+
+00:03:06.160 --> 00:03:11.825
+Enable Hystrix is
+sanitation way to add.
+
+00:03:11.825 --> 00:03:13.700
+There's another
+annotation which would
+
+00:03:13.700 --> 00:03:15.515
+solve the exact same purpose,
+
+00:03:15.515 --> 00:03:20.165
+which enables circuit breaker.
+
+00:03:20.165 --> 00:03:22.415
+You can use either of these.
+
+00:03:22.415 --> 00:03:26.600
+The file. Next thing I'm going
+
+00:03:26.600 --> 00:03:28.370
+to do is to add
+couple of annotations
+
+00:03:28.370 --> 00:03:31.289
+inside the product controller.
+
+00:03:31.420 --> 00:03:34.790
+So from whichever method
+you are sending the request
+
+00:03:34.790 --> 00:03:39.335
+from here to have those
+annotations over there.
+
+00:03:39.335 --> 00:03:42.935
+Well, ideally you don't
+implement Hystrix.
+
+00:03:42.935 --> 00:03:47.030
+Controller layer would
+implement it in service layer.
+
+00:03:47.030 --> 00:03:50.180
+But since we don't have
+any service at the moment,
+
+00:03:50.180 --> 00:03:52.910
+I'm going to just
+demonstrate it over here.
+
+00:03:52.910 --> 00:03:55.204
+The idea is to
+demonstrate Hystrix
+
+00:03:55.204 --> 00:03:57.770
+and not something else.
+
+00:03:57.770 --> 00:04:01.235
+But you can just simply
+create a new class file.
+
+00:04:01.235 --> 00:04:03.845
+Call it maybe product,
+
+00:04:03.845 --> 00:04:08.190
+service or something.
+Annotate it with.
+
+00:04:09.820 --> 00:04:12.875
+Have your coordinate here.
+
+00:04:12.875 --> 00:04:15.860
+Dependency inject
+the product service
+
+00:04:15.860 --> 00:04:18.935
+inside your controller
+and call that method.
+
+00:04:18.935 --> 00:04:24.000
+But I'm not going to do
+that to save your time.
+
+00:04:24.580 --> 00:04:27.650
+Whatever I'm going to
+introduce now should
+
+00:04:27.650 --> 00:04:30.350
+ideally be residing
+in service layer.
+
+00:04:30.350 --> 00:04:32.780
+But I'm going to demonstrate it.
+
+00:04:32.780 --> 00:04:37.430
+Here. I went to add
+
+00:04:37.430 --> 00:04:39.440
+one annotation which will
+
+00:04:39.440 --> 00:04:43.475
+which will allow me to
+set the timeout limit.
+
+00:04:43.475 --> 00:04:50.165
+That's Hystrix property.
+
+00:04:50.165 --> 00:04:55.985
+And the property I'm
+going to set the timeout.
+
+00:04:55.985 --> 00:05:00.450
+The name of the
+property is going to be
+
+00:05:01.180 --> 00:05:11.825
+execution dot isolation,
+thread, dot, timeout.
+
+00:05:11.825 --> 00:05:17.430
+In milli seconds.
+
+00:05:17.680 --> 00:05:21.960
+Make sure you don't have
+any typo errors here.
+
+00:05:22.740 --> 00:05:25.555
+And the value is going to be
+
+00:05:25.555 --> 00:05:28.974
+whatever the value you desire.
+
+00:05:28.974 --> 00:05:31.255
+Went to set this to 1 second,
+
+00:05:31.255 --> 00:05:33.100
+which means, what are
+
+00:05:33.100 --> 00:05:35.680
+the requests I'm going to
+send from this method?
+
+00:05:35.680 --> 00:05:39.160
+I'm expecting a response
+within 1 second.
+
+00:05:39.160 --> 00:05:40.885
+If it takes more than that,
+
+00:05:40.885 --> 00:05:43.945
+then I'm going to trigger
+a callback mechanism.
+
+00:05:43.945 --> 00:05:46.645
+So the next thing I'm going
+to do is to introduce
+
+00:05:46.645 --> 00:05:49.630
+the callback mechanism by using
+
+00:05:49.630 --> 00:05:57.744
+the annotation Hystrix command.
+
+00:05:57.744 --> 00:06:01.490
+I went to mention
+default back method.
+
+00:06:01.590 --> 00:06:06.385
+Followed back. Method equals.
+
+00:06:06.385 --> 00:06:09.145
+You can give any
+name of your choice,
+
+00:06:09.145 --> 00:06:15.009
+went to simply call it
+as followed back method.
+
+00:06:15.009 --> 00:06:17.770
+Now let us introduce
+this method.
+
+00:06:17.770 --> 00:06:20.215
+And this method should have
+
+00:06:20.215 --> 00:06:23.170
+the exact same
+signature as the top
+
+00:06:23.170 --> 00:06:26.965
+this method because ultimately
+
+00:06:26.965 --> 00:06:30.160
+went to compensate the loss
+with the same response,
+
+00:06:30.160 --> 00:06:33.290
+but with the different
+information.
+
+00:06:34.230 --> 00:06:37.435
+I'm going to have it in here.
+
+00:06:37.435 --> 00:06:41.680
+Except the fact I'm
+
+00:06:41.680 --> 00:06:45.470
+going to change the method
+name to fall back method.
+
+00:06:45.660 --> 00:06:49.460
+It's going to accept
+one parameter.
+
+00:06:50.130 --> 00:06:54.790
+I went to simply put
+a salt statement
+
+00:06:54.790 --> 00:06:56.815
+that just tells that
+
+00:06:56.815 --> 00:07:00.200
+the control enter
+default back method.
+
+00:07:05.250 --> 00:07:08.900
+I'm just simply going to return
+
+00:07:09.870 --> 00:07:17.035
+new product. Just like so.
+
+00:07:17.035 --> 00:07:20.995
+The values are going to be null.
+
+00:07:20.995 --> 00:07:22.885
+But if you wish, you can
+
+00:07:22.885 --> 00:07:25.390
+maybe populate some
+product details.
+
+00:07:25.390 --> 00:07:28.060
+For example, if the
+user has requested for
+
+00:07:28.060 --> 00:07:29.890
+iPhone and for some reason
+
+00:07:29.890 --> 00:07:31.650
+we're not able to respond back.
+
+00:07:31.650 --> 00:07:33.485
+Then you can maybe suggest
+
+00:07:33.485 --> 00:07:37.100
+some other phone or some
+default product or whatever.
+
+00:07:37.100 --> 00:07:39.260
+But I'm just simply
+going to send
+
+00:07:39.260 --> 00:07:41.330
+an empty object which
+
+00:07:41.330 --> 00:07:44.160
+would populate all
+the values with null.
+
+00:07:46.780 --> 00:07:49.220
+That's pretty much
+it. Let me make
+
+00:07:49.220 --> 00:07:51.845
+sure that there are
+no typo errors.
+
+00:07:51.845 --> 00:07:55.190
+Execution dot
+isolation, dot thread,
+
+00:07:55.190 --> 00:07:57.395
+dot timeout in milliseconds.
+
+00:07:57.395 --> 00:07:59.870
+And the value of,
+let's say the file
+
+00:07:59.870 --> 00:08:03.800
+and relaunch the
+product service.
+
+00:08:03.800 --> 00:08:08.190
+And see if this fixation.
+
+00:08:22.540 --> 00:08:27.870
+Let's go to Postman. This time.
+
+00:08:28.000 --> 00:08:30.829
+It didn't wait for ten seconds,
+
+00:08:30.829 --> 00:08:36.155
+just responded by executing
+the fallback mechanism.
+
+00:08:36.155 --> 00:08:38.730
+The default product,
+
+00:08:47.050 --> 00:08:51.410
+essentially Hystrix
+block the request
+
+00:08:51.410 --> 00:08:55.320
+would no longer be going
+to the inventory service.
+
+00:08:56.710 --> 00:09:00.950
+But let's say that this
+always has come back to
+
+00:09:00.950 --> 00:09:05.000
+normal and it is
+responding as usual.
+
+00:09:05.000 --> 00:09:07.550
+Let's say the file and
+
+00:09:07.550 --> 00:09:12.080
+launch the ninjas
+of is once again,
+
+00:09:12.080 --> 00:09:15.724
+let's go to Postman and
+keeps sending the request.
+
+00:09:15.724 --> 00:09:18.800
+Behind the scenes. Hystrix
+is actually keeping track of
+
+00:09:18.800 --> 00:09:20.900
+inventory service to check
+
+00:09:20.900 --> 00:09:23.640
+to see if it has come to normal.
+
+00:09:24.040 --> 00:09:27.815
+Once it does, it will
+resume the service and
+
+00:09:27.815 --> 00:09:31.580
+requests can now be sent
+to the inventory service.
+
+00:09:31.580 --> 00:09:34.920
+And so we're able
+to see the results.
+
+00:09:35.860 --> 00:09:39.260
+Also, it's worth
+mentioning that it doesn't
+
+00:09:39.260 --> 00:09:42.500
+necessarily have to do
+with the time mode.
+
+00:09:42.500 --> 00:09:44.450
+The fallback
+mechanism can also be
+
+00:09:44.450 --> 00:09:48.590
+executed even in case
+of an exception.
+
+00:09:48.590 --> 00:09:51.590
+Instead of returning inventory,
+
+00:09:51.590 --> 00:09:54.200
+I'm going to say, I'm
+
+00:09:54.200 --> 00:09:56.850
+going to actually
+throw an exception.
+
+00:09:57.340 --> 00:09:59.645
+If true.
+
+00:09:59.645 --> 00:10:04.100
+This condition will
+always be true.
+
+00:10:04.100 --> 00:10:07.590
+Went to say
+
+00:10:08.770 --> 00:10:19.770
+new runtime exception.
+
+00:10:20.650 --> 00:10:27.330
+Save the file. And let's
+relaunch the inventory service.
+
+00:10:27.790 --> 00:10:34.520
+Even now, the fallback
+mechanism come into picture.
+
+00:10:34.520 --> 00:10:37.980
+Let's wait for the
+inventory service to stop.
+
+00:10:45.820 --> 00:10:55.080
+This time. Let's go back.
+
+00:10:57.970 --> 00:11:01.260
+This is interesting.
+
+00:11:02.020 --> 00:11:08.780
+It would actually say when
+to throw the exception.
+
+00:11:08.780 --> 00:11:12.600
+Let's relaunch
+inventory service.
+
+00:11:18.280 --> 00:11:22.620
+Let's wait for the service
+to be up and running.
+
+00:11:29.590 --> 00:11:37.710
+Go back to Postman and the
+fallback method is executed.
+
+00:11:42.160 --> 00:11:45.499
+But like I said before,
+
+00:11:45.499 --> 00:11:47.675
+we want to ideally have
+
+00:11:47.675 --> 00:11:50.525
+Hystrix implemented
+in service layer.
+
+00:11:50.525 --> 00:11:52.865
+Not at controller.
+
+00:11:52.865 --> 00:11:54.830
+Maybe you can take
+this as an assignment
+
+00:11:54.830 --> 00:11:58.445
+and move the center code
+into a service layer.
+
+00:11:58.445 --> 00:12:00.530
+Call that method tried to
+
+00:12:00.530 --> 00:12:02.675
+create a fallback
+method as well.
+
+00:12:02.675 --> 00:12:06.630
+And try to experiment with it.

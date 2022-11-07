@@ -1,0 +1,648 @@
+﻿1
+00:00:00,000 --> 00:00:05,800
+In this LTs release of node,
+
+2
+00:00:05,800 --> 00:00:10,730
+there is an experimental but interesting module called a sink hooks.
+
+3
+00:00:10,730 --> 00:00:16,650
+A sink hooks is designed to let you track the life cycle of asynchronous operations.
+
+4
+00:00:16,650 --> 00:00:22,320
+So whereas before we use performance hooks to be able to log out at what time certain
+
+5
+00:00:22,320 --> 00:00:23,550
+procedures were happening,
+
+6
+00:00:23,550 --> 00:00:32,770
+a sink hooks lets you automatically understand when an asynchronous function is initialized
+
+7
+00:00:32,770 --> 00:00:32,770
+,
+
+8
+00:00:32,770 --> 00:00:36,440
+it will tell you right before it gets called right after he gets called,
+
+9
+00:00:36,440 --> 00:00:37,890
+when it gets destroyed,
+
+10
+00:00:37,890 --> 00:00:40,440
+or if it's a promise when the promise gets resolved.
+
+11
+00:00:40,440 --> 00:00:46,090
+So if you're trying to debug and figure out exactly when certain things are happening,
+
+12
+00:00:46,090 --> 00:00:51,980
+or you just are unsure if some random library is calling some other function,
+
+13
+00:00:51,980 --> 00:00:57,400
+you can use a sink hooks to track whether or not a certain function is getting called.
+
+14
+00:00:57,400 --> 00:00:58,910
+When is getting initialize,
+
+15
+00:00:58,910 --> 00:00:59,420
+etcetera.
+
+16
+00:00:59,420 --> 00:01:00,910
+When you're debugging,
+
+17
+00:01:00,910 --> 00:01:04,340
+a sink hooks can help you pinpoint where an issue might be.
+
+18
+00:01:04,340 --> 00:01:06,250
+So in our example,
+
+19
+00:01:06,250 --> 00:01:12,630
+we're going to create a new file and then create an asynchronous resource in this case,
+
+20
+00:01:12,630 --> 00:01:15,610
+a function that just has a set interval in it,
+
+21
+00:01:15,610 --> 00:01:21,980
+and then add on a whole bunch of hooks that tracked the life cycle of that function.
+
+22
+00:01:21,980 --> 00:01:29,360
+Let's go ahead and create that new file I'm gonna call touch miscellaneous a sink hooks dot
+
+23
+00:01:29,360 --> 00:01:29,990
+Js.
+
+24
+00:01:29,990 --> 00:01:32,620
+And in this file at the top,
+
+25
+00:01:32,620 --> 00:01:39,080
+I'm going to say this is an a sink hook example we're going to need to dependencies here.
+
+26
+00:01:39,080 --> 00:01:48,760
+The first is a sink hooks so we can call a sink hooks equals require a sink underscore
+
+27
+00:01:48,760 --> 00:01:49,300
+hooks.
+
+28
+00:01:49,300 --> 00:01:53,980
+But then we're also going to need a file system.
+
+29
+00:01:53,980 --> 00:01:55,750
+And that is because,
+
+30
+00:01:55,750 --> 00:02:01,790
+as you'll see when you're tracking the life cycle of a synchronous operations,
+
+31
+00:02:01,790 --> 00:02:06,680
+you shouldn't use asynchronous operations to track them.
+
+32
+00:02:06,680 --> 00:02:07,470
+And so,
+
+33
+00:02:07,470 --> 00:02:08,320
+for us,
+
+34
+00:02:08,320 --> 00:02:11,810
+using console log is technically a synchronous.
+
+35
+00:02:11,810 --> 00:02:13,140
+Although it happens really quickly,
+
+36
+00:02:13,140 --> 00:02:14,880
+it is an asynchronous operation,
+
+37
+00:02:14,880 --> 00:02:19,210
+so we don't want to log out the data using consul dot log.
+
+38
+00:02:19,210 --> 00:02:23,380
+We want to use fs dot right sink,
+
+39
+00:02:23,380 --> 00:02:26,320
+which will write to standard out in a synchronous way,
+
+40
+00:02:26,320 --> 00:02:28,940
+basically do the same thing is console logging,
+
+41
+00:02:28,940 --> 00:02:33,260
+but it will block the thread and stop anything else from executing.
+
+42
+00:02:33,260 --> 00:02:40,390
+So the first thing that we need to do is to find a target execution context for us.
+
+43
+00:02:40,390 --> 00:02:41,190
+We don't need one.
+
+44
+00:02:41,190 --> 00:02:42,790
+We're gonna define as false.
+
+45
+00:02:42,790 --> 00:02:45,300
+If we wanted to use the current contact,
+
+46
+00:02:45,300 --> 00:02:48,060
+we could pull it from the A six module there.
+
+47
+00:02:48,060 --> 00:02:48,970
+But for right now,
+
+48
+00:02:48,970 --> 00:02:51,010
+we don't really need an execution context.
+
+49
+00:02:51,010 --> 00:02:51,990
+Now,
+
+50
+00:02:51,990 --> 00:02:57,450
+I'm just going to write and arbitrary a sink function.
+
+51
+00:02:57,450 --> 00:03:01,150
+So this function is going to be called.
+
+52
+00:03:01,150 --> 00:03:02,950
+What time is it?
+
+53
+00:03:02,950 --> 00:03:12,150
+And it's going to take a call back I was going to do is define a set interval.
+
+54
+00:03:12,150 --> 00:03:17,350
+And when the interval runs,
+
+55
+00:03:17,350 --> 00:03:22,330
+it's gonna call sf right to sink one,
+
+56
+00:03:22,330 --> 00:03:24,870
+which is just this in tax of right sink.
+
+57
+00:03:24,870 --> 00:03:34,850
+And then we're going to say that when the set interval runs the execution context.
+
+58
+00:03:34,850 --> 00:03:41,150
+So the train execution context that were in when we were writing this message is,
+
+59
+00:03:41,150 --> 00:03:50,100
+then we can state whatever it iss a sink hooks don't execution a sink.
+
+60
+00:03:50,100 --> 00:03:55,300
+I d We need to upend a new line on the end.
+
+61
+00:03:55,300 --> 00:03:57,360
+Then we're gonna call back,
+
+62
+00:03:57,360 --> 00:04:01,080
+and the thing we're gonna call back is the current date.
+
+63
+00:04:01,080 --> 00:04:06,550
+We're gonna call this set Interval 1000 so it'll execute once a second.
+
+64
+00:04:06,550 --> 00:04:09,850
+Now we want to call that function.
+
+65
+00:04:09,850 --> 00:04:14,110
+So we're just gonna call what time is it?
+
+66
+00:04:14,110 --> 00:04:23,740
+And pass it a call back and expect back time because once every second this function is
+
+67
+00:04:23,740 --> 00:04:26,570
+going to call back to us over and over and over again.
+
+68
+00:04:26,570 --> 00:04:31,050
+So we're gonna call XF right Sink one,
+
+69
+00:04:31,050 --> 00:04:37,800
+and then we're gonna say that time is time and then do like,
+
+70
+00:04:37,800 --> 00:04:39,210
+basically,
+
+71
+00:04:39,210 --> 00:04:43,940
+we're just creating something that will have a whole bunch of asynchronous operations
+
+72
+00:04:43,940 --> 00:04:46,090
+happening over and over and over again,
+
+73
+00:04:46,090 --> 00:04:48,950
+and we'll log out what they're doing.
+
+74
+00:04:48,950 --> 00:04:51,200
+We also just out of curiosity,
+
+75
+00:04:51,200 --> 00:04:54,910
+want to see what the execution context is at the moment in time.
+
+76
+00:04:54,910 --> 00:05:00,750
+If you're confused earlier about defining an execution context that will let you know what
+
+77
+00:05:00,750 --> 00:05:03,260
+those are now,
+
+78
+00:05:03,260 --> 00:05:06,120
+we actually need to do find the ace in cooks.
+
+79
+00:05:06,120 --> 00:05:14,610
+So we're going to say that Hooks is equal to an object that it has a whole bunch of sub
+
+80
+00:05:14,610 --> 00:05:15,370
+functions on it.
+
+81
+00:05:15,370 --> 00:05:16,650
+So in it,
+
+82
+00:05:16,650 --> 00:05:20,240
+which takes in a sink,
+
+83
+00:05:20,240 --> 00:05:28,000
+I d tight trigger a sick I d and resource.
+
+84
+00:05:28,000 --> 00:05:36,490
+And within here we just want to call fs right sink one and then say that the hook
+
+85
+00:05:36,490 --> 00:05:38,010
+initialization happened,
+
+86
+00:05:38,010 --> 00:05:39,100
+Or rather,
+
+87
+00:05:39,100 --> 00:05:47,260
+the initialization hook got called and we're gonna attach the a sick I d that we got past
+
+88
+00:05:47,260 --> 00:05:49,250
+and then a new line.
+
+89
+00:05:49,250 --> 00:05:56,800
+So that is when whatever function were tracking gets initialized now before gets called,
+
+90
+00:05:56,800 --> 00:05:58,880
+it's only going to get past a sink I d.
+
+91
+00:05:58,880 --> 00:06:03,120
+So we want to say hook before basic,
+
+92
+00:06:03,120 --> 00:06:07,970
+i d These are gonna end up in the console just so we can see which order things happen
+
+93
+00:06:07,970 --> 00:06:10,940
+again After is also going to get a think i d.
+
+94
+00:06:10,940 --> 00:06:11,980
+So we want to say,
+
+95
+00:06:11,980 --> 00:06:18,390
+Look after a sick I d destroy is going to get the same thing so hooked,
+
+96
+00:06:18,390 --> 00:06:26,350
+destroy and then promise resolve which for our case,
+
+97
+00:06:26,350 --> 00:06:28,240
+we can log it out if it happens.
+
+98
+00:06:28,240 --> 00:06:33,040
+But it really shouldn't happen because we're not using promises in this case.
+
+99
+00:06:33,040 --> 00:06:33,930
+Lastly,
+
+100
+00:06:33,930 --> 00:06:38,620
+we need to create a new instance of the A sink hooks module.
+
+101
+00:06:38,620 --> 00:06:48,480
+So we're going to we're going to call a sink.
+
+102
+00:06:48,480 --> 00:06:52,150
+Hook equals a sink.
+
+103
+00:06:52,150 --> 00:07:00,450
+Hooks create hook hooks a sink dot enabled.
+
+104
+00:07:00,450 --> 00:07:02,520
+You might be wondering,
+
+105
+00:07:02,520 --> 00:07:05,820
+Why are we using fs dot Rite's ink all over the place?
+
+106
+00:07:05,820 --> 00:07:06,330
+Well,
+
+107
+00:07:06,330 --> 00:07:07,800
+that is because,
+
+108
+00:07:07,800 --> 00:07:08,650
+as you've seen,
+
+109
+00:07:08,650 --> 00:07:14,480
+we haven't actually specified which asynchronous resource is supposed to get tracked.
+
+110
+00:07:14,480 --> 00:07:20,860
+All we've done is set up tracking for asynchronous resource is we need to minimize the
+
+111
+00:07:20,860 --> 00:07:23,990
+amount of asynchronous functions that are happening in this file.
+
+112
+00:07:23,990 --> 00:07:24,520
+Otherwise,
+
+113
+00:07:24,520 --> 00:07:28,840
+we're gonna get locking all over the place because a sink hooks is going to track the life
+
+114
+00:07:28,840 --> 00:07:32,670
+cycle of all the asynchronous operations happening.
+
+115
+00:07:32,670 --> 00:07:39,850
+So had we used console doubt log anywhere every time console dot log got called.
+
+116
+00:07:39,850 --> 00:07:44,930
+It would automatically track the initialization of it that before event the after event the
+
+117
+00:07:44,930 --> 00:07:46,870
+destroy event and the promise resolve.
+
+118
+00:07:46,870 --> 00:07:54,890
+But since we would be writing the results of those events using consul dot log,
+
+119
+00:07:54,890 --> 00:08:00,040
+the act of writing console dot log would trigger more life cycle events.
+
+120
+00:08:00,040 --> 00:08:05,270
+And so we quickly end up in this spiral of events that trigger events that trigger events,
+
+121
+00:08:05,270 --> 00:08:07,660
+and our system would soon crash.
+
+122
+00:08:07,660 --> 00:08:13,390
+So I would advise to avoid using concert out log anywhere in your file when you're using a
+
+123
+00:08:13,390 --> 00:08:14,180
+sink hooks,
+
+124
+00:08:14,180 --> 00:08:18,040
+but particularly within the hooks themselves.
+
+125
+00:08:18,040 --> 00:08:21,670
+Because if the hooks themselves trigger in a sink operation,
+
+126
+00:08:21,670 --> 00:08:26,850
+you're going to end up in this recursive loop that will quickly run out of memory.
+
+127
+00:08:26,850 --> 00:08:29,450
+So now that we have all of this set up,
+
+128
+00:08:29,450 --> 00:08:32,610
+we can go ahead and start up this application,
+
+129
+00:08:32,610 --> 00:08:37,080
+which is a fairly simple advocation and should just log out what the time is.
+
+130
+00:08:37,080 --> 00:08:43,950
+But we'll also see the life cycle of this asynchronous function as it happens.
+
+131
+00:08:43,950 --> 00:08:53,280
+So I'm gonna call node miscellaneous a sink hooks dot Js Looks like we just have a small
+
+132
+00:08:53,280 --> 00:08:54,530
+syntax error here,
+
+133
+00:08:54,530 --> 00:09:00,510
+and that is because we didn't actually close any of these open parentheses.
+
+134
+00:09:00,510 --> 00:09:11,930
+So let's just close those quit this out and try again a sink enable as little typo.
+
+135
+00:09:11,930 --> 00:09:18,850
+So I'm gonna clear that out and replace it with a sink hook enable one more time.
+
+136
+00:09:18,850 --> 00:09:22,050
+All right,
+
+137
+00:09:22,050 --> 00:09:28,550
+now we can see a whole bunch of things coming to the console went after another.
+
+138
+00:09:28,550 --> 00:09:32,440
+When we stop this and we can look more closely at it,
+
+139
+00:09:32,440 --> 00:09:38,780
+we can see that during this set interval the execution context is number six.
+
+140
+00:09:38,780 --> 00:09:44,320
+We have a whole bunch of hooks being fired because of various asynchronous things that
+
+141
+00:09:44,320 --> 00:09:46,300
+might be happening elsewhere in this file.
+
+142
+00:09:46,300 --> 00:09:51,230
+But we are particularly concerned about the execution context.
+
+143
+00:09:51,230 --> 00:09:53,400
+Six because we're trying to,
+
+144
+00:09:53,400 --> 00:09:54,070
+for example,
+
+145
+00:09:54,070 --> 00:09:57,380
+a debug what's happening with this set interval for our purposes.
+
+146
+00:09:57,380 --> 00:10:00,050
+We're just going to follow what is happening with six.
+
+147
+00:10:00,050 --> 00:10:01,730
+We're getting the before event,
+
+148
+00:10:01,730 --> 00:10:03,440
+firing the after event,
+
+149
+00:10:03,440 --> 00:10:05,360
+firing that before again,
+
+150
+00:10:05,360 --> 00:10:06,390
+the after again,
+
+151
+00:10:06,390 --> 00:10:07,300
+the before again,
+
+152
+00:10:07,300 --> 00:10:12,910
+the after again and every time the execution runs is in the context of six.
+
+153
+00:10:12,910 --> 00:10:18,740
+So that is how you go about debugging and asynchronous operation.
+
+154
+00:10:18,740 --> 00:10:23,120
+Had we been actually destroying the operation or using a promise,
+
+155
+00:10:23,120 --> 00:10:25,870
+these other hooks would have been called as well.
+
+156
+00:10:25,870 --> 00:10:28,730
+The A sink hooks module is fairly complex.
+
+157
+00:10:28,730 --> 00:10:29,960
+If you're interested in using it,
+
+158
+00:10:29,960 --> 00:10:32,850
+you definitely want to read through the documentation in detail.
+
+159
+00:10:32,850 --> 00:10:36,460
+It is also still an experimental module,
+
+160
+00:10:36,460 --> 00:10:40,110
+and so your mileage will vary in a few versions of note.
+
+161
+00:10:40,110 --> 00:10:40,700
+From now,
+
+162
+00:10:40,700 --> 00:10:42,450
+it should be a bit more stable.
+

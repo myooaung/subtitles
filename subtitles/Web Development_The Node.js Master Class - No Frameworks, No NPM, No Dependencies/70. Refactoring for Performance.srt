@@ -1,0 +1,772 @@
+﻿1
+00:00:00,000 --> 00:00:05,860
+performance and scalability go hand in hand,
+
+2
+00:00:05,860 --> 00:00:12,080
+and many times it's hard to tell where one ends and another begins in this section.
+
+3
+00:00:12,080 --> 00:00:18,800
+We're going to be talking about both topics before we jump into an example of tweaking for
+
+4
+00:00:18,800 --> 00:00:20,110
+resource utilization.
+
+5
+00:00:20,110 --> 00:00:22,650
+Let's talk about some things that we could do.
+
+6
+00:00:22,650 --> 00:00:26,640
+One modification that we could make to the server for the A.
+
+7
+00:00:26,640 --> 00:00:26,900
+P.
+
+8
+00:00:26,900 --> 00:00:31,250
+I is adding on some kind of rate limiting right now.
+
+9
+00:00:31,250 --> 00:00:33,630
+Any user who is able to reach this AP,
+
+10
+00:00:33,630 --> 00:00:38,060
+I can hit it with as many requests per second as they feel like.
+
+11
+00:00:38,060 --> 00:00:39,480
+Sometimes this is desirable.
+
+12
+00:00:39,480 --> 00:00:45,670
+But in other times you want to limit the amount of requests that any given user can make
+
+13
+00:00:45,670 --> 00:00:46,340
+per second,
+
+14
+00:00:46,340 --> 00:00:51,160
+so that all of the resource is of the server are available for all of the other users.
+
+15
+00:00:51,160 --> 00:00:55,890
+If you let any user get out of hand with the amount of resource is they're using,
+
+16
+00:00:55,890 --> 00:00:58,630
+that degrades the performance for everyone else.
+
+17
+00:00:58,630 --> 00:01:01,870
+So when requests come in to our A p I,
+
+18
+00:01:01,870 --> 00:01:03,890
+and we start processing them here,
+
+19
+00:01:03,890 --> 00:01:10,780
+we could implement some kind of rate limiter that would keep track of how many requests
+
+20
+00:01:10,780 --> 00:01:15,350
+this specific user identified by I p address or token,
+
+21
+00:01:15,350 --> 00:01:21,300
+or whatever has made in the last rolling five seconds or rolling minute etcetera.
+
+22
+00:01:21,300 --> 00:01:23,060
+And if they exceed a rate limit,
+
+23
+00:01:23,060 --> 00:01:25,070
+we would send them back.
+
+24
+00:01:25,070 --> 00:01:25,520
+A.
+
+25
+00:01:25,520 --> 00:01:26,190
+You've been raped,
+
+26
+00:01:26,190 --> 00:01:27,810
+limited message automatically.
+
+27
+00:01:27,810 --> 00:01:32,170
+And then once they have reached a rolling window where they have not exceeded the rate
+
+28
+00:01:32,170 --> 00:01:32,590
+limits,
+
+29
+00:01:32,590 --> 00:01:34,800
+we would allow them to make normal requests again,
+
+30
+00:01:34,800 --> 00:01:41,620
+since we would be implementing that here before getting our data store involved.
+
+31
+00:01:41,620 --> 00:01:44,580
+That would save a lot of our back and resource is,
+
+32
+00:01:44,580 --> 00:01:49,840
+or we could have a data store dedicated to storing the data we need to keep track of to
+
+33
+00:01:49,840 --> 00:01:53,030
+know if any given user has exceeded their rate limit.
+
+34
+00:01:53,030 --> 00:01:58,980
+Another thing that we could do when it comes to performance optimization should be fairly
+
+35
+00:01:58,980 --> 00:01:59,590
+obvious.
+
+36
+00:01:59,590 --> 00:02:00,530
+Right now.
+
+37
+00:02:00,530 --> 00:02:04,120
+We are using the file system as a data store,
+
+38
+00:02:04,120 --> 00:02:06,310
+and this simply doesn't scale.
+
+39
+00:02:06,310 --> 00:02:09,450
+Or at least it doesn't scale in a particularly elegant way.
+
+40
+00:02:09,450 --> 00:02:10,240
+Right now,
+
+41
+00:02:10,240 --> 00:02:17,050
+if any of our threads or any of our processes are trying to open files while some other
+
+42
+00:02:17,050 --> 00:02:21,140
+processes trying to open that same file the right to that file,
+
+43
+00:02:21,140 --> 00:02:24,390
+the results aren't going to be particularly nice.
+
+44
+00:02:24,390 --> 00:02:29,140
+So this is obviously where a full fledged data store comes in.
+
+45
+00:02:29,140 --> 00:02:34,360
+A Rio database would allow you to make multiple simultaneous connections.
+
+46
+00:02:34,360 --> 00:02:39,570
+Send off your request to read or write with various levels of consistency,
+
+47
+00:02:39,570 --> 00:02:41,740
+depending on your read needs.
+
+48
+00:02:41,740 --> 00:02:42,730
+And internally,
+
+49
+00:02:42,730 --> 00:02:48,570
+that data store would queue your request so that their performed in atomic fashion.
+
+50
+00:02:48,570 --> 00:02:51,290
+Our file system is really doing any of that.
+
+51
+00:02:51,290 --> 00:02:54,550
+And so this isn't the most elegant solution for scale.
+
+52
+00:02:54,550 --> 00:02:55,690
+Also,
+
+53
+00:02:55,690 --> 00:03:01,730
+since we are literally storing the data on a particular server when we're implementing a
+
+54
+00:03:01,730 --> 00:03:03,050
+file system in this way,
+
+55
+00:03:03,050 --> 00:03:07,280
+it doesn't allow you to scale your servers horizontally.
+
+56
+00:03:07,280 --> 00:03:11,450
+Connecting to your file system from no Js is fine,
+
+57
+00:03:11,450 --> 00:03:16,380
+but you'd want the data store that it connects to to live on some other machine that can
+
+58
+00:03:16,380 --> 00:03:18,950
+scale with its own resource is,
+
+59
+00:03:18,950 --> 00:03:24,180
+and you'd want to be able to have your no Js server scale horizontally without needing to
+
+60
+00:03:24,180 --> 00:03:27,810
+keep track of which server has which data about which user.
+
+61
+00:03:27,810 --> 00:03:32,880
+If you chose to implement 1/3 party database or a database of your own creation,
+
+62
+00:03:32,880 --> 00:03:37,080
+you could have a data library much like this you'd still want lived,
+
+63
+00:03:37,080 --> 00:03:38,290
+create read,
+
+64
+00:03:38,290 --> 00:03:39,080
+update,
+
+65
+00:03:39,080 --> 00:03:40,250
+delete and list.
+
+66
+00:03:40,250 --> 00:03:44,670
+It's just that rather than having these functions read and write to the file system,
+
+67
+00:03:44,670 --> 00:03:45,710
+as they're doing here,
+
+68
+00:03:45,710 --> 00:03:51,280
+you'd want them to directly connect to some other data store and performed the reads writes
+
+69
+00:03:51,280 --> 00:03:53,050
+and updates and lists that way.
+
+70
+00:03:53,050 --> 00:03:53,890
+Okay,
+
+71
+00:03:53,890 --> 00:03:58,560
+so now let's move into a real life example of how we could tweak for performance.
+
+72
+00:03:58,560 --> 00:04:04,750
+Remember that tweaking per performance is really any kind of adjustments that you might
+
+73
+00:04:04,750 --> 00:04:06,390
+make in order to save.
+
+74
+00:04:06,390 --> 00:04:09,900
+System Resource is under some situations,
+
+75
+00:04:09,900 --> 00:04:16,520
+so the adjustment that we can make is actually to one of our handlers.
+
+76
+00:04:16,520 --> 00:04:22,890
+If you remember back when we created the Jason Handler for post checks,
+
+77
+00:04:22,890 --> 00:04:25,450
+we have this taking a bunch of inputs,
+
+78
+00:04:25,450 --> 00:04:31,450
+looking up the user and the token that the user provided reading in the user data,
+
+79
+00:04:31,450 --> 00:04:37,470
+checking to make sure the user didn't have too many checks already and then creating the
+
+80
+00:04:37,470 --> 00:04:39,480
+check and reading it to the file system.
+
+81
+00:04:39,480 --> 00:04:41,790
+What's going to happen after this,
+
+82
+00:04:41,790 --> 00:04:42,100
+though,
+
+83
+00:04:42,100 --> 00:04:47,850
+is that this check object is going to start getting checked regularly,
+
+84
+00:04:47,850 --> 00:04:54,800
+which means if the user put in a URL that doesn't exist or you are l.
+
+85
+00:04:54,800 --> 00:04:57,790
+That doesn't even have DNS entries are workers.
+
+86
+00:04:57,790 --> 00:05:04,020
+Once this check is created are going to start checking that same your l over and over and
+
+87
+00:05:04,020 --> 00:05:04,620
+over again,
+
+88
+00:05:04,620 --> 00:05:08,860
+even though there's really no reason to do that because it's never going to resolve.
+
+89
+00:05:08,860 --> 00:05:14,650
+So one thing that we could do to optimize performance here is rather than just blindly
+
+90
+00:05:14,650 --> 00:05:23,240
+creating the check object with the girl that the user specifies we can use no Js to look up
+
+91
+00:05:23,240 --> 00:05:31,260
+the DNs entries for this u r l to make sure that that DNS exists before re allow the user
+
+92
+00:05:31,260 --> 00:05:33,350
+to create a check with it.
+
+93
+00:05:33,350 --> 00:05:35,150
+So let's go ahead and do that.
+
+94
+00:05:35,150 --> 00:05:36,890
+In order to do this,
+
+95
+00:05:36,890 --> 00:05:43,370
+we're going to actually use to know J s modules one that should be familiar and one that is
+
+96
+00:05:43,370 --> 00:05:43,950
+brand new.
+
+97
+00:05:43,950 --> 00:05:45,000
+So at the top,
+
+98
+00:05:45,000 --> 00:05:47,650
+I'm gonna add to do modules to our dependencies.
+
+99
+00:05:47,650 --> 00:05:51,150
+One is your l,
+
+100
+00:05:51,150 --> 00:05:54,850
+which we've used before for parsing your L data,
+
+101
+00:05:54,850 --> 00:05:59,600
+and I'm gonna call that underscore Euro and the other is DNS,
+
+102
+00:05:59,600 --> 00:06:08,940
+which is require Dennis and DNS is the mantra that we're going to use to look up the DNS
+
+103
+00:06:08,940 --> 00:06:14,180
+entries of the host name that is specified in the euro that the user provides.
+
+104
+00:06:14,180 --> 00:06:16,090
+So let's go back down to checks post.
+
+105
+00:06:16,090 --> 00:06:17,120
+Now,
+
+106
+00:06:17,120 --> 00:06:17,760
+at this point,
+
+107
+00:06:17,760 --> 00:06:19,700
+rather than creating the check I d.
+
+108
+00:06:19,700 --> 00:06:24,590
+As soon as we check that the user doesn't already have five checks,
+
+109
+00:06:24,590 --> 00:06:28,770
+we first want to parse the euro to figure out the host name.
+
+110
+00:06:28,770 --> 00:06:39,350
+We first want to verify that the euro given as DNS entries and therefore can resolve.
+
+111
+00:06:39,350 --> 00:06:44,850
+The first thing that we need to do is parts the your L as we've done before.
+
+112
+00:06:44,850 --> 00:06:48,650
+So we're going to use underscore your l dot parse.
+
+113
+00:06:48,650 --> 00:06:56,810
+We're going to add on the protocol that the user specified and then append colon slash
+
+114
+00:06:56,810 --> 00:07:05,040
+slash then add on the u R l that they specified and say true going to call this parsed euro
+
+115
+00:07:05,040 --> 00:07:05,040
+.
+
+116
+00:07:05,040 --> 00:07:08,570
+Now we need to grab the host name out of this part you around.
+
+117
+00:07:08,570 --> 00:07:14,220
+So we're going to save our host name because type Of course you are.
+
+118
+00:07:14,220 --> 00:07:20,850
+L host name equals string and the length is rate of zero.
+
+119
+00:07:20,850 --> 00:07:24,290
+It would have lasted two false.
+
+120
+00:07:24,290 --> 00:07:30,250
+So now we want to use the DNS module to try to resolve this host,
+
+121
+00:07:30,250 --> 00:07:34,610
+which is basically going to try to check for the type of DNs records that we would need
+
+122
+00:07:34,610 --> 00:07:38,950
+before we could ever make in http requests to this euro,
+
+123
+00:07:38,950 --> 00:07:40,390
+we're gonna call DNs,
+
+124
+00:07:40,390 --> 00:07:48,980
+resolve pass in the host name and then expect back an air and DNS records.
+
+125
+00:07:48,980 --> 00:07:50,750
+At this point,
+
+126
+00:07:50,750 --> 00:07:54,600
+if there is no air and there are records,
+
+127
+00:07:54,600 --> 00:07:58,400
+then we can continue on with the rest of logic here.
+
+128
+00:07:58,400 --> 00:07:59,790
+Otherwise,
+
+129
+00:07:59,790 --> 00:08:02,900
+we're going to send an air back to the user.
+
+130
+00:08:02,900 --> 00:08:05,840
+That's a 400 object saying error.
+
+131
+00:08:05,840 --> 00:08:17,390
+The host name of the euro entered did not resolve to any DNS entries.
+
+132
+00:08:17,390 --> 00:08:22,430
+But if everything's fine,
+
+133
+00:08:22,430 --> 00:08:26,080
+I'm gonna take everything that used to happen below here,
+
+134
+00:08:26,080 --> 00:08:27,860
+and I'm going to pace it inside.
+
+135
+00:08:27,860 --> 00:08:30,520
+Now.
+
+136
+00:08:30,520 --> 00:08:36,580
+One thing to note whether or not the DNS resolved successfully will depend on your I S P.
+
+137
+00:08:36,580 --> 00:08:37,920
+In my experience,
+
+138
+00:08:37,920 --> 00:08:38,690
+some I S.
+
+139
+00:08:38,690 --> 00:08:45,480
+P s take it upon themselves to resolve all non resolvable addresses to one of their own
+
+140
+00:08:45,480 --> 00:08:46,260
+pages.
+
+141
+00:08:46,260 --> 00:08:51,570
+And this is generally so when people enter a misspelled your l in the browser that I speak
+
+142
+00:08:51,570 --> 00:08:53,300
+and serve them with some kind of ad.
+
+143
+00:08:53,300 --> 00:08:58,960
+So it's possible that when you try to resolve unresolvable DNs here,
+
+144
+00:08:58,960 --> 00:09:00,700
+you still get some kind of results,
+
+145
+00:09:00,700 --> 00:09:02,510
+and there isn't much that you can do about it.
+
+146
+00:09:02,510 --> 00:09:06,910
+Except for try to host your site on a machine inside of it.
+
+147
+00:09:06,910 --> 00:09:09,240
+I s P that doesn't do that kind of thing.
+
+148
+00:09:09,240 --> 00:09:13,510
+So let's start this server back up and try to see what happens.
+
+149
+00:09:13,510 --> 00:09:18,430
+Okay?
+
+150
+00:09:18,430 --> 00:09:18,760
+First,
+
+151
+00:09:18,760 --> 00:09:25,380
+I'm going to post to the token service with the credentials of the user that we've been
+
+152
+00:09:25,380 --> 00:09:26,430
+using recently.
+
+153
+00:09:26,430 --> 00:09:32,030
+Now,
+
+154
+00:09:32,030 --> 00:09:36,610
+I haven't token that I can use in subsequent requests,
+
+155
+00:09:36,610 --> 00:09:39,290
+So I'm gonna do a post to the check service.
+
+156
+00:09:39,290 --> 00:09:42,650
+But I am going to update the token here.
+
+157
+00:09:42,650 --> 00:09:46,620
+Going to send a post with google dot com to a P I slash checks.
+
+158
+00:09:46,620 --> 00:09:48,580
+I got a 200 back.
+
+159
+00:09:48,580 --> 00:09:49,170
+Now.
+
+160
+00:09:49,170 --> 00:09:52,050
+I'm going to try to send a your l.
+
+161
+00:09:52,050 --> 00:09:54,310
+That shouldn't exist.
+
+162
+00:09:54,310 --> 00:09:58,240
+I'm gonna create this long euro that no one should have ever registered.
+
+163
+00:09:58,240 --> 00:10:03,010
+Send that off and we get a 400 back.
+
+164
+00:10:03,010 --> 00:10:08,490
+The host name of the girl entered did not resolve to any DNS entries again,
+
+165
+00:10:08,490 --> 00:10:11,700
+This might be the results that you experience on your local hosts.
+
+166
+00:10:11,700 --> 00:10:13,150
+It really depends on your eyes.
+
+167
+00:10:13,150 --> 00:10:14,570
+Be if you're on a good eyes.
+
+168
+00:10:14,570 --> 00:10:17,750
+P then this is the result that you'll get back.
+
+169
+00:10:17,750 --> 00:10:19,460
+Okay,
+
+170
+00:10:19,460 --> 00:10:22,600
+So how does this help us with performance?
+
+171
+00:10:22,600 --> 00:10:24,900
+How does looking up the DNS helps with performance?
+
+172
+00:10:24,900 --> 00:10:25,410
+Well,
+
+173
+00:10:25,410 --> 00:10:28,670
+imagine that out of all of our users,
+
+174
+00:10:28,670 --> 00:10:35,230
+1% of the checks that they create are accidentally to some your l that doesn't exist or
+
+175
+00:10:35,230 --> 00:10:37,010
+doesn't even have DNs entries.
+
+176
+00:10:37,010 --> 00:10:37,680
+Well,
+
+177
+00:10:37,680 --> 00:10:38,850
+then our workers,
+
+178
+00:10:38,850 --> 00:10:44,340
+once a minute are using up system Resource is to perform checks over and over and over
+
+179
+00:10:44,340 --> 00:10:48,050
+again to DNS that will never resolve.
+
+180
+00:10:48,050 --> 00:10:51,650
+That's going to use up resources for no reason.
+
+181
+00:10:51,650 --> 00:10:57,690
+And so implementing this kind of thing ahead of time upstream of that problem should help
+
+182
+00:10:57,690 --> 00:11:00,250
+us alleviate the majority of those situations.
+
+183
+00:11:00,250 --> 00:11:05,040
+It's also a benefit to the user where we're catching errors that they might not have
+
+184
+00:11:05,040 --> 00:11:06,880
+noticed that they put in in the first place.
+
+185
+00:11:06,880 --> 00:11:07,700
+Okay,
+
+186
+00:11:07,700 --> 00:11:10,510
+so we've talked about a bunch in this lecture.
+
+187
+00:11:10,510 --> 00:11:15,860
+We talked about re factoring our data library to use external data stores.
+
+188
+00:11:15,860 --> 00:11:18,180
+We talked about implementing a rate limiter,
+
+189
+00:11:18,180 --> 00:11:23,910
+and now we just did an example of modifying one of our A p I routes to say system resource
+
+190
+00:11:23,910 --> 00:11:25,690
+is downstream of that route.
+
+191
+00:11:25,690 --> 00:11:27,830
+Now that we have that in place.
+
+192
+00:11:27,830 --> 00:11:31,810
+We can move on to the next lecture where we're going to talk about the performance hoax
+
+193
+00:11:31,810 --> 00:11:34,840
+module and how you can time the execution of some of your code.
+
