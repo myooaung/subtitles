@@ -1,0 +1,745 @@
+WEBVTT
+1
+00:00:02.040 --> 00:00:03.510
+So I briefly touched
+
+2
+00:00:03.510 --> 00:00:05.520
+on some security concerns,
+
+3
+00:00:05.520 --> 00:00:08.400
+or problems you might be facing when working
+
+4
+00:00:08.400 --> 00:00:11.340
+with GitHub actions, and adding your own Workflows.
+
+5
+00:00:11.340 --> 00:00:13.740
+And I wanna start with script injection,
+
+6
+00:00:13.740 --> 00:00:17.220
+and show you a concrete example of how a Workflow
+
+7
+00:00:17.220 --> 00:00:19.470
+could be affected by script injection,
+
+8
+00:00:19.470 --> 00:00:23.100
+and how you can defend against script injection.
+
+9
+00:00:23.100 --> 00:00:26.070
+For that, I prepared another example project,
+
+10
+00:00:26.070 --> 00:00:29.970
+which you find attached with two example Workflow files.
+
+11
+00:00:29.970 --> 00:00:32.549
+There isn't actually any real code
+
+12
+00:00:32.549 --> 00:00:36.210
+because this project isn't about code, or running tests,
+
+13
+00:00:36.210 --> 00:00:37.590
+but it's about some workflows,
+
+14
+00:00:37.590 --> 00:00:39.603
+and potential security issues.
+
+15
+00:00:40.440 --> 00:00:43.800
+And right now the script injection Workflow file here
+
+16
+00:00:43.800 --> 00:00:45.990
+is interesting for us.
+
+17
+00:00:45.990 --> 00:00:47.910
+It's a super simple Workflow,
+
+18
+00:00:47.910 --> 00:00:51.390
+but it is vulnerable to script injection.
+
+19
+00:00:51.390 --> 00:00:53.910
+And I'll show you how script injection works
+
+20
+00:00:53.910 --> 00:00:55.233
+in a couple of seconds.
+
+21
+00:00:56.160 --> 00:00:58.380
+So here this Workflow simply runs whenever
+
+22
+00:00:58.380 --> 00:01:01.980
+a new issue is open for the GitHub Repository
+
+23
+00:01:01.980 --> 00:01:04.319
+in which this code is stored.
+
+24
+00:01:04.319 --> 00:01:08.310
+And then here I perform one simple step where I extract
+
+25
+00:01:08.310 --> 00:01:11.580
+the title of the issue that was created,
+
+26
+00:01:11.580 --> 00:01:16.110
+and I store it in a temporary variable here in my shell.
+
+27
+00:01:16.110 --> 00:01:19.260
+And then I have a simple, if check here in the shell,
+
+28
+00:01:19.260 --> 00:01:23.730
+so this is not the if field on a step, but some command
+
+29
+00:01:23.730 --> 00:01:27.120
+inside of the shell that's being executed where I compare
+
+30
+00:01:27.120 --> 00:01:30.480
+that issue title that was stored in this variable
+
+31
+00:01:30.480 --> 00:01:33.810
+to this texture to be precise.
+
+32
+00:01:33.810 --> 00:01:36.330
+I'm checking whether it contains the word bug,
+
+33
+00:01:36.330 --> 00:01:39.810
+and if it does contain the word bug, I'm outputting issue
+
+34
+00:01:39.810 --> 00:01:42.303
+is about a bug, otherwise I'm outputting issue,
+
+35
+00:01:42.303 --> 00:01:44.280
+it's not about a bug.
+
+36
+00:01:44.280 --> 00:01:46.410
+And of course this is a dummy Workflow,
+
+37
+00:01:46.410 --> 00:01:50.430
+in reality, we could start adding some labels to the issue,
+
+38
+00:01:50.430 --> 00:01:53.010
+to add the bug label for example.
+
+39
+00:01:53.010 --> 00:01:54.450
+And today is indeed something we'll do
+
+40
+00:01:54.450 --> 00:01:57.150
+in that other Workflow, which we'll explore later,
+
+41
+00:01:57.150 --> 00:02:00.153
+but here I'm just outputting this dummy message.
+
+42
+00:02:00.990 --> 00:02:03.990
+So to see this all in action, I'll initialize this
+
+43
+00:02:03.990 --> 00:02:07.353
+as a Git Repository, and create my initial commit.
+
+44
+00:02:09.449 --> 00:02:13.650
+And now I wanna link it to a remote Repository of course.
+
+45
+00:02:13.650 --> 00:02:17.430
+And for that I'll create a new Repository here,
+
+46
+00:02:17.430 --> 00:02:22.140
+GH Security, could be a public, or private Repository.
+
+47
+00:02:22.140 --> 00:02:24.360
+Here, I'll keep it a public Repository,
+
+48
+00:02:24.360 --> 00:02:26.340
+but it doesn't matter.
+
+49
+00:02:26.340 --> 00:02:29.613
+And I'll then create that Repository, and wrap that link,
+
+50
+00:02:30.810 --> 00:02:34.593
+and add it as a remote Repository,
+
+51
+00:02:37.770 --> 00:02:40.530
+and then I'll of course also push my code
+
+52
+00:02:40.530 --> 00:02:44.130
+to that Repository, and with that, the code is there,
+
+53
+00:02:44.130 --> 00:02:47.520
+and we also added these two workflows.
+
+54
+00:02:47.520 --> 00:02:49.500
+Now the first Workflow,
+
+55
+00:02:49.500 --> 00:02:53.160
+this script injection example Workflow will execute whenever
+
+56
+00:02:53.160 --> 00:02:54.990
+a new issue is created.
+
+57
+00:02:54.990 --> 00:02:58.230
+Actually the other Workflow will also run when an issue
+
+58
+00:02:58.230 --> 00:03:01.320
+is created, but we can ignore that Workflow for now.
+
+59
+00:03:01.320 --> 00:03:03.780
+And here, I'll add a new issue,
+
+60
+00:03:03.780 --> 00:03:08.130
+where I will simply say something is wrong.
+
+61
+00:03:08.130 --> 00:03:10.830
+So a very simple title, no content,
+
+62
+00:03:10.830 --> 00:03:13.290
+we could add some content, but it's not important here.
+
+63
+00:03:13.290 --> 00:03:15.720
+And if I add this issue,
+
+64
+00:03:15.720 --> 00:03:18.540
+you will see that both workflows run,
+
+65
+00:03:18.540 --> 00:03:20.070
+and right now we're only interested
+
+66
+00:03:20.070 --> 00:03:22.020
+in the script injection example.
+
+67
+00:03:22.020 --> 00:03:25.830
+And there we'll see that once this starts to run,
+
+68
+00:03:25.830 --> 00:03:30.060
+it will simply perform this if check, everything works,
+
+69
+00:03:30.060 --> 00:03:33.330
+it stored the title in this issue title variable,
+
+70
+00:03:33.330 --> 00:03:35.520
+and everything worked as expected,
+
+71
+00:03:35.520 --> 00:03:38.010
+and we got the output issue is not about a bug,
+
+72
+00:03:38.010 --> 00:03:41.670
+because the word bug was not part of the issue title.
+
+73
+00:03:41.670 --> 00:03:44.520
+So that's working as intended here.
+
+74
+00:03:44.520 --> 00:03:47.370
+Now let me show you how we could inject a script.
+
+75
+00:03:47.370 --> 00:03:50.670
+And for that I'm going to open another issue here,
+
+76
+00:03:50.670 --> 00:03:52.950
+and now I'll use a different title.
+
+77
+00:03:52.950 --> 00:03:56.010
+I'll type A, or B, C ,does not matter,
+
+78
+00:03:56.010 --> 00:04:00.030
+but I'll have A, then double quotes, then a semi colon,
+
+79
+00:04:00.030 --> 00:04:04.110
+and then for example, echo got your secrets,
+
+80
+00:04:04.110 --> 00:04:06.483
+and then one double quote.
+
+81
+00:04:07.950 --> 00:04:10.500
+This might look strange, but it is a valid title,
+
+82
+00:04:10.500 --> 00:04:14.400
+but it will do something bad to our Workflow.
+
+83
+00:04:14.400 --> 00:04:17.730
+If I submit this issue, the Workflows run again,
+
+84
+00:04:17.730 --> 00:04:19.290
+and again, we're still interested
+
+85
+00:04:19.290 --> 00:04:21.779
+in the script injection example here,
+
+86
+00:04:21.779 --> 00:04:25.740
+and there we'll see that as this runs, if we wait for it
+
+87
+00:04:25.740 --> 00:04:30.630
+to run here, after it finished, got your secrets
+
+88
+00:04:30.630 --> 00:04:32.550
+is being output here.
+
+89
+00:04:32.550 --> 00:04:36.030
+Because I injected some code that was executed,
+
+90
+00:04:36.030 --> 00:04:38.220
+because of the title I set,
+
+91
+00:04:38.220 --> 00:04:41.280
+because what my title, this title here,
+
+92
+00:04:41.280 --> 00:04:45.390
+did to this Workflow, is the way I wrote it.
+
+93
+00:04:45.390 --> 00:04:49.950
+This first double quote here simply closes
+
+94
+00:04:49.950 --> 00:04:53.610
+the double quotes related to this first line
+
+95
+00:04:53.610 --> 00:04:54.720
+of my run command.
+
+96
+00:04:54.720 --> 00:04:56.790
+So here I have a opening double quote,
+
+97
+00:04:56.790 --> 00:05:01.790
+then this double quote here after A, simply closes this.
+
+98
+00:05:03.300 --> 00:05:05.640
+So what I'm doing with this title here,
+
+99
+00:05:05.640 --> 00:05:09.390
+is I'm setting issue title to just A.
+
+100
+00:05:09.390 --> 00:05:11.310
+That's what's happening here.
+
+101
+00:05:11.310 --> 00:05:16.310
+Then I add this semi colon to start a new command,
+
+102
+00:05:16.350 --> 00:05:19.080
+and that new command is simply that I output,
+
+103
+00:05:19.080 --> 00:05:20.703
+echo got your secrets.
+
+104
+00:05:21.840 --> 00:05:26.100
+And then I got one double quote here so that overall
+
+105
+00:05:26.100 --> 00:05:28.920
+I am simply closing this entire statement,
+
+106
+00:05:28.920 --> 00:05:32.010
+and I make sure that my job won't fail,
+
+107
+00:05:32.010 --> 00:05:33.603
+that my step won't fail.
+
+108
+00:05:34.560 --> 00:05:37.770
+But here, I'm then executing this injected command,
+
+109
+00:05:37.770 --> 00:05:41.250
+this echo command, and of course an echo command
+
+110
+00:05:41.250 --> 00:05:45.300
+isn't too harmful, but it was just an example.
+
+111
+00:05:45.300 --> 00:05:49.230
+I could also open an issue where I use the same trick
+
+112
+00:05:49.230 --> 00:05:53.430
+to use curl, which can be used to send an HTTP request,
+
+113
+00:05:53.430 --> 00:05:57.390
+to send a request to my badsite.com,
+
+114
+00:05:57.390 --> 00:06:01.950
+and append some query parameter, for example, ABC,
+
+115
+00:06:01.950 --> 00:06:03.060
+which I set equal
+
+116
+00:06:03.060 --> 00:06:08.060
+to the interpolated AWS access key ID variable.
+
+117
+00:06:09.900 --> 00:06:13.770
+If I know that your Workflow uses this environment variable,
+
+118
+00:06:13.770 --> 00:06:17.640
+I can extract it, and send it to my own website like this
+
+119
+00:06:17.640 --> 00:06:19.800
+by injecting this code.
+
+120
+00:06:19.800 --> 00:06:21.420
+And of course that's just one example,
+
+121
+00:06:21.420 --> 00:06:24.180
+I could be extracting any environment variable here,
+
+122
+00:06:24.180 --> 00:06:26.640
+and I could be doing all kinds of other things.
+
+123
+00:06:26.640 --> 00:06:29.970
+I could write a command that looks into your code base,
+
+124
+00:06:29.970 --> 00:06:31.800
+and extracts data from there,
+
+125
+00:06:31.800 --> 00:06:36.450
+or that uses the GitHub arrest API to change some action,
+
+126
+00:06:36.450 --> 00:06:38.040
+or Repository settings.
+
+127
+00:06:38.040 --> 00:06:41.610
+I could be injecting any kind of code here,
+
+128
+00:06:41.610 --> 00:06:44.403
+and that's why this is really dangerous.
+
+129
+00:06:45.690 --> 00:06:48.150
+Now why is this working here though?
+
+130
+00:06:48.150 --> 00:06:50.310
+Because of the code I wrote here.
+
+131
+00:06:50.310 --> 00:06:53.130
+This code here, which comes after run,
+
+132
+00:06:53.130 --> 00:06:57.660
+is executed in the shell of this runner machine.
+
+133
+00:06:57.660 --> 00:07:00.630
+And here I'm getting the title of the issue
+
+134
+00:07:00.630 --> 00:07:03.870
+that was created, and it's being inserted in this command
+
+135
+00:07:03.870 --> 00:07:05.340
+that's being executed.
+
+136
+00:07:05.340 --> 00:07:07.890
+At the point of time the command will be executed,
+
+137
+00:07:07.890 --> 00:07:11.313
+the actual title will have been interpolated already.
+
+138
+00:07:12.390 --> 00:07:15.690
+So therefore the title is treated as part of the command
+
+139
+00:07:15.690 --> 00:07:16.770
+in the end.
+
+140
+00:07:16.770 --> 00:07:19.470
+That's why we're having this problem here.
+
+141
+00:07:19.470 --> 00:07:23.490
+Now protecting against this attack is quite easy though.
+
+142
+00:07:23.490 --> 00:07:27.300
+You could be using some action instead of your own command.
+
+143
+00:07:27.300 --> 00:07:30.150
+If you had an action that does what you wanna do,
+
+144
+00:07:30.150 --> 00:07:33.000
+that would be better because if you just passed a title
+
+145
+00:07:33.000 --> 00:07:36.150
+as a input to the action, it will not be executed
+
+146
+00:07:36.150 --> 00:07:38.880
+in any shell, but instead it will be extracted,
+
+147
+00:07:38.880 --> 00:07:42.033
+and handled by GitHub, and will never reach a shell.
+
+148
+00:07:43.110 --> 00:07:46.980
+But if you must use your own command, it's better to add
+
+149
+00:07:46.980 --> 00:07:51.450
+an environment variable, for example title,
+
+150
+00:07:51.450 --> 00:07:56.450
+and set this equal to this issue title like this,
+
+151
+00:07:56.910 --> 00:07:59.220
+and then you can get rid of that line down there,
+
+152
+00:07:59.220 --> 00:08:01.650
+because we're setting the variable up here now
+
+153
+00:08:01.650 --> 00:08:04.320
+as an environment variable for this step,
+
+154
+00:08:04.320 --> 00:08:07.623
+and here we can then just use this title variable.
+
+155
+00:08:08.460 --> 00:08:12.360
+If I do that, we'll no longer have this injection problem
+
+156
+00:08:12.360 --> 00:08:15.690
+because now this title here, the title that's set
+
+157
+00:08:15.690 --> 00:08:18.060
+for the issue will be evaluated,
+
+158
+00:08:18.060 --> 00:08:21.390
+and used outside of this shell.
+
+159
+00:08:21.390 --> 00:08:24.210
+And here will of course then still use the title,
+
+160
+00:08:24.210 --> 00:08:27.690
+but it will be treated as text here, as a string,
+
+161
+00:08:27.690 --> 00:08:29.130
+and it will not interact
+
+162
+00:08:29.130 --> 00:08:32.400
+with this script generation process.
+
+163
+00:08:32.400 --> 00:08:36.030
+So if you are using user generated values
+
+164
+00:08:36.030 --> 00:08:39.030
+like the title of an issue, it's strongly recommended
+
+165
+00:08:39.030 --> 00:08:41.820
+that you first store them in an environment variable,
+
+166
+00:08:41.820 --> 00:08:45.210
+before using those values anywhere in the commands
+
+167
+00:08:45.210 --> 00:08:47.100
+you are executing.
+
+168
+00:08:47.100 --> 00:08:51.573
+With this approach here, if I create a new commit,
+
+169
+00:08:52.800 --> 00:08:56.520
+protect against script injection,
+
+170
+00:08:56.520 --> 00:09:01.500
+and I push this, you will see that if I create an issue
+
+171
+00:09:01.500 --> 00:09:06.500
+with exactly that title again, which previously did then run
+
+172
+00:09:06.600 --> 00:09:09.510
+this echo command, if I create another issue
+
+173
+00:09:09.510 --> 00:09:11.940
+with that same title, and therefore of course
+
+174
+00:09:11.940 --> 00:09:14.400
+my actions execute again, you will see
+
+175
+00:09:14.400 --> 00:09:18.150
+that the script injection example will now still execute,
+
+176
+00:09:18.150 --> 00:09:21.210
+but will now not execute that echo command
+
+177
+00:09:21.210 --> 00:09:23.220
+that I tried to inject.
+
+178
+00:09:23.220 --> 00:09:27.240
+Here, you see that instead it just ran my if check here,
+
+179
+00:09:27.240 --> 00:09:30.960
+and it did not, echo got your secrets.
+
+180
+00:09:30.960 --> 00:09:33.840
+We instead stored this in this environment variable,
+
+181
+00:09:33.840 --> 00:09:36.990
+and therefore protected against this injection.
+
+182
+00:09:36.990 --> 00:09:39.870
+So script injection is one potential problem
+
+183
+00:09:39.870 --> 00:09:43.110
+you should be aware of, and you can defend against it
+
+184
+00:09:43.110 --> 00:09:46.680
+by using actions instead of using your own run commands,
+
+185
+00:09:46.680 --> 00:09:48.600
+or using environment variables
+
+186
+00:09:48.600 --> 00:09:52.323
+where you store user entered data before using it.
+

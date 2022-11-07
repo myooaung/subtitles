@@ -1,0 +1,361 @@
+WEBVTT
+1
+00:00:02.310 --> 00:00:03.810
+So now we got started
+
+2
+00:00:03.810 --> 00:00:06.480
+with that if field on a step
+
+3
+00:00:06.480 --> 00:00:11.280
+to ensure that a step runs even if a previous step failed.
+
+4
+00:00:11.280 --> 00:00:15.990
+Now the if field is also available on job level
+
+5
+00:00:15.990 --> 00:00:19.890
+so that we can add it to jobs instead of just steps.
+
+6
+00:00:19.890 --> 00:00:22.050
+And to show this at a concrete example,
+
+7
+00:00:22.050 --> 00:00:26.610
+let's say we have a new job here, which I'll name report
+
+8
+00:00:26.610 --> 00:00:31.610
+which will run on ubuntu-latest.
+
+9
+00:00:32.280 --> 00:00:37.280
+And where I have a step called output information
+
+10
+00:00:39.000 --> 00:00:44.000
+where I simply run some echo command here
+
+11
+00:00:44.220 --> 00:00:48.267
+where I say "something went wrong."
+
+12
+00:00:49.170 --> 00:00:50.850
+And then let's say we actually output
+
+13
+00:00:50.850 --> 00:00:52.710
+something across multiple lines
+
+14
+00:00:52.710 --> 00:00:57.710
+and we then output the GitHub context object like this.
+
+15
+00:01:00.600 --> 00:01:03.450
+So this is now a new step in a new job
+
+16
+00:01:03.450 --> 00:01:05.610
+and my goal is to run this job
+
+17
+00:01:05.610 --> 00:01:09.420
+only if some other job failed.
+
+18
+00:01:09.420 --> 00:01:13.320
+Now, if that's the goal, we can add a if check here
+
+19
+00:01:13.320 --> 00:01:15.840
+and use this special failure function
+
+20
+00:01:15.840 --> 00:01:20.340
+to make sure that this job will run if any other job failed
+
+21
+00:01:20.340 --> 00:01:23.040
+because failure will return true here
+
+22
+00:01:23.040 --> 00:01:24.930
+if any other job failed,
+
+23
+00:01:24.930 --> 00:01:28.590
+and only then this job will be executed.
+
+24
+00:01:28.590 --> 00:01:30.093
+That's the idea here.
+
+25
+00:01:31.320 --> 00:01:34.210
+So now with that added, we can create a new commit
+
+26
+00:01:35.047 --> 00:01:38.070
+"added conditional job"
+
+27
+00:01:38.070 --> 00:01:40.500
+and then push this to the repository.
+
+28
+00:01:40.500 --> 00:01:43.530
+Now there, this workflow of course is now triggered
+
+29
+00:01:43.530 --> 00:01:47.220
+and what you'll notice is that now report here
+
+30
+00:01:47.220 --> 00:01:48.660
+is actually skipped.
+
+31
+00:01:48.660 --> 00:01:52.200
+This I can hear signals that it was skipped.
+
+32
+00:01:52.200 --> 00:01:55.380
+Now it was skipped because the way we configured it
+
+33
+00:01:55.380 --> 00:01:59.520
+actually runs this job in parallel to all the other jobs.
+
+34
+00:01:59.520 --> 00:02:02.970
+That's why it's also shown visually below the other jobs.
+
+35
+00:02:02.970 --> 00:02:05.700
+It runs in parallel.
+
+36
+00:02:05.700 --> 00:02:08.910
+That means that it's started right at the beginning
+
+37
+00:02:08.910 --> 00:02:10.530
+of the workflow run.
+
+38
+00:02:10.530 --> 00:02:15.300
+And there of course, no other job has failed yet.
+
+39
+00:02:15.300 --> 00:02:18.300
+So GitHub is not waiting with this report job
+
+40
+00:02:18.300 --> 00:02:21.930
+until all other jobs have succeeded or failed.
+
+41
+00:02:21.930 --> 00:02:24.900
+Instead, it will execute report right away.
+
+42
+00:02:24.900 --> 00:02:28.833
+And there, this failure condition simply is not met.
+
+43
+00:02:30.000 --> 00:02:32.640
+So this alone won't do the trick.
+
+44
+00:02:32.640 --> 00:02:35.190
+Instead of our goal is to run this job
+
+45
+00:02:35.190 --> 00:02:37.530
+only if any other job failed,
+
+46
+00:02:37.530 --> 00:02:40.170
+we must add the needs key here
+
+47
+00:02:40.170 --> 00:02:44.400
+and then need both the lint job.
+
+48
+00:02:44.400 --> 00:02:49.230
+So this first job here as well as the deploy job
+
+49
+00:02:49.230 --> 00:02:52.623
+which is the last job in line after build and test.
+
+50
+00:02:53.700 --> 00:02:56.250
+So now we add these two jobs
+
+51
+00:02:56.250 --> 00:02:59.160
+as prerequisites for the report job
+
+52
+00:02:59.160 --> 00:03:03.090
+and therefore GitHub Actions will delay the execution
+
+53
+00:03:03.090 --> 00:03:07.590
+of the report job until these other jobs have finished.
+
+54
+00:03:07.590 --> 00:03:09.990
+And therefore now it will evaluate
+
+55
+00:03:09.990 --> 00:03:14.990
+if any other job in front of that job has failed.
+
+56
+00:03:15.060 --> 00:03:17.850
+And it will not just look at lint and deploy,
+
+57
+00:03:17.850 --> 00:03:20.370
+but instead at the whole chain of jobs
+
+58
+00:03:20.370 --> 00:03:22.530
+that might belong to these jobs.
+
+59
+00:03:22.530 --> 00:03:25.680
+For example, deploy only runs after build ran
+
+60
+00:03:25.680 --> 00:03:28.320
+and build only runs after test ran
+
+61
+00:03:28.320 --> 00:03:30.960
+and GitHub Actions will look at all these jobs
+
+62
+00:03:30.960 --> 00:03:34.443
+when looking for failures when we set it up like this.
+
+63
+00:03:35.700 --> 00:03:38.710
+So therefore now, if we create a new commit
+
+64
+00:03:39.757 --> 00:03:42.810
+"fixed conditional job"
+
+65
+00:03:42.810 --> 00:03:46.140
+and we push this to our repository.
+
+66
+00:03:46.140 --> 00:03:50.130
+You will see that now this graphic here changed.
+
+67
+00:03:50.130 --> 00:03:52.830
+Now report clearly depends on lint
+
+68
+00:03:52.830 --> 00:03:55.440
+and the result of this entire job chain.
+
+69
+00:03:55.440 --> 00:03:58.440
+And now we will see that when testing fails,
+
+70
+00:03:58.440 --> 00:04:03.440
+when this test job fails, the report job therefore executes.
+
+71
+00:04:03.930 --> 00:04:06.030
+So lint succeeded.
+
+72
+00:04:06.030 --> 00:04:09.450
+That does not trigger report to run, of course,
+
+73
+00:04:09.450 --> 00:04:12.240
+but if test fails, then you will see
+
+74
+00:04:12.240 --> 00:04:14.610
+that report starts executing
+
+75
+00:04:14.610 --> 00:04:19.529
+because ultimately deploy was skipped because test failed.
+
+76
+00:04:19.529 --> 00:04:22.710
+And as mentioned, the entire chain is evaluated
+
+77
+00:04:22.710 --> 00:04:25.890
+and therefore the report job executed
+
+78
+00:04:25.890 --> 00:04:29.613
+and output that information as requested.
+
+79
+00:04:30.570 --> 00:04:33.270
+And here as a side note, we're just seeing object
+
+80
+00:04:33.270 --> 00:04:37.350
+because I forgot to turn this into adjacent string,
+
+81
+00:04:37.350 --> 00:04:40.890
+so into text that contains the data information.
+
+82
+00:04:40.890 --> 00:04:42.240
+But that's just a side note,
+
+83
+00:04:42.240 --> 00:04:44.100
+not related to the if statement.
+
+84
+00:04:44.100 --> 00:04:48.150
+Instead, this is how we can use the if statement on a job.
+
+85
+00:04:48.150 --> 00:04:50.910
+And of course you're not limited to just failure,
+
+86
+00:04:50.910 --> 00:04:54.990
+success, canceled, so to these main functions,
+
+87
+00:04:54.990 --> 00:04:58.020
+but here you could also add other conditions.
+
+88
+00:04:58.020 --> 00:05:02.010
+You could, for example, check the output of another job
+
+89
+00:05:02.010 --> 00:05:03.840
+or do anything you want.
+
+90
+00:05:03.840 --> 00:05:06.933
+Your imagination is basically the limit here.
+

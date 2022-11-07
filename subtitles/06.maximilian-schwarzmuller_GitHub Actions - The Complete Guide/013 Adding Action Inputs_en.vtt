@@ -1,0 +1,309 @@
+WEBVTT
+1
+00:00:02.190 --> 00:00:05.910
+So let's now start working on this JavaScript action
+
+2
+00:00:05.910 --> 00:00:10.770
+that will deploy the code that's produced by the Build step
+
+3
+00:00:10.770 --> 00:00:15.663
+in our Workflow to AWS S3, to that bucket we created.
+
+4
+00:00:16.650 --> 00:00:19.170
+And for that in Main JS, we got a couple
+
+5
+00:00:19.170 --> 00:00:22.710
+of things we have to do instead of this Run function.
+
+6
+00:00:22.710 --> 00:00:25.740
+And the first thing we'll have to do here
+
+7
+00:00:25.740 --> 00:00:28.770
+is that we get some input values,
+
+8
+00:00:28.770 --> 00:00:31.710
+because we'll actually need some information
+
+9
+00:00:31.710 --> 00:00:36.690
+about the deployment target, so about this S3 bucket,
+
+10
+00:00:36.690 --> 00:00:39.630
+in order to move our code here.
+
+11
+00:00:39.630 --> 00:00:42.750
+Of course we could write this JavaScript action
+
+12
+00:00:42.750 --> 00:00:45.540
+such that we hard-code all the values
+
+13
+00:00:45.540 --> 00:00:49.020
+for this specific use-case, and this specific bucket,
+
+14
+00:00:49.020 --> 00:00:53.370
+for this specific AWS account, into this action.
+
+15
+00:00:53.370 --> 00:00:56.460
+But that wouldn't make too much sense.
+
+16
+00:00:56.460 --> 00:01:01.350
+We typically wanna build actions that are reusable in theory
+
+17
+00:01:01.350 --> 00:01:05.129
+and that get dynamic values via inputs.
+
+18
+00:01:05.129 --> 00:01:08.340
+And therefore I'll go back to the action of YAML file,
+
+19
+00:01:08.340 --> 00:01:10.830
+and first of all, add some inputs.
+
+20
+00:01:10.830 --> 00:01:14.190
+Because you can do that for JavaScript actions,
+
+21
+00:01:14.190 --> 00:01:16.080
+and also for Docker actions,
+
+22
+00:01:16.080 --> 00:01:17.790
+which we'll take a look at later,
+
+23
+00:01:17.790 --> 00:01:20.553
+just as you can do it for composite actions.
+
+24
+00:01:21.480 --> 00:01:26.040
+And here this action needs a couple of input values.
+
+25
+00:01:26.040 --> 00:01:28.140
+For example, it needs the identifier,
+
+26
+00:01:28.140 --> 00:01:31.980
+the name of the S3 bucket to which the files
+
+27
+00:01:31.980 --> 00:01:33.840
+should be uploaded.
+
+28
+00:01:33.840 --> 00:01:36.810
+So, in our case, the name of this bucket here.
+
+29
+00:01:36.810 --> 00:01:39.660
+But again I don't wanna hard-code it into the action.
+
+30
+00:01:39.660 --> 00:01:42.633
+I wanna create an action that could be reused.
+
+31
+00:01:43.650 --> 00:01:46.410
+Therefore, I added the this bucket input here.
+
+32
+00:01:46.410 --> 00:01:48.900
+Of course, this input name is up to you.
+
+33
+00:01:48.900 --> 00:01:50.970
+And then we have to add a description
+
+34
+00:01:50.970 --> 00:01:54.093
+where I simply say the S3 bucket name.
+
+35
+00:01:54.960 --> 00:01:58.620
+And we have to define whether it's required or not.
+
+36
+00:01:58.620 --> 00:02:00.240
+If it's not required
+
+37
+00:02:00.240 --> 00:02:02.880
+you can again add a default value here.
+
+38
+00:02:02.880 --> 00:02:05.490
+However, I will require it because there is
+
+39
+00:02:05.490 --> 00:02:08.430
+no sensible default value we could add.
+
+40
+00:02:08.430 --> 00:02:10.893
+The bucket name, could be anything after all.
+
+41
+00:02:11.850 --> 00:02:13.920
+So that's the first input.
+
+42
+00:02:13.920 --> 00:02:17.520
+The next input is the region of the bucket,
+
+43
+00:02:17.520 --> 00:02:22.520
+because with AWS you actually deploy services in regions.
+
+44
+00:02:23.670 --> 00:02:26.880
+When we created that bucket, we had to pick a region
+
+45
+00:02:26.880 --> 00:02:28.590
+to which this bucket belongs,
+
+46
+00:02:28.590 --> 00:02:32.760
+and therefore this bucket region input is required here,
+
+47
+00:02:32.760 --> 00:02:36.630
+or is needed here, in order to move that code
+
+48
+00:02:36.630 --> 00:02:39.540
+to the right bucket in the right region.
+
+49
+00:02:39.540 --> 00:02:41.520
+Even though the bucket name must be unique,
+
+50
+00:02:41.520 --> 00:02:45.483
+we still must specify the region when uploading our code.
+
+51
+00:02:46.590 --> 00:02:48.300
+Therefore, here I'll add a description
+
+52
+00:02:48.300 --> 00:02:52.470
+where I say the region of the S3 bucket.
+
+53
+00:02:52.470 --> 00:02:55.860
+And this could be required because we need the region
+
+54
+00:02:55.860 --> 00:03:00.360
+but unlike for the bucket name, here I will set it to false,
+
+55
+00:03:00.360 --> 00:03:03.660
+because we can make a guess regarding that region
+
+56
+00:03:03.660 --> 00:03:08.277
+and set a sensible default which would be US-east-1
+
+57
+00:03:09.360 --> 00:03:12.060
+which is typically the default region selected
+
+58
+00:03:12.060 --> 00:03:16.170
+by AWS when you haven't picked any other region.
+
+59
+00:03:16.170 --> 00:03:19.140
+So it makes sense to assume this as a default.
+
+60
+00:03:19.140 --> 00:03:21.060
+Of course, it can still be overwritten
+
+61
+00:03:21.060 --> 00:03:24.753
+by users of that action inside of their Workflow files.
+
+62
+00:03:25.800 --> 00:03:29.220
+Now the last input, which I want here is the Dist folder
+
+63
+00:03:29.220 --> 00:03:32.190
+which should simply be the path to the folder
+
+64
+00:03:32.190 --> 00:03:34.890
+that contains the files that should be uploaded
+
+65
+00:03:34.890 --> 00:03:36.120
+to that bucket.
+
+66
+00:03:36.120 --> 00:03:39.090
+So the website-files in our case.
+
+67
+00:03:39.090 --> 00:03:41.280
+Therefore here I'll add another description
+
+68
+00:03:41.280 --> 00:03:46.280
+which is the folder containing the deployable files.
+
+69
+00:03:47.160 --> 00:03:51.300
+And then here I set Required to true
+
+70
+00:03:51.300 --> 00:03:53.040
+because we need that folder.
+
+71
+00:03:53.040 --> 00:03:56.490
+Of course, we could set it to false and set some default
+
+72
+00:03:56.490 --> 00:03:59.400
+like Dist if we expect this kind of folder name.
+
+73
+00:03:59.400 --> 00:04:01.623
+But here I will simply require that.
+
+74
+00:04:02.670 --> 00:04:04.620
+So with that, I've got three inputs
+
+75
+00:04:04.620 --> 00:04:08.910
+which must be specified when this action is used.
+
+76
+00:04:08.910 --> 00:04:11.760
+And now we can extract those input values
+
+77
+00:04:11.760 --> 00:04:13.563
+in our JavaScript code here.
+
