@@ -1,0 +1,364 @@
+1
+00:00:01,220 --> 00:00:02,430
+<v Narrator>In this video, we'll cover</v>
+
+2
+00:00:02,430 --> 00:00:05,723
+search by category with an enhanced version.
+
+3
+00:00:08,970 --> 00:00:11,700
+Currently in our application, our category names
+
+4
+00:00:11,700 --> 00:00:14,580
+and IDs are static, they're hardcoded.
+
+5
+00:00:14,580 --> 00:00:16,690
+What I'd like to do is enhance the application
+
+6
+00:00:16,690 --> 00:00:19,250
+to read the categories from the database
+
+7
+00:00:19,250 --> 00:00:21,183
+via a REST API.
+
+8
+00:00:23,955 --> 00:00:26,370
+All right, so here's our development process.
+
+9
+00:00:26,370 --> 00:00:27,700
+So the first thing is modifying
+
+10
+00:00:27,700 --> 00:00:30,550
+the Spring Boot app to expose the entity IDs.
+
+11
+00:00:30,550 --> 00:00:33,790
+Next, we'll create a class for ProductCategory.
+
+12
+00:00:33,790 --> 00:00:36,810
+Then we'll create a new component for our menu.
+
+13
+00:00:36,810 --> 00:00:38,850
+Next, we'll enhance our menu component
+
+14
+00:00:38,850 --> 00:00:41,540
+to read the data from the product service.
+
+15
+00:00:41,540 --> 00:00:43,350
+And then we'll update the product service
+
+16
+00:00:43,350 --> 00:00:46,380
+to call the URL on the Spring Boot application.
+
+17
+00:00:46,380 --> 00:00:48,210
+And then finally, in the HTML,
+
+18
+00:00:48,210 --> 00:00:50,370
+we'll replace the hard-coded links
+
+19
+00:00:50,370 --> 00:00:52,683
+with our new menu component.
+
+20
+00:00:55,883 --> 00:00:57,310
+All righty, step one of modifying
+
+21
+00:00:57,310 --> 00:00:58,143
+the Spring Boot app.
+
+22
+00:00:58,143 --> 00:01:00,310
+So by default, Spring Data REST
+
+23
+00:01:00,310 --> 00:01:02,490
+does not expose entity IDs.
+
+24
+00:01:02,490 --> 00:01:05,620
+We need this entity ID for a number of use cases.
+
+25
+00:01:05,620 --> 00:01:08,800
+For example, to get a list of product categories by ID,
+
+26
+00:01:08,800 --> 00:01:11,130
+and also the master/detail view
+
+27
+00:01:11,130 --> 00:01:13,513
+to get a given product by ID.
+
+28
+00:01:17,770 --> 00:01:19,530
+So if we look at the response here
+
+29
+00:01:19,530 --> 00:01:21,180
+from our REST API, we'll see that
+
+30
+00:01:21,180 --> 00:01:25,323
+there's no entity ID at the productCategory level.
+
+31
+00:01:27,360 --> 00:01:29,900
+But actually, the entity ID is embedded
+
+32
+00:01:29,900 --> 00:01:31,100
+in the HATEOS links.
+
+33
+00:01:31,100 --> 00:01:32,800
+So if you look closely, it's there.
+
+34
+00:01:32,800 --> 00:01:34,940
+But there's no easy access.
+
+35
+00:01:34,940 --> 00:01:37,500
+It requires parsing the URL string.
+
+36
+00:01:37,500 --> 00:01:39,770
+This approach is cumbersome and brittle.
+
+37
+00:01:39,770 --> 00:01:41,560
+And it's not really ideal.
+
+38
+00:01:41,560 --> 00:01:43,393
+We need a better solution.
+
+39
+00:01:46,660 --> 00:01:47,850
+This is what we need.
+
+40
+00:01:47,850 --> 00:01:50,100
+I need to have the response from the REST API
+
+41
+00:01:50,100 --> 00:01:52,440
+to actually include the entity ID
+
+42
+00:01:52,440 --> 00:01:54,150
+at the productCategory level.
+
+43
+00:01:54,150 --> 00:01:57,800
+So I have the category ID and also the category name.
+
+44
+00:01:57,800 --> 00:02:00,333
+That's what I need for easy access.
+
+45
+00:02:03,950 --> 00:02:05,410
+All righty, so we need to update our
+
+46
+00:02:05,410 --> 00:02:09,250
+Spring Data REST configuration to expose the entity IDs.
+
+47
+00:02:09,250 --> 00:02:11,260
+And here's the basic pseudo-code
+
+48
+00:02:11,260 --> 00:02:12,963
+or algorithm for doing this.
+
+49
+00:02:14,120 --> 00:02:16,440
+So I need to get a list of all the entity classes
+
+50
+00:02:16,440 --> 00:02:18,090
+from the entity manager,
+
+51
+00:02:18,090 --> 00:02:20,970
+and then create an array of the entity types,
+
+52
+00:02:20,970 --> 00:02:22,460
+and then get the entity types
+
+53
+00:02:22,460 --> 00:02:24,140
+for each one of the entities.
+
+54
+00:02:24,140 --> 00:02:26,610
+And then expose the entity IDs for the array
+
+55
+00:02:26,610 --> 00:02:29,233
+of the entity/domain types.
+
+56
+00:02:33,000 --> 00:02:35,260
+So here's part one of the coding for this.
+
+57
+00:02:35,260 --> 00:02:38,790
+So in my Data REST config, we need to auto-wire
+
+58
+00:02:38,790 --> 00:02:40,600
+the JPA entity manager,
+
+59
+00:02:40,600 --> 00:02:43,110
+effectively inject the entity manager.
+
+60
+00:02:43,110 --> 00:02:44,170
+And in this code example,
+
+61
+00:02:44,170 --> 00:02:45,835
+I'm making use of constructor injection
+
+62
+00:02:45,835 --> 00:02:48,973
+to inject that JPA entity manager.
+
+63
+00:02:55,750 --> 00:02:57,808
+And now in our configuration, this method here,
+
+64
+00:02:57,808 --> 00:03:00,570
+configureRepositoryRestConfiguration,
+
+65
+00:03:00,570 --> 00:03:02,500
+we're going to call an internal helper method,
+
+66
+00:03:02,500 --> 00:03:05,780
+called exposeIds, and will pass in the config.
+
+67
+00:03:05,780 --> 00:03:08,073
+So here's the coding here for exposeIds.
+
+68
+00:03:13,130 --> 00:03:15,750
+So we'll get a collection of all entity classes
+
+69
+00:03:15,750 --> 00:03:17,123
+from the entity manager,
+
+70
+00:03:19,750 --> 00:03:22,663
+and then we'll create an array list of those entity types.
+
+71
+00:03:26,410 --> 00:03:29,280
+Next, we'll get the entity types for the entities.
+
+72
+00:03:29,280 --> 00:03:31,980
+So we'll simply do a for loop over those entities
+
+73
+00:03:31,980 --> 00:03:34,350
+for each tempEntityType, we'll say
+
+74
+00:03:34,350 --> 00:03:37,713
+getJavaType, and then add that to our entity classes.
+
+75
+00:03:38,890 --> 00:03:40,340
+So the final step is exposing
+
+76
+00:03:40,340 --> 00:03:42,210
+the entityIds for the collection
+
+77
+00:03:42,210 --> 00:03:43,810
+of entity domain types.
+
+78
+00:03:43,810 --> 00:03:45,260
+So I basically take that collection
+
+79
+00:03:45,260 --> 00:03:48,540
+of entity classes, and I convert it to array,
+
+80
+00:03:48,540 --> 00:03:50,900
+so now I have an array of these classes,
+
+81
+00:03:50,900 --> 00:03:53,993
+or domain types, and then I say config.exposeIdsFor,
+
+82
+00:03:55,827 --> 00:03:57,903
+and then I pass in those domain types.
+
+83
+00:03:58,950 --> 00:04:01,013
+And that'll give us our desired output.
+
+84
+00:04:04,660 --> 00:04:05,750
+And so as you can see here,
+
+85
+00:04:05,750 --> 00:04:07,490
+once we run our application then,
+
+86
+00:04:07,490 --> 00:04:10,610
+we have the Entity id at the productCategory level.
+
+87
+00:04:10,610 --> 00:04:12,000
+So that's our desired approach.
+
+88
+00:04:12,000 --> 00:04:14,690
+We have the category ID along with the category names.
+
+89
+00:04:14,690 --> 00:04:17,020
+So this gives us easy access
+
+90
+00:04:17,020 --> 00:04:18,570
+to that given entity ID.
+
+91
+00:04:18,570 --> 00:04:20,033
+So this is really good.
+

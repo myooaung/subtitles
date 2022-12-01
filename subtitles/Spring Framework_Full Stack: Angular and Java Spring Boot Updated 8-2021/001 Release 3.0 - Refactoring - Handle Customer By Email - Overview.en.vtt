@@ -1,0 +1,441 @@
+WEBVTT
+1
+00:00:01.238 --> 00:00:02.071
+<v Instructor>In this video,</v>
+
+2
+00:00:02.071 --> 00:00:04.403
+we're going to handle customers by email.
+
+3
+00:00:07.360 --> 00:00:09.690
+So we need to do some code refactoring.
+
+4
+00:00:09.690 --> 00:00:10.890
+Currently in our application,
+
+5
+00:00:10.890 --> 00:00:12.420
+if we perform multiple checkouts
+
+6
+00:00:12.420 --> 00:00:13.990
+with the same email address,
+
+7
+00:00:13.990 --> 00:00:16.170
+then we have multiple customer entries
+
+8
+00:00:16.170 --> 00:00:19.350
+in the customer table, and you may have seen this already.
+
+9
+00:00:19.350 --> 00:00:22.960
+So in this example, John Doe, he made multiple checkouts,
+
+10
+00:00:22.960 --> 00:00:24.590
+and so now we have multiple customers,
+
+11
+00:00:24.590 --> 00:00:26.320
+and we want to clean this up
+
+12
+00:00:26.320 --> 00:00:29.973
+and refactor the code to only have one customer.
+
+13
+00:00:33.370 --> 00:00:35.490
+So for our solution, we'll have a single customer
+
+14
+00:00:35.490 --> 00:00:38.530
+who's going to be associated with multiple orders.
+
+15
+00:00:38.530 --> 00:00:40.360
+What we'll do is we'll check the database
+
+16
+00:00:40.360 --> 00:00:42.420
+to see if the customer already exists
+
+17
+00:00:42.420 --> 00:00:44.190
+based on their email address.
+
+18
+00:00:44.190 --> 00:00:46.310
+If so, then we'll use the existing customer
+
+19
+00:00:46.310 --> 00:00:49.363
+from the database, else, we have a new customer.
+
+20
+00:00:53.840 --> 00:00:55.720
+Alrighty, so let's go through our development process.
+
+21
+00:00:55.720 --> 00:00:56.650
+So the first thing that we'll do
+
+22
+00:00:56.650 --> 00:00:59.290
+is remove existing data from the database tables.
+
+23
+00:00:59.290 --> 00:01:00.680
+We'll modify the database schema
+
+24
+00:01:00.680 --> 00:01:03.490
+to only allow unique email addresses.
+
+25
+00:01:03.490 --> 00:01:05.810
+Then we'll add a new method to the CustomerRepository
+
+26
+00:01:05.810 --> 00:01:07.690
+where we find by email,
+
+27
+00:01:07.690 --> 00:01:09.803
+so finding a user by their email address.
+
+28
+00:01:11.330 --> 00:01:13.670
+And we'll check to see if the customer already exists.
+
+29
+00:01:13.670 --> 00:01:16.173
+If so, then we'll use the existing customer.
+
+30
+00:01:20.180 --> 00:01:21.520
+Alrighty, so looking at step one,
+
+31
+00:01:21.520 --> 00:01:24.170
+remove existing data from database tables.
+
+32
+00:01:24.170 --> 00:01:28.340
+So this is SQL that we'll run in the MySQL Workbench.
+
+33
+00:01:28.340 --> 00:01:31.110
+So up top, we make use of USE full-stack-ecommerce
+
+34
+00:01:31.110 --> 00:01:33.140
+to make use of that given schema.
+
+35
+00:01:33.140 --> 00:01:35.830
+So then with this SET FOREIGN_KEY_CHECKS=0,
+
+36
+00:01:35.830 --> 00:01:39.850
+this basically temporarily disables foreign key checks,
+
+37
+00:01:39.850 --> 00:01:41.850
+as far as the referential integrity
+
+38
+00:01:41.850 --> 00:01:43.240
+between these different tables,
+
+39
+00:01:43.240 --> 00:01:45.200
+customers, orders, order items.
+
+40
+00:01:45.200 --> 00:01:47.030
+This is useful when you need to delete data
+
+41
+00:01:47.030 --> 00:01:50.130
+and not have to worry about the foreign key checks.
+
+42
+00:01:50.130 --> 00:01:51.860
+So this is okay since we're removing
+
+43
+00:01:51.860 --> 00:01:54.440
+all the data from these related tables.
+
+44
+00:01:54.440 --> 00:01:56.020
+And so now we use the TRUNCATE command
+
+45
+00:01:56.020 --> 00:01:57.940
+to remove all the rows from our table.
+
+46
+00:01:57.940 --> 00:01:59.650
+So I'll do a TRUNCATE on customer,
+
+47
+00:01:59.650 --> 00:02:02.080
+orders, order_item, and address,
+
+48
+00:02:02.080 --> 00:02:03.310
+and these are all of the tables
+
+49
+00:02:03.310 --> 00:02:05.493
+related to our customer checkout.
+
+50
+00:02:06.560 --> 00:02:09.490
+Now you may wonder about TRUNCATE versus DELETE.
+
+51
+00:02:09.490 --> 00:02:12.180
+So in general, TRUNCATE is faster than DELETE
+
+52
+00:02:12.180 --> 00:02:13.790
+for very large data sets.
+
+53
+00:02:13.790 --> 00:02:16.750
+And also, TRUNCATE resets the AUTO_INCREMENT
+
+54
+00:02:16.750 --> 00:02:18.140
+back to the starting value.
+
+55
+00:02:18.140 --> 00:02:20.020
+And there are some other subtle differences between the two,
+
+56
+00:02:20.020 --> 00:02:22.520
+but here we'll just make use of TRUNCATE for this.
+
+57
+00:02:26.780 --> 00:02:28.920
+In step two, we'll modify the database schema
+
+58
+00:02:28.920 --> 00:02:31.400
+to only allow unique email addresses.
+
+59
+00:02:31.400 --> 00:02:32.330
+So here at the bottom,
+
+60
+00:02:32.330 --> 00:02:36.360
+I have this ALTER TABLE customer ADD UNIQUE email.
+
+61
+00:02:36.360 --> 00:02:37.230
+So what I'm doing here
+
+62
+00:02:37.230 --> 00:02:38.990
+is I'm setting up a database constraint
+
+63
+00:02:38.990 --> 00:02:42.280
+to only allow unique email addresses.
+
+64
+00:02:42.280 --> 00:02:45.310
+If you try to enter a duplicate email address,
+
+65
+00:02:45.310 --> 00:02:46.830
+then the MySQL database
+
+66
+00:02:46.830 --> 00:02:49.750
+will actually throw an error in that given case.
+
+67
+00:02:49.750 --> 00:02:52.740
+So here we're just adding some more database constraints
+
+68
+00:02:52.740 --> 00:02:54.133
+on our given table.
+
+69
+00:02:57.240 --> 00:02:59.050
+In step three, we need to add a new method
+
+70
+00:02:59.050 --> 00:03:00.770
+to the CustomerRepository.
+
+71
+00:03:00.770 --> 00:03:02.970
+So Spring Data REST and Spring Data JPA
+
+72
+00:03:02.970 --> 00:03:06.260
+supports query methods, so Spring will construct a query
+
+73
+00:03:06.260 --> 00:03:08.900
+based on method naming conventions.
+
+74
+00:03:08.900 --> 00:03:11.320
+So here we have this Customer findByEmail.
+
+75
+00:03:11.320 --> 00:03:14.890
+In the background, Spring will generate the appropriate SQL.
+
+76
+00:03:14.890 --> 00:03:17.250
+And this is where we have some of that Spring magic
+
+77
+00:03:17.250 --> 00:03:19.133
+as far as doing that work for us.
+
+78
+00:03:22.660 --> 00:03:24.180
+But let's kind of dig behind the scenes
+
+79
+00:03:24.180 --> 00:03:26.620
+and kind of see what happens.
+
+80
+00:03:26.620 --> 00:03:30.040
+So we need to find a customer based on their email address,
+
+81
+00:03:30.040 --> 00:03:31.870
+and we have this new method here,
+
+82
+00:03:31.870 --> 00:03:35.403
+Customer findByEmail, and we pass in theEmail.
+
+83
+00:03:36.870 --> 00:03:37.760
+Behind the scenes,
+
+84
+00:03:37.760 --> 00:03:40.390
+Spring will execute a query similar to this,
+
+85
+00:03:40.390 --> 00:03:45.055
+SELECT * FROM Customer, where email equals theEmail.
+
+86
+00:03:45.055 --> 00:03:46.910
+And theEmail is the actual value
+
+87
+00:03:46.910 --> 00:03:49.760
+that the user passes in when they call this given method.
+
+88
+00:03:50.610 --> 00:03:54.070
+Now this given method here, if they don't find a match,
+
+89
+00:03:54.070 --> 00:03:56.283
+then this method will actually return null.
+
+90
+00:04:01.420 --> 00:04:03.760
+In our placeOrder method,
+
+91
+00:04:03.760 --> 00:04:05.820
+we had all of our code from before,
+
+92
+00:04:05.820 --> 00:04:08.200
+and I'll kind of zoom in on this new section
+
+93
+00:04:08.200 --> 00:04:11.253
+that we just added here for this given feature.
+
+94
+00:04:12.730 --> 00:04:13.670
+So what I like to do
+
+95
+00:04:13.670 --> 00:04:16.130
+is check if this is an existing customer.
+
+96
+00:04:16.130 --> 00:04:18.990
+So first off, I get the customer's email address.
+
+97
+00:04:18.990 --> 00:04:20.670
+And then I make use of that new method
+
+98
+00:04:20.670 --> 00:04:23.030
+that I just created in the CustomerRepository.
+
+99
+00:04:23.030 --> 00:04:27.820
+I'll say customerRepository.findByEmail, I pass in theEmail,
+
+100
+00:04:27.820 --> 00:04:30.770
+and that will give me an actual customer from the database.
+
+101
+00:04:32.220 --> 00:04:35.673
+And remember, this method will return null if not found.
+
+102
+00:04:37.140 --> 00:04:39.590
+So then I can use this in some logic coming up here.
+
+103
+00:04:39.590 --> 00:04:42.650
+I can say if customer from database is not equal to null,
+
+104
+00:04:42.650 --> 00:04:44.830
+that means, hey, we did, we found somebody,
+
+105
+00:04:44.830 --> 00:04:46.620
+then let's go ahead and assign them accordingly.
+
+106
+00:04:46.620 --> 00:04:50.633
+So here I have customer equals customer from database.
+
+107
+00:04:53.750 --> 00:04:54.940
+And that's it, and I continue on
+
+108
+00:04:54.940 --> 00:04:57.423
+with my normal order processing here.
+
+109
+00:04:59.120 --> 00:05:01.110
+Alrighty, so let's go ahead and move into the next video,
+
+110
+00:05:01.110 --> 00:05:02.843
+and let's write some code.
+
