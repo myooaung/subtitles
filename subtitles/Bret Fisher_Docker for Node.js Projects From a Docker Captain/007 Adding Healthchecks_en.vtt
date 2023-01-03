@@ -1,0 +1,853 @@
+WEBVTT
+1
+00:00:02.600 --> 00:00:05.000
+Earlier in this course, we talked about healthchecks.
+
+2
+00:00:05.090 --> 00:00:07.442
+At that time, we were talking about it for local
+
+3
+00:00:08.000 --> 00:00:11.210
+development and to be aware around depends on
+
+4
+00:00:11.750 --> 00:00:14.420
+availability. That's not what I want to talk about here.
+
+5
+00:00:14.450 --> 00:00:17.230
+But, I do want to focus on healthchecks for production.
+
+6
+00:00:17.630 --> 00:00:20.870
+The first rule here is that you always want healthchecks.
+
+7
+00:00:21.110 --> 00:00:23.299
+Regardless of how you're using it, whether you're using it
+
+8
+00:00:23.300 --> 00:00:25.162
+in Docker, or Swarm, or Kubernetes, or
+
+9
+00:00:26.330 --> 00:00:29.240
+ECS, or something else, you want to have a
+
+10
+00:00:29.590 --> 00:00:32.330
+healthcheck possible for your application.
+
+11
+00:00:33.080 --> 00:00:35.480
+Here in this lecture, I just want to talk about
+
+12
+00:00:35.510 --> 00:00:37.940
+healthchecks in the Dockerfile for Node.js apps.
+
+13
+00:00:38.140 --> 00:00:40.982
+If you want to learn about larger healthcheck stuff, there
+
+14
+00:00:41.170 --> 00:00:43.550
+is certainly a lot of material out there.
+
+15
+00:00:43.620 --> 00:00:46.266
+If you check out my Swarm Mastery course, I talk about
+
+16
+00:00:46.580 --> 00:00:48.116
+Swarm healthchecks a lot in there.
+
+17
+00:00:48.980 --> 00:00:51.970
+Of course, Docker, Kubernetes, and all the others, all
+
+18
+00:00:51.980 --> 00:00:53.880
+have documentation that you can check out.
+
+19
+00:00:54.380 --> 00:00:57.170
+What if you put the healthcheck command in your
+
+20
+00:00:57.560 --> 00:01:00.147
+Dockerfile? What happens then on a server?
+
+21
+00:01:00.880 --> 00:01:03.575
+First, if you're just using regular Docker on a server,
+
+22
+00:01:03.680 --> 00:01:05.865
+that's just the Docker Engine where you'd be running Docker
+
+23
+00:01:06.200 --> 00:01:08.650
+run commands, or if using Docker Compose, which is
+
+24
+00:01:09.140 --> 00:01:10.370
+essentially the same thing.
+
+25
+00:01:10.940 --> 00:01:12.859
+They will technically run that healthcheck, but they're not
+
+26
+00:01:12.860 --> 00:01:14.120
+going to do anything about it.
+
+27
+00:01:14.390 --> 00:01:16.441
+They're not going to respond to a failed healthcheck.
+
+28
+00:01:17.120 --> 00:01:18.679
+So, they're not really that effective. They're not going to
+
+29
+00:01:18.680 --> 00:01:21.218
+be helpful in reacting to problems with your Node app.
+
+30
+00:01:22.340 --> 00:01:24.888
+If you're using Swarm, I always advise you have that
+
+31
+00:01:24.950 --> 00:01:25.990
+healthcheck in the Dockerfile.
+
+32
+00:01:26.630 --> 00:01:29.432
+That way, the operators who are operating your app,
+
+33
+00:01:29.870 --> 00:01:32.124
+maybe that's not you, can see exactly what you
+
+34
+00:01:32.870 --> 00:01:35.720
+expect for a healthcheck inside your application.
+
+35
+00:01:36.290 --> 00:01:38.838
+Remember, these healthchecks are running inside your
+
+36
+00:01:39.170 --> 00:01:42.080
+container. The Docker Engine is actually executing the
+
+37
+00:01:42.480 --> 00:01:45.380
+cmd of that healthcheck inside your running container.
+
+38
+00:01:45.650 --> 00:01:47.989
+So, you're going to need to have the tools in there that
+
+39
+00:01:47.990 --> 00:01:48.990
+you need for that healthcheck.
+
+40
+00:01:49.850 --> 00:01:52.034
+If you don't provide that healthcheck in your Dockerfile,
+
+41
+00:01:52.400 --> 00:01:55.490
+then you're leaving it up to someone else to maybe
+
+42
+00:01:55.580 --> 00:01:57.030
+implement it, or maybe not.
+
+43
+00:01:57.080 --> 00:01:59.440
+Then, you're just not going to have as great of a
+
+44
+00:01:59.450 --> 00:02:02.341
+production experience, especially when it comes to updating
+
+45
+00:02:02.450 --> 00:02:05.194
+your containers, or rolling them over and replacing them
+
+46
+00:02:05.240 --> 00:02:08.419
+with new ones. If you're interested, or already using
+
+47
+00:02:08.680 --> 00:02:11.032
+Kubernetes, know that Kubernetes itself does not
+
+48
+00:02:11.720 --> 00:02:14.336
+use the healthcheck command out of your Dockerfile.
+
+49
+00:02:14.930 --> 00:02:18.080
+Because Kubernetes has two types of healthchecks,
+
+50
+00:02:18.620 --> 00:02:20.620
+readiness and liveness checks.
+
+51
+00:02:20.870 --> 00:02:23.780
+Those would be in your Kubernetes deployment files,
+
+52
+00:02:24.110 --> 00:02:26.526
+which are not the same as your Dockerfile itself.
+
+53
+00:02:27.080 --> 00:02:29.900
+I would still recommend that you put the liveness check
+
+54
+00:02:30.320 --> 00:02:31.450
+in your Dockerfiles.
+
+55
+00:02:32.090 --> 00:02:35.180
+That way, even if someone likes to run it without
+
+56
+00:02:35.480 --> 00:02:38.149
+Kubernetes, they're still getting the benefit, and it also
+
+57
+00:02:38.150 --> 00:02:40.747
+serves as good documentation for someone who might be
+
+58
+00:02:41.060 --> 00:02:43.610
+building your Kubernetes deployment files for you.
+
+59
+00:02:44.120 --> 00:02:46.999
+I have a couple of samples in the healthchecks directory of
+
+60
+00:02:47.000 --> 00:02:48.560
+the course repo. Let's go check them out.
+
+61
+00:02:50.570 --> 00:02:53.220
+What I've given you here is a sample app with a
+
+62
+00:02:53.640 --> 00:02:55.260
+Dockerfile that has three healthchecks in it.
+
+63
+00:02:55.680 --> 00:02:58.409
+This doesn't make any sense. This Dockerfile won't actually
+
+64
+00:02:58.410 --> 00:03:00.269
+work as you expect. There's no such thing as three
+
+65
+00:03:00.270 --> 00:03:00.809
+healthchecks.
+
+66
+00:03:00.810 --> 00:03:02.639
+I just want to give you three, different options and we're
+
+67
+00:03:02.640 --> 00:03:03.700
+going go through them here.
+
+68
+00:03:03.990 --> 00:03:06.750
+Really, in each Dockerfile, you would keep one.
+
+69
+00:03:07.080 --> 00:03:09.569
+If you actually did try to build this Dockerfile, it would
+
+70
+00:03:09.570 --> 00:03:12.020
+just replace the second and third ones over top of
+
+71
+00:03:12.570 --> 00:03:15.461
+the one before it, so you'd end up with the third one being
+
+72
+00:03:15.570 --> 00:03:16.670
+the one that's actually used.
+
+73
+00:03:16.890 --> 00:03:19.683
+The first one here, option one, is the one that we always
+
+74
+00:03:19.830 --> 00:03:21.300
+see exampled in documentation.
+
+75
+00:03:21.373 --> 00:03:23.210
+I actually copied this straight out of Docker's
+
+76
+00:03:23.520 --> 00:03:25.382
+documentation. This works for Node web
+
+77
+00:03:26.520 --> 00:03:29.215
+apps. In fact, for Node apps, really if it doesn't have
+
+78
+00:03:29.580 --> 00:03:31.949
+a public endpoint, or it doesn't have something listening
+
+79
+00:03:31.950 --> 00:03:35.190
+on a TCP port, healthchecks get a little trickier.
+
+80
+00:03:35.550 --> 00:03:38.310
+In this example, we're talking about just HTTP
+
+81
+00:03:38.600 --> 00:03:40.650
+endpoints that you might access.
+
+82
+00:03:40.830 --> 00:03:43.199
+It doesn't mean that this container needs to be public on
+
+83
+00:03:43.200 --> 00:03:45.689
+the Internet because again, these are all running from
+
+84
+00:03:45.690 --> 00:03:47.759
+inside the container themselves so they can just talk
+
+85
+00:03:47.760 --> 00:03:50.760
+directly to the localhost and access the other apps
+
+86
+00:03:50.790 --> 00:03:51.790
+inside that container.
+
+87
+00:03:52.170 --> 00:03:54.865
+In option one here, we're using the cURL, and make sure
+
+88
+00:03:54.960 --> 00:03:56.909
+that you have cURL installed because it needs to be in the
+
+89
+00:03:56.910 --> 00:03:57.990
+container to be used.
+
+90
+00:03:58.410 --> 00:04:01.259
+Make that connect against the localhost and you'll see that
+
+91
+00:04:01.260 --> 00:04:04.400
+it has a -f and the exit 1 at the end
+
+92
+00:04:04.410 --> 00:04:05.490
+with the two pipes.
+
+93
+00:04:05.790 --> 00:04:08.940
+That's really there to make sure that the output
+
+94
+00:04:09.210 --> 00:04:11.170
+of cURL, in case it fails, is compatible
+
+95
+00:04:12.600 --> 00:04:14.340
+with the healthcheck command. Because the healthcheck
+
+96
+00:04:14.400 --> 00:04:17.789
+command expects either an exit code of 0 or 1,
+
+97
+00:04:18.029 --> 00:04:19.529
+and not some other exit code.
+
+98
+00:04:19.865 --> 00:04:23.220
+That way of using that bash command there, with the pipes,
+
+99
+00:04:23.460 --> 00:04:26.700
+forces either cURL to return a successful 0,
+
+100
+00:04:27.090 --> 00:04:28.770
+or to only return exit 1.
+
+101
+00:04:29.100 --> 00:04:31.559
+If you're using something else besides cURL, you just want
+
+102
+00:04:31.560 --> 00:04:33.539
+to make sure that it's going to use either one of those
+
+103
+00:04:33.540 --> 00:04:36.630
+exit codes. Here in example 2,
+
+104
+00:04:36.660 --> 00:04:37.860
+we're getting a little more advanced.
+
+105
+00:04:38.100 --> 00:04:39.399
+We're using a custom endpoint.
+
+106
+00:04:39.400 --> 00:04:42.291
+So, we're still using the cURL command, but we're hitting a
+
+107
+00:04:42.420 --> 00:04:44.429
+custom URL that presumably has some logic
+
+108
+00:04:45.780 --> 00:04:47.789
+behind it. In my sample, little happy app
+
+109
+00:04:48.750 --> 00:04:51.445
+here, if I scroll down, I've created a special endpoint
+
+110
+00:04:51.960 --> 00:04:53.430
+just for the healthz endpoint.
+
+111
+00:04:53.647 --> 00:04:56.580
+Really, the endpoint you pick for your apps doesn't
+
+112
+00:04:56.880 --> 00:04:59.722
+really matter. But, it is common in distributed computing,
+
+113
+00:04:59.850 --> 00:05:02.545
+cloud computing, and especially containers now, for you
+
+114
+00:05:02.820 --> 00:05:05.270
+to create a special endpoint just for healthchecks
+
+115
+00:05:05.970 --> 00:05:08.000
+that isn't just the default webpage.
+
+116
+00:05:09.270 --> 00:05:11.459
+You've seen some examples, especially if you're in the Go
+
+117
+00:05:11.460 --> 00:05:13.512
+language community, around healthz.
+
+118
+00:05:14.070 --> 00:05:16.765
+I'm using that standard of the name here, but again, it
+
+119
+00:05:16.800 --> 00:05:18.690
+doesn't really matter. Just as long as you're consistent.
+
+120
+00:05:19.050 --> 00:05:20.814
+Presumably, this particular endpoint
+
+121
+00:05:22.200 --> 00:05:24.951
+would do some logic and things that you'd want to check.
+
+122
+00:05:25.740 --> 00:05:28.380
+Piece of advice. Don't have these internal healthchecks
+
+123
+00:05:28.920 --> 00:05:31.174
+asking for database queries, or things outside
+
+124
+00:05:31.980 --> 00:05:33.150
+of this container's control.
+
+125
+00:05:33.420 --> 00:05:35.741
+Because you don't want to have a container's healthcheck
+
+126
+00:05:36.360 --> 00:05:39.380
+cause it to fail that container and replace it if there's
+
+127
+00:05:39.390 --> 00:05:41.310
+a problem with some other container.
+
+128
+00:05:41.640 --> 00:05:45.210
+You really want individual container healthchecks
+
+129
+00:05:45.270 --> 00:05:47.475
+to be isolated just to that container itself.
+
+130
+00:05:47.760 --> 00:05:50.369
+So, you're really just checking the internal health of that
+
+131
+00:05:50.370 --> 00:05:51.370
+particular one.
+
+132
+00:05:52.050 --> 00:05:55.010
+You're going to leave the larger monitoring of a
+
+133
+00:05:55.170 --> 00:05:57.047
+cohesive system of distributed applications, you're going
+
+134
+00:05:57.048 --> 00:05:58.959
+to leave that up to third-party tooling
+
+135
+00:06:00.270 --> 00:06:02.070
+and monitoring for some other day.
+
+136
+00:06:02.651 --> 00:06:04.889
+Of course, in my example here, I'm not having it do
+
+137
+00:06:04.890 --> 00:06:07.420
+anything other than return a healthy 200 code.
+
+138
+00:06:07.710 --> 00:06:10.552
+But, really you probably should have it doing a little bit
+
+139
+00:06:10.620 --> 00:06:12.420
+more advanced checking here.
+
+140
+00:06:12.630 --> 00:06:15.540
+Of course, if it simply responds, that does mean, at least,
+
+141
+00:06:15.570 --> 00:06:16.940
+it's accepting requests.
+
+142
+00:06:17.250 --> 00:06:19.553
+This isn't a waste of time here, but as you get
+
+143
+00:06:20.220 --> 00:06:22.379
+more advanced in your application development, you're
+
+144
+00:06:22.380 --> 00:06:24.810
+probably going to want to add more advanced stuff here.
+
+145
+00:06:24.840 --> 00:06:27.599
+Maybe you're going to have it checking for proper files on
+
+146
+00:06:27.600 --> 00:06:30.510
+the machine, or proper permissions, or stuff like that.
+
+147
+00:06:31.170 --> 00:06:34.012
+Back to the Dockerfile, for the third example I have here,
+
+148
+00:06:34.025 --> 00:06:37.050
+this one is running a Node command
+
+149
+00:06:37.380 --> 00:06:40.350
+outside of the Node Command running the
+
+150
+00:06:40.440 --> 00:06:41.850
+application itself in the container.
+
+151
+00:06:42.060 --> 00:06:44.490
+So technically, while this healthcheck is running, there's
+
+152
+00:06:44.520 --> 00:06:46.529
+two, different Node binaries running, and
+
+153
+00:06:47.520 --> 00:06:50.069
+they're running different files. In this case, it's running
+
+154
+00:06:50.070 --> 00:06:52.471
+a special JavaScript file I've created just to do
+
+155
+00:06:53.040 --> 00:06:55.684
+the logic I want for the healthcheck.
+
+156
+00:06:56.220 --> 00:06:58.200
+The nice thing here is there are several advantages.
+
+157
+00:06:58.500 --> 00:07:01.146
+One is I don't need cURL in the image because I'm just
+
+158
+00:07:01.680 --> 00:07:03.180
+using Node to check Node.
+
+159
+00:07:03.300 --> 00:07:04.770
+I can skip the extra utility.
+
+160
+00:07:05.050 --> 00:07:07.825
+Second, I can put a lot more logic on the frontend,
+
+161
+00:07:08.100 --> 00:07:10.559
+or the client side of that HC.js file,
+
+162
+00:07:11.460 --> 00:07:14.460
+and how it checks. It may do more than just check a web
+
+163
+00:07:14.570 --> 00:07:16.775
+URL. It may check permissions and not require
+
+164
+00:07:17.910 --> 00:07:20.017
+the Node app it's calling to to do that for
+
+165
+00:07:21.090 --> 00:07:23.011
+it. You can see I have a healthcheck.js file.
+
+166
+00:07:23.760 --> 00:07:26.820
+Here it does a very simple check using an HTTP
+
+167
+00:07:26.850 --> 00:07:29.550
+client that essentially just checks the server healthz
+
+168
+00:07:29.940 --> 00:07:30.929
+endpoint.
+
+169
+00:07:30.930 --> 00:07:33.674
+So, it's not really gaining us much here, but maybe this
+
+170
+00:07:33.900 --> 00:07:36.742
+client script could do other things in the file system, or
+
+171
+00:07:36.840 --> 00:07:39.584
+check for specific files that it expects, something like
+
+172
+00:07:39.930 --> 00:07:42.569
+that. It's really up to you whether you put this into the
+
+173
+00:07:42.570 --> 00:07:45.630
+healthcheck logic itself, or you build it into your app,
+
+174
+00:07:45.930 --> 00:07:48.630
+and the healthcheck itself is just simply cURLing or
+
+175
+00:07:48.910 --> 00:07:49.940
+testing a URL.
+
+176
+00:07:50.350 --> 00:07:52.230
+You also have to think about the third-party monitoring
+
+177
+00:07:52.510 --> 00:07:55.378
+tools that are going to be outside of this Node.js
+
+178
+00:07:55.720 --> 00:07:58.121
+app and how they're going to talk to this app and
+
+179
+00:07:58.720 --> 00:07:59.850
+check health remotely.
+
+180
+00:08:00.280 --> 00:08:02.926
+Really, to sum this up, in the end, it's up to you how
+
+181
+00:08:03.310 --> 00:08:04.480
+you do these healthchecks.
+
+182
+00:08:04.720 --> 00:08:07.121
+I've provided a link or two in the resources here
+
+183
+00:08:07.690 --> 00:08:10.510
+for you to go read more on Node.js healthchecks specific
+
+184
+00:08:10.780 --> 00:08:12.887
+to Node.js because really, it gets into the
+
+185
+00:08:13.750 --> 00:08:16.543
+programming of the language and how you want your apps to
+
+186
+00:08:16.570 --> 00:08:17.570
+be checked.
+
+187
+00:08:18.070 --> 00:08:21.310
+My rule of thumb is to always have something,
+
+188
+00:08:21.340 --> 00:08:23.447
+even if it's simply testing the root URL of
+
+189
+00:08:24.370 --> 00:08:26.620
+a website or something else.
+
+190
+00:08:26.680 --> 00:08:28.003
+If it's a non web app, some
+
+191
+00:08:29.680 --> 00:08:32.375
+of the things that I might recommend to you are to have
+
+192
+00:08:32.770 --> 00:08:36.188
+your Node.js app simply writing
+
+193
+00:08:36.190 --> 00:08:39.549
+out the health to a file every so often.
+
+194
+00:08:39.640 --> 00:08:42.640
+Then the healthcheck command is checking that file.
+
+195
+00:08:42.909 --> 00:08:45.065
+OK. Because if you don't have an endpoint in
+
+196
+00:08:45.940 --> 00:08:48.390
+your app itself to check remotely from a different
+
+197
+00:08:48.850 --> 00:08:51.250
+application, you're not left with much.
+
+198
+00:08:51.280 --> 00:08:53.829
+So maybe that's just a worker Node.js app and it's just
+
+199
+00:08:53.830 --> 00:08:56.110
+sitting there waiting for files to be ingested.
+
+200
+00:08:56.440 --> 00:08:58.930
+Maybe it's an image processing solution.
+
+201
+00:08:59.140 --> 00:09:01.330
+In that case, what I would do is I'd have a healthcheck
+
+202
+00:09:01.840 --> 00:09:05.140
+that was running some custom JavaScript logic in
+
+203
+00:09:05.230 --> 00:09:06.520
+this third option here.
+
+204
+00:09:06.760 --> 00:09:09.308
+That would simply drop a file in the location inside
+
+205
+00:09:09.820 --> 00:09:12.123
+the container for that Node app to find it, and
+
+206
+00:09:12.910 --> 00:09:15.670
+then it would process it, and then the test script would
+
+207
+00:09:15.730 --> 00:09:16.850
+check for the result.
+
+208
+00:09:17.110 --> 00:09:19.689
+Then if everything looked great, then you would know that
+
+209
+00:09:19.690 --> 00:09:22.189
+the container is processing those images correctly.
+
+210
+00:09:22.360 --> 00:09:25.420
+Once you get into the non website stuff,
+
+211
+00:09:25.450 --> 00:09:27.704
+it kind of gets very specific to the domain of
+
+212
+00:09:28.450 --> 00:09:29.560
+what your app is doing.
+
+213
+00:09:29.740 --> 00:09:31.450
+But you can still do healthchecks.
+

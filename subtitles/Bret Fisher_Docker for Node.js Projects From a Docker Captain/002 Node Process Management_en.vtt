@@ -1,0 +1,273 @@
+WEBVTT
+1
+00:00:02.510 --> 00:00:05.749
+One of the most important pieces of your Dockerfile is
+
+2
+00:00:05.949 --> 00:00:06.920
+how Node is launched.
+
+3
+00:00:07.250 --> 00:00:08.480
+That cmd at the end.
+
+4
+00:00:08.990 --> 00:00:11.959
+Before we get into exactly what needs to
+
+5
+00:00:12.159 --> 00:00:14.240
+go there, and examples of different ways you can do it,
+
+6
+00:00:14.810 --> 00:00:16.939
+I want to talk about process management in containers.
+
+7
+00:00:17.139 --> 00:00:20.180
+Because you need some context on what Node is doing
+
+8
+00:00:20.380 --> 00:00:21.980
+and how this was different before we got the containers.
+
+9
+00:00:23.500 --> 00:00:25.079
+If you remember back, and if you've been in
+
+10
+00:00:25.279 --> 00:00:26.960
+with Node awhile before containers,
+
+11
+00:00:27.230 --> 00:00:29.271
+you might have used something on your servers like nodemon,
+
+12
+00:00:29.930 --> 00:00:30.830
+or forever, or pm2.
+
+13
+00:00:32.390 --> 00:00:34.370
+These are tools that do multiple things,
+
+14
+00:00:34.570 --> 00:00:37.460
+but one of the big jobs was to manage the node process,
+
+15
+00:00:37.730 --> 00:00:40.789
+make sure its running and restarted when it needs to
+
+16
+00:00:40.989 --> 00:00:41.990
+be, and stuff like that.
+
+17
+00:00:42.290 --> 00:00:44.817
+The good news is we don't need that stuff in containers anymore.
+
+18
+00:00:45.050 --> 00:00:46.430
+Docker is doing that for us.
+
+19
+00:00:46.630 --> 00:00:48.050
+So it simplifies our setup.
+
+20
+00:00:48.250 --> 00:00:49.190
+We need less tooling,
+
+21
+00:00:49.460 --> 00:00:52.640
+and Docker is going to be that middle layer that manages the process.
+
+22
+00:00:53.090 --> 00:00:56.149
+In case you're wondering, we are going to use nodemon later in this
+
+23
+00:00:56.349 --> 00:00:59.030
+course, but that's really just for local development.
+
+24
+00:00:59.230 --> 00:01:02.419
+We'll use that to watch files for changes so that it starts
+
+25
+00:01:02.619 --> 00:01:05.263
+the node process back up again in case there's some file changes
+
+26
+00:01:05.630 --> 00:01:09.025
+on your host just like when you're using development processes.
+
+27
+00:01:09.225 --> 00:01:10.340
+So that's not going to change. But,
+
+28
+00:01:10.730 --> 00:01:12.201
+on servers in your CI
+
+29
+00:01:12.800 --> 00:01:15.530
+and testing, any time you're going to be using this on a server,
+
+30
+00:01:15.800 --> 00:01:17.690
+you're probably not going to want that middle layer in there.
+
+31
+00:01:17.900 --> 00:01:21.110
+Because Docker does a great job of managing this process.
+
+32
+00:01:21.310 --> 00:01:22.466
+It'll start it, stop it,
+
+33
+00:01:22.670 --> 00:01:23.004
+it could even pause it.
+
+34
+00:01:23.940 --> 00:01:26.959
+There's restart options. It even has things like healthchecks
+
+35
+00:01:27.159 --> 00:01:29.749
+that will run inside the container to make sure it's healthy,
+
+36
+00:01:29.949 --> 00:01:30.710
+and restart it if not.
+
+37
+00:01:31.290 --> 00:01:34.260
+One of the other things these tools used to do was manage multithreaded
+
+38
+00:01:34.700 --> 00:01:36.499
+situations. On most servers,
+
+39
+00:01:36.699 --> 00:01:37.467
+you have multiple CPUs.
+
+40
+00:01:38.420 --> 00:01:39.776
+If you know the inner workings of Node,
+
+41
+00:01:40.460 --> 00:01:43.519
+you've realized, at some point like I did long ago when it wasn't
+
+42
+00:01:43.719 --> 00:01:45.727
+very fast, that it only runs singlethreaded.
+
+43
+00:01:46.370 --> 00:01:48.506
+That is both a good thing and a bad thing in Node.
+
+44
+00:01:49.370 --> 00:01:51.079
+Good because it makes code efficient
+
+45
+00:01:51.279 --> 00:01:52.450
+and it makes it really fast,
+
+46
+00:01:52.730 --> 00:01:55.060
+but bad on servers where we have multiple CPUs
+
+47
+00:01:55.400 --> 00:01:58.171
+or cores. You usually are going to have that on your servers.
+
+48
+00:01:58.371 --> 00:01:59.410
+At least two, right.
+
+49
+00:01:59.900 --> 00:02:02.650
+You're going to need something that spins up multiple copies of Node.
+
+50
+00:02:03.240 --> 00:02:04.930
+Well in Docker, we already have that
+
+51
+00:02:05.130 --> 00:02:06.410
+and we call that replicas,
+
+52
+00:02:06.610 --> 00:02:08.660
+or tasks, depending on what tool you're using.
+
+53
+00:02:08.960 --> 00:02:10.400
+You might be using Docker Engine.
+
+54
+00:02:10.600 --> 00:02:12.440
+You might be using Docker Compose or swarm.
+
+55
+00:02:12.740 --> 00:02:14.062
+You might be using Kubernetes.
+
+56
+00:02:14.630 --> 00:02:17.719
+All of these have a concept of multiple
+
+57
+00:02:17.919 --> 00:02:19.730
+containers running off the same image.
+
+58
+00:02:19.990 --> 00:02:22.670
+That essentially does what these old tools used to do.
+
+59
+00:02:22.980 --> 00:02:25.570
+Okay. So great. We remove another dependency.
+
+60
+00:02:25.770 --> 00:02:27.289
+We don't have to worry about setting up these tools
+
+61
+00:02:27.489 --> 00:02:29.560
+or making config files for them on servers.
+
+62
+00:02:30.050 --> 00:02:32.330
+But there's one little issue with Node in npm.
+
+63
+00:02:32.900 --> 00:02:36.140
+Out-of-the-box, they don't respond to termination signals,
+
+64
+00:02:36.350 --> 00:02:38.630
+and that's something that we need to fix.
+
+65
+00:02:38.930 --> 00:02:42.079
+Because we really want Node to listen for these proper
+
+66
+00:02:42.279 --> 00:02:44.210
+signals coming out of the operating system
+
+67
+00:02:44.410 --> 00:02:45.380
+and shut down properly.
+
+68
+00:02:45.620 --> 00:02:47.600
+So that's what we're going to talk about in the next lecture.
+

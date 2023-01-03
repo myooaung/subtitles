@@ -1,0 +1,741 @@
+WEBVTT
+1
+00:00:02.520 --> 00:00:04.889
+One of the things that will help you look like a pro when
+
+2
+00:00:04.890 --> 00:00:07.389
+building out your Node files, and is generally also
+
+3
+00:00:07.530 --> 00:00:10.176
+important just for sanity, is to make sure your images
+
+4
+00:00:10.650 --> 00:00:12.806
+are efficient. That means efficient in terms
+
+5
+00:00:13.740 --> 00:00:15.750
+of smaller space when it's possible.
+
+6
+00:00:15.930 --> 00:00:18.030
+But, also in terms of building speed.
+
+7
+00:00:18.180 --> 00:00:20.520
+Because you don't want to rebuild this thing dozens,
+
+8
+00:00:20.760 --> 00:00:23.880
+hundreds, maybe even thousands of times, over the lifetime
+
+9
+00:00:23.910 --> 00:00:26.801
+of this image, on your machine or on a build server, and it
+
+10
+00:00:26.940 --> 00:00:28.590
+be slow for no, good reason.
+
+11
+00:00:29.070 --> 00:00:31.324
+We want to go through some steps here that may
+
+12
+00:00:32.159 --> 00:00:35.910
+affect build speed and size, and then just general quality
+
+13
+00:00:36.270 --> 00:00:38.818
+of efficiency in terms of making sure you don't have
+
+14
+00:00:39.150 --> 00:00:40.440
+redundant lines or anything like that.
+
+15
+00:00:40.980 --> 00:00:43.580
+The first one I want to talk about is the from image.
+
+16
+00:00:43.590 --> 00:00:46.094
+We just covered that, but you can see in the sample-02
+
+17
+00:00:46.890 --> 00:00:49.409
+that we were using before, that the first line there is
+
+18
+00:00:49.410 --> 00:00:50.684
+defined as node:10 alpine.
+
+19
+00:00:51.189 --> 00:00:53.900
+So, we're at least pinning it to the 10 version.
+
+20
+00:00:54.240 --> 00:00:56.579
+If I was building this app in Node, I would probably start
+
+21
+00:00:56.580 --> 00:00:59.309
+with 10. Then as I got closer to production, I would start
+
+22
+00:00:59.310 --> 00:01:01.907
+hard coding it to a patch release to make sure my app
+
+23
+00:01:01.920 --> 00:01:02.699
+worked as expected.
+
+24
+00:01:02.700 --> 00:01:04.709
+But for now, I'm just going to start with 10.
+
+25
+00:01:04.830 --> 00:01:07.589
+I'm choosing Alpine out-of-the-gate with this newer image
+
+26
+00:01:07.590 --> 00:01:10.020
+just to make sure that I get the smallest image possible.
+
+27
+00:01:10.590 --> 00:01:12.449
+The times you're going to have problems with Alpine are
+
+28
+00:01:12.450 --> 00:01:15.096
+usually going to be related to Legacy, large Node apps
+
+29
+00:01:15.630 --> 00:01:18.178
+that you're trying to get into a container image and
+
+30
+00:01:18.900 --> 00:01:21.540
+maybe they have some things that don't quite work yet with
+
+31
+00:01:22.320 --> 00:01:23.730
+APK, the Alpine Package Manager.
+
+32
+00:01:24.030 --> 00:01:26.490
+Anyway, let's move on to the next one here.
+
+33
+00:01:26.730 --> 00:01:28.380
+That's the ordering of lines.
+
+34
+00:01:28.680 --> 00:01:31.179
+Line order matters because as you remember probably
+
+35
+00:01:31.680 --> 00:01:34.525
+from your early days of Docker training, that Docker
+
+36
+00:01:35.070 --> 00:01:38.190
+builds naturally go from top to bottom.
+
+37
+00:01:38.250 --> 00:01:41.310
+So, each line is executed as a new layer in that
+
+38
+00:01:41.340 --> 00:01:42.565
+image. If you have layers
+
+39
+00:01:44.580 --> 00:01:46.829
+that don't change very often, but they're at the bottom of
+
+40
+00:01:46.830 --> 00:01:49.560
+the file, then you will end up with those layers being
+
+41
+00:01:49.830 --> 00:01:52.525
+built over and over again for no good reason because of
+
+42
+00:01:52.640 --> 00:01:55.349
+cache busting. If you're not familiar with cache busting,
+
+43
+00:01:55.350 --> 00:01:58.290
+that's the term we use whenever you get to a line in the
+
+44
+00:01:58.650 --> 00:01:59.880
+Dockerfile that has changed.
+
+45
+00:02:00.150 --> 00:02:02.658
+Either the files that have to be copied in are changed, or
+
+46
+00:02:02.659 --> 00:02:05.100
+that actual line of the Dockerfile itself has changed.
+
+47
+00:02:05.290 --> 00:02:08.490
+Whenever that event happens, that line, and any
+
+48
+00:02:08.520 --> 00:02:11.362
+other lines below it, will have been busted and have to be
+
+49
+00:02:11.370 --> 00:02:13.134
+rebuilt. That's normal, but we don't
+
+50
+00:02:14.460 --> 00:02:16.020
+want it to happen if we can avoid it.
+
+51
+00:02:16.140 --> 00:02:18.735
+In this case, you'll see that I actually have the expose
+
+52
+00:02:18.870 --> 00:02:21.690
+line, line 3 here, up higher in the
+
+53
+00:02:21.990 --> 00:02:24.685
+Dockerfile. That is not what you see normally in online
+
+54
+00:02:25.080 --> 00:02:26.240
+default samples.
+
+55
+00:02:26.700 --> 00:02:29.309
+But, if you think about it, it's never going to change,
+
+56
+00:02:29.310 --> 00:02:31.170
+really, if your app is always running on the same port,
+
+57
+00:02:31.370 --> 00:02:34.212
+then it's likely going to be changed once or twice, maybe,
+
+58
+00:02:34.320 --> 00:02:35.850
+in the entire lifetime of the image.
+
+59
+00:02:36.180 --> 00:02:39.210
+So, put that up top so that that line doesn't have to run
+
+60
+00:02:39.300 --> 00:02:40.470
+near the bottom every time.
+
+61
+00:02:41.280 --> 00:02:43.958
+Next, whenever I'm looking at a Dockerfile for Node,
+
+62
+00:02:44.370 --> 00:02:47.580
+I'm always expecting to see at least two copy lines.
+
+63
+00:02:47.670 --> 00:02:50.120
+The first one is actually something that you don't
+
+64
+00:02:50.730 --> 00:02:53.376
+see in this file. I deliberately avoided it so that we
+
+65
+00:02:53.610 --> 00:02:56.540
+could have the situation where we want to talk about it.
+
+66
+00:02:56.547 --> 00:02:59.460
+That is, you will notice a mistake here.
+
+67
+00:02:59.490 --> 00:03:01.842
+It's really not something that will prevent this
+
+68
+00:03:02.580 --> 00:03:05.128
+image from building, but it's a huge inefficiency in
+
+69
+00:03:05.640 --> 00:03:07.943
+that I'm copying in all the source files before
+
+70
+00:03:09.000 --> 00:03:10.020
+npm install.
+
+71
+00:03:10.260 --> 00:03:13.260
+Which means, any time a source file changed, which is
+
+72
+00:03:13.590 --> 00:03:16.680
+all the time you're working on your app, it will then bust
+
+73
+00:03:16.710 --> 00:03:18.978
+the run line for npm install and have to rerun
+
+74
+00:03:19.770 --> 00:03:21.900
+that line every single time it copies in files.
+
+75
+00:03:22.290 --> 00:03:23.730
+We definitely don't want that.
+
+76
+00:03:24.000 --> 00:03:27.030
+So, what you will normally see in Node is we will first
+
+77
+00:03:27.090 --> 00:03:30.170
+have a copy line that copies in just the package JSON
+
+78
+00:03:30.180 --> 00:03:31.180
+and the package lock JSON.
+
+79
+00:03:32.130 --> 00:03:33.870
+Then we run npm install.
+
+80
+00:03:34.230 --> 00:03:35.917
+Then we copy in ..
+
+81
+00:03:36.150 --> 00:03:38.404
+which means everything from the host directory
+
+82
+00:03:39.390 --> 00:03:41.729
+to everything in the current working directory of the
+
+83
+00:03:41.730 --> 00:03:43.886
+image. That's going to be normally run after
+
+84
+00:03:45.120 --> 00:03:47.610
+npm install. That saves us a huge amount of time.
+
+85
+00:03:47.700 --> 00:03:50.101
+Even with the modern efficiencies of npm and yarn
+
+86
+00:03:51.000 --> 00:03:53.609
+in their latest releases, they're still something that is
+
+87
+00:03:53.610 --> 00:03:55.529
+going to take a while, especially in a larger app, they
+
+88
+00:03:55.530 --> 00:03:57.637
+could take minutes. We want to keep that to
+
+89
+00:03:58.590 --> 00:04:00.599
+a minimum and only rerun npm install when
+
+90
+00:04:01.770 --> 00:04:03.720
+we have to because of a package change.
+
+91
+00:04:03.810 --> 00:04:04.980
+So, we want to change this.
+
+92
+00:04:05.220 --> 00:04:07.782
+In your sample directory, you can open up this Dockerfile,
+
+93
+00:04:08.070 --> 00:04:09.834
+sample -02, and you're going to move
+
+94
+00:04:11.310 --> 00:04:12.570
+this copy line down
+
+95
+00:04:14.530 --> 00:04:16.600
+underneath the run.
+
+96
+00:04:16.930 --> 00:04:18.589
+And the spaces, by the way, are not required.
+
+97
+00:04:18.610 --> 00:04:20.680
+I'm just doing them for easier reading.
+
+98
+00:04:20.980 --> 00:04:23.090
+And then we're going to add a copy line up top here
+
+99
+00:04:24.210 --> 00:04:26.430
+to copy the package JSON and the package lock.
+
+100
+00:04:31.140 --> 00:04:32.790
+Two things I want to note here.
+
+101
+00:04:33.510 --> 00:04:35.970
+There's a trick here that the community actually taught me
+
+102
+00:04:36.240 --> 00:04:38.886
+that you can put an asterisk at the end of the package
+
+103
+00:04:39.360 --> 00:04:41.100
+lock file in case it doesn't exist.
+
+104
+00:04:41.610 --> 00:04:43.423
+Dockerfiles will treat this as a copy
+
+105
+00:04:44.610 --> 00:04:46.680
+if it's there, but don't fail if it's not.
+
+106
+00:04:46.890 --> 00:04:49.781
+If you've ever tried to be literal about a copy command, if
+
+107
+00:04:49.950 --> 00:04:51.812
+the file doesn't exist in the host, it
+
+108
+00:04:52.950 --> 00:04:55.057
+will fail the build unless the file exists.
+
+109
+00:04:55.170 --> 00:04:57.809
+So, it creates a problem for lock files if you haven't
+
+110
+00:04:57.810 --> 00:05:00.309
+really run npm install yet and haven't created your
+
+111
+00:05:00.780 --> 00:05:02.550
+lock file, because that's auto generated.
+
+112
+00:05:02.590 --> 00:05:05.040
+In a lot of cases, you're going to create a new app
+
+113
+00:05:05.550 --> 00:05:07.919
+on the host and then you're going to run all the commands,
+
+114
+00:05:07.920 --> 00:05:09.900
+like npm install, in the container.
+
+115
+00:05:10.350 --> 00:05:12.119
+So, you need to be able to get the package file in there
+
+116
+00:05:12.120 --> 00:05:13.120
+somehow.
+
+117
+00:05:13.440 --> 00:05:15.047
+The way we get around this here is we put this asterisk,
+
+118
+00:05:15.720 --> 00:05:18.072
+which means, copy it if it's there, but don't if
+
+119
+00:05:18.780 --> 00:05:21.622
+it's not. The last part is we're going to be literal about
+
+120
+00:05:22.050 --> 00:05:24.420
+where we're copying it to just to be very specific.
+
+121
+00:05:24.630 --> 00:05:27.540
+We're saying, copy it into the current working directory,
+
+122
+00:05:27.780 --> 00:05:29.240
+which you can see in the line above it.
+
+123
+00:05:29.490 --> 00:05:31.799
+That way, we know exactly where these files are going and
+
+124
+00:05:31.800 --> 00:05:33.390
+not accidently put them somewhere else.
+
+125
+00:05:33.870 --> 00:05:36.480
+Again, I always look for the two, different copy commands
+
+126
+00:05:36.510 --> 00:05:37.860
+in the file at a minimum.
+
+127
+00:05:38.280 --> 00:05:40.828
+The next little tip is about package managers at the
+
+128
+00:05:41.280 --> 00:05:44.280
+host level. So, not necessarily your npm package manager.
+
+129
+00:05:44.480 --> 00:05:46.381
+I'll be honest, this isn't as big an issue for us Node
+
+130
+00:05:46.710 --> 00:05:49.013
+people because we don't necessarily always have
+
+131
+00:05:49.680 --> 00:05:52.680
+to run apt-get installs, or yum, or
+
+132
+00:05:52.710 --> 00:05:54.750
+APK, the Alpine Package Manager.
+
+133
+00:05:55.050 --> 00:05:57.930
+But if you do, realize that you need to put them
+
+134
+00:05:58.020 --> 00:06:00.990
+up high in the file, above any copying in of package
+
+135
+00:06:01.380 --> 00:06:02.380
+files preferably.
+
+136
+00:06:02.670 --> 00:06:04.799
+And you need to pin the versions on them, like I always
+
+137
+00:06:04.800 --> 00:06:06.956
+recommend anyone do for any package manager.
+
+138
+00:06:07.290 --> 00:06:08.310
+Always pin versions.
+
+139
+00:06:08.670 --> 00:06:10.709
+We won't talk about that here in this course because it's
+
+140
+00:06:10.710 --> 00:06:12.060
+not a Docker specific thing.
+
+141
+00:06:12.360 --> 00:06:14.609
+But if you're curious, you can always search your package
+
+142
+00:06:14.610 --> 00:06:17.328
+manager of choice and just search Google for pinning,
+
+143
+00:06:18.120 --> 00:06:19.859
+and you'll usually come up with some really good
+
+144
+00:06:19.860 --> 00:06:22.380
+recommendations on the easy way to pin those files.
+
+145
+00:06:22.830 --> 00:06:24.449
+And make sure you get the specific versions of your
+
+146
+00:06:24.450 --> 00:06:26.900
+dependencies, as you do with everything else, right.
+
+147
+00:06:27.120 --> 00:06:28.440
+Your code is versioned.
+
+148
+00:06:28.620 --> 00:06:30.720
+Your Node version at the top is there.
+
+149
+00:06:30.900 --> 00:06:33.313
+Your package versions are here, locked in the JSON file.
+
+150
+00:06:33.420 --> 00:06:36.420
+So, why not pin your APK or
+
+151
+00:06:36.570 --> 00:06:37.980
+apt-get package manager.
+
+152
+00:06:38.250 --> 00:06:39.989
+The point I want to make there is something that people
+
+153
+00:06:39.990 --> 00:06:42.783
+don't maybe realize about an apt-get or a another package
+
+154
+00:06:43.260 --> 00:06:46.740
+manager. That is if I do hear a run
+
+155
+00:06:46.800 --> 00:06:48.780
+apt-get update.
+
+156
+00:06:48.810 --> 00:06:51.456
+You'll see this in a very common way, apt-get install,
+
+157
+00:06:51.932 --> 00:06:53.748
+yada yada. Let's just say cURL.
+
+158
+00:06:54.720 --> 00:06:56.909
+That wouldn't work here in my Alpine image, but if it was
+
+159
+00:06:56.910 --> 00:06:59.640
+on a Debian based image, I would be able to do this.
+
+160
+00:07:00.071 --> 00:07:02.729
+What you might see people do later is then they install
+
+161
+00:07:02.730 --> 00:07:05.632
+something else later. Maybe they do a run apt-get
+
+162
+00:07:06.600 --> 00:07:08.850
+install something else, okay.
+
+163
+00:07:09.160 --> 00:07:11.953
+This you would never want to do, well, for a few reasons.
+
+164
+00:07:12.390 --> 00:07:14.370
+One is it's much more efficient to have all that stuff
+
+165
+00:07:14.400 --> 00:07:16.830
+installed at the top of the file at once.
+
+166
+00:07:17.190 --> 00:07:20.280
+The second, and major issue here, is that caching
+
+167
+00:07:20.340 --> 00:07:21.570
+will work against us.
+
+168
+00:07:21.600 --> 00:07:23.511
+The cache can sometimes actually be bad
+
+169
+00:07:24.660 --> 00:07:27.500
+for us. In that case, what's happening here is the apt-get
+
+170
+00:07:27.930 --> 00:07:29.890
+update is only going to be run when this
+
+171
+00:07:31.050 --> 00:07:33.120
+line is cache busted.
+
+172
+00:07:33.360 --> 00:07:35.369
+Which means later, if we copy our package
+
+173
+00:07:36.420 --> 00:07:38.999
+file in, and we change some things, and then we run the
+
+174
+00:07:39.000 --> 00:07:41.793
+apt-get, it will technically be installing something from
+
+175
+00:07:41.940 --> 00:07:44.673
+an old version of the apt-get
+
+176
+00:07:45.000 --> 00:07:47.160
+update because that line was not busted.
+
+177
+00:07:47.400 --> 00:07:49.710
+So ,that's why you always see in all the official images
+
+178
+00:07:49.800 --> 00:07:52.499
+where you get apt-get update, apt-get install, and then the
+
+179
+00:07:52.500 --> 00:07:55.560
+cleanup is all one, large run line,
+
+180
+00:07:55.740 --> 00:07:58.200
+so that that all happens in the same layer of the image.
+
+181
+00:07:58.560 --> 00:08:01.199
+Again, lucky for us, in a lot of Node apps, you won't even
+
+182
+00:08:01.200 --> 00:08:03.850
+need a package manager outside of npm or yarn.
+
+183
+00:08:03.960 --> 00:08:06.210
+So, yea for you if you're that lucky.
+
+184
+00:08:06.420 --> 00:08:08.849
+For the rest of us, just be sure to run it all at once at
+
+185
+00:08:08.850 --> 00:08:09.570
+the top of the file.
+

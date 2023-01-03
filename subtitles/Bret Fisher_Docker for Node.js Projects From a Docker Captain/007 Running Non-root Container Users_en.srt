@@ -1,0 +1,464 @@
+1
+00:00:02,730 --> 00:00:05,959
+You may not realize it, but inside your container,
+
+2
+00:00:06,120 --> 00:00:08,766
+by default, if you're using official images, your apps
+
+3
+00:00:09,270 --> 00:00:11,190
+are running as root in the container.
+
+4
+00:00:11,940 --> 00:00:15,210
+Root in the container is not the same as root on the host.
+
+5
+00:00:15,450 --> 00:00:18,300
+Docker definitely constrains what that
+
+6
+00:00:18,420 --> 00:00:20,740
+container is doing. That's the whole purpose of containers.
+
+7
+00:00:20,760 --> 00:00:23,369
+That's one of the core tenets of the idea of containers is
+
+8
+00:00:23,370 --> 00:00:25,649
+that they're limited and they're restricted from the rest
+
+9
+00:00:25,650 --> 00:00:28,650
+of the system. Root in a container does not
+
+10
+00:00:28,680 --> 00:00:29,970
+equal root in the host.
+
+11
+00:00:30,000 --> 00:00:33,329
+However, we want to continue to reduce
+
+12
+00:00:33,330 --> 00:00:36,119
+the security risk inside containers, and one of the ways to
+
+13
+00:00:36,120 --> 00:00:38,717
+do that is to run your apps in the container as a non
+
+14
+00:00:39,180 --> 00:00:42,222
+root user. That means even if someone was able to break
+
+15
+00:00:42,337 --> 00:00:45,059
+through your app in the container, they wouldn't even be
+
+16
+00:00:45,060 --> 00:00:46,350
+root inside that container.
+
+17
+00:00:46,380 --> 00:00:49,109
+They would just be a standard user account with very little
+
+18
+00:00:49,110 --> 00:00:50,110
+privileges.
+
+19
+00:00:50,490 --> 00:00:52,842
+The good news here is that the official apps and
+
+20
+00:00:53,580 --> 00:00:55,590
+the one we're talking about here is the Node image.
+
+21
+00:00:55,650 --> 00:00:58,870
+The official Node image has a Node user built
+
+22
+00:00:58,890 --> 00:01:01,230
+in. It's just not enabled by default.
+
+23
+00:01:01,620 --> 00:01:03,531
+That's mostly due to the various issues
+
+24
+00:01:04,590 --> 00:01:07,236
+that least privilege can cause in a container when you
+
+25
+00:01:07,290 --> 00:01:09,593
+don't have full admin rights inside that little
+
+26
+00:01:10,500 --> 00:01:12,150
+container. That can cause problems.
+
+27
+00:01:12,330 --> 00:01:14,584
+Things like apt-get won't work or yum packages
+
+28
+00:01:15,330 --> 00:01:17,910
+won't work, and some other things might not work.
+
+29
+00:01:18,090 --> 00:01:21,180
+Doing an npm install with the -g won't work.
+
+30
+00:01:21,420 --> 00:01:24,030
+So, you need to take that into consideration.
+
+31
+00:01:24,780 --> 00:01:27,660
+I'll get to a demo here in a second, but my advice is
+
+32
+00:01:27,990 --> 00:01:30,420
+that you always enable this on every image you're using.
+
+33
+00:01:30,690 --> 00:01:33,540
+In all cases, I've used Node apps.
+
+34
+00:01:33,570 --> 00:01:35,699
+I've been able to get away with least privilege and
+
+35
+00:01:35,700 --> 00:01:37,760
+enabling the Node user to run as non root.
+
+36
+00:01:37,980 --> 00:01:40,773
+And that's great. There's lots of other security benefits
+
+37
+00:01:41,010 --> 00:01:43,500
+of containers, but we shouldn't just take it for granted,
+
+38
+00:01:43,530 --> 00:01:46,078
+and we should continue to try to reduce the risk and
+
+39
+00:01:46,680 --> 00:01:48,300
+use least privilege concepts.
+
+40
+00:01:48,990 --> 00:01:52,020
+General rules here are running this line
+
+41
+00:01:52,080 --> 00:01:53,790
+to enable the Node user.
+
+42
+00:01:54,180 --> 00:01:56,718
+After you've done your apt, or yum or apk package
+
+43
+00:01:57,960 --> 00:02:00,230
+installs because those are all things that require root.
+
+44
+00:02:00,900 --> 00:02:02,990
+Then after your npm install -g's,
+
+45
+00:02:03,870 --> 00:02:06,369
+if you're doing any npm globals, because those also
+
+46
+00:02:07,080 --> 00:02:09,310
+need root to install globally on the system.
+
+47
+00:02:10,300 --> 00:02:13,191
+However, you may want to do this before you do the standard
+
+48
+00:02:13,570 --> 00:02:17,170
+npm install of your application dependencies,
+
+49
+00:02:17,400 --> 00:02:19,989
+and that kind of depends on how your workflow is going to
+
+50
+00:02:19,990 --> 00:02:23,320
+behave. The biggest challenges with this setup
+
+51
+00:02:23,350 --> 00:02:26,270
+is that it will potentially cause permission
+
+52
+00:02:26,350 --> 00:02:28,947
+issues whether you're in development and trying to do
+
+53
+00:02:29,050 --> 00:02:32,163
+things in the container, like running npm install
+
+54
+00:02:32,620 --> 00:02:35,290
+while the app is running, and now you're not really root
+
+55
+00:02:35,320 --> 00:02:38,211
+anymore, so you have problems with writing files of certain
+
+56
+00:02:38,500 --> 00:02:40,950
+directories. Or maybe your app itself is expecting
+
+57
+00:02:41,680 --> 00:02:44,424
+write access to certain directories that it doesn't have
+
+58
+00:02:44,650 --> 00:02:46,810
+anymore because permissions weren't set up.
+
+59
+00:02:47,230 --> 00:02:50,072
+So, when you're running apps as root, you have permissions
+
+60
+00:02:50,560 --> 00:02:52,299
+to everything, so you typically don't have that kind of
+
+61
+00:02:52,300 --> 00:02:55,180
+problem. But the minute you start using the Node user,
+
+62
+00:02:55,570 --> 00:02:58,167
+you'll probably see one or two issues and they're all
+
+63
+00:02:58,360 --> 00:03:01,330
+solvable. It's especially important for you to understand
+
+64
+00:03:01,390 --> 00:03:04,206
+Linux permissions, how ch mod and ch own
+
+65
+00:03:04,810 --> 00:03:06,180
+work, or chown chmod.
+
+66
+00:03:06,620 --> 00:03:09,970
+Those those utilities are important concepts
+
+67
+00:03:10,090 --> 00:03:12,687
+for understanding how you get write access to certain
+
+68
+00:03:13,120 --> 00:03:15,520
+places and even read access to certain places.
+
+69
+00:03:15,820 --> 00:03:18,369
+That way you can set the permissions that your app truly
+
+70
+00:03:18,370 --> 00:03:20,281
+needs so that that Node user has rights
+
+71
+00:03:21,700 --> 00:03:23,530
+to what it needs, but nothing else.
+
+72
+00:03:24,250 --> 00:03:25,390
+Let's look at some commands.
+
+73
+00:03:25,690 --> 00:03:28,140
+To change the default root user running everything
+
+74
+00:03:29,110 --> 00:03:31,168
+in a Dockerfile to the Node user, you just
+
+75
+00:03:32,200 --> 00:03:33,760
+use the stanza user.
+
+76
+00:03:33,850 --> 00:03:36,447
+It's kind of simple. Since Docker has already created
+
+77
+00:03:36,880 --> 00:03:39,940
+the Node user in the upstream from image,
+
+78
+00:03:40,240 --> 00:03:43,210
+you can just use it here by enabling it with that line.
+
+79
+00:03:44,080 --> 00:03:47,530
+Unfortunately, that user is not the user executing
+
+80
+00:03:47,560 --> 00:03:49,332
+every type of Dockerfile line after
+
+81
+00:03:50,980 --> 00:03:52,510
+that line happens.
+
+82
+00:03:53,170 --> 00:03:56,165
+In other words, only the run command, the cmd
+
+83
+00:03:57,430 --> 00:03:59,635
+and the entry point command, only those three
+
+84
+00:04:00,550 --> 00:04:02,265
+commands will behave this Node user
+
+85
+00:04:03,730 --> 00:04:05,641
+command here, and everything else won't
+
+86
+00:04:06,700 --> 00:04:09,009
+necessarily do that. One of the big problems that you'll
+
+87
+00:04:09,010 --> 00:04:10,550
+see in a minute is using the workdir.
+
+88
+00:04:10,900 --> 00:04:12,632
+The workdir will always create directories with root
+
+89
+00:04:12,850 --> 00:04:15,660
+permissions, and so you'll need to go behind there, if you
+
+90
+00:04:15,685 --> 00:04:17,648
+need to change permissions, and manually set those
+
+91
+00:04:17,649 --> 00:04:18,649
+permissions on your own.
+
+92
+00:04:19,315 --> 00:04:22,060
+The second line here is a common one for me to use
+
+93
+00:04:22,450 --> 00:04:24,489
+in order to get around that permissions problem with
+
+94
+00:04:24,490 --> 00:04:26,989
+workdir where I'm manually creating the directories
+
+95
+00:04:27,490 --> 00:04:30,610
+I need and then changing those permissions to
+
+96
+00:04:30,640 --> 00:04:33,188
+the Node user and Node group to make sure that I can
+
+97
+00:04:33,640 --> 00:04:36,370
+do things like run npm install
+
+98
+00:04:36,850 --> 00:04:39,459
+and possibly write cache files, or TIM files, that I might
+
+99
+00:04:39,460 --> 00:04:40,460
+need in there.
+
+100
+00:04:41,440 --> 00:04:43,988
+Don't worry. There are lots of flexible options here
+
+101
+00:04:44,530 --> 00:04:46,869
+to get around all these limitations, including when you're
+
+102
+00:04:46,870 --> 00:04:49,359
+doing local development, if you want to just run something
+
+103
+00:04:49,360 --> 00:04:52,280
+in the container as the root user, if you
+
+104
+00:04:52,390 --> 00:04:55,150
+just do a docker compose exec, once the
+
+105
+00:04:55,450 --> 00:04:57,753
+user Node is in place, it's going to show up as
+
+106
+00:04:58,510 --> 00:04:59,980
+you being the Node user.
+
+107
+00:05:00,880 --> 00:05:03,790
+In fact, once you elect to use Node user,
+
+108
+00:05:04,030 --> 00:05:06,790
+any time you do a docker compose exec by default,
+
+109
+00:05:07,240 --> 00:05:09,640
+it will make you the Node user.
+
+110
+00:05:09,670 --> 00:05:12,039
+You'll be in the container as a Node user rather than the
+
+111
+00:05:12,040 --> 00:05:13,270
+root that you'd expect.
+
+112
+00:05:13,510 --> 00:05:16,269
+If you need to ever change that, you can always just type
+
+113
+00:05:16,270 --> 00:05:19,120
+in the -u root with any exec commands
+
+114
+00:05:19,420 --> 00:05:20,860
+and then you'll be the root user.
+
+115
+00:05:20,920 --> 00:05:23,769
+That way you can maybe add package commands in there and it
+
+116
+00:05:23,770 --> 00:05:25,160
+wouldn't deny you access.
+

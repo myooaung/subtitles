@@ -1,0 +1,349 @@
+WEBVTT
+1
+00:00:02.660 --> 00:00:05.780
+One of the potential problems you can have locally with
+
+2
+00:00:05.900 --> 00:00:08.666
+Node modules is if you're used to developing Node
+
+3
+00:00:09.350 --> 00:00:11.809
+on your host, and you're just doing an npm install in your
+
+4
+00:00:11.810 --> 00:00:14.900
+repo, which we've all been doing forever since Node was
+
+5
+00:00:14.960 --> 00:00:16.910
+invented, and that's fine.
+
+6
+00:00:17.120 --> 00:00:19.519
+When you're building a container image, one of the things
+
+7
+00:00:19.520 --> 00:00:22.460
+you want to make sure is that you don't copy the Node
+
+8
+00:00:22.700 --> 00:00:25.340
+modules from your host into the container image.
+
+9
+00:00:25.730 --> 00:00:28.190
+Especially if you're on Mac or Windows where the
+
+10
+00:00:28.250 --> 00:00:29.450
+architecture is different.
+
+11
+00:00:30.080 --> 00:00:33.050
+One of the reasons that matters is because some
+
+12
+00:00:33.080 --> 00:00:36.440
+of the Node module dependencies are built binary
+
+13
+00:00:36.470 --> 00:00:38.528
+by binary into a compatible format for the
+
+14
+00:00:39.560 --> 00:00:42.280
+architecture. A good example with that is the node---
+
+15
+00:00:43.940 --> 00:00:47.060
+module, which is very common in larger, complex projects.
+
+16
+00:00:47.420 --> 00:00:49.037
+It's their design to build things
+
+17
+00:00:50.540 --> 00:00:53.137
+on the fly during an npm install for the architecture
+
+18
+00:00:53.840 --> 00:00:55.525
+that you're currently sitting on. If you do that on a Mac,
+
+19
+00:00:55.526 --> 00:00:58.082
+or on a Windows machine, and you're not using Docker,
+
+20
+00:00:58.820 --> 00:01:00.610
+then it's going to build for that architecture, you know.
+
+21
+00:01:00.770 --> 00:01:03.540
+It's going to be something .exe on Windows and then a
+
+22
+00:01:03.620 --> 00:01:06.560
+binary compatible with the Mac OS and the Mac
+
+23
+00:01:06.590 --> 00:01:09.890
+kernel. That's important to not put
+
+24
+00:01:09.950 --> 00:01:12.792
+into the image because the images in this case, throughout
+
+25
+00:01:13.160 --> 00:01:15.260
+this course, we're talking really about Linux images.
+
+26
+00:01:15.560 --> 00:01:18.059
+So, they need to have that node--- building inside
+
+27
+00:01:19.070 --> 00:01:21.961
+the image build. The way that we do that is like a previous
+
+28
+00:01:21.980 --> 00:01:23.728
+lecture talked about, using the .dockerignore
+
+29
+00:01:25.040 --> 00:01:27.588
+file and putting the Node modules directory in there
+
+30
+00:01:28.130 --> 00:01:30.531
+so that we make sure that Docker ignores anything
+
+31
+00:01:31.160 --> 00:01:32.149
+we do on the host.
+
+32
+00:01:32.150 --> 00:01:34.459
+Let me show you an example of that real quick using the
+
+33
+00:01:34.460 --> 00:01:35.979
+sails framework, which is a MVC
+
+34
+00:01:37.880 --> 00:01:39.250
+framework for creating websites.
+
+35
+00:01:39.440 --> 00:01:40.690
+It's rather large.
+
+36
+00:01:40.890 --> 00:01:43.389
+When you do an npm install of sails, it does create
+
+37
+00:01:43.970 --> 00:01:46.249
+a lot of Node modules, so it's a good example to show the
+
+38
+00:01:46.250 --> 00:01:47.570
+distinction and the difference here.
+
+39
+00:01:47.890 --> 00:01:50.630
+I have a sample sails app that just comes out-of-the-box,
+
+40
+00:01:51.290 --> 00:01:53.033
+and I've created a simple Dockerfile.
+
+41
+00:01:53.300 --> 00:01:55.530
+If I just cat that Dockerfile.
+
+42
+00:01:56.700 --> 00:01:58.579
+You'll see this looks pretty standard compared to some
+
+43
+00:01:58.580 --> 00:02:00.380
+simple stuff we've done in the course already.
+
+44
+00:02:00.800 --> 00:02:03.397
+If I do a build of this file, so I just do a
+
+45
+00:02:04.310 --> 00:02:05.510
+docker build.
+
+46
+00:02:06.840 --> 00:02:07.840
+Tag it with sailsbret
+
+47
+00:02:11.580 --> 00:02:12.810
+or whatever you want to call it.
+
+48
+00:02:14.650 --> 00:02:17.509
+When we do that, you'll see that the first thing it does is
+
+49
+00:02:17.510 --> 00:02:20.600
+it creates the build context and
+
+50
+00:02:20.690 --> 00:02:22.660
+ships it over to the engine.
+
+51
+00:02:22.670 --> 00:02:24.109
+And if you're not aware of what Docker is doing in the
+
+52
+00:02:24.110 --> 00:02:27.500
+background here, it's actually tarring up all the files
+
+53
+00:02:27.590 --> 00:02:30.290
+in the current directory, and all subdirectories,
+
+54
+00:02:30.620 --> 00:02:32.923
+into a big file, then shipping them over to the
+
+55
+00:02:33.680 --> 00:02:35.720
+engine, and then extracting them.
+
+56
+00:02:35.900 --> 00:02:38.326
+In this case, because I'm on a Mac that's in a Linux VM,
+
+57
+00:02:38.950 --> 00:02:40.959
+so I had to send 180MG worth of data that
+
+58
+00:02:41.960 --> 00:02:44.870
+you can see there, just before it can start building.
+
+59
+00:02:44.930 --> 00:02:47.990
+That's a pretty big thing for just a sample little app,
+
+60
+00:02:48.080 --> 00:02:50.089
+right. If I do that same build, but after
+
+61
+00:02:51.170 --> 00:02:52.653
+we create the dockerignore file.
+
+62
+00:02:52.790 --> 00:02:55.189
+And in this case, just because of this particular
+
+63
+00:02:55.190 --> 00:02:57.248
+framework, you can see here that they have
+
+64
+00:02:58.460 --> 00:03:01.370
+their own .gitignore that they've already created.
+
+65
+00:03:01.882 --> 00:03:04.381
+Chances are, your .dockerignore is going to be very
+
+66
+00:03:05.150 --> 00:03:08.041
+similar to any .gitignore recommendations that you're using
+
+67
+00:03:08.270 --> 00:03:10.910
+in a project. Of course, all Node projects and all projects
+
+68
+00:03:11.210 --> 00:03:12.650
+in general aren't going to have this file.
+
+69
+00:03:12.680 --> 00:03:14.480
+But in this case, it's nice and simple.
+
+70
+00:03:14.890 --> 00:03:17.700
+I could just do a copy of that gitignore
+
+71
+00:03:18.310 --> 00:03:20.319
+into a dockerignore and see if that works
+
+72
+00:03:21.430 --> 00:03:22.810
+for me, right. I could start from that.
+
+73
+00:03:22.840 --> 00:03:24.555
+Sort of dive into the file and away
+
+74
+00:03:25.810 --> 00:03:28.780
+we go. I could just create a generic dockerignore file
+
+75
+00:03:28.810 --> 00:03:31.570
+and only copy in the Node modules but I happen to know
+
+76
+00:03:32.050 --> 00:03:34.720
+that if I do a cat on that dockerignore file,
+
+77
+00:03:35.050 --> 00:03:37.402
+that it does include a lot of things, log files,
+
+78
+00:03:38.050 --> 00:03:40.650
+temp directories, stuff like that, including the Node
+
+79
+00:03:40.840 --> 00:03:41.980
+modules right there.
+
+80
+00:03:42.370 --> 00:03:44.220
+So, I know it's not going to be copied in.
+
+81
+00:03:44.500 --> 00:03:47.260
+If I do that same docker build, with the same tag.
+
+82
+00:03:50.020 --> 00:03:52.617
+Watch what we see there. When I build, it only copies
+
+83
+00:03:53.260 --> 00:03:55.380
+over 3.7MG instead of 180MB.
+
+84
+00:03:57.220 --> 00:03:59.559
+That's a huge difference, and that was all nothing but the
+
+85
+00:03:59.560 --> 00:04:01.766
+Node modules. So, even when you're doing local development,
+
+86
+00:04:01.767 --> 00:04:04.626
+you want to make sure that you've included
+
+87
+00:04:04.780 --> 00:04:07.600
+that .dockerignore for all Node apps.
+

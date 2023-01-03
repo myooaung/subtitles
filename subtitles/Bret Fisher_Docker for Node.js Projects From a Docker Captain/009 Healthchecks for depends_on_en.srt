@@ -1,0 +1,476 @@
+1
+00:00:02,469 --> 00:00:04,909
+In the last lecture, we talked about the dependencies and
+
+2
+00:00:04,910 --> 00:00:07,579
+startup order in your Compose file, and how you need to
+
+3
+00:00:07,580 --> 00:00:09,997
+work with that to make sure that your multi-service
+
+4
+00:00:10,610 --> 00:00:13,310
+application goes well when you're local developing.
+
+5
+00:00:13,570 --> 00:00:15,889
+Now, I want to get into the specifics on the depends on
+
+6
+00:00:15,890 --> 00:00:18,460
+healthchecks. If you haven't heard of healthchecks, they're
+
+7
+00:00:18,640 --> 00:00:20,980
+a built-in Docker feature that you can put in Dockerfiles,
+
+8
+00:00:21,320 --> 00:00:24,320
+Compose files, Kubernetes deployment files,
+
+9
+00:00:24,370 --> 00:00:25,580
+Swarm stack files.
+
+10
+00:00:25,640 --> 00:00:27,100
+Basically, you can put them everywhere. You can put them in
+
+11
+00:00:27,104 --> 00:00:28,104
+at the command line even.
+
+12
+00:00:28,410 --> 00:00:30,664
+They're just little tests that ensure that the
+
+13
+00:00:31,400 --> 00:00:33,530
+container is available and ready.
+
+14
+00:00:33,830 --> 00:00:35,749
+Normally, we don't worry about that stuff in local
+
+15
+00:00:35,750 --> 00:00:38,750
+development, but they can be very handy for
+
+16
+00:00:38,780 --> 00:00:42,410
+making sure that your backend database, or API
+
+17
+00:00:42,620 --> 00:00:45,800
+containers on your local system, are ready to go before
+
+18
+00:00:46,100 --> 00:00:47,180
+other containers start.
+
+19
+00:00:47,510 --> 00:00:50,444
+This gets you away from the whole restart cycle of Node
+
+20
+00:00:50,660 --> 00:00:52,550
+apps because your database is starting up.
+
+21
+00:00:52,880 --> 00:00:56,000
+I really like to use these when I'm local and
+
+22
+00:00:56,300 --> 00:00:58,969
+I especially like the convenience of them ensuring that
+
+23
+00:00:58,970 --> 00:01:00,830
+everything starts in the proper order.
+
+24
+00:01:01,130 --> 00:01:04,200
+If we look at the depends on feature of the Compose file,
+
+25
+00:01:05,090 --> 00:01:08,540
+it doesn't have anything extra in terms of features
+
+26
+00:01:08,600 --> 00:01:10,028
+in the V3 of Compose.
+
+27
+00:01:10,850 --> 00:01:13,496
+We have to go back and use the V2, which I've stressed
+
+28
+00:01:13,940 --> 00:01:16,129
+throughout this course, as the appropriate version for
+
+29
+00:01:16,130 --> 00:01:17,980
+local development right now.
+
+30
+00:01:18,260 --> 00:01:20,563
+That depends on feature in the V2 gets an extra
+
+31
+00:01:21,320 --> 00:01:23,422
+bonus for it can depend on the healthcheck before
+
+32
+00:01:24,650 --> 00:01:27,620
+it starts other services that depend on that service.
+
+33
+00:01:27,985 --> 00:01:30,926
+This is the true wait for style, dependency
+
+34
+00:01:31,240 --> 00:01:33,837
+stuff that you might go searching Google for and find
+
+35
+00:01:34,280 --> 00:01:36,926
+people talking about creating scripts, and other types
+
+36
+00:01:37,550 --> 00:01:39,890
+of automation, to solve this problem.
+
+37
+00:01:40,130 --> 00:01:42,629
+But, it's already there. It's already solved in the
+
+38
+00:01:43,010 --> 00:01:44,540
+Compose. We just have to enable it.
+
+39
+00:01:44,750 --> 00:01:47,149
+I want to show you some quick, simple examples of how this
+
+40
+00:01:47,150 --> 00:01:49,502
+works. We'll look at a Web, a Mongo,
+
+41
+00:01:50,230 --> 00:01:52,435
+a Postgres and a MySQL example so that we see
+
+42
+00:01:53,180 --> 00:01:54,330
+how simple this can really be.
+
+43
+00:01:55,990 --> 00:01:58,960
+If you want to follow along, there's the depends on
+
+44
+00:01:59,020 --> 00:02:01,813
+directory inside the course repo where I have two, simple
+
+45
+00:02:01,990 --> 00:02:04,890
+examples. The first one is a standard Docker Compose YAML
+
+46
+00:02:05,140 --> 00:02:06,953
+file. It has the old style, or what I
+
+47
+00:02:08,110 --> 00:02:10,989
+would consider incomplete depends on example.
+
+48
+00:02:11,240 --> 00:02:13,089
+This example is all over the Internet and in the
+
+49
+00:02:13,090 --> 00:02:15,785
+documentation where it solves two of the three problems
+
+50
+00:02:15,850 --> 00:02:17,470
+that I discussed in the previous lecture.
+
+51
+00:02:17,740 --> 00:02:20,496
+It shows relationships so that when I do a docker compose
+
+52
+00:02:20,950 --> 00:02:23,351
+up node for the Node service, it will first start
+
+53
+00:02:24,040 --> 00:02:27,400
+the DB. It will not wait for the DB to be healthy
+
+54
+00:02:27,430 --> 00:02:29,829
+and ready for connections, though, because we need the
+
+55
+00:02:29,830 --> 00:02:30,830
+healthcheck.
+
+56
+00:02:31,090 --> 00:02:33,826
+It also solves the problem of DNS, so when the Node
+
+57
+00:02:34,090 --> 00:02:36,638
+service comes up and it needs to resolve the DNS for
+
+58
+00:02:37,120 --> 00:02:39,962
+database, the database container has at least been started
+
+59
+00:02:39,970 --> 00:02:42,530
+at that point, and it will not fail DNS resolution.
+
+60
+00:02:43,210 --> 00:02:45,849
+Let's go to the more complete example which is what I would
+
+61
+00:02:45,850 --> 00:02:47,050
+encourage you to use.
+
+62
+00:02:47,440 --> 00:02:49,516
+This example is using the full healthcheck
+
+63
+00:02:51,070 --> 00:02:53,173
+feature set of depends on that we got in Version 2.3,
+
+64
+00:02:54,580 --> 00:02:57,390
+or newer, but you also have to be less than Version
+
+65
+00:02:57,670 --> 00:02:57,939
+3.
+
+66
+00:02:57,940 --> 00:03:00,782
+Remember, Version 3 of the Compose file format is designed
+
+67
+00:03:01,000 --> 00:03:03,646
+for orchestration where we don't really get to control
+
+68
+00:03:04,150 --> 00:03:06,520
+startup order across multiple servers.
+
+69
+00:03:06,730 --> 00:03:09,159
+So, this example doesn't make sense there which is why this
+
+70
+00:03:09,160 --> 00:03:10,950
+feature really only exists in Version 2.
+
+71
+00:03:11,470 --> 00:03:13,610
+You see that the standard depends on exists here.
+
+72
+00:03:13,630 --> 00:03:16,702
+This would be maybe a frontend with an API backend,
+
+73
+00:03:16,940 --> 00:03:18,681
+and in the API depends on databases.
+
+74
+00:03:18,682 --> 00:03:21,160
+So, you've got multi-tiered dependencies.
+
+75
+00:03:22,000 --> 00:03:25,180
+You see here that the API has to have this line,
+
+76
+00:03:25,210 --> 00:03:26,500
+condition service healthy.
+
+77
+00:03:26,740 --> 00:03:29,484
+So underneath every depends on statement, for each thing
+
+78
+00:03:29,800 --> 00:03:31,960
+you depend on, you have to add this extra line.
+
+79
+00:03:32,500 --> 00:03:35,391
+Then on the thing you're depending on, you've got to put in
+
+80
+00:03:35,440 --> 00:03:37,988
+the healthcheck. So, for the API, it's a very simple
+
+81
+00:03:38,680 --> 00:03:42,100
+web API, so I might just do a simple cURL command here.
+
+82
+00:03:42,460 --> 00:03:44,861
+Note, that cURL may not be in all of your apps by
+
+83
+00:03:45,520 --> 00:03:47,921
+default. It's in the Alpine image, but it may not
+
+84
+00:03:48,640 --> 00:03:50,894
+be in all images, so make sure that your image
+
+85
+00:03:51,880 --> 00:03:54,670
+has cURL in it or the tests will always fail.
+
+86
+00:03:56,250 --> 00:03:59,070
+Then you'll see I have three dependencies for this API.
+
+87
+00:03:59,460 --> 00:04:00,460
+The Postgres, Mongo and MySQL. Hopefully,
+
+88
+00:04:03,870 --> 00:04:07,050
+your database and API situation isn't requiring
+
+89
+00:04:07,080 --> 00:04:08,490
+all three database types.
+
+90
+00:04:08,850 --> 00:04:10,949
+But, really this is here just for me to show you the
+
+91
+00:04:10,950 --> 00:04:12,090
+example of commands.
+
+92
+00:04:12,420 --> 00:04:15,164
+If you scroll down here, you see that I'm showing a very
+
+93
+00:04:15,210 --> 00:04:17,730
+simple test command for each one.
+
+94
+00:04:18,100 --> 00:04:21,029
+The Postgres one uses a built-in utility to simply
+
+95
+00:04:21,120 --> 00:04:23,031
+say, are you ready and it will succeed,
+
+96
+00:04:24,510 --> 00:04:25,950
+or fail, with an exit code.
+
+97
+00:04:26,360 --> 00:04:27,890
+The Mongo does the same one.
+
+98
+00:04:27,900 --> 00:04:30,059
+It's a little bit longer where it actually uses the Mongo
+
+99
+00:04:30,060 --> 00:04:32,363
+client. It sends a true JavaScript ping command
+
+100
+00:04:33,120 --> 00:04:35,064
+into a test database.
+
+101
+00:04:35,550 --> 00:04:38,196
+Then the MySQL one uses the MySQL admin utility, which
+
+102
+00:04:38,640 --> 00:04:41,000
+is bundled with the MySQL container image.
+
+103
+00:04:41,400 --> 00:04:43,170
+It does a ping on the localhost there.
+
+104
+00:04:43,440 --> 00:04:46,350
+All three of these, essentially, are the simplest
+
+105
+00:04:46,650 --> 00:04:49,149
+way for you to verify that the port is open and the
+
+106
+00:04:49,590 --> 00:04:51,360
+database can receive connections.
+
+107
+00:04:52,410 --> 00:04:54,839
+For production systems, obviously healthchecks would need
+
+108
+00:04:54,840 --> 00:04:55,890
+to be more complex.
+
+109
+00:04:56,220 --> 00:04:59,111
+You might also make more complicated ones that would ensure
+
+110
+00:04:59,490 --> 00:05:02,283
+that there were select statements in there to see if real
+
+111
+00:05:02,340 --> 00:05:05,084
+data exists. But, I don't know that that makes any sense
+
+112
+00:05:05,160 --> 00:05:07,218
+for just simple, local database dependency
+
+113
+00:05:08,160 --> 00:05:10,316
+stuff. These commands here solve my problems
+
+114
+00:05:11,130 --> 00:05:13,433
+so that when I start up Docker Compose, I never
+
+115
+00:05:14,130 --> 00:05:16,439
+get my Node app failing because it can't connect to the
+
+116
+00:05:16,440 --> 00:05:18,480
+database. Because it will wait.
+
+117
+00:05:18,690 --> 00:05:20,993
+Or more accurately, Compose will wait, to start
+
+118
+00:05:21,660 --> 00:05:24,159
+that Node app until the database starts returning a
+
+119
+00:05:24,630 --> 00:05:25,607
+successful healthcheck.
+

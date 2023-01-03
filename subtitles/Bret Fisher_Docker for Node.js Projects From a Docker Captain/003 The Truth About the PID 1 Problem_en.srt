@@ -1,0 +1,656 @@
+1
+00:00:02,990 --> 00:00:06,019
+I teased in the last video that there are some potential
+
+2
+00:00:06,219 --> 00:00:08,930
+issues with the shutdown process for Node
+
+3
+00:00:09,130 --> 00:00:09,504
+and npm.
+
+4
+00:00:10,250 --> 00:00:13,130
+I want to expand a little bit on that in this lecture
+
+5
+00:00:13,340 --> 00:00:15,440
+around what we're dealing with inside a container.
+
+6
+00:00:15,640 --> 00:00:17,749
+It has to do with the fundamental starting
+
+7
+00:00:17,949 --> 00:00:20,809
+and stopping of processes at the root
+
+8
+00:00:21,009 --> 00:00:23,990
+of a file system. That's known as the init process.
+
+9
+00:00:24,290 --> 00:00:26,330
+It's also known as the PID 1 process.
+
+10
+00:00:26,530 --> 00:00:29,689
+That's the technical term for it because it is technically running
+
+11
+00:00:29,889 --> 00:00:30,838
+Process Identifier 1.
+
+12
+00:00:31,280 --> 00:00:33,846
+If you did a ps command, you would see that it was the number 1,
+
+13
+00:00:34,130 --> 00:00:35,390
+meaning the first one.
+
+14
+00:00:35,780 --> 00:00:39,110
+In Linux, that means it's got a couple of extra responsibilities
+
+15
+00:00:39,310 --> 00:00:40,519
+as a process. That is,
+
+16
+00:00:40,719 --> 00:00:42,900
+it needs to handle zombie processes.
+
+17
+00:00:43,370 --> 00:00:46,399
+That sounds scary. But really what it means is processes that
+
+18
+00:00:46,599 --> 00:00:49,190
+don't have a parent. Or maybe something that
+
+19
+00:00:49,610 --> 00:00:51,170
+was launched by something else,
+
+20
+00:00:51,370 --> 00:00:53,990
+but then that parent process crashed,
+
+21
+00:00:54,190 --> 00:00:56,402
+and then the subprocess is left hanging out,
+
+22
+00:00:56,630 --> 00:00:59,870
+right. That's happened sometimes in a bad situation.
+
+23
+00:01:00,170 --> 00:01:01,447
+Those are known as zombie processes.
+
+24
+00:01:01,647 --> 00:01:03,259
+The main,
+
+25
+00:01:03,459 --> 00:01:05,179
+or root init process there,
+
+26
+00:01:05,379 --> 00:01:07,820
+the PID 1, it's supposed to clean up,
+
+27
+00:01:08,020 --> 00:01:09,979
+or reap, those processes,
+
+28
+00:01:10,179 --> 00:01:11,869
+or kind of take them in, and take hold of them
+
+29
+00:01:12,069 --> 00:01:12,990
+and deal with them.
+
+30
+00:01:13,280 --> 00:01:16,460
+And the other big thing it does is pass as process signals to
+
+31
+00:01:16,660 --> 00:01:17,630
+its subprocesses.
+
+32
+00:01:18,020 --> 00:01:21,050
+That is important when you want to shut down a process.
+
+33
+00:01:21,250 --> 00:01:24,140
+So, there are things in the Linux kernel that
+
+34
+00:01:24,350 --> 00:01:26,029
+are sent, they're called signals,
+
+35
+00:01:26,229 --> 00:01:27,470
+and they're sent to the processes.
+
+36
+00:01:27,715 --> 00:01:30,919
+Then if there are subprocesses of a particular
+
+37
+00:01:31,119 --> 00:01:33,440
+process, it needs to pass those on as well.
+
+38
+00:01:33,920 --> 00:01:35,389
+So, let's see how we deal
+
+39
+00:01:35,589 --> 00:01:38,600
+with these two problems. I want to tell you that the Internet,
+
+40
+00:01:38,800 --> 00:01:41,689
+to a large extent, has this wrong when it comes to
+
+41
+00:01:41,889 --> 00:01:44,420
+Node. So if you go start researching around about Node
+
+42
+00:01:44,620 --> 00:01:46,040
+and zombie processes in containers,
+
+43
+00:01:46,390 --> 00:01:49,609
+you will read everybody telling you that you shouldn't run Node directly
+
+44
+00:01:49,809 --> 00:01:51,770
+in a container. That's simply not true.
+
+45
+00:01:52,190 --> 00:01:55,159
+That's maybe a little bit of misunderstanding on their part about the
+
+46
+00:01:55,359 --> 00:01:58,129
+potential solutions because there are at least three
+
+47
+00:01:58,329 --> 00:01:59,440
+ways to deal with this problem.
+
+48
+00:01:59,840 --> 00:02:03,230
+Certain ways have certain negative effects.
+
+49
+00:02:03,470 --> 00:02:04,520
+So, let's go through those.
+
+50
+00:02:05,120 --> 00:02:06,460
+The first here is the zombie process.
+
+51
+00:02:06,660 --> 00:02:09,378
+I just want to tell you that zombie processes are not really an issue
+
+52
+00:02:09,579 --> 00:02:11,479
+with Node. I've never had this issue
+
+53
+00:02:11,679 --> 00:02:14,569
+with Node and I've not seen others on the Internet talking about
+
+54
+00:02:14,769 --> 00:02:16,493
+zombie processes happening in Node,
+
+55
+00:02:16,693 --> 00:02:18,079
+so let's just not deal
+
+56
+00:02:18,279 --> 00:02:20,990
+with that or add an extra layer of management in the middle here
+
+57
+00:02:21,190 --> 00:02:23,529
+if we don't need it, right. So, if we don't have zombie processes,
+
+58
+00:02:23,729 --> 00:02:26,390
+great. Usually, you're just going to have that one node process
+
+59
+00:02:26,590 --> 00:02:27,920
+and subprocesses,
+
+60
+00:02:28,120 --> 00:02:29,240
+if any at all,
+
+61
+00:02:29,480 --> 00:02:31,550
+that you would have for that node process.
+
+62
+00:02:31,820 --> 00:02:34,909
+Let's focus on the shutdown which I feel like is
+
+63
+00:02:35,109 --> 00:02:37,400
+really the core and most important issue
+
+64
+00:02:37,700 --> 00:02:40,880
+with Node in production when you're going to do rolling updates.
+
+65
+00:02:41,080 --> 00:02:42,980
+Now we'll get the rolling updates later in the course.
+
+66
+00:02:43,250 --> 00:02:46,130
+But for now, let's just talk about the different options for
+
+67
+00:02:46,340 --> 00:02:48,140
+handling shutdown in a container.
+
+68
+00:02:48,710 --> 00:02:50,959
+This is where I feel like the Internet,
+
+69
+00:02:51,159 --> 00:02:52,550
+in general, gets this wrong
+
+70
+00:02:52,750 --> 00:02:53,594
+and they're a little bit confused
+
+71
+00:02:53,794 --> 00:02:55,879
+around the real core issues we're dealing
+
+72
+00:02:56,079 --> 00:02:58,940
+with here. If we ignore zombie processes because they're not an issue,
+
+73
+00:02:59,270 --> 00:03:01,082
+then really the main thing left is shutdown.
+
+74
+00:03:01,670 --> 00:03:04,400
+Shutdown is really about signals
+
+75
+00:03:04,670 --> 00:03:06,260
+coming from Docker.
+
+76
+00:03:06,460 --> 00:03:09,025
+Docker gets those either from telling itself,
+
+77
+00:03:09,225 --> 00:03:10,369
+you know hey,
+
+78
+00:03:10,569 --> 00:03:12,410
+I'm going to shut down this container because I'm going to replace it.
+
+79
+00:03:12,620 --> 00:03:15,290
+Or it might get those signals from the OS.
+
+80
+00:03:15,500 --> 00:03:18,469
+Maybe a control c at the command line when you're running on your
+
+81
+00:03:18,669 --> 00:03:19,324
+local machine, you hit control c.
+
+82
+00:03:20,360 --> 00:03:23,479
+That's also a shutdown process that is sent from
+
+83
+00:03:23,679 --> 00:03:24,650
+Docker into the container.
+
+84
+00:03:24,920 --> 00:03:27,529
+Then the kernel itself could maybe tell Docker,
+
+85
+00:03:27,729 --> 00:03:30,740
+you need to shut down and Docker will make sure that it's shutting down all of its containers
+
+86
+00:03:30,940 --> 00:03:33,980
+first. These come in three different flavors of signals
+
+87
+00:03:34,180 --> 00:03:35,920
+from the operating system
+
+88
+00:03:36,120 --> 00:03:36,890
+and that is Signal Int
+
+89
+00:03:37,730 --> 00:03:39,518
+or SIGINT, Signal Term,
+
+90
+00:03:40,130 --> 00:03:42,427
+also called SIGTERM. Then SIGKILL as you can guess,
+
+91
+00:03:43,370 --> 00:03:44,650
+killing the container.
+
+92
+00:03:44,850 --> 00:03:47,899
+So, we never want to deal with SIGKILL because that's not really
+
+93
+00:03:48,099 --> 00:03:51,140
+a healthy state. That is actually the operating system just
+
+94
+00:03:51,590 --> 00:03:52,940
+literally right now,
+
+95
+00:03:53,140 --> 00:03:56,210
+immediately killing the container. The container won't even see that signal
+
+96
+00:03:56,510 --> 00:03:58,730
+because it's not even given a chance to respond.
+
+97
+00:03:58,930 --> 00:04:00,170
+It's just terminated.
+
+98
+00:04:00,620 --> 00:04:02,255
+Now the other two, the INT
+
+99
+00:04:02,510 --> 00:04:05,539
+and TERM, are passed into the container by
+
+100
+00:04:05,739 --> 00:04:08,629
+Docker. What I see is SIGINT is used when you control
+
+101
+00:04:08,829 --> 00:04:12,020
+c, and SIGTERM is used when you do a docker container stop,
+
+102
+00:04:12,260 --> 00:04:13,850
+or maybe a rolling update,
+
+103
+00:04:14,120 --> 00:04:15,679
+or Kubernetes is doing an update,
+
+104
+00:04:15,879 --> 00:04:17,689
+something like that. So, those are the two common ones.
+
+105
+00:04:17,930 --> 00:04:19,470
+Those are really the only two options actually.
+
+106
+00:04:19,670 --> 00:04:21,769
+You're going to see those two in your app,
+
+107
+00:04:21,970 --> 00:04:23,269
+and we need to understand them
+
+108
+00:04:23,469 --> 00:04:25,280
+and handle them properly in Docker.
+
+109
+00:04:25,970 --> 00:04:29,029
+Because INT and TERM are seen
+
+110
+00:04:29,229 --> 00:04:32,090
+by the app, the app has a chance to properly shut down.
+
+111
+00:04:32,450 --> 00:04:35,540
+This is actually pretty common in the real world of Linux even without Docker.
+
+112
+00:04:35,740 --> 00:04:37,009
+So, if you had a MySQL server,
+
+113
+00:04:37,209 --> 00:04:39,910
+for example, and you wanted to stop the process,
+
+114
+00:04:40,110 --> 00:04:41,556
+Linux will send it a SIGTERM
+
+115
+00:04:42,230 --> 00:04:43,870
+and give some seconds,
+
+116
+00:04:44,360 --> 00:04:46,159
+you know depending on the init process
+
+117
+00:04:46,359 --> 00:04:47,390
+and how long it wants to wait,
+
+118
+00:04:47,630 --> 00:04:49,580
+for MySQL to shut down.
+
+119
+00:04:49,820 --> 00:04:52,849
+And that's a healthy thing. Usually you want apps to handle their
+
+120
+00:04:53,049 --> 00:04:54,889
+connections, maybe save the files,
+
+121
+00:04:55,089 --> 00:04:57,350
+save memory to files. That stuff is going to all happen.
+
+122
+00:04:57,550 --> 00:04:59,119
+With Node, what we really care about,
+
+123
+00:04:59,319 --> 00:05:02,450
+usually, is making sure that it cleans up any files
+
+124
+00:05:02,650 --> 00:05:04,050
+it might be writing or streaming.
+
+125
+00:05:04,250 --> 00:05:05,730
+And then most importantly,
+
+126
+00:05:06,090 --> 00:05:09,179
+deal gracefully with any connections because a lot of us are using
+
+127
+00:05:09,379 --> 00:05:12,450
+Node for web apps. We want to make sure that our clients aren't suddenly terminated
+
+128
+00:05:12,650 --> 00:05:13,530
+and they lose connection
+
+129
+00:05:13,800 --> 00:05:16,949
+or any backend processes don't suddenly lose something
+
+130
+00:05:17,149 --> 00:05:18,130
+midstream. Unfortunately,
+
+131
+00:05:19,050 --> 00:05:21,930
+npm itself, does not handle these signals
+
+132
+00:05:22,130 --> 00:05:23,669
+at all. It doesn't do them well
+
+133
+00:05:23,869 --> 00:05:26,390
+or at all. And so, this is why I kind of rule out npm
+
+134
+00:05:27,240 --> 00:05:30,449
+for use in production Docker because it just doesn't do anything
+
+135
+00:05:30,649 --> 00:05:31,800
+gracefully that I can tell.
+
+136
+00:05:32,150 --> 00:05:35,099
+Node though, Node doesn't by default handle
+
+137
+00:05:35,299 --> 00:05:37,230
+these signals but you can add code to it,
+
+138
+00:05:37,430 --> 00:05:39,660
+in your app, that will listen for these signals
+
+139
+00:05:39,860 --> 00:05:40,830
+and then do whatever you want.
+
+140
+00:05:41,130 --> 00:05:42,680
+Maybe it cleans up temp files.
+
+141
+00:05:42,900 --> 00:05:45,090
+Maybe it gracefully shuts down connections.
+
+142
+00:05:45,360 --> 00:05:48,479
+Maybe it does something that you need just specific for your
+
+143
+00:05:48,679 --> 00:05:50,429
+app. But it gives you this chance.
+
+144
+00:05:50,629 --> 00:05:52,470
+It will actually watch, and then capture the signal,
+
+145
+00:05:52,670 --> 00:05:54,090
+and then it can run the functions you need,
+
+146
+00:05:54,390 --> 00:05:57,410
+and then give the exit to essentially exit the app
+
+147
+00:05:57,610 --> 00:05:58,460
+gracefully at the very end.
+
+148
+00:05:59,010 --> 00:06:01,936
+As a backup plan here, Docker does have a built-in init
+
+149
+00:06:02,250 --> 00:06:04,050
+process. This is an interesting thing.
+
+150
+00:06:04,250 --> 00:06:06,840
+It's actually called teeny. If you've taken my Docker Mastery,
+
+151
+00:06:07,040 --> 00:06:07,980
+you've seen it before.
+
+152
+00:06:08,250 --> 00:06:09,749
+We've used it in a couple of examples
+
+153
+00:06:09,949 --> 00:06:12,329
+with Node. This is sort of a backup
+
+154
+00:06:12,529 --> 00:06:15,389
+or a workaround. So, when you read on the Internet that people are saying use
+
+155
+00:06:15,589 --> 00:06:18,449
+teeny. Always use teeny or use an init process other
+
+156
+00:06:18,649 --> 00:06:19,979
+than Node. I don't always agree
+
+157
+00:06:20,179 --> 00:06:21,959
+with that because if you know what these are doing
+
+158
+00:06:22,159 --> 00:06:23,429
+and you've handled them in your app
+
+159
+00:06:23,629 --> 00:06:25,537
+with special code, like I'll show you in a minute,
+
+160
+00:06:26,070 --> 00:06:28,800
+then you don't have to worry about adding teeny in there.
+
+161
+00:06:29,040 --> 00:06:31,620
+Again, we don't need to worry about zombie processes really,
+
+162
+00:06:31,830 --> 00:06:34,170
+and as long as we're properly handling the shutdown,
+
+163
+00:06:34,380 --> 00:06:37,409
+we don't need yet another process in
+
+164
+00:06:37,609 --> 00:06:38,980
+the mix just to handle that.
+

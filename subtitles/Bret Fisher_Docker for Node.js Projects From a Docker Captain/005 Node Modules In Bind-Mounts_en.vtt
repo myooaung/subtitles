@@ -1,0 +1,1009 @@
+WEBVTT
+1
+00:00:02.700 --> 00:00:05.760
+One source of contention when you are developing
+
+2
+00:00:05.820 --> 00:00:09.060
+locally, and you've got Node modules on your host,
+
+3
+00:00:09.120 --> 00:00:11.909
+and you've got them in the container, is that they might be
+
+4
+00:00:11.910 --> 00:00:14.409
+incompatible. If you're on Mac OS, or Windows, that
+
+5
+00:00:14.940 --> 00:00:18.360
+Node modules that you may have installed on your host OS,
+
+6
+00:00:18.810 --> 00:00:20.400
+may not work inside your container.
+
+7
+00:00:20.430 --> 00:00:22.940
+In fact, we really don't want to mix the two, right.
+
+8
+00:00:22.980 --> 00:00:26.190
+The idea of Docker, or one of our goals here, is that
+
+9
+00:00:26.460 --> 00:00:28.455
+everything is acting the same on every platform.
+
+10
+00:00:28.456 --> 00:00:30.514
+We're getting the same Node modules inside
+
+11
+00:00:31.410 --> 00:00:34.170
+the container. The ones that are built in the image and
+
+12
+00:00:34.200 --> 00:00:35.470
+ideally those are the same, right.
+
+13
+00:00:35.640 --> 00:00:38.139
+If you've ever done Node development on your native
+
+14
+00:00:38.670 --> 00:00:41.267
+host, you've got that node modules directory designed
+
+15
+00:00:42.090 --> 00:00:45.300
+for your host architecture sitting there in your repo.
+
+16
+00:00:45.450 --> 00:00:46.450
+So, what do we do about that?
+
+17
+00:00:46.860 --> 00:00:50.160
+Well, there's two answers to this problem that I think
+
+18
+00:00:50.250 --> 00:00:53.760
+work well. The first one is easier
+
+19
+00:00:54.030 --> 00:00:56.823
+to get started and simpler for maybe your own projects if
+
+20
+00:00:56.940 --> 00:00:59.129
+you're just a single person. If you're more in a team
+
+21
+00:00:59.130 --> 00:01:02.100
+environment, we've got to take more into consideration,
+
+22
+00:01:02.460 --> 00:01:05.203
+more ways that people might develop their apps, then the
+
+23
+00:01:05.370 --> 00:01:08.124
+second option is going to be more likely for you
+
+24
+00:01:08.340 --> 00:01:11.010
+to use. It's a little more work and a little more complex
+
+25
+00:01:11.070 --> 00:01:13.600
+in concept, but they both work well.
+
+26
+00:01:13.620 --> 00:01:15.060
+They just have different processes.
+
+27
+00:01:15.660 --> 00:01:18.810
+The first one essentially has you doing your npm install
+
+28
+00:01:18.870 --> 00:01:21.369
+inside the container and then when there's the bind
+
+29
+00:01:21.870 --> 00:01:24.830
+mount to your host, it will then put those Node
+
+30
+00:01:24.990 --> 00:01:26.117
+modules on the host OS.
+
+31
+00:01:26.640 --> 00:01:29.335
+Which means that you can't do Node development natively
+
+32
+00:01:29.880 --> 00:01:32.379
+on your host anymore because those Node modules are
+
+33
+00:01:32.460 --> 00:01:33.750
+designed for Linux.
+
+34
+00:01:34.080 --> 00:01:37.050
+This may not really matter if you're not using binary
+
+35
+00:01:37.380 --> 00:01:40.430
+stuff like node--- would build for you, but in
+
+36
+00:01:40.440 --> 00:01:42.659
+a lot of cases, this will have a problem if you're trying
+
+37
+00:01:42.660 --> 00:01:44.500
+to use these across the different OS's.
+
+38
+00:01:44.550 --> 00:01:47.294
+So, this would mean that you would need to do everything
+
+39
+00:01:47.640 --> 00:01:49.559
+in Compose. Which if you're doing Docker development and
+
+40
+00:01:49.560 --> 00:01:51.180
+that's the way you're going to stick with it, then great.
+
+41
+00:01:51.210 --> 00:01:52.560
+This first method works fine.
+
+42
+00:01:52.770 --> 00:01:54.877
+The second one is more where we're going to
+
+43
+00:01:55.830 --> 00:01:58.229
+move node modules in the container and then we're going to
+
+44
+00:01:58.230 --> 00:02:01.072
+hide the ones on the host so that they don't conflict with
+
+45
+00:02:01.230 --> 00:02:03.435
+each other. In this first solution, it's easy
+
+46
+00:02:04.410 --> 00:02:06.870
+to get started because it doesn't require any special setup
+
+47
+00:02:06.900 --> 00:02:08.256
+in your Dockerfile or in your Compose.
+
+48
+00:02:09.000 --> 00:02:11.546
+However, it does mean that you need to run a docker compose
+
+49
+00:02:11.940 --> 00:02:15.450
+run to get the npm installed
+
+50
+00:02:15.750 --> 00:02:18.053
+inside the container, but sort of sending those
+
+51
+00:02:18.840 --> 00:02:20.700
+files to your host through the bind mount.
+
+52
+00:02:20.730 --> 00:02:21.990
+We'll see an example in a second.
+
+53
+00:02:22.320 --> 00:02:24.749
+So, you have to do that docker compose run to get things
+
+54
+00:02:24.750 --> 00:02:26.970
+started before you can ever do a docker compose up.
+
+55
+00:02:27.530 --> 00:02:30.421
+This is the one where we're storing the node modules in the
+
+56
+00:02:30.450 --> 00:02:32.870
+container. We're actually storing those inside the bind
+
+57
+00:02:32.880 --> 00:02:34.470
+mount that's going to the host OS.
+
+58
+00:02:34.770 --> 00:02:37.110
+This will be a little easier to make sense when I show you.
+
+59
+00:02:37.380 --> 00:02:40.710
+I'm in a sample Express app, a very simple generated
+
+60
+00:02:40.740 --> 00:02:43.860
+Express app here, that if I just
+
+61
+00:02:43.890 --> 00:02:46.405
+look at the Dockerfile. If I just do a cat dockerfile,
+
+62
+00:02:48.330 --> 00:02:51.300
+you can see it's a very standard setup, similar to our last
+
+63
+00:02:51.540 --> 00:02:53.843
+lecture where we're just copying in the package
+
+64
+00:02:54.660 --> 00:02:56.820
+files. Then we're doing an npm install.
+
+65
+00:02:56.940 --> 00:02:59.610
+Then we're running the standard node express
+
+66
+00:02:59.940 --> 00:03:01.280
+directory and file.
+
+67
+00:03:01.500 --> 00:03:03.120
+That makes sense, right.
+
+68
+00:03:03.390 --> 00:03:04.919
+There's nothing special about that. If we look at the
+
+69
+00:03:04.920 --> 00:03:05.920
+Compose file,
+
+70
+00:03:09.060 --> 00:03:11.804
+this also is very simple. It's got just a standard build
+
+71
+00:03:11.820 --> 00:03:13.379
+statement there to build everything in the current
+
+72
+00:03:13.380 --> 00:03:15.840
+directory. It's opening up the default port on express.
+
+73
+00:03:16.140 --> 00:03:18.810
+Then we're bind mounting the current directory
+
+74
+00:03:19.110 --> 00:03:21.805
+that we're in in our repo into the app directory in the
+
+75
+00:03:22.140 --> 00:03:24.681
+container. That means that the node module subdirectory
+
+76
+00:03:24.682 --> 00:03:26.790
+goes with it.
+
+77
+00:03:27.840 --> 00:03:29.857
+But if I list the stuff in this directory, you'll see that
+
+78
+00:03:29.858 --> 00:03:31.769
+there's no node modules directory on my
+
+79
+00:03:32.820 --> 00:03:35.700
+host. That's because I've never run npm install on my host.
+
+80
+00:03:35.970 --> 00:03:38.129
+Because if I'm always doing development in Docker, why do I
+
+81
+00:03:38.130 --> 00:03:41.088
+need to do that, right? I don't need to have npm install on
+
+82
+00:03:41.122 --> 00:03:43.670
+my host. In theory, I could have none of those tools
+
+83
+00:03:44.040 --> 00:03:45.734
+installed and just do everything inside of Docker.
+
+84
+00:03:46.680 --> 00:03:48.779
+Reality is though, you're probably going to have the stuff
+
+85
+00:03:48.780 --> 00:03:50.450
+on your host, right. It's just convenient to have there.
+
+86
+00:03:50.460 --> 00:03:52.590
+But, I don't want to do an npm install.
+
+87
+00:03:53.220 --> 00:03:55.795
+Because if I do, it'll get the binaries and stuff that are
+
+88
+00:03:55.920 --> 00:03:58.260
+specific to Mac, not the Linux VM I need to be in.
+
+89
+00:03:58.290 --> 00:04:01.209
+So, if I do just a docker compose up,
+
+90
+00:04:04.000 --> 00:04:05.000
+what's going to happen?
+
+91
+00:04:05.260 --> 00:04:08.151
+It's going to fail and you're going to get this cannot find
+
+92
+00:04:08.350 --> 00:04:11.094
+module error. Depending on the application, it will be a
+
+93
+00:04:11.200 --> 00:04:12.670
+different module that it can't find.
+
+94
+00:04:12.910 --> 00:04:15.458
+But this is a clear indicator that it tried to start
+
+95
+00:04:15.880 --> 00:04:18.010
+the app, but the dependencies aren't there.
+
+96
+00:04:18.040 --> 00:04:19.389
+That's why it's saying can't find module.
+
+97
+00:04:19.390 --> 00:04:21.550
+The node modules are just not found.
+
+98
+00:04:21.880 --> 00:04:24.039
+That's because I'm bind mounting, remember, from that
+
+99
+00:04:24.040 --> 00:04:26.289
+Compose file. I'm bind mounting the host into the
+
+100
+00:04:26.290 --> 00:04:28.719
+container. So, the first thing here is I get a lot of
+
+101
+00:04:28.720 --> 00:04:30.445
+people that ask, why do I have this error?
+
+102
+00:04:30.446 --> 00:04:33.360
+It works when I do a docker run, but when I do docker
+
+103
+00:04:33.580 --> 00:04:35.319
+compose with a bind mount, it doesn't work.
+
+104
+00:04:35.320 --> 00:04:38.260
+That's just because if I go into that container
+
+105
+00:04:38.530 --> 00:04:41.168
+and I did and ls in the app directory, it would be ls'ing
+
+106
+00:04:41.650 --> 00:04:43.267
+the host which as we can see, has
+
+107
+00:04:44.680 --> 00:04:46.150
+no node modules.
+
+108
+00:04:46.390 --> 00:04:48.987
+Some people then would mistakingly run an npm install
+
+109
+00:04:49.720 --> 00:04:52.513
+on the host, which would probably not get you the desired
+
+110
+00:04:52.690 --> 00:04:55.089
+result you're looking for. The run command is great at this
+
+111
+00:04:55.090 --> 00:04:57.540
+because it doesn't require, like an exec, that the
+
+112
+00:04:57.880 --> 00:04:59.380
+container already be running.
+
+113
+00:04:59.410 --> 00:05:00.780
+It can just start a new one.
+
+114
+00:05:01.090 --> 00:05:02.560
+So, docker compose run.
+
+115
+00:05:02.890 --> 00:05:04.780
+Then I want to pick the service.
+
+116
+00:05:04.990 --> 00:05:07.779
+If you remember in our Compose file, the service was called
+
+117
+00:05:07.780 --> 00:05:09.054
+express. Then, I just need
+
+118
+00:05:10.840 --> 00:05:13.584
+to run whatever command I want to run in that container.
+
+119
+00:05:13.600 --> 00:05:15.000
+I can do here an npm install.
+
+120
+00:05:18.580 --> 00:05:21.650
+What this will do is it will act as if it's running
+
+121
+00:05:22.080 --> 00:05:24.379
+npm install for the first time in the container, but it's
+
+122
+00:05:24.380 --> 00:05:27.740
+writing all those files into the node modules,
+
+123
+00:05:28.010 --> 00:05:30.990
+inside the bind mount, on my host, in my current directory.
+
+124
+00:05:31.010 --> 00:05:33.215
+Now, if I do an ls, I'll have a node modules.
+
+125
+00:05:34.430 --> 00:05:36.978
+If I do an ls of that node modules, I'll have all my
+
+126
+00:05:37.490 --> 00:05:39.430
+stuff there that I would expect for this express app.
+
+127
+00:05:39.770 --> 00:05:40.579
+So great.
+
+128
+00:05:40.580 --> 00:05:42.530
+Now, I can do my docker compose up.
+
+129
+00:05:44.930 --> 00:05:47.910
+My app works because it sees a node modules
+
+130
+00:05:47.940 --> 00:05:49.170
+inside the bind mount.
+
+131
+00:05:49.860 --> 00:05:52.319
+That first solution you will see that the benefit there is
+
+132
+00:05:52.320 --> 00:05:53.699
+it's easy to get started. It doesn't require anything
+
+133
+00:05:53.700 --> 00:05:56.052
+special. But the challenges is that node modules
+
+134
+00:05:56.820 --> 00:05:59.466
+on your host is now always designed for running in the
+
+135
+00:05:59.520 --> 00:06:02.215
+container. What if you work in an environment where you
+
+136
+00:06:02.220 --> 00:06:03.480
+can't always assume that.
+
+137
+00:06:03.510 --> 00:06:05.639
+Maybe you're working in a team where some people just
+
+138
+00:06:05.640 --> 00:06:08.280
+aren't using Docker yet. Or you just want the flexibility
+
+139
+00:06:08.580 --> 00:06:10.050
+to be able to run things in the container.
+
+140
+00:06:10.080 --> 00:06:12.149
+But, if you just need to edit something quickly, that you
+
+141
+00:06:12.150 --> 00:06:14.579
+can just run on the host without actually having to do
+
+142
+00:06:14.580 --> 00:06:17.130
+docker compose up. Maybe you'd like that flexibility.
+
+143
+00:06:17.250 --> 00:06:20.370
+In more advanced scenarios where you want to have these
+
+144
+00:06:20.550 --> 00:06:22.706
+node modules on the host be for the host OS,
+
+145
+00:06:23.550 --> 00:06:26.009
+and then the node modules in the container be for the
+
+146
+00:06:26.010 --> 00:06:29.100
+container OS, you just need a slightly different setup.
+
+147
+00:06:29.430 --> 00:06:32.125
+What we need to do here is edit both the Dockerfile and
+
+148
+00:06:32.460 --> 00:06:35.450
+the Compose file to relocate the node
+
+149
+00:06:35.640 --> 00:06:38.391
+modules. In fact, what we are doing is we're moving
+
+150
+00:06:39.090 --> 00:06:41.730
+the node modules permanently in that
+
+151
+00:06:42.090 --> 00:06:44.579
+Dockerfile so that when it builds the image, it's going to
+
+152
+00:06:44.580 --> 00:06:45.860
+move it up a directory.
+
+153
+00:06:46.410 --> 00:06:49.290
+This is part of the Node standard
+
+154
+00:06:49.500 --> 00:06:52.146
+where Node will look for a node modules in the current
+
+155
+00:06:52.680 --> 00:06:55.259
+directory of the app, and then it will go up to the parent
+
+156
+00:06:55.260 --> 00:06:57.779
+directory and look for it there, if it doesn't find it, and
+
+157
+00:06:57.780 --> 00:07:00.269
+then keep working up the directory chain until it finds a
+
+158
+00:07:00.270 --> 00:07:01.270
+node module directory.
+
+159
+00:07:02.142 --> 00:07:04.649
+The first thing I need to do here is move the working
+
+160
+00:07:04.650 --> 00:07:07.082
+directory so that I have a parent.
+
+161
+00:07:07.415 --> 00:07:09.539
+I could do something simple like this, just saying the work
+
+162
+00:07:09.540 --> 00:07:10.820
+directory is node/app.
+
+163
+00:07:12.910 --> 00:07:15.216
+I want to put the code in this directory, this
+
+164
+00:07:16.540 --> 00:07:19.159
+node/app. I would need to move that down here before the
+
+165
+00:07:19.160 --> 00:07:20.160
+copy.
+
+166
+00:07:20.490 --> 00:07:23.283
+Up here, before we copy in the package files, we actually
+
+167
+00:07:23.360 --> 00:07:25.516
+want the node modules now to be in that root
+
+168
+00:07:26.390 --> 00:07:28.180
+directory. So, I would need to do a workdir.
+
+169
+00:07:30.120 --> 00:07:31.440
+And then Node here.
+
+170
+00:07:32.310 --> 00:07:33.540
+Hopefully, that makes sense.
+
+171
+00:07:33.710 --> 00:07:36.630
+What I'm essentially doing is getting the node modules
+
+172
+00:07:36.660 --> 00:07:38.410
+out of my app directory and moving it up.
+
+173
+00:07:38.430 --> 00:07:41.220
+Most apps in Node do support this.
+
+174
+00:07:41.520 --> 00:07:44.270
+There are a few still that just won't work with node
+
+175
+00:07:44.460 --> 00:07:47.099
+modules and they don't adhere to the Node standard for
+
+176
+00:07:47.100 --> 00:07:49.199
+this. In that case, you're going to have to go with
+
+177
+00:07:49.200 --> 00:07:50.540
+solution 1 from earlier.
+
+178
+00:07:50.820 --> 00:07:53.970
+But in this case, most modern frameworks do support this.
+
+179
+00:07:54.330 --> 00:07:57.060
+That's the first part, so we'll need to rebuild the image
+
+180
+00:07:57.090 --> 00:07:59.190
+and that node modules will be moved up a slot.
+
+181
+00:07:59.220 --> 00:08:01.392
+But, we need to also go into the Docker Compose and
+
+182
+00:08:02.850 --> 00:08:03.960
+change a few things there.
+
+183
+00:08:04.620 --> 00:08:07.349
+On this volumes, obviously we have to change this because
+
+184
+00:08:07.350 --> 00:08:09.000
+we want to mount it now into node/app.
+
+185
+00:08:11.570 --> 00:08:14.468
+We need to do something about the node
+
+186
+00:08:14.780 --> 00:08:15.990
+modules on the hosts.
+
+187
+00:08:16.100 --> 00:08:18.980
+Remember in this example, I might be developing on my host
+
+188
+00:08:19.250 --> 00:08:21.830
+and that node modules will exist.
+
+189
+00:08:22.250 --> 00:08:24.651
+It turns out in Node that the node modules, if it
+
+190
+00:08:25.250 --> 00:08:27.455
+exists in your current directory, will always
+
+191
+00:08:28.460 --> 00:08:31.400
+be used regardless of whether there's one in the parent
+
+192
+00:08:31.430 --> 00:08:34.027
+working directory. We have to now hide the one that's
+
+193
+00:08:34.490 --> 00:08:35.490
+coming from the host.
+
+194
+00:08:35.900 --> 00:08:38.966
+What we can do here is simply create a new volume
+
+195
+00:08:39.679 --> 00:08:42.530
+for that expected node modules
+
+196
+00:08:42.950 --> 00:08:45.758
+coming in from the host by just doing a node app
+
+197
+00:08:46.550 --> 00:08:47.550
+node modules.
+
+198
+00:08:51.470 --> 00:08:55.250
+What this is going to do here is create an anonymous
+
+199
+00:08:55.340 --> 00:08:58.099
+volume, because we don't really need to keep this at that
+
+200
+00:08:58.100 --> 00:08:59.717
+location. We're basically putting
+
+201
+00:09:01.250 --> 00:09:04.370
+a volume inside of a bind mount, which is
+
+202
+00:09:04.460 --> 00:09:06.080
+a little weird. It actually works.
+
+203
+00:09:06.350 --> 00:09:09.176
+It will mean that when the container is running, the node
+
+204
+00:09:09.440 --> 00:09:11.400
+modules inside the app directory will be
+
+205
+00:09:12.470 --> 00:09:14.760
+hidden. It'll be there but it'll be empty.
+
+206
+00:09:15.020 --> 00:09:17.862
+Then the app will go looking to the directory above it for
+
+207
+00:09:17.900 --> 00:09:18.900
+node modules there.
+
+208
+00:09:19.220 --> 00:09:20.810
+Let's run this and see if it works.
+
+209
+00:09:21.020 --> 00:09:24.380
+For this setup, I do, though, want to do an npm install
+
+210
+00:09:24.410 --> 00:09:25.978
+on the host to simulate the idea
+
+211
+00:09:27.380 --> 00:09:30.075
+that I'm maybe editing sometimes on the host, and maybe
+
+212
+00:09:30.080 --> 00:09:31.760
+editing sometimes in the container.
+
+213
+00:09:31.940 --> 00:09:33.998
+I do want that node modules to exist in my
+
+214
+00:09:35.030 --> 00:09:37.060
+host OS just to ensure that things work.
+
+215
+00:09:37.080 --> 00:09:39.579
+If I do an ls here, I'm going to have node modules.
+
+216
+00:09:39.920 --> 00:09:41.590
+If I do an ls node modules.
+
+217
+00:09:41.900 --> 00:09:44.546
+Of course, this node modules is specific to my Mac OS.
+
+218
+00:09:44.930 --> 00:09:46.429
+So, it's going to be different than what's running in the
+
+219
+00:09:46.430 --> 00:09:49.220
+container. If I do a docker compose build,
+
+220
+00:09:49.670 --> 00:09:52.880
+it's going to rebuild that image and essentially move that
+
+221
+00:09:53.240 --> 00:09:55.690
+node modules directory up a notch in the directory
+
+222
+00:09:55.880 --> 00:09:56.880
+structure.
+
+223
+00:09:58.230 --> 00:09:59.750
+Now, let's do a docker compose up.
+
+224
+00:10:02.350 --> 00:10:03.910
+I'm going to do a -d here.
+
+225
+00:10:08.176 --> 00:10:10.700
+Let's do a docker compose ps just to make sure that this
+
+226
+00:10:10.730 --> 00:10:13.019
+thing is running as expected. OK. It's running in there.
+
+227
+00:10:13.020 --> 00:10:14.360
+Let's go in and test it.
+
+228
+00:10:14.540 --> 00:10:16.383
+I'm going to do a docker compose exec
+
+229
+00:10:17.900 --> 00:10:20.005
+bash into that express app.
+
+230
+00:10:24.300 --> 00:10:26.739
+Now I'm in that directory. If I do an ls, I should see a
+
+231
+00:10:26.740 --> 00:10:29.706
+node modules there. But if I do an ls on node modules,
+
+232
+00:10:30.280 --> 00:10:31.450
+there's nothing in there.
+
+233
+00:10:31.930 --> 00:10:34.037
+If I do an ls on the node modules that's up
+
+234
+00:10:34.990 --> 00:10:35.990
+a directory, that's
+
+235
+00:10:38.100 --> 00:10:40.991
+where the stuff is at. So, you can see that this example is
+
+236
+00:10:41.130 --> 00:10:43.949
+great because it gives me more flexibility about where and
+
+237
+00:10:43.950 --> 00:10:44.950
+how I run Node.
+
+238
+00:10:45.330 --> 00:10:46.790
+It doesn't conflict with the host.
+
+239
+00:10:47.070 --> 00:10:49.716
+If I'm running on any OS, this will work, whether it's
+
+240
+00:10:50.040 --> 00:10:51.660
+Mac, Windows or Linux.
+
+241
+00:10:51.800 --> 00:10:55.098
+It doesn't require any special start, like an npm run,
+
+242
+00:10:55.680 --> 00:10:57.160
+what we had in the solution 1.
+
+243
+00:10:57.230 --> 00:10:59.778
+I prefer this one generally just because I'm used to
+
+244
+00:11:00.180 --> 00:11:01.710
+it. I know it works well.
+
+245
+00:11:02.130 --> 00:11:04.874
+On a few apps out there, sails, for one, at least at the
+
+246
+00:11:04.950 --> 00:11:07.792
+point of recording this video, I know that sails.js is one
+
+247
+00:11:07.950 --> 00:11:10.650
+of the few that still doesn't work with moving node modules
+
+248
+00:11:10.680 --> 00:11:13.560
+up a directory. It just doesn't work for local development.
+
+249
+00:11:14.190 --> 00:11:15.800
+It's a known issue that they haven't fixed.
+
+250
+00:11:16.110 --> 00:11:18.769
+Hopefully, these two options are flexible enough for you
+
+251
+00:11:18.770 --> 00:11:21.359
+and make sense. We're going to be using them throughout the
+
+252
+00:11:21.360 --> 00:11:22.110
+rest of this course.
+

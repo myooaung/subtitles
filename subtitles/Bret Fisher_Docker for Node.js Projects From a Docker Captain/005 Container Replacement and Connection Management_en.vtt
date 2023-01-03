@@ -1,0 +1,705 @@
+WEBVTT
+1
+00:00:02.570 --> 00:00:05.680
+We've talked about connections and replacing containers
+
+2
+00:00:05.689 --> 00:00:07.100
+before in this course.
+
+3
+00:00:07.340 --> 00:00:09.769
+Earlier in this course, you learned about SIGTERM and
+
+4
+00:00:09.770 --> 00:00:11.926
+various ways that Docker asks your container
+
+5
+00:00:12.770 --> 00:00:13.820
+to shut down.
+
+6
+00:00:14.150 --> 00:00:17.510
+I want to reiterate that now and go over some more details
+
+7
+00:00:17.810 --> 00:00:19.940
+about how that's going to be important in production.
+
+8
+00:00:20.570 --> 00:00:23.510
+First up, as a reminder, Docker will normally give you a
+
+9
+00:00:24.290 --> 00:00:26.659
+SIGTERM as a way to communicate, hey, you should start
+
+10
+00:00:26.660 --> 00:00:29.355
+shutting down, and that I'm going to give you a certain
+
+11
+00:00:29.750 --> 00:00:31.370
+amount of time to do that.
+
+12
+00:00:31.880 --> 00:00:33.170
+So, out-of-the-box, that's SIGTERM.
+
+13
+00:00:33.440 --> 00:00:36.086
+You can see an example of that in the sample directory
+
+14
+00:00:36.600 --> 00:00:39.530
+I show here, and you used that before actually in an
+
+15
+00:00:39.540 --> 00:00:40.740
+assignment earlier in the course.
+
+16
+00:00:41.830 --> 00:00:44.530
+A reminder of what that code really does.
+
+17
+00:00:44.590 --> 00:00:46.648
+It helps Docker not kill your process, but
+
+18
+00:00:47.710 --> 00:00:50.850
+it doesn't mean that you're getting true connection
+
+19
+00:00:50.860 --> 00:00:53.415
+migrations from your current container to a new one when
+
+20
+00:00:53.740 --> 00:00:56.049
+we're talking about production. In production, we're
+
+21
+00:00:56.050 --> 00:00:58.843
+talking about rolling updates, or blue-green deployments,
+
+22
+00:00:59.650 --> 00:01:01.660
+where there's different styles.
+
+23
+00:01:01.720 --> 00:01:03.940
+Basically, that's what these terms are is different styles
+
+24
+00:01:04.209 --> 00:01:06.512
+of changing out one working container that's in
+
+25
+00:01:07.300 --> 00:01:09.505
+production, receiving work and doing work for
+
+26
+00:01:10.270 --> 00:01:12.671
+a new one that's presumably got some better code,
+
+27
+00:01:13.390 --> 00:01:15.579
+or you know, whatever reason you have for replacing a
+
+28
+00:01:15.580 --> 00:01:17.393
+container. And, that you want to make
+
+29
+00:01:18.580 --> 00:01:21.177
+sure that none of those connections are terminated in
+
+30
+00:01:21.680 --> 00:01:23.085
+a bad way. They're not killed.
+
+31
+00:01:23.094 --> 00:01:24.662
+They're not turned off suddenly.
+
+32
+00:01:25.480 --> 00:01:27.999
+They're given proper time to shut down and all that kind of
+
+33
+00:01:28.000 --> 00:01:30.058
+stuff. Of course, this change is depending
+
+34
+00:01:31.000 --> 00:01:33.190
+on the protocols you're dealing with.
+
+35
+00:01:33.670 --> 00:01:36.490
+But, a lot of this we have concern around is
+
+36
+00:01:36.730 --> 00:01:39.940
+through web connections, or client connections, incoming
+
+37
+00:01:40.240 --> 00:01:42.788
+to our container. Basically, customers that we can't
+
+38
+00:01:43.000 --> 00:01:46.080
+control, necessarily, that they are there all the time.
+
+39
+00:01:46.090 --> 00:01:48.520
+They always need to have access to this service.
+
+40
+00:01:48.710 --> 00:01:51.940
+So, we need to basically, somehow, tell those connections
+
+41
+00:01:52.300 --> 00:01:54.897
+that we're stopping, and they need to go find another
+
+42
+00:01:55.480 --> 00:01:56.480
+container to use.
+
+43
+00:01:56.890 --> 00:01:59.585
+Quite frankly, we could spend an hour, or more, talking
+
+44
+00:02:00.100 --> 00:02:01.960
+just about this process.
+
+45
+00:02:01.990 --> 00:02:04.538
+But, I want to give you some quick, actionable stuff
+
+46
+00:02:05.080 --> 00:02:07.873
+you can take and put into your Node.js apps to help them.
+
+47
+00:02:07.933 --> 00:02:09.547
+The first one up is Terminus.
+
+48
+00:02:10.508 --> 00:02:13.106
+It's a boilerplate package that you can add into your
+
+49
+00:02:13.450 --> 00:02:14.940
+apps from GoDaddy.
+
+50
+00:02:15.040 --> 00:02:17.680
+They created this open source little app here.
+
+51
+00:02:17.710 --> 00:02:20.650
+It basically gives you the default, out-of-the-box,
+
+52
+00:02:20.920 --> 00:02:23.713
+minimum stuff you need to make sure that when Docker asks
+
+53
+00:02:24.100 --> 00:02:26.499
+you to shut down, that your container does shut down
+
+54
+00:02:26.500 --> 00:02:28.930
+properly. Of course, you're going to have to put in your
+
+55
+00:02:28.960 --> 00:02:32.080
+own application logic for what your application, itself,
+
+56
+00:02:32.110 --> 00:02:34.150
+needs to do before shutting down.
+
+57
+00:02:34.390 --> 00:02:37.030
+Maybe it needs to tell connections to terminate.
+
+58
+00:02:37.060 --> 00:02:38.800
+Maybe it needs to close database connections.
+
+59
+00:02:39.010 --> 00:02:40.010
+Stuff like that.
+
+60
+00:02:40.300 --> 00:02:42.946
+But, it gives you that boilerplate of healthchecks and
+
+61
+00:02:43.120 --> 00:02:45.429
+shutdown. Those are the two things that every container
+
+62
+00:02:45.430 --> 00:02:47.635
+really needs to do is your Node apps, whether
+
+63
+00:02:48.430 --> 00:02:51.460
+it's web, or worker processes in the background,
+
+64
+00:02:51.490 --> 00:02:54.190
+or whatever, it needs to be able to shut down properly.
+
+65
+00:02:54.250 --> 00:02:56.086
+So, have that proper shut down logic for SIGTERM.
+
+66
+00:02:56.560 --> 00:02:59.049
+Then it needs to have some sort of way of communicating
+
+67
+00:02:59.050 --> 00:03:01.840
+healthcheck, either to Docker, or Swarm, or
+
+68
+00:03:02.080 --> 00:03:03.605
+Kubernetes, or whatever else you're using.
+
+69
+00:03:03.606 --> 00:03:06.880
+I've given you a bunch of resources
+
+70
+00:03:06.910 --> 00:03:08.860
+in this lecture to go read.
+
+71
+00:03:09.070 --> 00:03:11.961
+They're important because some of them are example repos on
+
+72
+00:03:12.070 --> 00:03:13.420
+how other people have solved the problem.
+
+73
+00:03:13.690 --> 00:03:16.900
+Some of them are great guides, from other blogs,
+
+74
+00:03:16.960 --> 00:03:20.620
+on how you manage shutdown and replacement of containers,
+
+75
+00:03:21.070 --> 00:03:22.442
+and stuff that is specific to Node.js.
+
+76
+00:03:22.750 --> 00:03:24.520
+So, I recommend that you read them.
+
+77
+00:03:24.820 --> 00:03:27.399
+Some of those are great resources that help me understand
+
+78
+00:03:27.400 --> 00:03:28.960
+the problem at a deeper level as well.
+
+79
+00:03:29.640 --> 00:03:31.943
+When we get into the nitty gritty of regardless
+
+80
+00:03:32.770 --> 00:03:35.416
+of what tool you're using, how you replace a container
+
+81
+00:03:36.100 --> 00:03:39.640
+that's running, it comes down to a few, key steps.
+
+82
+00:03:39.970 --> 00:03:42.126
+The first step is Docker will communicate to
+
+83
+00:03:43.030 --> 00:03:45.609
+your container that it needs to shut down and then it
+
+84
+00:03:45.610 --> 00:03:48.501
+waits. Now, Docker can't see really what's going on in your
+
+85
+00:03:48.520 --> 00:03:51.385
+container, nor can Kubernetes, or Swarm, or any other tool.
+
+86
+00:03:51.520 --> 00:03:54.117
+It's not going to understand one container's app from
+
+87
+00:03:54.310 --> 00:03:56.506
+another. But, it does wait for
+
+88
+00:03:57.640 --> 00:04:00.070
+you to properly exit a certain amount of time.
+
+89
+00:04:00.460 --> 00:04:03.040
+Out-of-the-box, Docker and Swarm default to 10 seconds and
+
+90
+00:04:03.700 --> 00:04:04.720
+Kubernetes defaults to 30 seconds.
+
+91
+00:04:05.110 --> 00:04:07.511
+That's the time it gives you to shut down all the
+
+92
+00:04:08.080 --> 00:04:10.239
+connections and processes ,and clean up whatever you need
+
+93
+00:04:10.240 --> 00:04:12.520
+to for proper container healthy shutdown.
+
+94
+00:04:13.240 --> 00:04:14.559
+You can extend both of those.
+
+95
+00:04:14.560 --> 00:04:17.017
+You can change both of those numbers on either side with
+
+96
+00:04:17.019 --> 00:04:19.690
+YAML, depending on what tool you're using.
+
+97
+00:04:19.950 --> 00:04:22.420
+It's pretty easy just to Google that and find the answer.
+
+98
+00:04:22.780 --> 00:04:25.810
+Orchestrators have subtle, but important, differences
+
+99
+00:04:26.110 --> 00:04:28.609
+in the order and way that they stop new connections
+
+100
+00:04:29.320 --> 00:04:31.599
+from coming to your container, how they move those
+
+101
+00:04:31.600 --> 00:04:33.756
+connections to a new container, and then not
+
+102
+00:04:34.630 --> 00:04:37.472
+only on how long they wait for your shutdown, but how they
+
+103
+00:04:37.570 --> 00:04:38.770
+let your container shut down.
+
+104
+00:04:39.550 --> 00:04:41.529
+One of those important distinctions is around load
+
+105
+00:04:41.530 --> 00:04:44.372
+balancing, also known as ingress when you're talking about
+
+106
+00:04:44.620 --> 00:04:47.168
+orchestration. Those connections coming in from your
+
+107
+00:04:47.350 --> 00:04:49.540
+clients, one of the first things that needs to happen
+
+108
+00:04:49.570 --> 00:04:52.299
+before your app and your container can stop, is that those
+
+109
+00:04:52.300 --> 00:04:54.848
+load balancers need to start moving new connections,
+
+110
+00:04:55.450 --> 00:04:58.540
+not existing ones, but new ones that are incoming,
+
+111
+00:04:58.570 --> 00:05:00.971
+to a new container so that you can start cleaning
+
+112
+00:05:01.870 --> 00:05:04.210
+up work and resolving all the existing connections, right.
+
+113
+00:05:04.240 --> 00:05:06.729
+You've got to finish the work you've started so that you
+
+114
+00:05:06.730 --> 00:05:07.840
+can shut down cleanly.
+
+115
+00:05:08.350 --> 00:05:10.604
+With Swarm and Kubernetes, they are different.
+
+116
+00:05:10.900 --> 00:05:13.539
+Swarm will actually talk directly to the load balancer for
+
+117
+00:05:13.540 --> 00:05:16.169
+you before it even starts the shutdown, and tell the load
+
+118
+00:05:16.170 --> 00:05:18.365
+balancer to start sending new connections elsewhere,
+
+119
+00:05:18.366 --> 00:05:21.400
+assuming that you have another container or replica
+
+120
+00:05:21.490 --> 00:05:22.490
+running.
+
+121
+00:05:22.780 --> 00:05:25.573
+Kubernetes will expect your container to have a readiness
+
+122
+00:05:26.020 --> 00:05:28.568
+check that starts to fail so that it knows to signal
+
+123
+00:05:28.990 --> 00:05:31.342
+the load balancer to send connections elsewhere.
+
+124
+00:05:31.397 --> 00:05:34.288
+These are more about the orchestrator, really nothing to do
+
+125
+00:05:34.390 --> 00:05:37.089
+with Node.js. So, you're going to want to invest some time
+
+126
+00:05:37.090 --> 00:05:39.466
+learning those tools and how they treat container
+
+127
+00:05:39.509 --> 00:05:40.509
+replacement.
+
+128
+00:05:40.840 --> 00:05:43.460
+My tip here is that you definitely want to give
+
+129
+00:05:43.880 --> 00:05:46.820
+your shutdown time, that's the time that
+
+130
+00:05:47.070 --> 00:05:49.009
+your orchestrator, or Docker, or whatever tool you're
+
+131
+00:05:49.010 --> 00:05:52.250
+using, waits for the container to finish shutting down.
+
+132
+00:05:52.550 --> 00:05:55.245
+You're going to want to give that timer enough time for
+
+133
+00:05:55.670 --> 00:05:58.040
+your long polling to stop.
+
+134
+00:05:58.070 --> 00:06:00.469
+So, if you're using HTTP, and you're familiar with long
+
+135
+00:06:00.470 --> 00:06:03.079
+polling, you might tell your clients to check back every so
+
+136
+00:06:03.080 --> 00:06:05.720
+often. Maybe every minute for data.
+
+137
+00:06:05.750 --> 00:06:07.699
+And that's depending on your app, of course, of how you've
+
+138
+00:06:07.700 --> 00:06:10.069
+built it. You're going to definitely...one of those tips
+
+139
+00:06:10.070 --> 00:06:12.324
+there is to make sure that that wait is longer
+
+140
+00:06:13.040 --> 00:06:15.529
+than that long polling, so that you can at least tell the
+
+141
+00:06:15.530 --> 00:06:17.735
+clients, hey, I'm terminating my connections.
+
+142
+00:06:18.260 --> 00:06:20.430
+I'm ending my connections. You need to go somewhere else.
+
+143
+00:06:21.170 --> 00:06:23.277
+In order to do this, there is a subtle, but
+
+144
+00:06:24.320 --> 00:06:25.320
+necessary, step.
+
+145
+00:06:26.300 --> 00:06:28.216
+That is with HTTP specifically, that
+
+146
+00:06:29.510 --> 00:06:32.450
+you need to start metering, or managing, connections
+
+147
+00:06:32.540 --> 00:06:34.598
+one by one. By default in Node, it doesn't
+
+148
+00:06:35.510 --> 00:06:37.600
+count connections. It doesn't track connections.
+
+149
+00:06:37.910 --> 00:06:40.550
+So, you can't control, or manage, each one individually.
+
+150
+00:06:40.970 --> 00:06:43.518
+Once you want to replace a container, you need to be
+
+151
+00:06:43.940 --> 00:06:47.170
+able to tell those connections a specific packet, a thin
+
+152
+00:06:47.180 --> 00:06:50.360
+packet, in HTTP that says, I'm done with connections.
+
+153
+00:06:50.390 --> 00:06:53.232
+Please re-establish a brand new connection, which the load
+
+154
+00:06:53.360 --> 00:06:54.740
+balancer will send somewhere else.
+
+155
+00:06:55.190 --> 00:06:57.214
+Your container needs to be able to tell them that.
+
+156
+00:06:57.215 --> 00:06:58.685
+As of right now, the only tool
+
+157
+00:07:00.320 --> 00:07:02.829
+that I know of that you can just plug in, as a module into
+
+158
+00:07:02.830 --> 00:07:04.130
+a Node app, is Stoppable.
+
+159
+00:07:04.310 --> 00:07:07.460
+So, I've given you resources here on Stoppable, which
+
+160
+00:07:07.520 --> 00:07:09.620
+I know others have used, and it seems like a pretty legit
+
+161
+00:07:09.650 --> 00:07:11.510
+piece of software. I have used it before.
+
+162
+00:07:11.900 --> 00:07:14.660
+What it will do is it tracks connections.
+
+163
+00:07:14.720 --> 00:07:16.909
+Then once you give it the signal to shut down in a
+
+164
+00:07:16.910 --> 00:07:19.970
+container, or in any Linux app, right.
+
+165
+00:07:20.240 --> 00:07:21.560
+It's a regular Linux shutdown.
+
+166
+00:07:21.950 --> 00:07:24.700
+It will start to tell existing connections,
+
+167
+00:07:25.040 --> 00:07:27.931
+hey, you need to restart your connection even though I know
+
+168
+00:07:27.980 --> 00:07:29.270
+you already have a connection with me.
+
+169
+00:07:29.480 --> 00:07:32.371
+Restart a new one, and that way the load bouncer would send
+
+170
+00:07:32.420 --> 00:07:34.030
+them somewhere else. That's a thin packet.
+
+171
+00:07:34.340 --> 00:07:36.679
+So, spend some time learning about that if you're not
+
+172
+00:07:36.680 --> 00:07:39.860
+familiar, and understanding how existing connections,
+
+173
+00:07:40.160 --> 00:07:43.250
+and new connections, work in an HTTP app.
+
+174
+00:07:43.730 --> 00:07:46.180
+Then you can put these modules into your Node apps
+
+175
+00:07:46.880 --> 00:07:49.129
+and hopefully solve this problem easier than just writing
+
+176
+00:07:49.130 --> 00:07:49.790
+it from scratch.
+

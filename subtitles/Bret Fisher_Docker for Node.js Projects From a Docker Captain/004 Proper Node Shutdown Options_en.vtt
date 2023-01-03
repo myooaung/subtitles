@@ -1,0 +1,553 @@
+WEBVTT
+1
+00:00:02.670 --> 00:00:05.550
+The way I look at this is that Node in Docker,
+
+2
+00:00:06.120 --> 00:00:09.209
+as long as we're launching Node directly inside
+
+3
+00:00:09.409 --> 00:00:10.890
+the container, we have three options.
+
+4
+00:00:11.090 --> 00:00:13.919
+They're in order of least to
+
+5
+00:00:14.119 --> 00:00:15.449
+most preference. In other words,
+
+6
+00:00:15.649 --> 00:00:18.449
+the first one here is what I would consider sort of a temp
+
+7
+00:00:18.649 --> 00:00:20.039
+workaround. It's really easy to use
+
+8
+00:00:20.239 --> 00:00:22.810
+and you can use it on any container running Node right out-of-the-box.
+
+9
+00:00:23.940 --> 00:00:25.492
+Docker provides us tini.
+
+10
+00:00:25.920 --> 00:00:27.269
+It's actually built into Docker,
+
+11
+00:00:27.469 --> 00:00:28.920
+and what it'll do is it'll shim
+
+12
+00:00:29.190 --> 00:00:32.549
+with a --init on your docker run command.
+
+13
+00:00:32.910 --> 00:00:34.199
+It will shim that in,
+
+14
+00:00:34.399 --> 00:00:35.730
+or throw that in at the last second,
+
+15
+00:00:36.060 --> 00:00:39.059
+to run your command so that in case you're just running
+
+16
+00:00:39.259 --> 00:00:41.825
+raw Node and you're not handling signals correctly,
+
+17
+00:00:42.480 --> 00:00:44.160
+Docker will throw tini in there,
+
+18
+00:00:44.370 --> 00:00:46.410
+which will then shut down the app.
+
+19
+00:00:46.610 --> 00:00:48.509
+Now, it doesn't gracefully shut down connections
+
+20
+00:00:48.709 --> 00:00:51.000
+or anything like that. Again, that requires code,
+
+21
+00:00:51.240 --> 00:00:54.460
+but at least will allow us to do things like docker container
+
+22
+00:00:54.660 --> 00:00:56.290
+stop or hit control c,
+
+23
+00:00:56.700 --> 00:00:58.079
+and then the container will stop.
+
+24
+00:00:58.279 --> 00:01:00.120
+It won't wait 10 seconds
+
+25
+00:01:00.330 --> 00:01:01.800
+and then kill. By the way,
+
+26
+00:01:02.100 --> 00:01:03.419
+if you have apps in Node,
+
+27
+00:01:03.619 --> 00:01:06.480
+or any other apps that when you do something like a control c
+
+28
+00:01:06.680 --> 00:01:07.830
+or a docker container stop,
+
+29
+00:01:08.220 --> 00:01:10.200
+and it seems to wait about 10 seconds.
+
+30
+00:01:10.680 --> 00:01:13.769
+That's because Docker is not able to properly shut
+
+31
+00:01:13.969 --> 00:01:14.984
+it down with the SIGTERM and SIGINT.
+
+32
+00:01:15.690 --> 00:01:18.630
+It's forced to do a SIGKILL because
+
+33
+00:01:18.830 --> 00:01:21.860
+Docker, by default, will wait 10 seconds for the app to respond,
+
+34
+00:01:22.110 --> 00:01:23.549
+and then if it's not doing anything
+
+35
+00:01:23.749 --> 00:01:24.720
+or if it's taking too long,
+
+36
+00:01:25.080 --> 00:01:26.040
+it will just kill it.
+
+37
+00:01:26.376 --> 00:01:28.020
+Later on, we can talk about,
+
+38
+00:01:28.220 --> 00:01:31.008
+in production, that you can actually change that in case you have
+
+39
+00:01:31.208 --> 00:01:32.490
+a really long shutdown process.
+
+40
+00:01:32.700 --> 00:01:34.830
+You can totally configure Docker for something different.
+
+41
+00:01:35.250 --> 00:01:37.199
+Here, we're talking about these three options,
+
+42
+00:01:37.399 --> 00:01:38.730
+really, that are easy to use
+
+43
+00:01:38.930 --> 00:01:40.319
+and in order of preference.
+
+44
+00:01:40.519 --> 00:01:42.234
+So, that tini is my least favorite,
+
+45
+00:01:42.630 --> 00:01:45.615
+but what I use when I'm using someone else's app maybe
+
+46
+00:01:45.815 --> 00:01:47.730
+I don't want to have to rewrite their custom code.
+
+47
+00:01:48.210 --> 00:01:50.220
+Second here is a permanent workaround,
+
+48
+00:01:50.460 --> 00:01:53.579
+and this is you adding tini manually into
+
+49
+00:01:53.779 --> 00:01:55.860
+your Dockerfile. That way, it's always in your image.
+
+50
+00:01:56.100 --> 00:01:58.860
+You can control the version of that binary,
+
+51
+00:01:59.100 --> 00:02:02.100
+and you don't have to use the --init shim.
+
+52
+00:02:02.310 --> 00:02:04.371
+You can just specify it in your Dockerfile,
+
+53
+00:02:04.980 --> 00:02:08.190
+hard code it into your cmd so that it always works.
+
+54
+00:02:08.389 --> 00:02:09.000
+Always runs.
+
+55
+00:02:09.690 --> 00:02:12.650
+That's what you've seen in examples if you've taken my Docker Mastery course before.
+
+56
+00:02:12.850 --> 00:02:13.650
+That's what we did there.
+
+57
+00:02:14.130 --> 00:02:16.122
+If you have an app that maybe you don't control,
+
+58
+00:02:16.322 --> 00:02:17.820
+or you can't really change the app
+
+59
+00:02:18.020 --> 00:02:19.530
+but you know you need a permanent,
+
+60
+00:02:19.770 --> 00:02:21.360
+proper shutdown solution,
+
+61
+00:02:21.600 --> 00:02:24.770
+at least the best you can get, we can do this.
+
+62
+00:02:24.970 --> 00:02:25.907
+We can actually put it in the Dockerfile.
+
+63
+00:02:26.150 --> 00:02:29.010
+Again, that's not fixing the
+
+64
+00:02:29.210 --> 00:02:31.710
+end-to-end true production solution which is
+
+65
+00:02:32.220 --> 00:02:34.979
+what happens when I want to shut my container down in order to replace it
+
+66
+00:02:35.179 --> 00:02:38.369
+with a new update. Do I really want to terminate suddenly
+
+67
+00:02:38.569 --> 00:02:40.380
+everyone's connection if I'm a web server?
+
+68
+00:02:40.580 --> 00:02:43.320
+No. I probably want to handle each connection.
+
+69
+00:02:43.520 --> 00:02:44.620
+I want to count those connections.
+
+70
+00:02:44.820 --> 00:02:46.110
+Know how many are still left.
+
+71
+00:02:46.470 --> 00:02:48.269
+And if maybe I have long polling,
+
+72
+00:02:48.469 --> 00:02:49.920
+or WebSockets or something like that,
+
+73
+00:02:50.220 --> 00:02:53.339
+I want to make sure that I know how many connections are connected
+
+74
+00:02:53.539 --> 00:02:55.680
+to me and then shut them down,
+
+75
+00:02:55.880 --> 00:02:58.530
+or at least move them over properly to the new container,
+
+76
+00:02:58.730 --> 00:02:59.790
+and there's a way to do that.
+
+77
+00:03:00.240 --> 00:03:02.370
+We're not going to go through all those examples right now,
+
+78
+00:03:02.570 --> 00:03:03.600
+but I do want to show you a few.
+
+79
+00:03:04.290 --> 00:03:06.816
+The first example here is running init
+
+80
+00:03:07.560 --> 00:03:10.535
+at the command line. That's an option in docker run in
+
+81
+00:03:11.250 --> 00:03:13.620
+the last couple of years of versions of Docker at least.
+
+82
+00:03:13.950 --> 00:03:17.069
+This will shim in that tini process to make sure
+
+83
+00:03:17.269 --> 00:03:20.190
+that any Node app, or any app you really give it in a docker run,
+
+84
+00:03:20.580 --> 00:03:23.004
+that app will get this new PID1
+
+85
+00:03:23.580 --> 00:03:25.830
+that will wrap your node command
+
+86
+00:03:26.070 --> 00:03:28.550
+and will make sure that it properly handles it.
+
+87
+00:03:28.750 --> 00:03:31.440
+Again, this is like I've said before,
+
+88
+00:03:31.640 --> 00:03:33.690
+not properly handling your Node connections
+
+89
+00:03:33.890 --> 00:03:37.019
+but it will at least respond immediately to any control c
+
+90
+00:03:37.219 --> 00:03:37.860
+or docker stops.
+
+91
+00:03:38.550 --> 00:03:41.304
+This next command, or the second best solution,
+
+92
+00:03:41.504 --> 00:03:44.579
+is this permanent workaround I'm talking about by putting tini in
+
+93
+00:03:44.779 --> 00:03:44.925
+your Dockerfile.
+
+94
+00:03:45.870 --> 00:03:48.180
+That is available in the resources for this section.
+
+95
+00:03:48.450 --> 00:03:50.310
+You can actually look at the code for that.
+
+96
+00:03:50.510 --> 00:03:51.630
+It's a very simple binary.
+
+97
+00:03:51.900 --> 00:03:54.540
+Docker includes it but doesn't use it for anything,
+
+98
+00:03:54.810 --> 00:03:56.363
+by default, unless you put that --init.
+
+99
+00:03:57.690 --> 00:03:59.714
+Why don't we just put it into our Dockerfiles if
+
+100
+00:04:01.290 --> 00:04:04.319
+we're not able to do the long-term code solution
+
+101
+00:04:04.519 --> 00:04:05.290
+that I'll show you next.
+
+102
+00:04:05.780 --> 00:04:08.880
+This is what I might do if I'm maybe the Ops person
+
+103
+00:04:09.080 --> 00:04:11.000
+and I can't change the app myself.
+
+104
+00:04:11.200 --> 00:04:13.440
+I can't go in and edit the code. That's someone else's job.
+
+105
+00:04:13.800 --> 00:04:15.398
+But I can at least control the Dockerfile.
+
+106
+00:04:16.440 --> 00:04:19.063
+Since they're not handling the connections properly on shutdown,
+
+107
+00:04:19.829 --> 00:04:22.769
+I'll throw this in so that at least it responds correctly
+
+108
+00:04:22.969 --> 00:04:26.160
+in the three second or two second kind of normal shutdown process.
+
+109
+00:04:26.360 --> 00:04:27.840
+It won't wait 10 seconds
+
+110
+00:04:28.040 --> 00:04:29.070
+and then kill my app.
+
+111
+00:04:29.820 --> 00:04:31.410
+You'll also notice a neat little trick here,
+
+112
+00:04:31.610 --> 00:04:34.349
+and this has to do with using the entry point instead of changing your cmd.
+
+113
+00:04:35.400 --> 00:04:38.710
+This simply means that the entry point will run first
+
+114
+00:04:38.910 --> 00:04:39.761
+and wrap the cmd,
+
+115
+00:04:40.770 --> 00:04:43.889
+and this is kind of what Docker is doing in the background if you do
+
+116
+00:04:44.089 --> 00:04:45.990
+the --init from the command line.
+
+117
+00:04:46.230 --> 00:04:48.668
+But here, we're explicitly putting in our Dockerfile.
+
+118
+00:04:49.080 --> 00:04:52.169
+We're putting in a specific binary so we don't
+
+119
+00:04:52.369 --> 00:04:55.080
+have to worry that someone later might forget to run an
+
+120
+00:04:55.280 --> 00:04:56.670
+init on the command line.
+
+121
+00:04:57.030 --> 00:04:58.620
+It's always going to work inside the container.
+
+122
+00:04:59.070 --> 00:05:02.680
+Our third option here, I've given you a really basic example.
+
+123
+00:05:02.880 --> 00:05:04.389
+It doesn't solve every scenario,
+
+124
+00:05:04.589 --> 00:05:05.940
+for every type of workload,
+
+125
+00:05:06.310 --> 00:05:09.309
+but if you go check out this file in my sample
+
+126
+00:05:09.509 --> 00:05:10.840
+repo for this course,
+
+127
+00:05:11.040 --> 00:05:14.349
+you can see that it's a couple of functions that capture
+
+128
+00:05:14.549 --> 00:05:17.290
+the signals coming into your app
+
+129
+00:05:17.590 --> 00:05:19.390
+and then we'll decide what you want to do.
+
+130
+00:05:19.640 --> 00:05:21.940
+In my case, it's really just going to shut down
+
+131
+00:05:22.140 --> 00:05:23.530
+and exit the app right away.
+
+132
+00:05:23.730 --> 00:05:25.740
+It's not going to handle connections gracefully.
+
+133
+00:05:25.940 --> 00:05:27.819
+It's not going to wait for jobs to finish
+
+134
+00:05:28.019 --> 00:05:30.249
+or clean up any files you might be writing to,
+
+135
+00:05:30.449 --> 00:05:33.540
+or anything like that. That's very specific to each app.
+
+136
+00:05:33.850 --> 00:05:37.060
+We'll have some examples later in the production stuff
+
+137
+00:05:37.360 --> 00:05:40.359
+that'll show you maybe how you might try to handle counting
+
+138
+00:05:40.559 --> 00:05:42.580
+connections and managing connection rollover.
+

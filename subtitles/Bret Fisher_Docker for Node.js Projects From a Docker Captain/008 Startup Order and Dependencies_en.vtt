@@ -1,0 +1,601 @@
+WEBVTT
+1
+00:00:02.719 --> 00:00:05.513
+Within a few days of you trying to use Node with multiple
+
+2
+00:00:06.320 --> 00:00:08.869
+services in the Compose file, whether you've got a database
+
+3
+00:00:08.870 --> 00:00:11.369
+behind it, or you've got an API with a frontend, or
+
+4
+00:00:11.780 --> 00:00:14.089
+something else, you're going to run into a couple of these
+
+5
+00:00:14.090 --> 00:00:17.030
+problems around startup order, dependencies,
+
+6
+00:00:17.330 --> 00:00:18.740
+connection errors and stuff like that.
+
+7
+00:00:19.160 --> 00:00:22.040
+This is all centered around a couple of key problems that
+
+8
+00:00:22.070 --> 00:00:24.717
+you can solve. It's just not quite obvious out-of-the-box.
+
+9
+00:00:25.580 --> 00:00:27.379
+You'll know you've got issues when you do something like a
+
+10
+00:00:27.380 --> 00:00:29.634
+docker compose up and your Node app errors and
+
+11
+00:00:30.350 --> 00:00:33.241
+exits. But, your database was starting up and so maybe your
+
+12
+00:00:33.320 --> 00:00:34.640
+Node app got started first.
+
+13
+00:00:35.180 --> 00:00:37.459
+Or maybe the Node app started so quickly it actually said
+
+14
+00:00:37.460 --> 00:00:40.219
+it could not resolve the DNS name of something else that it
+
+15
+00:00:40.220 --> 00:00:41.630
+depends on, like a database.
+
+16
+00:00:42.260 --> 00:00:44.955
+Or, maybe you're using the Docker Compose feature where
+
+17
+00:00:45.350 --> 00:00:46.722
+you can specify the service.
+
+18
+00:00:46.820 --> 00:00:48.590
+So, if you have a bunch of services and you don't want to
+
+19
+00:00:48.710 --> 00:00:51.356
+spin them all up, you just do a docker compose up with
+
+20
+00:00:51.740 --> 00:00:53.310
+the service name. And that's great.
+
+21
+00:00:53.540 --> 00:00:56.333
+But, that service might need something else to be running
+
+22
+00:00:56.630 --> 00:00:58.160
+for it to even work, like a database.
+
+23
+00:00:58.220 --> 00:01:00.964
+So, there's a dependency going on there that you need to
+
+24
+00:01:01.250 --> 00:01:02.760
+clarify in the Compose file.
+
+25
+00:01:03.050 --> 00:01:05.149
+Really we're talking about three concerns here.
+
+26
+00:01:05.630 --> 00:01:08.423
+Dependency awareness, and that's mostly using the depends
+
+27
+00:01:09.020 --> 00:01:11.060
+on feature inside the Compose file.
+
+28
+00:01:11.390 --> 00:01:13.987
+Name resolution because that's how services find each
+
+29
+00:01:14.000 --> 00:01:16.841
+other. That's using DNS inside the Docker Engine
+
+30
+00:01:17.150 --> 00:01:18.290
+on the Docker networks.
+
+31
+00:01:18.650 --> 00:01:20.390
+And connection failure handling.
+
+32
+00:01:20.690 --> 00:01:23.180
+So what happens when your Node app starts up and it can't
+
+33
+00:01:23.240 --> 00:01:25.440
+talk to the database yet because the database isn't ready?
+
+34
+00:01:25.730 --> 00:01:28.760
+Or maybe you take the database down and the Node app
+
+35
+00:01:28.850 --> 00:01:30.020
+still needs to talk to it.
+
+36
+00:01:30.220 --> 00:01:31.220
+That sort of stuff.
+
+37
+00:01:31.610 --> 00:01:34.219
+The first feature here that you probably are already using,
+
+38
+00:01:34.220 --> 00:01:36.590
+or at least heard of, is the depends on feature.
+
+39
+00:01:36.920 --> 00:01:39.109
+There is a little bit of confusion around this one as well
+
+40
+00:01:39.110 --> 00:01:42.710
+because this key feature for Docker Compose local
+
+41
+00:01:42.930 --> 00:01:44.547
+CLI has changed between Version 2
+
+42
+00:01:45.980 --> 00:01:47.420
+and Version 3 of the Compose file.
+
+43
+00:01:48.420 --> 00:01:51.080
+That's why I stress you should be using the V2 version
+
+44
+00:01:51.390 --> 00:01:54.036
+of that file because we get more out of the depends on
+
+45
+00:01:54.090 --> 00:01:55.090
+feature.
+
+46
+00:01:55.900 --> 00:01:58.448
+And out-of-the-box with depends on, it's really only
+
+47
+00:01:59.020 --> 00:02:01.190
+about dependency relationships.
+
+48
+00:02:01.390 --> 00:02:04.232
+It's not about, by default, making sure that your database
+
+49
+00:02:04.810 --> 00:02:07.720
+is ready for connections when you start up your Node app.
+
+50
+00:02:07.960 --> 00:02:10.329
+That's disappointing to a lot of people when they just turn
+
+51
+00:02:10.330 --> 00:02:13.029
+it on and think that it's going to suddenly work if they
+
+52
+00:02:13.030 --> 00:02:16.188
+just say inside of their Node app configuration,
+
+53
+00:02:16.420 --> 00:02:18.870
+depends on Mongo, or something like that, and they
+
+54
+00:02:19.420 --> 00:02:21.010
+realize that that's not enough.
+
+55
+00:02:21.940 --> 00:02:24.340
+But, it does solve two important parts of this puzzle.
+
+56
+00:02:24.610 --> 00:02:26.470
+The first is DNS.
+
+57
+00:02:26.500 --> 00:02:29.391
+Often, what'll happen is your Node app will instantly start
+
+58
+00:02:29.580 --> 00:02:32.079
+up and search for a name like the service name of a
+
+59
+00:02:32.470 --> 00:02:34.740
+database, or another API or something, inside your Compose
+
+60
+00:02:35.020 --> 00:02:38.260
+file. If it gets a DNS name not found,
+
+61
+00:02:38.740 --> 00:02:41.400
+often with the way the DNS caching works,  the app
+
+62
+00:02:41.710 --> 00:02:43.131
+just error out and not retry.
+
+63
+00:02:43.600 --> 00:02:45.579
+It won't try again. It'll just say, this name doesn't even
+
+64
+00:02:45.580 --> 00:02:47.470
+exist and it will exit.
+
+65
+00:02:47.719 --> 00:02:50.350
+So, this depends on ensures that at least
+
+66
+00:02:50.800 --> 00:02:53.446
+anything that your app depends on, any of that service
+
+67
+00:02:53.950 --> 00:02:55.990
+depends on, those things start first.
+
+68
+00:02:56.290 --> 00:02:57.729
+Doesn't mean that they're ready first.
+
+69
+00:02:57.730 --> 00:02:58.780
+It just means they've started.
+
+70
+00:02:59.230 --> 00:03:01.925
+That means that their DNS name will at least resolve to
+
+71
+00:03:02.260 --> 00:03:04.360
+their proper IP in the Docker networks.
+
+72
+00:03:04.990 --> 00:03:07.110
+Reminder here, that we're really talking about local Docker
+
+73
+00:03:07.330 --> 00:03:08.640
+Compose CLI use.
+
+74
+00:03:09.070 --> 00:03:11.059
+There's a little bit difference of a setup if you're going
+
+75
+00:03:11.060 --> 00:03:12.939
+to be in production and how you're going to deal with all
+
+76
+00:03:12.940 --> 00:03:16.300
+these problems. Something you'll see in the next lecture,
+
+77
+00:03:16.600 --> 00:03:19.930
+is we can add on a feature to the waits on
+
+78
+00:03:20.230 --> 00:03:23.050
+in the YAML that truly does give us a
+
+79
+00:03:23.350 --> 00:03:26.590
+waits for like experience where it will wait
+
+80
+00:03:26.680 --> 00:03:29.277
+on dependencies like a database to truly be ready for
+
+81
+00:03:29.470 --> 00:03:31.532
+connections using a Docker healthcheck.
+
+82
+00:03:32.110 --> 00:03:34.120
+We don't get that in Version 3 of the YAML.
+
+83
+00:03:34.270 --> 00:03:35.980
+That's why it's important to stick with Version 2.
+
+84
+00:03:36.960 --> 00:03:39.269
+The other common feature here that's shown a lot in
+
+85
+00:03:39.270 --> 00:03:42.600
+examples in blogs, and in the Docker official images, is
+
+86
+00:03:42.810 --> 00:03:45.162
+the restart. This is a little bit of a weird one
+
+87
+00:03:45.930 --> 00:03:48.900
+because I often don't like using restart
+
+88
+00:03:48.930 --> 00:03:51.674
+on my apps when I'm using Docker Compose locally because
+
+89
+00:03:51.750 --> 00:03:54.030
+there is a good and a bad side to the setting.
+
+90
+00:03:55.190 --> 00:03:57.649
+The good part about it is that if your Node app fails on
+
+91
+00:03:57.650 --> 00:04:00.140
+startup because maybe some dependency, like a database,
+
+92
+00:04:00.170 --> 00:04:02.228
+isn't ready, it will restart the Node app.
+
+93
+00:04:03.086 --> 00:04:05.879
+That's Docker restarting the container when the container
+
+94
+00:04:06.260 --> 00:04:08.416
+crashes. A better way to do this, really, is
+
+95
+00:04:09.380 --> 00:04:11.749
+to use the depends on so that you don't have that problem
+
+96
+00:04:11.750 --> 00:04:12.750
+to begin with.
+
+97
+00:04:12.807 --> 00:04:15.920
+The bad part about this feature, if you set it on
+
+98
+00:04:16.010 --> 00:04:18.117
+web apps, or Node apps, is that you can get
+
+99
+00:04:18.980 --> 00:04:21.589
+into a restart cycle with that in Docker Compose
+
+100
+00:04:22.010 --> 00:04:25.070
+where it's constantly restarting your frontend app,
+
+101
+00:04:25.100 --> 00:04:27.140
+waiting on a database to load or something.
+
+102
+00:04:27.460 --> 00:04:28.990
+It can get CPU spikes.
+
+103
+00:04:29.120 --> 00:04:31.459
+It may not be obvious to you if you're not looking straight
+
+104
+00:04:31.460 --> 00:04:34.253
+at the logs or at the ps command where you can see things
+
+105
+00:04:34.400 --> 00:04:36.559
+going up and down. You may not realize that it's spinning
+
+106
+00:04:36.560 --> 00:04:38.497
+and cycling through the app over and over again.
+
+107
+00:04:39.080 --> 00:04:41.236
+I tend to, out-of-the-gate with my apps, not
+
+108
+00:04:42.470 --> 00:04:43.760
+do the restart.
+
+109
+00:04:43.850 --> 00:04:46.310
+The default is off where it won't restart at all.
+
+110
+00:04:46.700 --> 00:04:49.444
+If my app exits, then I've probably got something else I
+
+111
+00:04:49.470 --> 00:04:51.199
+need to look at. Either there's a problem with the app
+
+112
+00:04:51.200 --> 00:04:53.960
+itself, which wasn't going to get fixed with a restart.
+
+113
+00:04:54.260 --> 00:04:57.053
+Or, it's something to do with my depends on, and I need a
+
+114
+00:04:57.110 --> 00:04:59.809
+better depends on in healthcheck to make sure that my apps
+
+115
+00:04:59.810 --> 00:05:01.800
+are coming up and waiting for the proper order.
+
+116
+00:05:02.630 --> 00:05:04.835
+The real, long-term solution here, especially
+
+117
+00:05:05.600 --> 00:05:08.345
+for production, is to build waits
+
+118
+00:05:09.020 --> 00:05:11.360
+and restarts inside your apps.
+
+119
+00:05:11.650 --> 00:05:13.939
+When you're talking about distributed computing, and
+
+120
+00:05:13.940 --> 00:05:16.153
+everything we're building nowadays is somewhat distributed,
+
+121
+00:05:16.520 --> 00:05:19.129
+you've definitely got at least a Node app and something
+
+122
+00:05:19.130 --> 00:05:21.799
+else it needs to talk to. It's rare to have just a single
+
+123
+00:05:21.800 --> 00:05:24.348
+container running in complete isolation without some
+
+124
+00:05:24.800 --> 00:05:27.920
+dependency. Anything else it needs to work with
+
+125
+00:05:28.130 --> 00:05:30.439
+is usually going to be either in a different container, or
+
+126
+00:05:30.440 --> 00:05:33.050
+a different server, or across different networks.
+
+127
+00:05:33.290 --> 00:05:35.250
+The app itself needs to be able to retry
+
+128
+00:05:36.590 --> 00:05:38.480
+things, especially databases.
+
+129
+00:05:38.810 --> 00:05:41.603
+Every database connection technology I've worked with has
+
+130
+00:05:42.110 --> 00:05:43.540
+some sort of retry built in.
+
+131
+00:05:43.730 --> 00:05:45.390
+It just may not be on by default.
+
+132
+00:05:45.726 --> 00:05:47.899
+When you're building your apps, and you're using something
+
+133
+00:05:47.900 --> 00:05:49.814
+like, you know there's a Mongo database connector, and
+
+134
+00:05:49.815 --> 00:05:52.740
+there's Postgres, and MySQL and all the other database
+
+135
+00:05:52.760 --> 00:05:54.965
+technologies, typically have a Node connector
+
+136
+00:05:56.000 --> 00:05:58.160
+that you can use a driver, basically.
+
+137
+00:05:58.490 --> 00:06:01.087
+That usually has settings, at least on every one I've
+
+138
+00:06:01.520 --> 00:06:04.381
+looked at, where you can have it buffer connections
+
+139
+00:06:04.490 --> 00:06:07.283
+so that in case the backend goes down, it actually stores
+
+140
+00:06:07.730 --> 00:06:09.829
+them in memory and waits for the backend to come back up
+
+141
+00:06:09.830 --> 00:06:11.692
+eventually. You can have it retry over
+
+142
+00:06:12.950 --> 00:06:15.498
+a certain amount of time. You can have it wait for a
+
+143
+00:06:15.800 --> 00:06:17.809
+response for a certain amount of time in case, maybe, the
+
+144
+00:06:17.810 --> 00:06:20.960
+backend is slow or too busy to acknowledge connections.
+
+145
+00:06:21.240 --> 00:06:23.659
+So, there's lots of stuff there. Every technology is
+
+146
+00:06:23.660 --> 00:06:25.790
+different, so I'm not going to give you any examples here.
+
+147
+00:06:26.030 --> 00:06:28.189
+I just recommend you go and look at that, because you need
+
+148
+00:06:28.190 --> 00:06:30.542
+to build that in your app so that when you go to
+
+149
+00:06:30.890 --> 00:06:33.670
+production, this doesn't have a worse problem than what
+
+150
+00:06:33.890 --> 00:06:35.540
+you're going to experience here in local dev.
+
