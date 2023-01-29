@@ -1,0 +1,877 @@
+WEBVTT
+1
+00:00:02.290 --> 00:00:07.960
+Auto login is an important feature and for auto login to work, we now need to store some data on
+
+2
+00:00:07.960 --> 00:00:14.230
+the device and not just in variables because that just means we store it in memory and memory is the
+
+3
+00:00:14.230 --> 00:00:18.790
+thing we lose or this memory is the thing we lose if the app gets closed.
+
+4
+00:00:18.850 --> 00:00:23.830
+So storing that data in memory doesn't help us, if the user closes the app after logging in, the data
+
+5
+00:00:23.830 --> 00:00:25.000
+will be lost,
+
+6
+00:00:25.000 --> 00:00:31.150
+so we need to persist the information that the user has a token on the device so that we can check the
+
+7
+00:00:31.150 --> 00:00:37.110
+device storage when the app launches, then see if that token we might have found there is still valid
+
+8
+00:00:37.120 --> 00:00:42.610
+and then maybe automatically treat the user as logged in. Now to store something on the device, we can
+
+9
+00:00:42.610 --> 00:00:48.100
+use a special plugin, the shared preferences plugin. You can find it if you google for Flutter's shared
+
+10
+00:00:48.100 --> 00:00:58.750
+preferences or on pub.dev, you can simply search for shared preferences up there and you will find
+
+11
+00:00:58.750 --> 00:01:04.330
+that shared preferences package. As always, check the installing tab here for information, it's straightforward
+
+12
+00:01:04.390 --> 00:01:10.720
+you copy that entry, go to your pubspec.yaml file and add it here below your other dependencies,
+
+13
+00:01:11.170 --> 00:01:17.620
+save that and Flutter should automatically fetch that, if it doesn't fetch it automatically, as always
+
+14
+00:01:18.780 --> 00:01:25.100
+you can open up your terminal in your project folder and run Flutter packages get and this will also install
+
+15
+00:01:25.100 --> 00:01:26.390
+all packages.
+
+16
+00:01:26.820 --> 00:01:33.180
+So with that, shared preferences are installed and shared preferences allows you to tap into a simple key
+
+17
+00:01:33.180 --> 00:01:40.260
+value store on your device which is perfect for storing information like that. If you need an on device
+
+18
+00:01:40.290 --> 00:01:41.870
+database like SQLite,
+
+19
+00:01:41.880 --> 00:01:48.810
+there are dedicated packages for that too but for this information and for a lot of configuration information
+
+20
+00:01:48.810 --> 00:01:52.140
+like this is in the end, shared preferences is perfect,
+
+21
+00:01:52.140 --> 00:01:55.880
+it's available on both Android and iOS.
+
+22
+00:01:56.030 --> 00:02:00.650
+So now we can use that and the first step is that we store data in shared preferences when the user
+
+23
+00:02:00.650 --> 00:02:07.060
+is logged in. So in auth.dart in the providers folder here when we treat the user as logged in,
+
+24
+00:02:07.360 --> 00:02:14.110
+after doing the auto logout and all of that or after setting this up I should say, I want to store
+
+25
+00:02:14.110 --> 00:02:20.950
+my login data on the device in the shared preferences and for that first of all, let's import that shared
+
+26
+00:02:20.950 --> 00:02:27.670
+preferences package here, package/shared_preferences and there, the shared_preferences.dart file. With
+
+27
+00:02:27.670 --> 00:02:29.820
+that import added here at the top of the file,
+
+28
+00:02:29.830 --> 00:02:35.140
+let's go back to the _authenticate method and in here,
+
+29
+00:02:35.350 --> 00:02:42.080
+after notifying listeners, we can now start setting up our shared preferences.
+
+30
+00:02:42.100 --> 00:02:45.270
+Now actually, this is some async code and
+
+31
+00:02:45.400 --> 00:02:50.230
+therefore you should make sure you're using async await which we are already doing because working with
+
+32
+00:02:50.230 --> 00:02:55.020
+shared preferences also involves working with futures.
+
+33
+00:02:55.080 --> 00:03:01.330
+The first step is to get access to the shared preferences and I'll store that access
+
+34
+00:03:01.380 --> 00:03:06.440
+so to say in a constant named prefs, name is obviously up to you.
+
+35
+00:03:06.480 --> 00:03:09.270
+We get access by calling shared preferences,
+
+36
+00:03:09.270 --> 00:03:11.160
+this is now available things to the import
+
+37
+00:03:11.160 --> 00:03:14.000
+we just added, .getInstance.
+
+38
+00:03:14.220 --> 00:03:20.710
+Now this here actually returns a future which eventually will return a shared preferences instance
+
+39
+00:03:20.790 --> 00:03:25.510
+and that is then basically your tunnel to that on device storage.
+
+40
+00:03:25.560 --> 00:03:28.970
+So we should await that so that we don't store the future in here
+
+41
+00:03:28.980 --> 00:03:35.700
+but the real access to shared preferences and now we can use prefs to write and read data to and from
+
+42
+00:03:35.790 --> 00:03:42.630
+the shared preferences device storage. We write data with set methods and we can write booleans, doubles,
+
+43
+00:03:42.690 --> 00:03:45.550
+ints or strings as we want to do it here
+
+44
+00:03:45.570 --> 00:03:54.390
+and if you had more complex data by the way, you can always use json.encode and encode a map into JSON
+
+45
+00:03:54.900 --> 00:03:57.710
+because JSON is always a string.
+
+46
+00:03:57.750 --> 00:04:02.230
+JSON is a data format which in the end is wrapped by double quotes
+
+47
+00:04:02.250 --> 00:04:04.800
+so to say, so JSON data is a string,
+
+48
+00:04:04.800 --> 00:04:09.610
+so if you had a map you want to store, you can convert it to a string with json.encode
+
+49
+00:04:09.870 --> 00:04:11.970
+and that's exactly what I'll do here.
+
+50
+00:04:11.970 --> 00:04:20.730
+So here, I have my user data and I'll create that with json.encode, have a map here
+
+51
+00:04:20.890 --> 00:04:24.000
+and now the data I want to store is my token,
+
+52
+00:04:24.660 --> 00:04:31.810
+so the token key and here, I'll point at _token, the userId and here I'll point at 
+
+53
+00:04:31.810 --> 00:04:32.650
+_userId
+
+54
+00:04:33.630 --> 00:04:37.110
+and very important, the expiry date of course.
+
+55
+00:04:37.110 --> 00:04:39.120
+So the expiry date
+
+56
+00:04:39.210 --> 00:04:49.590
+and here I'll use _expiryDate.toISO8601String to have that standardized date format.
+
+57
+00:04:49.610 --> 00:04:55.880
+Now we can store user data here and give that a key by which we can retrieve it and that key is totally
+
+58
+00:04:55.880 --> 00:05:00.770
+up to you, should be a string and I'll just 
+
+59
+00:05:00.770 --> 00:05:01.520
+name it user data
+
+60
+00:05:01.540 --> 00:05:03.170
+but again, that name is totally up to you.
+
+61
+00:05:03.560 --> 00:05:09.290
+So here, I now store my serialized, my converted data here,
+
+62
+00:05:09.290 --> 00:05:15.230
+this map which is converted to JSON which is a string as I just said, I store that string here in my
+
+63
+00:05:15.230 --> 00:05:20.140
+preferences and there, we can later retrieve it. Now to retrieve it,
+
+64
+00:05:20.140 --> 00:05:23.780
+we need a new method and I'll add that method
+
+65
+00:05:24.010 --> 00:05:30.720
+maybe here, doesn't matter. It will return a future and actually that is not a future which will in the
+
+66
+00:05:30.720 --> 00:05:31.720
+end return nothing
+
+67
+00:05:31.740 --> 00:05:38.840
+but here I want to have a future which returns a boolean because this method will be the 
+
+68
+00:05:38.880 --> 00:05:39.970
+tryAutoLogin method.
+
+69
+00:05:40.080 --> 00:05:41.160
+The name is up to you,
+
+70
+00:05:41.190 --> 00:05:47.190
+it will be an async method and it will return a boolean because it should signal whether we were successful
+
+71
+00:05:47.400 --> 00:05:49.950
+when we try to automatically log the user in,
+
+72
+00:05:49.950 --> 00:05:56.700
+so we are successful if we find a token and that token is still valid or if we were not successful because
+
+73
+00:05:56.700 --> 00:06:01.980
+we'll need that information later to render different content on the screen based on whether we were
+
+74
+00:06:01.980 --> 00:06:02.980
+successful or not.
+
+75
+00:06:04.230 --> 00:06:09.600
+So here, tryAutoLogin should now of course access the shared preferences,
+
+76
+00:06:09.600 --> 00:06:16.350
+so let's again get access to shared preferences here with getInstance and await that and store that
+
+77
+00:06:16.350 --> 00:06:17.290
+in prefs
+
+78
+00:06:17.400 --> 00:06:24.290
+and now in prefs, I want to extract that user data on the user data key here. So let's first of all
+
+79
+00:06:24.290 --> 00:06:30.490
+check if prefs contains a key, user data,
+
+80
+00:06:30.710 --> 00:06:35.750
+if it does not contain that, hence the exclamation mark at the beginning, then we know there is no data
+
+81
+00:06:35.750 --> 00:06:41.770
+stored on the user data key so we certainly won't have a valid token and then we can return false
+
+82
+00:06:41.870 --> 00:06:48.650
+and this return false value will automatically be wrapped in a future because of the async keyword and
+
+83
+00:06:48.860 --> 00:06:51.020
+we want a future that returns a boolean, right?
+
+84
+00:06:51.050 --> 00:06:55.490
+So here we return a future in the end which yields false
+
+85
+00:06:55.490 --> 00:06:56.890
+once it's done.
+
+86
+00:06:57.140 --> 00:07:01.060
+If we do have that user data key, we know that we can at least get a token
+
+87
+00:07:01.070 --> 00:07:02.110
+and so on from there.
+
+88
+00:07:02.110 --> 00:07:04.880
+It might still be an invalid token which already expired
+
+89
+00:07:04.880 --> 00:07:07.970
+in the meantime but we can get some data.
+
+90
+00:07:08.210 --> 00:07:15.290
+So here, we can get our extracted user data by simply using prefs
+
+91
+00:07:15.320 --> 00:07:22.110
+and there we can use the get string method and get the user data string, so user data
+
+92
+00:07:22.110 --> 00:07:24.440
+here because I used user data as a key up there,
+
+93
+00:07:24.470 --> 00:07:29.450
+if you used a different key up there, you need to use different keys down there of course.
+
+94
+00:07:29.450 --> 00:07:32.580
+Now please remember that this of course is a string,
+
+95
+00:07:32.690 --> 00:07:39.080
+I want to convert it to a map, so I can use json.decode here and I know that this will then be a map
+
+96
+00:07:39.110 --> 00:07:43.780
+with string keys and object values, mixed values,
+
+97
+00:07:43.780 --> 00:07:49.290
+we will have a datetime in there, we'll have a string in there, different kinds of values. So that's the
+
+98
+00:07:49.300 --> 00:07:55.450
+extracted user data, now from that extracted user data, we can get the expiry date because we want to
+
+99
+00:07:55.450 --> 00:07:59.770
+check that date and see whether it still is valid,
+
+100
+00:07:59.800 --> 00:08:04.540
+so whether that date still is in the future because if the expiry date is in the past, then we know
+
+101
+00:08:04.540 --> 00:08:06.370
+that the token has expired.
+
+102
+00:08:06.610 --> 00:08:09.620
+So let's create our expiry date here
+
+103
+00:08:11.940 --> 00:08:19.050
+by using datetime.parse which thankfully works because I stored the date as an ISO8601String
+
+104
+00:08:19.050 --> 00:08:20.000
+in there,
+
+105
+00:08:20.010 --> 00:08:28.200
+so here I get my extracted user data for the expiry date key which I used up there,
+
+106
+00:08:28.200 --> 00:08:33.590
+so let's use that down there too, that is that string that is parsed into a datetime object now
+
+107
+00:08:33.780 --> 00:08:40.650
+and now we can simply check if expiry date is after datetime.now.
+
+108
+00:08:40.710 --> 00:08:46.540
+If it's after, the token is valid, if it's not, the token is invalid.
+
+109
+00:08:46.560 --> 00:08:52.650
+So if we check the opposite here, isBefore, we know the token is not valid and we can return false here,
+
+110
+00:08:52.680 --> 00:08:58.650
+we don't need to continue, we return false and therefore our future is done and returns false because
+
+111
+00:08:58.650 --> 00:08:59.820
+then we know we're done,
+
+112
+00:08:59.850 --> 00:09:04.550
+we don't need to continue, we certainly have no valid token because the expiry date is in the past.
+
+113
+00:09:06.170 --> 00:09:07.640
+If we make it past this if check,
+
+114
+00:09:07.640 --> 00:09:14.300
+we do have a valid token because the expiry date now is in the future and this is now when we want to
+
+115
+00:09:14.360 --> 00:09:21.500
+reinitialize all our properties up there - token, userId and so on and also set auto logout again
+
+116
+00:09:21.710 --> 00:09:24.080
+because now we basically want to do the same
+
+117
+00:09:24.140 --> 00:09:29.480
+we did in authenticate when we logged the user in for the first time because now we know we have valid
+
+118
+00:09:29.480 --> 00:09:33.410
+data and we therefore want to auto login the user.
+
+119
+00:09:33.410 --> 00:09:41.960
+So here, I'll set token equal to extracted user data and then token because I used the token here,
+
+120
+00:09:42.050 --> 00:09:49.640
+userId has the userId key, so let's use that for setting userId, extracted user data userId.
+
+121
+00:09:50.260 --> 00:09:56.850
+Let's also set the expiry date again of course, that is the expiry date
+
+122
+00:09:56.930 --> 00:10:06.090
+I stored up there and let's then of course also notify all listeners, also call auto logout to set
+
+123
+00:10:06.090 --> 00:10:12.000
+that timer again and important, return true because we need to have a future which returns a boolean
+
+124
+00:10:12.000 --> 00:10:13.650
+in the end so we return false
+
+125
+00:10:13.650 --> 00:10:18.160
+whenever we fail but here when we succeed, we of course should return true.
+
+126
+00:10:18.260 --> 00:10:19.700
+Now that was a lot of work on that
+
+127
+00:10:19.740 --> 00:10:22.590
+auto login function, where do we use that function now?
+
+128
+00:10:24.700 --> 00:10:32.530
+We can use that function in the main.dart file because that is in the end where our app starts. In there,
+
+129
+00:10:33.620 --> 00:10:40.630
+here where I have that consumer, where I render my MaterialApp, we render a home screen and the home
+
+130
+00:10:40.630 --> 00:10:45.190
+screen right now depends on the question whether we're authenticated or not.
+
+131
+00:10:45.190 --> 00:10:50.820
+Now actually here, if we're not authenticated, I don't automatically want to show the AuthScreen,
+
+132
+00:10:50.830 --> 00:10:56.790
+I instead want to try logging in and we can do that with the good old future builder here.
+
+133
+00:10:56.800 --> 00:10:59.380
+Let's use a future builder here in the else case 
+
+134
+00:10:59.410 --> 00:11:09.380
+if we're not logged in and the future I want to use here is taken from my auth object.
+
+135
+00:11:09.740 --> 00:11:17.040
+So here from auth, I'll try tryAutoLogin, that returns a future right and that future will in the end
+
+136
+00:11:17.040 --> 00:11:17.340
+yield
+
+137
+00:11:17.340 --> 00:11:29.450
+true or false. The builder of my future builder here gets a context, gets the authResultSnapshot
+
+138
+00:11:29.480 --> 00:11:39.770
+so to say and then should return maybe the AuthScreen but that will depend.
+
+139
+00:11:39.790 --> 00:11:46.610
+So now we can check the authResultSnapshot here and check the connection state
+
+140
+00:11:49.400 --> 00:11:56.960
+and if that is equal to ConnectionState.waiting, then I want to show a different screen and I want to
+
+141
+00:11:57.080 --> 00:11:59.420
+show the AuthScreen only for not waiting.
+
+142
+00:11:59.420 --> 00:12:04.640
+Now you might wonder and what do I do with the result whether we were successful or not?
+
+143
+00:12:04.640 --> 00:12:06.360
+Well there we have two options.
+
+144
+00:12:06.530 --> 00:12:11.780
+We can check the data the authResultSnapshot will give us in case we're not waiting anymore
+
+145
+00:12:12.050 --> 00:12:17.810
+to add yet another nested if condition here and then either show the AuthScreen if the result we're
+
+146
+00:12:17.810 --> 00:12:18.670
+getting,
+
+147
+00:12:18.680 --> 00:12:27.410
+so here in authResultSnapshot data, if that is equal to false, in that case we would return the AuthScreen
+
+148
+00:12:27.500 --> 00:12:31.650
+otherwise we could return our products overview screen.
+
+149
+00:12:31.700 --> 00:12:38.090
+This is something you could do here but this would be a bit redundant because please note that automatically
+
+150
+00:12:38.090 --> 00:12:44.030
+will rebuild when auth changes and it does change because in auth.dart, we call notify listeners after
+
+151
+00:12:44.060 --> 00:12:45.540
+auto logging the user in.
+
+152
+00:12:45.670 --> 00:12:51.160
+So this will automatically rebuild and we'll go to this check and then we will be authenticated,
+
+153
+00:12:51.200 --> 00:12:53.980
+so then we will render the products overview screen anyways.
+
+154
+00:12:54.500 --> 00:12:59.870
+So now I just want to present some waiting screen as an alternative to the AuthScreen for the short
+
+155
+00:12:59.870 --> 00:13:06.200
+period where we're not yet decided whether we're logged in or not because it's not the best user experience
+
+156
+00:13:06.200 --> 00:13:11.580
+if we show the AuthScreen where the user might start entering data and then suddenly we see oh the
+
+157
+00:13:11.580 --> 00:13:18.350
+user is logged in and we present a totally different screen. For that attached, you find another widget
+
+158
+00:13:18.800 --> 00:13:24.050
+and that's the splash_screen.dart file which you can move into your screens folder.
+
+159
+00:13:24.050 --> 00:13:25.760
+It's a very simple widget,
+
+160
+00:13:25.760 --> 00:13:28.380
+it simply shows a centered loading text.
+
+161
+00:13:28.400 --> 00:13:32.960
+Of course there, you could show your logo, some image, whatever you want but I just showed a text
+
+162
+00:13:33.560 --> 00:13:35.660
+and that's the widget I want to render instead.
+
+163
+00:13:35.690 --> 00:13:43.730
+So here, I'll render my splash screen widget and for that, add an import at the top, not the one that was
+
+164
+00:13:44.060 --> 00:13:48.370
+added automatically here but manually go to the screens folder,
+
+165
+00:13:48.380 --> 00:13:56.240
+import splash_screen.dart and down there in this complex nesting of if statements which you can
+
+166
+00:13:56.240 --> 00:14:01.150
+simplify by the way by using a couple of builder methods here if you want to have a clearer structure
+
+167
+00:14:01.490 --> 00:14:03.120
+but in the end here, I'm checking
+
+168
+00:14:03.140 --> 00:14:04.280
+are we authenticated?
+
+169
+00:14:04.280 --> 00:14:08.120
+If yes, products overview screen, if not, future builder
+
+170
+00:14:08.120 --> 00:14:13.050
+tryAutoLogin, whilst we're waiting for a result, show the splash screen,
+
+171
+00:14:13.100 --> 00:14:15.130
+if we're done waiting, show the AuthScreen.
+
+172
+00:14:18.240 --> 00:14:23.970
+Now with that, do a full restart of your application and then try logging in there,
+
+173
+00:14:28.820 --> 00:14:29.560
+like this,
+
+174
+00:14:32.740 --> 00:14:39.540
+login, here we are and now do a full refresh again which will restart the app
+
+175
+00:14:43.820 --> 00:14:46.900
+and you see, I'm still ending up here,
+
+176
+00:14:46.920 --> 00:14:49.470
+I'm not on that AuthScreen.
+
+177
+00:14:49.860 --> 00:14:58.440
+If you close the app here through the drawer and you then go to your general app drawer down there and you try
+
+178
+00:14:58.440 --> 00:14:59.820
+launching your app here,
+
+179
+00:15:04.860 --> 00:15:09.900
+it also goes right into the shop and it's loading so fast and finding out that we're authenticated so
+
+180
+00:15:09.900 --> 00:15:12.510
+fast that I don't even see the splash screen.
+
+181
+00:15:12.540 --> 00:15:18.540
+Still, it's better to have that in place and see that splash screen in case there is some waiting delay
+
+182
+00:15:19.020 --> 00:15:22.850
+instead of that screen which is obsolete by the time you view it.
+
+183
+00:15:22.860 --> 00:15:28.410
+So this is how you can implement auto login which obviously is also quite a nice feature in your
+
+184
+00:15:28.410 --> 00:15:34.050
+application to ensure that you're providing a good user experience and with that, we're almost done
+
+185
+00:15:34.140 --> 00:15:37.310
+but you'll notice a strange behavior when you logout,
+
+186
+00:15:37.620 --> 00:15:42.810
+I'm not logged out. The reason for that is yes we're logging out, then this rebuilds here and then we're
+
+187
+00:15:42.840 --> 00:15:48.210
+automatically logged back in because the future builder runs again when this rebuilds and it sees hey I
+
+188
+00:15:48.210 --> 00:15:49.790
+still have data stored here,
+
+189
+00:15:49.860 --> 00:15:54.750
+so you probably want to be back in again.
+
+190
+00:15:54.750 --> 00:15:56.240
+So I'll relaunch my app here,
+
+191
+00:15:56.280 --> 00:16:02.220
+this was quit because I quit the app through the task manager here and in the meantime, let's go to auth.dart
+
+192
+00:16:02.220 --> 00:16:03.460
+and do something important.
+
+193
+00:16:03.510 --> 00:16:09.000
+When you logout, you of course want to clear all data you have in your shared preferences.
+
+194
+00:16:09.000 --> 00:16:15.240
+You have to clear all data there to make sure that any data you had in there is gone and is not getting
+
+195
+00:16:15.240 --> 00:16:18.360
+used in the auto login thereafter.
+
+196
+00:16:18.360 --> 00:16:30.980
+So here in logout, I'll also get access to my prefs by awaiting and for that, we have to turn this into an async
+
+197
+00:16:30.980 --> 00:16:36.610
+function with the async keyword which means it will return a future that yields nothing.
+
+198
+00:16:36.620 --> 00:16:37.710
+So here I want to await,
+
+199
+00:16:37.760 --> 00:16:40.910
+SharedPreferences.getInstance just as before
+
+200
+00:16:40.910 --> 00:16:47.390
+and then here we can call prefs and then either remove and pass in the key what we want to remove which
+
+201
+00:16:47.420 --> 00:16:52.400
+would be perfectly fine and would be good if you're storing multiple things in the shared preferences
+
+202
+00:16:52.430 --> 00:16:55.880
+which you don't all want to delete if you're logging out
+
+203
+00:16:56.030 --> 00:17:00.830
+but if you know you only store the user data there, you can also just call prefs.clear
+
+204
+00:17:00.830 --> 00:17:04.530
+but this will purge all your apps data from the shared preferences,
+
+205
+00:17:04.550 --> 00:17:09.710
+so if you're storing other data as well which should survive the logout, then you should not use clear
+
+206
+00:17:09.740 --> 00:17:10.510
+but remove.
+
+207
+00:17:10.550 --> 00:17:13.910
+Here we can use clear because I'm only storing user data.
+
+208
+00:17:13.910 --> 00:17:19.609
+So now if I refresh this, we should also be reloading that but now if I press logout, that should actually
+
+209
+00:17:19.609 --> 00:17:26.480
+work because we clear the preferences, here we saw the splash screen and now here I am back
+
+210
+00:17:26.540 --> 00:17:30.280
+and of course now we can also log back in if we want to and this should
+
+211
+00:17:30.290 --> 00:17:34.080
+now in general work just fine.
+
+212
+00:17:34.160 --> 00:17:40.550
+I also recommend that in the app drawer on the logout list tile, besides popping the app drawer, you also
+
+213
+00:17:40.670 --> 00:17:46.510
+add another navigation action with pushReplacementNamed
+
+214
+00:17:46.510 --> 00:17:53.360
+and that we simply always go to slash, slash nothing and that is the home route. Since you always go there,
+
+215
+00:17:53.360 --> 00:17:59.060
+you ensure that this logic here will always run whenever the logout button is pressed and since this
+
+216
+00:17:59.060 --> 00:18:02.030
+always runs and since this home route is always loaded,
+
+217
+00:18:02.180 --> 00:18:09.180
+we will always end up on the AuthScreen when we clear our data in the logout method of the auth provider.
+
+218
+00:18:09.290 --> 00:18:15.800
+So simply add this additional line here and go to your home route to ensure that you never have unexpected
+
+219
+00:18:15.800 --> 00:18:17.180
+behaviors when logging out.
+

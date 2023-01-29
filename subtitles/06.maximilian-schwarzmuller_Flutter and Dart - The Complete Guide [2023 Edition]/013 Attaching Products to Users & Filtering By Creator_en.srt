@@ -1,0 +1,672 @@
+1
+00:00:02,390 --> 00:00:07,760
+To make sure that the products belong to a user, the journey starts at the place where we add a product
+
+2
+00:00:07,790 --> 00:00:10,010
+because that is what we created initially,
+
+3
+00:00:10,010 --> 00:00:16,270
+that is where we should therefore store the user ID of the logged in user as part of our product data.
+
+4
+00:00:16,280 --> 00:00:24,470
+Now you could change your product model here in Dart, in the product.dart file to include a new user
+
+5
+00:00:24,530 --> 00:00:29,350
+ID value here but we don't really need
+
+6
+00:00:29,350 --> 00:00:34,520
+that. The userId is more something that we want to store on the server,
+
+7
+00:00:34,690 --> 00:00:37,000
+so it should suffice for now
+
+8
+00:00:37,000 --> 00:00:42,610
+if we send our data here to the server and there we add a new key which is only stored on a server, not
+
+9
+00:00:42,610 --> 00:00:47,920
+in our local model, which you could name userId or creator ID to make it really clear what's in
+
+10
+00:00:47,920 --> 00:00:48,410
+there
+
+11
+00:00:48,520 --> 00:00:54,760
+and that points at the userId property which we already have in the products.dart file which is set
+
+12
+00:00:54,880 --> 00:00:56,740
+to the user who's logged in.
+
+13
+00:00:56,740 --> 00:01:01,180
+So now we're also storing this on a server when a new product is created.
+
+14
+00:01:01,270 --> 00:01:04,410
+Let's first of all try that before we adjust the fetching logic,
+
+15
+00:01:04,660 --> 00:01:15,530
+so let's create a new product, some book for 29.99 here,
+
+16
+00:01:15,570 --> 00:01:18,000
+this is an amazing book,
+
+17
+00:01:18,120 --> 00:01:21,230
+let me use the image I used before,
+
+18
+00:01:21,240 --> 00:01:24,390
+save that and on Firebase,
+
+19
+00:01:24,420 --> 00:01:26,760
+now on this new book, we see a new entry,
+
+20
+00:01:26,760 --> 00:01:32,840
+we see the creator ID and that's the id of the user who's currently logged in.
+
+21
+00:01:33,040 --> 00:01:40,500
+The other two products right now have no creator ID entry but we can manually cheat one in there and for that,
+
+22
+00:01:40,510 --> 00:01:45,160
+let's first of all go to the authentication section and let's actually take the ID of the other
+
+23
+00:01:45,160 --> 00:01:47,470
+user, so simply create a second user
+
+24
+00:01:47,500 --> 00:01:52,570
+if you don't have a second user yet. So I take the user of the second user, the one who's currently not
+
+25
+00:01:52,660 --> 00:01:56,570
+logged in, the one which I just didn't use for creating that product
+
+26
+00:01:56,720 --> 00:02:03,010
+and now back in the database here on the products, you can click the plus button here if you hover over
+
+27
+00:02:03,010 --> 00:02:06,750
+a product ID and add a new key-value pair and there,
+
+28
+00:02:06,760 --> 00:02:12,100
+I'll add creator ID, make sure to spell it as you spell it down there and enter that ID as a value,
+
+29
+00:02:12,130 --> 00:02:15,430
+click add thereafter and do that on the other product too
+
+30
+00:02:15,520 --> 00:02:17,380
+and with that, we cheated a bit and
+
+31
+00:02:17,380 --> 00:02:20,030
+we made sure that the products belonged to the other user.
+
+32
+00:02:20,080 --> 00:02:21,360
+So we have three products,
+
+33
+00:02:21,430 --> 00:02:28,510
+one belongs to the second user with whom I'm currently logged in, the other two belong to the other user.
+
+34
+00:02:28,510 --> 00:02:34,390
+Now let's work on fetching and let's make sure we only fetch the products for the user who's logged in. For
+
+35
+00:02:34,390 --> 00:02:36,000
+that in fetch and set products,
+
+36
+00:02:36,010 --> 00:02:41,320
+we need to filter the products we're fetching and this is now a server-side task.
+
+37
+00:02:41,320 --> 00:02:47,110
+You do that filtering on the server-side because you don't want to fetch all products and then filter
+
+38
+00:02:47,110 --> 00:02:48,490
+by ID on the client,
+
+39
+00:02:48,490 --> 00:02:52,630
+you could do that but that would be a lot of work on the client that should rather happen on the
+
+40
+00:02:52,630 --> 00:02:58,980
+server, otherwise you are hitting your server, fetching hundreds of entries from the database just to
+
+41
+00:02:58,980 --> 00:03:05,370
+filter out one entry on the client. You would transfer loads of data would slow down your server, would
+
+42
+00:03:05,370 --> 00:03:10,100
+slow down your client just to get one product, that's not what you want to do.
+
+43
+00:03:10,170 --> 00:03:15,140
+Instead you want to make sure that the filtering happens on the server best before the database is hit
+
+44
+00:03:15,150 --> 00:03:19,540
+or when the database is hit and then you only get back what you really need.
+
+45
+00:03:19,560 --> 00:03:22,480
+Thankfully, Firebase has a built-in filtering mechanism,
+
+46
+00:03:22,540 --> 00:03:26,610
+the service you're using might also have that and if you're building your own back-end, you might want
+
+47
+00:03:26,610 --> 00:03:30,710
+to add such a service or such a capability if you need it.
+
+48
+00:03:30,750 --> 00:03:37,710
+So how do we tell Firebase to filter though? You can add another query parameter before or after that
+
+49
+00:03:37,700 --> 00:03:44,940
+token thing with an ampersand, so you only have the question mark before you add all your optional query
+
+50
+00:03:44,940 --> 00:03:46,150
+parameters at the end, thereafter
+
+51
+00:03:46,170 --> 00:03:53,640
+you separate them with ampersand symbols and there, you add orderBy, written like this with a capital
+
+52
+00:03:53,640 --> 00:04:03,010
+B and then between double quotes or single quotes if you used double quotes to surround your string, the
+
+53
+00:04:03,010 --> 00:04:07,990
+key by which you want to filter which in our case is creator ID. So here I want to filter by
+
+54
+00:04:07,990 --> 00:04:12,300
+creator ID and then you add another key-value pair,
+
+55
+00:04:12,400 --> 00:04:19,480
+so one more ampersand and then you add equalTo and these are of course special commands which Firebase
+
+56
+00:04:19,480 --> 00:04:21,760
+understands, you can't use them with any server,
+
+57
+00:04:21,790 --> 00:04:28,330
+these are Firebase specific. You set equalTo double quotes and now between the double quotes, your user
+
+58
+00:04:28,330 --> 00:04:34,150
+ID which you can inject with string interpolation like that but you need surrounding double quotes
+
+59
+00:04:34,150 --> 00:04:35,610
+around that.
+
+60
+00:04:35,650 --> 00:04:41,740
+Now this tells Firebase that you essentially want to filter by creator ID and only where it's equal to
+
+61
+00:04:41,740 --> 00:04:42,630
+your userId,
+
+62
+00:04:42,790 --> 00:04:48,870
+only these entries should be returned. Now important, for this to work,
+
+63
+00:04:48,880 --> 00:04:52,960
+you also need to change something on Firebase side, here under rules,
+
+64
+00:04:52,960 --> 00:04:58,510
+you need to configure a so-called index which simply is required by Firebase to optimize the way it
+
+65
+00:04:58,510 --> 00:05:02,350
+interacts with the database and to support such filtering.
+
+66
+00:05:02,350 --> 00:05:04,780
+Again, this is now Firebase specific here.
+
+67
+00:05:05,200 --> 00:05:14,810
+You set such an index simply here after read and write by specifying the name of the node which you want
+
+68
+00:05:14,810 --> 00:05:23,110
+to index and that is the products node here, then a colon and then the curly braces
+
+69
+00:05:23,110 --> 00:05:29,320
+and then in there, you add double quotes and then .indexOn which is a keyword understood by Firebase,
+
+70
+00:05:29,770 --> 00:05:33,510
+then a colon and then in an array or in a list,
+
+71
+00:05:33,510 --> 00:05:39,190
+so between square brackets, the fields by which you want to be able to filter in and in our case, between
+
+72
+00:05:39,190 --> 00:05:39,730
+double quotes,
+
+73
+00:05:39,730 --> 00:05:47,320
+that's just the creator ID or whatever you name the field. You can then publish that and with that, you should
+
+74
+00:05:47,320 --> 00:05:55,620
+be able to save all of that and now when you reload this screen, you only see one entry here
+
+75
+00:05:55,880 --> 00:05:57,180
+and if I refresh
+
+76
+00:05:57,380 --> 00:06:03,040
+and login with the other user, we should only see the two products that belong to that other user,
+
+77
+00:06:03,050 --> 00:06:10,010
+in my case the test@test.com, so let's login here. On the shop page, we also only see these
+
+78
+00:06:10,010 --> 00:06:11,430
+two,
+
+79
+00:06:11,610 --> 00:06:12,910
+we'll have to fix that
+
+80
+00:06:13,080 --> 00:06:14,620
+but under managed products too.
+
+81
+00:06:14,780 --> 00:06:19,950
+Now on the shop page, I of course want to see all and the fix could be that we make this method a bit more
+
+82
+00:06:19,950 --> 00:06:20,720
+flexible,
+
+83
+00:06:20,730 --> 00:06:28,710
+we could add a boolean argument, filter by user and the default here and for that, we can wrap this into
+
+84
+00:06:28,710 --> 00:06:32,280
+square brackets to have an optional positional argument,
+
+85
+00:06:32,310 --> 00:06:34,020
+the default could be false,
+
+86
+00:06:34,020 --> 00:06:37,430
+you don't have to set a default but you can and therefore
+
+87
+00:06:37,440 --> 00:06:42,600
+if this argument isn't provided and you also learn this at the beginning of the course, square brackets
+
+88
+00:06:42,630 --> 00:06:47,000
+around the positional argument make it optional but then you should provide a default value,
+
+89
+00:06:47,100 --> 00:06:54,240
+so if this is not provided, we'll have that available but it's set to false or we do pass in a value for
+
+90
+00:06:54,240 --> 00:06:57,270
+this argument and then we could set it to true.
+
+91
+00:06:57,270 --> 00:07:01,340
+Now we can use that to determine whether we want to add this or not.
+
+92
+00:07:01,350 --> 00:07:08,500
+So here we can actually add another runtime constant variable, filter string or whatever you want to
+
+93
+00:07:08,500 --> 00:07:12,070
+name it and there we check filter by user
+
+94
+00:07:12,070 --> 00:07:18,490
+and if that is true, then we want to set this to this string here,
+
+95
+00:07:18,500 --> 00:07:21,160
+so cut that,
+
+96
+00:07:21,370 --> 00:07:27,610
+this is then the value between single quotes, this is then the value and otherwise, we'll have an empty
+
+97
+00:07:27,610 --> 00:07:29,770
+string here because otherwise we'll not filter
+
+98
+00:07:29,830 --> 00:07:35,740
+and then here we simply inject filter string with string interpolation, the ampersand is in between the
+
+99
+00:07:35,740 --> 00:07:37,110
+two string interpolations here.
+
+100
+00:07:39,790 --> 00:07:42,480
+So with that, we should now only attach this filter string
+
+101
+00:07:42,610 --> 00:07:50,600
+if this is set to true. By default it's not, so on the user product screen where we want to filter by
+
+102
+00:07:50,600 --> 00:07:53,980
+user, we should set it to true. Now there,
+
+103
+00:07:53,990 --> 00:07:56,270
+here is where we call fetch and set products,
+
+104
+00:07:56,270 --> 00:08:00,590
+so here I want to pass in true to filter by user.
+
+105
+00:08:00,610 --> 00:08:06,970
+So now if you save all files and maybe do a full refresh, you should see that if you now login on the
+
+106
+00:08:06,970 --> 00:08:13,990
+products overview screen, you actually do see all products, so all free products in my case here but on
+
+107
+00:08:13,990 --> 00:08:16,970
+the managed products screen, you only see two.
+
+108
+00:08:16,990 --> 00:08:18,250
+So here we have three,
+
+109
+00:08:18,520 --> 00:08:23,680
+please note that the favorite status is also detected correctly and on managed products,
+
+110
+00:08:23,680 --> 00:08:30,310
+if we reload, we only have two. Now the problem is when I first visit this, we don't fetch the data and
+
+111
+00:08:30,310 --> 00:08:34,890
+therefore when I first visit this page, I actually see all my products.
+
+112
+00:08:35,080 --> 00:08:41,360
+Now that of course is also not something we want, so the solution here would be to simply also fetch
+
+113
+00:08:41,360 --> 00:08:43,340
+products when this page first loads.
+
+114
+00:08:43,460 --> 00:08:48,240
+Previously in the app, we didn't need that because we always fetch the same products in both pages,
+
+115
+00:08:48,260 --> 00:08:53,030
+so there was no need to fetch products when we visit the managed products page but now since we actually
+
+116
+00:08:53,030 --> 00:08:56,350
+want to fetch different data, we should definitely also fetch data
+
+117
+00:08:56,360 --> 00:09:04,030
+when we first load that. So back here since we have a stateless widget, we could convert this to a stateful
+
+118
+00:09:04,030 --> 00:09:06,420
+widget or use the future builder
+
+119
+00:09:06,430 --> 00:09:11,770
+you learned about earlier and as a side note because I just see it, we can also set listen to false here,
+
+120
+00:09:11,770 --> 00:09:16,660
+doesn't matter too much because we're having a listener here anyways but we can still do it to be clear
+
+121
+00:09:16,660 --> 00:09:24,020
+that we here only dispatch but back to the original point I had or what I wanted to do.
+
+122
+00:09:24,270 --> 00:09:32,590
+We can now wrap this entire page or actually at least the body with a new widget and that should be
+
+123
+00:09:32,590 --> 00:09:41,200
+that future builder here in the end, that future builder will of course get a builder here, not a child
+
+124
+00:09:41,230 --> 00:09:45,920
+and that builder is a function which receives a context and that the data
+
+125
+00:09:45,920 --> 00:09:52,870
+our future will resolve to or that snapshot and go back to the HTTP section if it's unclear how that
+
+126
+00:09:52,870 --> 00:09:55,350
+works, I showed it there and the future builder
+
+127
+00:09:55,360 --> 00:10:01,970
+also, besides the builder, needs a future to which it should listen or for which it should wait and that's
+
+128
+00:10:01,970 --> 00:10:04,570
+of course the future returned by refresh products.
+
+129
+00:10:08,380 --> 00:10:14,710
+So here, I can simply call _refreshProducts and here I do execute this right away because
+
+130
+00:10:14,710 --> 00:10:20,230
+I want to call it right when this first gets parsed, when this page gets loaded. Forward my context to
+
+131
+00:10:20,230 --> 00:10:23,980
+there because I need it in refresh products and we should be good.
+
+132
+00:10:24,040 --> 00:10:33,090
+Now this will build that and in here, we can now check if we're currently in a connection state or we're
+
+133
+00:10:33,090 --> 00:10:38,910
+waiting, by comparing this to the connection state enum here and checking whether this is waiting,
+
+134
+00:10:39,060 --> 00:10:45,170
+in which case we could return a centered CircularProgressIndicator
+
+135
+00:10:50,250 --> 00:10:55,770
+and only otherwise, return our main content with the refresh indicator in our list view.
+
+136
+00:10:55,770 --> 00:11:02,910
+Now one problem we'll have here, we've rebuilt the entire page thanks to that listener whenever
+
+137
+00:11:02,910 --> 00:11:04,170
+our products change
+
+138
+00:11:04,230 --> 00:11:09,570
+and currently that would trigger an infinite loop because here with the future builder, I'm calling refresh
+
+139
+00:11:09,570 --> 00:11:13,580
+products which goes ahead and fetches products, this will update the products,
+
+140
+00:11:13,590 --> 00:11:21,670
+this will retrigger build, this will retrigger the future builder, not what I want. It would be better if
+
+141
+00:11:21,730 --> 00:11:26,950
+only a part of this screen would rebuild, only the part down there
+
+142
+00:11:26,950 --> 00:11:34,010
+if we have new products, that's something we can do of course with the help of a consumer. So we can wrap
+
+143
+00:11:34,010 --> 00:11:35,500
+this padding here
+
+144
+00:11:36,790 --> 00:11:43,810
+with a new widget and that would be the consumer pointing at products and the consumer as you learned
+
+145
+00:11:43,900 --> 00:11:51,130
+also takes a builder and that builder gives you or wants a function which gets the context which gets
+
+146
+00:11:51,130 --> 00:11:52,780
+that products data
+
+147
+00:11:52,810 --> 00:11:58,720
+and maybe a child which you don't have to use though, I don't need it, so I'll just add a blank here, just
+
+148
+00:11:58,720 --> 00:12:00,610
+an underscore
+
+149
+00:12:00,610 --> 00:12:06,040
+and now with this, we have a setup where we should, thanks to the future builder, fetch data when this
+
+150
+00:12:06,040 --> 00:12:12,550
+first loads, when this first builds and then whenever it rebuilds but it shouldn't rebuild here, then
+
+151
+00:12:12,670 --> 00:12:15,770
+we either show the progress indicator or once that's done,
+
+152
+00:12:15,850 --> 00:12:21,130
+our main page with the surrounding refresh and indicator, there we can refresh products
+
+153
+00:12:21,130 --> 00:12:23,920
+and now it's really important that you have listen false here,
+
+154
+00:12:23,920 --> 00:12:29,790
+otherwise you will get an infinite loop I described earlier and once you refresh or once the initial
+
+155
+00:12:29,790 --> 00:12:35,290
+loading is done in the end thanks to that consumer, that list here will be built and rebuilt.
+
+156
+00:12:35,370 --> 00:12:40,530
+So let's give that a try and let's see whether it works, let me also print something here to rule out
+
+157
+00:12:40,530 --> 00:12:44,040
+that we have an infinite loop.
+
+158
+00:12:44,040 --> 00:12:53,610
+So let's do a full refresh and then login here with test@test.com and testers here login and
+
+159
+00:12:53,730 --> 00:12:56,010
+we go to the shop page of course.
+
+160
+00:12:56,010 --> 00:12:57,810
+Let's now go to managed products,
+
+161
+00:12:57,840 --> 00:12:58,980
+we see the loading spinner,
+
+162
+00:12:58,980 --> 00:13:05,700
+we see our products and we were only rebuilding once, if I refresh here,
+
+163
+00:13:05,820 --> 00:13:06,800
+we didn't rebuild again,
+
+164
+00:13:06,810 --> 00:13:08,130
+so that's great.
+
+165
+00:13:08,160 --> 00:13:14,610
+So this works, if I go back to the shop, we load the data there and we have three products here but only
+
+166
+00:13:14,610 --> 00:13:17,160
+two products there on managed products.
+
+167
+00:13:17,190 --> 00:13:19,530
+So this is now working as it should
+
+168
+00:13:19,680 --> 00:13:23,580
+and now we're making sure that we can really only work with the products we own.
+

@@ -1,0 +1,760 @@
+1
+00:00:02,170 --> 00:00:08,350
+So let's continue by adding the functionality to turn our location, our latitude longitude coordinate
+
+2
+00:00:08,350 --> 00:00:13,280
+pair into a human readable address because I want to use that in this application as well.
+
+3
+00:00:13,660 --> 00:00:21,340
+So in the location helper, we can add a second static method which will actually return a future which eventually
+
+4
+00:00:21,340 --> 00:00:27,360
+will yield a string which I'll name get place address and
+
+5
+00:00:27,460 --> 00:00:35,350
+there, I expect to get my latitude and longitude and here I'll just use abbreviations.
+
+6
+00:00:35,350 --> 00:00:41,260
+It'll be a async function because in here, I'll now actually send a HTTP request to Google's servers
+
+7
+00:00:41,320 --> 00:00:47,560
+because Google has another API which doesn't give us such an on the fly URL though but which actually
+
+8
+00:00:47,560 --> 00:00:53,950
+gives us a URL to which we can send such a coordinate pair to get back a human readable address.
+
+9
+00:00:53,950 --> 00:00:57,790
+Now therefore, we'll need the HTTP package which we used earlier already,
+
+10
+00:00:57,940 --> 00:01:03,940
+so on pub.dev, we can search for HTTP and then go to installing to copy that entry and add
+
+11
+00:01:03,940 --> 00:01:07,180
+it to the pubspec.yaml file. So in there,
+
+12
+00:01:07,180 --> 00:01:09,250
+let's add this entry.
+
+13
+00:01:09,340 --> 00:01:16,030
+Now here we won't need to do a full restart because that doesn't tap into native device capabilities
+
+14
+00:01:16,810 --> 00:01:23,860
+and with the HTTP package installed, go back to the location helper and in there, we can now import
+
+15
+00:01:23,890 --> 00:01:24,280
+this,
+
+16
+00:01:24,310 --> 00:01:33,240
+so here we can import package/http and then http.dart as HTTP if you want to.
+
+17
+00:01:33,340 --> 00:01:37,870
+Now the question is, to which URL do we need to send this?
+
+18
+00:01:38,000 --> 00:01:46,050
+And the answer is you can go to the Google Maps page we're on before and under documentation, you'll find
+
+19
+00:01:46,080 --> 00:01:52,680
+the geocoding API and the geocoding API allows you to translate addresses to coordinates and coordinates
+
+20
+00:01:52,680 --> 00:01:58,710
+to addresses and what we want to do is a reverse geocoding request also known as an address lookup.
+
+21
+00:01:59,070 --> 00:02:03,560
+So click here and you'll find the URL to which you need to send your request.
+
+22
+00:02:03,590 --> 00:02:11,220
+You can copy that URL, go back into your code and there, configure that URL because we'll
+
+23
+00:02:11,220 --> 00:02:19,410
+need to inject our Google API too here of course and the coordinates for which we want to fetch this
+
+24
+00:02:19,400 --> 00:02:20,550
+also should be dynamic.
+
+25
+00:02:20,970 --> 00:02:28,070
+So here I want to insert latlng, so the coordinates we're getting here.
+
+26
+00:02:28,090 --> 00:02:34,540
+So with that, we get the URL prepared, now we need to send a get request there. So I'll get back a
+
+27
+00:02:34,540 --> 00:02:44,140
+response by awaiting for the result of HTTP get for that URL. Now that response will contain
+
+28
+00:02:44,590 --> 00:02:48,100
+the data we need and it will contain this in JSON data,
+
+29
+00:02:48,130 --> 00:02:54,790
+so in order to convert it, I'll import dart convert, we use that and the HTTP module of this course
+
+30
+00:02:54,790 --> 00:03:07,250
+too and now here, we can return json.decode for the response body, this gives us a map and on this map,
+
+31
+00:03:07,280 --> 00:03:13,490
+you'll have a results key and you can always print this here if you want to look into it or place a
+
+32
+00:03:13,490 --> 00:03:20,150
+breakpoint here and start this in debugging mode. So we'll have a results key in there and there, we'll
+
+33
+00:03:20,150 --> 00:03:26,810
+have multiple results, at least one, so we'll access the first entry Google returns us because it might
+
+34
+00:03:26,810 --> 00:03:30,310
+find multiple addresses but it will order them by relevance.
+
+35
+00:03:30,320 --> 00:03:36,560
+So the first one should be the most relevant one and then here we want to get the formatted address
+
+36
+00:03:36,560 --> 00:03:41,390
+field and make sure you have no typo in there because that is a field you'll have in the response data
+
+37
+00:03:41,840 --> 00:03:46,630
+and this should be the human readable address we want. I return it here, since we use async,
+
+38
+00:03:46,640 --> 00:03:51,830
+this will automatically be wrapped in a future and therefore overall here, we will return a future which
+
+39
+00:03:51,830 --> 00:03:55,810
+will then eventually yield that string here.
+
+40
+00:03:55,850 --> 00:04:01,340
+So now we have that helper method to get the place address, the question now is where do we use that?
+
+41
+00:04:02,320 --> 00:04:07,870
+And I'd say our great_places.dart file, the providers file is a great place to do that when we
+
+42
+00:04:07,870 --> 00:04:14,710
+insert a new place because there, we always will get our location, not right now but we'll soon add
+
+43
+00:04:14,710 --> 00:04:19,600
+this and we'll get our coordinates here, we can then generate the address and then we have all the data
+
+44
+00:04:19,839 --> 00:04:21,240
+we need to save here.
+
+45
+00:04:21,640 --> 00:04:26,330
+Now as an in-between step however, we first of all have to make sure that we get the location we're picking
+
+46
+00:04:26,330 --> 00:04:33,010
+in the location input, either by locating the user or by picking it on a map, that we get that location
+
+47
+00:04:33,190 --> 00:04:41,320
+to our add place screen here. So here in location input, in the end we're working with a location, here
+
+48
+00:04:41,850 --> 00:04:49,300
+we're getting a location, that locData which is a pair of latitude longitude and here in select a
+
+49
+00:04:49,290 --> 00:04:54,550
+map, we also have the selected location which is another object but also an object with latitude and
+
+50
+00:04:54,550 --> 00:04:56,020
+longitude.
+
+51
+00:04:56,110 --> 00:05:01,360
+So in both places, it would be nice if we could call a method that's provided by the parent widget, so
+
+52
+00:05:01,360 --> 00:05:07,660
+by the add place widget to then pass that data back to add place, just as we're doing it with the image.
+
+53
+00:05:07,990 --> 00:05:13,720
+So therefore here, I'll add a new method in the add place screen widget now which won't return anything
+
+54
+00:05:13,720 --> 00:05:20,500
+which I'll just name select place, _selectPlace and I expect to get a latitude and longitude
+
+55
+00:05:20,500 --> 00:05:24,810
+here as data, then we can take it from there.
+
+56
+00:05:24,850 --> 00:05:32,190
+So now let's pass a pointer at this method to our location input just as we did for the image,
+
+57
+00:05:32,200 --> 00:05:33,080
+so here I'll pass
+
+58
+00:05:33,100 --> 00:05:37,270
+select place and of course we need to accept this now in the location input.
+
+59
+00:05:37,390 --> 00:05:46,900
+So there in the widget, I get a function, a property of type function which I'll name onSelectPlace
+
+60
+00:05:46,900 --> 00:05:52,750
+or whatever you want to name it, therefore add the constructor and save the argument you're getting in
+
+61
+00:05:52,750 --> 00:05:54,150
+this property.
+
+62
+00:05:54,280 --> 00:06:02,280
+So now we can trigger onSelectPlace with the widget property here onSelectPlace and also in select
+
+63
+00:06:02,280 --> 00:06:03,360
+a map.
+
+64
+00:06:03,370 --> 00:06:09,580
+Now here I want to forward locData.latitude and locData.longitude and make sure that the
+
+65
+00:06:09,580 --> 00:06:16,270
+order is correct, latitude first, longitude second because that's what I set up in the add place screen, I expect
+
+66
+00:06:16,270 --> 00:06:23,900
+latitude first, longitude second. So that's what I've forward here in get current user location and in
+
+67
+00:06:23,900 --> 00:06:32,330
+select on map which is our alternative way, here I want to forward selectedLocation.latitude and
+
+68
+00:06:32,330 --> 00:06:39,440
+selectedLocation.longitude because that's where our data is stored in this method. So now we're
+
+69
+00:06:39,440 --> 00:06:42,910
+calling that and therefore as soon as a place has been picked,
+
+70
+00:06:42,980 --> 00:06:47,990
+we'll send this back to the add place screen and just as we're storing the picked image here, we can
+
+71
+00:06:47,990 --> 00:06:51,500
+now also store our picked location here.
+
+72
+00:06:51,570 --> 00:06:57,780
+Now we got plenty of objects we could use here which all offer us latitude longitude pairs,
+
+73
+00:06:57,930 --> 00:07:00,480
+now I'll go for my own one here.
+
+74
+00:07:00,480 --> 00:07:03,920
+So in the add place screens state,
+
+75
+00:07:03,960 --> 00:07:08,590
+I'll add a new place, location property,
+
+76
+00:07:08,600 --> 00:07:17,950
+the picked location, initially it's undefined and I need to import this from my own models folder,
+
+77
+00:07:17,950 --> 00:07:18,460
+place.dart,
+
+78
+00:07:18,460 --> 00:07:24,610
+this unlocks this place location class we defined there and now I want to set that picked location here
+
+79
+00:07:24,610 --> 00:07:32,910
+in select place, set this equal to a new place location where I get my latitude and set this to lat and
+
+80
+00:07:32,920 --> 00:07:39,430
+my longitude and set this to lng and I won't pass the address because for now we have no address here
+
+81
+00:07:39,430 --> 00:07:41,050
+and we don't need it.
+
+82
+00:07:41,080 --> 00:07:43,570
+So that's my picked location,
+
+83
+00:07:43,570 --> 00:07:50,440
+now we can also use this here in save place and check whether picked location is null because if it
+
+84
+00:07:50,440 --> 00:07:53,920
+is, then this should not be submittable, otherwise it should
+
+85
+00:07:53,920 --> 00:07:56,950
+and now we can forward this to add place as well,
+
+86
+00:07:56,950 --> 00:08:03,080
+so here, I will forward the picked location.
+
+87
+00:08:03,110 --> 00:08:07,310
+Now of course add place and the great_places.dart file right now doesn't expect this,
+
+88
+00:08:07,310 --> 00:08:15,140
+so here we have to add this to add place. Here I expect to get a place location, the picked location and
+
+89
+00:08:15,140 --> 00:08:23,300
+now we can add this here to our place we're creating. Now important, just adding it like this would not
+
+90
+00:08:23,300 --> 00:08:28,580
+really work though. It would add the location but without a human readable address and the idea is of
+
+91
+00:08:28,580 --> 00:08:38,350
+course that we do have a human readable address. So let's import our other helper file from the helpers
+
+92
+00:08:38,350 --> 00:08:44,080
+folder and that's the location_helper.dart file so that we can tap into the functionalities set up
+
+93
+00:08:44,080 --> 00:08:52,570
+there and then here before creating that new place, we can use the location helper class
+
+94
+00:08:52,660 --> 00:09:02,420
+provided by that file we just added and call get place address and forward pickedLocation.latitude
+
+95
+00:09:02,480 --> 00:09:13,970
+and pickedLocation.longitude to get that address. Now this actually returns us a future, so let's
+
+96
+00:09:13,970 --> 00:09:21,330
+add async here and therefore here, we'll actually return a future which will then yield nothing, async
+
+97
+00:09:22,080 --> 00:09:28,050
+and now we can await this and once this is done, we'll get back the address because get place address
+
+98
+00:09:28,050 --> 00:09:32,940
+returns a future which will eventually yield a string and that string will be the human readable address,
+
+99
+00:09:33,270 --> 00:09:40,950
+so that's the address we store here and now we can create our updated location if you will which is
+
+100
+00:09:40,950 --> 00:09:47,040
+a new place location, where the latitude is of course the latitude from the picked location and the same
+
+101
+00:09:47,040 --> 00:09:53,670
+for the longitude, there we use the picked location longitude but now we also set the address and
+
+102
+00:09:53,670 --> 00:09:56,490
+we set this to the address we just fetched.
+
+103
+00:09:56,490 --> 00:10:05,160
+So address here of the right side of the colon is this address and now it's this updated location here
+
+104
+00:10:05,430 --> 00:10:12,470
+which should be stored in the new place we're creating. Now we're not entirely there, we also need to
+
+105
+00:10:12,500 --> 00:10:19,610
+update our database now because now we've got more to store than just title, image and ID. So let's
+
+106
+00:10:19,610 --> 00:10:25,580
+move to the db helper where we create that database and make sure we actually create a database that
+
+107
+00:10:25,670 --> 00:10:33,210
+also has some fields for our location data. So in there, I'll add another entry after the image, so comma
+
+108
+00:10:33,240 --> 00:10:39,300
+and then a new field and I'll name that loc_lat to store the latitude and there, the type is
+
+109
+00:10:39,300 --> 00:10:40,010
+real,
+
+110
+00:10:40,050 --> 00:10:42,510
+that's like double, just for SQL,
+
+111
+00:10:42,510 --> 00:10:50,750
+so this is a number with decimal places. Then we have loc_lng which is also of type real to store the
+
+112
+00:10:50,750 --> 00:10:54,620
+latitude and then the address which should be text.
+
+113
+00:10:54,620 --> 00:11:00,350
+So now we got these three additional fields here and now we'll just have to make sure that we actually
+
+114
+00:11:00,470 --> 00:11:07,040
+uninstall the app from the emulator here, so I'll quickly do that, so that we clear all the data and we can
+
+115
+00:11:07,040 --> 00:11:09,750
+recreate that database.
+
+116
+00:11:09,770 --> 00:11:16,640
+So here, I'll actually select my app here and drag that to uninstall to remove it from the emulator and
+
+117
+00:11:16,640 --> 00:11:21,250
+uninstall this app and therefore also all the data that was related to the app.
+
+118
+00:11:21,290 --> 00:11:29,450
+So now we're creating a new database with a new table with different data and in our great_places.dart
+
+119
+00:11:29,450 --> 00:11:37,010
+file, we can now store that data target, that data or these new fields. So we can add a loc_lat field
+
+120
+00:11:37,010 --> 00:11:38,080
+here in our map
+
+121
+00:11:39,150 --> 00:11:46,070
+and there I want to store new place location latitude, also add a
+
+122
+00:11:46,080 --> 00:11:56,600
+loc_lng field to store a new place location longitude and also add an address field and of course,
+
+123
+00:11:56,600 --> 00:12:05,150
+make sure you use the exact same names you set up there, so address and that should be new place location
+
+124
+00:12:05,570 --> 00:12:07,850
+address.
+
+125
+00:12:07,880 --> 00:12:13,390
+Now we're storing all that data in the database when we create a new place,
+
+126
+00:12:13,390 --> 00:12:19,610
+we're also storing it here in memory when we create a place here which we add to items. To now verify
+
+127
+00:12:19,640 --> 00:12:20,680
+that this works,
+
+128
+00:12:20,690 --> 00:12:25,280
+let's also adjust the code to fetch our data because there right now,
+
+129
+00:12:25,310 --> 00:12:28,850
+I set location to null and that's of course no longer correct,
+
+130
+00:12:28,850 --> 00:12:31,930
+instead we now do get location data from the database,
+
+131
+00:12:31,970 --> 00:12:37,980
+we just need to use it correctly. So here, location should actually be a new place location of course
+
+132
+00:12:38,130 --> 00:12:42,790
+and that's now in fetch, in set places in the great_places.dart file
+
+133
+00:12:43,080 --> 00:12:48,330
+and there we need to provide values for the latitude, for the longitude and so on.
+
+134
+00:12:48,330 --> 00:12:55,860
+So for the latitude, I'll take my item which is coming from the database and then it's loc_lat, so that
+
+135
+00:12:55,860 --> 00:13:04,080
+key we used for storing the latitude. For longitude, it's the item with loc_lng and for the address,
+
+136
+00:13:04,380 --> 00:13:09,210
+it's the item with the address key.
+
+137
+00:13:09,240 --> 00:13:14,140
+So now we're also fetching the data from the database and then adding it to the place which we thereafter
+
+138
+00:13:14,940 --> 00:13:18,840
+basically store in our list of items when we then notifyListeners
+
+139
+00:13:18,960 --> 00:13:22,260
+and with that, we got logic for fetching and for storing data.
+
+140
+00:13:22,260 --> 00:13:28,900
+Now let's also output at least the address here in the place lists screen by going to our ListTile
+
+141
+00:13:28,920 --> 00:13:35,370
+which we're building here and below the title, we can add a subtitle which should also be a text widget
+
+142
+00:13:35,820 --> 00:13:44,400
+where we use great places items i and then location.address to output the address here as a subtitle.
+
+143
+00:13:46,000 --> 00:13:47,190
+Now with all of that,
+
+144
+00:13:47,230 --> 00:13:53,040
+do a full restart and make sure you uninstall the app as explained earlier
+
+145
+00:13:53,380 --> 00:14:01,090
+and let's now see whether that works and whether we're able to now create a new place with all the data, with
+
+146
+00:14:01,090 --> 00:14:07,250
+an image, with a location that is then also stored in the database.
+
+147
+00:14:07,290 --> 00:14:12,060
+So here's the app running, all the data is lost because I uninstalled it and reinstalled it
+
+148
+00:14:12,060 --> 00:14:20,740
+now. Let's go to the add place screen and let's add a little test place here.
+
+149
+00:14:20,760 --> 00:14:22,230
+Now let's take a picture here,
+
+150
+00:14:27,750 --> 00:14:30,740
+like this, select it,
+
+151
+00:14:30,740 --> 00:14:31,920
+here it is
+
+152
+00:14:31,920 --> 00:14:34,770
+and now maybe select a place on map,
+
+153
+00:14:37,970 --> 00:14:39,670
+maybe here, doesn't really matter,
+
+154
+00:14:39,680 --> 00:14:41,270
+confirm this.
+
+155
+00:14:41,390 --> 00:14:42,920
+Now I see one thing is missing,
+
+156
+00:14:42,920 --> 00:14:44,660
+we're not showing a preview,
+
+157
+00:14:44,720 --> 00:14:46,550
+so let's for now go with the current location.
+
+158
+00:14:46,550 --> 00:14:47,900
+It should have worked without that too
+
+159
+00:14:47,900 --> 00:14:54,940
+but I want to fix the location thing of course. So for current location, it's working and now add this
+
+160
+00:14:54,940 --> 00:15:00,450
+place. Now it's showing up there, we can see the address there which is looking good,
+
+161
+00:15:00,460 --> 00:15:05,140
+I also don't get any errors here, so that should be working
+
+162
+00:15:05,140 --> 00:15:09,810
+and now if I do a full refresh, let's see if that data is actually fetched successfully.
+
+163
+00:15:12,910 --> 00:15:20,300
+So let's wait for this to restart here, here's the spinner, here's our data, so that is working. Now let's
+
+164
+00:15:20,300 --> 00:15:27,100
+fix that preview when we pick a place through the map here, when we select the place on map and thereafter
+
+165
+00:15:27,120 --> 00:15:33,860
+that's also make sure we can go to the detail screen of course. So we see no preview if you go to location
+
+166
+00:15:33,860 --> 00:15:44,240
+input, here we select on map and of course the problem is I do pass that data to the add place screen
+
+167
+00:15:44,720 --> 00:15:51,410
+but here on get current user location, I do call set state and update my preview imageUrl, I'm not
+
+168
+00:15:51,410 --> 00:15:57,620
+doing that down there in select on map and of course I want to do that here as well. So let's actually
+
+169
+00:15:57,620 --> 00:16:03,740
+create a helper method here which doesn't return anything and which we can name show preview and there,
+
+170
+00:16:03,740 --> 00:16:11,640
+I expect to get my latitude and longitude and I'm just doing this to avoid code duplication, cut that
+
+171
+00:16:11,640 --> 00:16:22,920
+code here where we get our preview image and then call set state. Now use lat and lng in here and
+
+172
+00:16:22,920 --> 00:16:29,970
+now here in get current user location, we can simply call show preview and forward
+
+173
+00:16:30,000 --> 00:16:39,270
+locData.latitude and locData.longitude and do the same down there now. When we picked a location, then
+
+174
+00:16:39,270 --> 00:16:49,600
+I want to call show preview selectedLocation.latitude, selectedLocation.longitude.
+
+175
+00:16:49,830 --> 00:16:55,800
+Now one important side note, here when you're getting the current user location, you might also want to
+
+176
+00:16:55,800 --> 00:17:03,150
+use try catch around that in case this fails because of course, it could fail for example if the user
+
+177
+00:17:03,150 --> 00:17:07,730
+doesn't grant you permissions to get that location.
+
+178
+00:17:07,740 --> 00:17:14,460
+So in that case here, you might have a plan B or simply not do anything and just return, you just want
+
+179
+00:17:14,460 --> 00:17:20,099
+to make sure that you're also prepared for cases where this fails and where you're not successful in
+
+180
+00:17:20,099 --> 00:17:25,140
+getting your data here, that's just a little side note but the main thing is that we should now also get
+
+181
+00:17:25,140 --> 00:17:28,250
+the preview imageUrl when we're selecting this on a map.
+
+182
+00:17:28,560 --> 00:17:29,730
+So let's try this,
+
+183
+00:17:29,730 --> 00:17:30,980
+let's open the map,
+
+184
+00:17:32,820 --> 00:17:33,910
+pick a place here,
+
+185
+00:17:36,450 --> 00:17:43,020
+maybe here, confirm this and this is now looking better, here's our place.
+
+186
+00:17:43,080 --> 00:17:50,480
+Now I can't send it like this, I also need to add a picture, so let's add a picture here like
+
+187
+00:17:50,480 --> 00:17:50,900
+this
+
+188
+00:17:54,060 --> 00:17:59,910
+and add a text, another place and then click add place
+
+189
+00:17:59,940 --> 00:18:05,030
+and now this is getting added and we see it show up here and that's all looking good.
+
+190
+00:18:05,040 --> 00:18:07,490
+Next step is to make that detail page work.
+

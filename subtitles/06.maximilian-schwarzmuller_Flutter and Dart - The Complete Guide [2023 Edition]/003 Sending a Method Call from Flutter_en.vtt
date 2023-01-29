@@ -1,0 +1,413 @@
+WEBVTT
+1
+00:00:02.450 --> 00:00:08.360
+This module is based on an article in the official docs which you will of course find linked to this
+
+2
+00:00:08.360 --> 00:00:10.090
+lecture and also in the last lecture of
+
+3
+00:00:10.100 --> 00:00:15.440
+this module. So definitely read that article to have a written form of this module
+
+4
+00:00:15.440 --> 00:00:21.860
+basically in order to find alternative examples for writing native code with Kotlin or with Swift because
+
+5
+00:00:21.860 --> 00:00:29.930
+I will cover Android with Java and then also iOS code with Objective C in this module. So check out this
+
+6
+00:00:29.930 --> 00:00:35.240
+article for sure but of course, I'll walk you through it and explain step-by-step how to make that all
+
+7
+00:00:35.240 --> 00:00:37.000
+work in this module.
+
+8
+00:00:37.040 --> 00:00:44.480
+Now one important concept of Flutter is that it's actually possible for you to run native code, so
+
+9
+00:00:44.480 --> 00:00:51.080
+code written in Objective C or Android Java, that you run such code from inside your Flutter app because
+
+10
+00:00:51.080 --> 00:00:52.450
+Flutter gives you a bridge
+
+11
+00:00:52.460 --> 00:00:53.490
+so to say
+
+12
+00:00:53.630 --> 00:00:58.820
+which lets you talk from your Flutter app to your iOS or Android app.
+
+13
+00:00:58.820 --> 00:01:02.520
+Here on this picture, it's named iOS host and Android host.
+
+14
+00:01:02.600 --> 00:01:08.870
+So in the end, Flutter can send a message to these hosts and for example tell iOS hey I want to get
+
+15
+00:01:08.930 --> 00:01:12.650
+the battery level and then some iOS code can run
+
+16
+00:01:12.710 --> 00:01:18.980
+which then in turn returns that battery level or whichever information was requested back to Flutter
+
+17
+00:01:19.190 --> 00:01:25.550
+where you can then use that and the heavy lifting of sending that message and transforming the type and so on,
+
+18
+00:01:25.550 --> 00:01:32.330
+that's all made very simple and handled by Flutter and actually in this module here, we'll have a look
+
+19
+00:01:32.330 --> 00:01:38.480
+at this example where we request the battery level from our native platforms by adding some native code
+
+20
+00:01:38.480 --> 00:01:44.000
+there and we'll then use that information in the Flutter app and for this, you find this very simple
+
+21
+00:01:44.000 --> 00:01:44.950
+dummy project here
+
+22
+00:01:44.960 --> 00:01:48.770
+attached to this lecture, this main.dart file.
+
+23
+00:01:48.770 --> 00:01:53.810
+This leads to this application here where I want to output the battery level here in the middle
+
+24
+00:01:53.810 --> 00:01:57.670
+as soon as our app loads let's say. So
+
+25
+00:01:57.710 --> 00:02:03.230
+right now, here I just got ... and now I want to fetch the battery level by adding some native
+
+26
+00:02:03.230 --> 00:02:05.300
+code for Android and iOS.
+
+27
+00:02:05.450 --> 00:02:10.910
+Now of course, it's worth mentioning that you probably will find plugins that allow you to get the battery
+
+28
+00:02:10.910 --> 00:02:11.510
+level,
+
+29
+00:02:11.540 --> 00:02:16.580
+so for this concrete example you typically don't need to write your own code but it's just an example
+
+30
+00:02:16.580 --> 00:02:20.080
+to explain how you could talk to Android and iOS
+
+31
+00:02:20.090 --> 00:02:26.460
+in case you need to and therefore a simple example makes sense to show the base concepts.
+
+32
+00:02:26.510 --> 00:02:31.330
+Now let's start here on Flutter side before we dive into the native code
+
+33
+00:02:32.980 --> 00:02:41.560
+and here in my MyHomePage stateful widget or in the state class here to be precise, I want to ensure
+
+34
+00:02:41.560 --> 00:02:48.760
+that when this loads, so in initState, we reach out to the native code, so to the native hosts and fetch
+
+35
+00:02:48.760 --> 00:02:50.230
+the battery level
+
+36
+00:02:50.500 --> 00:02:56.470
+and for that, I'll actually add a new method here in MyHomePage state which I'll name 
+
+37
+00:02:56.470 --> 00:03:03.370
+_getBatteryLevel and that should return a future and that will be a future which eventually will yield
+
+38
+00:03:03.430 --> 00:03:07.710
+nothing though and it just returns a future because I'll use async await in here,
+
+39
+00:03:07.750 --> 00:03:13.600
+you saw that before in the course and I'm using async await because the way we communicate with the
+
+40
+00:03:13.600 --> 00:03:19.600
+native platform, with the native hosts, that will be handled by futures because sending that message from
+
+41
+00:03:19.600 --> 00:03:25.050
+the Flutter app to iOS or to Android and then using the response is really fast,
+
+42
+00:03:25.060 --> 00:03:32.890
+you won't really feel or see a delay but technically, it's still an operation which doesn't finish instantly.
+
+43
+00:03:32.890 --> 00:03:37.720
+It's an asynchronous operation, so the other code shouldn't get blocked whilst you're waiting for that
+
+44
+00:03:37.720 --> 00:03:42.940
+response from the platform host and therefore a future is getting used here by Flutter.
+
+45
+00:03:42.940 --> 00:03:50.590
+So how do we send such a message then? You first of all create a platform const and you can name this
+
+46
+00:03:50.590 --> 00:03:56.380
+however you want of course by using the MethodChannel
+
+47
+00:03:56.380 --> 00:04:01.750
+class and MethodChannel is provided by Flutter but there, from the services.dart file, so you
+
+48
+00:04:01.750 --> 00:04:05.060
+need to add that import to the file where you want to use the method
+
+49
+00:04:05.080 --> 00:04:13.190
+channel. So you create a new instance of that MethodChannel and you do so by giving this a unique identifier
+
+50
+00:04:13.220 --> 00:04:15.060
+and that should be a string.
+
+51
+00:04:15.050 --> 00:04:23.120
+The convention here is to use an identifier that looks like a URL, something like 
+
+52
+00:04:23.990 --> 00:04:29.480
+course.flutter.dev/battery and you don't have to own that URL,
+
+53
+00:04:29.480 --> 00:04:31.730
+this doesn't really have to exist,
+
+54
+00:04:31.760 --> 00:04:35.450
+this is not a website we'll visit, it's just a unique identifier
+
+55
+00:04:35.450 --> 00:04:36.860
+and this domain
+
+56
+00:04:36.860 --> 00:04:43.630
+URL look is simply a convention established by the Flutter team and therefore, we will follow it.
+
+57
+00:04:43.640 --> 00:04:48.710
+Now this should be a unique identifier in your application, so if you are building multiple applications,
+
+58
+00:04:48.710 --> 00:04:54.680
+you can definitely reuse these identifiers but in one and the same application, if you have different messages,
+
+59
+00:04:54.680 --> 00:04:58.560
+different channels you want to set up to your native host,
+
+60
+00:04:58.610 --> 00:05:03.920
+then each channel needs its own unique identifier, so you must not repeat this identifier in the same
+
+61
+00:05:03.920 --> 00:05:04.370
+app.
+
+62
+00:05:04.400 --> 00:05:12.770
+So with the platform created with that, we can now go ahead and use the platform object we got here to
+
+63
+00:05:12.770 --> 00:05:21.620
+call invoke method. Invoke method basically sends a message through that MethodChannel and that method
+
+64
+00:05:21.650 --> 00:05:28.040
+channel here automatically is established by Flutter between Flutter and iOS or Android, the platform
+
+65
+00:05:28.040 --> 00:05:29.600
+the app is running on in the end.
+
+66
+00:05:30.200 --> 00:05:37.970
+So now we can send a message through that channel and the message we send here simply is a name, is the
+
+67
+00:05:37.970 --> 00:05:39.590
+name of the method,
+
+68
+00:05:39.620 --> 00:05:45.730
+so a function we want to execute in our native device code, for example getBatteryLevel
+
+69
+00:05:45.740 --> 00:05:48.710
+but of course you could use any name you want here.
+
+70
+00:05:48.710 --> 00:05:56.720
+Now invoke method now returns a future as you can see here and that makes sense because as I said, sending
+
+71
+00:05:56.720 --> 00:05:59.610
+this message and waiting for the response can take some time.
+
+72
+00:05:59.840 --> 00:06:04.730
+By the way, it's also worth noting that if you had a method you want invoke which needs arguments,
+
+73
+00:06:04.730 --> 00:06:11.420
+you can send these arguments here as a second argument, a list of arguments like one, you could send this
+
+74
+00:06:11.420 --> 00:06:15.290
+to this method you'd want to invoke in your native code, getBatteryLevel needs
+
+75
+00:06:15.290 --> 00:06:16.590
+no arguments though.
+
+76
+00:06:16.910 --> 00:06:23.390
+So this returns a future and therefore, we want to await it to then store the response which should
+
+77
+00:06:23.390 --> 00:06:30.440
+be the battery level in a variable or like in this case here, in a constant. Now important, when working
+
+78
+00:06:30.440 --> 00:06:36.740
+with this, things can go wrong so you should add try catch here because if the communication with the
+
+79
+00:06:36.740 --> 00:06:42.950
+platform fails for whatever reason, you want to be prepared to handle that error.
+
+80
+00:06:42.950 --> 00:06:49.190
+So here I want to add a try catch block and wait for the platform exception which is made available
+
+81
+00:06:49.190 --> 00:06:52.970
+by the Flutter package and then catch any potential error
+
+82
+00:06:52.970 --> 00:06:56.700
+we might be getting and then here
+
+83
+00:06:56.710 --> 00:06:57.950
+we can handle that error and
+
+84
+00:06:58.000 --> 00:07:02.720
+for example set our battery level to a dummy value.
+
+85
+00:07:02.750 --> 00:07:08.500
+And speaking of that, we need a property in the MyHomePage state which we then can also use in our widget
+
+86
+00:07:08.500 --> 00:07:10.750
+tree to output the battery level.
+
+87
+00:07:10.750 --> 00:07:22.030
+So here, I want to have let's say a _batteryLevel property which should be an integer like this,
+
+88
+00:07:23.240 --> 00:07:28.520
+then here we could set battery level to null to make sure it really reset back to normal because we've
+
+89
+00:07:28.520 --> 00:07:34.610
+failed fetching it and here in the try block on the other hand, we could set battery level to the real
+
+90
+00:07:34.610 --> 00:07:35.420
+battery level.
+
+91
+00:07:35.450 --> 00:07:46.670
+Now since we're in a stateful widget, I will actually call set state in here to set my battery level
+
+92
+00:07:46.670 --> 00:07:52.680
+property to the battery level I'm fetching here, so that we do rerun the build method and update the
+
+93
+00:07:52.700 --> 00:07:53.310
+UI
+
+94
+00:07:53.480 --> 00:07:54.860
+and it's the same here.
+
+95
+00:07:54.890 --> 00:07:56.900
+I'll put that into a set
+
+96
+00:07:56.900 --> 00:08:02.420
+state call here, so inside of the function we pass to set state, I'll set battery level to null in that
+
+97
+00:08:02.420 --> 00:08:03.420
+case.
+
+98
+00:08:03.500 --> 00:08:09.770
+So we're managing the battery level here, we are sending a request to get the battery level to the native
+
+99
+00:08:09.770 --> 00:08:10.900
+platform.
+
+100
+00:08:10.910 --> 00:08:16.760
+Now of course, we can try using the battery level here in our UI, in our widget tree,
+
+101
+00:08:16.820 --> 00:08:22.370
+in the text widget where I want to output battery level with the string interpolation and therefore with
+
+102
+00:08:22.490 --> 00:08:29.840
+all of that out of the way, we can now try to get the battery level in our native code and I'll
+
+103
+00:08:29.840 --> 00:08:31.220
+start with Android.
+
