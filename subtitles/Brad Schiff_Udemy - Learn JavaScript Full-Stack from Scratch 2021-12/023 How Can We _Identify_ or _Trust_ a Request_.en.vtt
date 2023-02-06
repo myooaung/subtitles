@@ -1,0 +1,1028 @@
+WEBVTT
+1
+00:00:01.840 --> 00:00:02.830
+Hello, everyone.
+
+2
+00:00:03.130 --> 00:00:09.560
+In this lesson, we are going to learn how we can, quote, trust an incoming request.
+
+3
+00:00:10.060 --> 00:00:13.390
+Let me explain what I mean by this when I say trust.
+
+4
+00:00:14.020 --> 00:00:21.460
+So imagine I perform a successful log in, so we type in my correct username and password.
+
+5
+00:00:22.390 --> 00:00:30.820
+So, yes, immediately following that form submit, we are able to respond with either congrats or invalid
+
+6
+00:00:30.820 --> 00:00:31.930
+username and password.
+
+7
+00:00:32.150 --> 00:00:40.150
+However, as soon as that HTTP request is complete, right, as soon as our server responds to that
+
+8
+00:00:40.150 --> 00:00:46.300
+login request that marks the end of the life cycle for that HTTP request.
+
+9
+00:00:46.510 --> 00:00:54.430
+And from that moment forward, the server now has no memory of the browser and the browser has no memory
+
+10
+00:00:54.430 --> 00:00:55.210
+of the server.
+
+11
+00:00:55.540 --> 00:00:59.680
+So the server has its immediate response of success or failure.
+
+12
+00:00:59.890 --> 00:01:07.360
+But if this user goes back to the home page, the server has no memory that this visitor just entered
+
+13
+00:01:07.360 --> 00:01:09.190
+the correct username and password.
+
+14
+00:01:09.490 --> 00:01:09.810
+Right.
+
+15
+00:01:09.820 --> 00:01:16.300
+The Web browser is still seeing the guest or registration home page when instead it would make more
+
+16
+00:01:16.300 --> 00:01:21.420
+sense for them to see the actual application that would look something like this.
+
+17
+00:01:21.700 --> 00:01:21.920
+Right.
+
+18
+00:01:22.000 --> 00:01:28.450
+So now the top right, instead of having a login form, has basic actions in a sign out button and the
+
+19
+00:01:28.450 --> 00:01:31.780
+home page should be your feed of content from those you follow.
+
+20
+00:01:31.810 --> 00:01:36.100
+So this would say hello and then this would be your dynamic username.
+
+21
+00:01:36.400 --> 00:01:37.810
+So maybe hello, Brad.
+
+22
+00:01:37.810 --> 00:01:38.910
+Your feed is empty.
+
+23
+00:01:39.340 --> 00:01:45.430
+However, we have not set this up yet because up until this point in the course, we have not learned
+
+24
+00:01:45.430 --> 00:01:49.660
+how to set things up so the server can trust an incoming request.
+
+25
+00:01:49.930 --> 00:01:55.540
+You might have heard the phrase before that HTTP requests are statelets.
+
+26
+00:01:55.900 --> 00:02:02.620
+That's really just a fancy way of saying that each request is ran without any knowledge of the requests
+
+27
+00:02:02.620 --> 00:02:03.570
+that came before it.
+
+28
+00:02:03.940 --> 00:02:11.230
+So the question becomes, how can we solve this case of amnesia that the browser and server have?
+
+29
+00:02:11.470 --> 00:02:20.080
+Or after a user submits a valid username and password to the login form, how can the server trust subsequent
+
+30
+00:02:20.080 --> 00:02:21.790
+requests from that browser?
+
+31
+00:02:22.330 --> 00:02:30.550
+Well, the answer is that there are two primary technologies that can solve this issue of identifying
+
+32
+00:02:30.550 --> 00:02:33.240
+or trusting subsequent requests.
+
+33
+00:02:33.730 --> 00:02:38.890
+So the first technology is sessions and the second is tokens.
+
+34
+00:02:39.280 --> 00:02:46.150
+We will learn about tokens later in the course, but for now, we're going to begin with sessions.
+
+35
+00:02:46.480 --> 00:02:52.720
+Now, in recent years, there's been a lot of debate over whether you should use sessions or tokens.
+
+36
+00:02:53.200 --> 00:02:57.310
+But it's not my job to force a personal opinion on you.
+
+37
+00:02:57.730 --> 00:03:02.340
+So I'm not going to weigh in on the sessions versus tokens debate.
+
+38
+00:03:02.680 --> 00:03:04.030
+It's as simple as this.
+
+39
+00:03:04.030 --> 00:03:06.550
+We're going to start with sessions.
+
+40
+00:03:06.820 --> 00:03:13.330
+And then later in the course, when we set up a simple API for our application, we will learn how to
+
+41
+00:03:13.330 --> 00:03:14.420
+use tokens.
+
+42
+00:03:14.920 --> 00:03:21.340
+This way you can see both technologies in action and you can form your own opinions about which one
+
+43
+00:03:21.340 --> 00:03:24.300
+makes more sense for a particular situation.
+
+44
+00:03:24.610 --> 00:03:25.600
+I'll just say this.
+
+45
+00:03:25.600 --> 00:03:31.380
+It's my personal opinion that you don't need to dogmatically choose one over the other.
+
+46
+00:03:31.750 --> 00:03:35.080
+They are both valuable tools to have in your toolbox.
+
+47
+00:03:35.510 --> 00:03:35.930
+All right.
+
+48
+00:03:36.070 --> 00:03:43.960
+Having said all of that, let's get started learning about sessions instead of trying to explain sessions
+
+49
+00:03:43.960 --> 00:03:45.160
+with just words.
+
+50
+00:03:45.460 --> 00:03:51.500
+I think it's best to first see sessions and action and then I can explain things further from there.
+
+51
+00:03:51.850 --> 00:03:56.950
+So first, let's go enable sessions within our express application.
+
+52
+00:03:57.370 --> 00:03:59.440
+So let's jump into our text editor.
+
+53
+00:03:59.770 --> 00:04:04.450
+And the first thing we need to do is go out to NPM and pick up a package.
+
+54
+00:04:04.870 --> 00:04:06.430
+So open up your command line.
+
+55
+00:04:06.700 --> 00:04:14.770
+And if your app is already running press control, see to stop and let's run NPM install.
+
+56
+00:04:15.130 --> 00:04:20.860
+And the name of the package is Express Dasch session.
+
+57
+00:04:21.880 --> 00:04:27.520
+OK, so npm install, express dash session and press enter.
+
+58
+00:04:28.990 --> 00:04:33.400
+OK, now that we've installed that package, let's go ahead and tell our server to start running again.
+
+59
+00:04:33.400 --> 00:04:36.460
+So npm run watch.
+
+60
+00:04:37.660 --> 00:04:40.810
+OK, and let's go leverage that new package.
+
+61
+00:04:41.170 --> 00:04:46.060
+So I want you to open up the file named App Jass.
+
+62
+00:04:46.990 --> 00:04:52.450
+So remember this is sort of our top level file where we are requiring the express framework.
+
+63
+00:04:52.780 --> 00:04:54.730
+We are enabling different features.
+
+64
+00:04:54.730 --> 00:04:58.750
+We're setting the directory for our views, so on and so forth.
+
+65
+00:04:58.750 --> 00:05:01.260
+So this is also where we would want to in.
+
+66
+00:05:01.340 --> 00:05:10.010
+Abel Sessions maybe right below this very first line, let's add a new line and let's say CONSED session
+
+67
+00:05:10.670 --> 00:05:19.010
+equals and then just require in that new package, so require in the name of it was Express Dasch session.
+
+68
+00:05:19.610 --> 00:05:21.620
+OK, now let's go leverage that.
+
+69
+00:05:21.920 --> 00:05:25.400
+So below this concept app equals express line.
+
+70
+00:05:25.410 --> 00:05:32.140
+Let's add a new line and we need to spell out a few configuration options for how we want to use sessions.
+
+71
+00:05:32.720 --> 00:05:40.310
+So let's create a variable and we could call it anything, but let's call it session options and then
+
+72
+00:05:40.310 --> 00:05:44.480
+let's set this to equal and then let's leverage that new package.
+
+73
+00:05:44.510 --> 00:05:48.380
+So we'll call a session within the parentheses.
+
+74
+00:05:48.380 --> 00:05:50.600
+We want to provide it an object.
+
+75
+00:05:50.600 --> 00:05:56.180
+So curly brackets, and now we just provide a few different properties or options.
+
+76
+00:05:56.570 --> 00:06:03.860
+So first, let's provide a secret so secret colon and then set it to a value so you could just type
+
+77
+00:06:03.860 --> 00:06:05.690
+in a bunch of random characters.
+
+78
+00:06:06.230 --> 00:06:11.030
+But why don't we say JavaScript is so cool?
+
+79
+00:06:11.900 --> 00:06:16.580
+Honestly, it doesn't matter what you include here, it should just be something that someone couldn't
+
+80
+00:06:16.580 --> 00:06:17.200
+guess.
+
+81
+00:06:17.690 --> 00:06:24.770
+OK, then let's include a comma and set up another property, let's say receive and set it to false
+
+82
+00:06:25.070 --> 00:06:25.480
+karma.
+
+83
+00:06:25.490 --> 00:06:35.050
+Let's include another property, let's say save on unsocialized and colon set that the false as well.
+
+84
+00:06:35.540 --> 00:06:39.810
+These are just boring configuration options that are not worth memorizing.
+
+85
+00:06:40.100 --> 00:06:45.470
+This is just boilerplate configuration code that you would only ever need to write once and then just
+
+86
+00:06:45.470 --> 00:06:47.810
+reference again for your future projects.
+
+87
+00:06:48.230 --> 00:06:55.670
+OK, let's include a comma and another property and let's say cookie colon and let's set it to an object
+
+88
+00:06:55.940 --> 00:06:58.550
+because it should have several sub properties.
+
+89
+00:06:58.940 --> 00:07:02.240
+So the first is Max H Colon.
+
+90
+00:07:02.630 --> 00:07:08.150
+And this is how long the cookie for a session should be valid before it expires.
+
+91
+00:07:08.570 --> 00:07:10.220
+It's measured in milliseconds.
+
+92
+00:07:10.430 --> 00:07:16.730
+So to calculate this, we could say one thousand to represent one thousand milliseconds as one second
+
+93
+00:07:17.240 --> 00:07:19.220
+and then we can times that by 60.
+
+94
+00:07:19.700 --> 00:07:27.080
+So 60 seconds is a minute and then we can multiply that by 60 to simulate an hour and then there are
+
+95
+00:07:27.080 --> 00:07:28.720
+twenty four hours in a day.
+
+96
+00:07:28.910 --> 00:07:35.300
+So this is measured in milliseconds, but this would represent one day before the cookie expires.
+
+97
+00:07:35.630 --> 00:07:43.070
+OK, still within the curly brackets, let's include a comma and say htp only colon and set that to
+
+98
+00:07:43.070 --> 00:07:43.430
+true.
+
+99
+00:07:43.800 --> 00:07:49.070
+OK, so that completes our configuration or settings to enable sessions.
+
+100
+00:07:49.550 --> 00:07:52.510
+Now we just need to tell expressed to actually use this.
+
+101
+00:07:52.820 --> 00:08:01.580
+So right below this we can say at dot use and within the use parentheses would just include our session
+
+102
+00:08:01.580 --> 00:08:05.240
+options, session options.
+
+103
+00:08:05.870 --> 00:08:06.260
+Cool.
+
+104
+00:08:06.260 --> 00:08:09.020
+Our Express app now supports sessions.
+
+105
+00:08:09.650 --> 00:08:14.430
+Now I realize we still have no idea what a session is, but we're almost there.
+
+106
+00:08:14.600 --> 00:08:15.650
+Hang in there with me.
+
+107
+00:08:15.950 --> 00:08:18.050
+Let's go ahead and save this file.
+
+108
+00:08:18.320 --> 00:08:21.800
+And now I want you to jump in to our user controller file.
+
+109
+00:08:22.220 --> 00:08:28.490
+So within our controllers folder, let's open up user controller lagus.
+
+110
+00:08:29.150 --> 00:08:34.610
+So within our login function, here's the line that says user login.
+
+111
+00:08:34.640 --> 00:08:36.500
+That's going to return a promise.
+
+112
+00:08:36.830 --> 00:08:43.220
+We know that if a promise is successful or resolves the function inside of the then will run.
+
+113
+00:08:43.910 --> 00:08:46.910
+If the promise rejects, then the catch will run.
+
+114
+00:08:47.120 --> 00:08:52.970
+So if someone types in a correct username and password, we would want to log them in.
+
+115
+00:08:53.270 --> 00:08:57.410
+Or in other words, this is where we would want to leverage sessions.
+
+116
+00:08:57.920 --> 00:09:02.450
+So within the body of this function that's going to arrive, the promise is successful.
+
+117
+00:09:02.840 --> 00:09:05.450
+Right before this response starts, send line.
+
+118
+00:09:05.450 --> 00:09:16.670
+Let's add a new line and let's say request or RFQ dot session and now we can add new properties on to
+
+119
+00:09:16.670 --> 00:09:18.230
+this session object.
+
+120
+00:09:18.680 --> 00:09:21.230
+Let's make up a property named user.
+
+121
+00:09:21.440 --> 00:09:23.120
+There's nothing special about this word.
+
+122
+00:09:23.120 --> 00:09:23.960
+I just made it up.
+
+123
+00:09:23.960 --> 00:09:25.490
+This could be literally anything.
+
+124
+00:09:25.790 --> 00:09:34.280
+The idea is that our request object now has this new session object that is unique per browser visitor.
+
+125
+00:09:34.520 --> 00:09:40.730
+So I'm going to add a new property onto that session object called user and let's set that to equal
+
+126
+00:09:40.880 --> 00:09:41.960
+an object.
+
+127
+00:09:42.380 --> 00:09:49.430
+Now, within this object, we can store any information we want and that will be specific or unique
+
+128
+00:09:49.520 --> 00:09:51.920
+to this one visitor or Web browser.
+
+129
+00:09:52.160 --> 00:09:54.500
+So we could make up all sorts of different properties.
+
+130
+00:09:54.500 --> 00:10:01.070
+We could say favorite color Colen quotes blue, and then we could include a comma and include another.
+
+131
+00:10:01.070 --> 00:10:07.280
+Property just for fun, why don't we include a username, property, so username and set that to equal
+
+132
+00:10:07.670 --> 00:10:10.640
+user data username, right.
+
+133
+00:10:10.640 --> 00:10:14.570
+Or the value of the username that they just successfully logged in with.
+
+134
+00:10:15.080 --> 00:10:16.210
+Now, here's the cool part.
+
+135
+00:10:16.370 --> 00:10:23.420
+Remember earlier when we said that HTTP requests are stateless and they have no memory of the previous
+
+136
+00:10:23.420 --> 00:10:24.170
+requests?
+
+137
+00:10:24.500 --> 00:10:31.190
+Well, the whole idea of a session is that it allows us to have some sort of persistent data from one
+
+138
+00:10:31.190 --> 00:10:37.320
+request to another, meaning our server is going to remember this session data.
+
+139
+00:10:37.610 --> 00:10:44.140
+In other words, we can use this session data from any of our use URLs or routes to check this out.
+
+140
+00:10:44.240 --> 00:10:50.060
+Let's use this session data if someone visits the homepage or base you around.
+
+141
+00:10:50.330 --> 00:10:53.530
+So within this user controller file that scroll down towards the bottom.
+
+142
+00:10:53.840 --> 00:11:00.350
+Remember, we have this function named home and our router is going to call this function when someone
+
+143
+00:11:00.350 --> 00:11:05.980
+visits the base forward, slash or root of our website within the body of this function.
+
+144
+00:11:05.990 --> 00:11:06.920
+Let's do this.
+
+145
+00:11:07.310 --> 00:11:10.000
+Let's cut this line of code into our clipboard.
+
+146
+00:11:10.640 --> 00:11:13.940
+So this line that says response dot render home guest.
+
+147
+00:11:14.420 --> 00:11:16.520
+We're going to want this in just another 10 seconds.
+
+148
+00:11:16.530 --> 00:11:18.230
+Let's cut that into our clipboard.
+
+149
+00:11:18.830 --> 00:11:20.660
+But let's write an if statement.
+
+150
+00:11:20.990 --> 00:11:27.800
+Let's say, if the current visitor or browser has session data associated with it, let's send them
+
+151
+00:11:27.800 --> 00:11:31.850
+a custom message that says hello and welcome to the application.
+
+152
+00:11:32.150 --> 00:11:37.910
+Or else if they don't have any session data associated with them, let's just send them that guest home
+
+153
+00:11:37.950 --> 00:11:38.420
+page.
+
+154
+00:11:38.790 --> 00:11:45.890
+So if parentheses curly brackets drop down right after the closing, if brackets, let's say else curly
+
+155
+00:11:45.890 --> 00:11:46.600
+brackets.
+
+156
+00:11:47.120 --> 00:11:55.970
+So for our condition within the if parentheses, let's say if request session user write, because the
+
+157
+00:11:55.970 --> 00:12:02.930
+only way that this user object would ever exist on the session object is if they just performed a successful
+
+158
+00:12:02.930 --> 00:12:03.640
+login.
+
+159
+00:12:04.070 --> 00:12:13.400
+So within the if block, let's just say response dot send welcome to the actual application and then
+
+160
+00:12:13.400 --> 00:12:14.660
+within the else block.
+
+161
+00:12:14.690 --> 00:12:17.120
+This is where you can just paste back in your clipboard.
+
+162
+00:12:17.330 --> 00:12:17.620
+Right.
+
+163
+00:12:17.630 --> 00:12:22.410
+If they are not logged in, if they don't have any session data, send them the guest template.
+
+164
+00:12:23.060 --> 00:12:26.890
+All right, let's go ahead and save this file and test it out.
+
+165
+00:12:27.380 --> 00:12:34.130
+So back in the Web browser, let's perform a successful login type in your correct values.
+
+166
+00:12:37.490 --> 00:12:44.480
+We see the same old congrats message, but if we send a new request to the base, you orell so if I
+
+167
+00:12:44.480 --> 00:12:50.960
+get rid of the log in and just visit localhost three thousand, you might need to hit refresh one more
+
+168
+00:12:50.960 --> 00:12:52.430
+time, but awesome.
+
+169
+00:12:52.430 --> 00:12:53.000
+We see.
+
+170
+00:12:53.420 --> 00:12:56.270
+Welcome to the actual application.
+
+171
+00:12:56.570 --> 00:13:03.590
+And no matter how many times I refresh or send a new request, the server remembers that this browser
+
+172
+00:13:03.590 --> 00:13:06.700
+visitor has session data associated with it.
+
+173
+00:13:06.920 --> 00:13:11.630
+So according to our logic, that means they are logged in just to test things out.
+
+174
+00:13:11.630 --> 00:13:17.710
+If I visit this same Nual in an incognito window or a different browser entirely.
+
+175
+00:13:17.930 --> 00:13:25.100
+So this window is Google Chrome, this is Mozilla Firefox and you can see if I visit localhost three
+
+176
+00:13:25.100 --> 00:13:30.380
+thousand and Firefox, the server still correctly identifies me as a guest.
+
+177
+00:13:31.070 --> 00:13:31.890
+I don't see that.
+
+178
+00:13:31.910 --> 00:13:34.010
+Welcome to the actual app message.
+
+179
+00:13:34.220 --> 00:13:39.080
+At this point, you might be wondering how is this working from a technology standpoint?
+
+180
+00:13:39.740 --> 00:13:45.740
+How is the server identifying this unique web browser or visitor or request?
+
+181
+00:13:46.130 --> 00:13:49.030
+Well, the answer is that it has to do with cookies.
+
+182
+00:13:49.460 --> 00:13:57.560
+So when a visitor typed in correct username and password values, meaning this code ran well, when
+
+183
+00:13:57.560 --> 00:14:02.210
+we leveraged the session object here, two things happened.
+
+184
+00:14:02.510 --> 00:14:09.110
+So no one, as we already covered our server, is going to store this session data in memory.
+
+185
+00:14:09.440 --> 00:14:16.160
+And number two, what the session package is also going to do is send instructions to the Web browser
+
+186
+00:14:16.250 --> 00:14:17.390
+to create a cookie.
+
+187
+00:14:17.690 --> 00:14:20.640
+If you have no idea what a cookie is, that's OK.
+
+188
+00:14:20.900 --> 00:14:25.640
+Let me show you right now, let me show you how to view your cookies in Google Chrome.
+
+189
+00:14:26.000 --> 00:14:29.500
+The process is very similar in other Web browsers as well.
+
+190
+00:14:29.900 --> 00:14:30.200
+So.
+
+191
+00:14:30.200 --> 00:14:30.500
+Right.
+
+192
+00:14:30.500 --> 00:14:33.110
+Click anywhere on the webpage and choose.
+
+193
+00:14:33.110 --> 00:14:34.070
+Inspect.
+
+194
+00:14:35.330 --> 00:14:41.240
+This will open your developer tools and now within these tabs where I would usually have you click on
+
+195
+00:14:41.240 --> 00:14:47.660
+the console instead of console, look for one of these tabs that is named application.
+
+196
+00:14:48.050 --> 00:14:52.400
+I have my developer tools zoomed in so that it's easier to see on the screen recorder.
+
+197
+00:14:52.820 --> 00:14:58.640
+But if I zoom out, you can see here is the application tab, if yours is zoomed in as well.
+
+198
+00:14:58.760 --> 00:15:01.610
+It might just be hidden under these extra arrows here.
+
+199
+00:15:02.150 --> 00:15:02.840
+Big picture.
+
+200
+00:15:02.840 --> 00:15:07.340
+I want you to click on the application tab from within your developer tools.
+
+201
+00:15:07.640 --> 00:15:13.940
+If you're using Firefox instead of Google Chrome, you would look for a tab named storage instead of
+
+202
+00:15:13.940 --> 00:15:14.800
+application.
+
+203
+00:15:15.090 --> 00:15:21.830
+OK, but within Google Chrome from the application tab, within this left hand sidebar, under storage,
+
+204
+00:15:21.830 --> 00:15:24.440
+we see an area named cookies.
+
+205
+00:15:25.310 --> 00:15:30.320
+If you expand the cookies option, you'll see a listing for your current domain.
+
+206
+00:15:30.350 --> 00:15:33.500
+So in this case, localhost column three thousand.
+
+207
+00:15:33.860 --> 00:15:37.970
+If you click on that, you will see all of the cookies for this domain.
+
+208
+00:15:38.150 --> 00:15:40.000
+In this case, there's only one cookie.
+
+209
+00:15:40.340 --> 00:15:47.330
+So our session package sent instructions to the browser to create a cookie with the name of Connect
+
+210
+00:15:47.690 --> 00:15:48.490
+Side.
+
+211
+00:15:48.800 --> 00:15:50.090
+And this is the important part.
+
+212
+00:15:50.480 --> 00:15:52.470
+It has a unique value.
+
+213
+00:15:52.820 --> 00:16:00.320
+Now, this value is a unique identifier for that particular bit of session data that's being stored
+
+214
+00:16:00.320 --> 00:16:01.520
+in the servers memory.
+
+215
+00:16:02.060 --> 00:16:09.380
+Once a Web browser has a cookie, it's going to send any and all cookies for the current domain back
+
+216
+00:16:09.380 --> 00:16:12.410
+to the server with every single request.
+
+217
+00:16:12.560 --> 00:16:14.680
+And this is going to happen automatically.
+
+218
+00:16:15.080 --> 00:16:19.910
+So now any time I visit any localhost, call in three thousand neutrals.
+
+219
+00:16:20.180 --> 00:16:27.100
+My Google Chrome Web browser is going to send this cookie and value back to the node server.
+
+220
+00:16:27.320 --> 00:16:33.810
+So our server is going to see this unique identifier value and our server will say, aha.
+
+221
+00:16:34.190 --> 00:16:41.330
+The only way that you would know this unique session identifier is if I just sent it to you in a cookie.
+
+222
+00:16:41.630 --> 00:16:48.530
+So the server says the fact that, you know, this session value, that means I can trust you or I can
+
+223
+00:16:48.530 --> 00:16:54.860
+trust that you're the same person or the same Web browser that just typed in that correct username and
+
+224
+00:16:54.860 --> 00:16:55.490
+password.
+
+225
+00:16:55.790 --> 00:16:56.050
+Right.
+
+226
+00:16:56.060 --> 00:17:01.130
+You're the same person or same browser that I just sent this value to a moment ago.
+
+227
+00:17:01.370 --> 00:17:06.330
+If you're still a bit confused and you're not quite sure how all of this is working, that's OK.
+
+228
+00:17:06.590 --> 00:17:11.990
+One of the big difficulties in this lesson so far is that here we've seen a visual representation of
+
+229
+00:17:11.990 --> 00:17:19.310
+a cookie, but we still haven't seen a visual representation of the session data that's being stored
+
+230
+00:17:19.310 --> 00:17:21.010
+in memory on the server.
+
+231
+00:17:21.320 --> 00:17:26.320
+But don't worry, that's exactly what we're going to take a look at in our very next lesson.
+
+232
+00:17:26.690 --> 00:17:32.540
+Now, before we jump into our next lesson, I do want to cover one detail that can potentially be frustrating
+
+233
+00:17:32.540 --> 00:17:33.470
+in this lesson.
+
+234
+00:17:33.860 --> 00:17:38.860
+So currently our server is storing session data in memory.
+
+235
+00:17:39.200 --> 00:17:42.940
+Now, storing values in memory is not permanent at all.
+
+236
+00:17:43.310 --> 00:17:43.560
+Right.
+
+237
+00:17:43.580 --> 00:17:49.090
+As soon as a computer shuts down or restarts, its memory is cleared or reset.
+
+238
+00:17:49.220 --> 00:17:56.090
+And remember, when we run the command NPM run watch, we set things up so that our server is going
+
+239
+00:17:56.090 --> 00:18:01.110
+to restart automatically any time we save a change to any file.
+
+240
+00:18:01.490 --> 00:18:08.210
+So for now, because I haven't saved any new changes to the server, I can continue to send new requests
+
+241
+00:18:08.270 --> 00:18:09.230
+to this domain.
+
+242
+00:18:09.530 --> 00:18:11.420
+And it continues to remember me.
+
+243
+00:18:11.690 --> 00:18:18.080
+It remembers my session data, however, and you can try this out with me if you go into your user controller
+
+244
+00:18:18.290 --> 00:18:23.510
+and if you just add a random comment or even come down to the bottom and where it says welcome to the
+
+245
+00:18:23.510 --> 00:18:24.680
+actual application.
+
+246
+00:18:24.950 --> 00:18:31.610
+And if I just add on a couple more exclamation points and then hit save, that's going to trigger that
+
+247
+00:18:31.610 --> 00:18:33.680
+automatic restart of our server.
+
+248
+00:18:34.010 --> 00:18:37.000
+And when you restart a computer, its memory is cleared.
+
+249
+00:18:37.250 --> 00:18:43.430
+So now if I try to send a request to that domain because it cleared all of that session data that was
+
+250
+00:18:43.430 --> 00:18:46.580
+in memory, the server does not remember me.
+
+251
+00:18:47.120 --> 00:18:53.780
+So to get around this, instead of storing session data in memory, let's store session data in our
+
+252
+00:18:53.780 --> 00:18:55.490
+Mongo DB database.
+
+253
+00:18:55.880 --> 00:19:03.140
+Not only is this a more robust way of storing data, but it will also let us visualize a piece of session
+
+254
+00:19:03.140 --> 00:19:05.450
+data, which I think is really helpful.
+
+255
+00:19:05.600 --> 00:19:11.870
+To be able to see the session data on the server or in the database with your own two eyes should be
+
+256
+00:19:11.870 --> 00:19:12.590
+a big help.
+
+257
+00:19:12.990 --> 00:19:17.630
+So let's keep our momentum rolling and I will see you in the next lesson.
