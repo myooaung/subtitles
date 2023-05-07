@@ -1,0 +1,347 @@
+1
+1
+
+00:00:00,090  -->  00:00:02,400
+<v Instructor>So here is a specific lecture</v>
+2
+
+2
+
+00:00:02,400  -->  00:00:05,160
+for TLS and your network balancer.
+3
+
+3
+
+00:00:05,160  -->  00:00:07,740
+So if you want to have a TLS listener,
+4
+
+4
+
+00:00:07,740  -->  00:00:09,600
+you can use it on your NLB.
+5
+
+5
+
+00:00:09,600  -->  00:00:11,850
+So it will use the server certificate
+6
+
+6
+
+00:00:11,850  -->  00:00:14,160
+to terminate the TLS traffic
+7
+
+7
+
+00:00:14,160  -->  00:00:16,650
+and then it will decrypt the front end connections
+8
+
+8
+
+00:00:16,650  -->  00:00:20,250
+and then they will send it to the targets unencrypted.
+9
+
+9
+
+00:00:20,250  -->  00:00:21,780
+If you wanna create a TLS listener,
+10
+
+10
+
+00:00:21,780  -->  00:00:24,990
+you must create a certificate in ACM
+11
+
+11
+
+00:00:24,990  -->  00:00:27,240
+and then you attach it on your NLB.
+12
+
+12
+
+00:00:27,240  -->  00:00:29,970
+And even if you have TLS termination
+13
+
+13
+
+00:00:29,970  -->  00:00:34,350
+on your NLB, with client IP preservation setting enabled,
+14
+
+14
+
+00:00:34,350  -->  00:00:38,790
+the target instances, we'll still see the source IP address
+15
+
+15
+
+00:00:38,790  -->  00:00:41,880
+and port as if it comes from your clients.
+16
+
+16
+
+00:00:41,880  -->  00:00:43,440
+So the diagram is like this.
+17
+
+17
+
+00:00:43,440  -->  00:00:46,500
+The client, for example, talks to the TLS listener
+18
+
+18
+
+00:00:46,500  -->  00:00:49,230
+on port 443 of your network load balancer,
+19
+
+19
+
+00:00:49,230  -->  00:00:51,270
+which has TLS termination enabled
+20
+
+20
+
+00:00:51,270  -->  00:00:52,710
+because it has a certificate.
+21
+
+21
+
+00:00:52,710  -->  00:00:55,260
+What's going to happen is that the EC2 instances
+22
+
+22
+
+00:00:55,260  -->  00:00:56,220
+in your target group
+23
+
+23
+
+00:00:56,220  -->  00:00:59,760
+are going to see HTTP unencrypted traffic
+24
+
+24
+
+00:00:59,760  -->  00:01:02,790
+from your network load balancer, and the source IP of that
+25
+
+25
+
+00:01:02,790  -->  00:01:04,950
+if client IP preservation is enabled
+26
+
+26
+
+00:01:04,950  -->  00:01:07,980
+is going to be the IP of your client.
+27
+
+27
+
+00:01:07,980  -->  00:01:10,830
+Now, with this kind of mechanism,
+28
+
+28
+
+00:01:10,830  -->  00:01:13,170
+because the traffic is terminated
+29
+
+29
+
+00:01:13,170  -->  00:01:16,830
+at the NLB level from an encryption perspective,
+30
+
+30
+
+00:01:16,830  -->  00:01:21,000
+then these networks do not support TLS renegotiation,
+31
+
+31
+
+00:01:21,000  -->  00:01:24,120
+or mutual TLS authentication, mTLS
+32
+
+32
+
+00:01:24,120  -->  00:01:27,360
+because it has to be done directly by the client
+33
+
+33
+
+00:01:27,360  -->  00:01:31,290
+with the EC2 instances and not by the NLB.
+34
+
+34
+
+00:01:31,290  -->  00:01:32,760
+So how do we do this?
+35
+
+35
+
+00:01:32,760  -->  00:01:35,070
+Well, the option to do this kind
+36
+
+36
+
+00:01:35,070  -->  00:01:39,000
+of end-to-end encryption is to use a TCP listener,
+37
+
+37
+
+00:01:39,000  -->  00:01:40,560
+so not an encrypted one
+38
+
+38
+
+00:01:40,560  -->  00:01:45,330
+but you define it on port 443, even though it's just TCP.
+39
+
+39
+
+00:01:45,330  -->  00:01:48,450
+And what's going to happen is that all this TCP traffic
+40
+
+40
+
+00:01:48,450  -->  00:01:51,240
+is going to be passed encrypted to the target
+41
+
+41
+
+00:01:51,240  -->  00:01:54,360
+without the NLB decrypting it or terminating it.
+42
+
+42
+
+00:01:54,360  -->  00:01:58,602
+So we don't use a TLS listener, and it is the responsibility
+43
+
+43
+
+00:01:58,602  -->  00:02:02,370
+of the target group to actually decrypt the traffic.
+44
+
+44
+
+00:02:02,370  -->  00:02:03,203
+So how does that work?
+45
+
+45
+
+00:02:03,203  -->  00:02:06,240
+The clients sends encrypted traffic through your NLB
+46
+
+46
+
+00:02:06,240  -->  00:02:08,640
+but we have a TCP listener this time.
+47
+
+47
+
+00:02:08,640  -->  00:02:10,920
+Then the same traffic is going to be passed
+48
+
+48
+
+00:02:10,920  -->  00:02:13,830
+in encrypted to your EC2 instances,
+49
+
+49
+
+00:02:13,830  -->  00:02:18,000
+which are the one that will be performing TLS termination.
+50
+
+50
+
+00:02:18,000  -->  00:02:21,570
+And when you have the setting, you support mutual TLS
+51
+
+51
+
+00:02:21,570  -->  00:02:24,540
+because well, the NLB will pass the traffic as is
+52
+
+52
+
+00:02:24,540  -->  00:02:27,420
+and then the mutual TLS authentication
+53
+
+53
+
+00:02:27,420  -->  00:02:28,890
+can be implemented directly
+54
+
+54
+
+00:02:28,890  -->  00:02:31,980
+on your EC2 instances as targets.
+55
+
+55
+
+00:02:31,980  -->  00:02:34,950
+So something to know that once you see it in the exam,
+56
+
+56
+
+00:02:34,950  -->  00:02:36,090
+it would make sense.
+57
+
+57
+
+00:02:36,090  -->  00:02:36,923
+So I hope you liked it
+58
+
+58
+
+00:02:36,923  -->  00:02:39,183
+and I will see you in the next lecture.

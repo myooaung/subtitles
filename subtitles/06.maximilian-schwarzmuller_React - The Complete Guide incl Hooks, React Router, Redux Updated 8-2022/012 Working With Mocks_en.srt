@@ -1,0 +1,712 @@
+1
+00:00:02,170 --> 00:00:04,210
+With help of defined queries,
+
+2
+00:00:04,210 --> 00:00:07,320
+we are able to wait for our data to be rendered.
+
+3
+00:00:07,320 --> 00:00:09,810
+So this generally works,
+
+4
+00:00:09,810 --> 00:00:14,780
+but this is still not ideal here, this test.
+
+5
+00:00:14,780 --> 00:00:17,120
+Why is it not ideal?
+
+6
+00:00:17,120 --> 00:00:20,320
+Because we are sending a Http request here.
+
+7
+00:00:20,320 --> 00:00:21,250
+And in this case
+
+8
+00:00:21,250 --> 00:00:24,123
+we are fetching some data from some API.
+
+9
+00:00:25,380 --> 00:00:27,960
+However, when we run our tests
+
+10
+00:00:27,960 --> 00:00:30,860
+which we typically do a lot during development,
+
+11
+00:00:30,860 --> 00:00:31,693
+we
+
+12
+00:00:31,693 --> 00:00:34,140
+generally don't wanna send
+
+13
+00:00:34,140 --> 00:00:38,090
+Http requests to our servers.
+
+14
+00:00:38,090 --> 00:00:39,820
+We don't wanna send requests
+
+15
+00:00:39,820 --> 00:00:43,810
+because A, that will cause a lot of network traffic,
+
+16
+00:00:43,810 --> 00:00:47,380
+it will hammer our servers with requests.
+
+17
+00:00:47,380 --> 00:00:49,410
+Especially if you have a lot of tests
+
+18
+00:00:49,410 --> 00:00:51,630
+with a lot of requests.
+
+19
+00:00:51,630 --> 00:00:54,530
+And B, if you are not fetching data
+
+20
+00:00:54,530 --> 00:00:56,290
+but you have some Component
+
+21
+00:00:56,290 --> 00:00:59,540
+that sends a post request to a server,
+
+22
+00:00:59,540 --> 00:01:04,040
+your tests might start inserting data into a database
+
+23
+00:01:04,040 --> 00:01:07,630
+or they might start changing things on the server
+
+24
+00:01:07,630 --> 00:01:10,150
+because of course you also wanna test Components
+
+25
+00:01:10,150 --> 00:01:14,430
+and scenarios where such kind of requests are being sent.
+
+26
+00:01:14,430 --> 00:01:16,480
+And that's definitely not something
+
+27
+00:01:16,480 --> 00:01:18,270
+you wanna do during testing.
+
+28
+00:01:18,270 --> 00:01:21,470
+You don't wanna send requests
+
+29
+00:01:21,470 --> 00:01:24,423
+to servers that start changing things there.
+
+30
+00:01:25,500 --> 00:01:28,120
+So therefore what we generally wanna do
+
+31
+00:01:28,120 --> 00:01:30,130
+when we write tests is,
+
+32
+00:01:30,130 --> 00:01:34,430
+we either don't even wanna send a real request
+
+33
+00:01:34,430 --> 00:01:37,710
+or we wanna send it to some fake server,
+
+34
+00:01:37,710 --> 00:01:39,203
+some testing server.
+
+35
+00:01:40,140 --> 00:01:42,650
+Both are viable approaches
+
+36
+00:01:42,650 --> 00:01:44,780
+and I'll go for the approach here
+
+37
+00:01:44,780 --> 00:01:47,803
+where we don't even send the request in the first place.
+
+38
+00:01:48,910 --> 00:01:51,840
+Because there's one super important thing to note,
+
+39
+00:01:51,840 --> 00:01:53,630
+when you write a test
+
+40
+00:01:53,630 --> 00:01:57,480
+you don't wanna test code, which you haven't written.
+
+41
+00:01:57,480 --> 00:01:59,860
+So in this case, I don't wanna test
+
+42
+00:01:59,860 --> 00:02:02,320
+whether this fetch function works correctly
+
+43
+00:02:02,320 --> 00:02:04,060
+and sends a request.
+
+44
+00:02:04,060 --> 00:02:06,400
+The fetch function was not written by me,
+
+45
+00:02:06,400 --> 00:02:08,070
+it's built into the browser.
+
+46
+00:02:08,070 --> 00:02:11,250
+I rely on the browser vendors
+
+47
+00:02:11,250 --> 00:02:13,593
+to have written that function correctly.
+
+48
+00:02:14,470 --> 00:02:18,080
+So therefore I don't wanna test whether fetch
+
+49
+00:02:18,080 --> 00:02:22,140
+successfully sends a request technically behind the scenes.
+
+50
+00:02:22,140 --> 00:02:25,940
+I instead wanna test if my Component behaves correctly
+
+51
+00:02:25,940 --> 00:02:29,930
+depending on the different outcomes of sending a request.
+
+52
+00:02:29,930 --> 00:02:33,110
+So I wanna check if my Component behaves correctly
+
+53
+00:02:33,110 --> 00:02:35,560
+once I got the response data.
+
+54
+00:02:35,560 --> 00:02:36,950
+I maybe also and wanna check
+
+55
+00:02:36,950 --> 00:02:38,670
+if my Component behaves correctly,
+
+56
+00:02:38,670 --> 00:02:40,220
+if they got an error.
+
+57
+00:02:40,220 --> 00:02:41,710
+But I don't wanna check
+
+58
+00:02:41,710 --> 00:02:45,880
+whether technically sending this request succeeds.
+
+59
+00:02:45,880 --> 00:02:49,890
+And therefore we wanna replace this fetch function
+
+60
+00:02:49,890 --> 00:02:51,700
+which is built into the browser
+
+61
+00:02:51,700 --> 00:02:54,700
+with a so called mock function.
+
+62
+00:02:54,700 --> 00:02:58,600
+With a dummy function that overrides the build in function.
+
+63
+00:02:58,600 --> 00:03:01,370
+A dummy that does what we want
+
+64
+00:03:01,370 --> 00:03:04,660
+and that does not send a real request.
+
+65
+00:03:04,660 --> 00:03:07,840
+So did when our Component executes during testing
+
+66
+00:03:07,840 --> 00:03:09,840
+we use that dummy function,
+
+67
+00:03:09,840 --> 00:03:14,840
+that mock, instead of that real built in function.
+
+68
+00:03:14,850 --> 00:03:16,373
+That's what I wanna do here.
+
+69
+00:03:17,400 --> 00:03:22,400
+Now, how can we replace fetch with a dummy function?
+
+70
+00:03:22,460 --> 00:03:24,450
+This is such a common scenario
+
+71
+00:03:24,450 --> 00:03:25,880
+not just for fetch,
+
+72
+00:03:25,880 --> 00:03:27,600
+but also for something like
+
+73
+00:03:27,600 --> 00:03:29,950
+working with local storage, for example.
+
+74
+00:03:29,950 --> 00:03:33,810
+Where you also don't wanna trigger changes
+
+75
+00:03:33,810 --> 00:03:35,330
+in the actual storage.
+
+76
+00:03:35,330 --> 00:03:38,110
+This is such a common scenario that Jest,
+
+77
+00:03:38,110 --> 00:03:40,850
+this testing tool which we're using under the hood
+
+78
+00:03:40,850 --> 00:03:45,440
+has built in support for mocking such functions.
+
+79
+00:03:45,440 --> 00:03:47,780
+And it's therefore fairly easy to do.
+
+80
+00:03:47,780 --> 00:03:50,710
+When we arrange our test here
+
+81
+00:03:50,710 --> 00:03:53,510
+in our Async.test.js file,
+
+82
+00:03:53,510 --> 00:03:55,210
+here I now wanna override
+
+83
+00:03:55,210 --> 00:03:58,070
+the built in fetch function with my own one.
+
+84
+00:03:58,070 --> 00:04:00,830
+And for this, I can reach out to the window object
+
+85
+00:04:00,830 --> 00:04:02,880
+which will be available here.
+
+86
+00:04:02,880 --> 00:04:06,550
+And then there is this fetch method.
+
+87
+00:04:06,550 --> 00:04:08,660
+If I call fetch like this in my Component
+
+88
+00:04:08,660 --> 00:04:12,530
+I am just using that window fetch method.
+
+89
+00:04:12,530 --> 00:04:15,360
+So therefore now we can set window fetch
+
+90
+00:04:15,360 --> 00:04:19,079
+equal to a new function defined by us.
+
+91
+00:04:19,079 --> 00:04:21,260
+And here we can use Jest,
+
+92
+00:04:21,260 --> 00:04:24,640
+this object is globally available in our testing code,
+
+93
+00:04:24,640 --> 00:04:27,330
+it is made available by this tool named Jest,
+
+94
+00:04:27,330 --> 00:04:29,510
+which runs our tests.
+
+95
+00:04:29,510 --> 00:04:33,500
+And Jest, this object has a couple of utility methods.
+
+96
+00:04:33,500 --> 00:04:36,640
+It has the FN method for example.
+
+97
+00:04:36,640 --> 00:04:38,630
+And what FN does is
+
+98
+00:04:38,630 --> 00:04:40,993
+it creates a mock function as you see here.
+
+99
+00:04:42,170 --> 00:04:44,970
+So it creates a dummy function for you.
+
+100
+00:04:44,970 --> 00:04:47,540
+The difference to just creating a function on your own
+
+101
+00:04:47,540 --> 00:04:49,030
+is that this mock function
+
+102
+00:04:49,030 --> 00:04:53,510
+then has some additional features which you can use.
+
+103
+00:04:53,510 --> 00:04:56,450
+And you'll see those features in action in a second.
+
+104
+00:04:56,450 --> 00:04:59,110
+So now I did actually override
+
+105
+00:04:59,110 --> 00:05:00,930
+this built in fetch function
+
+106
+00:05:00,930 --> 00:05:02,530
+with my own dummy function.
+
+107
+00:05:02,530 --> 00:05:04,373
+Only of course, in my testing code.
+
+108
+00:05:05,580 --> 00:05:09,160
+Now, since this is created with Jest FN,
+
+109
+00:05:09,160 --> 00:05:13,310
+we can again use this mock function which we have now
+
+110
+00:05:13,310 --> 00:05:15,670
+and call special methods there.
+
+111
+00:05:15,670 --> 00:05:19,140
+Here even though I'm not getting all the completion for that
+
+112
+00:05:19,140 --> 00:05:23,203
+we can call mock resolved value once.
+
+113
+00:05:24,600 --> 00:05:25,640
+What this does is
+
+114
+00:05:25,640 --> 00:05:27,860
+it allows us to set a value,
+
+115
+00:05:27,860 --> 00:05:30,210
+this fetch function should resolve
+
+116
+00:05:30,210 --> 00:05:31,683
+to when it's being called.
+
+117
+00:05:32,580 --> 00:05:34,670
+And it should resolve to something
+
+118
+00:05:34,670 --> 00:05:37,800
+that is then used here by our code.
+
+119
+00:05:37,800 --> 00:05:39,940
+So when this fetch function is called here,
+
+120
+00:05:39,940 --> 00:05:44,210
+it showed in our case, resolve to an object
+
+121
+00:05:44,210 --> 00:05:46,230
+that has adjacent method.
+
+122
+00:05:46,230 --> 00:05:49,420
+Because here we are working with that resolved value.
+
+123
+00:05:49,420 --> 00:05:52,100
+In this then block we work with the resolve value
+
+124
+00:05:52,100 --> 00:05:53,810
+of this function called here
+
+125
+00:05:53,810 --> 00:05:56,540
+of that promise return, but it function call.
+
+126
+00:05:56,540 --> 00:06:00,830
+And then I'm calling JSON on that resolved value.
+
+127
+00:06:00,830 --> 00:06:02,400
+So this is the resolved value
+
+128
+00:06:02,400 --> 00:06:03,970
+we now wanna set here
+
+129
+00:06:03,970 --> 00:06:06,990
+and therefore I'll set this to an object here.
+
+130
+00:06:06,990 --> 00:06:09,750
+The object resolved by the promise,
+
+131
+00:06:09,750 --> 00:06:11,570
+which will automatically be returned
+
+132
+00:06:11,570 --> 00:06:15,220
+when you call mock resolved value once here.
+
+133
+00:06:15,220 --> 00:06:17,570
+And then here, I wanna make it clear
+
+134
+00:06:17,570 --> 00:06:19,793
+that we have a JSON property.
+
+135
+00:06:21,310 --> 00:06:24,810
+Here this one, which actually holds a function as a value,
+
+136
+00:06:24,810 --> 00:06:27,470
+so that calling it as a function
+
+137
+00:06:27,470 --> 00:06:30,193
+as we do it into Component works.
+
+138
+00:06:31,150 --> 00:06:34,330
+And that will be a Async function actually
+
+139
+00:06:34,330 --> 00:06:38,090
+because JSON returns a new promise
+
+140
+00:06:38,090 --> 00:06:40,520
+that's the case for the built in fetch function
+
+141
+00:06:40,520 --> 00:06:42,040
+and that therefore should be the case
+
+142
+00:06:42,040 --> 00:06:44,473
+for our mocked fetch function.
+
+143
+00:06:45,520 --> 00:06:49,200
+And then here it's up to us which value we wanna simulate
+
+144
+00:06:49,200 --> 00:06:50,920
+that should be returned.
+
+145
+00:06:50,920 --> 00:06:52,380
+And here in my case,
+
+146
+00:06:52,380 --> 00:06:55,450
+I actually wanna return an array when JSON is called
+
+147
+00:06:55,450 --> 00:06:58,020
+and this promise here resolves.
+
+148
+00:06:58,020 --> 00:07:00,260
+Because data here in this case
+
+149
+00:07:00,260 --> 00:07:03,650
+is in array for this API end point for this Component.
+
+150
+00:07:03,650 --> 00:07:06,370
+And that stand as array full of posts.
+
+151
+00:07:06,370 --> 00:07:09,313
+And every post should have an ID and a title.
+
+152
+00:07:10,270 --> 00:07:13,080
+And therefore to simulate the success case here
+
+153
+00:07:13,080 --> 00:07:16,070
+I wanna return an array with at least one post
+
+154
+00:07:16,070 --> 00:07:18,340
+with an ID of P1, let's say
+
+155
+00:07:18,340 --> 00:07:19,490
+and
+
+156
+00:07:19,490 --> 00:07:22,033
+a title of first post.
+
+157
+00:07:24,390 --> 00:07:26,030
+And now with that code,
+
+158
+00:07:26,030 --> 00:07:28,970
+we are overriding the built in fetch function
+
+159
+00:07:28,970 --> 00:07:31,060
+with our dummy fetch function
+
+160
+00:07:31,060 --> 00:07:36,060
+where we set the actual value this promise should return,
+
+161
+00:07:36,100 --> 00:07:38,083
+with help of these Jest features.
+
+162
+00:07:39,630 --> 00:07:42,550
+And if I now saved it all
+
+163
+00:07:42,550 --> 00:07:45,883
+my tests rerun and they still pass.
+
+164
+00:07:46,750 --> 00:07:50,970
+But now we are simulating this success case here.
+
+165
+00:07:50,970 --> 00:07:53,380
+We are simulating this success case
+
+166
+00:07:53,380 --> 00:07:55,030
+and we're not actually sending
+
+167
+00:07:55,030 --> 00:07:57,570
+a request to the API.
+
+168
+00:07:57,570 --> 00:08:00,280
+And therefore we're not hammering that API,
+
+169
+00:08:00,280 --> 00:08:03,120
+we're not sending unnecessary requests.
+
+170
+00:08:03,120 --> 00:08:06,650
+We are reducing the amount of network traffic,
+
+171
+00:08:06,650 --> 00:08:10,890
+we also avoid potential problems if the server is down
+
+172
+00:08:10,890 --> 00:08:13,460
+and our tests would fail for that reason.
+
+173
+00:08:13,460 --> 00:08:15,570
+Which of course is not something we want
+
+174
+00:08:15,570 --> 00:08:18,130
+and we can control different outcomes
+
+175
+00:08:18,130 --> 00:08:22,230
+for this fetch function to test different scenarios
+
+176
+00:08:22,230 --> 00:08:24,210
+with our tests here.
+
+177
+00:08:24,210 --> 00:08:27,030
+And that's why in such cases using a mock
+
+178
+00:08:27,030 --> 00:08:28,933
+is not a bad idea.
+

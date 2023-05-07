@@ -1,0 +1,316 @@
+1
+00:00:02,020 --> 00:00:04,390
+The problem here is that,
+
+2
+00:00:04,390 --> 00:00:06,620
+on the single meetup page,
+
+3
+00:00:06,620 --> 00:00:11,620
+we do specify which meetup pages should be pre-generated,
+
+4
+00:00:11,720 --> 00:00:16,600
+and we only set this at build time and never thereafter.
+
+5
+00:00:16,600 --> 00:00:19,110
+And since we set fallback to false,
+
+6
+00:00:19,110 --> 00:00:23,190
+we also ensure that any requests to meetups,
+
+7
+00:00:23,190 --> 00:00:26,330
+for which no page was pre-generated before,
+
+8
+00:00:26,330 --> 00:00:28,000
+will fail.
+
+9
+00:00:28,000 --> 00:00:31,290
+Now that worked as long as we didn't add a new meetup,
+
+10
+00:00:31,290 --> 00:00:33,010
+and it worked during development,
+
+11
+00:00:33,010 --> 00:00:36,630
+because there the getStaticPaths function ran
+
+12
+00:00:36,630 --> 00:00:38,400
+for every incoming request,
+
+13
+00:00:38,400 --> 00:00:40,823
+but it now fails after deployment.
+
+14
+00:00:41,800 --> 00:00:45,950
+Now fixing it is quite simple though, thankfully.
+
+15
+00:00:45,950 --> 00:00:50,950
+We can set fallback to true, or even better, to 'blocking'.
+
+16
+00:00:51,140 --> 00:00:54,630
+When you set fallback to true or to blocking,
+
+17
+00:00:54,630 --> 00:00:58,840
+you're telling NextJS that the list of paths
+
+18
+00:00:58,840 --> 00:01:02,940
+which you're specifying here, might not be exhaustive,
+
+19
+00:01:02,940 --> 00:01:05,680
+there might be more valid pages.
+
+20
+00:01:05,680 --> 00:01:10,680
+And, therefore, when fallback is set to true or to blocking,
+
+21
+00:01:10,820 --> 00:01:15,680
+NextJS will not respond with a 404 page
+
+22
+00:01:15,680 --> 00:01:18,820
+if it can't find the page immediately.
+
+23
+00:01:18,820 --> 00:01:22,380
+Instead with fallback set to true or blocking,
+
+24
+00:01:22,380 --> 00:01:25,030
+it will then generate that page on demand,
+
+25
+00:01:25,030 --> 00:01:26,750
+and thereafter cache it,
+
+26
+00:01:26,750 --> 00:01:30,490
+so it will pre-generate it when needed.
+
+27
+00:01:30,490 --> 00:01:33,950
+Now the difference between true and blocking then is that,
+
+28
+00:01:33,950 --> 00:01:38,170
+with true, it would immediately return an empty page,
+
+29
+00:01:38,170 --> 00:01:42,610
+and then pull down the dynamically generated content
+
+30
+00:01:42,610 --> 00:01:43,990
+once that's done.
+
+31
+00:01:43,990 --> 00:01:46,250
+So you need to handle that case
+
+32
+00:01:46,250 --> 00:01:49,440
+that the page does not have the data yet.
+
+33
+00:01:49,440 --> 00:01:52,840
+With blocking, the user will not see anything until
+
+34
+00:01:52,840 --> 00:01:54,860
+the page was pre-generated,
+
+35
+00:01:54,860 --> 00:01:57,320
+and the finished page will be served.
+
+36
+00:01:57,320 --> 00:01:59,270
+And that's the approach I will use here,
+
+37
+00:01:59,270 --> 00:02:04,220
+since it doesn't require any other extra work from our side.
+
+38
+00:02:04,220 --> 00:02:06,580
+So if we change fallback to blocking,
+
+39
+00:02:06,580 --> 00:02:09,400
+we'll not face this problem anymore.
+
+40
+00:02:09,400 --> 00:02:11,910
+Now we just need to redeploy this.
+
+41
+00:02:11,910 --> 00:02:14,710
+And for this, all we have to do is create
+
+42
+00:02:14,710 --> 00:02:18,050
+a new code snapshot with git add,
+
+43
+00:02:18,050 --> 00:02:19,730
+and then with git commit,
+
+44
+00:02:19,730 --> 00:02:24,123
+where we say, "fixed fallback", or something like this,
+
+45
+00:02:25,060 --> 00:02:28,420
+and then simply push our branch again,
+
+46
+00:02:28,420 --> 00:02:32,610
+push our repository back onto GitHub.
+
+47
+00:02:32,610 --> 00:02:37,410
+And the great thing is that NextJS will actually watch
+
+48
+00:02:37,410 --> 00:02:40,140
+this main branch to which we pushed,
+
+49
+00:02:40,140 --> 00:02:42,450
+and whenever it detects a change there,
+
+50
+00:02:42,450 --> 00:02:45,780
+it will automatically start building and redeploying.
+
+51
+00:02:45,780 --> 00:02:48,970
+As you can see here, it's building already again.
+
+52
+00:02:48,970 --> 00:02:50,340
+So that's very convenient.
+
+53
+00:02:50,340 --> 00:02:53,230
+If you want to update your page and redeploy,
+
+54
+00:02:53,230 --> 00:02:56,940
+all you have to do is create a new commit and push it
+
+55
+00:02:56,940 --> 00:02:59,223
+to your connected GitHub repository,
+
+56
+00:03:00,350 --> 00:03:04,330
+and that will then automatically trigger a redeployment.
+
+57
+00:03:04,330 --> 00:03:05,750
+And whilst it's redeploying,
+
+58
+00:03:05,750 --> 00:03:08,060
+your old page will stay up and running.
+
+59
+00:03:08,060 --> 00:03:11,600
+But once it's done, the new page will take over,
+
+60
+00:03:11,600 --> 00:03:14,250
+and hence, now this meetup exists here.
+
+61
+00:03:14,250 --> 00:03:18,790
+And if we add another meetup here
+
+62
+00:03:18,790 --> 00:03:23,790
+with this image, and our test address, and some test text.
+
+63
+00:03:24,250 --> 00:03:29,250
+If we do this, now our change should also be in effect.
+
+64
+00:03:29,910 --> 00:03:32,590
+And if we now reload the starting page
+
+65
+00:03:32,590 --> 00:03:34,810
+a couple of times to revalidate it,
+
+66
+00:03:34,810 --> 00:03:36,360
+if we now visit this meetup,
+
+67
+00:03:36,360 --> 00:03:40,230
+it's created on the fly and does all the works.
+
+68
+00:03:40,230 --> 00:03:43,240
+And that is also something, which I wanted to show you,
+
+69
+00:03:43,240 --> 00:03:46,950
+especially combined with that redeployment feature,
+
+70
+00:03:46,950 --> 00:03:49,650
+which is also something you should know.
+
+71
+00:03:49,650 --> 00:03:51,500
+Now, there is, of course, more you can do.
+
+72
+00:03:51,500 --> 00:03:53,450
+You can connect a custom domain here,
+
+73
+00:03:53,450 --> 00:03:56,440
+and you can also configure more in your project.
+
+74
+00:03:56,440 --> 00:03:59,190
+There are more features, which you can add as well,
+
+75
+00:03:59,190 --> 00:04:01,040
+but I mentioned this before already.
+
+76
+00:04:01,040 --> 00:04:03,920
+There are simply more things, which you could add.
+
+77
+00:04:03,920 --> 00:04:06,280
+This tutorial, however, had the goal of giving you
+
+78
+00:04:06,280 --> 00:04:09,312
+an overview of the most important features and,
+
+79
+00:04:09,312 --> 00:04:11,403
+therefore, we're now finished with that.
+

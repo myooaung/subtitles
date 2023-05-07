@@ -1,0 +1,549 @@
+WEBVTT
+1
+00:00:01.641 --> 00:00:04.260
+So we achieved a lot here
+
+2
+00:00:04.260 --> 00:00:06.300
+but we got one big problem.
+
+3
+00:00:06.300 --> 00:00:11.300
+At the moment, whenever I reload or manually enter a URL
+
+4
+00:00:11.370 --> 00:00:14.420
+we lose our authentication status.
+
+5
+00:00:14.420 --> 00:00:15.760
+And that makes a lot of sense
+
+6
+00:00:15.760 --> 00:00:19.780
+because whenever we do that, we restart this React app,
+
+7
+00:00:19.780 --> 00:00:23.320
+that's how the browser works, there's no way around that,
+
+8
+00:00:23.320 --> 00:00:27.220
+but that means that all our state in the context is lost.
+
+9
+00:00:27.220 --> 00:00:30.340
+We get back to the initial state basically.
+
+10
+00:00:30.340 --> 00:00:34.710
+And that's why we lose this data whenever we reload.
+
+11
+00:00:34.710 --> 00:00:37.010
+Of course, that's not realistic though,
+
+12
+00:00:37.010 --> 00:00:39.220
+we typically don't wanna lose that.
+
+13
+00:00:39.220 --> 00:00:41.880
+We wanna ensure that the user stays logged in,
+
+14
+00:00:41.880 --> 00:00:44.720
+at least for a certain period of time.
+
+15
+00:00:44.720 --> 00:00:48.340
+Because for the token which we get here
+
+16
+00:00:48.340 --> 00:00:50.130
+it's actually important to understand
+
+17
+00:00:50.130 --> 00:00:54.040
+that this token will expire after a certain duration,
+
+18
+00:00:54.040 --> 00:00:57.860
+and we actually get debt duration as part of the response
+
+19
+00:00:57.860 --> 00:01:01.160
+when we do log in or sign up.
+
+20
+00:01:01.160 --> 00:01:04.090
+Then we get dead response in the number of seconds
+
+21
+00:01:04.090 --> 00:01:06.290
+that expiration time, I mean.
+
+22
+00:01:06.290 --> 00:01:09.290
+And the default here will be a one hour.
+
+23
+00:01:09.290 --> 00:01:11.720
+So the token which we get from Firebase
+
+24
+00:01:11.720 --> 00:01:14.020
+will expire after one hour
+
+25
+00:01:14.020 --> 00:01:17.010
+and that's simply a security mechanism.
+
+26
+00:01:17.010 --> 00:01:20.200
+You could then refresh it with that refresh token
+
+27
+00:01:20.200 --> 00:01:23.840
+but that's a bit too advanced here, so we'll ignore that.
+
+28
+00:01:23.840 --> 00:01:26.390
+But at least for this one hour it would be nice
+
+29
+00:01:26.390 --> 00:01:28.500
+if we would stay logged in,
+
+30
+00:01:28.500 --> 00:01:32.300
+so that if I reload the page, we still are logged in.
+
+31
+00:01:32.300 --> 00:01:35.510
+And that means that we need to store the token
+
+32
+00:01:35.510 --> 00:01:39.550
+somewhere outside of our React state.
+
+33
+00:01:39.550 --> 00:01:42.220
+Because when we store it in JavaScript
+
+34
+00:01:42.220 --> 00:01:44.243
+in a variable or anything like that,
+
+35
+00:01:44.243 --> 00:01:47.460
+this will be cleared when the page reloads,
+
+36
+00:01:47.460 --> 00:01:50.420
+because that's only stored in memory.
+
+37
+00:01:50.420 --> 00:01:52.700
+We need to store it somewhere else.
+
+38
+00:01:52.700 --> 00:01:56.840
+And thankfully browsers do have storage mechanisms
+
+39
+00:01:56.840 --> 00:02:00.310
+which we could use, for example, cookies.
+
+40
+00:02:00.310 --> 00:02:03.640
+But an even easier to use storage mechanism
+
+41
+00:02:03.640 --> 00:02:05.710
+is local storage.
+
+42
+00:02:05.710 --> 00:02:07.760
+Now, if we talk about local storage,
+
+43
+00:02:07.760 --> 00:02:09.530
+where there is these cookies and so on,
+
+44
+00:02:09.530 --> 00:02:12.190
+attached you will find a comparison article
+
+45
+00:02:12.190 --> 00:02:15.320
+where I talk about that, but long story short
+
+46
+00:02:15.320 --> 00:02:17.710
+using local storage here is fine,
+
+47
+00:02:17.710 --> 00:02:21.720
+it will only be a problem if your page is vulnerable
+
+48
+00:02:21.720 --> 00:02:23.790
+to Cross-site Scripting attacks.
+
+49
+00:02:23.790 --> 00:02:27.943
+And if that's the case, you have a lot of problems anyways.
+
+50
+00:02:28.810 --> 00:02:32.620
+So therefore here we will use this local storage mechanism
+
+51
+00:02:32.620 --> 00:02:35.680
+which is a storage built into the browser
+
+52
+00:02:35.680 --> 00:02:38.520
+which allows us to store simple data
+
+53
+00:02:38.520 --> 00:02:42.160
+that will then survive page reloads.
+
+54
+00:02:42.160 --> 00:02:44.430
+And what we wanna do is rather simple.
+
+55
+00:02:44.430 --> 00:02:47.350
+When we log in, we wanna store that token
+
+56
+00:02:47.350 --> 00:02:49.890
+not just in our state here,
+
+57
+00:02:49.890 --> 00:02:52.960
+we definitely do wanna do that, but not just
+
+58
+00:02:52.960 --> 00:02:55.260
+but also in that browser storage.
+
+59
+00:02:55.260 --> 00:02:58.070
+And when we log out, we wanna clear it there.
+
+60
+00:02:58.070 --> 00:03:00.970
+But in addition, when this page loads,
+
+61
+00:03:00.970 --> 00:03:02.760
+we wanna look into the storage
+
+62
+00:03:02.760 --> 00:03:06.570
+and if a token is found there, we wanna use that token
+
+63
+00:03:06.570 --> 00:03:10.570
+without forcing the user to send a new request first.
+
+64
+00:03:10.570 --> 00:03:13.010
+But we'll get there step-by-step.
+
+65
+00:03:13.010 --> 00:03:16.030
+First of all, let's start by storing a token.
+
+66
+00:03:16.030 --> 00:03:19.490
+If the user logs in, we wanna store that token
+
+67
+00:03:19.490 --> 00:03:22.110
+in local storage and we can do this
+
+68
+00:03:22.110 --> 00:03:26.960
+by calling Local Storage Set Item.
+
+69
+00:03:26.960 --> 00:03:29.890
+And that's a, an API built into the browser
+
+70
+00:03:29.890 --> 00:03:33.533
+just like the Fetch Function is provided by the browser.
+
+71
+00:03:35.010 --> 00:03:38.800
+Now a Set Item allows us to store a key value pair
+
+72
+00:03:38.800 --> 00:03:41.970
+in that local storage, and the key is up to you.
+
+73
+00:03:41.970 --> 00:03:43.220
+I will name it Token.
+
+74
+00:03:43.220 --> 00:03:46.500
+And the Value then should be that Token.
+
+75
+00:03:46.500 --> 00:03:49.900
+And since that's a string already, we can store it like this
+
+76
+00:03:49.900 --> 00:03:52.800
+because local storage is only able to store
+
+77
+00:03:52.800 --> 00:03:56.630
+basic primitive data, like strings or numbers.
+
+78
+00:03:56.630 --> 00:03:59.030
+If you would wanna store an object
+
+79
+00:03:59.030 --> 00:04:01.800
+you have to convert data to JSON first
+
+80
+00:04:01.800 --> 00:04:03.283
+which then is a string again.
+
+81
+00:04:04.500 --> 00:04:08.030
+Now, if you log out, I wanna reach out to Local Storage
+
+82
+00:04:08.030 --> 00:04:12.280
+and we can either call Clear to erase all data in there
+
+83
+00:04:12.280 --> 00:04:16.610
+for this site, or we target specific keys.
+
+84
+00:04:16.610 --> 00:04:19.290
+And in this case, I'll remove this Token Key,
+
+85
+00:04:19.290 --> 00:04:20.452
+which I set here.
+
+86
+00:04:21.380 --> 00:04:25.810
+So this now sets and clears that token and local storage.
+
+87
+00:04:25.810 --> 00:04:28.170
+But that's of course not all I wanna do.
+
+88
+00:04:28.170 --> 00:04:31.360
+Instead when this app starts
+
+89
+00:04:31.360 --> 00:04:36.360
+I wanna make sure that I look into my Local Storage
+
+90
+00:04:36.990 --> 00:04:39.430
+and see if I find a Token there.
+
+91
+00:04:39.430 --> 00:04:44.210
+And if I do find a token there, I wanna use that token
+
+92
+00:04:44.210 --> 00:04:47.313
+for authenticating the user automatically.
+
+93
+00:04:48.180 --> 00:04:52.150
+To be very precise, I wanna initialize my state
+
+94
+00:04:52.150 --> 00:04:54.370
+with that token then.
+
+95
+00:04:54.370 --> 00:04:55.940
+And therefore, instead of providing Null
+
+96
+00:04:55.940 --> 00:05:00.193
+as a starting value, I will get my Token here,
+
+97
+00:05:01.360 --> 00:05:06.360
+my Initial Token by checking Local Storage, Get Item, Token.
+
+98
+00:05:08.050 --> 00:05:10.900
+And that could of course, be hard to find
+
+99
+00:05:10.900 --> 00:05:12.930
+but I will still try doing that
+
+100
+00:05:12.930 --> 00:05:15.730
+and then set that as an Initial Token.
+
+101
+00:05:15.730 --> 00:05:18.590
+And it's either Undefined, if that token doesn't exist
+
+102
+00:05:18.590 --> 00:05:20.533
+or it is the Storage Token.
+
+103
+00:05:21.420 --> 00:05:24.120
+So we don't even need user fact here
+
+104
+00:05:24.120 --> 00:05:25.020
+or anything like that,
+
+105
+00:05:25.020 --> 00:05:27.760
+we can just set the initial token value
+
+106
+00:05:27.760 --> 00:05:30.430
+by looking into local storage.
+
+107
+00:05:30.430 --> 00:05:33.140
+And initial value will only be used once
+
+108
+00:05:33.140 --> 00:05:36.730
+by React when this state is first initialized.
+
+109
+00:05:36.730 --> 00:05:38.610
+So if that runs thereafter
+
+110
+00:05:38.610 --> 00:05:42.893
+we won't overwrite any state changes with that token.
+
+111
+00:05:44.330 --> 00:05:46.450
+So therefore now, if we save this
+
+112
+00:05:46.450 --> 00:05:48.780
+if I reload it I'm currently logged out.
+
+113
+00:05:48.780 --> 00:05:53.060
+But if I do now, log in, I am logged in.
+
+114
+00:05:53.060 --> 00:05:56.610
+But if I reload now, you see, I stay logged in.
+
+115
+00:05:56.610 --> 00:05:58.150
+If I, visit the profile page
+
+116
+00:05:58.150 --> 00:06:00.430
+and I reload there, that works.
+
+117
+00:06:00.430 --> 00:06:02.940
+If I manually enter slash profile,
+
+118
+00:06:02.940 --> 00:06:05.513
+that works because I did log in.
+
+119
+00:06:06.400 --> 00:06:09.380
+Now, if I do click log out here, I am redirected.
+
+120
+00:06:09.380 --> 00:06:12.970
+And now if I tried to manually visit slash profile
+
+121
+00:06:14.070 --> 00:06:16.070
+that fails again.
+
+122
+00:06:16.070 --> 00:06:21.070
+So now we have that persistence off that log in status
+
+123
+00:06:21.560 --> 00:06:23.083
+even after reloads.
+
+124
+00:06:24.070 --> 00:06:26.770
+But at the moment, this never expires.
+
+125
+00:06:26.770 --> 00:06:30.650
+And as I mentioned, it does expire after a certain duration,
+
+126
+00:06:30.650 --> 00:06:32.833
+the default here is one hour.
+
+127
+00:06:33.690 --> 00:06:37.340
+So we wanna make sure that we also automatically
+
+128
+00:06:37.340 --> 00:06:39.550
+remove the Token from Local Storage,
+
+129
+00:06:39.550 --> 00:06:42.774
+that will automatically log the user out
+
+130
+00:06:42.774 --> 00:06:44.774
+after the token expired.
+
+131
+00:06:45.915 --> 00:06:48.417
+And therefore of course we wanna set a timer,
+
+132
+00:06:48.417 --> 00:06:50.380
+but we also wanna store
+
+133
+00:06:50.380 --> 00:06:53.310
+the remaining duration in local storage,
+
+134
+00:06:53.310 --> 00:06:55.840
+or we wanna store the expiration
+
+135
+00:06:55.840 --> 00:06:58.780
+and time in local storage to be precise
+
+136
+00:06:58.780 --> 00:07:01.850
+so that we always set the timer correctly,
+
+137
+00:07:01.850 --> 00:07:04.163
+even after reloading the page.
+

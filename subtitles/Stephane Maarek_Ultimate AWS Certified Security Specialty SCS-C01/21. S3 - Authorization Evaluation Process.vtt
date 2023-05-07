@@ -1,0 +1,792 @@
+WEBVTT
+1
+1
+
+00:00:00.180  -->  00:00:02.430
+<v Instructor>So now let's discuss how authorization</v>
+2
+
+2
+
+00:00:02.430  -->  00:00:04.950
+is working for Amazon S3.
+3
+
+3
+
+00:00:04.950  -->  00:00:06.570
+And that can be quite complicated,
+4
+
+4
+
+00:00:06.570  -->  00:00:08.460
+but this is just general rule
+5
+
+5
+
+00:00:08.460  -->  00:00:11.070
+and then we'll drill down into some use cases.
+6
+
+6
+
+00:00:11.070  -->  00:00:13.350
+So first we look at the user context.
+7
+
+7
+
+00:00:13.350  -->  00:00:16.980
+Is the IAM principal authorized by the parent accounts?
+8
+
+8
+
+00:00:16.980  -->  00:00:18.150
+Does it mean for example,
+9
+
+9
+
+00:00:18.150  -->  00:00:20.490
+that it has the correct IAM policy.
+10
+
+10
+
+00:00:20.490  -->  00:00:23.010
+And if the parent owns the bucket or the object,
+11
+
+11
+
+00:00:23.010  -->  00:00:26.280
+because you should know that you have different level
+12
+
+12
+
+00:00:26.280  -->  00:00:27.360
+of ownerships within buckets
+13
+
+13
+
+00:00:27.360  -->  00:00:29.520
+and we'll talk about those in details as well.
+14
+
+14
+
+00:00:29.520  -->  00:00:32.790
+So if the parent owns the bucket or the object,
+15
+
+15
+
+00:00:32.790  -->  00:00:35.850
+then the bucket policy or the object ACL
+16
+
+16
+
+00:00:35.850  -->  00:00:37.290
+is going to be evaluated.
+17
+
+17
+
+00:00:37.290  -->  00:00:39.090
+And we'll see that ACLs are deprecated
+18
+
+18
+
+00:00:39.090  -->  00:00:41.880
+but still worth mentioning in this lecture.
+19
+
+19
+
+00:00:41.880  -->  00:00:45.000
+Now, if the parent owns the bucket and objects,
+20
+
+20
+
+00:00:45.000  -->  00:00:47.850
+it can grant permission to its IAM principals
+21
+
+21
+
+00:00:47.850  -->  00:00:51.240
+using Identity-Based Policy or Resource-Based Policy.
+22
+
+22
+
+00:00:51.240  -->  00:00:53.640
+We'll have a look at this to see the distinction
+23
+
+23
+
+00:00:53.640  -->  00:00:58.230
+between buckets and objects not owned by the account owner.
+24
+
+24
+
+00:00:58.230  -->  00:01:00.090
+Next we have the bucket context.
+25
+
+25
+
+00:01:00.090  -->  00:01:02.190
+So we're going to evaluate the policies
+26
+
+26
+
+00:01:02.190  -->  00:01:03.840
+of the account that owns the bucket.
+27
+
+27
+
+00:01:03.840  -->  00:01:05.880
+We're going to check for an explicit deny.
+28
+
+28
+
+00:01:05.880  -->  00:01:07.950
+And then we have the object context.
+29
+
+29
+
+00:01:07.950  -->  00:01:10.410
+So we're going to look at the requester.
+30
+
+30
+
+00:01:10.410  -->  00:01:13.050
+Does it have the permissions from the object owner?
+31
+
+31
+
+00:01:13.050  -->  00:01:14.220
+So two cases.
+32
+
+32
+
+00:01:14.220  -->  00:01:17.520
+If the bucket owner is also the object owner,
+33
+
+33
+
+00:01:17.520  -->  00:01:20.130
+then the access is granted using a bucket policy
+34
+
+34
+
+00:01:20.130  -->  00:01:22.560
+and that's the most common use case we've seen so far.
+35
+
+35
+
+00:01:22.560  -->  00:01:26.250
+Or if the bucket owner is not equal to the object owner
+36
+
+36
+
+00:01:26.250  -->  00:01:30.870
+then the access is granted using object owner ACL.
+37
+
+37
+
+00:01:30.870  -->  00:01:34.110
+So to simplify things, because ACLs are quite complicated,
+38
+
+38
+
+00:01:34.110  -->  00:01:35.880
+as you can see the rules are very, very difficult
+39
+
+39
+
+00:01:35.880  -->  00:01:39.240
+to understand, AWS has created a setting
+40
+
+40
+
+00:01:39.240  -->  00:01:43.050
+called Bucket Owner Enforced Setting for Object Ownership.
+41
+
+41
+
+00:01:43.050  -->  00:01:45.000
+That means that the bucket owner
+42
+
+42
+
+00:01:45.000  -->  00:01:47.370
+and the objects are the same.
+43
+
+43
+
+00:01:47.370  -->  00:01:52.080
+And then if you do this, then the ACLs applied to the bucket
+44
+
+44
+
+00:01:52.080  -->  00:01:54.780
+or the objects are not editable anymore
+45
+
+45
+
+00:01:54.780  -->  00:01:56.940
+and they're no longer considered for access,
+46
+
+46
+
+00:01:56.940  -->  00:02:00.300
+which simplifies a lot of the authorization flow.
+47
+
+47
+
+00:02:00.300  -->  00:02:02.310
+Still, I'm gonna show you everything with diagrams
+48
+
+48
+
+00:02:02.310  -->  00:02:03.990
+so you can understand these rules.
+49
+
+49
+
+00:02:03.990  -->  00:02:07.320
+And just remember SCLs are somewhat out of the picture
+50
+
+50
+
+00:02:07.320  -->  00:02:09.030
+so they can be not considered,
+51
+
+51
+
+00:02:09.030  -->  00:02:11.160
+but as a security specialist
+52
+
+52
+
+00:02:11.160  -->  00:02:13.530
+you should still know about them.
+53
+
+53
+
+00:02:13.530  -->  00:02:16.470
+So let's take an example of an IAM user.
+54
+
+54
+
+00:02:16.470  -->  00:02:18.000
+It makes a request.
+55
+
+55
+
+00:02:18.000  -->  00:02:21.330
+So we look at whether or not we are a user or a role.
+56
+
+56
+
+00:02:21.330  -->  00:02:22.770
+Yes, we are a user.
+57
+
+57
+
+00:02:22.770  -->  00:02:24.840
+So we'll look at the user context.
+58
+
+58
+
+00:02:24.840  -->  00:02:26.970
+And we'll look at whether or not the IAM policy
+59
+
+59
+
+00:02:26.970  -->  00:02:30.990
+authorizes us to access the object in Amazon S3.
+60
+
+60
+
+00:02:30.990  -->  00:02:33.240
+If no, well, access denied.
+61
+
+61
+
+00:02:33.240  -->  00:02:36.480
+If yes, then we go into the bucket context.
+62
+
+62
+
+00:02:36.480  -->  00:02:38.790
+Now we'll look at the bucket owner
+63
+
+63
+
+00:02:38.790  -->  00:02:41.340
+and we'll look at if there is an explicit deny.
+64
+
+64
+
+00:02:41.340  -->  00:02:43.320
+If there is, then of course we deny it.
+65
+
+65
+
+00:02:43.320  -->  00:02:46.680
+If not, then we look at the object context,
+66
+
+66
+
+00:02:46.680  -->  00:02:48.870
+and here we look at the authority assigned
+67
+
+67
+
+00:02:48.870  -->  00:02:50.670
+by the object owner.
+68
+
+68
+
+00:02:50.670  -->  00:02:52.080
+And the object owner,
+69
+
+69
+
+00:02:52.080  -->  00:02:55.860
+if it has unauthorized the access, then denied.
+70
+
+70
+
+00:02:55.860  -->  00:02:57.780
+If yes, granted.
+71
+
+71
+
+00:02:57.780  -->  00:03:00.870
+And if we are just not looking at an IAM role or user,
+72
+
+72
+
+00:03:00.870  -->  00:03:03.270
+then we go straight into the bucket context.
+73
+
+73
+
+00:03:03.270  -->  00:03:05.730
+So this is for example, if you have like public access.
+74
+
+74
+
+00:03:05.730  -->  00:03:07.440
+So this is the theory.
+75
+
+75
+
+00:03:07.440  -->  00:03:10.980
+Now let's go into some practice with three accounts.
+76
+
+76
+
+00:03:10.980  -->  00:03:11.970
+Why three?
+77
+
+77
+
+00:03:11.970  -->  00:03:14.430
+Well, in this example, we have a user
+78
+
+78
+
+00:03:14.430  -->  00:03:18.030
+in account one, a bucket in account two,
+79
+
+79
+
+00:03:18.030  -->  00:03:20.400
+and the accounts that owns the object
+80
+
+80
+
+00:03:20.400  -->  00:03:22.890
+inside of the bucket is account three.
+81
+
+81
+
+00:03:22.890  -->  00:03:24.750
+It's a edge use case, but you need to understand it
+82
+
+82
+
+00:03:24.750  -->  00:03:26.730
+to really understand how things work.
+83
+
+83
+
+00:03:26.730  -->  00:03:30.120
+And then we'll go into more simple use cases.
+84
+
+84
+
+00:03:30.120  -->  00:03:33.690
+So here in this case, S3 is going to verify
+85
+
+85
+
+00:03:33.690  -->  00:03:36.600
+that first Jill has the correct permissions
+86
+
+86
+
+00:03:36.600  -->  00:03:39.240
+to perform the requested operation.
+87
+
+87
+
+00:03:39.240  -->  00:03:40.590
+That makes sense.
+88
+
+88
+
+00:03:40.590  -->  00:03:43.680
+Then S3 is going to evaluate the bucket policy
+89
+
+89
+
+00:03:43.680  -->  00:03:45.450
+to determine if the bucket owner
+90
+
+90
+
+00:03:45.450  -->  00:03:48.870
+has explicitly denied Jill access to the objects.
+91
+
+91
+
+00:03:48.870  -->  00:03:52.410
+So if there is no bucket policy that explicitly denies Jill,
+92
+
+92
+
+00:03:52.410  -->  00:03:53.970
+then we move on.
+93
+
+93
+
+00:03:53.970  -->  00:03:57.510
+And then we will evaluate the object ACL
+94
+
+94
+
+00:03:57.510  -->  00:03:59.850
+to determine if Jill has the proper permission
+95
+
+95
+
+00:03:59.850  -->  00:04:01.020
+to access the object.
+96
+
+96
+
+00:04:01.020  -->  00:04:03.060
+And so that means that account three
+97
+
+97
+
+00:04:03.060  -->  00:04:07.620
+should have authorized account one to access the object.
+98
+
+98
+
+00:04:07.620  -->  00:04:09.840
+So in this use case, as you can see,
+99
+
+99
+
+00:04:09.840  -->  00:04:11.430
+we have three different accounts,
+100
+
+100
+
+00:04:11.430  -->  00:04:14.010
+but in the case where the account two
+101
+
+101
+
+00:04:14.010  -->  00:04:16.500
+is also the account three,
+102
+
+102
+
+00:04:16.500  -->  00:04:18.690
+then ACLs are out of the picture.
+103
+
+103
+
+00:04:18.690  -->  00:04:20.250
+And the only thing that can be considered
+104
+
+104
+
+00:04:20.250  -->  00:04:21.843
+is the bucket policy.
+105
+
+105
+
+00:04:22.890  -->  00:04:25.530
+Finally, to understand how authorization works
+106
+
+106
+
+00:04:25.530  -->  00:04:28.710
+in Amazon S3, we must talk about bucket operations
+107
+
+107
+
+00:04:28.710  -->  00:04:30.720
+versus object operations.
+108
+
+108
+
+00:04:30.720  -->  00:04:32.190
+So if we look at the first statement,
+109
+
+109
+
+00:04:32.190  -->  00:04:34.710
+it has an S3 ListBucket, and it turns out
+110
+
+110
+
+00:04:34.710  -->  00:04:38.850
+that the resources it applies to is the bucket named test.
+111
+
+111
+
+00:04:38.850  -->  00:04:41.430
+It's called a bucket level permission.
+112
+
+112
+
+00:04:41.430  -->  00:04:42.540
+That makes sense.
+113
+
+113
+
+00:04:42.540  -->  00:04:45.390
+But then if you look at the second statement,
+114
+
+114
+
+00:04:45.390  -->  00:04:49.290
+then we have GetObject, PutObject, and DeleteObject.
+115
+
+115
+
+00:04:49.290  -->  00:04:53.010
+As you can see, the ARN now has /*.
+116
+
+116
+
+00:04:53.010  -->  00:04:55.230
+So this /* right here means
+117
+
+117
+
+00:04:55.230  -->  00:04:58.470
+that we consider any object within the bucket.
+118
+
+118
+
+00:04:58.470  -->  00:05:01.410
+And so that is object level permission.
+119
+
+119
+
+00:05:01.410  -->  00:05:02.370
+So that makes sense.
+120
+
+120
+
+00:05:02.370  -->  00:05:03.660
+Some APIs are on the bucket
+121
+
+121
+
+00:05:03.660  -->  00:05:05.610
+and some APIs are on the objects.
+122
+
+122
+
+00:05:05.610  -->  00:05:09.120
+And the way to differentiate it is by lengthening the ARN.
+123
+
+123
+
+00:05:09.120  -->  00:05:12.930
+And if you want to apply to all objects, then we'll have /*.
+124
+
+124
+
+00:05:12.930  -->  00:05:16.290
+So we've seen how authorization works in Amazon S3.
+125
+
+125
+
+00:05:16.290  -->  00:05:18.180
+We'll go into more examples over time.
+126
+
+126
+
+00:05:18.180  -->  00:05:19.620
+But you know the basics,
+127
+
+127
+
+00:05:19.620  -->  00:05:22.020
+and I know this is a complicated lecture.
+128
+
+128
+
+00:05:22.020  -->  00:05:22.853
+Don't worry.
+129
+
+129
+
+00:05:22.853  -->  00:05:25.200
+Watch the next ones, and then if you're still curious,
+130
+
+130
+
+00:05:25.200  -->  00:05:27.480
+just watch this one again, and you'll be good to go.
+131
+
+131
+
+00:05:27.480  -->  00:05:28.380
+All right, that's it.
+132
+
+132
+
+00:05:28.380  -->  00:05:31.503
+I hope you liked it and I will see you in the next lecture.

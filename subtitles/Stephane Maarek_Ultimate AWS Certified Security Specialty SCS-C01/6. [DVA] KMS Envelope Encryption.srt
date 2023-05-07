@@ -1,0 +1,1061 @@
+1
+1
+
+00:00:00,140  -->  00:00:02,320
+<v Instructor>So now let's do a deep dive into</v>
+2
+
+2
+
+00:00:02,320  -->  00:00:05,930
+how KMS really works for the encrypt and decrypt APIs
+3
+
+3
+
+00:00:05,930  -->  00:00:08,180
+as well as for envelope encryption.
+4
+
+4
+
+00:00:08,180  -->  00:00:09,900
+So what we did is that we had a secret,
+5
+
+5
+
+00:00:09,900  -->  00:00:10,810
+for example, a password,
+6
+
+6
+
+00:00:10,810  -->  00:00:12,550
+and it was less than four kilobytes,
+7
+
+7
+
+00:00:12,550  -->  00:00:15,020
+because this is a limit for KMS,
+8
+
+8
+
+00:00:15,020  -->  00:00:17,760
+and we sent it into the KMS service.
+9
+
+9
+
+00:00:17,760  -->  00:00:21,360
+So we use the encrypt API using an SDK or the CLI,
+10
+
+10
+
+00:00:21,360  -->  00:00:25,150
+and then we specified the CMK we wanted to use in KMS.
+11
+
+11
+
+00:00:25,150  -->  00:00:27,220
+And then KMS was checking
+12
+
+12
+
+00:00:27,220  -->  00:00:29,570
+with IAM if we had the right permissions.
+13
+
+13
+
+00:00:29,570  -->  00:00:33,660
+And if we did, then it would perform encryption for us.
+14
+
+14
+
+00:00:33,660  -->  00:00:35,440
+What KMS will send us back
+15
+
+15
+
+00:00:35,440  -->  00:00:38,040
+would be the entirely encrypted secret.
+16
+
+16
+
+00:00:38,040  -->  00:00:39,910
+So that will be the encrypted data.
+17
+
+17
+
+00:00:39,910  -->  00:00:42,240
+Then we need to decrypt it.
+18
+
+18
+
+00:00:42,240  -->  00:00:46,050
+So we use the CLI or the SDK to do a decrypt API.
+19
+
+19
+
+00:00:46,050  -->  00:00:47,500
+And then we would,
+20
+
+20
+
+00:00:47,500  -->  00:00:49,370
+KMS would automatically actually,
+21
+
+21
+
+00:00:49,370  -->  00:00:52,300
+understand which CMK was used for encryption
+22
+
+22
+
+00:00:52,300  -->  00:00:55,500
+and look at it for performing decryption.
+23
+
+23
+
+00:00:55,500  -->  00:00:57,350
+It would first check with IAM
+24
+
+24
+
+00:00:57,350  -->  00:00:59,390
+to make sure that we have the correct permissions
+25
+
+25
+
+00:00:59,390  -->  00:01:00,810
+to perform the decryption.
+26
+
+26
+
+00:01:00,810  -->  00:01:01,860
+And if we do,
+27
+
+27
+
+00:01:01,860  -->  00:01:05,470
+then it would send us via decrypted secret in plain-text.
+28
+
+28
+
+00:01:05,470  -->  00:01:07,700
+So this is the encrypt and the decrypt API
+29
+
+29
+
+00:01:07,700  -->  00:01:09,850
+and these are pretty easy.
+30
+
+30
+
+00:01:09,850  -->  00:01:12,850
+So as we can see though there is a problem,
+31
+
+31
+
+00:01:12,850  -->  00:01:17,130
+we are limited by the size of the secret to four kilobytes.
+32
+
+32
+
+00:01:17,130  -->  00:01:19,510
+So for this we have a loop encryption.
+33
+
+33
+
+00:01:19,510  -->  00:01:22,950
+So if you want to encrypt over four kilobytes,
+34
+
+34
+
+00:01:22,950  -->  00:01:24,430
+then there's this technique
+35
+
+35
+
+00:01:24,430  -->  00:01:26,470
+where you encrypt using an envelope.
+36
+
+36
+
+00:01:26,470  -->  00:01:28,500
+And the main API you have to remember
+37
+
+37
+
+00:01:28,500  -->  00:01:31,260
+for us to encrypt a large number,
+38
+
+38
+
+00:01:31,260  -->  00:01:35,090
+large amount of data is to use the GenerateDataKey API.
+39
+
+39
+
+00:01:35,090  -->  00:01:36,920
+So from an exam perspective,
+40
+
+40
+
+00:01:36,920  -->  00:01:39,240
+if you want it to just stop here in this lecture,
+41
+
+41
+
+00:01:39,240  -->  00:01:41,830
+anything over four kilobytes of data
+42
+
+42
+
+00:01:41,830  -->  00:01:45,400
+has to be encrypted using the envelope encryption technique,
+43
+
+43
+
+00:01:45,400  -->  00:01:49,710
+which corresponds to the KMS GeneratDataKey API.
+44
+
+44
+
+00:01:49,710  -->  00:01:51,440
+Now I want you to go over the exam.
+45
+
+45
+
+00:01:51,440  -->  00:01:54,060
+So I want to explain to you how this API works
+46
+
+46
+
+00:01:54,060  -->  00:01:55,560
+and I think this could be valuable,
+47
+
+47
+
+00:01:55,560  -->  00:01:58,310
+but rest assured this is a little bit difficult.
+48
+
+48
+
+00:01:58,310  -->  00:02:00,960
+So if you don't follow, don't worry too much.
+49
+
+49
+
+00:02:00,960  -->  00:02:04,280
+So we're going to go into envelope encryption.
+50
+
+50
+
+00:02:04,280  -->  00:02:06,000
+So we have the KMS service,
+51
+
+51
+
+00:02:06,000  -->  00:02:08,430
+and this time we want to encrypt a very big file.
+52
+
+52
+
+00:02:08,430  -->  00:02:10,240
+Maybe it is up to 10 megabytes,
+53
+
+53
+
+00:02:10,240  -->  00:02:12,160
+but it could be as big as you want, really.
+54
+
+54
+
+00:02:12,160  -->  00:02:14,230
+So we're going to use the SDK,
+55
+
+55
+
+00:02:14,230  -->  00:02:17,770
+and call the GenerateDataKey API,
+56
+
+56
+
+00:02:17,770  -->  00:02:19,930
+and we'll specify a CMK,
+57
+
+57
+
+00:02:19,930  -->  00:02:23,070
+and so KMS will check again the IAM permission,
+58
+
+58
+
+00:02:23,070  -->  00:02:25,470
+making sure we can generate a data key.
+59
+
+59
+
+00:02:25,470  -->  00:02:26,680
+And if we can,
+60
+
+60
+
+00:02:26,680  -->  00:02:29,330
+then KMS will generate this data key for us,
+61
+
+61
+
+00:02:29,330  -->  00:02:31,920
+and will send us back a plain-text version of it.
+62
+
+62
+
+00:02:31,920  -->  00:02:34,623
+So we have a plain-text data key encryption,
+63
+
+63
+
+00:02:34,623  -->  00:02:37,040
+data ecryption key, which is DEK.
+64
+
+64
+
+00:02:37,040  -->  00:02:39,230
+So now we have this data encryption key,
+65
+
+65
+
+00:02:39,230  -->  00:02:40,520
+but why do we have it?
+66
+
+66
+
+00:02:40,520  -->  00:02:42,860
+Well, because now we can do something client side.
+67
+
+67
+
+00:02:42,860  -->  00:02:45,020
+We can encrypt the big file client side
+68
+
+68
+
+00:02:45,020  -->  00:02:48,360
+using our own CPU with this DEK.
+69
+
+69
+
+00:02:48,360  -->  00:02:51,160
+So this gives us an encrypted file.
+70
+
+70
+
+00:02:51,160  -->  00:02:52,910
+And then, actually,
+71
+
+71
+
+00:02:52,910  -->  00:02:55,050
+we're going to build an envelope around it,
+72
+
+72
+
+00:02:55,050  -->  00:02:56,240
+which is the final file.
+73
+
+73
+
+00:02:56,240  -->  00:02:57,850
+So we will build an envelope
+74
+
+74
+
+00:02:57,850  -->  00:02:59,930
+and what do we put in this envelope?
+75
+
+75
+
+00:02:59,930  -->  00:03:03,020
+Then we'll put an encrypted version of the DEK,
+76
+
+76
+
+00:03:03,020  -->  00:03:06,110
+and actually KMS will also send us this.
+77
+
+77
+
+00:03:06,110  -->  00:03:08,350
+So when we call the GenerateDataKey API,
+78
+
+78
+
+00:03:08,350  -->  00:03:10,920
+it sends us both the plain-text DEK
+79
+
+79
+
+00:03:10,920  -->  00:03:13,320
+and the encrypted DEK.
+80
+
+80
+
+00:03:13,320  -->  00:03:16,420
+And so we store these two things into one final file.
+81
+
+81
+
+00:03:16,420  -->  00:03:18,340
+And this is why it's called envelope encryption.
+82
+
+82
+
+00:03:18,340  -->  00:03:20,910
+Because there is a wrapper around your encrypted file
+83
+
+83
+
+00:03:20,910  -->  00:03:22,820
+with the encrypted DEK.
+84
+
+84
+
+00:03:22,820  -->  00:03:24,670
+So as we can see in this example,
+85
+
+85
+
+00:03:24,670  -->  00:03:28,370
+from KMS the only thing we got was an encryption key,
+86
+
+86
+
+00:03:28,370  -->  00:03:32,190
+a data key and a data key that was encrypted.
+87
+
+87
+
+00:03:32,190  -->  00:03:34,000
+And all the work for the encryption
+88
+
+88
+
+00:03:34,000  -->  00:03:36,710
+of that file happened client side.
+89
+
+89
+
+00:03:36,710  -->  00:03:39,500
+So now how do we decrypt that envelope?
+90
+
+90
+
+00:03:39,500  -->  00:03:42,520
+So to do so we come back from this envelope file,
+91
+
+91
+
+00:03:42,520  -->  00:03:46,320
+which contains the encrypted DEK and the encrypted file.
+92
+
+92
+
+00:03:46,320  -->  00:03:49,270
+And we're going to leverage KMS obviously one more time.
+93
+
+93
+
+00:03:49,270  -->  00:03:52,160
+So this time we're going to call the decrypt API.
+94
+
+94
+
+00:03:52,160  -->  00:03:54,570
+So with a decrypt API we can only pass
+95
+
+95
+
+00:03:54,570  -->  00:03:56,440
+up to four kilobytes of data.
+96
+
+96
+
+00:03:56,440  -->  00:03:58,650
+So what we're going to decrypt in this instance
+97
+
+97
+
+00:03:58,650  -->  00:04:00,800
+is going to be the data encryption key,
+98
+
+98
+
+00:04:00,800  -->  00:04:02,190
+so the DEK.
+99
+
+99
+
+00:04:02,190  -->  00:04:05,600
+So I'll pass through KMS, we'll check the IAM permissions.
+100
+
+100
+
+00:04:05,600  -->  00:04:07,370
+And if everything is good with KMS,
+101
+
+101
+
+00:04:07,370  -->  00:04:09,210
+we're able to decrypt that DEK.
+102
+
+102
+
+00:04:09,210  -->  00:04:11,870
+So now we get the plain-text DEK.
+103
+
+103
+
+00:04:11,870  -->  00:04:13,490
+And with this plain-text DEK,
+104
+
+104
+
+00:04:13,490  -->  00:04:16,400
+we can look at the encrypted file and the plain-text DEK
+105
+
+105
+
+00:04:16,400  -->  00:04:18,730
+and decrypt it together, client side.
+106
+
+106
+
+00:04:18,730  -->  00:04:21,650
+And here we go, we have a decrypted big file.
+107
+
+107
+
+00:04:21,650  -->  00:04:24,630
+So the whole purpose of this envelope encryption technique
+108
+
+108
+
+00:04:24,630  -->  00:04:26,290
+is to use KMS for what it's good at,
+109
+
+109
+
+00:04:26,290  -->  00:04:27,660
+which is to generate keys,
+110
+
+110
+
+00:04:27,660  -->  00:04:28,897
+and then the whole encryption
+111
+
+111
+
+00:04:28,897  -->  00:04:31,360
+and decryption happens client side.
+112
+
+112
+
+00:04:31,360  -->  00:04:35,430
+So this is complicated to implement, and so as such,
+113
+
+113
+
+00:04:35,430  -->  00:04:39,620
+AWS has implemented envelope encryption for us.
+114
+
+114
+
+00:04:39,620  -->  00:04:43,460
+And for this we can leverage the AWS encryption SDK.
+115
+
+115
+
+00:04:43,460  -->  00:04:46,400
+So this also exists as a CLI tool that we can install.
+116
+
+116
+
+00:04:46,400  -->  00:04:49,610
+And there are SDK implementation for Java,
+117
+
+117
+
+00:04:49,610  -->  00:04:51,740
+Python, C and JavaScript.
+118
+
+118
+
+00:04:51,740  -->  00:04:53,640
+And so on top of implementing
+119
+
+119
+
+00:04:53,640  -->  00:04:55,970
+this encryption pattern that I just showed you,
+120
+
+120
+
+00:04:55,970  -->  00:05:00,400
+this encryption SDK has a feature called data key caching.
+121
+
+121
+
+00:05:00,400  -->  00:05:01,980
+So in this example,
+122
+
+122
+
+00:05:01,980  -->  00:05:04,610
+instead of recreating a new data key every time
+123
+
+123
+
+00:05:04,610  -->  00:05:06,170
+we want to encrypt an object,
+124
+
+124
+
+00:05:06,170  -->  00:05:08,420
+we can reuse them instead.
+125
+
+125
+
+00:05:08,420  -->  00:05:11,500
+And so the idea with reusing data keys
+126
+
+126
+
+00:05:11,500  -->  00:05:14,310
+is that you have less calls into KMS.
+127
+
+127
+
+00:05:14,310  -->  00:05:18,170
+So you are doing less API calls and it's less expensive.
+128
+
+128
+
+00:05:18,170  -->  00:05:19,840
+But there is a security trade-off
+129
+
+129
+
+00:05:19,840  -->  00:05:22,700
+because now you're using the same data key encryption,
+130
+
+130
+
+00:05:22,700  -->  00:05:24,990
+data encryption key for many different files.
+131
+
+131
+
+00:05:24,990  -->  00:05:28,560
+So it's a trade-off between your security
+132
+
+132
+
+00:05:28,560  -->  00:05:30,360
+and your API calls.
+133
+
+133
+
+00:05:30,360  -->  00:05:32,770
+But in practice this is still used.
+134
+
+134
+
+00:05:32,770  -->  00:05:35,660
+So if you're using data key caching,
+135
+
+135
+
+00:05:35,660  -->  00:05:37,490
+then you would use something called
+136
+
+136
+
+00:05:37,490  -->  00:05:40,660
+a LocalCryptoMaterialsCache, which has a long name,
+137
+
+137
+
+00:05:40,660  -->  00:05:43,990
+to indicate how big the cache of this data key should be.
+138
+
+138
+
+00:05:43,990  -->  00:05:47,660
+And it could be that you define the max age of your key,
+139
+
+139
+
+00:05:47,660  -->  00:05:50,440
+the max number of bytes that it should encrypt,
+140
+
+140
+
+00:05:50,440  -->  00:05:53,220
+or the max number of messages that should be encrypted
+141
+
+141
+
+00:05:53,220  -->  00:05:56,930
+by this DEK before moving on to the next DEK.
+142
+
+142
+
+00:05:56,930  -->  00:06:00,780
+So this encryption SDK is extremely helpful.
+143
+
+143
+
+00:06:00,780  -->  00:06:02,700
+Now from an exam perspective,
+144
+
+144
+
+00:06:02,700  -->  00:06:03,980
+what do we need to remember?
+145
+
+145
+
+00:06:03,980  -->  00:06:07,180
+We need to remember the name of the symmetric APIs.
+146
+
+146
+
+00:06:07,180  -->  00:06:08,950
+So the first one is encrypt,
+147
+
+147
+
+00:06:08,950  -->  00:06:12,460
+to encrypt up to four kilobytes of data through KMS.
+148
+
+148
+
+00:06:12,460  -->  00:06:14,950
+The second one is GenerateDataKey,
+149
+
+149
+
+00:06:14,950  -->  00:06:18,980
+and this will generate a unique symmetric data key or DEK,
+150
+
+150
+
+00:06:18,980  -->  00:06:21,160
+and this API will do two things,
+151
+
+151
+
+00:06:21,160  -->  00:06:24,490
+it will return to us a plain-text copy of the data key
+152
+
+152
+
+00:06:24,490  -->  00:06:27,320
+and it will return to us an encrypted version
+153
+
+153
+
+00:06:27,320  -->  00:06:29,950
+of the data key with the CMK that we specify.
+154
+
+154
+
+00:06:29,950  -->  00:06:33,140
+And this is what we've used during the envelope encryption.
+155
+
+155
+
+00:06:33,140  -->  00:06:37,180
+There's another API called GenerateDataKeyWithoutPlaintext
+156
+
+156
+
+00:06:37,180  -->  00:06:40,130
+and this time it's to generate again a GEK,
+157
+
+157
+
+00:06:40,130  -->  00:06:41,470
+but not to use right now,
+158
+
+158
+
+00:06:41,470  -->  00:06:43,750
+it's to use at some point in the future.
+159
+
+159
+
+00:06:43,750  -->  00:06:46,410
+And so as such, this DEK is the same,
+160
+
+160
+
+00:06:46,410  -->  00:06:49,110
+it's also encrypted using this CMK we specify,
+161
+
+161
+
+00:06:49,110  -->  00:06:51,590
+but if you use it, we must decrypted afterwards,
+162
+
+162
+
+00:06:51,590  -->  00:06:53,430
+which is one extra step.
+163
+
+163
+
+00:06:53,430  -->  00:06:55,250
+So the exam will try to trick you
+164
+
+164
+
+00:06:55,250  -->  00:06:58,040
+to perform envelope encryption right now,
+165
+
+165
+
+00:06:58,040  -->  00:07:00,980
+you need to use GenerateDataKey API
+166
+
+166
+
+00:07:00,980  -->  00:07:04,470
+not GenerateDataKeyWithoutPlaintext.
+167
+
+167
+
+00:07:04,470  -->  00:07:06,733
+And then to decrypt anything,
+168
+
+168
+
+00:07:06,733  -->  00:07:08,850
+you need to use the decrypt API.
+169
+
+169
+
+00:07:08,850  -->  00:07:11,100
+So to decrypt up to four kilobytes of data,
+170
+
+170
+
+00:07:11,100  -->  00:07:14,520
+including an envelope encryption to decrypt the data key,
+171
+
+171
+
+00:07:14,520  -->  00:07:16,090
+the data encryption key.
+172
+
+172
+
+00:07:16,090  -->  00:07:19,100
+And finally, if you want it to generate a random number,
+173
+
+173
+
+00:07:19,100  -->  00:07:21,250
+then you have the API called GenerateRandom
+174
+
+174
+
+00:07:21,250  -->  00:07:23,550
+that will return a random byte string.
+175
+
+175
+
+00:07:23,550  -->  00:07:25,530
+So that's it for this lecture.
+176
+
+176
+
+00:07:25,530  -->  00:07:26,680
+I hope that was helpful to you
+177
+
+177
+
+00:07:26,680  -->  00:07:28,630
+and I will see you in the next lecture.

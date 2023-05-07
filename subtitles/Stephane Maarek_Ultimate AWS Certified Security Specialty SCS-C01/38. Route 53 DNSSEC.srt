@@ -1,0 +1,983 @@
+1
+1
+
+00:00:00,180  -->  00:00:03,090
+<v Instructor>Let's talk about Route 53 DNSSEC.</v>
+2
+
+2
+
+00:00:03,090  -->  00:00:04,980
+But before I introduce a solution,
+3
+
+3
+
+00:00:04,980  -->  00:00:09,120
+let me expose in a simplified version the problem.
+4
+
+4
+
+00:00:09,120  -->  00:00:11,850
+So we have DNS poisoning or spoofing.
+5
+
+5
+
+00:00:11,850  -->  00:00:13,470
+It's a type of attack.
+6
+
+6
+
+00:00:13,470  -->  00:00:15,990
+So for example say we have our web server,
+7
+
+7
+
+00:00:15,990  -->  00:00:19,260
+it's hosting the website we want, for example.com.
+8
+
+8
+
+00:00:19,260  -->  00:00:23,580
+And it is at a specific IP 9.10.11.12.
+9
+
+9
+
+00:00:23,580  -->  00:00:26,100
+So the web browser of a client
+10
+
+10
+
+00:00:26,100  -->  00:00:30,510
+is going to ask the local DNS server for example.com.
+11
+
+11
+
+00:00:30,510  -->  00:00:32,820
+Then the local DNS server needs to actually
+12
+
+12
+
+00:00:32,820  -->  00:00:33,900
+get the record for it.
+13
+
+13
+
+00:00:33,900  -->  00:00:35,400
+So it's going to figure out
+14
+
+14
+
+00:00:35,400  -->  00:00:39,600
+that Route 53 has, on its DNS, the solution
+15
+
+15
+
+00:00:39,600  -->  00:00:42,930
+for where example.com is located.
+16
+
+16
+
+00:00:42,930  -->  00:00:44,820
+So it's going to ask, for example.com
+17
+
+17
+
+00:00:44,820  -->  00:00:46,920
+and Route 53 is going to return
+18
+
+18
+
+00:00:46,920  -->  00:00:49,770
+well, it's the IP 9.10.11.12.
+19
+
+19
+
+00:00:49,770  -->  00:00:51,240
+Okay. Fair enough.
+20
+
+20
+
+00:00:51,240  -->  00:00:54,030
+But then a hacker through some process
+21
+
+21
+
+00:00:54,030  -->  00:00:57,990
+manages to inject the value example.com equals
+22
+
+22
+
+00:00:57,990  -->  00:01:02,990
+21.22.23.24 in our local DNS server.
+23
+
+23
+
+00:01:03,000  -->  00:01:06,840
+And this is because, to very much simplify it,
+24
+
+24
+
+00:01:06,840  -->  00:01:08,430
+the DNS works on the UDP protocol
+25
+
+25
+
+00:01:08,430  -->  00:01:11,190
+which makes it somewhat easy to hack
+26
+
+26
+
+00:01:11,190  -->  00:01:14,520
+and also when we don't have a DNSSEC
+27
+
+27
+
+00:01:14,520  -->  00:01:18,060
+there is no cryptographic DNS verification process.
+28
+
+28
+
+00:01:18,060  -->  00:01:21,300
+So therefore our local DNS server has been spoofed
+29
+
+29
+
+00:01:21,300  -->  00:01:25,590
+and now is going to return to our web browser, the wrong IP.
+30
+
+30
+
+00:01:25,590  -->  00:01:28,590
+So 21.22.23.24.
+31
+
+31
+
+00:01:28,590  -->  00:01:29,850
+And therefore the web browser
+32
+
+32
+
+00:01:29,850  -->  00:01:32,700
+is going to think it accesses the correct server
+33
+
+33
+
+00:01:32,700  -->  00:01:35,880
+but actually it accesses a malicious website
+34
+
+34
+
+00:01:35,880  -->  00:01:38,160
+at a different IP.
+35
+
+35
+
+00:01:38,160  -->  00:01:39,780
+So that's call DNS poisoning and spoofing
+36
+
+36
+
+00:01:39,780  -->  00:01:44,780
+and DNSSEC actually is going to help mitigate that issue.
+37
+
+37
+
+00:01:45,030  -->  00:01:49,260
+So DNSSEC is for DNS Security Extension
+38
+
+38
+
+00:01:49,260  -->  00:01:53,040
+and it's a protocol that helps you secure DNS traffic
+39
+
+39
+
+00:01:53,040  -->  00:01:56,820
+to verify the DNS data integrity as well at its origin.
+40
+
+40
+
+00:01:56,820  -->  00:02:00,420
+It only works when the hosted zones are public,
+41
+
+41
+
+00:02:00,420  -->  00:02:02,730
+so for public domain names.
+42
+
+42
+
+00:02:02,730  -->  00:02:06,240
+So Route 53 is going to support DNSSEC
+43
+
+43
+
+00:02:06,240  -->  00:02:11,190
+both for domain registration and signing of the DNS records.
+44
+
+44
+
+00:02:11,190  -->  00:02:15,270
+So the DNSSEC signing is the ability to validate
+45
+
+45
+
+00:02:15,270  -->  00:02:19,320
+that a DNS response actually came from Route 53
+46
+
+46
+
+00:02:19,320  -->  00:02:21,060
+and has not been tempered with.
+47
+
+47
+
+00:02:21,060  -->  00:02:23,370
+So no record has been injected.
+48
+
+48
+
+00:02:23,370  -->  00:02:24,750
+And how does it work?
+49
+
+49
+
+00:02:24,750  -->  00:02:27,840
+Well, Route 53 is going to sign each record
+50
+
+50
+
+00:02:27,840  -->  00:02:30,450
+in the hosted zone using a private key.
+51
+
+51
+
+00:02:30,450  -->  00:02:34,500
+And then the clients can verify with a public key
+52
+
+52
+
+00:02:34,500  -->  00:02:36,630
+that the signature is correct.
+53
+
+53
+
+00:02:36,630  -->  00:02:39,000
+So the client needs to have some sort of logic
+54
+
+54
+
+00:02:39,000  -->  00:02:42,270
+to understand the DNSSEC process.
+55
+
+55
+
+00:02:42,270  -->  00:02:46,710
+So we have two keys happening within the DNSSEC process.
+56
+
+56
+
+00:02:46,710  -->  00:02:49,290
+And the first one is managed by you
+57
+
+57
+
+00:02:49,290  -->  00:02:50,520
+and you must remember it.
+58
+
+58
+
+00:02:50,520  -->  00:02:53,670
+It is the key signing key, the KSK,
+59
+
+59
+
+00:02:53,670  -->  00:02:58,670
+and it's based on an asymmetric CMK that you create in KMS.
+60
+
+60
+
+00:02:58,740  -->  00:03:00,720
+So this key is managed by you
+61
+
+61
+
+00:03:00,720  -->  00:03:04,170
+and then you have another one managed by AWS
+62
+
+62
+
+00:03:04,170  -->  00:03:08,460
+which is call the ZSK, the zone signing key.
+63
+
+63
+
+00:03:08,460  -->  00:03:10,200
+And you must know which one is yours.
+64
+
+64
+
+00:03:10,200  -->  00:03:12,443
+So the one we manage is the KSK.
+65
+
+65
+
+00:03:12,443  -->  00:03:16,410
+The ZSK is managed by Route 53 directly.
+66
+
+66
+
+00:03:16,410  -->  00:03:18,930
+So when you enable Route 53
+67
+
+67
+
+00:03:18,930  -->  00:03:21,747
+there's going to be some DNS signing in DNSSEC
+68
+
+68
+
+00:03:21,747  -->  00:03:22,980
+and so therefore
+69
+
+69
+
+00:03:22,980  -->  00:03:25,890
+you can verify cryptographically your records.
+70
+
+70
+
+00:03:25,890  -->  00:03:29,850
+And there's also a second measure of security
+71
+
+71
+
+00:03:29,850  -->  00:03:33,060
+which is that the TTL becomes at most one week
+72
+
+72
+
+00:03:33,060  -->  00:03:34,830
+for all records in the hosted zone.
+73
+
+73
+
+00:03:34,830  -->  00:03:37,080
+And if you have a TTL of less than one week,
+74
+
+74
+
+00:03:37,080  -->  00:03:39,420
+then they're not affected, of course.
+75
+
+75
+
+00:03:39,420  -->  00:03:41,167
+So the exam may ask you,
+76
+
+76
+
+00:03:41,167  -->  00:03:44,700
+"How do you enable DNSSEC on a hosted zone?"
+77
+
+77
+
+00:03:44,700  -->  00:03:48,030
+So first one you need to prepare for DNSSEC signing
+78
+
+78
+
+00:03:48,030  -->  00:03:51,210
+that needs make sure that the zone availability
+79
+
+79
+
+00:03:51,210  -->  00:03:52,043
+is working good.
+80
+
+80
+
+00:03:52,043  -->  00:03:54,570
+That means that the DNS is responding correctly.
+81
+
+81
+
+00:03:54,570  -->  00:03:57,030
+And this is done through customer feedback.
+82
+
+82
+
+00:03:57,030  -->  00:04:01,560
+Then you lower the TTL for all your records to, for example,
+83
+
+83
+
+00:04:01,560  -->  00:04:06,270
+one hour and you lower the TTL of the SOA to,
+84
+
+84
+
+00:04:06,270  -->  00:04:08,490
+the SOA minimum, sorry, to five minutes.
+85
+
+85
+
+00:04:08,490  -->  00:04:11,460
+So this is to prepare for DNSSEC signing.
+86
+
+86
+
+00:04:11,460  -->  00:04:14,100
+Then you are going to enable DNSSEC signing
+87
+
+87
+
+00:04:14,100  -->  00:04:15,360
+on your hosted zone
+88
+
+88
+
+00:04:15,360  -->  00:04:19,590
+and you're going to create a key signing key, a KSK.
+89
+
+89
+
+00:04:19,590  -->  00:04:23,310
+So to enable DNSSEC you can use the console or the CLI.
+90
+
+90
+
+00:04:23,310  -->  00:04:27,480
+And then Route 53 is going to create a KSK for us
+91
+
+91
+
+00:04:27,480  -->  00:04:32,480
+and we link it to a customer managed CMK from KMS.
+92
+
+92
+
+00:04:32,700  -->  00:04:35,700
+So once this is done, we have enabled DNSSEC signing
+93
+
+93
+
+00:04:35,700  -->  00:04:36,960
+but that's not all.
+94
+
+94
+
+00:04:36,960  -->  00:04:39,240
+You need to establish a chain of trust.
+95
+
+95
+
+00:04:39,240  -->  00:04:40,320
+And I will show you in the next slide
+96
+
+96
+
+00:04:40,320  -->  00:04:42,450
+what that means, visually.
+97
+
+97
+
+00:04:42,450  -->  00:04:45,180
+So chain of trust means that the hosted zone,
+98
+
+98
+
+00:04:45,180  -->  00:04:47,040
+where we enable DNSSEC,
+99
+
+99
+
+00:04:47,040  -->  00:04:50,730
+is going to tell the parent hosted zone to trust it.
+100
+
+100
+
+00:04:50,730  -->  00:04:52,230
+And this is done by creating
+101
+
+101
+
+00:04:52,230  -->  00:04:57,230
+a delegation signer, DS, record in the parent zone.
+102
+
+102
+
+00:04:57,270  -->  00:04:58,110
+So it's very important.
+103
+
+103
+
+00:04:58,110  -->  00:05:03,110
+The parent zone must have a record to trust the child zone.
+104
+
+104
+
+00:05:03,870  -->  00:05:07,380
+So the DS record contains a hash of the public key
+105
+
+105
+
+00:05:07,380  -->  00:05:08,850
+that's used to sign DNS records
+106
+
+106
+
+00:05:08,850  -->  00:05:11,250
+and that's how the trust is established.
+107
+
+107
+
+00:05:11,250  -->  00:05:14,520
+So your registrar that needs to trust your child zone
+108
+
+108
+
+00:05:14,520  -->  00:05:16,110
+could be, for example, Route 53,
+109
+
+109
+
+00:05:16,110  -->  00:05:18,063
+or it could be a third party registrar.
+110
+
+110
+
+00:05:18,990  -->  00:05:22,530
+So once we've done that, we are signing all the records
+111
+
+111
+
+00:05:22,530  -->  00:05:25,290
+using the key from step two.
+112
+
+112
+
+00:05:25,290  -->  00:05:27,750
+And from step three, the parent hosted zone
+113
+
+113
+
+00:05:27,750  -->  00:05:29,790
+knows to trust that signing key
+114
+
+114
+
+00:05:29,790  -->  00:05:32,310
+thanks to the delegation signer, DS, record
+115
+
+115
+
+00:05:32,310  -->  00:05:34,410
+that we insert in the parent zone.
+116
+
+116
+
+00:05:34,410  -->  00:05:37,770
+And then finally, a very good to have in this setup
+117
+
+117
+
+00:05:37,770  -->  00:05:40,740
+is to monitor for errors using CloudWatch Alarms
+118
+
+118
+
+00:05:40,740  -->  00:05:42,090
+so you can create CloudWatch Alarms
+119
+
+119
+
+00:05:42,090  -->  00:05:44,220
+for two specific type of metrics
+120
+
+120
+
+00:05:44,220  -->  00:05:46,110
+and they can come in the exam.
+121
+
+121
+
+00:05:46,110  -->  00:05:48,300
+We have the DNSSEC internal failure
+122
+
+122
+
+00:05:48,300  -->  00:05:53,070
+and the DNSSEC key signing key needing action.
+123
+
+123
+
+00:05:53,070  -->  00:05:56,610
+Okay, so all these things allow you to enable DNSSEC.
+124
+
+124
+
+00:05:56,610  -->  00:05:58,080
+To remember them, okay:
+125
+
+125
+
+00:05:58,080  -->  00:06:00,450
+step one, step two, three, and four.
+126
+
+126
+
+00:06:00,450  -->  00:06:02,760
+And what is a chain of trust just to understand?
+127
+
+127
+
+00:06:02,760  -->  00:06:05,010
+So in a DNS way, when we, for example,
+128
+
+128
+
+00:06:05,010  -->  00:06:06,960
+query for a specific record,
+129
+
+129
+
+00:06:06,960  -->  00:06:08,970
+we're first going to go to the root DNS server
+130
+
+130
+
+00:06:08,970  -->  00:06:12,810
+which is going to point to the TLD DNS server's .com.
+131
+
+131
+
+00:06:12,810  -->  00:06:14,100
+Then the registrar,
+132
+
+132
+
+00:06:14,100  -->  00:06:17,100
+for example, for example.com on Route 53,
+133
+
+133
+
+00:06:17,100  -->  00:06:19,140
+then the hosted zone, which contains the records.
+134
+
+134
+
+00:06:19,140  -->  00:06:21,810
+And maybe if we have a second hosted zone in there
+135
+
+135
+
+00:06:21,810  -->  00:06:24,090
+that is a sub.example.com,
+136
+
+136
+
+00:06:24,090  -->  00:06:27,600
+then we may have children of children of hosted zones.
+137
+
+137
+
+00:06:27,600  -->  00:06:29,220
+So the chain of trust can only work
+138
+
+138
+
+00:06:29,220  -->  00:06:33,390
+if all of these DNS servers along the way
+139
+
+139
+
+00:06:33,390  -->  00:06:35,910
+are DNSSEC aware.
+140
+
+140
+
+00:06:35,910  -->  00:06:39,300
+So what's happening is that the root DNS server
+141
+
+141
+
+00:06:39,300  -->  00:06:43,500
+is going to have a trust on the TLD DNS server.
+142
+
+142
+
+00:06:43,500  -->  00:06:47,790
+And then the TLD DNS server is going to trust the registrar.
+143
+
+143
+
+00:06:47,790  -->  00:06:51,720
+And then we set up DNSSEC on the hosted zone
+144
+
+144
+
+00:06:51,720  -->  00:06:54,480
+and we insert a DS record
+145
+
+145
+
+00:06:54,480  -->  00:06:57,990
+so that the registrar trusts the hosted zone.
+146
+
+146
+
+00:06:57,990  -->  00:06:59,370
+And then if we have a sub hosted zone,
+147
+
+147
+
+00:06:59,370  -->  00:07:02,370
+we insert, again in the parent hosted zone,
+148
+
+148
+
+00:07:02,370  -->  00:07:07,370
+we insert a DNS DS record to trust the sub hosted zone
+149
+
+149
+
+00:07:07,530  -->  00:07:08,460
+and so on.
+150
+
+150
+
+00:07:08,460  -->  00:07:09,900
+And so that means that your client
+151
+
+151
+
+00:07:09,900  -->  00:07:11,460
+when it does its queries,
+152
+
+152
+
+00:07:11,460  -->  00:07:14,910
+is going to query every DNS server all at once.
+153
+
+153
+
+00:07:14,910  -->  00:07:18,540
+And then all along the way, thanks to this chain of trust,
+154
+
+154
+
+00:07:18,540  -->  00:07:22,080
+we can verify each DNS response and we can make sure,
+155
+
+155
+
+00:07:22,080  -->  00:07:24,120
+and this is of course some logic implemented
+156
+
+156
+
+00:07:24,120  -->  00:07:26,970
+in the libraries you're already using,
+157
+
+157
+
+00:07:26,970  -->  00:07:29,880
+we can verify that all these units responses
+158
+
+158
+
+00:07:29,880  -->  00:07:32,580
+have been encrypted correctly and signed correctly,
+159
+
+159
+
+00:07:32,580  -->  00:07:34,830
+thanks to the associated public key.
+160
+
+160
+
+00:07:34,830  -->  00:07:37,530
+And this is how DNSSEC works.
+161
+
+161
+
+00:07:37,530  -->  00:07:38,490
+So that was a pretty long lecture
+162
+
+162
+
+00:07:38,490  -->  00:07:40,740
+but hopefully now you understand how this works.
+163
+
+163
+
+00:07:40,740  -->  00:07:41,573
+I hope you liked it.
+164
+
+164
+
+00:07:41,573  -->  00:07:43,470
+And I will see you in the next lecture.
